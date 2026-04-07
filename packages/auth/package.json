@@ -1,0 +1,24 @@
+{
+  "name": "@emach/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@emach/db": "workspace:*",
+    "@emach/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@emach/config": "workspace:*",
+    "typescript": "^5"
+  }
+}
