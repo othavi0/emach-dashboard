@@ -16,13 +16,13 @@
       "command": "npx",
       "args": ["-y", "next-devtools-mcp@latest"]
     },
-    "supabase": {
-      "type": "http",
-      "url": "https://mcp.supabase.com/mcp"
-    },
     "better-auth": {
       "type": "http",
       "url": "https://mcp.inkeep.com/better-auth/mcp"
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=wrxohbzepoyscsacjzvd"
     }
   }
 }
