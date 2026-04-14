@@ -53,6 +53,29 @@ Pre-build ref: 394f7afb646ed5562a5639f3be940a676ad17a49
 | Commits landed | 2 (+1 chore scaffold) |
 | Build state | passing |
 
+## Iteration 2 — 2026-04-14 (Tier 1 inline)
+
+### Tier 1 — Auth Access (T-023..T-029)
+
+- **Status:** COMPLETE (7/7)
+- **Commit:** `22e97dd feat(auth): helpers requireRole + dashboard guard layout + actions scaffold`
+- **Files:**
+  - `apps/web/src/lib/session.ts` (modified — `requireRole` + `UserRole` + `ROLE_WEIGHT`)
+  - `apps/web/src/app/dashboard/layout.tsx` (new — guard + shell)
+  - `apps/web/src/app/dashboard/_components/app-sidebar.tsx` (new — stub, filled in T-031)
+  - `apps/web/src/app/dashboard/(inventory)/tools/actions.ts` (new — scaffolded guards)
+  - `packages/auth/src/index.ts` (modified — `user.additionalFields.role` config)
+- **Validation:** `ultracite check` clean, `bun --filter=web run build` exit 0
+- **Key fix:** better-auth `additionalFields.role` required for `Session['user']['role']` TS inference — drizzle schema column alone is insufficient
+
+### Cumulative
+
+| Tier | Tasks | DONE | PARTIAL | Commits |
+|------|-------|------|---------|---------|
+| 0    | 22    | 21   | 1 (T-020) | 2 (9f1fa7f, ed48462) |
+| 1    | 7     | 7    | 0       | 1 (22e97dd) |
+| **Total** | **29** | **28** | **1** | **3 feat + 2 chore** |
+
 ### Next Tier
 
-Tier 1 = 7 tasks (auth-access): T-023..T-029. All depend on T-016 (role column) + T-019 (drizzleAdapter wiring) — both satisfied. Tier 1 unblocked.
+Tier 2 = 10 tasks (navigation-shell R1–R10): T-030..T-039. Depend on T-025 (layout) + T-002 (design tokens). Both satisfied. Tier 2 unblocked — fills out `AppSidebar` nav tree, active highlight, footer, `(inventory)` route group with top tabs, mobile collapse.
