@@ -1,0 +1,106 @@
+---
+created: "2026-04-14"
+last_edited: "2026-04-14"
+---
+
+# Cavekit Overview — emach-dashboard
+
+**Project:** emach-dashboard — Sistema de gestão de estoque e ecommerce E-mach
+**Phase:** 1 (Foundation)
+**Stack:** Bun + Turbo monorepo, Next.js 16.2, React 19, Tailwind v4, shadcn/ui (`base-lyra`), Drizzle ORM (pg), better-auth 1.5.5, Supabase local
+
+---
+
+## Domain Index
+
+| Kit | File | Domain | One-Line Description |
+|-----|------|--------|----------------------|
+| 1 | `cavekit-design-foundation.md` | UI/Tokens | Rewrite globals.css to the DESIGN.md warm parchment/terracotta dark-only palette; disable rings; configure forced dark mode |
+| 2 | `cavekit-data-model.md` | Database | Full Drizzle schema for tools, categories, suppliers, branches, stock levels, promotions (schema only), and API keys (schema only); extend user with role |
+| 3 | `cavekit-auth-access.md` | Auth | Extend session type for role, add `requireRole` helper, guard `/dashboard/*`, gate tool mutations to admin |
+| 4 | `cavekit-navigation-shell.md` | UI/Shell | Sidebar navigation + contextual inventory tabs for the dashboard subtree; suppress AppHeader on dashboard routes |
+| 5 | `cavekit-inventory-tools.md` | Feature | Full tools CRUD: list table with URL filters, create/edit form, Supabase Storage image upload, delete confirm, read-only detail view |
+
+---
+
+## Requirement Count per Kit
+
+| Kit | Requirements | Acceptance Criteria (total) | Manual-Check Items |
+|-----|-------------|----------------------------|--------------------|
+| cavekit-design-foundation.md | R1–R12 (12) | 36 | 5 |
+| cavekit-data-model.md | R1–R11 (11) | 44 | 2 |
+| cavekit-auth-access.md | R1–R7 (7) | 24 | 3 |
+| cavekit-navigation-shell.md | R1–R10 (10) | 30 | 4 |
+| cavekit-inventory-tools.md | R1–R13 (13) | 45 | 4 |
+| **Total** | **53** | **179** | **18** |
+
+---
+
+## Cross-Reference Map
+
+| Kit | Depends On | Is Depended On By |
+|-----|-----------|-------------------|
+| `cavekit-design-foundation.md` | — | `cavekit-navigation-shell.md` (sidebar tokens) |
+| `cavekit-data-model.md` | — | `cavekit-auth-access.md` (role column), `cavekit-inventory-tools.md` (tool/stock schema) |
+| `cavekit-auth-access.md` | `cavekit-data-model.md` (R5, R8) | `cavekit-navigation-shell.md` (session guard), `cavekit-inventory-tools.md` (requireRole) |
+| `cavekit-navigation-shell.md` | `cavekit-design-foundation.md` (tokens), `cavekit-auth-access.md` (guard) | `cavekit-inventory-tools.md` (route group host) |
+| `cavekit-inventory-tools.md` | `cavekit-data-model.md` (R1, R2, R7), `cavekit-auth-access.md` (R2, R4), `cavekit-navigation-shell.md` (R6) | — |
+
+---
+
+## Dependency Graph — Implementation Order
+
+Kits 1 and 2 have no dependencies and can be implemented in parallel.
+
+```
+Kit 1 (Design Foundation) ──┐
+                             ↓
+Kit 2 (Data Model) ─────────┬──→  Kit 3 (Auth Access) ──→  Kit 4 (Navigation Shell) ──→  Kit 5 (Inventory Tools)
+                             └──────────────────────────────────────────────────────────────↗
+```
+
+**Recommended implementation order:**
+
+| Step | Kits | Parallelizable? | Notes |
+|------|------|-----------------|-------|
+| 1 | Kit 1 + Kit 2 | Yes — both independent | Kit 2's `db:push` can run while Kit 1 is in progress |
+| 2 | Kit 3 | After Kit 2 R5 + R8 | Needs role column and drizzleAdapter update |
+| 3 | Kit 4 | After Kit 1 (tokens) + Kit 3 (guard) | Sidebar shell and layout |
+| 4 | Kit 5 | After Kit 2 R1+R2+R7 + Kit 3 R2+R4 + Kit 4 R6 | Full CRUD feature |
+
+---
+
+## Phase 2 Deferred Items
+
+These items were explicitly decided to be out of scope for Phase 1. Each should become its own cavekit when Phase 2 begins.
+
+| Deferred Item | Reason Deferred | Suggested Phase 2 Kit |
+|---------------|-----------------|----------------------|
+| Promotions CRUD UI (create/edit/delete promotions in the dashboard) | Schema exists (data-model R3); UI skipped in Phase 1 | `cavekit-promotions-crud.md` |
+| Public REST API endpoints (read tool list, read stock, read promotions) | Infrastructure design pending; API key schema exists | `cavekit-public-api.md` |
+| API key validation middleware (verify `X-API-Key` header against `apiKey.keyHash`) | Depends on public API kit | `cavekit-public-api.md` |
+| `DISABLE_SIGN_UP` env flag wiring (block new registrations in production) | Low priority; documented in auth kit R5 | `cavekit-auth-access.md` (revision) |
+| Stock level editing UI (adjust per-branch quantity on the Estoque page) | Phase 1 stock is read-only; editing requires separate UX design | `cavekit-stock-management.md` |
+| CSV import/export for tools or stock | Not in user scope for Phase 1 | `cavekit-inventory-tools.md` (revision) |
+| Audit log (track mutations with actor, timestamp, before/after) | Requires additional schema and UI; no Phase 1 requirement | `cavekit-audit-log.md` |
+
+---
+
+## Global Constraints (apply to all kits)
+
+1. **NEVER edit `packages/ui/src/components/*`** — shadcn convention. All customization through `globals.css` tokens or per-route `_components/` only.
+2. **Dark-mode only.** `forcedTheme="dark"`, `enableSystem={false}`. No light token block.
+3. **No rings anywhere.** `--ring` and `--sidebar-ring` are transparent. Focus uses `:focus-visible` CSS outline (2px solid terracotta). No Tailwind `ring-*` utilities on focusable elements.
+4. **Per-route components.** Each dashboard route has its own `_components/` folder inside the route directory. Cross-route shared components go in `apps/web/src/components/`.
+5. **All visible text in pt-BR.** Technical identifiers (variable names, file names) stay in English.
+6. **Conventional Commits in pt-BR.** Commit messages use `feat:`, `fix:`, `refactor:` etc. with Portuguese descriptions.
+7. **Lint gate.** `bun x ultracite check` must pass after every kit implementation.
+
+---
+
+## Changelog
+
+| Date | Change |
+|------|--------|
+| 2026-04-14 | Initial Phase 1 overview — 6 kits, 60 requirements, 197 acceptance criteria |
+| 2026-04-14 | Removed `cavekit-karpathy-skill.md` — karpathy-guidelines already installed as user-level skill. Scope reduced to 5 kits, 53 requirements, 179 acceptance criteria |
