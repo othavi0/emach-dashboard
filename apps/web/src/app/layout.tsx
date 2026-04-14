@@ -5,8 +5,8 @@ import AppHeader from "@/components/app-header";
 import Providers from "@/components/providers";
 
 export const metadata: Metadata = {
-	title: "emach CRM",
-	description: "Base inicial do dashboard CRM da emach.",
+	title: "emach dashboard",
+	description: "Dashboard de gestao de estoque e ecommerce da E-mach.",
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="pt-BR" suppressHydrationWarning>
+		<html className="dark" lang="pt-BR" suppressHydrationWarning>
 			<body className="min-h-svh antialiased">
 				<Providers>
 					<div className="flex min-h-svh flex-col bg-background">
