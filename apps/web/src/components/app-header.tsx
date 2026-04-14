@@ -18,6 +18,10 @@ export default function AppHeader() {
 
 	const isDashboardRoute = pathname.startsWith(DASHBOARD_ROUTE);
 
+	if (isDashboardRoute) {
+		return null;
+	}
+
 	const handleSignOut = async () => {
 		await authClient.signOut({
 			fetchOptions: {
