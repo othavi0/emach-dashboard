@@ -4,13 +4,28 @@
 
 Armazena imagens de produto das ferramentas. Bucket **público** — leitura direta sem autenticação.
 
-### Criar via CLI
+### Criar via Dashboard (cloud)
 
-```bash
-npx supabase storage create tool-images --public
+1. Supabase Dashboard → Storage → **New bucket**
+2. Nome: `tool-images`
+3. Public: **ON**
+4. File size limit: **5 MB**
+5. Allowed MIME types: `image/png`, `image/jpeg`, `image/webp`
+
+> A CLI `supabase storage` (v2.91.x) só tem `cp/ls/mv/rm` — não cria bucket. Use Dashboard ou SQL.
+
+### Criar via SQL (alternativa)
+
+```sql
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'tool-images',
+  'tool-images',
+  true,
+  5242880,
+  ARRAY['image/png', 'image/jpeg', 'image/webp']
+);
 ```
-
-Rodar uma vez após provisionar o projeto Supabase (local ou remoto). A flag `--public` define política de leitura pública — imagens servidas via CDN Supabase sem token assinado.
 
 ### Padrão de URL pública
 

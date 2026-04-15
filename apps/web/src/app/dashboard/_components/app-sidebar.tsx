@@ -20,6 +20,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
 interface NavItem {
+	disabled?: boolean;
 	href: Route;
 	label: string;
 }
@@ -36,15 +37,31 @@ const NAV_GROUPS: NavGroup[] = [
 		label: "Estoque",
 		items: [
 			{ label: "Ferramentas", href: "/dashboard/tools" as Route },
-			{ label: "Estoque por Filial", href: "/dashboard/stock" as Route },
+			{
+				label: "Estoque por Filial",
+				href: "/dashboard/stock" as Route,
+				disabled: true,
+			},
 		],
 	},
 	{
 		label: "Configurações",
 		items: [
-			{ label: "Categorias", href: "/dashboard/categories" as Route },
-			{ label: "Fornecedores", href: "/dashboard/suppliers" as Route },
-			{ label: "Filiais", href: "/dashboard/branches" as Route },
+			{
+				label: "Categorias",
+				href: "/dashboard/categories" as Route,
+				disabled: true,
+			},
+			{
+				label: "Fornecedores",
+				href: "/dashboard/suppliers" as Route,
+				disabled: true,
+			},
+			{
+				label: "Filiais",
+				href: "/dashboard/branches" as Route,
+				disabled: true,
+			},
 		],
 	},
 ];
@@ -140,14 +157,28 @@ export function AppSidebar() {
 						<SidebarGroupLabel>{group.label}</SidebarGroupLabel>
 						<SidebarGroupContent>
 							<SidebarMenu>
-								{group.items.map((item) => (
-									<SidebarMenuItem key={item.href}>
-										<SidebarMenuButton
-											isActive={isActive(pathname, item.href)}
-											render={<Link href={item.href}>{item.label}</Link>}
-										/>
-									</SidebarMenuItem>
-								))}
+								{group.items.map((item) =>
+									item.disabled ? (
+										<SidebarMenuItem key={item.href}>
+											<div
+												aria-disabled="true"
+												className="flex h-8 w-full items-center gap-2 rounded-none p-2 text-left text-xs opacity-50"
+											>
+												<span>{item.label}</span>
+												<span className="ml-auto text-[10px] text-muted-foreground uppercase tracking-wide">
+													em breve
+												</span>
+											</div>
+										</SidebarMenuItem>
+									) : (
+										<SidebarMenuItem key={item.href}>
+											<SidebarMenuButton
+												isActive={isActive(pathname, item.href)}
+												render={<Link href={item.href}>{item.label}</Link>}
+											/>
+										</SidebarMenuItem>
+									)
+								)}
 							</SidebarMenu>
 						</SidebarGroupContent>
 					</SidebarGroup>

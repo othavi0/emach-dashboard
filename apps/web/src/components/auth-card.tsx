@@ -22,7 +22,7 @@ type AuthMode = "sign-in" | "sign-up";
 const authCopy = {
 	"sign-in": {
 		title: "Entrar",
-		description: "Acesse a base inicial do CRM com email e senha.",
+		description: "Acesse o painel de gestão da E-mach Ferramentas.",
 		submitLabel: "Entrar",
 		pendingLabel: "Entrando...",
 		switchLabel: "Criar conta",
@@ -30,8 +30,7 @@ const authCopy = {
 	},
 	"sign-up": {
 		title: "Criar conta",
-		description:
-			"Cadastre o primeiro usuario para comecar a montar o dashboard.",
+		description: "Cadastre o primeiro usuário do painel E-mach Ferramentas.",
 		submitLabel: "Criar conta",
 		pendingLabel: "Criando conta...",
 		switchLabel: "Ja tenho conta",
@@ -108,7 +107,11 @@ export default function AuthCard() {
 			</CardHeader>
 
 			<CardContent>
-				<form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+				<form
+					className="flex flex-col gap-4"
+					method="post"
+					onSubmit={handleSubmit}
+				>
 					{mode === "sign-up" ? (
 						<div className="flex flex-col gap-2">
 							<Label htmlFor="name">Nome</Label>

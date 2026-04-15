@@ -67,7 +67,7 @@ export default function AppHeader() {
 						className="font-semibold text-sm uppercase tracking-[0.24em]"
 						href={session?.user ? DASHBOARD_ROUTE : LOGIN_ROUTE}
 					>
-						emach crm
+						emach ferramentas
 					</Link>
 
 					{session?.user ? (
