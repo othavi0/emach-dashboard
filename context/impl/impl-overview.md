@@ -22,7 +22,7 @@ Build site: [build-site.md](../plans/build-site.md)
 
 Total Phase 1: **68 tasks**, 5 kits, 179 ACs.
 
-## Phase 2 — Stock Management (AUTONOMOUS DONE, MANUAL PENDING)
+## Phase 2 — Stock Management (COMPLETE ✅)
 
 Build site: [build-site-phase-2.md](../plans/build-site-phase-2.md)
 
@@ -38,22 +38,14 @@ Impl files scoped:
 | 3 | 6 | 6 | 0 | `68e6b5c` |
 | 4 | 5 | 5 | 0 | `21414e8` |
 | 5 | 3 | 3 | 0 | `f3a0448` |
-| 6 | 2 | 1 | 1 (T-124 manual) | `9c3ed59` |
-| **Total** | **25** | **24** | **1** | 6 feat + drift sync + kits chore |
+| 6 | 2 | 2 | 0 | `9c3ed59` + manual validation |
+| **Total** | **25** | **25** | **0** | 6 feat + drift sync + kits chore + PR #1 |
 
 Total Phase 2: **25 tasks**, 2 kits (branches-crud + stock-management), 139 ACs.
 
-**Autonomous progress: 24/24 non-manual tasks COMPLETE (100%)**
+**Phase 2 progress: 25/25 tasks COMPLETE (100%)** — manual checks validados pelo usuario em 2026-04-15.
 
-### Phase 2 Manual Verification Pendente Usuario
-
-T-124 PARTIAL aguarda 2 verificacoes:
-
-1. **Kit 7 R8 AC14 — Concurrency test**
-   Abra 2 sessoes admin. Ajuste mesma (tool, branch) em ambas simultaneamente. Verifique que os 2 movimentos aparecem em sequencia, o segundo tem `previousQty` igual ao `newQty` do primeiro, e nenhum erro de duplicate-key.
-
-2. **Kit 7 R13 AC3 — E2E smoke test**
-   `bun dev` (port 3001). Login admin. Criar nova filial em `/dashboard/branches/new`. Navegar para `/dashboard/tools/[id]/stock`. Clicar "Ajustar" na filial, set qty=10, motivo="Entrada de compra", submit. Confirmar: quantidade atualiza de 0 para 10, secao historico mostra nova row com delta +10, reason label "Entrada de compra", actor name do admin.
+**PR:** https://github.com/othavioquiliao/emach-dashboard/pull/1 (gracious-tu → main)
 
 ## Project-wide stats
 
