@@ -17,8 +17,8 @@ Kit: context/kits/cavekit-branches-crud.md
 | T-102 | R2 (AC7) | deleteBranch action com triple revalidatePath | DONE | (pending) | `apps/web/src/app/dashboard/branches/actions.ts` (revalidatePath /dashboard/stock + /dashboard/tools layout) |
 | T-103 | R3 | Branches list page | DONE | (pending) | `apps/web/src/app/dashboard/branches/page.tsx`, `_components/branches-table.tsx`, `_components/delete-branch-dialog.tsx` (stub para T-106 enhance) |
 | T-104 | R4 | Create branch page + shared form | DONE | (pending) | `apps/web/src/app/dashboard/branches/new/page.tsx`, `_components/branch-form.tsx` |
-| T-105 | R5 | Edit branch page reusing form | PENDING | — | — |
-| T-106 | R6 | Delete confirmation dialog | PENDING | — | — |
-| T-107 | R7 | Remove disabled flag from "Filiais" sidebar item | PENDING | — | — |
+| T-105 | R5 | Edit branch page reusing form | DONE | (pending) | `apps/web/src/app/dashboard/branches/[id]/edit/page.tsx` (notFound() em null, reusa BranchForm com mode=edit) |
+| T-106 | R6 | Delete confirmation dialog | DONE | (pending) | `apps/web/src/app/dashboard/branches/_components/delete-branch-dialog.tsx` (AlertDialog base-ui, warning cascade + preservacao audit) |
+| T-107 | R7 | Remove disabled flag from "Filiais" sidebar item | DONE | (pending) | `apps/web/src/app/dashboard/_components/app-sidebar.tsx` (removido `disabled: true` do item Filiais em "Configurações") |
 | T-108 | R8 | pt-BR audit | PENDING | — | — |
 | T-109 | R9 | Validation gate | PENDING | — | — |
