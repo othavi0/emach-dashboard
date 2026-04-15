@@ -25,8 +25,8 @@ Kit: context/kits/cavekit-stock-management.md
 | T-120 | R7 | Adjust stock dialog | DONE | (pending) | `apps/web/src/app/dashboard/(inventory)/stock/_components/adjust-stock-dialog.tsx` + stock-adjust-button.tsx refatorado. Dialog base-ui com current qty readonly, Input numerico min 0, Select motivo + Textarea condicional quando 'outro'. Submit via transition. Toast pos-success. Validation Zod client + server. |
 | T-121 | R4 | Enable Estoque tab in inventory-tabs | DONE | (pending) | `apps/web/src/app/dashboard/_components/inventory-tabs.tsx` (Link para /dashboard/stock, active state via usePathname, Promocoes mantido disabled). Arquivos stock movidos para `(inventory)/stock/` para receber layout de tabs. |
 | T-122 | R11 | Remove disabled flag from Estoque por Filial sidebar | DONE | (pending) | `apps/web/src/app/dashboard/_components/app-sidebar.tsx` (removido `disabled: true` do item Estoque por Filial em grupo "Estoque") |
-| T-123 | R12 | pt-BR audit | PENDING | — | — |
-| T-124 | R8 AC14 + R13 | Validation gate + 2 manual checks | PENDING | — | — |
+| T-123 | R12 | pt-BR audit | DONE | (pending) | Grep audit de "Create/Save/Stock/Quantity/Reason" em stock routes retorna apenas identifiers TS, URL paths, comments e file imports. Zero leakage em strings user-visible. Todas labels em pt-BR acentuado ("Estoque por Filial", "Histórico de movimentações", "Motivo", "Observação", etc.) |
+| T-124 | R8 AC14 + R13 | Validation gate + 2 manual checks | PARTIAL | (pending) | Automated: `bun x ultracite check` 142 files clean. `bun --filter=web run build` exit 0 com 13 rotas. Manual pendente usuario: (1) R8 AC14 teste concorrencia 2 admins simultaneos adjust mesmo (tool, branch) → 2 movimentos chain correto. (2) R13 AC3 smoke E2E `bun dev` → criar filial → ajustar estoque → linha de historico aparece. |
 
 ## Dead Ends Avoided
 
