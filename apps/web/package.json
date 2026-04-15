@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@emach/auth": "workspace:*",
+    "@emach/db": "workspace:*",
     "@emach/ui": "workspace:*",
     "babel-plugin-react-compiler": "^1.0.0",
     "better-auth": "catalog:",
