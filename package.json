@@ -34,8 +34,11 @@
     "fix": "ultracite fix"
   },
   "dependencies": {
+    "@emach/db": "workspace:*",
     "@emach/env": "workspace:*",
+    "@supabase/supabase-js": "^2.103.0",
     "dotenv": "catalog:",
+    "drizzle-orm": "^0.45.2",
     "zod": "catalog:"
   },
   "devDependencies": {
