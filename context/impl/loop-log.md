@@ -151,3 +151,91 @@ User must run locally to verify Tier 4 manual checks:
 3. `npx supabase storage create tool-images --public` (resolves T-066)
 4. `bun dev` (port 3001)
 5. Execute manual checks T-056 through T-068 in browser per build-site.md Tier 4 table
+
+---
+
+# Phase 2 — Build site: context/plans/build-site-phase-2.md
+Pre-build ref: 0c362f0
+
+## Iteration 1 — 2026-04-15 (Tier 0, inline execution)
+
+**Note:** Dispatched 3 parallel `ck:task-builder` packets with `isolation: worktree`. All 3 returned fabricated output with `tool_uses: 0` — agent runner silent failure. Recovery: switched to inline execution in parent (opus = EXECUTION_MODEL, no model mismatch).
+
+- T-100: branch Zod schema — DONE. File: `apps/web/src/app/dashboard/branches/_components/branch-schema.ts`. Ultracite P. Next: T-101
+- T-110: stock_movement Drizzle schema — DONE. FKs set null preservam audit. Index `(tool_id, created_at DESC)`. File: `packages/db/src/schema/stock-movements.ts`. Ultracite P, tsc db P. Next: T-111, T-112
+- T-113: stockAdjustmentSchema Zod — DONE. 2 refinements (outro→note obrig, !outro→note vazia). File: `apps/web/src/app/dashboard/stock/_components/stock-adjustment-schema.ts`. Ultracite P. Next: T-114
+
+Commits: eb0d081 chore drift sync, 168e945 chore kits P2, 0779412 feat T-100 T-110 T-113.
+
+**Build state:** `bun --filter=web run build` NOT run — worktree .env missing, user declined copy. Schemas sao type-only, sem runtime path. Validation deferred to Tier 2 (T-112 db:push) ou Tier 5/6 (validation gates T-109, T-124) quando rota/action files existirem.
+
+### Wave 1 tally
+
+| Tier | Tasks | DONE | PENDING |
+|------|-------|------|---------|
+| 0    | 3     | 3    | 0       |
+| **Progresso Phase 2**: 3/25 tasks (12%) |
+
+## Iteration 2 — 2026-04-15 (Tier 1, inline)
+
+- T-101: branches actions CRUD — DONE. Files: actions.ts. requireRole admin + safeParse retorno ok/error. Commit ea87b19. Next: T-102..T-104
+- T-111: stock_movement em createDb — DONE. Import direto (no barrel — T-017 convention). Commit ea87b19. Next: T-112
+
+## Iteration 3 — 2026-04-15 (Tier 2, inline)
+
+- T-102: deleteBranch triple revalidate — DONE. +revalidatePath stock + tools layout. Commit 582f7fb. Next: T-106
+- T-103: /dashboard/branches list page — DONE. Server Component + branches-table.tsx client + delete-branch-dialog stub. Commit 582f7fb. Next: T-106 upgrade dialog
+- T-104: /dashboard/branches/new + branch-form.tsx — DONE. Shared form com mode=create. Commit 582f7fb. Next: T-105 edit
+- T-112: db:push remota — DONE. Supabase remota db.wrxohbzepoyscsacjzvd.supabase.co aplicou stock_movement + 2 indexes clean. Commit 582f7fb. Next: T-114
+
+## Iteration 4 — 2026-04-15 (Tier 3, inline)
+
+- T-105: branches [id]/edit page — DONE. notFound null, reusa BranchForm mode=edit. Commit 68e6b5c
+- T-106: delete-branch-dialog AlertDialog upgrade — DONE. base-ui AlertDialog + warning preservacao audit. Commit 68e6b5c
+- T-107: Filiais sidebar flag flip — DONE. removido disabled. Commit 68e6b5c
+- T-114: adjustStock action — DONE. db.transaction + INSERT ON CONFLICT + SELECT FOR UPDATE + UPDATE + INSERT mov. Commit 68e6b5c
+- T-115: getStockMovements query — DONE. LEFT JOIN branch + user, expose branchId/actorId. Commit 68e6b5c
+- T-116: /dashboard/stock consolidated — DONE. raw SQL json_agg, popover breakdown filiais, empty state. Commit 68e6b5c
+- **Dead end resolvido**: @emach/db faltava como dep explicita em apps/web. TS moduleResolution bundler nao encontrou stock-movements novo. Fix: add @emach/db workspace:* + bun install. Arquivos stock movidos para (inventory)/stock/ para receber layout de tabs.
+
+## Iteration 5 — 2026-04-15 (Tier 4, inline)
+
+- T-108: pt-BR audit branches — DONE. grep limpo. Commit 21414e8
+- T-117: URL filters ?q/?categoria/?ordem — DONE. stock-filters.tsx client + page.tsx server. Commit 21414e8
+- T-118: per-tool stock page — DONE. Server Component, listBranches + stock_level merge, StockAdjustButton stub. Commit 21414e8
+- T-121: Estoque tab enabled — DONE. inventory-tabs.tsx Link + usePathname active state. Commit 21414e8
+- T-122: Estoque por Filial sidebar flag flip — DONE. Commit 21414e8
+
+## Iteration 6 — 2026-04-15 (Tier 5, inline)
+
+- T-109: validation gate branches — DONE. ultracite + build pass. Commit f3a0448
+- T-119: Historico section com null labels — DONE. Filial removida italic muted, delta colorido, pt-BR reason map. Commit f3a0448
+- T-120: adjust-stock-dialog full — DONE. Dialog base-ui + Zod client validation + toast + router.refresh. StockAdjustButton refatorado como wrapper. Commit f3a0448
+
+## Iteration 7 — 2026-04-15 (Tier 6, inline)
+
+- T-123: pt-BR audit stock — DONE. grep limpo, todos strings visiveis acentuados. Commit pendente
+- T-124: validation gate final — PARTIAL. Automated: ultracite check 142 files clean, bun build exit 0, 13 rotas. Manual pendente usuario: (a) concurrent admin test R8 AC14, (b) E2E smoke R13 AC3.
+
+### Cumulative Phase 2 (7 waves, 7 commits feat + 3 chore)
+
+| Tier | Tasks | DONE | PARTIAL | Commits |
+|------|-------|------|---------|---------|
+| 0    | 3     | 3    | 0       | 0779412 |
+| 1    | 2     | 2    | 0       | ea87b19 |
+| 2    | 4     | 4    | 0       | 582f7fb |
+| 3    | 6     | 6    | 0       | 68e6b5c |
+| 4    | 5     | 5    | 0       | 21414e8 |
+| 5    | 3     | 3    | 0       | f3a0448 |
+| 6    | 2     | 1    | 1 (T-124 manual)| (pending) |
+| **Total** | **25** | **24** | **1** | 6 feat + drift + kits |
+
+**Autonomous progress: 24/24 non-manual tasks COMPLETE (100%)** (T-124 PARTIAL aguarda 2 manual checks do usuario)
+
+### Manual Verification Needed from User
+
+Rode localmente para fechar T-124:
+
+1. **R8 AC14 — Concurrency:** Abra 2 sessoes admin no browser. Navegue ambas para `/dashboard/tools/[id]/stock` mesma tool. Clique "Ajustar" na mesma filial em ambas. Submeta ajustes dentro de ~1 segundo. Verifique: ambos movimentos aparecem em ordem, o segundo tem previousQty = primeiro newQty, nenhuma duplicate-key exception.
+
+2. **R13 AC3 — E2E smoke:** `bun dev` (port 3001). Login como admin. Crie nova filial em `/dashboard/branches/new`. Navegue para `/dashboard/tools/[tool-id]/stock`. Clique "Ajustar" na filial criada. Set quantidade = 10, motivo = "Entrada de compra", submit. Verifique: quantidade da filial vai de 0 para 10, secao Historico mostra nova row com delta +10, reason pt-BR "Entrada de compra", actor name do admin logado.
