@@ -20,5 +20,5 @@ Kit: context/kits/cavekit-branches-crud.md
 | T-105 | R5 | Edit branch page reusing form | DONE | (pending) | `apps/web/src/app/dashboard/branches/[id]/edit/page.tsx` (notFound() em null, reusa BranchForm com mode=edit) |
 | T-106 | R6 | Delete confirmation dialog | DONE | (pending) | `apps/web/src/app/dashboard/branches/_components/delete-branch-dialog.tsx` (AlertDialog base-ui, warning cascade + preservacao audit) |
 | T-107 | R7 | Remove disabled flag from "Filiais" sidebar item | DONE | (pending) | `apps/web/src/app/dashboard/_components/app-sidebar.tsx` (removido `disabled: true` do item Filiais em "Configurações") |
-| T-108 | R8 | pt-BR audit | PENDING | — | — |
+| T-108 | R8 | pt-BR audit | DONE | (pending) | Grep audit de "create/save/delete/address/edit" em `apps/web/src/app/dashboard/branches/` retorna apenas identifiers TS e URL paths. Zero leakage em strings user-visible. |
 | T-109 | R9 | Validation gate | PENDING | — | — |
