@@ -31,8 +31,12 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 	const currentCategory = searchParams.get("category") ?? ALL;
 	const currentVisibility = searchParams.get("visible") ?? ALL;
 
-	// debounce search input → URL
+	// debounce search input → URL (guard to skip when unchanged)
 	useEffect(() => {
+		const currentQ = searchParams.get("q") ?? "";
+		if (query === currentQ) {
+			return;
+		}
 		const handle = setTimeout(() => {
 			const next = new URLSearchParams(searchParams.toString());
 			if (query) {
@@ -40,7 +44,8 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 			} else {
 				next.delete("q");
 			}
-			router.replace(`/dashboard/tools?${next.toString()}`);
+			const qs = next.toString();
+			router.replace(qs ? `/dashboard/tools?${qs}` : "/dashboard/tools");
 		}, DEBOUNCE_MS);
 		return () => clearTimeout(handle);
 	}, [query, router, searchParams]);
@@ -52,7 +57,8 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 		} else {
 			next.set(key, value);
 		}
-		router.replace(`/dashboard/tools?${next.toString()}`);
+		const qs = next.toString();
+		router.replace(qs ? `/dashboard/tools?${qs}` : "/dashboard/tools");
 	}
 
 	return (
@@ -78,7 +84,13 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 					value={currentCategory}
 				>
 					<SelectTrigger id="tool-cat">
-						<SelectValue />
+						<SelectValue>
+							{(v: string) =>
+								v === ALL
+									? "Todas"
+									: (categories.find((c) => c.id === v)?.name ?? "Todas")
+							}
+						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value={ALL}>Todas</SelectItem>
@@ -100,7 +112,17 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 					value={currentVisibility}
 				>
 					<SelectTrigger id="tool-vis">
-						<SelectValue />
+						<SelectValue>
+							{(v: string) => {
+								if (v === "true") {
+									return "Visível";
+								}
+								if (v === "false") {
+									return "Oculto";
+								}
+								return "Todos";
+							}}
+						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value={ALL}>Todos</SelectItem>

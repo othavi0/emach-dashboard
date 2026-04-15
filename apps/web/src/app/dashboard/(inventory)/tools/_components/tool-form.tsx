@@ -62,6 +62,26 @@ function SubmitLabel({
 	return <>{mode === "create" ? "Criar ferramenta" : "Salvar alterações"}</>;
 }
 
+const BRL_FORMATTER = new Intl.NumberFormat("pt-BR", {
+	style: "currency",
+	currency: "BRL",
+});
+
+function formatBRL(reais: number | undefined): string {
+	if (reais === undefined || Number.isNaN(reais)) {
+		return "";
+	}
+	return BRL_FORMATTER.format(reais);
+}
+
+function parseBRLToReais(display: string): number | undefined {
+	const digits = display.replace(/\D/g, "");
+	if (!digits) {
+		return;
+	}
+	return Number(digits) / 100;
+}
+
 const EMPTY_VALUES: ToolFormValues = {
 	name: "",
 	slug: "",
@@ -105,14 +125,6 @@ export function ToolForm({
 		value: ToolFormValues[K]
 	) {
 		setValues((prev) => ({ ...prev, [key]: value }));
-	}
-
-	function toNumeric(raw: string): number | undefined {
-		if (raw === "") {
-			return;
-		}
-		const parsed = Number.parseFloat(raw);
-		return Number.isNaN(parsed) ? undefined : parsed;
 	}
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -163,6 +175,7 @@ export function ToolForm({
 						<Input
 							id="name"
 							onChange={(e) => update("name", e.target.value)}
+							placeholder="Ex: Furadeira de impacto 700W"
 							value={values.name}
 						/>
 						{errors.name && (
@@ -178,6 +191,7 @@ export function ToolForm({
 								setSlugTouched(true);
 								update("slug", e.target.value);
 							}}
+							placeholder="gerado-automaticamente-do-nome"
 							value={values.slug}
 						/>
 						{errors.slug && (
@@ -190,6 +204,7 @@ export function ToolForm({
 						<Input
 							id="sku"
 							onChange={(e) => update("sku", e.target.value)}
+							placeholder="Ex: FUR-700-BSH"
 							value={values.sku}
 						/>
 						{errors.sku && (
@@ -202,6 +217,7 @@ export function ToolForm({
 						<Textarea
 							id="description"
 							onChange={(e) => update("description", e.target.value)}
+							placeholder="Descreva especificações técnicas, destaques e uso recomendado."
 							rows={4}
 							value={values.description ?? ""}
 						/>
@@ -240,10 +256,10 @@ export function ToolForm({
 					<Label htmlFor="price">Preço</Label>
 					<Input
 						id="price"
-						onChange={(e) => update("price", toNumeric(e.target.value))}
-						step="0.01"
-						type="number"
-						value={values.price ?? ""}
+						inputMode="numeric"
+						onChange={(e) => update("price", parseBRLToReais(e.target.value))}
+						placeholder="R$ 0,00"
+						value={formatBRL(values.price)}
 					/>
 					{errors.price && (
 						<p className="text-destructive text-xs">{errors.price}</p>
@@ -254,10 +270,10 @@ export function ToolForm({
 					<Label htmlFor="cost">Custo</Label>
 					<Input
 						id="cost"
-						onChange={(e) => update("cost", toNumeric(e.target.value))}
-						step="0.01"
-						type="number"
-						value={values.cost ?? ""}
+						inputMode="numeric"
+						onChange={(e) => update("cost", parseBRLToReais(e.target.value))}
+						placeholder="R$ 0,00"
+						value={formatBRL(values.cost)}
 					/>
 					{errors.cost && (
 						<p className="text-destructive text-xs">{errors.cost}</p>
@@ -273,7 +289,12 @@ export function ToolForm({
 						value={values.categoryId}
 					>
 						<SelectTrigger id="categoryId">
-							<SelectValue placeholder="Selecione uma categoria" />
+							<SelectValue placeholder="Selecione uma categoria">
+								{(v: string) =>
+									categories.find((c) => c.id === v)?.name ??
+									"Selecione uma categoria"
+								}
+							</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
 							{categories.map((c) => (
@@ -295,7 +316,11 @@ export function ToolForm({
 						value={values.supplierId ?? ""}
 					>
 						<SelectTrigger id="supplierId">
-							<SelectValue placeholder="Opcional" />
+							<SelectValue placeholder="Opcional">
+								{(v: string) =>
+									suppliers.find((s) => s.id === v)?.name ?? "Opcional"
+								}
+							</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
 							{suppliers.map((s) => (
