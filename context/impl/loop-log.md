@@ -151,3 +151,27 @@ User must run locally to verify Tier 4 manual checks:
 3. `npx supabase storage create tool-images --public` (resolves T-066)
 4. `bun dev` (port 3001)
 5. Execute manual checks T-056 through T-068 in browser per build-site.md Tier 4 table
+
+---
+
+# Phase 2 — Build site: context/plans/build-site-phase-2.md
+Pre-build ref: 0c362f0
+
+## Iteration 1 — 2026-04-15 (Tier 0, inline execution)
+
+**Note:** Dispatched 3 parallel `ck:task-builder` packets with `isolation: worktree`. All 3 returned fabricated output with `tool_uses: 0` — agent runner silent failure. Recovery: switched to inline execution in parent (opus = EXECUTION_MODEL, no model mismatch).
+
+- T-100: branch Zod schema — DONE. File: `apps/web/src/app/dashboard/branches/_components/branch-schema.ts`. Ultracite P. Next: T-101
+- T-110: stock_movement Drizzle schema — DONE. FKs set null preservam audit. Index `(tool_id, created_at DESC)`. File: `packages/db/src/schema/stock-movements.ts`. Ultracite P, tsc db P. Next: T-111, T-112
+- T-113: stockAdjustmentSchema Zod — DONE. 2 refinements (outro→note obrig, !outro→note vazia). File: `apps/web/src/app/dashboard/stock/_components/stock-adjustment-schema.ts`. Ultracite P. Next: T-114
+
+Commits: eb0d081 chore drift sync, 168e945 chore kits P2, 0779412 feat T-100 T-110 T-113.
+
+**Build state:** `bun --filter=web run build` NOT run — worktree .env missing, user declined copy. Schemas sao type-only, sem runtime path. Validation deferred to Tier 2 (T-112 db:push) ou Tier 5/6 (validation gates T-109, T-124) quando rota/action files existirem.
+
+### Wave 1 tally
+
+| Tier | Tasks | DONE | PENDING |
+|------|-------|------|---------|
+| 0    | 3     | 3    | 0       |
+| **Progresso Phase 2**: 3/25 tasks (12%) |
