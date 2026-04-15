@@ -14,7 +14,7 @@ Kit: context/kits/cavekit-stock-management.md
 |---|---|---|---|---|---|
 | T-110 | R1 | stock_movement schema file | DONE | 0779412 | `packages/db/src/schema/stock-movements.ts` |
 | T-111 | R2 | Barrel re-export + createDb schema | DONE | (pending) | `packages/db/src/index.ts` (stockMovement added to schema object via direct import — no barrel per Phase 1 T-017 noBarrelFile convention) |
-| T-112 | R3 | db:push apply | PENDING | — | — |
+| T-112 | R3 | db:push apply | DONE | (pending) | `bun --cwd packages/db run db:push` → `[✓] Changes applied` contra Supabase remota (db.wrxohbzepoyscsacjzvd.supabase.co). stock_movement + 2 indexes criados. |
 | T-113 | R9 | stockAdjustmentSchema Zod | DONE | 0779412 | `apps/web/src/app/dashboard/stock/_components/stock-adjustment-schema.ts` |
 | T-114 | R8 | adjustStock server action (5-step transactional) | PENDING | — | — |
 | T-115 | R10 | getStockMovements query with LEFT JOINs | PENDING | — | — |

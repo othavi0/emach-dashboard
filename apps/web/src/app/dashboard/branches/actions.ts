@@ -100,5 +100,7 @@ export async function deleteBranch(id: string): Promise<ActionResult> {
 	}
 
 	revalidatePath(BRANCHES_PATH);
+	revalidatePath("/dashboard/stock");
+	revalidatePath("/dashboard/tools", "layout");
 	return { ok: true, data: undefined };
 }
