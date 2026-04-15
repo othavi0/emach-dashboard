@@ -60,7 +60,6 @@ const NAV_GROUPS: NavGroup[] = [
 			{
 				label: "Filiais",
 				href: "/dashboard/branches" as Route,
-				disabled: true,
 			},
 		],
 	},
