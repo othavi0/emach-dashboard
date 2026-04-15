@@ -49,7 +49,7 @@ async function fetchCategories() {
 }
 
 async function fetchStockRows(params: StockPageParams): Promise<StockRow[]> {
-	const whereClauses = [] as Array<ReturnType<typeof sql>>;
+	const whereClauses = [] as ReturnType<typeof sql>[];
 	if (params.q) {
 		whereClauses.push(sql`t.name ILIKE ${`%${params.q}%`}`);
 	}

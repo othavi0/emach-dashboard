@@ -17,6 +17,7 @@ import { notFound } from "next/navigation";
 import { listBranches } from "@/app/dashboard/branches/actions";
 import { requireCurrentSession } from "@/lib/session";
 import { StockAdjustButton } from "../../../stock/_components/stock-adjust-button";
+import { getStockMovements } from "../../../stock/actions";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -35,6 +36,43 @@ function formatDateTime(value: Date | null): string {
 		return "—";
 	}
 	return DATE_FORMATTER.format(value);
+}
+
+const REASON_LABELS: Record<string, string> = {
+	entrada_compra: "Entrada de compra",
+	saida_venda: "Saída de venda",
+	ajuste_inventario: "Ajuste de inventário",
+	perda: "Perda",
+	outro: "Outro",
+};
+
+function formatReason(value: string | null): string {
+	if (!value) {
+		return "—";
+	}
+	return REASON_LABELS[value] ?? value;
+}
+
+function formatDelta(delta: number): {
+	className: string;
+	text: string;
+} {
+	if (delta > 0) {
+		return {
+			className: "font-mono text-emerald-400",
+			text: `+${delta}`,
+		};
+	}
+	if (delta < 0) {
+		return {
+			className: "font-mono text-red-400",
+			text: String(delta),
+		};
+	}
+	return {
+		className: "font-mono text-muted-foreground",
+		text: "0",
+	};
 }
 
 async function fetchTool(id: string) {
@@ -71,9 +109,10 @@ export default async function ToolStockPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const [branches, stockLevels] = await Promise.all([
+	const [branches, stockLevels, movements] = await Promise.all([
 		listBranches(),
 		fetchStockLevelsForTool(id),
+		getStockMovements(id, 50),
 	]);
 
 	const stockByBranch = new Map(stockLevels.map((sl) => [sl.branchId, sl]));
@@ -158,7 +197,68 @@ export default async function ToolStockPage({ params }: PageProps) {
 				)}
 			</div>
 
-			{/* Histórico de movimentações section added in T-119 */}
+			<div>
+				<h2 className="mb-3 font-serif text-lg">Histórico de movimentações</h2>
+				{movements.length === 0 ? (
+					<p className="text-muted-foreground text-sm">
+						Nenhuma movimentação registrada
+					</p>
+				) : (
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead className="w-40">Data</TableHead>
+								<TableHead>Filial</TableHead>
+								<TableHead className="text-right">Qtd anterior</TableHead>
+								<TableHead className="text-right">Qtd nova</TableHead>
+								<TableHead className="text-right">Delta</TableHead>
+								<TableHead>Motivo</TableHead>
+								<TableHead>Usuário</TableHead>
+								<TableHead>Nota</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{movements.map((movement) => {
+								const delta = formatDelta(movement.delta);
+								return (
+									<TableRow key={movement.id}>
+										<TableCell className="text-muted-foreground text-sm">
+											{formatDateTime(movement.createdAt)}
+										</TableCell>
+										<TableCell
+											className={
+												movement.branchName
+													? "font-medium"
+													: "text-muted-foreground italic"
+											}
+										>
+											{movement.branchName ?? "Filial removida"}
+										</TableCell>
+										<TableCell className="text-right font-mono">
+											{movement.previousQty}
+										</TableCell>
+										<TableCell className="text-right font-mono">
+											{movement.newQty}
+										</TableCell>
+										<TableCell className={`text-right ${delta.className}`}>
+											{delta.text}
+										</TableCell>
+										<TableCell className="text-muted-foreground text-sm">
+											{formatReason(movement.reason)}
+										</TableCell>
+										<TableCell className="text-muted-foreground text-sm">
+											{movement.actorName ?? "—"}
+										</TableCell>
+										<TableCell className="text-muted-foreground text-sm">
+											{movement.reasonNote ?? "—"}
+										</TableCell>
+									</TableRow>
+								);
+							})}
+						</TableBody>
+					</Table>
+				)}
+			</div>
 		</div>
 	);
 }

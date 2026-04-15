@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@emach/ui/components/button";
+import { AdjustStockDialog } from "./adjust-stock-dialog";
 
 interface StockAdjustButtonProps {
 	branchId: string;
@@ -9,23 +9,18 @@ interface StockAdjustButtonProps {
 	toolId: string;
 }
 
-// Placeholder for T-120 — will be replaced by full dialog component.
-// For now: clicking does nothing. T-120 mounts the proper AdjustStockDialog
-// and wires it to the adjustStock server action.
 export function StockAdjustButton({
+	branchId,
 	branchName,
 	currentQty,
+	toolId,
 }: StockAdjustButtonProps) {
-	function handleClick() {
-		// Placeholder — T-120 replaces this with dialog state management
-		alert(
-			`Ajuste de estoque para "${branchName}" (atual: ${currentQty}) — em breve`
-		);
-	}
-
 	return (
-		<Button onClick={handleClick} size="sm" variant="outline">
-			Ajustar
-		</Button>
+		<AdjustStockDialog
+			branchId={branchId}
+			branchName={branchName}
+			currentQty={currentQty}
+			toolId={toolId}
+		/>
 	);
 }

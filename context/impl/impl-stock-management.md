@@ -21,8 +21,8 @@ Kit: context/kits/cavekit-stock-management.md
 | T-116 | R5 (AC1-2,6-10) | Consolidated stock list page | DONE | (pending) | `apps/web/src/app/dashboard/stock/page.tsx`, `_components/stock-table.tsx` (raw SQL com json_agg, popover filiais, empty state) |
 | T-117 | R5 (AC3-5) | URL query param filters | DONE | (pending) | `apps/web/src/app/dashboard/(inventory)/stock/page.tsx` + `_components/stock-filters.tsx` (Input + 2 Selects, URL params q/categoria/ordem) |
 | T-118 | R6 (AC1-4,10) | Per-tool stock page header + filiais table | DONE | (pending) | `apps/web/src/app/dashboard/(inventory)/tools/[id]/stock/page.tsx` (Server Component, listBranches + stock_level merge, StockAdjustButton stub para T-120) |
-| T-119 | R6 (AC5-9) | History section + null branch labels | PENDING | — | — |
-| T-120 | R7 | Adjust stock dialog | PENDING | — | — |
+| T-119 | R6 (AC5-9) | History section + null branch labels | DONE | (pending) | `apps/web/src/app/dashboard/(inventory)/tools/[id]/stock/page.tsx` (secao Historico de movimentacoes, LEFT JOIN via getStockMovements, "Filial removida" quando branchName null, delta colorido verde/vermelho/cinza, empty state pt-BR) |
+| T-120 | R7 | Adjust stock dialog | DONE | (pending) | `apps/web/src/app/dashboard/(inventory)/stock/_components/adjust-stock-dialog.tsx` + stock-adjust-button.tsx refatorado. Dialog base-ui com current qty readonly, Input numerico min 0, Select motivo + Textarea condicional quando 'outro'. Submit via transition. Toast pos-success. Validation Zod client + server. |
 | T-121 | R4 | Enable Estoque tab in inventory-tabs | DONE | (pending) | `apps/web/src/app/dashboard/_components/inventory-tabs.tsx` (Link para /dashboard/stock, active state via usePathname, Promocoes mantido disabled). Arquivos stock movidos para `(inventory)/stock/` para receber layout de tabs. |
 | T-122 | R11 | Remove disabled flag from Estoque por Filial sidebar | DONE | (pending) | `apps/web/src/app/dashboard/_components/app-sidebar.tsx` (removido `disabled: true` do item Estoque por Filial em grupo "Estoque") |
 | T-123 | R12 | pt-BR audit | PENDING | — | — |
