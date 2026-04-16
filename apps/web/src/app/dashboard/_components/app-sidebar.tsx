@@ -41,6 +41,10 @@ const NAV_GROUPS: NavGroup[] = [
 				label: "Estoque por Filial",
 				href: "/dashboard/stock" as Route,
 			},
+			{
+				label: "Promoções",
+				href: "/dashboard/promotions" as Route,
+			},
 		],
 	},
 	{

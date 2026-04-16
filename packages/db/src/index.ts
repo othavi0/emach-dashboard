@@ -16,7 +16,12 @@ import {
 	stockLevel,
 	stockLevelRelations,
 } from "./schema/inventory";
-import { promotion, promotionRelations } from "./schema/promotions";
+import {
+	promotion,
+	promotionRelations,
+	promotionTool,
+	promotionToolRelations,
+} from "./schema/promotions";
 import {
 	stockMovement,
 	stockMovementRelations,
@@ -41,6 +46,8 @@ const schema = {
 	categoryRelations,
 	promotion,
 	promotionRelations,
+	promotionTool,
+	promotionToolRelations,
 	session,
 	sessionRelations,
 	stockLevel,

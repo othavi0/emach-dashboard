@@ -1,6 +1,6 @@
 ---
 created: "2026-04-14"
-last_edited: "2026-04-14"
+last_edited: "2026-04-15"
 ---
 
 # Cavekit: Data Model
@@ -64,7 +64,9 @@ These specs are the source of truth for the acceptance criteria in each requirem
 - [ ] Drizzle `relations()` exported: `branchRelations` (many stockLevels), `stockLevelRelations` (one tool, one branch)
 
 ### R3: Promotions Schema File
-**Description:** A new schema file defines the `promotion` table with FK to `tool`. This table is Phase 1 data infrastructure only — no UI or routes are created in Phase 1.
+**Description:** **Superseded by `cavekit-promotions-crud.md` R1 (Phase 3)** — the `toolId` FK column and `one(tool)` relation are dropped, replaced by N:N `promotion_tool` join table. The ACs below describe the Phase 1 baseline that is built first; Phase 3 R1 then evolves this schema.
+
+A new schema file defines the `promotion` table with FK to `tool`. This table is Phase 1 data infrastructure only — no UI or routes are created in Phase 1.
 **Acceptance Criteria:**
 - [ ] File `packages/db/src/schema/promotions.ts` exists
 - [ ] Exports named `promotion` as a Drizzle `pgTable` instance
@@ -101,6 +103,7 @@ These specs are the source of truth for the acceptance criteria in each requirem
 - [ ] File `packages/db/src/schema/index.ts` exists
 - [ ] It re-exports everything from `./auth`, `./tools`, `./inventory`, `./promotions`, `./api-keys`
 - [ ] No schema module is omitted from the re-exports
+- [ ] **[Phase-3-dependent]** After `cavekit-promotions-crud.md` R1 executes, `packages/db/src/schema/index.ts` also re-exports `promotionTool` from `./promotions`
 
 ### R7: createDb() Passes Full Schema to Drizzle
 **Description:** The `createDb` factory in `packages/db/src/index.ts` must include all domain tables in the schema object passed to `drizzle()` so that relational queries work across domains.
@@ -108,6 +111,7 @@ These specs are the source of truth for the acceptance criteria in each requirem
 - [ ] `packages/db/src/index.ts` imports all table exports from the schema index (or individual schema files)
 - [ ] The `schema` object passed to `drizzle(pool, { schema })` includes at minimum: `user`, `session`, `account`, `verification`, `tool`, `category`, `supplier`, `branch`, `stockLevel`, `promotion`, `apiKey`
 - [ ] `drizzle()` is called with the `{ schema }` option — not without it
+- [ ] **[Phase-3-dependent]** After `cavekit-promotions-crud.md` R1 executes, the `schema` object passed to `drizzle(pool, { schema })` additionally includes `promotionTool`
 
 ### R8: drizzleAdapter Schema Includes Role-Extended User
 **Description:** better-auth's `drizzleAdapter` must reference the updated `user` table (with `role` column) so that session inference picks up the role field without `any` casts.
@@ -163,9 +167,11 @@ To create via Studio: open http://localhost:54323 → Storage → New bucket →
 
 - See also: `cavekit-auth-access.md` — reads the `role` column from `user` table defined here; requires R5 to be complete before session type extension
 - See also: `cavekit-inventory-tools.md` — queries `tool`, `category`, `supplier`, `stockLevel` tables defined here; requires R1 and R2 to be complete
+- See also: `cavekit-promotions-crud.md` R1 — supersedes this kit's R3 (drops `toolId` FK, adds `promotionTool` join table); R6 and R7 of this kit have Phase-3-dependent follow-up ACs that are satisfied when `cavekit-promotions-crud.md` R1 is executed
 
 ## Changelog
 
 | Date | Change |
 |------|--------|
 | 2026-04-14 | Initial draft |
+| 2026-04-15 | Phase 3 cross-reference notes — R3 marcado como supersedido por `cavekit-promotions-crud.md` R1 (N:N join substitui FK 1:1); R6 e R7 receberam ACs Phase-3-dependent para `promotionTool`; backward cross-reference adicionado à seção Cross-References |
