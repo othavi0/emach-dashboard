@@ -6,7 +6,7 @@ last_edited: "2026-04-15"
 # Cavekit Overview — emach-dashboard
 
 **Project:** emach-dashboard — Sistema de gestão de estoque e ecommerce E-mach
-**Phase:** 1 (Complete) → 2 (Stock Management)
+**Phase:** 1 (Complete) → 2 (Stock Management, Complete) → 3 (Promotions CRUD)
 **Stack:** Bun + Turbo monorepo, Next.js 16.2, React 19, Tailwind v4, shadcn/ui (`base-lyra`), Drizzle ORM (pg), better-auth 1.5.5, Supabase local
 
 ---
@@ -22,6 +22,7 @@ last_edited: "2026-04-15"
 | 5 | `cavekit-inventory-tools.md` | Feature | Full tools CRUD: list table with URL filters, create/edit form, Supabase Storage image upload, delete confirm, read-only detail view |
 | 6 | `cavekit-branches-crud.md` | Feature | Full branches CRUD: list, create, edit, delete with confirmation; admin-gated mutations; enables the existing disabled "Filiais" item in the "Configurações" sidebar group (placed there by cavekit-navigation-shell R2) |
 | 7 | `cavekit-stock-management.md` | Feature | Stock editing per branch with audit trail: `stock_movement` schema, consolidated `/dashboard/stock` page, per-tool edit page with adjustment dialog and history |
+| 8 | `cavekit-promotions-crud.md` | Feature | Full promotions CRUD: dual-type (promoção/promocode) with N:N tool join, discriminator column, form with conditional code field, admin-gated, inventory tab + sidebar activation |
 
 ---
 
@@ -29,14 +30,15 @@ last_edited: "2026-04-15"
 
 | Kit | Requirements | Acceptance Criteria (total) | Manual-Check Items |
 |-----|-------------|----------------------------|--------------------|
-| cavekit-design-foundation.md | R1–R12 (12) | 36 | 5 |
-| cavekit-data-model.md | R1–R11 (11) | 44 | 2 |
-| cavekit-auth-access.md | R1–R7 (7) | 24 | 3 |
-| cavekit-navigation-shell.md | R1–R10 (10) | 30 | 4 |
-| cavekit-inventory-tools.md | R1–R13 (13) | 45 | 4 |
+| cavekit-design-foundation.md | R1–R12 (12) | 56 | 8 |
+| cavekit-data-model.md | R1–R11 (11) | 69 | 1 |
+| cavekit-auth-access.md | R1–R7 (7) | 29 | 3 |
+| cavekit-navigation-shell.md | R1–R10 (10) | 49 | 4 |
+| cavekit-inventory-tools.md | R1–R13 (13) | 83 | 2 |
 | cavekit-branches-crud.md | R1–R9 (9) | 44 | 0 |
 | cavekit-stock-management.md | R1–R13 (13) | 95 | 2 |
-| **Total** | **75** | **318** | **20** |
+| cavekit-promotions-crud.md | R1–R11 (11) | 122 | 0 |
+| **Total** | **86** | **547** | **20** |
 
 ---
 
@@ -45,12 +47,13 @@ last_edited: "2026-04-15"
 | Kit | Depends On | Is Depended On By |
 |-----|-----------|-------------------|
 | `cavekit-design-foundation.md` | — | `cavekit-navigation-shell.md` (sidebar tokens) |
-| `cavekit-data-model.md` | — | `cavekit-auth-access.md` (role column), `cavekit-inventory-tools.md` (tool/stock schema) |
+| `cavekit-data-model.md` | — | `cavekit-auth-access.md` (role column), `cavekit-inventory-tools.md` (tool/stock schema), `cavekit-promotions-crud.md` R1 (supersedes R3; R6/R7 gain Phase-3 follow-up ACs) |
 | `cavekit-auth-access.md` | `cavekit-data-model.md` (R5, R8) | `cavekit-navigation-shell.md` (session guard), `cavekit-inventory-tools.md` (requireRole) |
 | `cavekit-navigation-shell.md` | `cavekit-design-foundation.md` (tokens), `cavekit-auth-access.md` (guard) | `cavekit-inventory-tools.md` (route group host) |
 | `cavekit-inventory-tools.md` | `cavekit-data-model.md` (R1, R2, R7), `cavekit-auth-access.md` (R2, R4), `cavekit-navigation-shell.md` (R6) | `cavekit-stock-management.md` (tools list + routes reused) |
 | `cavekit-branches-crud.md` | `cavekit-data-model.md` (R2), `cavekit-auth-access.md` (R2, R4), `cavekit-navigation-shell.md` (R2) | `cavekit-stock-management.md` (branches must exist before stock can be adjusted) |
 | `cavekit-stock-management.md` | `cavekit-branches-crud.md`, `cavekit-data-model.md` (R1, R2), `cavekit-auth-access.md` (R2, R4), `cavekit-navigation-shell.md` (R2, R6, R7), `cavekit-inventory-tools.md` (R1, R2) | — |
+| `cavekit-promotions-crud.md` | `cavekit-data-model.md` R3 (schema base), `cavekit-auth-access.md` R2+R4, `cavekit-navigation-shell.md` R2+R6+R7, `cavekit-inventory-tools.md` R1 | — (nothing yet) |
 
 ---
 
@@ -65,6 +68,11 @@ Kit 2 (Data Model) ─────────┬──→  Kit 3 (Auth Access) 
                              └──────────────────────────────────────────────────────────────↗
                                                                                             ↓
                                                              Kit 6 (Branches CRUD) ──→  Kit 7 (Stock Management)
+
+Kit 2 (Data Model) ──→  Kit 8 (Promotions CRUD)  ←──  Kit 3 (Auth Access)
+                                    ↑
+                         Kit 4 (Navigation Shell)
+                         Kit 5 (Inventory Tools)
 ```
 
 **Recommended implementation order:**
@@ -77,6 +85,7 @@ Kit 2 (Data Model) ─────────┬──→  Kit 3 (Auth Access) 
 | 4 | Kit 5 | After Kit 2 R1+R2+R7 + Kit 3 R2+R4 + Kit 4 R6 | Full CRUD feature |
 | 5 | Kit 6 | After Kit 2 R2 + Kit 3 R2+R4 + Kit 4 R2 | Branches CRUD must ship before stock editing |
 | 6 | Kit 7 | After Kit 6 + Kit 2 R1+R2 + Kit 3 R2+R4 + Kit 4 R2+R6+R7 + Kit 5 R1+R2 | Stock editing, audit trail, inventory tabs activation |
+| 7 | Kit 8 | After Kit 2 R3 + Kit 3 R2+R4 + Kit 4 R2+R6+R7 + Kit 5 R1 | Promotions CRUD: schema delta, server actions, form, list, sidebar + tab activation |
 
 ---
 
@@ -86,7 +95,6 @@ These items were explicitly decided to be out of scope for Phase 1. Each should 
 
 | Deferred Item | Reason Deferred | Suggested Phase 2 Kit |
 |---------------|-----------------|----------------------|
-| Promotions CRUD UI (create/edit/delete promotions in the dashboard) | Schema exists (data-model R3); UI skipped in Phase 1 | `cavekit-promotions-crud.md` |
 | Public REST API endpoints (read tool list, read stock, read promotions) | Infrastructure design pending; API key schema exists | `cavekit-public-api.md` |
 | API key validation middleware (verify `X-API-Key` header against `apiKey.keyHash`) | Depends on public API kit | `cavekit-public-api.md` |
 | `DISABLE_SIGN_UP` env flag wiring (block new registrations in production) | Low priority; documented in auth kit R5 | `cavekit-auth-access.md` (revision) |
@@ -116,3 +124,5 @@ These items were explicitly decided to be out of scope for Phase 1. Each should 
 | 2026-04-15 | Phase 2 sketch — added `cavekit-branches-crud.md` and `cavekit-stock-management.md`. Total 7 kits, 75 requirements. |
 | 2026-04-15 | Codex peer review revisions to Phase 2 kits: (a) `stock_movement` FKs to tool/branch switched from `cascade` to `set null` preserving audit trail; (b) `stock_movement` index reshaped to `(tool_id, created_at DESC)` matching `getStockMovements(toolId)` access pattern; (c) `adjustStock` server action R8 now mandates `db.transaction` + `SELECT ... FOR UPDATE` row locking with concurrent-admin manual-check AC; (d) `stockAdjustmentSchema` R9 adds inverse refinement rejecting stray `reasonNote`; (e) R5 consolidated stock list AC pinned to "popover" (removed "or inline" ambiguity); (f) Kit 6 R7 and Kit 7 R11 rewritten — both sidebar items ("Filiais" and "Estoque por Filial") already exist disabled in `app-sidebar.tsx` from navigation-shell R2; kits only flip `disabled: true` to `false`, no new groups; (g) Kit 6 R2 `deleteBranch` now revalidates `/dashboard/tools` layout to flush per-tool stock pages. |
 | 2026-04-15 | Codex round-2 revisions: (h) R8 first-insert race fixed — sequence changed to `INSERT ON CONFLICT DO NOTHING` (materialize row) → `SELECT FOR UPDATE` (lock) → compute previousQty → `UPDATE` → insert movement. Without Step 1, two concurrent transactions both seeing zero rows could race to INSERT and one would crash with unique-key violation; (i) R6 adds explicit ACs rendering "Filial removida" label for movements whose `branchId` is NULL (audit preservation makes this path reachable); (j) R10 switched to LEFT JOIN on `branch` and `user` so movements with deleted parents still appear, and clarifies `toolId` filtering. Totals: 318 AC (was 314). |
+| 2026-04-15 | Phase 3 sketch — added `cavekit-promotions-crud.md`. Total 8 kits, 86 requirements, 438 acceptance criteria. |
+| 2026-04-15 | Promotions kit review-loop iter 2: (a) R1 adds `createDb()` schema-object AC and DB-level `unique()` on `promotion.code`; (b) R3 stacking guard opening rewritten to explicit window-aware "ativa" definition; (c) `cavekit-data-model.md` R3 marked superseded by promotions-crud R1, R6/R7 gained Phase-3 follow-up ACs; (d) R4 deps list adds navigation-shell R7; (e) R3 listPromotions sort stability AC; (f) AC recount across all kits — Kit 8 corrected from 120 to 122; grand total corrected from 438 to 547 (all kit rows recount-corrected). Cross-reference map updated with backward link from data-model to promotions-crud. |
