@@ -83,17 +83,7 @@ export function PromotionsFilters({
 				</label>
 				<Select onValueChange={updateType} value={currentType}>
 					<SelectTrigger id="promo-type">
-						<SelectValue>
-							{(v: string) => {
-								if (v === "promotion") {
-									return "Promoção";
-								}
-								if (v === "promocode") {
-									return "Código";
-								}
-								return "Todos";
-							}}
-						</SelectValue>
+						<SelectValue placeholder="Todos" />
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value={ALL}>Todos</SelectItem>

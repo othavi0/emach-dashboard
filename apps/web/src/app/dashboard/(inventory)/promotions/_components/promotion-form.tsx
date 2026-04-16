@@ -56,14 +56,19 @@ function formatDateForInput(date: Date | null | undefined): string {
 	if (!date) {
 		return "";
 	}
-	return date.toISOString().slice(0, 10);
+	// Use local date parts to avoid timezone offset shifting the displayed date
+	const y = date.getFullYear();
+	const m = String(date.getMonth() + 1).padStart(2, "0");
+	const d = String(date.getDate()).padStart(2, "0");
+	return `${y}-${m}-${d}`;
 }
 
 function parseInputDate(value: string): Date | null {
 	if (!value) {
 		return null;
 	}
-	const d = new Date(value);
+	// Interpret as local midnight (not UTC) to avoid off-by-one timezone issues
+	const d = new Date(`${value}T00:00:00`);
 	return Number.isNaN(d.getTime()) ? null : d;
 }
 
@@ -246,9 +251,10 @@ export function PromotionForm({
 		defaultValues?.toolIds ?? []
 	);
 
-	// Error state
+	// Error & submit state
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [serverError, setServerError] = useState<string | null>(null);
+	const [submitted, setSubmitted] = useState(false);
 
 	function buildInput(): PromotionFormValues {
 		const base = {
@@ -301,6 +307,7 @@ export function PromotionForm({
 						? "Promoção criada com sucesso"
 						: "Promoção atualizada com sucesso"
 				);
+				setSubmitted(true);
 				router.push("/dashboard/promotions");
 				router.refresh();
 			} else {
@@ -316,7 +323,10 @@ export function PromotionForm({
 		<form className="flex max-w-2xl flex-col gap-6" onSubmit={handleSubmit}>
 			{/* Server-side error banner */}
 			{serverError && (
-				<div className="rounded-[8px] border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive text-sm">
+				<div
+					className="rounded-[8px] border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive text-sm"
+					role="alert"
+				>
 					{serverError}
 				</div>
 			)}
@@ -488,7 +498,7 @@ export function PromotionForm({
 			<div className="flex items-center gap-3">
 				<Button
 					className="rounded-[8px] bg-[#c96442] px-4 text-[#faf9f5] hover:bg-[#c96442]/90"
-					disabled={isPending}
+					disabled={isPending || submitted}
 					type="submit"
 				>
 					<SubmitLabel isPending={isPending} mode={mode} />
