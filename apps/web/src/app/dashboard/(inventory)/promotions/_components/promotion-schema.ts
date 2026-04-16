@@ -8,9 +8,12 @@ const promotionBaseFields = {
 	title: z
 		.string()
 		.trim()
-		.min(1, "Título obrigatório")
-		.min(2, "Título deve ter no mínimo 2 caracteres")
-		.max(120, "Título não pode ultrapassar 120 caracteres"),
+		.max(120, "Título não pode ultrapassar 120 caracteres")
+		.refine((v) => v.length > 0, "Título obrigatório")
+		.refine(
+			(v) => v.length === 0 || v.length >= 2,
+			"Título deve ter no mínimo 2 caracteres"
+		),
 
 	description: z
 		.string()
@@ -60,7 +63,7 @@ const promocodeVariantSchema = z.object({
 		.min(1, "Código obrigatório para promocode")
 		.max(50, "Código não pode ultrapassar 50 caracteres")
 		.regex(
-			/^[\x20-\x7E]{1,50}$/,
+			/^[\x20-\x7E]+$/,
 			"Código deve conter apenas caracteres ASCII imprimíveis"
 		),
 	...promotionBaseFields,
