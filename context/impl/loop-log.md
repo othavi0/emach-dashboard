@@ -239,3 +239,18 @@ Rode localmente para fechar T-124:
 1. **R8 AC14 — Concurrency:** Abra 2 sessoes admin no browser. Navegue ambas para `/dashboard/tools/[id]/stock` mesma tool. Clique "Ajustar" na mesma filial em ambas. Submeta ajustes dentro de ~1 segundo. Verifique: ambos movimentos aparecem em ordem, o segundo tem previousQty = primeiro newQty, nenhuma duplicate-key exception.
 
 2. **R13 AC3 — E2E smoke:** `bun dev` (port 3001). Login como admin. Crie nova filial em `/dashboard/branches/new`. Navegue para `/dashboard/tools/[tool-id]/stock`. Clique "Ajustar" na filial criada. Set quantidade = 10, motivo = "Entrada de compra", submit. Verifique: quantidade da filial vai de 0 para 10, secao Historico mostra nova row com delta +10, reason pt-BR "Entrada de compra", actor name do admin logado.
+
+---
+
+# Phase 3 — Promotions CRUD
+
+Build site: context/plans/build-site-phase-3.md
+Pre-build ref: 871e1df70c0486a0ef2a9d23a62e86b0ac7ce3a5
+
+## Iteration 1 — 2026-04-15 (Tier 0 wave, parallel worktrees)
+
+- T-200: schema delta promotions — DONE. Drop toolId, add type+code+unique, promotion_tool join composite PK cascade, relations updated. 16/16 R1 file-level ACs. Commit 5200ffe. File: packages/db/src/schema/promotions.ts
+- T-203: Zod promotionSchema discriminated union — DONE. Variants promotion/promocode, cross-refines endsAt>startsAt + toolIds>=1, createPromotionSchema wrapper startsAt>=now create-only, 14/14 R2 ACs, msgs pt-BR exact. Commit da60de7. File: apps/web/src/app/dashboard/(inventory)/promotions/_components/promotion-schema.ts
+- Fix 56e56f7: ZodIssueCode.custom deprecated Zod 4.x → literal "custom" 3 call sites. Fix P. Next: T-201 barrel+createDb
+
+Merge notes: worktrees baseados em main drift (commit 424fe3f user's feat update) não 871e1df. Merge absorveu drift legítimo (ralph-loop.local.md, gitlinks worktree, configs biome/postcss/drizzle/env) + T-200 clean + T-203 clean. Phase3 branch agora ahead de main só pelos commits T-200/T-203/fix.
