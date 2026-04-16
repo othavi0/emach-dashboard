@@ -50,7 +50,7 @@ export function PromotionsFilters({
 		return () => clearTimeout(handle);
 	}, [search, router, searchParams]);
 
-	function updateType(value: string) {
+	function updateType(value: string | null) {
 		const next = new URLSearchParams(searchParams.toString());
 		if (!value || value === ALL) {
 			next.delete("type");
