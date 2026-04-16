@@ -80,7 +80,7 @@ export const promotionSchema = z
 			data.endsAt <= data.startsAt
 		) {
 			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
+				code: "custom",
 				message: "Data de fim deve ser posterior à data de início",
 				path: ["endsAt"],
 			});
@@ -90,7 +90,7 @@ export const promotionSchema = z
 		// covers per-field, but keep here in case callers use superRefine output)
 		if (!data.toolIds || data.toolIds.length < 1) {
 			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
+				code: "custom",
 				message: "Selecione ao menos uma ferramenta",
 				path: ["toolIds"],
 			});
@@ -105,7 +105,7 @@ export const createPromotionSchema = promotionSchema.superRefine(
 	(data, ctx) => {
 		if (data.startsAt != null && data.startsAt < new Date()) {
 			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
+				code: "custom",
 				message: "Data de início não pode ser no passado",
 				path: ["startsAt"],
 			});
