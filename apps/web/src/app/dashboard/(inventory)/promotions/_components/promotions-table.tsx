@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 
 import type { PromotionListItem } from "../actions";
+import { DeletePromotionDialog } from "./delete-promotion-dialog";
 
 interface PromotionsTableProps {
 	canMutate: boolean;
@@ -168,16 +169,10 @@ export function PromotionsTable({
 									>
 										Editar
 									</Link>
-									<button
-										aria-label="Deletar promoção"
-										className={buttonVariants({
-											size: "sm",
-											variant: "ghost",
-										})}
-										type="button"
-									>
-										Deletar
-									</button>
+									<DeletePromotionDialog
+										promotionId={p.id}
+										promotionTitle={p.title}
+									/>
 								</div>
 							</TableCell>
 						)}
