@@ -13,6 +13,7 @@
     "@emach/ui": "workspace:*",
     "babel-plugin-react-compiler": "^1.0.0",
     "better-auth": "catalog:",
+    "lucide-react": "^1.8.0",
     "next": "^16.2.0",
     "next-themes": "catalog:",
     "react": "catalog:",

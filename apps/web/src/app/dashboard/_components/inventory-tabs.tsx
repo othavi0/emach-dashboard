@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 
 const TOOLS_HREF = "/dashboard/tools" as Route;
 const STOCK_HREF = "/dashboard/stock" as Route;
+const PROMOTIONS_HREF = "/dashboard/promotions" as Route;
 
 function resolveActiveTab(pathname: string): string {
 	if (pathname.startsWith("/dashboard/stock")) {
@@ -36,13 +37,10 @@ export function InventoryTabs() {
 					value="stock"
 				/>
 				<TabsTrigger
-					aria-disabled="true"
-					disabled
-					tabIndex={-1}
+					nativeButton={false}
+					render={<Link href={PROMOTIONS_HREF}>Promoções</Link>}
 					value="promotions"
-				>
-					Promoções
-				</TabsTrigger>
+				/>
 			</TabsList>
 		</Tabs>
 	);
