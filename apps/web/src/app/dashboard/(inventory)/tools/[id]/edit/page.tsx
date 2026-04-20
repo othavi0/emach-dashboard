@@ -1,5 +1,10 @@
 import { db } from "@emach/db";
-import { category, supplier, tool } from "@emach/db/schema/tools";
+import {
+	category,
+	supplier,
+	tool,
+	toolImage,
+} from "@emach/db/schema/tools";
 import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
@@ -14,10 +19,12 @@ interface PageProps {
 	params: Promise<{ id: string }>;
 }
 
-function toFormValues(row: typeof tool.$inferSelect): Partial<ToolFormValues> {
+function toFormValues(
+	row: typeof tool.$inferSelect,
+	images: (typeof toolImage.$inferSelect)[]
+): Partial<ToolFormValues> {
 	return {
 		name: row.name,
-		slug: row.slug ?? "",
 		description: row.description ?? "",
 		sku: row.sku ?? "",
 		voltage: (row.voltage ?? "") as (typeof VoltageType)[number] | "",
@@ -26,7 +33,11 @@ function toFormValues(row: typeof tool.$inferSelect): Partial<ToolFormValues> {
 		categoryId: row.categoryId ?? "",
 		supplierId: row.supplierId ?? "",
 		visibleOnSite: row.visibleOnSite,
-		imageUrl: row.imageUrl ?? "",
+		images: images.map((img) => ({
+			id: img.id,
+			url: img.url,
+			sortOrder: img.sortOrder,
+		})),
 	};
 }
 
@@ -39,7 +50,12 @@ export default async function EditToolPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const [categories, suppliers] = await Promise.all([
+	const [images, categories, suppliers] = await Promise.all([
+		db
+			.select()
+			.from(toolImage)
+			.where(eq(toolImage.toolId, id))
+			.orderBy(asc(toolImage.sortOrder)),
 		db
 			.select({ id: category.id, name: category.name })
 			.from(category)
@@ -61,7 +77,8 @@ export default async function EditToolPage({ params }: PageProps) {
 
 			<ToolForm
 				categories={categories}
-				defaultValues={toFormValues(row)}
+				defaultValues={toFormValues(row, images)}
+				existingSlug={row.slug ?? undefined}
 				mode="edit"
 				suppliers={suppliers}
 				toolId={id}

@@ -73,7 +73,13 @@ async function fetchStockRows(params: StockPageParams): Promise<StockRow[]> {
 			t.name,
 			t.slug,
 			t.sku,
-			t.image_url,
+			(
+				SELECT ti.url
+				FROM tool_image ti
+				WHERE ti.tool_id = t.id
+				ORDER BY ti.sort_order ASC
+				LIMIT 1
+			) AS image_url,
 			COALESCE(SUM(sl.quantity), 0)::int AS total_stock,
 			COALESCE(
 				json_agg(

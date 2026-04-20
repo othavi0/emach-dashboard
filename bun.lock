@@ -7,19 +7,20 @@
       "dependencies": {
         "@emach/db": "workspace:*",
         "@emach/env": "workspace:*",
-        "@supabase/supabase-js": "latest",
-        "dotenv": "latest",
-        "drizzle-orm": "latest",
-        "zod": "latest",
+        "@supabase/supabase-js": "^2.103.3",
+        "dotenv": "^17.4.2",
+        "drizzle-orm": "^0.45.2",
+        "zod": "^4.3.6"
+
       },
       "devDependencies": {
-        "@biomejs/biome": "latest",
+        "@biomejs/biome": "2.4.12",
         "@emach/config": "workspace:*",
-        "@types/node": "latest",
-        "turbo": "latest",
-        "typescript": "latest",
-        "ultracite": "latest",
-      },
+        "@types/node": "^25.6.0",
+        "turbo": "^2.9.6",
+        "typescript": "^6.0.2",
+        "ultracite": "7.6.0"
+      }
     },
     "apps/web": {
       "name": "web",

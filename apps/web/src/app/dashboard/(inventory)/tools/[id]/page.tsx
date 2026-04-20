@@ -1,6 +1,11 @@
 import { db } from "@emach/db";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
-import { category, supplier, tool } from "@emach/db/schema/tools";
+import {
+	category,
+	supplier,
+	tool,
+	toolImage,
+} from "@emach/db/schema/tools";
 import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
@@ -43,7 +48,6 @@ export default async function ToolDetailPage({ params }: PageProps) {
 			voltage: tool.voltage,
 			price: tool.price,
 			cost: tool.cost,
-			imageUrl: tool.imageUrl,
 			visibleOnSite: tool.visibleOnSite,
 			categoryName: category.name,
 			supplierName: supplier.name,
@@ -57,6 +61,12 @@ export default async function ToolDetailPage({ params }: PageProps) {
 	if (!row) {
 		notFound();
 	}
+
+	const images = await db
+		.select({ id: toolImage.id, url: toolImage.url })
+		.from(toolImage)
+		.where(eq(toolImage.toolId, id))
+		.orderBy(asc(toolImage.sortOrder));
 
 	const stockRows = await db
 		.select({
@@ -89,19 +99,35 @@ export default async function ToolDetailPage({ params }: PageProps) {
 			</div>
 
 			<div className="grid gap-6 md:grid-cols-[240px_1fr]">
-				{row.imageUrl ? (
-					// biome-ignore lint/performance/noImgElement: Supabase public URL
-					// biome-ignore lint/correctness/useImageSize: detail view fixed via Tailwind
-					<img
-						alt={row.name}
-						className="h-60 w-60 rounded border border-border object-cover"
-						src={row.imageUrl}
-					/>
-				) : (
-					<div className="flex h-60 w-60 items-center justify-center rounded border border-border border-dashed text-muted-foreground text-xs">
-						Sem imagem
-					</div>
-				)}
+				<div className="flex flex-col gap-2">
+					{images.length > 0 ? (
+						// biome-ignore lint/performance/noImgElement: Supabase public URL
+						// biome-ignore lint/correctness/useImageSize: detail view fixed via Tailwind
+						<img
+							alt={row.name}
+							className="h-60 w-60 rounded border border-border object-cover"
+							src={images[0].url}
+						/>
+					) : (
+						<div className="flex h-60 w-60 items-center justify-center rounded border border-border border-dashed text-muted-foreground text-xs">
+							Sem imagem
+						</div>
+					)}
+					{images.length > 1 && (
+						<div className="grid grid-cols-4 gap-1">
+							{images.slice(1).map((img, idx) => (
+								// biome-ignore lint/performance/noImgElement: Supabase public URL
+								// biome-ignore lint/correctness/useImageSize: thumbnail fixed via Tailwind
+								<img
+									alt={`${row.name} - ${idx + 2}`}
+									className="aspect-square w-full rounded border border-border object-cover"
+									key={img.id}
+									src={img.url}
+								/>
+							))}
+						</div>
+					)}
+				</div>
 
 				<Card>
 					<CardHeader>
