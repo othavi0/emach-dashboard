@@ -32,6 +32,8 @@ import {
 	supplier,
 	supplierRelations,
 	tool,
+	toolImage,
+	toolImageRelations,
 	toolRelations,
 } from "./schema/tools";
 
@@ -57,6 +59,8 @@ const schema = {
 	supplier,
 	supplierRelations,
 	tool,
+	toolImage,
+	toolImageRelations,
 	toolRelations,
 	user,
 	userRelations,

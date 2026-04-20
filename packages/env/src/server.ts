@@ -11,6 +11,8 @@ export const env = createEnv({
 		NODE_ENV: z
 			.enum(["development", "production", "test"])
 			.default("development"),
+		SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+		NEXT_PUBLIC_SUPABASE_URL: z.url(),
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,
