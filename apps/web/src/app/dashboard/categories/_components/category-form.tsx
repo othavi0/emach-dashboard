@@ -6,17 +6,22 @@ import { Label } from "@emach/ui/components/label";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
 import Link from "next/link";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
 
-import { createBranch, updateBranch } from "../actions";
-import { type BranchFormValues, branchSchema } from "./branch-schema";
+import { createCategory, updateCategory } from "../actions";
+import {
+	type CategoryFormValues,
+	categorySchema,
+	slugify,
+} from "./category-schema";
 
-interface BranchFormProps {
-	branchId?: string;
-	defaultValues: Partial<BranchFormValues>;
+interface CategoryFormProps {
+	categoryId?: string;
+	defaultValues: Partial<CategoryFormValues>;
+	existingSlug?: string | null;
 	mode: "create" | "edit";
 }
 
@@ -34,15 +39,16 @@ function SubmitLabel({
 			</>
 		);
 	}
-	return <>{mode === "create" ? "Criar filial" : "Salvar alterações"}</>;
+
+	return <>{mode === "create" ? "Criar categoria" : "Salvar alterações"}</>;
 }
 
 function zodErrorsToFieldMap(
-	error: ZodError<BranchFormValues>
-): Partial<Record<keyof BranchFormValues, string>> {
-	const map: Partial<Record<keyof BranchFormValues, string>> = {};
+	error: ZodError<CategoryFormValues>
+): Partial<Record<keyof CategoryFormValues, string>> {
+	const map: Partial<Record<keyof CategoryFormValues, string>> = {};
 	for (const issue of error.issues) {
-		const key = issue.path[0] as keyof BranchFormValues | undefined;
+		const key = issue.path[0] as keyof CategoryFormValues | undefined;
 		if (key && !map[key]) {
 			map[key] = issue.message;
 		}
@@ -50,20 +56,38 @@ function zodErrorsToFieldMap(
 	return map;
 }
 
-export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
+export function CategoryForm({
+	categoryId,
+	defaultValues,
+	existingSlug,
+	mode,
+}: CategoryFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const [name, setName] = useState(defaultValues.name ?? "");
-	const [address, setAddress] = useState(defaultValues.address ?? "");
+	const [description, setDescription] = useState(
+		defaultValues.description ?? ""
+	);
 	const [errors, setErrors] = useState<
-		Partial<Record<keyof BranchFormValues, string>>
+		Partial<Record<keyof CategoryFormValues, string>>
 	>({});
+
+	const slugPreview = useMemo(() => {
+		if (mode === "edit" && existingSlug) {
+			return existingSlug;
+		}
+		return slugify(name) || "—";
+	}, [existingSlug, mode, name]);
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setErrors({});
 
-		const parsed = branchSchema.safeParse({ name, address });
+		const parsed = categorySchema.safeParse({
+			name,
+			description,
+		});
+
 		if (!parsed.success) {
 			setErrors(zodErrorsToFieldMap(parsed.error));
 			return;
@@ -72,18 +96,18 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 		startTransition(async () => {
 			const action =
 				mode === "create"
-					? createBranch(parsed.data)
-					: updateBranch(branchId ?? "", parsed.data);
+					? createCategory(parsed.data)
+					: updateCategory(categoryId ?? "", parsed.data);
 			const result = await action;
 
 			if (result.ok) {
 				toast.success(
-					mode === "create" ? "Filial criada" : "Filial atualizada"
+					mode === "create" ? "Categoria criada" : "Categoria atualizada"
 				);
-				router.push("/dashboard/branches");
+				router.push("/dashboard/categories");
 				router.refresh();
 			} else {
-				toast.error(result.error || "Não foi possível salvar a filial");
+				toast.error(result.error || "Não foi possível salvar a categoria");
 			}
 		});
 	}
@@ -96,31 +120,34 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 				</h2>
 
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="branch-name">Nome</Label>
+					<Label htmlFor="category-name">Nome</Label>
 					<Input
 						disabled={isPending}
-						id="branch-name"
+						id="category-name"
 						onChange={(event) => setName(event.target.value)}
-						placeholder="Ex: Filial Centro"
+						placeholder="Ex: Furadeiras"
 						value={name}
 					/>
+					<p className="font-mono text-muted-foreground text-xs">
+						Slug: {slugPreview}
+					</p>
 					{errors.name && (
 						<p className="text-destructive text-sm">{errors.name}</p>
 					)}
 				</div>
 
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="branch-address">Endereço (opcional)</Label>
+					<Label htmlFor="category-description">Descrição (opcional)</Label>
 					<Textarea
 						disabled={isPending}
-						id="branch-address"
-						onChange={(event) => setAddress(event.target.value)}
-						placeholder="Rua, número, bairro, cidade — UF"
-						rows={3}
-						value={address}
+						id="category-description"
+						onChange={(event) => setDescription(event.target.value)}
+						placeholder="Resumo interno sobre o tipo de ferramenta desta categoria."
+						rows={5}
+						value={description}
 					/>
-					{errors.address && (
-						<p className="text-destructive text-sm">{errors.address}</p>
+					{errors.description && (
+						<p className="text-destructive text-sm">{errors.description}</p>
 					)}
 				</div>
 			</section>
@@ -131,7 +158,7 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 				</Button>
 				<Link
 					className={buttonVariants({ variant: "ghost" })}
-					href="/dashboard/branches"
+					href="/dashboard/categories"
 				>
 					Cancelar
 				</Link>

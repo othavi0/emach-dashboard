@@ -105,6 +105,8 @@ export async function adjustStock(
 		});
 
 		revalidatePath("/dashboard/stock");
+		revalidatePath("/dashboard/stock/branches");
+		revalidatePath(`/dashboard/branches/${branchId}/stock`);
 		revalidatePath(`/dashboard/tools/${toolId}/stock`);
 
 		return {

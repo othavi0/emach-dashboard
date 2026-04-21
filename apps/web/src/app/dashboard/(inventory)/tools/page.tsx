@@ -17,8 +17,9 @@ import { type ToolRow, ToolsTable } from "./_components/tools-table";
 
 interface PageProps {
 	searchParams: Promise<{
-		q?: string;
 		category?: string;
+		q?: string;
+		search?: string;
 		visible?: string;
 	}>;
 }
@@ -31,14 +32,14 @@ async function fetchCategories() {
 }
 
 async function fetchTools(params: {
-	q?: string;
 	category?: string;
+	search?: string;
 	visible?: string;
 }): Promise<ToolRow[]> {
 	const conditions = [] as Parameters<typeof and>[number][];
 
-	if (params.q) {
-		conditions.push(ilike(sql`t.name`, `%${params.q}%`));
+	if (params.search) {
+		conditions.push(ilike(sql`t.name`, `%${params.search}%`));
 	}
 	if (params.category) {
 		conditions.push(sql`t.category_id = ${params.category}`);
@@ -107,13 +108,14 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 	const role = session.user.role ?? "user";
 	const canMutate = role === "admin";
 	const params = await searchParams;
+	const search = params.search ?? params.q;
 
 	const [tools, categories] = await Promise.all([
-		fetchTools(params),
+		fetchTools({ ...params, search }),
 		fetchCategories(),
 	]);
 
-	const hasFilters = Boolean(params.q || params.category || params.visible);
+	const hasFilters = Boolean(search || params.category || params.visible);
 	const isEmpty = tools.length === 0;
 
 	return (

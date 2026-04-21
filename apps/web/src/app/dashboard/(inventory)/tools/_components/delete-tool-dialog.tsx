@@ -31,15 +31,14 @@ export function DeleteToolDialog({ toolId, toolName }: DeleteToolDialogProps) {
 
 	function handleConfirm() {
 		startTransition(async () => {
-			try {
-				await deleteTool(toolId);
-				toast.success("Ferramenta excluída");
+			const result = await deleteTool(toolId);
+			if (result.ok) {
+				toast.success("Ferramenta removida");
 				setOpen(false);
+				router.push("/dashboard/tools");
 				router.refresh();
-			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Erro desconhecido";
-				toast.error(`Falha ao excluir: ${message}`);
+			} else {
+				toast.error(result.error || "Não foi possível remover a ferramenta");
 			}
 		});
 	}
@@ -47,11 +46,11 @@ export function DeleteToolDialog({ toolId, toolName }: DeleteToolDialogProps) {
 	return (
 		<AlertDialog onOpenChange={setOpen} open={open}>
 			<AlertDialogTrigger render={<Button size="sm" variant="ghost" />}>
-				Excluir
+				Remover
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Excluir ferramenta?</AlertDialogTitle>
+					<AlertDialogTitle>Remover ferramenta?</AlertDialogTitle>
 					<AlertDialogDescription>
 						Esta ação não pode ser desfeita. A ferramenta{" "}
 						<strong>{toolName}</strong> será removida permanentemente do sistema
@@ -69,10 +68,10 @@ export function DeleteToolDialog({ toolId, toolName }: DeleteToolDialogProps) {
 					>
 						{isPending ? (
 							<>
-								<Spinner /> Excluindo…
+								<Spinner /> Removendo…
 							</>
 						) : (
-							"Excluir"
+							"Remover"
 						)}
 					</AlertDialogAction>
 				</AlertDialogFooter>

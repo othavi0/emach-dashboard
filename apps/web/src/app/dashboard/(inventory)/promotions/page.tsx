@@ -48,7 +48,8 @@ export default async function PromotionsPage({ searchParams }: PageProps) {
 				<div>
 					<h1 className="font-serif text-2xl">Promoções</h1>
 					<p className="text-muted-foreground text-sm">
-						Gerencie promoções automáticas e códigos promocionais.
+						Gerencie promoções automáticas e cupons aplicados a ferramentas
+						específicas.
 					</p>
 				</div>
 				{canMutate && (

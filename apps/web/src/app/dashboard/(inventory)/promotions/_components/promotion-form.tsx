@@ -28,7 +28,11 @@ import { toast } from "sonner";
 import type { ZodError } from "zod";
 
 import { createPromotion, updatePromotion } from "../actions";
-import { type PromotionFormValues, promotionSchema } from "./promotion-schema";
+import {
+	createPromotionSchema,
+	type PromotionFormValues,
+	promotionSchema,
+} from "./promotion-schema";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -79,7 +83,7 @@ function parseDiscountInput(value: string): number | undefined {
 }
 
 function typeLabel(type: PromotionType): string {
-	return type === "promotion" ? "Promoção automática" : "Código promocional";
+	return type === "promotion" ? "Automática" : "Cupom";
 }
 
 function zodErrorsToFieldMap(
@@ -153,7 +157,7 @@ function ToolCombobox({
 		<div className="flex flex-col gap-2">
 			<Popover onOpenChange={setOpen} open={open}>
 				<PopoverTrigger
-					className="flex h-8 w-full items-center justify-between rounded-[12px] border border-[#e8e6dc] bg-background px-3 py-1 text-[#141413] text-sm focus:border-[#3898ec] focus:outline-none focus:ring-2 focus:ring-[#3898ec]/30 disabled:cursor-not-allowed disabled:opacity-50"
+					className="flex h-10 w-full items-center justify-between rounded-none border border-border bg-background px-3 py-2 text-sm focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
 					disabled={disabled}
 					render={<button type="button" />}
 				>
@@ -191,13 +195,12 @@ function ToolCombobox({
 				<div className="flex flex-wrap gap-1.5">
 					{selectedTools.map((tool) => (
 						<Badge
-							className="flex items-center gap-1 bg-[#e8e6dc] px-2 py-0.5 text-[#4d4c48] text-xs"
 							key={tool.id}
 							variant="secondary"
 						>
 							{tool.name}
 							<button
-								className="ml-0.5 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-[#3898ec]"
+								className="ml-0.5 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-primary"
 								disabled={disabled}
 								onClick={() => removeTool(tool.id)}
 								type="button"
@@ -279,7 +282,8 @@ export function PromotionForm({
 		setServerError(null);
 
 		const input = buildInput();
-		const parsed = promotionSchema.safeParse(input);
+		const schema = mode === "create" ? createPromotionSchema : promotionSchema;
+		const parsed = schema.safeParse(input);
 
 		if (!parsed.success) {
 			setErrors(
@@ -319,8 +323,8 @@ export function PromotionForm({
 		});
 	}
 
-	return (
-		<form className="flex max-w-2xl flex-col gap-6" onSubmit={handleSubmit}>
+		return (
+		<form className="flex w-full max-w-3xl flex-col gap-6" onSubmit={handleSubmit}>
 			{/* Server-side error banner */}
 			{serverError && (
 				<div
@@ -331,183 +335,175 @@ export function PromotionForm({
 				</div>
 			)}
 
-			{/* Tipo */}
-			<div className="flex flex-col gap-2">
-				<Label>Tipo</Label>
-				{mode === "create" ? (
-					<RadioGroup
-						onValueChange={(v: string) => setType(v as PromotionType)}
-						value={type}
-					>
-						<div className="flex items-center gap-2">
-							<RadioGroupItem id="type-promotion" value="promotion" />
-							<Label
-								className="cursor-pointer font-normal"
-								htmlFor="type-promotion"
-							>
-								Promoção automática
-							</Label>
-						</div>
-						<div className="flex items-center gap-2">
-							<RadioGroupItem id="type-promocode" value="promocode" />
-							<Label
-								className="cursor-pointer font-normal"
-								htmlFor="type-promocode"
-							>
-								Código promocional
-							</Label>
-						</div>
-					</RadioGroup>
-				) : (
-					<p className="text-[#5e5d59] text-sm">{typeLabel(type)}</p>
-				)}
-			</div>
-
-			{/* Título */}
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="promo-title">Título</Label>
-				<Input
-					className="rounded-[12px] border-[#e8e6dc] focus-visible:border-[#3898ec] focus-visible:ring-2 focus-visible:ring-[#3898ec]/30"
-					disabled={isPending}
-					id="promo-title"
-					onChange={(e) => setTitle(e.target.value)}
-					placeholder="Ex: Desconto de verão"
-					value={title}
-				/>
-				{errors.title && (
-					<p className="text-destructive text-sm">{errors.title}</p>
-				)}
-			</div>
-
-			{/* Descrição */}
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="promo-description">Descrição</Label>
-				<Textarea
-					className="rounded-[12px] border-[#e8e6dc] focus-visible:border-[#3898ec] focus-visible:ring-2 focus-visible:ring-[#3898ec]/30"
-					disabled={isPending}
-					id="promo-description"
-					onChange={(e) => setDescription(e.target.value)}
-					placeholder="Descrição opcional da promoção"
-					rows={3}
-					value={description ?? ""}
-				/>
-				{errors.description && (
-					<p className="text-destructive text-sm">{errors.description}</p>
-				)}
-			</div>
-
-			{/* Desconto (%) */}
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="promo-discount">Desconto (%)</Label>
-				<Input
-					className="rounded-[12px] border-[#e8e6dc] focus-visible:border-[#3898ec] focus-visible:ring-2 focus-visible:ring-[#3898ec]/30"
-					disabled={isPending}
-					id="promo-discount"
-					inputMode="decimal"
-					onChange={(e) => setDiscountRaw(e.target.value)}
-					placeholder="Ex: 10 ou 10,5"
-					value={discountRaw}
-				/>
-				{errors.discountPct && (
-					<p className="text-destructive text-sm">{errors.discountPct}</p>
-				)}
-			</div>
-
-			{/* Ativa */}
-			<div className="flex items-center gap-3">
-				<Switch
-					checked={active}
-					disabled={isPending}
-					id="promo-active"
-					onCheckedChange={setActive}
-				/>
-				<Label className="cursor-pointer" htmlFor="promo-active">
-					Ativa
-				</Label>
-			</div>
-
-			{/* Datas */}
-			<div className="grid gap-4 sm:grid-cols-2">
+			<section className="flex flex-col gap-6 rounded-none border border-border bg-card p-6">
+				{/* Tipo */}
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="promo-starts-at">Início</Label>
-					<Input
-						className="rounded-[12px] border-[#e8e6dc] focus-visible:border-[#3898ec] focus-visible:ring-2 focus-visible:ring-[#3898ec]/30"
-						disabled={isPending}
-						id="promo-starts-at"
-						onChange={(e) => setStartsAt(e.target.value)}
-						type="date"
-						value={startsAt}
-					/>
-					{errors.startsAt && (
-						<p className="text-destructive text-sm">{errors.startsAt}</p>
+					<Label>Tipo</Label>
+					{mode === "create" ? (
+						<RadioGroup
+							onValueChange={(v: string) => setType(v as PromotionType)}
+							value={type}
+						>
+							<div className="flex items-center gap-2">
+								<RadioGroupItem id="type-promotion" value="promotion" />
+								<Label
+									className="cursor-pointer font-normal"
+									htmlFor="type-promotion"
+								>
+									Automática
+								</Label>
+							</div>
+							<div className="flex items-center gap-2">
+								<RadioGroupItem id="type-promocode" value="promocode" />
+								<Label
+									className="cursor-pointer font-normal"
+									htmlFor="type-promocode"
+								>
+									Cupom
+								</Label>
+							</div>
+						</RadioGroup>
+					) : (
+						<p className="text-muted-foreground text-sm">{typeLabel(type)}</p>
 					)}
 				</div>
 
+				{/* Título */}
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="promo-ends-at">Fim</Label>
+					<Label htmlFor="promo-title">Título</Label>
 					<Input
-						className="rounded-[12px] border-[#e8e6dc] focus-visible:border-[#3898ec] focus-visible:ring-2 focus-visible:ring-[#3898ec]/30"
 						disabled={isPending}
-						id="promo-ends-at"
-						onChange={(e) => setEndsAt(e.target.value)}
-						type="date"
-						value={endsAt}
+						id="promo-title"
+						onChange={(e) => setTitle(e.target.value)}
+						placeholder="Ex: Desconto de verão"
+						value={title}
 					/>
-					{errors.endsAt && (
-						<p className="text-destructive text-sm">{errors.endsAt}</p>
+					{errors.title && (
+						<p className="text-destructive text-sm">{errors.title}</p>
 					)}
 				</div>
-			</div>
 
-			{/* Código — only when type === 'promocode' */}
-			{type === "promocode" && (
+				{/* Descrição */}
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="promo-code">Código</Label>
-					<Input
-						className="rounded-[12px] border-[#e8e6dc] focus-visible:border-[#3898ec] focus-visible:ring-2 focus-visible:ring-[#3898ec]/30"
+					<Label htmlFor="promo-description">Descrição</Label>
+					<Textarea
 						disabled={isPending}
-						id="promo-code"
-						onChange={(e) => setCode(e.target.value)}
-						placeholder="Ex: VERAO2025"
-						value={code}
+						id="promo-description"
+						onChange={(e) => setDescription(e.target.value)}
+						placeholder="Descrição opcional da promoção"
+						rows={3}
+						value={description ?? ""}
 					/>
-					<p className="text-muted-foreground text-xs">
-						Código usado no checkout para aplicar este desconto
-					</p>
-					{errors.code && (
-						<p className="text-destructive text-sm">{errors.code}</p>
+					{errors.description && (
+						<p className="text-destructive text-sm">{errors.description}</p>
 					)}
 				</div>
-			)}
 
-			{/* Ferramentas */}
-			<div className="flex flex-col gap-2">
-				<Label>Ferramentas</Label>
-				<ToolCombobox
-					availableTools={availableTools}
-					disabled={isPending}
-					onChange={setToolIds}
-					selectedIds={toolIds}
-				/>
-				{errors.toolIds && (
-					<p className="text-destructive text-sm">{errors.toolIds}</p>
+				{/* Desconto (%) */}
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="promo-discount">Desconto (%)</Label>
+					<Input
+						disabled={isPending}
+						id="promo-discount"
+						inputMode="decimal"
+						onChange={(e) => setDiscountRaw(e.target.value)}
+						placeholder="Ex: 10 ou 10,5"
+						value={discountRaw}
+					/>
+					{errors.discountPct && (
+						<p className="text-destructive text-sm">{errors.discountPct}</p>
+					)}
+				</div>
+
+				{/* Ativa */}
+				<div className="flex items-center gap-3">
+					<Switch
+						checked={active}
+						disabled={isPending}
+						id="promo-active"
+						onCheckedChange={setActive}
+					/>
+					<Label className="cursor-pointer" htmlFor="promo-active">
+						Ativa
+					</Label>
+				</div>
+
+				{/* Datas */}
+				<div className="grid gap-4 sm:grid-cols-2">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="promo-starts-at">Início</Label>
+						<Input
+							disabled={isPending}
+							id="promo-starts-at"
+							onChange={(e) => setStartsAt(e.target.value)}
+							type="date"
+							value={startsAt}
+						/>
+						{errors.startsAt && (
+							<p className="text-destructive text-sm">{errors.startsAt}</p>
+						)}
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="promo-ends-at">Fim</Label>
+						<Input
+							disabled={isPending}
+							id="promo-ends-at"
+							onChange={(e) => setEndsAt(e.target.value)}
+							type="date"
+							value={endsAt}
+						/>
+						{errors.endsAt && (
+							<p className="text-destructive text-sm">{errors.endsAt}</p>
+						)}
+					</div>
+				</div>
+
+				{/* Código — only when type === 'promocode' */}
+				{type === "promocode" && (
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="promo-code">Código</Label>
+						<Input
+							disabled={isPending}
+							id="promo-code"
+							onChange={(e) => setCode(e.target.value)}
+							placeholder="Ex: VERAO2025"
+							value={code}
+						/>
+						<p className="text-muted-foreground text-xs">
+							Código usado no checkout para aplicar este desconto
+						</p>
+						{errors.code && (
+							<p className="text-destructive text-sm">{errors.code}</p>
+						)}
+					</div>
 				)}
-			</div>
+
+				{/* Ferramentas */}
+				<div className="flex flex-col gap-2">
+					<Label>Ferramentas</Label>
+					<ToolCombobox
+						availableTools={availableTools}
+						disabled={isPending}
+						onChange={setToolIds}
+						selectedIds={toolIds}
+					/>
+					{errors.toolIds && (
+						<p className="text-destructive text-sm">{errors.toolIds}</p>
+					)}
+				</div>
+			</section>
 
 			{/* Botões */}
 			<div className="flex items-center gap-3">
-				<Button
-					className="rounded-[8px] bg-[#c96442] px-4 text-[#faf9f5] hover:bg-[#c96442]/90"
-					disabled={isPending || submitted}
-					type="submit"
-				>
+				<Button disabled={isPending || submitted} type="submit">
 					<SubmitLabel isPending={isPending} mode={mode} />
 				</Button>
 				<Button
-					className="rounded-[8px] bg-[#e8e6dc] px-4 text-[#4d4c48] hover:bg-[#e8e6dc]/80"
 					disabled={isPending}
 					onClick={() => router.push("/dashboard/promotions")}
 					type="button"
+					variant="ghost"
 				>
 					Cancelar
 				</Button>

@@ -7,11 +7,18 @@ import { usePathname } from "next/navigation";
 
 const TOOLS_HREF = "/dashboard/tools" as Route;
 const STOCK_HREF = "/dashboard/stock" as Route;
+const BRANCH_STOCK_HREF = "/dashboard/stock/branches" as Route;
 const PROMOTIONS_HREF = "/dashboard/promotions" as Route;
 
 function resolveActiveTab(pathname: string): string {
+	if (pathname.startsWith("/dashboard/stock/branches")) {
+		return "branch-stock";
+	}
 	if (pathname.startsWith("/dashboard/stock")) {
-		return "stock";
+		return "stock-general";
+	}
+	if (pathname.startsWith("/dashboard/tools/") && pathname.endsWith("/stock")) {
+		return "stock-general";
 	}
 	if (pathname.startsWith("/dashboard/promotions")) {
 		return "promotions";
@@ -33,8 +40,13 @@ export function InventoryTabs() {
 				/>
 				<TabsTrigger
 					nativeButton={false}
-					render={<Link href={STOCK_HREF}>Estoque</Link>}
-					value="stock"
+					render={<Link href={STOCK_HREF}>Estoque Geral</Link>}
+					value="stock-general"
+				/>
+				<TabsTrigger
+					nativeButton={false}
+					render={<Link href={BRANCH_STOCK_HREF}>Estoque por Filiais</Link>}
+					value="branch-stock"
 				/>
 				<TabsTrigger
 					nativeButton={false}
