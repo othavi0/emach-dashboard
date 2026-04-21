@@ -10,7 +10,7 @@ import {
 	SelectValue,
 } from "@emach/ui/components/select";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 interface CategoryOption {
 	id: string;
@@ -31,14 +31,22 @@ export function StockFilters({ categories }: StockFiltersProps) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [isPending, startTransition] = useTransition();
-	const [q, setQ] = useState(searchParams.get("q") ?? "");
+	const urlSearch = searchParams.get("search") ?? searchParams.get("q") ?? "";
+	const [search, setSearch] = useState(urlSearch);
 
 	const currentCategoria = searchParams.get("categoria") ?? "";
 	const currentOrdem = searchParams.get("ordem") ?? "nome";
 
+	useEffect(() => {
+		setSearch(urlSearch);
+	}, [urlSearch]);
+
 	function buildUrl(next: Record<string, string | null>) {
 		const params = new URLSearchParams(searchParams.toString());
 		for (const [key, value] of Object.entries(next)) {
+			if (key === "search") {
+				params.delete("q");
+			}
 			if (value) {
 				params.set(key, value);
 			} else {
@@ -51,13 +59,13 @@ export function StockFilters({ categories }: StockFiltersProps) {
 
 	function pushUrl(next: Record<string, string | null>) {
 		startTransition(() => {
-			router.push(buildUrl(next));
+			router.replace(buildUrl(next));
 		});
 	}
 
 	function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		pushUrl({ q: q.trim() || null });
+		pushUrl({ search: search.trim() || null });
 	}
 
 	return (
@@ -70,9 +78,9 @@ export function StockFilters({ categories }: StockFiltersProps) {
 				<Input
 					disabled={isPending}
 					id="stock-q"
-					onChange={(event) => setQ(event.target.value)}
+					onChange={(event) => setSearch(event.target.value)}
 					placeholder="Nome da ferramenta"
-					value={q}
+					value={search}
 				/>
 			</div>
 

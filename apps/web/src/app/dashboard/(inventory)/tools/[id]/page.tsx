@@ -88,14 +88,22 @@ export default async function ToolDetailPage({ params }: PageProps) {
 						{row.sku ? `SKU: ${row.sku}` : "Sem SKU definido"}
 					</p>
 				</div>
-				{canMutate && (
+				<div className="flex gap-2">
 					<Link
 						className={buttonVariants({ variant: "secondary" })}
-						href={`/dashboard/tools/${id}/edit`}
+						href={`/dashboard/tools/${id}/stock`}
 					>
-						Editar
+						Gerenciar estoque
 					</Link>
-				)}
+					{canMutate && (
+						<Link
+							className={buttonVariants({ variant: "ghost" })}
+							href={`/dashboard/tools/${id}/edit`}
+						>
+							Editar
+						</Link>
+					)}
+				</div>
 			</div>
 
 			<div className="grid gap-6 md:grid-cols-[240px_1fr]">

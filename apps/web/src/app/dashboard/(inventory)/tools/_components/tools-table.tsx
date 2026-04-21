@@ -88,6 +88,15 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 							<TableCell className="text-right">
 								<div className="flex justify-end gap-2">
 									<Link
+										className={buttonVariants({
+											size: "sm",
+											variant: "secondary",
+										})}
+										href={`/dashboard/tools/${t.id}/stock`}
+									>
+										Gerenciar estoque
+									</Link>
+									<Link
 										className={buttonVariants({ size: "sm", variant: "ghost" })}
 										href={`/dashboard/tools/${t.id}/edit`}
 									>

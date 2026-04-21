@@ -43,9 +43,7 @@ export function BranchesTable({ branches, canMutate }: BranchesTableProps) {
 					<TableHead>Nome</TableHead>
 					<TableHead>Endereço</TableHead>
 					<TableHead className="w-32">Criado em</TableHead>
-					{canMutate && (
-						<TableHead className="w-40 text-right">Ações</TableHead>
-					)}
+					<TableHead className="w-56 text-right">Ações</TableHead>
 				</TableRow>
 			</TableHeader>
 			<TableBody>
@@ -58,9 +56,19 @@ export function BranchesTable({ branches, canMutate }: BranchesTableProps) {
 						<TableCell className="text-muted-foreground text-sm">
 							{formatDate(b.createdAt)}
 						</TableCell>
-						{canMutate && (
-							<TableCell className="text-right">
-								<div className="flex justify-end gap-2">
+						<TableCell className="text-right">
+							<div className="flex justify-end gap-2">
+								<Link
+									className={buttonVariants({
+										variant: "secondary",
+										size: "sm",
+									})}
+									href={`/dashboard/branches/${b.id}/stock`}
+								>
+									Gerenciar estoque
+								</Link>
+								{canMutate && (
+									<>
 									<Link
 										className={buttonVariants({
 											variant: "ghost",
@@ -71,9 +79,10 @@ export function BranchesTable({ branches, canMutate }: BranchesTableProps) {
 										Editar
 									</Link>
 									<DeleteBranchDialog branchId={b.id} branchName={b.name} />
-								</div>
-							</TableCell>
-						)}
+									</>
+								)}
+							</div>
+						</TableCell>
 					</TableRow>
 				))}
 			</TableBody>

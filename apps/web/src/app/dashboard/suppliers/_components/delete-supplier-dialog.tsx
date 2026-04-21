@@ -17,30 +17,31 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { deletePromotion } from "../actions";
+import { deleteSupplier } from "../actions";
 
-interface DeletePromotionDialogProps {
-	promotionId: string;
-	promotionTitle: string;
+interface DeleteSupplierDialogProps {
+	supplierId: string;
+	supplierName: string;
 }
 
-export function DeletePromotionDialog({
-	promotionId,
-	promotionTitle,
-}: DeletePromotionDialogProps) {
+export function DeleteSupplierDialog({
+	supplierId,
+	supplierName,
+}: DeleteSupplierDialogProps) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
 
 	function handleConfirm() {
 		startTransition(async () => {
-			const result = await deletePromotion(promotionId);
+			const result = await deleteSupplier(supplierId);
 			if (result.ok) {
-				toast.success("Promoção removida");
+				toast.success("Fornecedor removido");
 				setOpen(false);
+				router.push("/dashboard/suppliers");
 				router.refresh();
 			} else {
-				toast.error(result.error || "Não foi possível remover a promoção");
+				toast.error(result.error || "Não foi possível remover o fornecedor");
 			}
 		});
 	}
@@ -53,18 +54,19 @@ export function DeletePromotionDialog({
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						Remover &lsquo;{promotionTitle}&rsquo;?
+						Remover fornecedor <strong>{supplierName}</strong>?
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						Esta ação não pode ser desfeita.
+						Esta ação não pode ser desfeita. As ferramentas vinculadas serão
+						mantidas, mas ficarão sem fornecedor definido.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
 					<AlertDialogAction
 						disabled={isPending}
-						onClick={(e: React.MouseEvent) => {
-							e.preventDefault();
+						onClick={(event) => {
+							event.preventDefault();
 							handleConfirm();
 						}}
 					>

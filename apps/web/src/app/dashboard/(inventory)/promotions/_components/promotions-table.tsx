@@ -81,6 +81,18 @@ function formatDesconto(discountPct: string): string {
 	}).format(num)}%`;
 }
 
+function formatToolsScope(promotion: PromotionListItem): string {
+	if (promotion.tools.length === 0) {
+		return "Nenhuma ferramenta vinculada";
+	}
+
+	const visibleTools = promotion.tools.slice(0, 2).map((tool) => tool.name);
+	const hiddenCount = promotion.tools.length - visibleTools.length;
+	const suffix = hiddenCount > 0 ? ` +${hiddenCount}` : "";
+
+	return `Ferramentas específicas: ${visibleTools.join(", ")}${suffix}`;
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -99,7 +111,7 @@ export function PromotionsTable({
 					<TableHead>Desconto</TableHead>
 					<TableHead>Ativa</TableHead>
 					<TableHead>Janela</TableHead>
-					<TableHead className="text-right">Ferramentas</TableHead>
+					<TableHead>Escopo</TableHead>
 					{canMutate && (
 						<TableHead className="w-40 text-right">Ações</TableHead>
 					)}
@@ -108,39 +120,24 @@ export function PromotionsTable({
 			<TableBody>
 				{promotions.map((p) => (
 					<TableRow key={p.id}>
-						{/* Tipo badge — Warm Sand for promotion, Dark Charcoal for promocode */}
 						<TableCell>
 							{p.type === "promocode" ? (
-								<Badge
-									className="bg-[#30302e] text-[#faf9f5] hover:bg-[#30302e]/90"
-									variant="outline"
-								>
-									Código
-								</Badge>
+								<Badge variant="secondary">Cupom</Badge>
 							) : (
-								<Badge
-									className="bg-[#e8e6dc] text-[#4d4c48] hover:bg-[#e8e6dc]/90"
-									variant="outline"
-								>
-									Promoção
-								</Badge>
+								<Badge variant="outline">Automática</Badge>
 							)}
 						</TableCell>
 
-						{/* Título */}
 						<TableCell className="font-medium">{p.title}</TableCell>
 
-						{/* Código */}
 						<TableCell className="font-mono text-muted-foreground text-sm">
 							{p.type === "promocode" ? (p.code ?? "—") : "—"}
 						</TableCell>
 
-						{/* Desconto */}
 						<TableCell className="tabular-nums">
 							{formatDesconto(p.discountPct)}
 						</TableCell>
 
-						{/* Ativa badge */}
 						<TableCell>
 							{isPromotionActive(p) ? (
 								<Badge variant="default">Ativa</Badge>
@@ -149,17 +146,14 @@ export function PromotionsTable({
 							)}
 						</TableCell>
 
-						{/* Janela */}
 						<TableCell className="text-muted-foreground text-sm">
 							{formatJanela(p.startsAt, p.endsAt)}
 						</TableCell>
 
-						{/* Ferramentas count */}
-						<TableCell className="text-right tabular-nums">
-							{p.tools.length}
+						<TableCell className="max-w-xs text-muted-foreground text-sm">
+							{formatToolsScope(p)}
 						</TableCell>
 
-						{/* Ações — absent from DOM for non-admin */}
 						{canMutate && (
 							<TableCell className="text-right">
 								<div className="flex justify-end gap-2">

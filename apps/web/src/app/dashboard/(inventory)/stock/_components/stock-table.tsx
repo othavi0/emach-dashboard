@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@emach/ui/components/button";
+import { Button, buttonVariants } from "@emach/ui/components/button";
 import {
 	Popover,
 	PopoverContent,
@@ -14,7 +14,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export interface StockRowBranch {
 	branchId: string;
@@ -37,8 +37,6 @@ interface StockTableProps {
 }
 
 export function StockTable({ rows }: StockTableProps) {
-	const router = useRouter();
-
 	return (
 		<Table>
 			<TableHeader>
@@ -48,15 +46,12 @@ export function StockTable({ rows }: StockTableProps) {
 					<TableHead>SKU</TableHead>
 					<TableHead className="text-right">Total</TableHead>
 					<TableHead className="w-40 text-right">Filiais</TableHead>
+					<TableHead className="w-40 text-right">Ações</TableHead>
 				</TableRow>
 			</TableHeader>
 			<TableBody>
 				{rows.map((row) => (
-					<TableRow
-						className="cursor-pointer hover:bg-muted/50"
-						key={row.id}
-						onClick={() => router.push(`/dashboard/tools/${row.id}/stock`)}
-					>
+					<TableRow key={row.id}>
 						<TableCell>
 							{row.imageUrl ? (
 								// biome-ignore lint/performance/noImgElement: Supabase public URL
@@ -70,7 +65,12 @@ export function StockTable({ rows }: StockTableProps) {
 								<div className="h-10 w-10 rounded border border-border bg-muted" />
 							)}
 						</TableCell>
-						<TableCell className="font-medium">{row.name}</TableCell>
+						<TableCell>
+							<p className="font-medium">{row.name}</p>
+							<p className="text-muted-foreground text-xs">
+								Gerenciar estoque por filial
+							</p>
+						</TableCell>
 						<TableCell className="text-muted-foreground text-sm">
 							{row.sku ?? "—"}
 						</TableCell>
@@ -107,6 +107,14 @@ export function StockTable({ rows }: StockTableProps) {
 									</PopoverContent>
 								</Popover>
 							)}
+						</TableCell>
+						<TableCell className="text-right">
+							<Link
+								className={buttonVariants({ size: "sm", variant: "ghost" })}
+								href={`/dashboard/tools/${row.id}/stock`}
+							>
+								Gerenciar estoque
+							</Link>
 						</TableCell>
 					</TableRow>
 				))}

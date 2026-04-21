@@ -25,14 +25,18 @@ export function PromotionsFilters({
 }: PromotionsFiltersProps) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
+	const urlSearch = searchParams.get("search") ?? "";
 
 	const [search, setSearch] = useState(initialSearch);
 	const currentType = searchParams.get("type") ?? initialType;
 
+	useEffect(() => {
+		setSearch(urlSearch);
+	}, [urlSearch]);
+
 	// debounce search input → URL
 	useEffect(() => {
-		const currentSearch = searchParams.get("search") ?? "";
-		if (search === currentSearch) {
+		if (search === urlSearch) {
 			return;
 		}
 		const handle = setTimeout(() => {
@@ -48,7 +52,7 @@ export function PromotionsFilters({
 			);
 		}, DEBOUNCE_MS);
 		return () => clearTimeout(handle);
-	}, [search, router, searchParams]);
+	}, [router, search, searchParams, urlSearch]);
 
 	function updateType(value: string | null) {
 		const next = new URLSearchParams(searchParams.toString());

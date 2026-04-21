@@ -26,29 +26,34 @@ const ALL = "__all__";
 export function ToolFilters({ categories }: ToolFiltersProps) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
+	const urlSearch = searchParams.get("search") ?? searchParams.get("q") ?? "";
 
-	const [query, setQuery] = useState(searchParams.get("q") ?? "");
+	const [search, setSearch] = useState(urlSearch);
 	const currentCategory = searchParams.get("category") ?? ALL;
 	const currentVisibility = searchParams.get("visible") ?? ALL;
 
+	useEffect(() => {
+		setSearch(urlSearch);
+	}, [urlSearch]);
+
 	// debounce search input → URL (guard to skip when unchanged)
 	useEffect(() => {
-		const currentQ = searchParams.get("q") ?? "";
-		if (query === currentQ) {
+		if (search === urlSearch) {
 			return;
 		}
 		const handle = setTimeout(() => {
 			const next = new URLSearchParams(searchParams.toString());
-			if (query) {
-				next.set("q", query);
+			next.delete("q");
+			if (search) {
+				next.set("search", search);
 			} else {
-				next.delete("q");
+				next.delete("search");
 			}
 			const qs = next.toString();
 			router.replace(qs ? `/dashboard/tools?${qs}` : "/dashboard/tools");
 		}, DEBOUNCE_MS);
 		return () => clearTimeout(handle);
-	}, [query, router, searchParams]);
+	}, [router, search, searchParams, urlSearch]);
 
 	function updateParam(key: string, value: string | null) {
 		const next = new URLSearchParams(searchParams.toString());
@@ -69,9 +74,9 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 				</label>
 				<Input
 					id="tool-q"
-					onChange={(e) => setQuery(e.target.value)}
+					onChange={(e) => setSearch(e.target.value)}
 					placeholder="Ex: furadeira"
-					value={query}
+					value={search}
 				/>
 			</div>
 

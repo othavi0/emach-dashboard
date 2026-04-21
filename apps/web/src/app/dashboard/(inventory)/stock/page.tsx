@@ -35,6 +35,7 @@ interface StockPageParams {
 	categoria?: string;
 	ordem?: "nome" | "maior" | "menor";
 	q?: string;
+	search?: string;
 }
 
 interface StockPageProps {
@@ -50,8 +51,8 @@ async function fetchCategories() {
 
 async function fetchStockRows(params: StockPageParams): Promise<StockRow[]> {
 	const whereClauses = [] as ReturnType<typeof sql>[];
-	if (params.q) {
-		whereClauses.push(sql`t.name ILIKE ${`%${params.q}%`}`);
+	if (params.search) {
+		whereClauses.push(sql`t.name ILIKE ${`%${params.search}%`}`);
 	}
 	if (params.categoria) {
 		whereClauses.push(sql`t.category_id = ${params.categoria}`);
@@ -118,21 +119,22 @@ async function fetchStockRows(params: StockPageParams): Promise<StockRow[]> {
 export default async function StockPage({ searchParams }: StockPageProps) {
 	await requireCurrentSession();
 	const params = await searchParams;
+	const search = params.search ?? params.q;
 
 	const [rows, categories] = await Promise.all([
-		fetchStockRows(params),
+		fetchStockRows({ ...params, search }),
 		fetchCategories(),
 	]);
 	const isEmpty = rows.length === 0;
-	const hasFilters = Boolean(params.q || params.categoria || params.ordem);
+	const hasFilters = Boolean(search || params.categoria || params.ordem);
 
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-serif text-2xl">Estoque por Filial</h1>
+				<h1 className="font-serif text-2xl">Estoque Geral</h1>
 				<p className="text-muted-foreground text-sm">
-					Visão consolidada do estoque de cada ferramenta agregado por filial.
-					Clique em uma linha para ajustar o estoque.
+					Visão centralizada do estoque de cada ferramenta somando todas as
+					filiais. Use a ação na tabela para abrir o ajuste por filial.
 				</p>
 			</div>
 

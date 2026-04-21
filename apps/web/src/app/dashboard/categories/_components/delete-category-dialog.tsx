@@ -17,30 +17,31 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { deletePromotion } from "../actions";
+import { deleteCategory } from "../actions";
 
-interface DeletePromotionDialogProps {
-	promotionId: string;
-	promotionTitle: string;
+interface DeleteCategoryDialogProps {
+	categoryId: string;
+	categoryName: string;
 }
 
-export function DeletePromotionDialog({
-	promotionId,
-	promotionTitle,
-}: DeletePromotionDialogProps) {
+export function DeleteCategoryDialog({
+	categoryId,
+	categoryName,
+}: DeleteCategoryDialogProps) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
 
 	function handleConfirm() {
 		startTransition(async () => {
-			const result = await deletePromotion(promotionId);
+			const result = await deleteCategory(categoryId);
 			if (result.ok) {
-				toast.success("Promoção removida");
+				toast.success("Categoria removida");
 				setOpen(false);
+				router.push("/dashboard/categories");
 				router.refresh();
 			} else {
-				toast.error(result.error || "Não foi possível remover a promoção");
+				toast.error(result.error || "Não foi possível remover a categoria");
 			}
 		});
 	}
@@ -53,18 +54,19 @@ export function DeletePromotionDialog({
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						Remover &lsquo;{promotionTitle}&rsquo;?
+						Remover categoria <strong>{categoryName}</strong>?
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						Esta ação não pode ser desfeita.
+						Esta ação não pode ser desfeita. Categorias com ferramentas
+						vinculadas não serão removidas.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
 					<AlertDialogAction
 						disabled={isPending}
-						onClick={(e: React.MouseEvent) => {
-							e.preventDefault();
+						onClick={(event) => {
+							event.preventDefault();
 							handleConfirm();
 						}}
 					>

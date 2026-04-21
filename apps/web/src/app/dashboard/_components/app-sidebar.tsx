@@ -21,6 +21,7 @@ import { authClient } from "@/lib/auth-client";
 
 interface NavItem {
 	disabled?: boolean;
+	exact?: boolean;
 	href: Route;
 	label: string;
 }
@@ -36,11 +37,21 @@ const NAV_GROUPS: NavGroup[] = [
 	{
 		label: "Estoque",
 		items: [
-			{ label: "Ferramentas", href: "/dashboard/tools" as Route },
 			{
-				label: "Estoque por Filial",
+				label: "Estoque Geral",
 				href: "/dashboard/stock" as Route,
+				exact: true,
 			},
+			{
+				label: "Estoque por Filiais",
+				href: "/dashboard/stock/branches" as Route,
+			},
+		],
+	},
+	{
+		label: "Catálogo",
+		items: [
+			{ label: "Ferramentas", href: "/dashboard/tools" as Route },
 			{
 				label: "Promoções",
 				href: "/dashboard/promotions" as Route,
@@ -48,17 +59,15 @@ const NAV_GROUPS: NavGroup[] = [
 		],
 	},
 	{
-		label: "Configurações",
+		label: "Cadastros",
 		items: [
 			{
 				label: "Categorias",
 				href: "/dashboard/categories" as Route,
-				disabled: true,
 			},
 			{
 				label: "Fornecedores",
 				href: "/dashboard/suppliers" as Route,
-				disabled: true,
 			},
 			{
 				label: "Filiais",
@@ -68,9 +77,23 @@ const NAV_GROUPS: NavGroup[] = [
 	},
 ];
 
-function isActive(pathname: string, href: string): boolean {
+function isToolStockPath(pathname: string): boolean {
+	return pathname.startsWith("/dashboard/tools/") && pathname.endsWith("/stock");
+}
+
+function isActive(pathname: string, item: Pick<NavItem, "exact" | "href">): boolean {
+	const href = item.href;
 	if (href === DASHBOARD_HREF) {
 		return pathname === DASHBOARD_HREF;
+	}
+	if (href === "/dashboard/stock") {
+		return pathname === href || isToolStockPath(pathname);
+	}
+	if (href === "/dashboard/tools" && isToolStockPath(pathname)) {
+		return false;
+	}
+	if (item.exact) {
+		return pathname === href;
 	}
 	return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -146,7 +169,7 @@ export function AppSidebar() {
 						<SidebarMenu>
 							<SidebarMenuItem>
 								<SidebarMenuButton
-									isActive={isActive(pathname, DASHBOARD_HREF)}
+									isActive={isActive(pathname, { href: DASHBOARD_HREF })}
 									render={<Link href={DASHBOARD_HREF}>Dashboard</Link>}
 								/>
 							</SidebarMenuItem>
@@ -175,7 +198,7 @@ export function AppSidebar() {
 									) : (
 										<SidebarMenuItem key={item.href}>
 											<SidebarMenuButton
-												isActive={isActive(pathname, item.href)}
+												isActive={isActive(pathname, item)}
 												render={<Link href={item.href}>{item.label}</Link>}
 											/>
 										</SidebarMenuItem>

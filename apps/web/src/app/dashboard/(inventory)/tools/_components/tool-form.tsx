@@ -152,15 +152,23 @@ export function ToolForm({
 
 		startTransition(async () => {
 			try {
-				if (mode === "create") {
-					await createTool(result.data);
-					toast.success("Ferramenta criada com sucesso");
-				} else if (toolId) {
-					await updateTool(toolId, result.data);
-					toast.success("Ferramenta atualizada com sucesso");
+				const actionResult =
+					mode === "create"
+						? await createTool(result.data)
+						: await updateTool(toolId ?? "", result.data);
+
+				if (actionResult.ok) {
+					toast.success(
+						mode === "create"
+							? "Ferramenta criada com sucesso"
+							: "Ferramenta atualizada com sucesso"
+					);
+					router.push("/dashboard/tools");
+					router.refresh();
+					return;
 				}
-				router.push("/dashboard/tools");
-				router.refresh();
+
+				toast.error(actionResult.error || "Falha ao salvar a ferramenta");
 			} catch (error) {
 				const message =
 					error instanceof Error ? error.message : "Erro desconhecido";
