@@ -1,3 +1,45 @@
+# Auth Architecture
+
+Dois better-auth paralelos, totalmente isolados, compartilhando o mesmo banco Supabase.
+
+## Instâncias
+
+| Instância | Package import | Tabelas | Consumers |
+|---|---|---|---|
+| Dashboard (funcionários internos — roles admin/manager/user) | `@emach/auth/dashboard` → `authDashboard`, `DashboardSession` | `user`, `session`, `account`, `verification` | `apps/web` |
+| Ecomerce (clientes finais BR) | `@emach/auth/ecommerce` → `authEcommerce`, `EcommerceSession` | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | `apps/<ecommerce>` (futuro) |
+
+## Schema
+
+- `packages/db/src/schema/auth.ts` — tabelas dashboard (nomes better-auth padrão).
+- `packages/db/src/schema/client.ts` — tabelas ecomerce + `clientAddress` com campos BR (`country` default `"BR"`, etc).
+- `client` extras: `phone` (nullable), `document` (CPF/CNPJ, text unique nullable).
+- Roles do dashboard: `user.role = "admin" | "manager" | "user"` (extensível — novas roles tipo `stockist` virão depois). `client` **não** tem coluna `role`.
+
+## Cookies / isolamento
+
+- `authDashboard` usa cookie prefix padrão; `authEcommerce` usa `cookiePrefix: "ecommerce"`.
+- Apps rodam em subdomínios distintos — cookies isolados por host. **Nunca** setar `advanced.cookies.<name>.attributes.domain = ".emach.com.br"`.
+- `BETTER_AUTH_SECRET` compartilhado (ok enquanto apps em subdomínios).
+- `trustedOrigins`: `authDashboard` → `CORS_ORIGIN`; `authEcommerce` → `ECOMMERCE_ORIGIN`.
+
+## Env vars
+
+- `DATABASE_URL`, `BETTER_AUTH_SECRET` — compartilhadas.
+- `BETTER_AUTH_URL` + `CORS_ORIGIN` — dashboard.
+- `BETTER_AUTH_URL_ECOMMERCE` + `ECOMMERCE_ORIGIN` — ecomerce (optional no env central; obrigatórias no app ecomerce).
+
+## Regras invioláveis
+
+1. **Nunca importar schema do domínio oposto.** `apps/web` (dashboard) nunca importa `@emach/db/schema/client`. App ecomerce nunca importa `@emach/db/schema/auth`.
+2. **Nunca misturar tipos de sessão** — `DashboardSession` ≠ `EcommerceSession`.
+3. **Validação CPF/CNPJ é responsabilidade do app** (zod refine com dígito verificador) — better-auth não valida. Sempre normalizar (só dígitos) antes de persistir.
+4. **Migrations em prod**: usar `drizzle-kit generate` + migration versionada. `--force` só em dev/staging.
+
+Guia completo de integração do ecomerce (passo-a-passo + footguns detalhados): `docs/auth/ecommerce-integration.md`.
+
+---
+
 # Ultracite Code Standards
 
 This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.

@@ -2,11 +2,11 @@
   "name": "@emach/auth",
   "type": "module",
   "exports": {
-    ".": {
-      "default": "./src/index.ts"
+    "./dashboard": {
+      "default": "./src/dashboard.ts"
     },
-    "./*": {
-      "default": "./src/*.ts"
+    "./ecommerce": {
+      "default": "./src/ecommerce.ts"
     }
   },
   "scripts": {},
