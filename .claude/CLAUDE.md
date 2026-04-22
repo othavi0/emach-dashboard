@@ -1,3 +1,37 @@
+# Project Context
+
+## Stack
+
+- Monorepo Bun workspaces + Turborepo. `apps/web` (Next 16, React 19), `packages/db` (Drizzle + Postgres/Supabase), `packages/auth` (Better Auth), `packages/env`, `packages/ui`.
+- IDs gerados via `crypto.randomUUID()` em server actions/scripts (sem nanoid).
+- DB workflow: edit schema em `packages/db/src/schema/*.ts` → `bun db:push` (dev) ou `bun db:generate` + `bun db:migrate` (prod). Env vem de `apps/web/.env`.
+
+## Schema `tool` (campos-chave)
+
+Arquivos: `packages/db/src/schema/tools.ts`, `inventory.ts`, `stock-movements.ts`, `promotions.ts`.
+
+Tabela `tool` inclui:
+- Identificação: `sku` (unique), `model` (curto, agrupa variantes de voltagem), `invoiceModel` (código fábrica, não-unique — repete legitimamente), `barcode` (unique), `manufacturerName`, `countryOfOrigin`.
+- Classificação: `productType` enum `'machine'|'equipment'|'part'|'accessory'`, `status` enum `'draft'|'active'|'discontinued'|'out_of_stock'`.
+- Fiscais: `hsCode`, `ncm`, `cest`.
+- Físicos: `weightKg`, `lengthCm`, `widthCm`, `heightCm`.
+- Técnicos: `voltage`, `powerWatts`, `frequencyHz`, `warrantyMonths`.
+- Visibilidade site pública = `status = 'active' AND visibleOnSite = true` (coexistem).
+
+Variantes de voltagem (127V/220V) = rows `tool` separadas compartilhando `model`. Não há tabela `tool_variant`.
+
+`stock_level` tem `minQty` + `reorderPoint` por filial (check `reorder >= min`).
+
+## Importador Master Part List
+
+Script: `packages/db/src/scripts/import-master-part-list.ts`. Uso: `bun run packages/db/src/scripts/import-master-part-list.ts <xlsx> [--dry-run]`.
+
+- Upsert por `sku`. Linhas `SAMPLES` recebem sku derivado `SAMPLES-<invoiceModel>`.
+- `Unity` → `productType`. `NA` / vazio → null. Voltagem parseada do `invoiceModel` via regex `(\d{2,3})V`.
+- Dep: `xlsx` (devDep de `@emach/db`).
+
+---
+
 # Ultracite Code Standards
 
 This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
