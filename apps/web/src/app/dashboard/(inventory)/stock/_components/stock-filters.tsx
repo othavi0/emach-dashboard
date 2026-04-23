@@ -12,13 +12,13 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
-interface CategoryOption {
+interface ProductTypeOption {
 	id: string;
 	name: string;
 }
 
 interface StockFiltersProps {
-	categories: CategoryOption[];
+	productTypes: ProductTypeOption[];
 }
 
 const SORT_OPTIONS = [
@@ -27,14 +27,14 @@ const SORT_OPTIONS = [
 	{ label: "Menor estoque", value: "menor" },
 ] as const;
 
-export function StockFilters({ categories }: StockFiltersProps) {
+export function StockFilters({ productTypes }: StockFiltersProps) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [isPending, startTransition] = useTransition();
 	const urlSearch = searchParams.get("search") ?? searchParams.get("q") ?? "";
 	const [search, setSearch] = useState(urlSearch);
 
-	const currentCategoria = searchParams.get("categoria") ?? "";
+	const currentProductType = searchParams.get("productType") ?? "";
 	const currentOrdem = searchParams.get("ordem") ?? "nome";
 
 	useEffect(() => {
@@ -85,22 +85,22 @@ export function StockFilters({ categories }: StockFiltersProps) {
 			</div>
 
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="stock-categoria">Categoria</Label>
+				<Label htmlFor="stock-product-type">Tipo de produto</Label>
 				<Select
 					disabled={isPending}
 					onValueChange={(value) =>
-						pushUrl({ categoria: value === "__all__" ? null : value })
+						pushUrl({ productType: value === "__all__" ? null : value })
 					}
-					value={currentCategoria || "__all__"}
+					value={currentProductType || "__all__"}
 				>
-					<SelectTrigger className="w-52" id="stock-categoria">
-						<SelectValue placeholder="Todas" />
+					<SelectTrigger className="w-52" id="stock-product-type">
+						<SelectValue placeholder="Todos" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="__all__">Todas</SelectItem>
-						{categories.map((c) => (
-							<SelectItem key={c.id} value={c.id}>
-								{c.name}
+						<SelectItem value="__all__">Todos</SelectItem>
+						{productTypes.map((p) => (
+							<SelectItem key={p.id} value={p.id}>
+								{p.name}
 							</SelectItem>
 						))}
 					</SelectContent>

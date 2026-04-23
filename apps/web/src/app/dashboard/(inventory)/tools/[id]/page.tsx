@@ -1,7 +1,7 @@
 import { db } from "@emach/db";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
 import {
-	category,
+	productType,
 	supplier,
 	tool,
 	toolImage,
@@ -29,8 +29,6 @@ import { notFound } from "next/navigation";
 
 import { requireCurrentSession } from "@/lib/session";
 import {
-	PRODUCT_TYPE_LABELS,
-	type ProductTypeValue,
 	TOOL_STATUS_LABELS,
 	type ToolStatusValue,
 } from "../_components/tool-schema";
@@ -66,7 +64,6 @@ export default async function ToolDetailPage({ params }: PageProps) {
 			barcode: tool.barcode,
 			manufacturerName: tool.manufacturerName,
 			countryOfOrigin: tool.countryOfOrigin,
-			productType: tool.productType,
 			status: tool.status,
 			hsCode: tool.hsCode,
 			ncm: tool.ncm,
@@ -82,11 +79,11 @@ export default async function ToolDetailPage({ params }: PageProps) {
 			price: tool.price,
 			cost: tool.cost,
 			visibleOnSite: tool.visibleOnSite,
-			categoryName: category.name,
+			productTypeName: productType.name,
 			supplierName: supplier.name,
 		})
 		.from(tool)
-		.leftJoin(category, eq(category.id, tool.categoryId))
+		.leftJoin(productType, eq(productType.id, tool.productTypeId))
 		.leftJoin(supplier, eq(supplier.id, tool.supplierId))
 		.where(eq(tool.id, id))
 		.limit(1);
@@ -194,7 +191,7 @@ export default async function ToolDetailPage({ params }: PageProps) {
 					</CardHeader>
 					<CardContent className="grid gap-2 text-sm">
 						<p>
-							<strong>Categoria:</strong> {row.categoryName ?? "—"}
+							<strong>Tipo de produto:</strong> {row.productTypeName ?? "—"}
 						</p>
 						<p>
 							<strong>Fornecedor:</strong> {row.supplierName ?? "—"}
@@ -224,16 +221,6 @@ export default async function ToolDetailPage({ params }: PageProps) {
 					</CardHeader>
 					<CardContent>
 						<dl className="grid gap-2 text-sm">
-							<div className="flex justify-between">
-								<dt className="text-muted-foreground">Tipo de produto</dt>
-								<dd>
-									{row.productType
-										? (PRODUCT_TYPE_LABELS[
-												row.productType as ProductTypeValue
-											] ?? row.productType)
-										: "—"}
-								</dd>
-							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">HS Code</dt>
 								<dd>{row.hsCode ?? "—"}</dd>

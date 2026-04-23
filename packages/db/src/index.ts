@@ -38,8 +38,8 @@ import {
 	stockMovementRelations,
 } from "./schema/stock-movements";
 import {
-	category,
-	categoryRelations,
+	productType,
+	productTypeRelations,
 	supplier,
 	supplierRelations,
 	tool,
@@ -55,8 +55,6 @@ const schema = {
 	apiKeyRelations,
 	branch,
 	branchRelations,
-	category,
-	categoryRelations,
 	client,
 	clientAccount,
 	clientAccountRelations,
@@ -66,6 +64,8 @@ const schema = {
 	clientSession,
 	clientSessionRelations,
 	clientVerification,
+	productType,
+	productTypeRelations,
 	promotion,
 	promotionRelations,
 	promotionTool,

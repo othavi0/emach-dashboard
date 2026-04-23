@@ -17,31 +17,31 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { deleteCategory } from "../actions";
+import { deleteProductType } from "../actions";
 
-interface DeleteCategoryDialogProps {
-	categoryId: string;
-	categoryName: string;
+interface DeleteProductTypeDialogProps {
+	productTypeId: string;
+	productTypeName: string;
 }
 
-export function DeleteCategoryDialog({
-	categoryId,
-	categoryName,
-}: DeleteCategoryDialogProps) {
+export function DeleteProductTypeDialog({
+	productTypeId,
+	productTypeName,
+}: DeleteProductTypeDialogProps) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
 
 	function handleConfirm() {
 		startTransition(async () => {
-			const result = await deleteCategory(categoryId);
+			const result = await deleteProductType(productTypeId);
 			if (result.ok) {
-				toast.success("Categoria removida");
+				toast.success("Tipo removido");
 				setOpen(false);
-				router.push("/dashboard/categories");
+				router.push("/dashboard/product-types");
 				router.refresh();
 			} else {
-				toast.error(result.error || "Não foi possível remover a categoria");
+				toast.error(result.error || "Não foi possível remover o tipo");
 			}
 		});
 	}
@@ -54,11 +54,11 @@ export function DeleteCategoryDialog({
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						Remover categoria <strong>{categoryName}</strong>?
+						Remover tipo <strong>{productTypeName}</strong>?
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						Esta ação não pode ser desfeita. Categorias com ferramentas
-						vinculadas não serão removidas.
+						Esta ação não pode ser desfeita. Tipos com ferramentas vinculadas
+						não serão removidos.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>

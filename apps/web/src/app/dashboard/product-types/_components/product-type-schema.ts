@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const categorySchema = z.object({
+export const productTypeSchema = z.object({
 	name: z
 		.string()
 		.trim()
@@ -15,13 +15,13 @@ export const categorySchema = z.object({
 		.or(z.literal("")),
 });
 
-export type CategoryFormValues = z.infer<typeof categorySchema>;
+export type ProductTypeFormValues = z.infer<typeof productTypeSchema>;
 
 export function slugify(input: string): string {
 	return input
 		.toLowerCase()
 		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/[̀-ͯ]/g, "")
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-+|-+$/g, "")
 		.slice(0, 80);

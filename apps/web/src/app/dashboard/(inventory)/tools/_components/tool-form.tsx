@@ -23,8 +23,6 @@ import { ToolImageGallery } from "./tool-image-gallery";
 import {
 	MAX_IMAGES,
 	MIN_IMAGES_ACTIVE,
-	PRODUCT_TYPE_LABELS,
-	PRODUCT_TYPE_OPTIONS,
 	slugify,
 	TOOL_STATUS_LABELS,
 	TOOL_STATUS_OPTIONS,
@@ -33,7 +31,7 @@ import {
 	VOLTAGE_OPTIONS,
 } from "./tool-schema";
 
-interface CategoryOption {
+interface ProductTypeOption {
 	id: string;
 	name: string;
 }
@@ -44,7 +42,7 @@ interface SupplierOption {
 }
 
 interface ToolFormProps {
-	categories: CategoryOption[];
+	productTypes: ProductTypeOption[];
 	defaultValues: Partial<ToolFormValues>;
 	existingSlug?: string;
 	mode: "create" | "edit";
@@ -105,7 +103,6 @@ const EMPTY_VALUES: ToolFormValues = {
 	barcode: "",
 	manufacturerName: "",
 	countryOfOrigin: "",
-	productType: "",
 	status: "draft",
 	hsCode: "",
 	ncm: "",
@@ -120,7 +117,7 @@ const EMPTY_VALUES: ToolFormValues = {
 	heightCm: undefined,
 	price: undefined,
 	cost: undefined,
-	categoryId: "",
+	productTypeId: "",
 	supplierId: "",
 	visibleOnSite: true,
 	images: [],
@@ -130,7 +127,7 @@ export function ToolForm({
 	mode,
 	toolId,
 	defaultValues,
-	categories,
+	productTypes,
 	suppliers,
 	existingSlug,
 }: ToolFormProps) {
@@ -342,37 +339,14 @@ export function ToolForm({
 					Classificação fiscal
 				</h2>
 
-				<div className="grid gap-4 md:grid-cols-2">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="productType">Tipo de produto</Label>
-						<Select
-							onValueChange={(v) =>
-								update("productType", v as ToolFormValues["productType"])
-							}
-							value={values.productType ?? ""}
-						>
-							<SelectTrigger id="productType">
-								<SelectValue placeholder="Selecione" />
-							</SelectTrigger>
-							<SelectContent>
-								{PRODUCT_TYPE_OPTIONS.map((p) => (
-									<SelectItem key={p} value={p}>
-										{PRODUCT_TYPE_LABELS[p]}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="hsCode">HS Code (invoice)</Label>
-						<Input
-							id="hsCode"
-							onChange={(e) => update("hsCode", e.target.value)}
-							placeholder="Ex: 8467291000"
-							value={values.hsCode ?? ""}
-						/>
-					</div>
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="hsCode">HS Code (invoice)</Label>
+					<Input
+						id="hsCode"
+						onChange={(e) => update("hsCode", e.target.value)}
+						placeholder="Ex: 8467291000"
+						value={values.hsCode ?? ""}
+					/>
 				</div>
 
 				<div className="grid gap-4 md:grid-cols-2">
@@ -550,29 +524,29 @@ export function ToolForm({
 
 				<div className="grid gap-4 md:grid-cols-2">
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="categoryId">Categoria</Label>
+						<Label htmlFor="productTypeId">Tipo de produto</Label>
 						<Select
-							onValueChange={(v) => update("categoryId", v ?? "")}
-							value={values.categoryId}
+							onValueChange={(v) => update("productTypeId", v ?? "")}
+							value={values.productTypeId}
 						>
-							<SelectTrigger id="categoryId">
-								<SelectValue placeholder="Selecione uma categoria">
+							<SelectTrigger id="productTypeId">
+								<SelectValue placeholder="Selecione um tipo">
 									{(v: string) =>
-										categories.find((c) => c.id === v)?.name ??
-										"Selecione uma categoria"
+										productTypes.find((p) => p.id === v)?.name ??
+										"Selecione um tipo"
 									}
 								</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
-								{categories.map((c) => (
-									<SelectItem key={c.id} value={c.id}>
-										{c.name}
+								{productTypes.map((p) => (
+									<SelectItem key={p.id} value={p.id}>
+										{p.name}
 									</SelectItem>
 								))}
 							</SelectContent>
 						</Select>
-						{errors.categoryId && (
-							<p className="text-destructive text-xs">{errors.categoryId}</p>
+						{errors.productTypeId && (
+							<p className="text-destructive text-xs">{errors.productTypeId}</p>
 						)}
 					</div>
 

@@ -62,7 +62,6 @@ function normalizePayload(input: ToolFormValues) {
 		barcode: nullableText(input.barcode),
 		manufacturerName: nullableText(input.manufacturerName),
 		countryOfOrigin: nullableText(input.countryOfOrigin),
-		productType: input.productType ? input.productType : null,
 		status: input.status,
 		hsCode: nullableText(input.hsCode),
 		ncm: nullableText(input.ncm),
@@ -78,7 +77,7 @@ function normalizePayload(input: ToolFormValues) {
 		price: toNumericString(input.price),
 		cost: toNumericString(input.cost),
 		visibleOnSite: input.visibleOnSite,
-		categoryId: input.categoryId,
+		productTypeId: input.productTypeId,
 		supplierId: nullableText(input.supplierId),
 	};
 }
