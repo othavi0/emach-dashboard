@@ -15,6 +15,7 @@ import { requireCurrentSession } from "@/lib/session";
 interface InventoryStats extends Record<string, number> {
 	branches_total: number;
 	categories_total: number;
+	items_to_reorder: number;
 	stock_total: number;
 	suppliers_total: number;
 	tools_hidden: number;
@@ -31,7 +32,8 @@ async function fetchInventoryStats(): Promise<InventoryStats> {
 			(SELECT COALESCE(SUM(quantity), 0)::int FROM stock_level) AS stock_total,
 			(SELECT COUNT(*)::int FROM category) AS categories_total,
 			(SELECT COUNT(*)::int FROM supplier) AS suppliers_total,
-			(SELECT COUNT(*)::int FROM branch) AS branches_total
+			(SELECT COUNT(*)::int FROM branch) AS branches_total,
+			(SELECT COUNT(*)::int FROM stock_level WHERE reorder_point > 0 AND quantity <= reorder_point) AS items_to_reorder
 	`);
 	return result.rows[0];
 }
@@ -53,7 +55,7 @@ export default async function DashboardPage() {
 				</p>
 			</section>
 
-			<section className="grid gap-4 md:grid-cols-4">
+			<section className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
 				<StatCard
 					description={`${stats.tools_visible} visíveis · ${stats.tools_hidden} ocultas`}
 					href="/dashboard/tools"
@@ -65,6 +67,12 @@ export default async function DashboardPage() {
 					href="/dashboard/stock"
 					title="Estoque total"
 					value={stats.stock_total}
+				/>
+				<StatCard
+					description="Com ponto de reposição configurado"
+					href="/dashboard/stock/branches"
+					title="Itens para repor"
+					value={stats.items_to_reorder}
 				/>
 				<StatCard
 					description="Cadastradas"

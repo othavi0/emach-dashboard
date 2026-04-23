@@ -1,3 +1,4 @@
+import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Table,
@@ -10,6 +11,7 @@ import {
 import Link from "next/link";
 
 import type { BranchStockRow } from "../branch-stock-data";
+import { BranchStockThresholdInputs } from "./branch-stock-threshold-inputs";
 import { StockAdjustButton } from "./stock-adjust-button";
 
 interface BranchStockTableProps {
@@ -17,6 +19,24 @@ interface BranchStockTableProps {
 	branchName: string;
 	canMutate: boolean;
 	rows: BranchStockRow[];
+}
+
+function StockStatusBadge({
+	minQty,
+	quantity,
+	reorderPoint,
+}: {
+	minQty: number;
+	quantity: number;
+	reorderPoint: number;
+}) {
+	if (minQty > 0 && quantity <= minQty) {
+		return <Badge variant="destructive">Crítico</Badge>;
+	}
+	if (reorderPoint > 0 && quantity > minQty && quantity <= reorderPoint) {
+		return <Badge variant="secondary">Repor</Badge>;
+	}
+	return null;
 }
 
 export function BranchStockTable({
@@ -34,7 +54,10 @@ export function BranchStockTable({
 					<TableHead>SKU</TableHead>
 					<TableHead className="text-right">Quantidade na filial</TableHead>
 					{canMutate && (
-						<TableHead className="w-36 text-right">Ações</TableHead>
+						<>
+							<TableHead className="text-right">Min · Reposição</TableHead>
+							<TableHead className="w-36 text-right">Ações</TableHead>
+						</>
 					)}
 				</TableRow>
 			</TableHeader>
@@ -65,26 +88,45 @@ export function BranchStockTable({
 						<TableCell className="text-muted-foreground text-sm">
 							{row.sku ?? "—"}
 						</TableCell>
-						<TableCell className="text-right font-mono">
-							{row.quantity}
+						<TableCell className="text-right">
+							<div className="flex items-center justify-end gap-2">
+								<StockStatusBadge
+									minQty={row.minQty}
+									quantity={row.quantity}
+									reorderPoint={row.reorderPoint}
+								/>
+								<span className="font-mono">{row.quantity}</span>
+							</div>
 						</TableCell>
 						{canMutate && (
-							<TableCell className="text-right">
-								<div className="flex justify-end gap-2">
-									<Link
-										className={buttonVariants({ size: "sm", variant: "ghost" })}
-										href={`/dashboard/tools/${row.toolId}/stock`}
-									>
-										Detalhes
-									</Link>
-									<StockAdjustButton
-										branchId={branchId}
-										branchName={branchName}
-										currentQty={row.quantity}
-										toolId={row.toolId}
-									/>
-								</div>
-							</TableCell>
+							<>
+								<TableCell className="text-right">
+									<div className="flex justify-end">
+										<BranchStockThresholdInputs
+											branchId={branchId}
+											initialMinQty={row.minQty}
+											initialReorderPoint={row.reorderPoint}
+											toolId={row.toolId}
+										/>
+									</div>
+								</TableCell>
+								<TableCell className="text-right">
+									<div className="flex justify-end gap-2">
+										<Link
+											className={buttonVariants({ size: "sm", variant: "ghost" })}
+											href={`/dashboard/tools/${row.toolId}/stock`}
+										>
+											Detalhes
+										</Link>
+										<StockAdjustButton
+											branchId={branchId}
+											branchName={branchName}
+											currentQty={row.quantity}
+											toolId={row.toolId}
+										/>
+									</div>
+								</TableCell>
+							</>
 						)}
 					</TableRow>
 				))}

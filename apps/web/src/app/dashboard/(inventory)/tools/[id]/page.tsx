@@ -28,6 +28,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { requireCurrentSession } from "@/lib/session";
+import {
+	PRODUCT_TYPE_LABELS,
+	type ProductTypeValue,
+	TOOL_STATUS_LABELS,
+	type ToolStatusValue,
+} from "../_components/tool-schema";
+
+const STATUS_BADGE_VARIANT: Record<
+	ToolStatusValue,
+	"default" | "secondary" | "outline" | "destructive"
+> = {
+	active: "default",
+	draft: "secondary",
+	discontinued: "outline",
+	out_of_stock: "destructive",
+};
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -45,7 +61,24 @@ export default async function ToolDetailPage({ params }: PageProps) {
 			slug: tool.slug,
 			sku: tool.sku,
 			description: tool.description,
+			model: tool.model,
+			invoiceModel: tool.invoiceModel,
+			barcode: tool.barcode,
+			manufacturerName: tool.manufacturerName,
+			countryOfOrigin: tool.countryOfOrigin,
+			productType: tool.productType,
+			status: tool.status,
+			hsCode: tool.hsCode,
+			ncm: tool.ncm,
+			cest: tool.cest,
 			voltage: tool.voltage,
+			powerWatts: tool.powerWatts,
+			frequencyHz: tool.frequencyHz,
+			warrantyMonths: tool.warrantyMonths,
+			weightKg: tool.weightKg,
+			lengthCm: tool.lengthCm,
+			widthCm: tool.widthCm,
+			heightCm: tool.heightCm,
 			price: tool.price,
 			cost: tool.cost,
 			visibleOnSite: tool.visibleOnSite,
@@ -141,10 +174,22 @@ export default async function ToolDetailPage({ params }: PageProps) {
 					<CardHeader>
 						<CardTitle>Detalhes</CardTitle>
 						<CardDescription>
-							Visível no site:{" "}
-							<Badge variant={row.visibleOnSite ? "default" : "outline"}>
-								{row.visibleOnSite ? "Sim" : "Não"}
-							</Badge>
+							<span className="flex items-center gap-2">
+								<span>Status:</span>
+								<Badge
+									variant={
+										STATUS_BADGE_VARIANT[row.status as ToolStatusValue] ??
+										"outline"
+									}
+								>
+									{TOOL_STATUS_LABELS[row.status as ToolStatusValue] ??
+										row.status}
+								</Badge>
+								<span className="ml-2">Visível no site:</span>
+								<Badge variant={row.visibleOnSite ? "default" : "outline"}>
+									{row.visibleOnSite ? "Sim" : "Não"}
+								</Badge>
+							</span>
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="grid gap-2 text-sm">
@@ -168,6 +213,102 @@ export default async function ToolDetailPage({ params }: PageProps) {
 								<strong>Descrição:</strong> {row.description}
 							</p>
 						)}
+					</CardContent>
+				</Card>
+			</div>
+
+			<div className="grid gap-6 md:grid-cols-2">
+				<Card>
+					<CardHeader>
+						<CardTitle>Classificação fiscal</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<dl className="grid gap-2 text-sm">
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">Tipo de produto</dt>
+								<dd>
+									{row.productType
+										? (PRODUCT_TYPE_LABELS[
+												row.productType as ProductTypeValue
+											] ?? row.productType)
+										: "—"}
+								</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">HS Code</dt>
+								<dd>{row.hsCode ?? "—"}</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">NCM</dt>
+								<dd>{row.ncm ?? "—"}</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">CEST</dt>
+								<dd>{row.cest ?? "—"}</dd>
+							</div>
+						</dl>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle>Especificações</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<dl className="grid gap-2 text-sm">
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">Modelo</dt>
+								<dd>{row.model ?? "—"}</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">Modelo invoice</dt>
+								<dd>{row.invoiceModel ?? "—"}</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">Barcode</dt>
+								<dd>{row.barcode ?? "—"}</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">Fabricante</dt>
+								<dd>{row.manufacturerName ?? "—"}</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">País de origem</dt>
+								<dd>{row.countryOfOrigin ?? "—"}</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">Potência</dt>
+								<dd>{row.powerWatts != null ? `${row.powerWatts} W` : "—"}</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">Frequência</dt>
+								<dd>
+									{row.frequencyHz != null ? `${row.frequencyHz} Hz` : "—"}
+								</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">Garantia</dt>
+								<dd>
+									{row.warrantyMonths != null
+										? `${row.warrantyMonths} meses`
+										: "—"}
+								</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">Peso</dt>
+								<dd>{row.weightKg != null ? `${row.weightKg} kg` : "—"}</dd>
+							</div>
+							<div className="flex justify-between">
+								<dt className="text-muted-foreground">Dimensões (C×L×A)</dt>
+								<dd>
+									{row.lengthCm != null &&
+									row.widthCm != null &&
+									row.heightCm != null
+										? `${row.lengthCm}×${row.widthCm}×${row.heightCm} cm`
+										: "—"}
+								</dd>
+							</div>
+						</dl>
 					</CardContent>
 				</Card>
 			</div>

@@ -13,14 +13,33 @@ import {
 import Link from "next/link";
 
 import { DeleteToolDialog } from "./delete-tool-dialog";
+import {
+	type ProductTypeValue,
+	PRODUCT_TYPE_LABELS,
+	TOOL_STATUS_LABELS,
+	type ToolStatusValue,
+} from "./tool-schema";
+
+const STATUS_BADGE_VARIANT: Record<
+	ToolStatusValue,
+	"default" | "secondary" | "destructive" | "outline"
+> = {
+	active: "default",
+	draft: "secondary",
+	discontinued: "outline",
+	out_of_stock: "destructive",
+};
 
 export interface ToolRow {
 	categoryName: string | null;
 	id: string;
 	imageUrl: string | null;
+	model: string | null;
 	name: string;
+	productType: string | null;
 	sku: string | null;
 	slug: string | null;
+	status: string;
 	supplierName: string | null;
 	totalStock: number;
 	visibleOnSite: boolean;
@@ -40,6 +59,8 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 					<TableHead>Nome</TableHead>
 					<TableHead>Categoria</TableHead>
 					<TableHead>Fornecedor</TableHead>
+					<TableHead>Modelo</TableHead>
+					<TableHead>Status</TableHead>
 					<TableHead>Visibilidade</TableHead>
 					<TableHead className="text-right">Estoque</TableHead>
 					{canMutate && (
@@ -76,6 +97,28 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 						</TableCell>
 						<TableCell>{t.categoryName ?? "—"}</TableCell>
 						<TableCell>{t.supplierName ?? "—"}</TableCell>
+						<TableCell>
+							{t.model ? (
+								<span className="font-mono text-xs">{t.model}</span>
+							) : (
+								<span className="text-muted-foreground">—</span>
+							)}
+							{t.productType && (
+								<p className="text-muted-foreground text-xs">
+									{PRODUCT_TYPE_LABELS[t.productType as ProductTypeValue] ??
+										t.productType}
+								</p>
+							)}
+						</TableCell>
+						<TableCell>
+							<Badge
+								variant={
+									STATUS_BADGE_VARIANT[t.status as ToolStatusValue] ?? "outline"
+								}
+							>
+								{TOOL_STATUS_LABELS[t.status as ToolStatusValue] ?? t.status}
+							</Badge>
+						</TableCell>
 						<TableCell>
 							<Badge variant={t.visibleOnSite ? "default" : "outline"}>
 								{t.visibleOnSite ? "Visível" : "Oculto"}

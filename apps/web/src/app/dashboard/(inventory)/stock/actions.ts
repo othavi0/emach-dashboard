@@ -12,6 +12,10 @@ import {
 	type StockAdjustmentInput,
 	stockAdjustmentSchema,
 } from "./_components/stock-adjustment-schema";
+import {
+	type StockThresholdInput,
+	stockThresholdSchema,
+} from "./_components/stock-threshold-schema";
 
 export type ActionResult<T = undefined> =
 	| { ok: true; data: T }
@@ -118,6 +122,59 @@ export async function adjustStock(
 				movementId,
 			},
 		};
+	} catch (error) {
+		return { ok: false, error: errorMessage(error) };
+	}
+}
+
+export async function updateStockThresholds(
+	input: StockThresholdInput
+): Promise<ActionResult> {
+	await requireRole("admin");
+
+	const parsed = stockThresholdSchema.safeParse(input);
+	if (!parsed.success) {
+		const firstIssue = parsed.error.issues[0];
+		return {
+			ok: false,
+			error: firstIssue?.message ?? "Entrada inválida",
+		};
+	}
+
+	const { toolId, branchId, minQty, reorderPoint } = parsed.data;
+
+	try {
+		await db.transaction(async (tx) => {
+			// Materialize the row if it doesn't exist yet.
+			await tx
+				.insert(stockLevel)
+				.values({
+					toolId,
+					branchId,
+					quantity: 0,
+					minQty,
+					reorderPoint,
+					updatedAt: new Date(),
+				})
+				.onConflictDoNothing({
+					target: [stockLevel.toolId, stockLevel.branchId],
+				});
+
+			// Update thresholds on the existing row.
+			await tx
+				.update(stockLevel)
+				.set({ minQty, reorderPoint, updatedAt: new Date() })
+				.where(
+					and(eq(stockLevel.toolId, toolId), eq(stockLevel.branchId, branchId))
+				);
+		});
+
+		revalidatePath("/dashboard/stock");
+		revalidatePath("/dashboard/stock/branches");
+		revalidatePath(`/dashboard/branches/${branchId}/stock`);
+		revalidatePath(`/dashboard/tools/${toolId}/stock`);
+
+		return { ok: true, data: undefined };
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}

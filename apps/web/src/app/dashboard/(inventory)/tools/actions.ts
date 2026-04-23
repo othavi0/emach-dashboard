@@ -26,23 +26,60 @@ function errorMessage(error: unknown): string {
 	return "Erro inesperado";
 }
 
+function toNumericString(value: number | undefined): string | null {
+	if (typeof value !== "number" || Number.isNaN(value)) {
+		return null;
+	}
+	return value.toFixed(2);
+}
+
+function toWeightString(value: number | undefined): string | null {
+	if (typeof value !== "number" || Number.isNaN(value)) {
+		return null;
+	}
+	return value.toFixed(3);
+}
+
+function toInt(value: number | undefined): number | null {
+	if (typeof value !== "number" || Number.isNaN(value)) {
+		return null;
+	}
+	return Math.trunc(value);
+}
+
+function nullableText(value: string | undefined): string | null {
+	const trimmed = value?.trim();
+	return trimmed ? trimmed : null;
+}
+
 function normalizePayload(input: ToolFormValues) {
 	return {
 		name: input.name,
-		description: input.description?.trim() || null,
+		description: nullableText(input.description),
 		sku: input.sku,
+		model: nullableText(input.model),
+		invoiceModel: nullableText(input.invoiceModel),
+		barcode: nullableText(input.barcode),
+		manufacturerName: nullableText(input.manufacturerName),
+		countryOfOrigin: nullableText(input.countryOfOrigin),
+		productType: input.productType ? input.productType : null,
+		status: input.status,
+		hsCode: nullableText(input.hsCode),
+		ncm: nullableText(input.ncm),
+		cest: nullableText(input.cest),
 		voltage: input.voltage ? input.voltage : null,
-		price:
-			typeof input.price === "number" && !Number.isNaN(input.price)
-				? input.price.toFixed(2)
-				: null,
-		cost:
-			typeof input.cost === "number" && !Number.isNaN(input.cost)
-				? input.cost.toFixed(2)
-				: null,
+		powerWatts: toInt(input.powerWatts),
+		frequencyHz: toInt(input.frequencyHz),
+		warrantyMonths: toInt(input.warrantyMonths),
+		weightKg: toWeightString(input.weightKg),
+		lengthCm: toNumericString(input.lengthCm),
+		widthCm: toNumericString(input.widthCm),
+		heightCm: toNumericString(input.heightCm),
+		price: toNumericString(input.price),
+		cost: toNumericString(input.cost),
 		visibleOnSite: input.visibleOnSite,
 		categoryId: input.categoryId,
-		supplierId: input.supplierId?.trim() || null,
+		supplierId: nullableText(input.supplierId),
 	};
 }
 
