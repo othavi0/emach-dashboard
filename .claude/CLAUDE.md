@@ -64,14 +64,6 @@ Variantes de voltagem (127V/220V) = rows `tool` separadas compartilhando `model`
 
 `stock_level` tem `minQty` + `reorderPoint` por filial (check `reorder >= min`).
 
-## Importador Master Part List
-
-Script: `packages/db/src/scripts/import-master-part-list.ts`. Uso: `bun run packages/db/src/scripts/import-master-part-list.ts <xlsx> [--dry-run]`.
-
-- Upsert por `sku`. Linhas `SAMPLES` recebem sku derivado `SAMPLES-<invoiceModel>`.
-- `Unity` → `productType`. `NA` / vazio → null. Voltagem parseada do `invoiceModel` via regex `(\d{2,3})V`.
-- Dep: `xlsx` (devDep de `@emach/db`).
-
 ---
 
 # Ultracite Code Standards
