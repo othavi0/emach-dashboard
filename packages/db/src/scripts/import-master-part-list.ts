@@ -13,7 +13,7 @@
  * re-imports and update the existing row idempotently.
  */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { sql } from "drizzle-orm";
 import * as XLSX from "xlsx";
 
@@ -80,6 +80,24 @@ function deriveVoltage(invoiceModel: string | undefined): string | undefined {
 	if (!invoiceModel) return undefined;
 	const match = invoiceModel.match(/(\d{2,3})\s*V\b/i);
 	return match ? `${match[1]}V` : undefined;
+}
+
+function normalizeXlsxPath(inputPath: string): string {
+	const trimmedPath = inputPath.trim();
+	const pathCandidates = [
+		trimmedPath,
+		trimmedPath.replace(/\/\s*[\r\n]\s*/g, "/"),
+		trimmedPath.replace(/[\r\n]\s*/g, ""),
+		trimmedPath.replace(/\s*[\r\n]\s*/g, " "),
+	];
+
+	for (const pathCandidate of new Set(pathCandidates)) {
+		if (existsSync(pathCandidate)) {
+			return pathCandidate;
+		}
+	}
+
+	return pathCandidates[1] ?? trimmedPath;
 }
 
 function readRows(xlsxPath: string): Row[] {
@@ -217,7 +235,14 @@ async function main(): Promise<void> {
 		process.exit(1);
 	}
 
-	const result = await runImport(xlsxPath, dryRun);
+	const normalizedXlsxPath = normalizeXlsxPath(xlsxPath);
+	if (!existsSync(normalizedXlsxPath)) {
+		console.error(`XLSX file not found: ${normalizedXlsxPath}`);
+		console.error(`Received path: ${JSON.stringify(xlsxPath)}`);
+		process.exit(1);
+	}
+
+	const result = await runImport(normalizedXlsxPath, dryRun);
 	console.log("\n=== Import result ===");
 	console.log(`Processed: ${result.processed}`);
 	console.log(`Inserted:  ${result.inserted}`);
