@@ -11,6 +11,17 @@ import {
 	userRelations,
 } from "./schema/auth";
 import {
+	client,
+	clientAccount,
+	clientAccountRelations,
+	clientAddress,
+	clientAddressRelations,
+	clientRelations,
+	clientSession,
+	clientSessionRelations,
+	clientVerification,
+} from "./schema/client";
+import {
 	branch,
 	branchRelations,
 	stockLevel,
@@ -46,6 +57,15 @@ const schema = {
 	branchRelations,
 	category,
 	categoryRelations,
+	client,
+	clientAccount,
+	clientAccountRelations,
+	clientAddress,
+	clientAddressRelations,
+	clientRelations,
+	clientSession,
+	clientSessionRelations,
+	clientVerification,
 	promotion,
 	promotionRelations,
 	promotionTool,
