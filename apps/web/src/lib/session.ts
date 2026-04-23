@@ -1,4 +1,4 @@
-import { auth, type Session } from "@emach/auth";
+import { authDashboard, type DashboardSession } from "@emach/auth/dashboard";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -10,13 +10,13 @@ const ROLE_WEIGHT: Record<UserRole, number> = {
 	user: 1,
 };
 
-export const getCurrentSession = async (): Promise<Session | null> => {
-	return auth.api.getSession({
+export const getCurrentSession = async (): Promise<DashboardSession | null> => {
+	return authDashboard.api.getSession({
 		headers: await headers(),
 	});
 };
 
-export const requireCurrentSession = async (): Promise<Session> => {
+export const requireCurrentSession = async (): Promise<DashboardSession> => {
 	const session = await getCurrentSession();
 
 	if (!session?.user) {
@@ -26,7 +26,7 @@ export const requireCurrentSession = async (): Promise<Session> => {
 	return session;
 };
 
-export const requireRole = async (role: UserRole): Promise<Session> => {
+export const requireRole = async (role: UserRole): Promise<DashboardSession> => {
 	const session = await requireCurrentSession();
 	const currentRole = (session.user.role ?? "user") as UserRole;
 
