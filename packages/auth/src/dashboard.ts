@@ -8,7 +8,7 @@ import { nextCookies } from "better-auth/next-js";
 const db = createDb();
 const schema = { account, session, user, verification };
 
-export const auth = betterAuth({
+export const authDashboard = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema,
@@ -32,4 +32,4 @@ export const auth = betterAuth({
 	plugins: [nextCookies()],
 });
 
-export type Session = typeof auth.$Infer.Session;
+export type DashboardSession = typeof authDashboard.$Infer.Session;
