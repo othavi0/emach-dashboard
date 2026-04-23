@@ -11,9 +11,11 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/session";
 import { ToolForm } from "../../_components/tool-form";
 import type {
+	ProductTypeValue,
 	ToolFormValues,
-	VOLTAGE_OPTIONS as VoltageType,
+	ToolStatusValue,
 } from "../../_components/tool-schema";
+import { VOLTAGE_OPTIONS } from "../../_components/tool-schema";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -27,7 +29,24 @@ function toFormValues(
 		name: row.name,
 		description: row.description ?? "",
 		sku: row.sku ?? "",
-		voltage: (row.voltage ?? "") as (typeof VoltageType)[number] | "",
+		model: row.model ?? "",
+		invoiceModel: row.invoiceModel ?? "",
+		barcode: row.barcode ?? "",
+		manufacturerName: row.manufacturerName ?? "",
+		countryOfOrigin: row.countryOfOrigin ?? "",
+		productType: (row.productType ?? "") as ProductTypeValue | "",
+		status: (row.status ?? "draft") as ToolStatusValue,
+		hsCode: row.hsCode ?? "",
+		ncm: row.ncm ?? "",
+		cest: row.cest ?? "",
+		voltage: (row.voltage ?? "") as (typeof VOLTAGE_OPTIONS)[number] | "",
+		powerWatts: row.powerWatts ?? undefined,
+		frequencyHz: row.frequencyHz ?? undefined,
+		warrantyMonths: row.warrantyMonths ?? undefined,
+		weightKg: row.weightKg ? Number(row.weightKg) : undefined,
+		lengthCm: row.lengthCm ? Number(row.lengthCm) : undefined,
+		widthCm: row.widthCm ? Number(row.widthCm) : undefined,
+		heightCm: row.heightCm ? Number(row.heightCm) : undefined,
 		price: row.price ? Number(row.price) : undefined,
 		cost: row.cost ? Number(row.cost) : undefined,
 		categoryId: row.categoryId ?? "",
