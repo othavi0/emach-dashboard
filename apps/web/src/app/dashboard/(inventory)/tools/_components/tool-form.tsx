@@ -22,8 +22,12 @@ import { createTool, updateTool } from "../actions";
 import { ToolImageGallery } from "./tool-image-gallery";
 import {
 	MAX_IMAGES,
-	MIN_IMAGES,
+	MIN_IMAGES_ACTIVE,
+	PRODUCT_TYPE_LABELS,
+	PRODUCT_TYPE_OPTIONS,
 	slugify,
+	TOOL_STATUS_LABELS,
+	TOOL_STATUS_OPTIONS,
 	type ToolFormValues,
 	toolFormSchema,
 	VOLTAGE_OPTIONS,
@@ -77,6 +81,13 @@ function formatBRL(reais: number | undefined): string {
 	return BRL_FORMATTER.format(reais);
 }
 
+function parseDecimal(display: string): number | undefined {
+	const cleaned = display.replace(",", ".").replace(/[^\d.]/g, "");
+	if (!cleaned) return undefined;
+	const n = Number(cleaned);
+	return Number.isNaN(n) ? undefined : n;
+}
+
 function parseBRLToReais(display: string): number | undefined {
 	const digits = display.replace(/\D/g, "");
 	if (!digits) {
@@ -89,7 +100,24 @@ const EMPTY_VALUES: ToolFormValues = {
 	name: "",
 	description: "",
 	sku: "",
-	voltage: "" as (typeof VOLTAGE_OPTIONS)[number] | "",
+	model: "",
+	invoiceModel: "",
+	barcode: "",
+	manufacturerName: "",
+	countryOfOrigin: "",
+	productType: "",
+	status: "draft",
+	hsCode: "",
+	ncm: "",
+	cest: "",
+	voltage: "",
+	powerWatts: undefined,
+	frequencyHz: undefined,
+	warrantyMonths: undefined,
+	weightKg: undefined,
+	lengthCm: undefined,
+	widthCm: undefined,
+	heightCm: undefined,
 	price: undefined,
 	cost: undefined,
 	categoryId: "",
@@ -253,11 +281,224 @@ export function ToolForm({
 
 			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+					Identificação extra
+				</h2>
+
+				<div className="grid gap-4 md:grid-cols-2">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="model">Modelo (curto)</Label>
+						<Input
+							id="model"
+							onChange={(e) => update("model", e.target.value)}
+							placeholder="Ex: ELT 800"
+							value={values.model ?? ""}
+						/>
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="invoiceModel">Modelo de invoice (fábrica)</Label>
+						<Input
+							id="invoiceModel"
+							onChange={(e) => update("invoiceModel", e.target.value)}
+							placeholder="Ex: FG-S225L-3-220V"
+							value={values.invoiceModel ?? ""}
+						/>
+					</div>
+				</div>
+
+				<div className="grid gap-4 md:grid-cols-3">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="barcode">Barcode (EAN/GTIN)</Label>
+						<Input
+							id="barcode"
+							onChange={(e) => update("barcode", e.target.value)}
+							value={values.barcode ?? ""}
+						/>
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="manufacturerName">Fabricante</Label>
+						<Input
+							id="manufacturerName"
+							onChange={(e) => update("manufacturerName", e.target.value)}
+							value={values.manufacturerName ?? ""}
+						/>
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="countryOfOrigin">País de origem</Label>
+						<Input
+							id="countryOfOrigin"
+							onChange={(e) => update("countryOfOrigin", e.target.value)}
+							placeholder="Ex: BR, CN"
+							value={values.countryOfOrigin ?? ""}
+						/>
+					</div>
+				</div>
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+					Classificação fiscal
+				</h2>
+
+				<div className="grid gap-4 md:grid-cols-2">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="productType">Tipo de produto</Label>
+						<Select
+							onValueChange={(v) =>
+								update("productType", v as ToolFormValues["productType"])
+							}
+							value={values.productType ?? ""}
+						>
+							<SelectTrigger id="productType">
+								<SelectValue placeholder="Selecione" />
+							</SelectTrigger>
+							<SelectContent>
+								{PRODUCT_TYPE_OPTIONS.map((p) => (
+									<SelectItem key={p} value={p}>
+										{PRODUCT_TYPE_LABELS[p]}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="hsCode">HS Code (invoice)</Label>
+						<Input
+							id="hsCode"
+							onChange={(e) => update("hsCode", e.target.value)}
+							placeholder="Ex: 8467291000"
+							value={values.hsCode ?? ""}
+						/>
+					</div>
+				</div>
+
+				<div className="grid gap-4 md:grid-cols-2">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="ncm">NCM</Label>
+						<Input
+							id="ncm"
+							onChange={(e) => update("ncm", e.target.value)}
+							placeholder="Ex: 8467.29.99"
+							value={values.ncm ?? ""}
+						/>
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="cest">CEST</Label>
+						<Input
+							id="cest"
+							onChange={(e) => update("cest", e.target.value)}
+							value={values.cest ?? ""}
+						/>
+					</div>
+				</div>
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+					Dimensões & peso
+				</h2>
+
+				<div className="grid gap-4 md:grid-cols-4">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="weightKg">Peso (kg)</Label>
+						<Input
+							id="weightKg"
+							inputMode="decimal"
+							onChange={(e) => update("weightKg", parseDecimal(e.target.value))}
+							value={values.weightKg ?? ""}
+						/>
+						{errors.weightKg && (
+							<p className="text-destructive text-xs">{errors.weightKg}</p>
+						)}
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="lengthCm">Comprimento (cm)</Label>
+						<Input
+							id="lengthCm"
+							inputMode="decimal"
+							onChange={(e) => update("lengthCm", parseDecimal(e.target.value))}
+							value={values.lengthCm ?? ""}
+						/>
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="widthCm">Largura (cm)</Label>
+						<Input
+							id="widthCm"
+							inputMode="decimal"
+							onChange={(e) => update("widthCm", parseDecimal(e.target.value))}
+							value={values.widthCm ?? ""}
+						/>
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="heightCm">Altura (cm)</Label>
+						<Input
+							id="heightCm"
+							inputMode="decimal"
+							onChange={(e) => update("heightCm", parseDecimal(e.target.value))}
+							value={values.heightCm ?? ""}
+						/>
+					</div>
+				</div>
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+					Especificações técnicas
+				</h2>
+
+				<div className="grid gap-4 md:grid-cols-3">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="powerWatts">Potência (W)</Label>
+						<Input
+							id="powerWatts"
+							inputMode="numeric"
+							onChange={(e) =>
+								update("powerWatts", parseDecimal(e.target.value))
+							}
+							value={values.powerWatts ?? ""}
+						/>
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="frequencyHz">Frequência (Hz)</Label>
+						<Input
+							id="frequencyHz"
+							inputMode="numeric"
+							onChange={(e) =>
+								update("frequencyHz", parseDecimal(e.target.value))
+							}
+							value={values.frequencyHz ?? ""}
+						/>
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="warrantyMonths">Garantia (meses)</Label>
+						<Input
+							id="warrantyMonths"
+							inputMode="numeric"
+							onChange={(e) =>
+								update("warrantyMonths", parseDecimal(e.target.value))
+							}
+							value={values.warrantyMonths ?? ""}
+						/>
+					</div>
+				</div>
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Mídia · {values.images.length} de {MAX_IMAGES}
 				</h2>
 				<ToolImageGallery
 					max={MAX_IMAGES}
-					min={MIN_IMAGES}
+					min={values.status === "active" ? MIN_IMAGES_ACTIVE : 0}
 					onChange={(images) => update("images", images)}
 					value={values.images}
 				/>
@@ -359,13 +600,39 @@ export function ToolForm({
 					</div>
 				</div>
 
-				<div className="flex items-center justify-between border-border border-t pt-4">
-					<Label htmlFor="visibleOnSite">Visível no site público</Label>
-					<Switch
-						checked={values.visibleOnSite}
-						id="visibleOnSite"
-						onCheckedChange={(checked) => update("visibleOnSite", checked)}
-					/>
+				<div className="grid gap-4 border-border border-t pt-4 md:grid-cols-2">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="status">Status</Label>
+						<Select
+							onValueChange={(v) =>
+								update("status", v as ToolFormValues["status"])
+							}
+							value={values.status}
+						>
+							<SelectTrigger id="status">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{TOOL_STATUS_OPTIONS.map((s) => (
+									<SelectItem key={s} value={s}>
+										{TOOL_STATUS_LABELS[s]}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<p className="text-muted-foreground text-xs">
+							"Ativo" exige {MIN_IMAGES_ACTIVE} imagens.
+						</p>
+					</div>
+
+					<div className="flex items-center justify-between">
+						<Label htmlFor="visibleOnSite">Visível no site público</Label>
+						<Switch
+							checked={values.visibleOnSite}
+							id="visibleOnSite"
+							onCheckedChange={(checked) => update("visibleOnSite", checked)}
+						/>
+					</div>
 				</div>
 			</section>
 
