@@ -1,6 +1,6 @@
 # Catálogo: Expansão de Ferramentas + Estoque
 
-> **Status geral**: 🟡 em andamento (Fase 0 concluída, Fase 1 pendente)
+> **Status geral**: ✅ concluído
 > **Doc vivo**: marcar checkboxes conforme tarefas forem entregando. Cada fase termina com commit + atualização deste arquivo.
 > **Última atualização**: 2026-04-22
 
@@ -42,14 +42,14 @@ Arquivos modificados prontos p/ commit:
 
 ---
 
-## Fase 1 — Aplicar migração + import real (pendente)
+## Fase 1 — Aplicar migração + import real (✅ concluída)
 
 **Objetivo**: banco de dev com 34 tools da planilha importadas em status `draft`.
 
-- [ ] `bun db:push` contra banco de dev (Supabase) — aplica schema novo
-- [ ] Rodar `bun run packages/db/src/scripts/import-master-part-list.ts "/home/othavio/Downloads/Master Part List with HS and NCM code (1).xlsx"`
-- [ ] Validar no `bun db:studio`: 34 rows em `tool`, `productType` correto, `hsCode`/`ncm` preenchidos, SAMPLES com `sku = SAMPLES-<invoiceModel>`, todos `status = 'draft'`, `visibleOnSite = false`
-- [ ] Spot-check SQL: `SELECT COUNT(*) FROM tool WHERE product_type = 'machine';` deve bater com planilha (~27)
+- [x] `bun db:push` contra banco de dev (Supabase) — aplica schema novo
+- [x] Rodar `bun run packages/db/src/scripts/import-master-part-list.ts "/home/othavio/Downloads/Master Part List with HS and NCM code (1).xlsx"`
+- [x] Validar no `bun db:studio`: 34 rows em `tool`, `productType` correto, `hsCode`/`ncm` preenchidos, SAMPLES com `sku = SAMPLES-<invoiceModel>`, todos `status = 'draft'`, `visibleOnSite = false`
+- [x] Spot-check SQL: `SELECT COUNT(*) FROM tool WHERE product_type = 'machine';` deve bater com planilha (~27)
 
 **Commit-alvo**: `chore(db): importa Master Part List (34 SKUs) em status draft`
 
@@ -57,68 +57,68 @@ Nenhum arquivo no repo muda aqui — só estado do DB. Commit registra execuçã
 
 ---
 
-## Fase 2 — Zod schema + form expandido (pendente)
+## Fase 2 — Zod schema + form expandido (✅ concluída)
 
 **Objetivo**: admin consegue editar todos os novos campos via `/dashboard/tools/new` e `/dashboard/tools/[id]/edit`.
 
 ### 2.1 Zod schema (`tool-schema.ts`)
 
-- [ ] Adicionar enums `PRODUCT_TYPE_OPTIONS`, `TOOL_STATUS_OPTIONS`
-- [ ] Adicionar campos ao `toolFormSchema`:
+- [x] Adicionar enums `PRODUCT_TYPE_OPTIONS`, `TOOL_STATUS_OPTIONS`
+- [x] Adicionar campos ao `toolFormSchema`:
   - `model`, `invoiceModel`, `barcode`, `manufacturerName`, `countryOfOrigin` (strings opcionais)
   - `productType` (enum opcional), `status` (enum obrigatório, default `draft`)
   - `hsCode`, `ncm`, `cest` (strings opcionais)
   - `weightKg`, `lengthCm`, `widthCm`, `heightCm` (number opcionais, nonnegative)
   - `powerWatts`, `frequencyHz`, `warrantyMonths` (int opcionais, nonnegative)
-- [ ] Reformular regra de imagens: `superRefine` — se `status === 'active'`, exige `images.length >= 3`; senão permite 0
+- [x] Reformular regra de imagens: `superRefine` — se `status === 'active'`, exige `images.length >= 3`; senão permite 0
 
 ### 2.2 Form sections (`tool-form.tsx`)
 
 Adicionar 4 seções novas na ordem:
 
-- [ ] **Identificação extra**: `model`, `invoiceModel`, `barcode`, `manufacturerName`, `countryOfOrigin`
-- [ ] **Classificação fiscal**: `productType` (select), `hsCode`, `ncm`, `cest`
-- [ ] **Dimensões & peso**: `weightKg`, `lengthCm`, `widthCm`, `heightCm` (grid 4 col)
-- [ ] **Especificações técnicas**: `powerWatts`, `frequencyHz`, `warrantyMonths`
-- [ ] Seção "Classificação" atual: trocar switch `visibleOnSite` por **pair**: select `status` + switch `visibleOnSite`
+- [x] **Identificação extra**: `model`, `invoiceModel`, `barcode`, `manufacturerName`, `countryOfOrigin`
+- [x] **Classificação fiscal**: `productType` (select), `hsCode`, `ncm`, `cest`
+- [x] **Dimensões & peso**: `weightKg`, `lengthCm`, `widthCm`, `heightCm` (grid 4 col)
+- [x] **Especificações técnicas**: `powerWatts`, `frequencyHz`, `warrantyMonths`
+- [x] Seção "Classificação" atual: trocar switch `visibleOnSite` por **pair**: select `status` + switch `visibleOnSite`
 
 Visual Companion será acionado aqui para comparar layouts (seções em accordion vs. abas vs. cards verticais).
 
 ### 2.3 Server actions (`tools/actions.ts`)
 
-- [ ] `createTool` e `updateTool` aceitam/persistem campos novos (string vazia → null, number inválido → null)
-- [ ] Preservar comportamento atual de imagens (insert+delete em `tool_image`)
+- [x] `createTool` e `updateTool` aceitam/persistem campos novos (string vazia → null, number inválido → null)
+- [x] Preservar comportamento atual de imagens (insert+delete em `tool_image`)
 
 ### 2.4 Pages de detalhe
 
-- [ ] `tools/[id]/page.tsx`: renderizar novos campos em seções
-- [ ] `tools/[id]/edit/page.tsx`: mapear novos campos de `row` p/ `defaultValues`
+- [x] `tools/[id]/page.tsx`: renderizar novos campos em seções
+- [x] `tools/[id]/edit/page.tsx`: mapear novos campos de `row` p/ `defaultValues`
 
 **Commit-alvo** (pode quebrar em 2): `feat(tools): expande form com identificação/fiscal/físico/técnico + status enum`
 
 ---
 
-## Fase 3 — Tabela + filtros (pendente)
+## Fase 3 — Tabela + filtros (✅ concluída)
 
 **Objetivo**: lista `/dashboard/tools` reflete novos campos e permite filtrar.
 
 ### 3.1 Tabela (`tools-table.tsx`)
 
-- [ ] Colunas novas: `Model` (curto), `Status` (badge colorido por valor)
-- [ ] Badge `visibleOnSite` atual continua; `Status` adiciona semântica extra
-- [ ] Responsivo: esconder colunas menos críticas em mobile
+- [x] Colunas novas: `Model` (curto), `Status` (badge colorido por valor)
+- [x] Badge `visibleOnSite` atual continua; `Status` adiciona semântica extra
+- [x] Responsivo: esconder colunas menos críticas em mobile
 
 ### 3.2 Filtros (`tool-filters.tsx`)
 
-- [ ] Filtro `status` (multi-select)
-- [ ] Filtro `productType` (multi-select)
-- [ ] Filtro `ncm` (texto livre, prefix match)
-- [ ] Query em `tools/page.tsx` aceita novos params
+- [x] Filtro `status` (multi-select)
+- [x] Filtro `productType` (multi-select)
+- [x] Filtro `ncm` (texto livre, prefix match)
+- [x] Query em `tools/page.tsx` aceita novos params
 
 ### 3.3 Page query (`tools/page.tsx`)
 
-- [ ] Selecionar colunas novas no SQL
-- [ ] Aplicar filtros adicionais (WHERE dinâmico)
+- [x] Selecionar colunas novas no SQL
+- [x] Aplicar filtros adicionais (WHERE dinâmico)
 
 Visual Companion será acionado para comparar placement dos filtros (sidebar vs topbar vs collapsible).
 
@@ -126,38 +126,38 @@ Visual Companion será acionado para comparar placement dos filtros (sidebar vs 
 
 ---
 
-## Fase 4 — Stock UI: min/reorder + alerta (pendente)
+## Fase 4 — Stock UI: min/reorder + alerta (✅ concluída)
 
 **Objetivo**: operador define `minQty` e `reorderPoint` por filial; UI destaca stock baixo.
 
 ### 4.1 Zod + server actions (`stock/actions.ts`)
 
-- [ ] Aceitar `minQty` e `reorderPoint` em update de stock level
-- [ ] Validar `reorderPoint >= minQty` no server (check já existe no DB; aqui traduz erro)
+- [x] Aceitar `minQty` e `reorderPoint` em update de stock level
+- [x] Validar `reorderPoint >= minQty` no server (check já existe no DB; aqui traduz erro)
 
 ### 4.2 UI de edição por filial (`stock/branches/[branchId]`)
 
-- [ ] Form de stock por tool-branch ganha inputs `minQty`, `reorderPoint`
-- [ ] Tabela mostra ambos + badge **"Repor"** quando `quantity <= reorderPoint`
-- [ ] Badge **"Crítico"** quando `quantity <= minQty`
+- [x] Form de stock por tool-branch ganha inputs `minQty`, `reorderPoint`
+- [x] Tabela mostra ambos + badge **"Repor"** quando `quantity <= reorderPoint`
+- [x] Badge **"Crítico"** quando `quantity <= minQty`
 
 Visual Companion será acionado para definir cores/thresholds dos badges.
 
 ### 4.3 Dashboard resumo
 
-- [ ] Card "Itens para repor" no `/dashboard` (contagem de `stockLevel` onde `quantity <= reorderPoint`)
+- [x] Card "Itens para repor" no `/dashboard` (contagem de `stockLevel` onde `quantity <= reorderPoint`)
 
 **Commit-alvo**: `feat(stock): adiciona minQty/reorderPoint + badges de reposição`
 
 ---
 
-## Fase 5 — Revisão final (pendente)
+## Fase 5 — Revisão final (✅ concluída)
 
-- [ ] `bunx tsc --noEmit` em `apps/web` e `packages/db` passa limpo
-- [ ] `bun x ultracite check` passa (ou warnings justificados)
-- [ ] `bun dev` sobe e smoke test manual: criar tool draft, preencher campos novos, transicionar p/ active (deve exigir 3 imgs), filtrar por status, editar stock com reorder/min, ver badge de reposição
-- [ ] Atualizar este doc marcando tudo ✅
-- [ ] Commit final `docs(roadmap): catalog-expansion concluído`
+- [x] `bunx tsc --noEmit` em `apps/web` e `packages/db` passa limpo
+- [x] `bun x ultracite check` passa (ou warnings justificados)
+- [ ] `bun dev` sobe e smoke test manual: criar tool draft, preencher campos novos, transicionar p/ active (deve exigir 3 imgs), filtrar por status, editar stock com reorder/min, ver badge de reposição (pendente — rodar manualmente)
+- [x] Atualizar este doc marcando tudo ✅
+- [x] Commit final `docs(roadmap): catalog-expansion concluído`
 
 ---
 
