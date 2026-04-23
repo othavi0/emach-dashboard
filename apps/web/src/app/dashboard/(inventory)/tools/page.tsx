@@ -18,8 +18,11 @@ import { type ToolRow, ToolsTable } from "./_components/tools-table";
 interface PageProps {
 	searchParams: Promise<{
 		category?: string;
+		ncm?: string;
+		productType?: string;
 		q?: string;
 		search?: string;
+		status?: string;
 		visible?: string;
 	}>;
 }
@@ -33,7 +36,10 @@ async function fetchCategories() {
 
 async function fetchTools(params: {
 	category?: string;
+	ncm?: string;
+	productType?: string;
 	search?: string;
+	status?: string;
 	visible?: string;
 }): Promise<ToolRow[]> {
 	const conditions = [] as Parameters<typeof and>[number][];
@@ -49,6 +55,18 @@ async function fetchTools(params: {
 	} else if (params.visible === "false") {
 		conditions.push(sql`t.visible_on_site = false`);
 	}
+	if (params.status) {
+		const statuses = params.status.split(",").filter(Boolean);
+		if (statuses.length > 0) {
+			conditions.push(sql`t.status = ANY(${statuses})`);
+		}
+	}
+	if (params.productType) {
+		conditions.push(sql`t.product_type = ${params.productType}`);
+	}
+	if (params.ncm) {
+		conditions.push(sql`t.ncm ILIKE ${`${params.ncm}%`}`);
+	}
 
 	const whereClause = conditions.length
 		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
@@ -59,6 +77,9 @@ async function fetchTools(params: {
 		name: string;
 		slug: string | null;
 		sku: string | null;
+		model: string | null;
+		product_type: string | null;
+		status: string;
 		image_url: string | null;
 		visible_on_site: boolean;
 		category_name: string | null;
@@ -70,6 +91,9 @@ async function fetchTools(params: {
 			t.name,
 			t.slug,
 			t.sku,
+			t.model,
+			t.product_type,
+			t.status,
 			(
 				SELECT ti.url
 				FROM tool_image ti
@@ -95,6 +119,9 @@ async function fetchTools(params: {
 		name: r.name,
 		slug: r.slug,
 		sku: r.sku,
+		model: r.model,
+		productType: r.product_type,
+		status: r.status,
 		imageUrl: r.image_url,
 		visibleOnSite: r.visible_on_site,
 		categoryName: r.category_name,
@@ -115,7 +142,14 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 		fetchCategories(),
 	]);
 
-	const hasFilters = Boolean(search || params.category || params.visible);
+	const hasFilters = Boolean(
+		search ||
+			params.category ||
+			params.visible ||
+			params.status ||
+			params.productType ||
+			params.ncm,
+	);
 	const isEmpty = tools.length === 0;
 
 	return (
