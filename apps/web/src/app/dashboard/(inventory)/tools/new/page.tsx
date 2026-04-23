@@ -1,5 +1,5 @@
 import { db } from "@emach/db";
-import { category, supplier } from "@emach/db/schema/tools";
+import { productType, supplier } from "@emach/db/schema/tools";
 import { asc } from "drizzle-orm";
 
 import { requireRole } from "@/lib/session";
@@ -8,11 +8,11 @@ import { ToolForm } from "../_components/tool-form";
 export default async function NewToolPage() {
 	await requireRole("admin");
 
-	const [categories, suppliers] = await Promise.all([
+	const [productTypes, suppliers] = await Promise.all([
 		db
-			.select({ id: category.id, name: category.name })
-			.from(category)
-			.orderBy(asc(category.name)),
+			.select({ id: productType.id, name: productType.name })
+			.from(productType)
+			.orderBy(asc(productType.name)),
 		db
 			.select({ id: supplier.id, name: supplier.name })
 			.from(supplier)
@@ -29,9 +29,9 @@ export default async function NewToolPage() {
 			</div>
 
 			<ToolForm
-				categories={categories}
 				defaultValues={{}}
 				mode="create"
+				productTypes={productTypes}
 				suppliers={suppliers}
 			/>
 		</div>

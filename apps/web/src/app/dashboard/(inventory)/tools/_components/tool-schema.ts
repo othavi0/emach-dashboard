@@ -1,28 +1,12 @@
 import { z } from "zod";
 
 export const VOLTAGE_OPTIONS = ["127V", "220V", "Bivolt", "380V"] as const;
-export const PRODUCT_TYPE_OPTIONS = [
-	"machine",
-	"equipment",
-	"part",
-	"accessory",
-] as const;
 export const TOOL_STATUS_OPTIONS = [
 	"draft",
 	"active",
 	"discontinued",
 	"out_of_stock",
 ] as const;
-
-export const PRODUCT_TYPE_LABELS: Record<
-	(typeof PRODUCT_TYPE_OPTIONS)[number],
-	string
-> = {
-	machine: "Máquina",
-	equipment: "Equipamento",
-	part: "Peça",
-	accessory: "Acessório",
-};
 
 export const TOOL_STATUS_LABELS: Record<
 	(typeof TOOL_STATUS_OPTIONS)[number],
@@ -66,7 +50,6 @@ export const toolFormSchema = z
 		barcode: optionalString,
 		manufacturerName: optionalString,
 		countryOfOrigin: optionalString,
-		productType: z.enum(PRODUCT_TYPE_OPTIONS).optional().or(z.literal("")),
 		status: z.enum(TOOL_STATUS_OPTIONS).default("draft"),
 		hsCode: optionalString,
 		ncm: optionalString,
@@ -81,7 +64,7 @@ export const toolFormSchema = z
 		heightCm: optionalNumber,
 		price: optionalNumber,
 		cost: optionalNumber,
-		categoryId: z.string().min(1, "Categoria obrigatória"),
+		productTypeId: z.string().min(1, "Tipo de produto obrigatório"),
 		supplierId: optionalString,
 		visibleOnSite: z.boolean().default(true),
 		images: z.array(toolImageSchema).max(MAX_IMAGES, `Máximo de ${MAX_IMAGES} imagens`),
@@ -98,7 +81,6 @@ export const toolFormSchema = z
 
 export type ToolFormValues = z.infer<typeof toolFormSchema>;
 export type ToolImageValue = z.infer<typeof toolImageSchema>;
-export type ProductTypeValue = (typeof PRODUCT_TYPE_OPTIONS)[number];
 export type ToolStatusValue = (typeof TOOL_STATUS_OPTIONS)[number];
 
 export function slugify(input: string): string {

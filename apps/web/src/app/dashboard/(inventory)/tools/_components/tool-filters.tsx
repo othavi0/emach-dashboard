@@ -11,35 +11,29 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import {
-	PRODUCT_TYPE_LABELS,
-	PRODUCT_TYPE_OPTIONS,
-	TOOL_STATUS_LABELS,
-	TOOL_STATUS_OPTIONS,
-} from "./tool-schema";
+import { TOOL_STATUS_LABELS, TOOL_STATUS_OPTIONS } from "./tool-schema";
 
-interface CategoryOption {
+interface ProductTypeOption {
 	id: string;
 	name: string;
 }
 
 interface ToolFiltersProps {
-	categories: CategoryOption[];
+	productTypes: ProductTypeOption[];
 }
 
 const DEBOUNCE_MS = 300;
 const ALL = "__all__";
 
-export function ToolFilters({ categories }: ToolFiltersProps) {
+export function ToolFilters({ productTypes }: ToolFiltersProps) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const urlSearch = searchParams.get("search") ?? searchParams.get("q") ?? "";
 
 	const [search, setSearch] = useState(urlSearch);
-	const currentCategory = searchParams.get("category") ?? ALL;
+	const currentProductType = searchParams.get("productType") ?? ALL;
 	const currentVisibility = searchParams.get("visible") ?? ALL;
 	const currentStatus = searchParams.get("status") ?? ALL;
-	const currentProductType = searchParams.get("productType") ?? ALL;
 	const urlNcm = searchParams.get("ncm") ?? "";
 	const [ncm, setNcm] = useState(urlNcm);
 
@@ -51,7 +45,6 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 		setSearch(urlSearch);
 	}, [urlSearch]);
 
-	// debounce search input → URL (guard to skip when unchanged)
 	useEffect(() => {
 		if (search === urlSearch) {
 			return;
@@ -81,7 +74,6 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 		router.replace(qs ? `/dashboard/tools?${qs}` : "/dashboard/tools");
 	}
 
-	// debounce NCM input → URL
 	useEffect(() => {
 		if (ncm === urlNcm) {
 			return;
@@ -114,27 +106,30 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 			</div>
 
 			<div className="flex flex-col gap-1 md:w-56">
-				<label className="text-muted-foreground text-xs" htmlFor="tool-cat">
-					Categoria
+				<label
+					className="text-muted-foreground text-xs"
+					htmlFor="tool-product-type"
+				>
+					Tipo de produto
 				</label>
 				<Select
-					onValueChange={(v) => updateParam("category", v)}
-					value={currentCategory}
+					onValueChange={(v) => updateParam("productType", v)}
+					value={currentProductType}
 				>
-					<SelectTrigger id="tool-cat">
+					<SelectTrigger id="tool-product-type">
 						<SelectValue>
 							{(v: string) =>
 								v === ALL
-									? "Todas"
-									: (categories.find((c) => c.id === v)?.name ?? "Todas")
+									? "Todos"
+									: (productTypes.find((p) => p.id === v)?.name ?? "Todos")
 							}
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value={ALL}>Todas</SelectItem>
-						{categories.map((c) => (
-							<SelectItem key={c.id} value={c.id}>
-								{c.name}
+						<SelectItem value={ALL}>Todos</SelectItem>
+						{productTypes.map((p) => (
+							<SelectItem key={p.id} value={p.id}>
+								{p.name}
 							</SelectItem>
 						))}
 					</SelectContent>
@@ -200,42 +195,6 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 						{TOOL_STATUS_OPTIONS.map((s) => (
 							<SelectItem key={s} value={s}>
 								{TOOL_STATUS_LABELS[s]}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-			</div>
-
-			<div className="flex flex-col gap-1 md:w-44">
-				<label
-					className="text-muted-foreground text-xs"
-					htmlFor="tool-product-type"
-				>
-					Tipo
-				</label>
-				<Select
-					onValueChange={(v) => updateParam("productType", v)}
-					value={currentProductType}
-				>
-					<SelectTrigger id="tool-product-type">
-						<SelectValue>
-							{(v: string) => {
-								if (v === ALL) {
-									return "Todos";
-								}
-								return (
-									PRODUCT_TYPE_LABELS[
-										v as (typeof PRODUCT_TYPE_OPTIONS)[number]
-									] ?? v
-								);
-							}}
-						</SelectValue>
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value={ALL}>Todos</SelectItem>
-						{PRODUCT_TYPE_OPTIONS.map((p) => (
-							<SelectItem key={p} value={p}>
-								{PRODUCT_TYPE_LABELS[p]}
 							</SelectItem>
 						))}
 					</SelectContent>

@@ -11,14 +11,13 @@ import {
 	unique,
 } from "drizzle-orm/pg-core";
 
-export type ProductType = "machine" | "equipment" | "part" | "accessory";
 export type ToolStatus =
 	| "draft"
 	| "active"
 	| "discontinued"
 	| "out_of_stock";
 
-export const category = pgTable("category", {
+export const productType = pgTable("product_type", {
 	id: text("id").primaryKey(),
 	name: text("name").notNull(),
 	slug: text("slug").unique(),
@@ -53,7 +52,6 @@ export const tool = pgTable(
 		sku: text("sku").unique(),
 		model: text("model"),
 		invoiceModel: text("invoice_model"),
-		productType: text("product_type").$type<ProductType>(),
 		status: text("status")
 			.$type<ToolStatus>()
 			.notNull()
@@ -75,9 +73,9 @@ export const tool = pgTable(
 		price: numeric("price", { precision: 10, scale: 2 }),
 		cost: numeric("cost", { precision: 10, scale: 2 }),
 		visibleOnSite: boolean("visible_on_site").notNull().default(true),
-		categoryId: text("category_id").references(() => category.id, {
-			onDelete: "cascade",
-		}),
+		productTypeId: text("product_type_id")
+			.notNull()
+			.references(() => productType.id, { onDelete: "restrict" }),
 		supplierId: text("supplier_id").references(() => supplier.id, {
 			onDelete: "set null",
 		}),
@@ -88,17 +86,12 @@ export const tool = pgTable(
 			.notNull(),
 	},
 	(table) => [
-		index("tool_category_id_idx").on(table.categoryId),
+		index("tool_product_type_id_idx").on(table.productTypeId),
 		index("tool_supplier_id_idx").on(table.supplierId),
 		index("tool_model_idx").on(table.model),
 		index("tool_invoice_model_idx").on(table.invoiceModel),
 		index("tool_ncm_idx").on(table.ncm),
 		index("tool_status_idx").on(table.status),
-		index("tool_product_type_idx").on(table.productType),
-		check(
-			"valid_product_type",
-			sql`${table.productType} IS NULL OR ${table.productType} IN ('machine','equipment','part','accessory')`
-		),
 		check(
 			"valid_tool_status",
 			sql`${table.status} IN ('draft','active','discontinued','out_of_stock')`
@@ -126,7 +119,7 @@ export const tool = pgTable(
 	]
 );
 
-export const categoryRelations = relations(category, ({ many }) => ({
+export const productTypeRelations = relations(productType, ({ many }) => ({
 	tools: many(tool),
 }));
 
@@ -152,9 +145,9 @@ export const toolImage = pgTable(
 );
 
 export const toolRelations = relations(tool, ({ one, many }) => ({
-	category: one(category, {
-		fields: [tool.categoryId],
-		references: [category.id],
+	productType: one(productType, {
+		fields: [tool.productTypeId],
+		references: [productType.id],
 	}),
 	supplier: one(supplier, {
 		fields: [tool.supplierId],
@@ -170,8 +163,8 @@ export const toolImageRelations = relations(toolImage, ({ one }) => ({
 	}),
 }));
 
-export type Category = typeof category.$inferSelect;
-export type NewCategory = typeof category.$inferInsert;
+export type ProductType = typeof productType.$inferSelect;
+export type NewProductType = typeof productType.$inferInsert;
 export type Supplier = typeof supplier.$inferSelect;
 export type NewSupplier = typeof supplier.$inferInsert;
 export type Tool = typeof tool.$inferSelect;

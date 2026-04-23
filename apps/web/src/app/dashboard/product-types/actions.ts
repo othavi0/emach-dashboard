@@ -1,21 +1,21 @@
 "use server";
 
 import { db } from "@emach/db";
-import { category, tool } from "@emach/db/schema/tools";
+import { productType, tool } from "@emach/db/schema/tools";
 import { asc, eq, ilike, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { requireCurrentSession, requireRole } from "@/lib/session";
 import {
-	type CategoryFormValues,
-	categorySchema,
+	type ProductTypeFormValues,
+	productTypeSchema,
 	slugify,
-} from "./_components/category-schema";
+} from "./_components/product-type-schema";
 
-const CATEGORIES_PATH = "/dashboard/categories";
+const PRODUCT_TYPES_PATH = "/dashboard/product-types";
 const TOOLS_PATH = "/dashboard/tools";
 
-export interface CategoryListItem {
+export interface ProductTypeListItem {
 	createdAt: Date;
 	description: string | null;
 	id: string;
@@ -31,7 +31,7 @@ export interface LinkedTool {
 	visibleOnSite: boolean;
 }
 
-export interface CategoryDetail {
+export interface ProductTypeDetail {
 	createdAt: Date;
 	description: string | null;
 	id: string;
@@ -45,7 +45,7 @@ export type ActionResult<T = undefined> =
 	| { ok: true; data: T }
 	| { ok: false; error: string };
 
-function normalizePayload(input: CategoryFormValues) {
+function normalizePayload(input: ProductTypeFormValues) {
 	const description = input.description?.trim();
 
 	return {
@@ -62,32 +62,32 @@ function errorMessage(error: unknown): string {
 	return "Erro inesperado";
 }
 
-export async function listCategories(params?: {
+export async function listProductTypes(params?: {
 	search?: string;
-}): Promise<CategoryListItem[]> {
+}): Promise<ProductTypeListItem[]> {
 	await requireCurrentSession();
 
 	const search = params?.search?.trim();
 	const rows = await db
 		.select({
-			id: category.id,
-			name: category.name,
-			slug: category.slug,
-			description: category.description,
-			createdAt: category.createdAt,
+			id: productType.id,
+			name: productType.name,
+			slug: productType.slug,
+			description: productType.description,
+			createdAt: productType.createdAt,
 			toolsCount: sql<number>`count(${tool.id})::int`,
 		})
-		.from(category)
-		.leftJoin(tool, eq(tool.categoryId, category.id))
-		.where(search ? ilike(category.name, `%${search}%`) : undefined)
+		.from(productType)
+		.leftJoin(tool, eq(tool.productTypeId, productType.id))
+		.where(search ? ilike(productType.name, `%${search}%`) : undefined)
 		.groupBy(
-			category.id,
-			category.name,
-			category.slug,
-			category.description,
-			category.createdAt
+			productType.id,
+			productType.name,
+			productType.slug,
+			productType.description,
+			productType.createdAt
 		)
-		.orderBy(asc(category.name));
+		.orderBy(asc(productType.name));
 
 	return rows.map((row) => ({
 		...row,
@@ -95,13 +95,15 @@ export async function listCategories(params?: {
 	}));
 }
 
-export async function getCategory(id: string): Promise<CategoryDetail | null> {
+export async function getProductType(
+	id: string
+): Promise<ProductTypeDetail | null> {
 	await requireCurrentSession();
 
 	const [row] = await db
 		.select()
-		.from(category)
-		.where(eq(category.id, id))
+		.from(productType)
+		.where(eq(productType.id, id))
 		.limit(1);
 
 	if (!row) {
@@ -116,7 +118,7 @@ export async function getCategory(id: string): Promise<CategoryDetail | null> {
 			visibleOnSite: tool.visibleOnSite,
 		})
 		.from(tool)
-		.where(eq(tool.categoryId, id))
+		.where(eq(tool.productTypeId, id))
 		.orderBy(asc(tool.name));
 
 	return {
@@ -125,12 +127,12 @@ export async function getCategory(id: string): Promise<CategoryDetail | null> {
 	};
 }
 
-export async function createCategory(
-	input: CategoryFormValues
+export async function createProductType(
+	input: ProductTypeFormValues
 ): Promise<ActionResult<{ id: string }>> {
 	await requireRole("admin");
 
-	const parsed = categorySchema.safeParse(input);
+	const parsed = productTypeSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: errorMessage(parsed.error) };
 	}
@@ -139,23 +141,23 @@ export async function createCategory(
 	const payload = normalizePayload(parsed.data);
 
 	try {
-		await db.insert(category).values({ id, ...payload });
+		await db.insert(productType).values({ id, ...payload });
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}
 
-	revalidatePath(CATEGORIES_PATH);
+	revalidatePath(PRODUCT_TYPES_PATH);
 	revalidatePath(TOOLS_PATH);
 	return { ok: true, data: { id } };
 }
 
-export async function updateCategory(
+export async function updateProductType(
 	id: string,
-	input: CategoryFormValues
+	input: ProductTypeFormValues
 ): Promise<ActionResult<{ id: string }>> {
 	await requireRole("admin");
 
-	const parsed = categorySchema.safeParse(input);
+	const parsed = productTypeSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: errorMessage(parsed.error) };
 	}
@@ -163,42 +165,42 @@ export async function updateCategory(
 	const payload = normalizePayload(parsed.data);
 
 	try {
-		await db.update(category).set(payload).where(eq(category.id, id));
+		await db.update(productType).set(payload).where(eq(productType.id, id));
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}
 
-	revalidatePath(CATEGORIES_PATH);
-	revalidatePath(`${CATEGORIES_PATH}/${id}`);
-	revalidatePath(`${CATEGORIES_PATH}/${id}/edit`);
+	revalidatePath(PRODUCT_TYPES_PATH);
+	revalidatePath(`${PRODUCT_TYPES_PATH}/${id}`);
+	revalidatePath(`${PRODUCT_TYPES_PATH}/${id}/edit`);
 	revalidatePath(TOOLS_PATH);
 	return { ok: true, data: { id } };
 }
 
-export async function deleteCategory(id: string): Promise<ActionResult> {
+export async function deleteProductType(id: string): Promise<ActionResult> {
 	await requireRole("admin");
 
 	const linkedTools = await db
 		.select({ id: tool.id })
 		.from(tool)
-		.where(eq(tool.categoryId, id))
+		.where(eq(tool.productTypeId, id))
 		.limit(1);
 
 	if (linkedTools.length > 0) {
 		return {
 			ok: false,
 			error:
-				"Não é possível remover uma categoria com ferramentas vinculadas. Edite as ferramentas antes de remover.",
+				"Não é possível remover um tipo com ferramentas vinculadas. Edite as ferramentas antes de remover.",
 		};
 	}
 
 	try {
-		await db.delete(category).where(eq(category.id, id));
+		await db.delete(productType).where(eq(productType.id, id));
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}
 
-	revalidatePath(CATEGORIES_PATH);
+	revalidatePath(PRODUCT_TYPES_PATH);
 	revalidatePath(TOOLS_PATH);
 	return { ok: true, data: undefined };
 }

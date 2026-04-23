@@ -6,21 +6,21 @@ import { Label } from "@emach/ui/components/label";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
 
-import { createCategory, updateCategory } from "../actions";
+import { createProductType, updateProductType } from "../actions";
 import {
-	type CategoryFormValues,
-	categorySchema,
+	type ProductTypeFormValues,
+	productTypeSchema,
 	slugify,
-} from "./category-schema";
+} from "./product-type-schema";
 
-interface CategoryFormProps {
-	categoryId?: string;
-	defaultValues: Partial<CategoryFormValues>;
+interface ProductTypeFormProps {
+	productTypeId?: string;
+	defaultValues: Partial<ProductTypeFormValues>;
 	existingSlug?: string | null;
 	mode: "create" | "edit";
 }
@@ -40,15 +40,15 @@ function SubmitLabel({
 		);
 	}
 
-	return <>{mode === "create" ? "Criar categoria" : "Salvar alterações"}</>;
+	return <>{mode === "create" ? "Criar tipo" : "Salvar alterações"}</>;
 }
 
 function zodErrorsToFieldMap(
-	error: ZodError<CategoryFormValues>
-): Partial<Record<keyof CategoryFormValues, string>> {
-	const map: Partial<Record<keyof CategoryFormValues, string>> = {};
+	error: ZodError<ProductTypeFormValues>
+): Partial<Record<keyof ProductTypeFormValues, string>> {
+	const map: Partial<Record<keyof ProductTypeFormValues, string>> = {};
 	for (const issue of error.issues) {
-		const key = issue.path[0] as keyof CategoryFormValues | undefined;
+		const key = issue.path[0] as keyof ProductTypeFormValues | undefined;
 		if (key && !map[key]) {
 			map[key] = issue.message;
 		}
@@ -56,12 +56,12 @@ function zodErrorsToFieldMap(
 	return map;
 }
 
-export function CategoryForm({
-	categoryId,
+export function ProductTypeForm({
+	productTypeId,
 	defaultValues,
 	existingSlug,
 	mode,
-}: CategoryFormProps) {
+}: ProductTypeFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const [name, setName] = useState(defaultValues.name ?? "");
@@ -69,7 +69,7 @@ export function CategoryForm({
 		defaultValues.description ?? ""
 	);
 	const [errors, setErrors] = useState<
-		Partial<Record<keyof CategoryFormValues, string>>
+		Partial<Record<keyof ProductTypeFormValues, string>>
 	>({});
 
 	const slugPreview = useMemo(() => {
@@ -83,7 +83,7 @@ export function CategoryForm({
 		event.preventDefault();
 		setErrors({});
 
-		const parsed = categorySchema.safeParse({
+		const parsed = productTypeSchema.safeParse({
 			name,
 			description,
 		});
@@ -96,18 +96,18 @@ export function CategoryForm({
 		startTransition(async () => {
 			const action =
 				mode === "create"
-					? createCategory(parsed.data)
-					: updateCategory(categoryId ?? "", parsed.data);
+					? createProductType(parsed.data)
+					: updateProductType(productTypeId ?? "", parsed.data);
 			const result = await action;
 
 			if (result.ok) {
 				toast.success(
-					mode === "create" ? "Categoria criada" : "Categoria atualizada"
+					mode === "create" ? "Tipo de produto criado" : "Tipo atualizado"
 				);
-				router.push("/dashboard/categories");
+				router.push("/dashboard/product-types");
 				router.refresh();
 			} else {
-				toast.error(result.error || "Não foi possível salvar a categoria");
+				toast.error(result.error || "Não foi possível salvar o tipo");
 			}
 		});
 	}
@@ -120,10 +120,10 @@ export function CategoryForm({
 				</h2>
 
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-name">Nome</Label>
+					<Label htmlFor="product-type-name">Nome</Label>
 					<Input
 						disabled={isPending}
-						id="category-name"
+						id="product-type-name"
 						onChange={(event) => setName(event.target.value)}
 						placeholder="Ex: Furadeiras"
 						value={name}
@@ -137,12 +137,12 @@ export function CategoryForm({
 				</div>
 
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-description">Descrição (opcional)</Label>
+					<Label htmlFor="product-type-description">Descrição (opcional)</Label>
 					<Textarea
 						disabled={isPending}
-						id="category-description"
+						id="product-type-description"
 						onChange={(event) => setDescription(event.target.value)}
-						placeholder="Resumo interno sobre o tipo de ferramenta desta categoria."
+						placeholder="Resumo interno sobre este tipo de ferramenta."
 						rows={5}
 						value={description}
 					/>
@@ -158,7 +158,7 @@ export function CategoryForm({
 				</Button>
 				<Link
 					className={buttonVariants({ variant: "ghost" })}
-					href="/dashboard/categories"
+					href="/dashboard/product-types"
 				>
 					Cancelar
 				</Link>

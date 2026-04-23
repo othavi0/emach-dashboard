@@ -11,12 +11,12 @@ import {
 } from "@emach/ui/components/table";
 import Link from "next/link";
 
-import type { CategoryListItem } from "../actions";
-import { DeleteCategoryDialog } from "./delete-category-dialog";
+import type { ProductTypeListItem } from "../actions";
+import { DeleteProductTypeDialog } from "./delete-product-type-dialog";
 
-interface CategoriesTableProps {
+interface ProductTypesTableProps {
 	canMutate: boolean;
-	categories: CategoryListItem[];
+	productTypes: ProductTypeListItem[];
 }
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
@@ -29,7 +29,10 @@ function formatDate(value: Date): string {
 	return DATE_FORMATTER.format(value);
 }
 
-export function CategoriesTable({ categories, canMutate }: CategoriesTableProps) {
+export function ProductTypesTable({
+	productTypes,
+	canMutate,
+}: ProductTypesTableProps) {
 	return (
 		<Table>
 			<TableHeader>
@@ -37,36 +40,34 @@ export function CategoriesTable({ categories, canMutate }: CategoriesTableProps)
 					<TableHead>Nome</TableHead>
 					<TableHead>Descrição</TableHead>
 					<TableHead className="text-right">Ferramentas</TableHead>
-					<TableHead className="w-32">Criada em</TableHead>
+					<TableHead className="w-32">Criado em</TableHead>
 					{canMutate && (
 						<TableHead className="w-40 text-right">Ações</TableHead>
 					)}
 				</TableRow>
 			</TableHeader>
 			<TableBody>
-				{categories.map((category) => (
-					<TableRow key={category.id}>
+				{productTypes.map((row) => (
+					<TableRow key={row.id}>
 						<TableCell>
 							<Link
 								className="font-medium hover:underline"
-								href={`/dashboard/categories/${category.id}`}
+								href={`/dashboard/product-types/${row.id}`}
 							>
-								{category.name}
+								{row.name}
 							</Link>
-							{category.slug && (
-								<p className="text-muted-foreground text-xs">
-									/{category.slug}
-								</p>
+							{row.slug && (
+								<p className="text-muted-foreground text-xs">/{row.slug}</p>
 							)}
 						</TableCell>
 						<TableCell className="max-w-md text-muted-foreground text-sm">
-							{category.description ?? "—"}
+							{row.description ?? "—"}
 						</TableCell>
 						<TableCell className="text-right tabular-nums">
-							{category.toolsCount}
+							{row.toolsCount}
 						</TableCell>
 						<TableCell className="text-muted-foreground text-sm">
-							{formatDate(category.createdAt)}
+							{formatDate(row.createdAt)}
 						</TableCell>
 						{canMutate && (
 							<TableCell className="text-right">
@@ -76,13 +77,13 @@ export function CategoriesTable({ categories, canMutate }: CategoriesTableProps)
 											size: "sm",
 											variant: "ghost",
 										})}
-										href={`/dashboard/categories/${category.id}/edit`}
+										href={`/dashboard/product-types/${row.id}/edit`}
 									>
 										Editar
 									</Link>
-									<DeleteCategoryDialog
-										categoryId={category.id}
-										categoryName={category.name}
+									<DeleteProductTypeDialog
+										productTypeId={row.id}
+										productTypeName={row.name}
 									/>
 								</div>
 							</TableCell>

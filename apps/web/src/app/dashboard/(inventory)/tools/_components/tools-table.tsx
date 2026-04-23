@@ -13,12 +13,7 @@ import {
 import Link from "next/link";
 
 import { DeleteToolDialog } from "./delete-tool-dialog";
-import {
-	type ProductTypeValue,
-	PRODUCT_TYPE_LABELS,
-	TOOL_STATUS_LABELS,
-	type ToolStatusValue,
-} from "./tool-schema";
+import { TOOL_STATUS_LABELS, type ToolStatusValue } from "./tool-schema";
 
 const STATUS_BADGE_VARIANT: Record<
 	ToolStatusValue,
@@ -31,12 +26,11 @@ const STATUS_BADGE_VARIANT: Record<
 };
 
 export interface ToolRow {
-	categoryName: string | null;
+	productTypeName: string | null;
 	id: string;
 	imageUrl: string | null;
 	model: string | null;
 	name: string;
-	productType: string | null;
 	sku: string | null;
 	slug: string | null;
 	status: string;
@@ -57,7 +51,7 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 				<TableRow>
 					<TableHead className="w-16">Imagem</TableHead>
 					<TableHead>Nome</TableHead>
-					<TableHead>Categoria</TableHead>
+					<TableHead>Tipo de produto</TableHead>
 					<TableHead>Fornecedor</TableHead>
 					<TableHead>Modelo</TableHead>
 					<TableHead>Status</TableHead>
@@ -95,19 +89,13 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 								<p className="text-muted-foreground text-xs">SKU: {t.sku}</p>
 							)}
 						</TableCell>
-						<TableCell>{t.categoryName ?? "—"}</TableCell>
+						<TableCell>{t.productTypeName ?? "—"}</TableCell>
 						<TableCell>{t.supplierName ?? "—"}</TableCell>
 						<TableCell>
 							{t.model ? (
 								<span className="font-mono text-xs">{t.model}</span>
 							) : (
 								<span className="text-muted-foreground">—</span>
-							)}
-							{t.productType && (
-								<p className="text-muted-foreground text-xs">
-									{PRODUCT_TYPE_LABELS[t.productType as ProductTypeValue] ??
-										t.productType}
-								</p>
 							)}
 						</TableCell>
 						<TableCell>

@@ -1,5 +1,5 @@
 import { db } from "@emach/db";
-import { category } from "@emach/db/schema/tools";
+import { productType } from "@emach/db/schema/tools";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Empty,
@@ -32,7 +32,7 @@ interface StockPageRow extends Record<string, unknown> {
 }
 
 interface StockPageParams {
-	categoria?: string;
+	productType?: string;
 	ordem?: "nome" | "maior" | "menor";
 	q?: string;
 	search?: string;
@@ -42,11 +42,11 @@ interface StockPageProps {
 	searchParams: Promise<StockPageParams>;
 }
 
-async function fetchCategories() {
+async function fetchProductTypes() {
 	return await db
-		.select({ id: category.id, name: category.name })
-		.from(category)
-		.orderBy(asc(category.name));
+		.select({ id: productType.id, name: productType.name })
+		.from(productType)
+		.orderBy(asc(productType.name));
 }
 
 async function fetchStockRows(params: StockPageParams): Promise<StockRow[]> {
@@ -54,8 +54,8 @@ async function fetchStockRows(params: StockPageParams): Promise<StockRow[]> {
 	if (params.search) {
 		whereClauses.push(sql`t.name ILIKE ${`%${params.search}%`}`);
 	}
-	if (params.categoria) {
-		whereClauses.push(sql`t.category_id = ${params.categoria}`);
+	if (params.productType) {
+		whereClauses.push(sql`t.product_type_id = ${params.productType}`);
 	}
 	const whereClause = whereClauses.length
 		? sql`WHERE ${sql.join(whereClauses, sql` AND `)}`
@@ -121,12 +121,12 @@ export default async function StockPage({ searchParams }: StockPageProps) {
 	const params = await searchParams;
 	const search = params.search ?? params.q;
 
-	const [rows, categories] = await Promise.all([
+	const [rows, productTypes] = await Promise.all([
 		fetchStockRows({ ...params, search }),
-		fetchCategories(),
+		fetchProductTypes(),
 	]);
 	const isEmpty = rows.length === 0;
-	const hasFilters = Boolean(search || params.categoria || params.ordem);
+	const hasFilters = Boolean(search || params.productType || params.ordem);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -138,7 +138,7 @@ export default async function StockPage({ searchParams }: StockPageProps) {
 				</p>
 			</div>
 
-			<StockFilters categories={categories} />
+			<StockFilters productTypes={productTypes} />
 
 			{isEmpty ? (
 				<Empty>

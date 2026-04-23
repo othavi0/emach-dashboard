@@ -1,0 +1,2208 @@
+╭─── Claude Code v2.1.118 ─────────────────────────────────────────────────────╮
+│                                                    │ Tips for getting        │
+│                Welcome back Othavio!               │ started                 │
+│                                                    │ Run /init to create a … │
+│                       ▐▛███▜▌                      │ ─────────────────────── │
+│                      ▝▜█████▛▘                     │ Recent activity         │
+│                        ▘▘ ▝▝                       │ No recent activity      │
+│       Opus 4.7 (1M context) · Claude Max ·         │                         │
+│       obsidianlab3d@gmail.com's Organization       │                         │
+│            ~/Work/emach/emach-dashboard            │                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+❯ /model                                                                        
+  ⎿  Set model to Opus 4.7 (1M context) (default) with high effort
+
+❯ /superpowers:brainstorming Eu quero sua ajuda para voce analisar as           
+informacoes que temos no banco de dados no caso as ferramentas, nos temos       
+Categoria e Tipo de produto                                                     
+que sao a mesma coisa, algumas das ferramentas ja tem Tipo de produto Eu queria 
+ que voce mudasse de categoria para tipo de produto, e tambem alinhe os tipos   
+para a categorias mude para fazer sentido, eu quero uma migracao e correcao que 
+ envolve tudo desde a criacao da ferramenta e tambem os tipos de produtos! Nao  
+poupe esforco e me faca varias perguntas para tirar qualquer duvida use o       
+askuserquestion Eu queno no minimo 10 perguntas divididas em etapas adaptando   
+seu plano conforme as respostas!                                                
+
+● Começando exploração codebase — schema tools, categoria vs tipo de produto,
+  seeds, UI de criação.
+
+● Explore(Explore tools schema categoria tipo)
+  ⎿  Done (41 tool uses · 89.2k tokens · 1m 23s)
+  (ctrl+o to expand)
+
+● Mapeamento completo. Situação atual:
+
+  - category = tabela lookup N:1 (user cria categorias livres via
+  /dashboard/categories)
+  - productType = coluna enum NULLABLE com 4 valores fixos:
+  machine|equipment|part|accessory
+  - Tool form tem 2 selects separados; filtros e queries também tratam como
+  campos distintos
+  - Sem seeds; banco provavelmente tem dados reais populados via UI
+
+  Antes de desenhar migração preciso fechar a intenção. Etapa 1 de 3 — conceito
+  & forma:
+
+● User answered Claude's questions:
+  ⎿  · Qual estrutura você quer manter como "Tipo de Produto" unificado? → 
+     Tabela lookup flexível (Recomendado)
+     · O que fazer com os 4 valores atuais do enum productType 
+     (machine/equipment/part/accessory)? → Virar 4 rows seed na nova tabela 
+     (Recomendado)
+     · Tools que já têm `categoryId` preenchido mas `productType = NULL` — como 
+     migrar? → EU quero que o category se torno product_type conforme voce 
+     passou e crie as os tipos de produtos que existem no antigo categoria e 
+     depois delete o productID talvez
+     · Ambiente de execução da migração? → Dev/staging apenas — db:push --force 
+     (Recomendado pra agora)
+
+● Entendi — category vira product_type, seed dos 4 valores antigos, drop da
+  coluna productType enum. Etapa 2 — detalhes de mapping e conflitos:
+
+● User answered Claude's questions:
+  ⎿  · Tools que têm `productType` preenchido (um dos 4 enum) mas `categoryId = 
+     NULL` — como migrar? → Linkar no seed correspondente (Recomendado)
+     · Tool com AMBOS preenchidos mas divergindo (ex: categoryId aponta pra 
+     'Furadeira' E productType='equipment') — qual vence? → productType vence
+     · Novo campo `productTypeId` em `tool` — obrigatório ou opcional? → 
+     Obrigatório (NOT NULL) (Recomendado)
+     · Rota da página CRUD atual `/dashboard/categories` — renomear? → Renomear 
+     pra /dashboard/product-types (Recomendado)
+
+● productType vence divergências, obrigatório, path novo. Etapa 3 final —
+  detalhes de nomenclatura, seed e runtime:
+
+● User answered Claude's questions:
+  ⎿  · Extensão do refactor TypeScript (identifiers, imports, variable names)? →
+      Refactor completo ponta-a-ponta (Recomendado)
+     · Nomes exatos dos 4 seed em PT-BR (tabela `product_type`)? → Máquina / 
+     Equipamento / Peça / Acessório (Recomendado)
+     · Comportamento de deleção de `product_type` com tools vinculadas? → 
+     Bloquear (manter comportamento atual) (Recomendado)
+     · Como aplicar a migração em dev (execução concreta)? → Script bun one-shot
+      com backfill (Recomendado)
+
+● Etapa 4 — casos de borda finais:
+
+● User answered Claude's questions:
+  ⎿  · Tool sem categoryId E sem productType (nenhum dos dois preenchido) — como
+      migrar? → Atribuir seed default 'Máquina' (Recomendado)
+     · Como gerar slug das categorias user-criadas existentes que vão virar 
+     product_type? → Auto-gerar a partir do nome existente (Recomendado)
+     · Deletar as próprias rotas/componentes antigos (`/dashboard/categories`, 
+     `category-form.tsx`) como parte do PR? → Sim — deletar arquivos antigos no 
+     mesmo PR (Recomendado)
+
+  Read 2 files, ran 2 shell commands (ctrl+o to expand)
+
+● Tudo mapeado. Escrevendo plano.
+
+● Updated plan
+  ⎿  /plan to preview
+
+● Ajuste de precisão no fluxo de push — 2 fases aditivas são mais seguras que
+  via raw SQL.
+
+● Updated plan  ⎿  /plan to preview
+
+● User approved Claude's plan
+  ⎿  Plan saved to: ~/.claude/plans/eu-quero-sua-ajuda-encapsulated-corbato.md ·
+      /plan to edit
+     Plano: Unificar category → product_type (Tool)
+
+     Contexto
+
+     O schema tool tem dois conceitos redundantes representando a mesma ideia de
+      classificação:
+
+     - category — tabela lookup M:1, user-editável via /dashboard/categories
+     (ex: "Furadeiras", "Serras"). FK tool.categoryId é obrigatório no Zod mas
+     nullable no DB.
+     - productType — coluna text com enum fixo machine|equipment|part|accessory,
+      nullable, sem FK. Mapeado para labels PT-BR (PRODUCT_TYPE_LABELS).
+
+     No form de criação/edição (tool-form.tsx) os dois aparecem como selects
+     separados; nos filtros (tool-filters.tsx) como dois params independentes
+     (?category= e ?productType=). Isso confunde usuário interno e duplica
+     decisão sem benefício — não há semântica distinta em uso.
+
+     Objetivo: consolidar em um único conceito — tabela lookup flexível chamada
+     product_type — eliminando o enum fixo e unificando UI, queries e tipos TS.
+     Migração dev-only (monorepo ainda pré-prod), com script de backfill que
+     preserva categorias existentes e garante que nenhuma tool fique órfã.
+
+     Decisões-chave (respondidas pelo user)
+
+     ┌─────┬──────────────────┬────────────────────────────────────────────────┐
+     │  #  │     Decisão      │                    Escolha                     │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │ 1   │ Estrutura final  │ Tabela lookup flexível product_type            │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │ 2   │ Os 4 valores do  │ Viram 4 rows seed: Máquina, Equipamento, Peça, │
+     │     │ enum antigo      │  Acessório                                     │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │     │ Tools com        │ Preservar vínculo à categoria existente (vira  │
+     │ 3   │ categoryId +     │ row product_type)                              │
+     │     │ productType=NULL │                                                │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │     │ Tools com        │                                                │
+     │ 4   │ productType +    │ Linkar na row seed correspondente              │
+     │     │ categoryId=NULL  │                                                │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │     │ Conflito (ambos  │ productType vence — re-linkar na row seed,     │
+     │ 5   │ preenchidos      │ descartar categoria                            │
+     │     │ divergindo)      │                                                │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │ 6   │ Tool sem nada    │ Atribuir seed default 'Máquina'                │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │ 7   │ productTypeId em │ NOT NULL                                       │
+     │     │  tool            │                                                │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │     │ Deleção de tipo  │ Bloquear (comportamento atual de               │
+     │ 8   │ com tools        │ deleteCategory)                                │
+     │     │ vinculadas       │                                                │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │ 9   │ Path UI          │ /dashboard/categories →                        │
+     │     │                  │ /dashboard/product-types                       │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │ 10  │ Refactor TS      │ Completo ponta-a-ponta (tipos, funções, URL    │
+     │     │                  │ params, arquivos)                              │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │ 11  │ Slug             │ Auto-gerar via slugify() existente se          │
+     │     │                  │ categoria legada não tiver                     │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │ 12  │ Cleanup          │ Deletar rotas/componentes antigos no mesmo PR  │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │ 13  │ Ambiente         │ Dev — bun db:push --force após script de       │
+     │     │                  │ migração rodar                                 │
+     ├─────┼──────────────────┼────────────────────────────────────────────────┤
+     │     │                  │ Script bun one-shot                            │
+     │ 14  │ Execução         │ (scripts/migrate-category-to-product-type.ts)  │
+     │     │                  │ com backfill antes do db:push                  │
+     └─────┴──────────────────┴────────────────────────────────────────────────┘
+
+     Arquitetura final
+
+     packages/db/src/schema/tools.ts
+     ├── product_type (tabela — renomeada de category)
+     │   ├── id, name, slug (unique), description, createdAt, updatedAt
+     │   └── 4 rows seed: {machine, equipment, part, accessory} + N rows
+     migradas de category
+     └── tool
+         ├── productTypeId (text NOT NULL, FK product_type.id, ON DELETE
+     RESTRICT)
+         ├── categoryId (REMOVIDO)
+         ├── productType (REMOVIDO — coluna enum)
+         └── check `valid_product_type` (REMOVIDO)
+
+     Regra de ouro: nenhum código pós-migração menciona category ou productType
+     (coluna enum). ProductType type antigo ("machine"|...) é deletado.
+     Identificador canônico passa a ser productTypeId (FK) e o tipo TS
+     ProductType passa a ser typeof product_type.$inferSelect.
+
+     Mudanças por arquivo
+
+     DB — packages/db/src/schema/tools.ts
+
+     - Renomear category pgTable → productType pgTable. Nome DB product_type
+     (snake_case).
+     - Renomear exports: category → productType (const), categoryRelations →
+     productTypeRelations, Category type → ProductType, NewCategory →
+     NewProductType.
+     - Deletar export type ProductType = "machine" | ... (linha 14 atual) —
+     substituído pelo type inferido da tabela.
+     - Em tool:
+       - Deletar coluna productType (linha 56) + index tool_product_type_idx
+     (linha 97) + check valid_product_type (linhas 98-101).
+       - Substituir categoryId (linha 78) por productTypeId: 
+     text("product_type_id").notNull().references(() => productType.id, { 
+     onDelete: "restrict" }). ON DELETE RESTRICT (não cascade) pra casar com
+     regra "bloquear deleção se há tools vinculadas".
+       - Renomear index tool_category_id_idx → tool_product_type_id_idx.
+     - toolRelations: renomear category → productType, usar tool.productTypeId.
+
+     DB — migration
+
+     Nenhuma migration versionada. Fluxo: script backfill → bun db:push --force 
+     → seed via script. Detalhado na seção "Script de migração".
+
+     Zod schema — 
+     apps/web/src/app/dashboard/(inventory)/tools/_components/tool-schema.ts
+
+     - Deletar PRODUCT_TYPE_OPTIONS, PRODUCT_TYPE_LABELS, ProductTypeValue.
+     - Em toolFormSchema:
+       - Deletar campo productType (linha 69).
+       - Renomear categoryId: z.string().min(1, "Categoria obrigatória") →
+     productTypeId: z.string().min(1, "Tipo de produto obrigatório").
+     - ToolFormValues reflete mudança automaticamente.
+
+     UI Tool — apps/web/src/app/dashboard/(inventory)/tools/_components/
+
+     - tool-form.tsx:
+       - Remover bloco do select productType (linhas ~347-365).
+       - Renomear select categoryId → productTypeId. Label: "Tipo de Produto".
+     Prop categories (fonte de dados) → productTypes.
+       - Atualizar EMPTY_VALUES: remover productType: "", renomear categoryId: 
+     "" → productTypeId: "".
+     - tool-filters.tsx:
+       - Fundir dois selects (linhas 120-141 e 216-242) em um só com label "Tipo
+      de Produto". Fonte: lista de product_type rows.
+       - URL param único: ?productType=<id>. Remover ?category=.
+     - tools-table.tsx: ToolRow.categoryName → productTypeName. Coluna
+     "Categoria" → "Tipo de Produto".
+
+     Server actions — apps/web/src/app/dashboard/(inventory)/tools/actions.ts
+
+     - normalizePayload():
+       - Remover branch productType (linha 65).
+       - categoryId → productTypeId (linha 81).
+     - createTool() / updateTool() — insert/update agora só com productTypeId.
+     Sem fallback null.
+
+     Tools list — apps/web/src/app/dashboard/(inventory)/tools/page.tsx
+
+     - fetchTools():
+       - Param params.category → params.productType.
+       - Filtro SQL: t.category_id = ${x} → t.product_type_id = ${x}. Remover
+     filtro t.product_type = ${y}.
+       - SELECT: category.name AS category_name → product_type.name AS 
+     product_type_name. Remover t.product_type.
+       - Map de retorno: categoryName → productTypeName. Remover productType
+     field.
+     - Pages de detalhe/edit ([id]/page.tsx, [id]/edit/page.tsx, new/page.tsx) —
+      carregar lista de productType (era category), passar como prop.
+
+     CRUD de tipos — renomear pasta inteira
+
+     apps/web/src/app/dashboard/categories/ →
+     apps/web/src/app/dashboard/product-types/
+
+     Dentro:
+     - actions.ts → renomear: listCategories → listProductTypes, getCategory →
+     getProductType, createCategory → createProductType, updateCategory →
+     updateProductType, deleteCategory → deleteProductType. Check de deleção
+     passa a consultar tool.productTypeId. Mensagem erro: "Não pode deletar: X
+     ferramentas vinculadas a este tipo".
+     - page.tsx, [id]/page.tsx, [id]/edit/page.tsx, new/page.tsx — trocar texto
+     "Categoria"/"Categorias" → "Tipo de Produto"/"Tipos de Produto" em títulos,
+      breadcrumbs, botões.
+     - _components/category-schema.ts → product-type-schema.ts. categorySchema →
+      productTypeSchema. Mensagens Zod em PT-BR.
+     - _components/category-form.tsx → product-type-form.tsx. Renomear props.
+     - _components/categories-table.tsx → product-types-table.tsx.
+     - _components/delete-category-dialog.tsx → delete-product-type-dialog.tsx.
+     - _components/categories-filter.tsx → product-types-filter.tsx.
+
+     Navbar — apps/web/src/app/dashboard/_components/app-sidebar.tsx:65-66
+
+     - Label "Categorias" → "Tipos de Produto".
+     - Href /dashboard/categories → /dashboard/product-types.
+
+     Outros consumers
+
+     - stock/_components/stock-filters.tsx e stock/page.tsx — se filtram por
+     categoria, renomear param e fonte de dados pra productType.
+     - dashboard/page.tsx — se exibe "Categorias" como métrica, renomear.
+
+     Script de migração
+
+     Caminho: scripts/migrate-category-to-product-type.ts (na raiz do monorepo
+     ou em packages/db/scripts/).
+
+     Fluxo em 3 fases (aditivo → backfill → cleanup):
+
+     Fase A — push aditivo:
+     1. Editar schema/tools.ts: adicionar productType pgTable (tabela nova,
+     coexiste com category) e adicionar coluna productTypeId: 
+     text("product_type_id") em tool (nullable ainda, sem FK NOT NULL). Manter
+     category, categoryId, coluna enum productType, index e check existentes
+     intactos.
+     2. bun db:push (sem --force) — cria tabela nova e coluna aditiva. Zero
+     risco de perda.
+
+     Fase B — script de backfill (scripts/migrate-category-to-product-type.ts,
+     tudo em uma transação):
+     1. Read state — SELECT all de category (id, name, slug, description) e
+     SELECT all de tool (id, categoryId, productType antigo).
+     2. Seed 4 rows — INSERT em product_type com IDs via crypto.randomUUID().
+     Guardar map seedMap = { machine: uuid1, equipment: uuid2, part: uuid3, 
+     accessory: uuid4 }:
+       - { name: "Máquina", slug: "machine" }
+       - { name: "Equipamento", slug: "equipment" }
+       - { name: "Peça", slug: "part" }
+       - { name: "Acessório", slug: "accessory" }
+     3. Copia categorias existentes — para cada row em category, INSERT em
+     product_type com mesmo id, name, description. Slug = category.slug se
+     não-NULL, senão slugify(name) (função já existe em tool-schema.ts:104-112;
+     reusar). Se houver colisão de slug com seed, sufixar -N.
+     4. Backfill tool.product_type_id — lógica por tool, em UPDATE batch:
+     se tool.productType IS NOT NULL (enum antigo):
+       tool.product_type_id = seedMap[tool.productType]   // productType vence
+     conflito
+     senão se tool.categoryId IS NOT NULL:
+       tool.product_type_id = tool.categoryId             // preserva vínculo
+     com categoria migrada
+     senão:
+       tool.product_type_id = seedMap["machine"]          // default órfãs
+     5. Verificação — SELECT COUNT(*) FROM tool WHERE product_type_id IS NULL
+     deve retornar 0. Se > 0, ROLLBACK e abortar.
+     6. Log resumo — "Migrados: N tools (K preservadas via categoryId, L
+     relinkadas via productType, M default), X categorias existentes copiadas, 4
+      seeds, 0 órfãs."
+
+     Fase C — push cleanup:
+     1. Editar schema/tools.ts novamente:
+       - Tornar productTypeId NOT NULL + adicionar references(() => 
+     productType.id, { onDelete: "restrict" }).
+       - Remover pgTable category, relations categoryRelations.
+       - Remover em tool: coluna productType (enum), index
+     tool_product_type_idx, check valid_product_type, coluna categoryId, index
+     tool_category_id_idx.
+       - Atualizar toolRelations pra usar novo FK.
+     2. bun db:push --force — dropa category, dropa 2 colunas antigas em tool,
+     aplica NOT NULL + FK nova.
+
+     Por que 3 fases: garante zero janela em que tool pode ficar órfã. Fase A é
+     reversível (só adiciona). Fase B roda em transação (all-or-nothing). Fase C
+      só acontece depois de verificação manual de que o backfill passou — só aí
+     --force é seguro.
+
+     Verificação end-to-end
+
+     1. Rodar script — bun scripts/migrate-category-to-product-type.ts. Validar
+     log "0 órfãs".
+     2. Push schema — bun db:push --force (em packages/db ou via turbo).
+     3. Typecheck — bun typecheck deve passar em toda a workspace. Grep final:
+     rg "categoryId|productType\b(?!Id)|PRODUCT_TYPE_OPTIONS|ToolCategory" apps/
+      packages/ — deve retornar zero (exceto histórico git).
+     4. Lint — bun x ultracite check.
+     5. UI manual:
+       - Subir apps/web (bun dev).
+       - /dashboard/product-types — listar (deve mostrar 4 seeds + categorias
+     migradas), criar novo tipo, editar, tentar deletar com tools linked (deve
+     bloquear), deletar tipo órfão.
+       - /dashboard/tools/new — form mostra um select "Tipo de Produto"
+     obrigatório. Salvar falha sem seleção.
+       - /dashboard/tools — filtro único "Tipo de Produto" (?productType=<id>).
+     Listagem mostra coluna "Tipo de Produto".
+       - /dashboard/tools/[id] — detalhe exibe tipo correto; edit preserva
+     seleção.
+       - Sidebar item "Tipos de Produto" navega para /dashboard/product-types.
+     6. SQL sanity check — SELECT COUNT(*) FROM product_type; ≥ 4. SELECT 
+     COUNT(*) FROM tool WHERE product_type_id IS NULL; = 0.
+
+     Arquivos críticos (resumo de referência)
+
+     Arquivo: packages/db/src/schema/tools.ts
+     Ação: Editar — renomear table, dropar coluna enum, FK NOT NULL
+     ────────────────────────────────────────
+     Arquivo: scripts/migrate-category-to-product-type.ts
+     Ação: Criar
+     ────────────────────────────────────────
+     Arquivo:
+     apps/web/src/app/dashboard/(inventory)/tools/_components/tool-schema.ts
+     Ação: Editar — drop enum, rename field
+     ────────────────────────────────────────
+     Arquivo:
+     apps/web/src/app/dashboard/(inventory)/tools/_components/tool-form.tsx
+     Ação: Editar — fundir selects
+     ────────────────────────────────────────
+     Arquivo:
+     apps/web/src/app/dashboard/(inventory)/tools/_components/tool-filters.tsx
+     Ação: Editar — fundir filtros
+     ────────────────────────────────────────
+     Arquivo:
+     apps/web/src/app/dashboard/(inventory)/tools/_components/tools-table.tsx
+     Ação: Editar — renomear coluna
+     ────────────────────────────────────────
+     Arquivo: apps/web/src/app/dashboard/(inventory)/tools/actions.ts
+     Ação: Editar — rename field
+     ────────────────────────────────────────
+     Arquivo: apps/web/src/app/dashboard/(inventory)/tools/page.tsx
+     Ação: Editar — query e filtros
+     ────────────────────────────────────────
+     Arquivo: apps/web/src/app/dashboard/(inventory)/tools/[id]/page.tsx
+     Ação: Editar
+     ────────────────────────────────────────
+     Arquivo: apps/web/src/app/dashboard/(inventory)/tools/[id]/edit/page.tsx
+     Ação: Editar
+     ────────────────────────────────────────
+     Arquivo: apps/web/src/app/dashboard/(inventory)/tools/new/page.tsx
+     Ação: Editar
+     ────────────────────────────────────────
+     Arquivo:
+     apps/web/src/app/dashboard/(inventory)/stock/_components/stock-filters.tsx
+     Ação: Editar se usa categoria
+     ────────────────────────────────────────
+     Arquivo: apps/web/src/app/dashboard/(inventory)/stock/page.tsx
+     Ação: Editar se usa categoria
+     ────────────────────────────────────────
+     Arquivo: apps/web/src/app/dashboard/categories/ (pasta inteira)
+     Ação: Renomear → product-types/ + refactor todos os arquivos internos
+     ────────────────────────────────────────
+     Arquivo: apps/web/src/app/dashboard/_components/app-sidebar.tsx:65-66
+     Ação: Editar — label + href
+     ────────────────────────────────────────
+     Arquivo: apps/web/src/app/dashboard/page.tsx
+     Ação: Editar se cita "Categoria"
+
+     Não-objetivos (fora deste PR)
+
+     - Migration versionada para prod — monorepo ainda pré-produção.
+     - Adicionar campo "parentCategory" (hierarquia) — YAGNI.
+     - i18n — PT-BR hardcoded (padrão atual do projeto).
+     - Migrar promotions/stock-movements — esses schemas não referenciam
+     category ou productType.
+
+     Convenção de commits
+
+     Um commit atômico por unidade lógica, conventional commits PT:
+     1. feat(db): adiciona tabela product_type e FK tool.product_type_id
+     2. chore(scripts): script de backfill category → product_type
+     3. refactor(tools): migra form/filters/actions para product_type
+     4. refactor(web): renomeia rota /dashboard/categories → 
+     /dashboard/product-types
+     5. chore(db): remove tabela category e coluna productType enum
+
+     (Ordem exata pode variar conforme execução — user confirma antes de
+     commitar, conforme CLAUDE.md.)
+
+● Plano aprovado, auto mode. Começando implementação pela Fase A (push aditivo).
+
+  Read 2 files, ran 2 shell commands (ctrl+o to expand)
+
+● Limpando tasks stale e adicionando tasks de execução.
+
+● Fase A — editando schema aditivo: adicionar productType pgTable e coluna
+  productTypeId nullable.
+
+● Update(packages/db/src/schema/tools.ts)
+  ⎿  Added 12 lines
+      30      .notNull(),
+      31  });
+      32  
+      33 +export const productType = pgTable("product_type", {           
+      34 +  id: text("id").primaryKey(),                                 
+      35 +  name: text("name").notNull(),                                
+      36 +  slug: text("slug").unique(),                                 
+      37 +  description: text("description"),                            
+      38 +  createdAt: timestamp("created_at").defaultNow().notNull(),   
+      39 +  updatedAt: timestamp("updated_at")                           
+      40 +    .defaultNow()                                              
+      41 +    .$onUpdate(() => /* @__PURE__ */ new Date())               
+      42 +    .notNull(),                                                
+      43 +});                                                            
+      44 +                                                               
+      45  export const supplier = pgTable("supplier", {
+      46    id: text("id").primaryKey(),
+      47    name: text("name").notNull(),
+
+● Update(packages/db/src/schema/tools.ts)
+  ⎿  Added 3 lines
+      90      categoryId: text("category_id").references(() => category.i
+          d, {
+      91        onDelete: "cascade",
+      92      }),
+      93 +    productTypeId: text("product_type_id").references(() => pro
+         +ductType.id, {                                                 
+      94 +      onDelete: "restrict",                                    
+      95 +    }),                                                        
+      96      supplierId: text("supplier_id").references(() => supplier.i
+          d, {
+      97        onDelete: "set null",
+      98      }),
+
+● Update(packages/db/src/schema/tools.ts)
+  ⎿  Added 1 line
+      104    },
+      105    (table) => [
+      106      index("tool_category_id_idx").on(table.categoryId),
+      107 +    index("tool_product_type_id_idx").on(table.productTypeId),
+      108      index("tool_supplier_id_idx").on(table.supplierId),
+      109      index("tool_model_idx").on(table.model),
+      110      index("tool_invoice_model_idx").on(table.invoiceModel),
+
+● Update(packages/db/src/schema/tools.ts)
+  ⎿  Added 4 lines
+      146    tools: many(tool),
+      147  }));
+      148  
+      149 +export const productTypeRelations = relations(productType, ({ 
+          +many }) => ({                                                 
+      150 +  tools: many(tool),                                          
+      151 +}));                                                          
+      152 +                                                              
+      153  export const supplierRelations = relations(supplier, ({ many }
+           ) => ({
+      154    tools: many(tool),
+      155  }));
+
+● Update(packages/db/src/schema/tools.ts)
+  ⎿  Added 4 lines
+      176      fields: [tool.categoryId],
+      177      references: [category.id],
+      178    }),
+      179 +  productType: one(productType, {                             
+      180 +    fields: [tool.productTypeId],                             
+      181 +    references: [productType.id],                             
+      182 +  }),                                                         
+      183    supplier: one(supplier, {
+      184      fields: [tool.supplierId],
+      185      references: [supplier.id],
+
+● Update(packages/db/src/schema/tools.ts)  ⎿  Added 2 lines
+      196  
+      197  export type Category = typeof category.$inferSelect;
+      198  export type NewCategory = typeof category.$inferInsert;
+      199 +export type ProductTypeRow = typeof productType.$inferSelect; 
+      200 +export type NewProductTypeRow = typeof productType.$inferInser
+          +t;                                                            
+      201  export type Supplier = typeof supplier.$inferSelect;
+      202  export type NewSupplier = typeof supplier.$inferInsert;
+      203  export type Tool = typeof tool.$inferSelect;
+
+● Update(packages/db/src/index.ts)
+  ⎿  Added 2 lines
+      40  import {
+      41    category,
+      42    categoryRelations,
+      43 +  productType,                                                 
+      44 +  productTypeRelations,                                        
+      45    supplier,
+      46    supplierRelations,
+      47    tool,
+
+● Update(packages/db/src/index.ts)
+  ⎿  Added 2 lines
+      68    clientSession,
+      69    clientSessionRelations,
+      70    clientVerification,
+      71 +  productType,                                                 
+      72 +  productTypeRelations,                                        
+      73    promotion,
+      74    promotionRelations,
+      75    promotionTool,
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● Fase A aplicada. Fase B — script de backfill.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Write(packages/db/scripts/migrate-category-to-product-type.ts)
+  ⎿  Wrote 153 lines to
+     packages/db/scripts/migrate-category-to-product-type.ts
+       1 import { randomUUID } from "node:crypto";
+       2 import { eq, isNotNull, sql } from "drizzle-orm";
+       3 import { db } from "../src/index";
+       4 import {
+       5 category as categoryTable,
+       6 productType as productTypeTable,
+       7 tool as toolTable,
+       8 } from "../src/schema/tools";
+       9 
+      10 type SeedSlug = "machine" | "equipment" | "part" | "accessory";
+     … +150 lines (ctrl+o to expand)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Update(packages/db/scripts/migrate-category-to-product-type.ts)
+  ⎿  Added 1 line, removed 1 line
+      1  import { randomUUID } from "node:crypto";
+      2 -import { eq, isNotNull, sql } from "drizzle-orm";               
+      2 +import { eq, sql } from "drizzle-orm";                          
+      3  import { db } from "../src/index";
+      4  import {
+      5    category as categoryTable,
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+  Ran 1 shell command (ctrl+o to expand)
+  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
+
+● Backfill bem-sucedido: 30 tools migradas via enum, 3 categorias preservadas, 0
+   órfãs. Fix do diagnostic e segue pra Fase C.
+
+● Update(packages/db/scripts/migrate-category-to-product-type.ts)
+  ⎿  Added 2 lines, removed 1 line
+      127    console.log(`   - Preservadas via categoryId: ${fromCategory
+           Id}`);
+      128    console.log(`   - Default (Máquina): ${fromDefault}`);
+      129  
+      130 -  const [{ orphans }] = await db                              
+      130 +  const orphanRows = await db                                 
+      131      .select({ orphans: sql<number>`count(*)::int` })
+      132      .from(toolTable)
+      133      .where(sql`${toolTable.productTypeId} IS NULL`);
+      134 +  const orphans = orphanRows[0]?.orphans ?? 0;                
+      135  
+      136    if (orphans > 0) {
+      137      throw new Error(
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Fase C — schema cleanup: NOT NULL no FK novo, dropar category, categoryId,
+  coluna productType enum.
+
+  Read 1 file (ctrl+o to expand)
+
+● Write(packages/db/src/schema/tools.ts)
+  ⎿  Added 5 lines, removed 38 lines
+      11    unique,
+      12  } from "drizzle-orm/pg-core";
+      13  
+      14 -export type ProductType = "machine" | "equipment" | "part" | "a
+         -ccessory";                                                     
+      14  export type ToolStatus =
+      15    | "draft"
+      16    | "active"
+      17    | "discontinued"
+      18    | "out_of_stock";
+      19  
+      21 -export const category = pgTable("category", {                  
+      22 -  id: text("id").primaryKey(),                                 
+      23 -  name: text("name").notNull(),                                
+      24 -  slug: text("slug").unique(),                                 
+      25 -  description: text("description"),                            
+      26 -  createdAt: timestamp("created_at").defaultNow().notNull(),   
+      27 -  updatedAt: timestamp("updated_at")                           
+      28 -    .defaultNow()                                              
+      29 -    .$onUpdate(() => /* @__PURE__ */ new Date())               
+      30 -    .notNull(),                                                
+      31 -});                                                            
+      32 -                                                               
+      20  export const productType = pgTable("product_type", {
+      21    id: text("id").primaryKey(),
+      22    name: text("name").notNull(),
+     ...
+      52      sku: text("sku").unique(),
+      53      model: text("model"),
+      54      invoiceModel: text("invoice_model"),
+      68 -    productType: text("product_type").$type<ProductType>(),    
+      55      status: text("status")
+      56        .$type<ToolStatus>()
+      57        .notNull()
+     ...
+      73      price: numeric("price", { precision: 10, scale: 2 }),
+      74      cost: numeric("cost", { precision: 10, scale: 2 }),
+      75      visibleOnSite: boolean("visible_on_site").notNull().default
+          (true),
+      90 -    categoryId: text("category_id").references(() => category.i
+         -d, {                                                           
+      91 -      onDelete: "cascade",                                     
+      92 -    }),                                                        
+      93 -    productTypeId: text("product_type_id").references(() => pro
+         -ductType.id, {                                                 
+      94 -      onDelete: "restrict",                                    
+      95 -    }),                                                        
+      76 +    productTypeId: text("product_type_id")                     
+      77 +      .notNull()                                               
+      78 +      .references(() => productType.id, { onDelete: "restrict" 
+         +}),                                                            
+      79      supplierId: text("supplier_id").references(() => supplier.i
+          d, {
+      80        onDelete: "set null",
+      81      }),
+     ...
+       86        .notNull(),
+       87    },
+       88    (table) => [
+      106 -    index("tool_category_id_idx").on(table.categoryId),       
+       89      index("tool_product_type_id_idx").on(table.productTypeId),
+       90      index("tool_supplier_id_idx").on(table.supplierId),
+       91      index("tool_model_idx").on(table.model),
+       92      index("tool_invoice_model_idx").on(table.invoiceModel),
+       93      index("tool_ncm_idx").on(table.ncm),
+       94      index("tool_status_idx").on(table.status),
+      113 -    index("tool_product_type_idx").on(table.productType),     
+       95      check(
+      115 -      "valid_product_type",                                   
+      116 -      sql`${table.productType} IS NULL OR ${table.productType}
+          - IN ('machine','equipment','part','accessory')`               
+      117 -    ),                                                        
+      118 -    check(                                                    
+       96        "valid_tool_status",
+       97        sql`${table.status} IN ('draft','active','discontinued',
+           'out_of_stock')`
+       98      ),
+     ...
+      119    ]
+      120  );
+      121  
+      145 -export const categoryRelations = relations(category, ({ many }
+          -) => ({                                                       
+      146 -  tools: many(tool),                                          
+      147 -}));                                                          
+      148 -                                                              
+      122  export const productTypeRelations = relations(productType, ({ 
+           many }) => ({
+      123    tools: many(tool),
+      124  }));
+     ...
+      145  );
+      146  
+      147  export const toolRelations = relations(tool, ({ one, many }) =
+           > ({
+      175 -  category: one(category, {                                   
+      176 -    fields: [tool.categoryId],                                
+      177 -    references: [category.id],                                
+      178 -  }),                                                         
+      148    productType: one(productType, {
+      149      fields: [tool.productTypeId],
+      150      references: [productType.id],
+     ...
+      163    }),
+      164  }));
+      165  
+      197 -export type Category = typeof category.$inferSelect;          
+      198 -export type NewCategory = typeof category.$inferInsert;       
+      199 -export type ProductTypeRow = typeof productType.$inferSelect; 
+      200 -export type NewProductTypeRow = typeof productType.$inferInser
+          -t;                                                            
+      166 +export type ProductType = typeof productType.$inferSelect;    
+      167 +export type NewProductType = typeof productType.$inferInsert; 
+      168  export type Supplier = typeof supplier.$inferSelect;
+      169  export type NewSupplier = typeof supplier.$inferInsert;
+      170  export type Tool = typeof tool.$inferSelect;
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Update(packages/db/src/index.ts)
+  ⎿  Removed 2 lines
+      38    stockMovementRelations,
+      39  } from "./schema/stock-movements";
+      40  import {
+      41 -  category,                                                    
+      42 -  categoryRelations,                                           
+      41    productType,
+      42    productTypeRelations,
+      43    supplier,
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+● Update(packages/db/src/index.ts)
+  ⎿  Removed 2 lines
+      55    apiKeyRelations,
+      56    branch,
+      57    branchRelations,
+      58 -  category,                                                    
+      59 -  categoryRelations,                                           
+      58    client,
+      59    clientAccount,
+      60    clientAccountRelations,
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+  ⎿  Found 3 new diagnostic issues in 1 file (ctrl+o to expand)
+
+● Deletando script one-shot (já cumpriu função, serve só pra poluir typecheck).
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Drizzle-kit tentando dropar constraint que não existe. Vou inspecionar e
+  aplicar via SQL manual.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● DB parcialmente migrado (category table dropada, mas colunas órfãs ficaram).
+  Finalizando via SQL.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● DB sincronizado. Fase C completa. Partindo pro refactor UI.
+
+  Read 1 file (ctrl+o to expand)
+
+● Write(apps/web/src/app/dashboard/(inventory)/tools/_components/tool-schema.ts)
+  ⎿  Added 1 line, removed 19 lines
+       1  import { z } from "zod";
+       2  
+       3  export const VOLTAGE_OPTIONS = ["127V", "220V", "Bivolt", "380V
+          "] as const;
+       4 -export const PRODUCT_TYPE_OPTIONS = [                          
+       5 -  "machine",                                                   
+       6 -  "equipment",                                                 
+       7 -  "part",                                                      
+       8 -  "accessory",                                                 
+       9 -] as const;                                                    
+       4  export const TOOL_STATUS_OPTIONS = [
+       5    "draft",
+       6    "active",
+     ...
+       8    "out_of_stock",
+       9  ] as const;
+      10  
+      17 -export const PRODUCT_TYPE_LABELS: Record<                      
+      18 -  (typeof PRODUCT_TYPE_OPTIONS)[number],                       
+      19 -  string                                                       
+      20 -> = {                                                          
+      21 -  machine: "Máquina",                                          
+      22 -  equipment: "Equipamento",                                    
+      23 -  part: "Peça",                                                
+      24 -  accessory: "Acessório",                                      
+      25 -};                                                             
+      26 -                                                               
+      11  export const TOOL_STATUS_LABELS: Record<
+      12    (typeof TOOL_STATUS_OPTIONS)[number],
+      13    string
+     ...
+      50      barcode: optionalString,
+      51      manufacturerName: optionalString,
+      52      countryOfOrigin: optionalString,
+      69 -    productType: z.enum(PRODUCT_TYPE_OPTIONS).optional().or(z.l
+         -iteral("")),                                                   
+      53      status: z.enum(TOOL_STATUS_OPTIONS).default("draft"),
+      54      hsCode: optionalString,
+      55      ncm: optionalString,
+     ...
+      64      heightCm: optionalNumber,
+      65      price: optionalNumber,
+      66      cost: optionalNumber,
+      84 -    categoryId: z.string().min(1, "Categoria obrigatória"),    
+      67 +    productTypeId: z.string().min(1, "Tipo de produto obrigatór
+         +io"),                                                          
+      68      supplierId: optionalString,
+      69      visibleOnSite: z.boolean().default(true),
+      70      images: z.array(toolImageSchema).max(MAX_IMAGES, `Máximo de
+           ${MAX_IMAGES} imagens`),
+     ...
+       81  
+       82  export type ToolFormValues = z.infer<typeof toolFormSchema>;
+       83  export type ToolImageValue = z.infer<typeof toolImageSchema>;
+      101 -export type ProductTypeValue = (typeof PRODUCT_TYPE_OPTIONS)[n
+          -umber];                                                       
+       84  export type ToolStatusValue = (typeof TOOL_STATUS_OPTIONS)[num
+           ber];
+       85  
+       86  export function slugify(input: string): string {
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Agora tool-form.tsx — remover select de productType antigo da seção fiscal e
+  renomear "Categoria" para "Tipo de Produto" na seção Classificação:
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/_components/tool-form.tsx)
+  ⎿  Added 2 lines, removed 4 lines
+      23  import {
+      24    MAX_IMAGES,
+      25    MIN_IMAGES_ACTIVE,
+      26 -  PRODUCT_TYPE_LABELS,                                         
+      27 -  PRODUCT_TYPE_OPTIONS,                                        
+      26    slugify,
+      27    TOOL_STATUS_LABELS,
+      28    TOOL_STATUS_OPTIONS,
+     ...
+      31    VOLTAGE_OPTIONS,
+      32  } from "./tool-schema";
+      33  
+      36 -interface CategoryOption {                                     
+      34 +interface ProductTypeOption {                                  
+      35    id: string;
+      36    name: string;
+      37  }
+     ...
+      42  }
+      43  
+      44  interface ToolFormProps {
+      47 -  categories: CategoryOption[];                                
+      45 +  productTypes: ProductTypeOption[];                           
+      46    defaultValues: Partial<ToolFormValues>;
+      47    existingSlug?: string;
+      48    mode: "create" | "edit";
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/_components/tool-form.tsx)
+  ⎿  Removed 1 line
+      103    barcode: "",
+      104    manufacturerName: "",
+      105    countryOfOrigin: "",
+      106 -  productType: "",                                            
+      106    status: "draft",
+      107    hsCode: "",
+      108    ncm: "",
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/_components/tool-form.tsx)
+  ⎿  Added 1 line, removed 1 line
+      117    heightCm: undefined,
+      118    price: undefined,
+      119    cost: undefined,
+      120 -  categoryId: "",                                             
+      120 +  productTypeId: "",                                          
+      121    supplierId: "",
+      122    visibleOnSite: true,
+      123    images: [],
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/_components/tool-form.tsx)
+  ⎿  Added 1 line, removed 1 line
+      127    mode,
+      128    toolId,
+      129    defaultValues,
+      130 -  categories,                                                 
+      130 +  productTypes,                                               
+      131    suppliers,
+      132    existingSlug,
+      133  }: ToolFormProps) {
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/_components/tool-form.tsx)
+  ⎿  Error editing file
+  ⎿  Found 10 new diagnostic issues in 1 file (ctrl+o to expand)
+  Read 1 file (ctrl+o to expand)
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/_components/tool-form.tsx)
+  ⎿  Added 8 lines, removed 31 lines
+      339            Classificação fiscal
+      340          </h2>
+      341  
+      342 -        <div className="grid gap-4 md:grid-cols-2">           
+      343 -          <div className="flex flex-col gap-2">               
+      344 -            <Label htmlFor="productType">Tipo de produto</Labe
+          -l>                                                            
+      345 -            <Select                                           
+      346 -              onValueChange={(v) =>                           
+      347 -                update("productType", v as ToolFormValues["pro
+          -ductType"])                                                   
+      348 -              }                                               
+      349 -              value={values.productType ?? ""}                
+      350 -            >                                                 
+      351 -              <SelectTrigger id="productType">                
+      352 -                <SelectValue placeholder="Selecione" />       
+      353 -              </SelectTrigger>                                
+      354 -              <SelectContent>                                 
+      355 -                {PRODUCT_TYPE_OPTIONS.map((p) => (            
+      356 -                  <SelectItem key={p} value={p}>              
+      357 -                    {PRODUCT_TYPE_LABELS[p]}                  
+      358 -                  </SelectItem>                               
+      359 -                ))}                                           
+      360 -              </SelectContent>                                
+      361 -            </Select>                                         
+      362 -          </div>                                              
+      363 -                                                              
+      364 -          <div className="flex flex-col gap-2">               
+      365 -            <Label htmlFor="hsCode">HS Code (invoice)</Label> 
+      366 -            <Input                                            
+      367 -              id="hsCode"                                     
+      368 -              onChange={(e) => update("hsCode", e.target.value
+          -)}                                                            
+      369 -              placeholder="Ex: 8467291000"                    
+      370 -              value={values.hsCode ?? ""}                     
+      371 -            />                                                
+      372 -          </div>                                              
+      342 +        <div className="flex flex-col gap-2">                 
+      343 +          <Label htmlFor="hsCode">HS Code (invoice)</Label>   
+      344 +          <Input                                              
+      345 +            id="hsCode"                                       
+      346 +            onChange={(e) => update("hsCode", e.target.value)}
+      347 +            placeholder="Ex: 8467291000"                      
+      348 +            value={values.hsCode ?? ""}                       
+      349 +          />                                                  
+      350          </div>
+      351  
+      352          <div className="grid gap-4 md:grid-cols-2">
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/_components/tool-form.tsx)
+  ⎿  Added 12 lines, removed 12 lines
+      524  
+      525          <div className="grid gap-4 md:grid-cols-2">
+      526            <div className="flex flex-col gap-2">
+      527 -            <Label htmlFor="categoryId">Categoria</Label>     
+      527 +            <Label htmlFor="productTypeId">Tipo de produto</La
+          +bel>                                                          
+      528              <Select
+      529 -              onValueChange={(v) => update("categoryId", v ?? 
+          -"")}                                                          
+      530 -              value={values.categoryId}                       
+      529 +              onValueChange={(v) => update("productTypeId", v 
+          +?? "")}                                                       
+      530 +              value={values.productTypeId}                    
+      531              >
+      532 -              <SelectTrigger id="categoryId">                 
+      533 -                <SelectValue placeholder="Selecione uma catego
+          -ria">                                                         
+      532 +              <SelectTrigger id="productTypeId">              
+      533 +                <SelectValue placeholder="Selecione um tipo"> 
+      534                    {(v: string) =>
+      535 -                    categories.find((c) => c.id === v)?.name ?
+          -?                                                             
+      536 -                    "Selecione uma categoria"                 
+      535 +                    productTypes.find((p) => p.id === v)?.name
+          + ??                                                           
+      536 +                    "Selecione um tipo"                       
+      537                    }
+      538                  </SelectValue>
+      539                </SelectTrigger>
+      540                <SelectContent>
+      541 -                {categories.map((c) => (                      
+      542 -                  <SelectItem key={c.id} value={c.id}>        
+      543 -                    {c.name}                                  
+      541 +                {productTypes.map((p) => (                    
+      542 +                  <SelectItem key={p.id} value={p.id}>        
+      543 +                    {p.name}                                  
+      544                    </SelectItem>
+      545                  ))}
+      546                </SelectContent>
+      547              </Select>
+      548 -            {errors.categoryId && (                           
+      549 -              <p className="text-destructive text-xs">{errors.
+          -categoryId}</p>                                               
+      548 +            {errors.productTypeId && (                        
+      549 +              <p className="text-destructive text-xs">{errors.
+          +productTypeId}</p>                                            
+      550              )}
+      551            </div>
+      552  
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+  Read 1 file (ctrl+o to expand)
+  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
+
+● Write(apps/web/src/app/dashboard/(inventory)/tools/_components/tool-filters.ts
+       x)
+  ⎿  Added 19 lines, removed 60 lines
+      11  import { useRouter, useSearchParams } from "next/navigation";
+      12  import { useEffect, useState } from "react";
+      13  
+      14 -import {                                                       
+      15 -  PRODUCT_TYPE_LABELS,                                         
+      16 -  PRODUCT_TYPE_OPTIONS,                                        
+      17 -  TOOL_STATUS_LABELS,                                          
+      18 -  TOOL_STATUS_OPTIONS,                                         
+      19 -} from "./tool-schema";                                        
+      14 +import { TOOL_STATUS_LABELS, TOOL_STATUS_OPTIONS } from "./tool
+         +-schema";                                                      
+      15  
+      21 -interface CategoryOption {                                     
+      16 +interface ProductTypeOption {                                  
+      17    id: string;
+      18    name: string;
+      19  }
+      20  
+      21  interface ToolFiltersProps {
+      27 -  categories: CategoryOption[];                                
+      22 +  productTypes: ProductTypeOption[];                           
+      23  }
+      24  
+      25  const DEBOUNCE_MS = 300;
+      26  const ALL = "__all__";
+      27  
+      33 -export function ToolFilters({ categories }: ToolFiltersProps) {
+      28 +export function ToolFilters({ productTypes }: ToolFiltersProps)
+         + {                                                             
+      29    const router = useRouter();
+      30    const searchParams = useSearchParams();
+      31    const urlSearch = searchParams.get("search") ?? searchParams.
+          get("q") ?? "";
+      32  
+      33    const [search, setSearch] = useState(urlSearch);
+      39 -  const currentCategory = searchParams.get("category") ?? ALL; 
+      34 +  const currentProductType = searchParams.get("productType") ??
+         + ALL;                                                          
+      35    const currentVisibility = searchParams.get("visible") ?? ALL;
+      36    const currentStatus = searchParams.get("status") ?? ALL;
+      42 -  const currentProductType = searchParams.get("productType") ??
+         - ALL;                                                          
+      37    const urlNcm = searchParams.get("ncm") ?? "";
+      38    const [ncm, setNcm] = useState(urlNcm);
+      39  
+     ...
+      45      setSearch(urlSearch);
+      46    }, [urlSearch]);
+      47  
+      54 -  // debounce search input → URL (guard to skip when unchanged)
+      48    useEffect(() => {
+      49      if (search === urlSearch) {
+      50        return;
+     ...
+      74      router.replace(qs ? `/dashboard/tools?${qs}` : "/dashboard/
+          tools");
+      75    }
+      76  
+      84 -  // debounce NCM input → URL                                  
+      77    useEffect(() => {
+      78      if (ncm === urlNcm) {
+      79        return;
+     ...
+      106        </div>
+      107  
+      108        <div className="flex flex-col gap-1 md:w-56">
+      117 -        <label className="text-muted-foreground text-xs" htmlF
+          -or="tool-cat">                                                
+      118 -          Categoria                                           
+      109 +        <label                                                
+      110 +          className="text-muted-foreground text-xs"           
+      111 +          htmlFor="tool-product-type"                         
+      112 +        >                                                     
+      113 +          Tipo de produto                                     
+      114          </label>
+      115          <Select
+      121 -          onValueChange={(v) => updateParam("category", v)}   
+      122 -          value={currentCategory}                             
+      116 +          onValueChange={(v) => updateParam("productType", v)}
+      117 +          value={currentProductType}                          
+      118          >
+      124 -          <SelectTrigger id="tool-cat">                       
+      119 +          <SelectTrigger id="tool-product-type">              
+      120              <SelectValue>
+      121                {(v: string) =>
+      122                  v === ALL
+      128 -                  ? "Todas"                                   
+      129 -                  : (categories.find((c) => c.id === v)?.name 
+          -?? "Todas")                                                   
+      123 +                  ? "Todos"                                   
+      124 +                  : (productTypes.find((p) => p.id === v)?.nam
+          +e ?? "Todos")                                                 
+      125                }
+      126              </SelectValue>
+      127            </SelectTrigger>
+      128            <SelectContent>
+      134 -            <SelectItem value={ALL}>Todas</SelectItem>        
+      135 -            {categories.map((c) => (                          
+      136 -              <SelectItem key={c.id} value={c.id}>            
+      137 -                {c.name}                                      
+      129 +            <SelectItem value={ALL}>Todos</SelectItem>        
+      130 +            {productTypes.map((p) => (                        
+      131 +              <SelectItem key={p.id} value={p.id}>            
+      132 +                {p.name}                                      
+      133                </SelectItem>
+      134              ))}
+      135            </SelectContent>
+     ...
+      201          </Select>
+      202        </div>
+      203  
+      209 -      <div className="flex flex-col gap-1 md:w-44">           
+      210 -        <label                                                
+      211 -          className="text-muted-foreground text-xs"           
+      212 -          htmlFor="tool-product-type"                         
+      213 -        >                                                     
+      214 -          Tipo                                                
+      215 -        </label>                                              
+      216 -        <Select                                               
+      217 -          onValueChange={(v) => updateParam("productType", v)}
+      218 -          value={currentProductType}                          
+      219 -        >                                                     
+      220 -          <SelectTrigger id="tool-product-type">              
+      221 -            <SelectValue>                                     
+      222 -              {(v: string) => {                               
+      223 -                if (v === ALL) {                              
+      224 -                  return "Todos";                             
+      225 -                }                                             
+      226 -                return (                                      
+      227 -                  PRODUCT_TYPE_LABELS[                        
+      228 -                    v as (typeof PRODUCT_TYPE_OPTIONS)[number]
+      229 -                  ] ?? v                                      
+      230 -                );                                            
+      231 -              }}                                              
+      232 -            </SelectValue>                                    
+      233 -          </SelectTrigger>                                    
+      234 -          <SelectContent>                                     
+      235 -            <SelectItem value={ALL}>Todos</SelectItem>        
+      236 -            {PRODUCT_TYPE_OPTIONS.map((p) => (                
+      237 -              <SelectItem key={p} value={p}>                  
+      238 -                {PRODUCT_TYPE_LABELS[p]}                      
+      239 -              </SelectItem>                                   
+      240 -            ))}                                               
+      241 -          </SelectContent>                                    
+      242 -        </Select>                                             
+      243 -      </div>                                                  
+      244 -                                                              
+      204        <div className="flex flex-col gap-1 md:w-36">
+      205          <label className="text-muted-foreground text-xs" htmlF
+           or="tool-ncm">
+      206            NCM (prefixo)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+  Read 1 file (ctrl+o to expand)
+
+● Write(apps/web/src/app/dashboard/(inventory)/tools/_components/tools-table.tsx
+       )
+  ⎿  Added 4 lines, removed 16 lines
+      13  import Link from "next/link";
+      14  
+      15  import { DeleteToolDialog } from "./delete-tool-dialog";
+      16 -import {                                                       
+      17 -  type ProductTypeValue,                                       
+      18 -  PRODUCT_TYPE_LABELS,                                         
+      19 -  TOOL_STATUS_LABELS,                                          
+      20 -  type ToolStatusValue,                                        
+      21 -} from "./tool-schema";                                        
+      16 +import { TOOL_STATUS_LABELS, type ToolStatusValue } from "./too
+         +l-schema";                                                     
+      17  
+      18  const STATUS_BADGE_VARIANT: Record<
+      19    ToolStatusValue,
+     ...
+      26  };
+      27  
+      28  export interface ToolRow {
+      34 -  categoryName: string | null;                                 
+      29 +  productTypeName: string | null;                              
+      30    id: string;
+      31    imageUrl: string | null;
+      32    model: string | null;
+      33    name: string;
+      39 -  productType: string | null;                                  
+      34    sku: string | null;
+      35    slug: string | null;
+      36    status: string;
+     ...
+      51          <TableRow>
+      52            <TableHead className="w-16">Imagem</TableHead>
+      53            <TableHead>Nome</TableHead>
+      60 -          <TableHead>Categoria</TableHead>                     
+      54 +          <TableHead>Tipo de produto</TableHead>               
+      55            <TableHead>Fornecedor</TableHead>
+      56            <TableHead>Modelo</TableHead>
+      57            <TableHead>Status</TableHead>
+     ...
+       89                  <p className="text-muted-foreground text-xs">S
+           KU: {t.sku}</p>
+       90                )}
+       91              </TableCell>
+       98 -            <TableCell>{t.categoryName ?? "—"}</TableCell>    
+       92 +            <TableCell>{t.productTypeName ?? "—"}</TableCell> 
+       93              <TableCell>{t.supplierName ?? "—"}</TableCell>
+       94              <TableCell>
+       95                {t.model ? (
+     ...
+       97                ) : (
+       98                  <span className="text-muted-foreground">—</spa
+           n>
+       99                )}
+      106 -              {t.productType && (                             
+      107 -                <p className="text-muted-foreground text-xs"> 
+      108 -                  {PRODUCT_TYPE_LABELS[t.productType as Produc
+          -tTypeValue] ??                                                
+      109 -                    t.productType}                            
+      110 -                </p>                                          
+      111 -              )}                                              
+      100              </TableCell>
+      101              <TableCell>
+      102                <Badge
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/actions.ts)
+  ⎿  Removed 1 line
+      62      barcode: nullableText(input.barcode),
+      63      manufacturerName: nullableText(input.manufacturerName),
+      64      countryOfOrigin: nullableText(input.countryOfOrigin),
+      65 -    productType: input.productType ? input.productType : null, 
+      65      status: input.status,
+      66      hsCode: nullableText(input.hsCode),
+      67      ncm: nullableText(input.ncm),
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/actions.ts)
+  ⎿  Added 1 line, removed 1 line
+      77      price: toNumericString(input.price),
+      78      cost: toNumericString(input.cost),
+      79      visibleOnSite: input.visibleOnSite,
+      80 -    categoryId: input.categoryId,                              
+      80 +    productTypeId: input.productTypeId,                        
+      81      supplierId: nullableText(input.supplierId),
+      82    };
+      83  }
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+  Read 1 file (ctrl+o to expand)
+
+● Write(apps/web/src/app/dashboard/(inventory)/tools/page.tsx)
+  ⎿  Added 15 lines, removed 24 lines
+      1  import { db } from "@emach/db";
+      2 -import { category } from "@emach/db/schema/tools";              
+      2 +import { productType } from "@emach/db/schema/tools";           
+      3  import { buttonVariants } from "@emach/ui/components/button";
+      4  import {
+      5    Empty,
+     ...
+      17  
+      18  interface PageProps {
+      19    searchParams: Promise<{
+      20 -    category?: string;                                         
+      20      ncm?: string;
+      21      productType?: string;
+      22      q?: string;
+     ...
+      26    }>;
+      27  }
+      28  
+      30 -async function fetchCategories() {                             
+      29 +async function fetchProductTypes() {                           
+      30    return db
+      32 -    .select({ id: category.id, name: category.name })          
+      33 -    .from(category)                                            
+      34 -    .orderBy(asc(category.name));                              
+      31 +    .select({ id: productType.id, name: productType.name })    
+      32 +    .from(productType)                                         
+      33 +    .orderBy(asc(productType.name));                           
+      34  }
+      35  
+      36  async function fetchTools(params: {
+      38 -  category?: string;                                           
+      37    ncm?: string;
+      38    productType?: string;
+      39    search?: string;
+     ...
+      45    if (params.search) {
+      46      conditions.push(ilike(sql`t.name`, `%${params.search}%`));
+      47    }
+      50 -  if (params.category) {                                       
+      51 -    conditions.push(sql`t.category_id = ${params.category}`);  
+      48 +  if (params.productType) {                                    
+      49 +    conditions.push(sql`t.product_type_id = ${params.productTyp
+         +e}`);                                                          
+      50    }
+      51    if (params.visible === "true") {
+      52      conditions.push(sql`t.visible_on_site = true`);
+     ...
+      59        conditions.push(sql`t.status = ANY(${statuses})`);
+      60      }
+      61    }
+      64 -  if (params.productType) {                                    
+      65 -    conditions.push(sql`t.product_type = ${params.productType}`
+         -);                                                             
+      66 -  }                                                            
+      62    if (params.ncm) {
+      63      conditions.push(sql`t.ncm ILIKE ${`${params.ncm}%`}`);
+      64    }
+     ...
+      73      slug: string | null;
+      74      sku: string | null;
+      75      model: string | null;
+      81 -    product_type: string | null;                               
+      76      status: string;
+      77      image_url: string | null;
+      78      visible_on_site: boolean;
+      85 -    category_name: string | null;                              
+      79 +    product_type_name: string | null;                          
+      80      supplier_name: string | null;
+      81      total_stock: number;
+      82    }>(sql`
+     ...
+      86        t.slug,
+      87        t.sku,
+      88        t.model,
+      95 -      t.product_type,                                          
+      89        t.status,
+      90        (
+      91          SELECT ti.url
+     ...
+       95          LIMIT 1
+       96        ) AS image_url,
+       97        t.visible_on_site,
+      105 -      c.name AS category_name,                                
+       98 +      pt.name AS product_type_name,                           
+       99        s.name AS supplier_name,
+      100        COALESCE(SUM(sl.quantity), 0)::int AS total_stock
+      101      FROM tool t
+      109 -    LEFT JOIN category c ON c.id = t.category_id              
+      102 +    LEFT JOIN product_type pt ON pt.id = t.product_type_id    
+      103      LEFT JOIN supplier s ON s.id = t.supplier_id
+      104      LEFT JOIN stock_level sl ON sl.tool_id = t.id
+      105      ${whereClause}
+      113 -    GROUP BY t.id, c.name, s.name                             
+      106 +    GROUP BY t.id, pt.name, s.name                            
+      107      ORDER BY t.name ASC
+      108    `);
+      109  
+     ...
+      113      slug: r.slug,
+      114      sku: r.sku,
+      115      model: r.model,
+      123 -    productType: r.product_type,                              
+      116      status: r.status,
+      117      imageUrl: r.image_url,
+      118      visibleOnSite: r.visible_on_site,
+      127 -    categoryName: r.category_name,                            
+      119 +    productTypeName: r.product_type_name,                     
+      120      supplierName: r.supplier_name,
+      121      totalStock: Number(r.total_stock ?? 0),
+      122    }));
+     ...
+      129    const params = await searchParams;
+      130    const search = params.search ?? params.q;
+      131  
+      140 -  const [tools, categories] = await Promise.all([             
+      132 +  const [tools, productTypes] = await Promise.all([           
+      133      fetchTools({ ...params, search }),
+      142 -    fetchCategories(),                                        
+      134 +    fetchProductTypes(),                                      
+      135    ]);
+      136  
+      137    const hasFilters = Boolean(
+      138      search ||
+      147 -      params.category ||                                      
+      139        params.visible ||
+      140        params.status ||
+      141        params.productType ||
+     ...
+      162          )}
+      163        </div>
+      164  
+      174 -      <ToolFilters categories={categories} />                 
+      165 +      <ToolFilters productTypes={productTypes} />             
+      166  
+      167        {isEmpty ? (
+      168          <Empty>
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+  Read 3 files (ctrl+o to expand)
+
+● Write(apps/web/src/app/dashboard/(inventory)/tools/new/page.tsx)
+  ⎿  Added 6 lines, removed 6 lines
+      1  import { db } from "@emach/db";
+      2 -import { category, supplier } from "@emach/db/schema/tools";    
+      2 +import { productType, supplier } from "@emach/db/schema/tools"; 
+      3  import { asc } from "drizzle-orm";
+      4  
+      5  import { requireRole } from "@/lib/session";
+     ...
+       8  export default async function NewToolPage() {
+       9    await requireRole("admin");
+      10  
+      11 -  const [categories, suppliers] = await Promise.all([          
+      11 +  const [productTypes, suppliers] = await Promise.all([        
+      12      db
+      13 -      .select({ id: category.id, name: category.name })        
+      14 -      .from(category)                                          
+      15 -      .orderBy(asc(category.name)),                            
+      13 +      .select({ id: productType.id, name: productType.name })  
+      14 +      .from(productType)                                       
+      15 +      .orderBy(asc(productType.name)),                         
+      16      db
+      17        .select({ id: supplier.id, name: supplier.name })
+      18        .from(supplier)
+     ...
+      29        </div>
+      30  
+      31        <ToolForm
+      32 -        categories={categories}                                
+      32          defaultValues={{}}
+      33          mode="create"
+      34 +        productTypes={productTypes}                            
+      35          suppliers={suppliers}
+      36        />
+      37      </div>
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Write(apps/web/src/app/dashboard/(inventory)/tools/[id]/edit/page.tsx)
+  ⎿  Added 7 lines, removed 9 lines
+      1  import { db } from "@emach/db";
+      2  import {
+      3 -  category,                                                     
+      3 +  productType,                                                  
+      4    supplier,
+      5    tool,
+      6    toolImage,
+     ...
+      11  import { requireRole } from "@/lib/session";
+      12  import { ToolForm } from "../../_components/tool-form";
+      13  import type {
+      14 -  ProductTypeValue,                                            
+      14    ToolFormValues,
+      15    ToolStatusValue,
+      16  } from "../../_components/tool-schema";
+     ...
+      33      barcode: row.barcode ?? "",
+      34      manufacturerName: row.manufacturerName ?? "",
+      35      countryOfOrigin: row.countryOfOrigin ?? "",
+      37 -    productType: (row.productType ?? "") as ProductTypeValue | 
+         -"",                                                            
+      36      status: (row.status ?? "draft") as ToolStatusValue,
+      37      hsCode: row.hsCode ?? "",
+      38      ncm: row.ncm ?? "",
+     ...
+      47      heightCm: row.heightCm ? Number(row.heightCm) : undefined,
+      48      price: row.price ? Number(row.price) : undefined,
+      49      cost: row.cost ? Number(row.cost) : undefined,
+      52 -    categoryId: row.categoryId ?? "",                          
+      50 +    productTypeId: row.productTypeId,                          
+      51      supplierId: row.supplierId ?? "",
+      52      visibleOnSite: row.visibleOnSite,
+      53      images: images.map((img) => ({
+     ...
+      67      notFound();
+      68    }
+      69  
+      72 -  const [images, categories, suppliers] = await Promise.all([  
+      70 +  const [images, productTypes, suppliers] = await Promise.all([
+      71      db
+      72        .select()
+      73        .from(toolImage)
+      74        .where(eq(toolImage.toolId, id))
+      75        .orderBy(asc(toolImage.sortOrder)),
+      76      db
+      79 -      .select({ id: category.id, name: category.name })        
+      80 -      .from(category)                                          
+      81 -      .orderBy(asc(category.name)),                            
+      77 +      .select({ id: productType.id, name: productType.name })  
+      78 +      .from(productType)                                       
+      79 +      .orderBy(asc(productType.name)),                         
+      80      db
+      81        .select({ id: supplier.id, name: supplier.name })
+      82        .from(supplier)
+     ...
+       93        </div>
+       94  
+       95        <ToolForm
+       98 -        categories={categories}                               
+       96          defaultValues={toFormValues(row, images)}
+       97          existingSlug={row.slug ?? undefined}
+       98          mode="edit"
+       99 +        productTypes={productTypes}                           
+      100          suppliers={suppliers}
+      101          toolId={id}
+      102        />
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/[id]/page.tsx)
+  ⎿  Added 1 line, removed 1 line
+      1  import { db } from "@emach/db";
+      2  import { branch, stockLevel } from "@emach/db/schema/inventory";
+      3  import {
+      4 -  category,                                                     
+      4 +  productType,                                                  
+      5    supplier,
+      6    tool,
+      7    toolImage,
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+● Update(apps/web/src/app/dashboard/(inventory)/tools/[id]/page.tsx)
+  ⎿  Removed 2 lines
+      29  
+      30  import { requireCurrentSession } from "@/lib/session";
+      31  import {
+      32 -  PRODUCT_TYPE_LABELS,                                         
+      33 -  type ProductTypeValue,                                       
+      32    TOOL_STATUS_LABELS,
+      33    type ToolStatusValue,
+      34  } from "../_components/tool-schema";
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/[id]/page.tsx)
+  ⎿  Removed 1 line
+      64        barcode: tool.barcode,
+      65        manufacturerName: tool.manufacturerName,
+      66        countryOfOrigin: tool.countryOfOrigin,
+      67 -      productType: tool.productType,                           
+      67        status: tool.status,
+      68        hsCode: tool.hsCode,
+      69        ncm: tool.ncm,
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/[id]/page.tsx)
+  ⎿  Added 2 lines, removed 2 lines
+      79        price: tool.price,
+      80        cost: tool.cost,
+      81        visibleOnSite: tool.visibleOnSite,
+      82 -      categoryName: category.name,                             
+      82 +      productTypeName: productType.name,                       
+      83        supplierName: supplier.name,
+      84      })
+      85      .from(tool)
+      86 -    .leftJoin(category, eq(category.id, tool.categoryId))      
+      86 +    .leftJoin(productType, eq(productType.id, tool.productTypeI
+         +d))                                                            
+      87      .leftJoin(supplier, eq(supplier.id, tool.supplierId))
+      88      .where(eq(tool.id, id))
+      89      .limit(1);
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/[id]/page.tsx)
+  ⎿  Added 1 line, removed 1 line
+      191            </CardHeader>
+      192            <CardContent className="grid gap-2 text-sm">
+      193              <p>
+      194 -              <strong>Categoria:</strong> {row.categoryName ??
+          - "—"}                                                         
+      194 +              <strong>Tipo de produto:</strong> {row.productTy
+          +peName ?? "—"}                                                
+      195              </p>
+      196              <p>
+      197                <strong>Fornecedor:</strong> {row.supplierName ?
+           ? "—"}
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/tools/[id]/page.tsx)
+  ⎿  Removed 10 lines
+      222            <CardContent>
+      223              <dl className="grid gap-2 text-sm">
+      224                <div className="flex justify-between">
+      225 -                <dt className="text-muted-foreground">Tipo de 
+          -produto</dt>                                                  
+      226 -                <dd>                                          
+      227 -                  {row.productType                            
+      228 -                    ? (PRODUCT_TYPE_LABELS[                   
+      229 -                        row.productType as ProductTypeValue   
+      230 -                      ] ?? row.productType)                   
+      231 -                    : "—"}                                    
+      232 -                </dd>                                         
+      233 -              </div>                                          
+      234 -              <div className="flex justify-between">          
+      225                  <dt className="text-muted-foreground">HS Code<
+           /dt>
+      226                  <dd>{row.hsCode ?? "—"}</dd>
+      227                </div>
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Task #6 done. Agora renomear /categories → /product-types e refatorar arquivos
+   internos.
+
+  Read 10 files (ctrl+o to expand)
+
+● Write(apps/web/src/app/dashboard/product-types/_components/product-type-schema
+       .ts)
+  ⎿  Wrote 28 lines to apps/web/src/app/dashboard/product-types/_components
+     /product-type-schema.ts
+       1 import { z } from "zod";
+       2 
+       3 export const productTypeSchema = z.object({
+       4 name: z
+       5 .string()
+       6 .trim()
+       7 .min(1, "Nome obrigatório")
+       8 .min(2, "Nome muito curto")
+       9 .max(120, "Nome muito longo"),
+      10 description: z
+     … +19 lines (ctrl+o to expand)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Write(apps/web/src/app/dashboard/product-types/actions.ts)
+  ⎿  Wrote 206 lines to apps/web/src/app/dashboard/product-types/actions.ts
+       1 "use server";
+       2 
+       3 import { db } from "@emach/db";
+       4 import { productType, tool } from "@emach/db/schema/tools";
+       5 import { asc, eq, ilike, sql } from "drizzle-orm";
+       7 
+       8 import { requireCurrentSession, requireRole } from "@/lib/sessio
+         n";
+       9 import {
+      10 type ProductTypeFormValues,
+     … +199 lines (ctrl+o to expand)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Write(apps/web/src/app/dashboard/product-types/_components/product-type-form.t
+       sx)
+  ⎿  Wrote 168 lines to apps/web/src/app/dashboard/product-types/_component
+     s/product-type-form.tsx
+       1 "use client";
+       2 
+       3 import { Button, buttonVariants } from "@emach/ui/components/but
+         ton";
+       4 import { Input } from "@emach/ui/components/input";
+       6 import { Spinner } from "@emach/ui/components/spinner";
+       7 import { Textarea } from "@emach/ui/components/textarea";
+       8 import Link from "next/link";
+       9 import { useRouter } from "next/navigation";
+      10 import { useMemo, useState, useTransition } from "react";
+     … +166 lines (ctrl+o to expand)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Write(apps/web/src/app/dashboard/product-types/_components/product-types-filte
+       r.tsx)
+  ⎿  Wrote 60 lines to apps/web/src/app/dashboard/product-types/_components
+     /product-types-filter.tsx
+       1 "use client";
+       2 
+       3 import { Input } from "@emach/ui/components/input";
+       4 import { useRouter, useSearchParams } from "next/navigation";
+       5 import { useEffect, useState } from "react";
+       6 
+       7 const PRODUCT_TYPES_PATH = "/dashboard/product-types";
+       8 const DEBOUNCE_MS = 300;
+       9 
+      10 interface ProductTypesFilterProps {
+     … +52 lines (ctrl+o to expand)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Write(apps/web/src/app/dashboard/product-types/_components/product-types-table
+       .tsx)
+  ⎿  Wrote 96 lines to apps/web/src/app/dashboard/product-types/_components
+     /product-types-table.tsx
+       1 "use client";
+       2 
+       3 import { buttonVariants } from "@emach/ui/components/button";
+       4 import {
+       5 Table,
+       6 TableBody,
+       7 TableCell,
+       8 TableHead,
+       9 TableHeader,
+      10 TableRow,
+     … +87 lines (ctrl+o to expand)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Write(apps/web/src/app/dashboard/product-types/_components/delete-product-type
+       -dialog.tsx)
+  ⎿  Wrote 85 lines to apps/web/src/app/dashboard/product-types/_components
+     /delete-product-type-dialog.tsx
+       1 "use client";
+       2 
+       3 import {
+       4 AlertDialog,
+       5 AlertDialogAction,
+       6 AlertDialogCancel,
+       7 AlertDialogContent,
+       8 AlertDialogDescription,
+       9 AlertDialogFooter,
+      10 AlertDialogHeader,
+     … +75 lines (ctrl+o to expand)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+● Write(apps/web/src/app/dashboard/product-types/page.tsx)
+  ⎿  Wrote 95 lines to apps/web/src/app/dashboard/product-types/page.tsx
+      1 import { buttonVariants } from "@emach/ui/components/button";
+      2 import {
+      3       mpty,
+      4       mptyContent,
+      5       mptyDescription,
+      6       mptyHeader,
+      7       mptyTitle,
+      8 } from "@emach/ui/components/empty";
+      9 import Link from "next/link";
+     … +89 lines (ctrl+o to expand)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Write(apps/web/src/app/dashboard/product-types/[id]/page.tsx)
+  ⎿  Wrote 135 lines to
+     apps/web/src/app/dashboard/product-types/[id]/page.tsx
+       1 import { Badge } from "@emach/ui/components/badge";
+       2 import { buttonVariants } from "@emach/ui/components/button";
+       3 import {
+       4 Card,
+       5 CardContent,
+       6 CardDescription,
+       7 CardHeader,
+       8 CardTitle,
+       9 } from "@emach/ui/components/card";
+      10 import {
+     … +126 lines (ctrl+o to expand)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Write(apps/web/src/app/dashboard/product-types/[id]/edit/page.tsx)
+  ⎿  Wrote 46 lines to
+     apps/web/src/app/dashboard/product-types/[id]/edit/page.tsx
+      1 import { notFound } from "next/navigation";
+      2 
+      3 import { requireRole } from "@/lib/session";
+      4 import { ProductTypeForm } from "../../_components/product-type-f
+        orm";
+      5 import { getProductType } from "../../actions";
+      6 
+      7 interface EditProductTypePageProps {
+      8       arams: Promise<{ id: string }>;
+      9 }
+     … +37 lines (ctrl+o to expand)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Write(apps/web/src/app/dashboard/product-types/new/page.tsx)
+  ⎿  Wrote 19 lines to
+     apps/web/src/app/dashboard/product-types/new/page.tsx
+       1 import { requireRole } from "@/lib/session";
+       2 import { ProductTypeForm } from "../_components/product-type-for
+         m";
+       3 
+       4 export default async function NewProductTypePage() {
+       6 
+       7 return (
+       8 <div className="flex flex-col gap-6">
+       9 <div>
+      10 <h1 className="font-serif text-2xl">Novo tipo de produto</h1>
+     … +9 lines (ctrl+o to expand)
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+  ⎿  Found 2 new diagnostic issues in 2 files (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Fase pasta completa. Agora atualizando sidebar e outros consumers.
+
+  Read 4 files (ctrl+o to expand)
+
+● Update(apps/web/src/app/dashboard/_components/app-sidebar.tsx)
+  ⎿  Added 2 lines, removed 2 lines
+      62      label: "Cadastros",
+      63      items: [
+      64        {
+      65 -        label: "Categorias",                                   
+      66 -        href: "/dashboard/categories" as Route,                
+      65 +        label: "Tipos de produto",                             
+      66 +        href: "/dashboard/product-types" as Route,             
+      67        },
+      68        {
+      69          label: "Fornecedores",
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Write(apps/web/src/app/dashboard/(inventory)/stock/_components/stock-filters.t
+       sx)
+  ⎿  Added 13 lines, removed 13 lines
+      12  import { useRouter, useSearchParams } from "next/navigation";
+      13  import { useEffect, useState, useTransition } from "react";
+      14  
+      15 -interface CategoryOption {                                     
+      15 +interface ProductTypeOption {                                  
+      16    id: string;
+      17    name: string;
+      18  }
+      19  
+      20  interface StockFiltersProps {
+      21 -  categories: CategoryOption[];                                
+      21 +  productTypes: ProductTypeOption[];                           
+      22  }
+      23  
+      24  const SORT_OPTIONS = [
+     ...
+      27    { label: "Menor estoque", value: "menor" },
+      28  ] as const;
+      29  
+      30 -export function StockFilters({ categories }: StockFiltersProps)
+         - {                                                             
+      30 +export function StockFilters({ productTypes }: StockFiltersProp
+         +s) {                                                           
+      31    const router = useRouter();
+      32    const searchParams = useSearchParams();
+      33    const [isPending, startTransition] = useTransition();
+      34    const urlSearch = searchParams.get("search") ?? searchParams.
+          get("q") ?? "";
+      35    const [search, setSearch] = useState(urlSearch);
+      36  
+      37 -  const currentCategoria = searchParams.get("categoria") ?? "";
+      37 +  const currentProductType = searchParams.get("productType") ??
+         + "";                                                           
+      38    const currentOrdem = searchParams.get("ordem") ?? "nome";
+      39  
+      40    useEffect(() => {
+     ...
+       85        </div>
+       86  
+       87        <div className="flex flex-col gap-2">
+       88 -        <Label htmlFor="stock-categoria">Categoria</Label>    
+       88 +        <Label htmlFor="stock-product-type">Tipo de produto</L
+          +abel>                                                         
+       89          <Select
+       90            disabled={isPending}
+       91            onValueChange={(value) =>
+       92 -            pushUrl({ categoria: value === "__all__" ? null : 
+          -value })                                                      
+       92 +            pushUrl({ productType: value === "__all__" ? null 
+          +: value })                                                    
+       93            }
+       94 -          value={currentCategoria || "__all__"}               
+       94 +          value={currentProductType || "__all__"}             
+       95          >
+       96 -          <SelectTrigger className="w-52" id="stock-categoria"
+          ->                                                             
+       97 -            <SelectValue placeholder="Todas" />               
+       96 +          <SelectTrigger className="w-52" id="stock-product-ty
+          +pe">                                                          
+       97 +            <SelectValue placeholder="Todos" />               
+       98            </SelectTrigger>
+       99            <SelectContent>
+      100 -            <SelectItem value="__all__">Todas</SelectItem>    
+      101 -            {categories.map((c) => (                          
+      102 -              <SelectItem key={c.id} value={c.id}>            
+      103 -                {c.name}                                      
+      100 +            <SelectItem value="__all__">Todos</SelectItem>    
+      101 +            {productTypes.map((p) => (                        
+      102 +              <SelectItem key={p.id} value={p.id}>            
+      103 +                {p.name}                                      
+      104                </SelectItem>
+      105              ))}
+      106            </SelectContent>
+  ⎿  PostToolUse:Write hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Update(apps/web/src/app/dashboard/(inventory)/stock/page.tsx)
+  ⎿  Added 1 line, removed 1 line
+      1  import { db } from "@emach/db";
+      2 -import { category } from "@emach/db/schema/tools";              
+      2 +import { productType } from "@emach/db/schema/tools";           
+      3  import { buttonVariants } from "@emach/ui/components/button";
+      4  import {
+      5    Empty,
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/stock/page.tsx)
+  ⎿  Added 1 line, removed 1 line
+      32  }
+      33  
+      34  interface StockPageParams {
+      35 -  categoria?: string;                                          
+      35 +  productType?: string;                                        
+      36    ordem?: "nome" | "maior" | "menor";
+      37    q?: string;
+      38    search?: string;
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/stock/page.tsx)
+  ⎿  Added 4 lines, removed 4 lines
+      42    searchParams: Promise<StockPageParams>;
+      43  }
+      44  
+      45 -async function fetchCategories() {                             
+      45 +async function fetchProductTypes() {                           
+      46    return await db
+      47 -    .select({ id: category.id, name: category.name })          
+      48 -    .from(category)                                            
+      49 -    .orderBy(asc(category.name));                              
+      47 +    .select({ id: productType.id, name: productType.name })    
+      48 +    .from(productType)                                         
+      49 +    .orderBy(asc(productType.name));                           
+      50  }
+      51  
+      52  async function fetchStockRows(params: StockPageParams): Promise
+          <StockRow[]> {
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/stock/page.tsx)
+  ⎿  Added 2 lines, removed 2 lines
+      54    if (params.search) {
+      55      whereClauses.push(sql`t.name ILIKE ${`%${params.search}%`}`
+          );
+      56    }
+      57 -  if (params.categoria) {                                      
+      58 -    whereClauses.push(sql`t.category_id = ${params.categoria}`)
+         -;                                                              
+      57 +  if (params.productType) {                                    
+      58 +    whereClauses.push(sql`t.product_type_id = ${params.productT
+         +ype}`);                                                        
+      59    }
+      60    const whereClause = whereClauses.length
+      61      ? sql`WHERE ${sql.join(whereClauses, sql` AND `)}`
+  ⎿  PostToolUse:Edit hook error                       ⎿  Failed with non-blocking status code: error: 
+
+● Update(apps/web/src/app/dashboard/(inventory)/stock/page.tsx)  ⎿  Added 3 lines, removed 3 lines
+      121    const params = await searchParams;
+      122    const search = params.search ?? params.q;
+      123  
+      124 -  const [rows, categories] = await Promise.all([              
+      124 +  const [rows, productTypes] = await Promise.all([            
+      125      fetchStockRows({ ...params, search }),
+      126 -    fetchCategories(),                                        
+      126 +    fetchProductTypes(),                                      
+      127    ]);
+      128    const isEmpty = rows.length === 0;
+      129 -  const hasFilters = Boolean(search || params.categoria || par
+          -ams.ordem);                                                   
+      129 +  const hasFilters = Boolean(search || params.productType || p
+          +arams.ordem);                                                 
+      130  
+      131    return (
+      132      <div className="flex flex-col gap-6">
+  ⎿  PostToolUse:Edit hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Update(apps/web/src/app/dashboard/(inventory)/stock/page.tsx)
+  ⎿  Added 1 line, removed 1 line
+      138          </p>
+      139        </div>
+      140  
+      141 -      <StockFilters categories={categories} />                
+      141 +      <StockFilters productTypes={productTypes} />            
+      142  
+      143        {isEmpty ? (
+      144          <Empty>
+  ⎿  PostToolUse:Edit hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Update(apps/web/src/app/dashboard/page.tsx)
+  ⎿  Added 1 line, removed 1 line
+      14  
+      15  interface InventoryStats extends Record<string, number> {
+      16    branches_total: number;
+      17 -  categories_total: number;                                    
+      17 +  product_types_total: number;                                 
+      18    items_to_reorder: number;
+      19    stock_total: number;
+      20    suppliers_total: number;
+  ⎿  PostToolUse:Edit hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Update(apps/web/src/app/dashboard/page.tsx)
+  ⎿  Added 1 line, removed 1 line
+      30        (SELECT COUNT(*)::int FROM tool WHERE visible_on_site = t
+          rue) AS tools_visible,
+      31        (SELECT COUNT(*)::int FROM tool WHERE visible_on_site = f
+          alse) AS tools_hidden,
+      32        (SELECT COALESCE(SUM(quantity), 0)::int FROM stock_level)
+           AS stock_total,
+      33 -      (SELECT COUNT(*)::int FROM category) AS categories_total,
+      33 +      (SELECT COUNT(*)::int FROM product_type) AS product_types
+         +_total,                                                        
+      34        (SELECT COUNT(*)::int FROM supplier) AS suppliers_total,
+      35        (SELECT COUNT(*)::int FROM branch) AS branches_total,
+      36        (SELECT COUNT(*)::int FROM stock_level WHERE reorder_poin
+          t > 0 AND quantity <= reorder_point) AS items_to_reorder
+  ⎿  PostToolUse:Edit hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Update(apps/web/src/app/dashboard/page.tsx)
+  ⎿  Added 4 lines, removed 4 lines
+      75            value={stats.items_to_reorder}
+      76          />
+      77          <StatCard
+      78 -          description="Cadastradas"                            
+      79 -          href="/dashboard/categories"                         
+      80 -          title="Categorias"                                   
+      81 -          value={stats.categories_total}                       
+      78 +          description="Cadastrados"                            
+      79 +          href="/dashboard/product-types"                      
+      80 +          title="Tipos de produto"                             
+      81 +          value={stats.product_types_total}                    
+      82          />
+      83          <StatCard
+      84            description="Cadastrados"
+  ⎿  PostToolUse:Edit hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+
+● Update(apps/web/src/app/dashboard/page.tsx)
+  ⎿  Added 1 line, removed 1 line
+      175    },
+      176    { href: "/dashboard/branches", label: "Filiais", variant: "g
+           host" },
+      177    { href: "/dashboard/suppliers", label: "Fornecedores", varia
+           nt: "ghost" },
+      178 -  { href: "/dashboard/categories", label: "Categorias", varian
+          -t: "ghost" },                                                 
+      178 +  { href: "/dashboard/product-types", label: "Tipos de produto
+          +", variant: "ghost" },                                        
+      179  ] as const;
+  ⎿  PostToolUse:Edit hook error  ⎿  Failed with non-blocking status code: error: Script not found "fix"
+  ⎿  Found 1 new diagnostic issue in 1 file (ctrl+o to expand)
+
+● Task 8 completo. Rodando verificação final: typecheck + lint + grep de
+  resquícios.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Resquícios só em migrations históricas (snapshots drizzle). Typecheck agora.
+
+  Listed 1 directory, ran 16 shell commands (ctrl+o to expand)
+
+● Typecheck limpo em todos os pacotes. Zero resquícios de enum antigo. Rodando
+  dev server pra validar UI.
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● Background command "Start dev server in background" failed with exit code 1
+
+● Dev server já em uso em 3001 (user está com sessão ativa). Refactor completo.
+  Task 9 concluída.
+
+● Resumo
+
+  Refactor completo category → product_type, zero erros TS no código novo.
+
+  DB migrado (30 tools, zero órfãs):
+  - Tabela product_type com 7 rows (4 seed + 3 categorias preservadas)
+  - tool.product_type_id NOT NULL, FK com ON DELETE RESTRICT
+  - Removidos: tabela category, coluna tool.category_id, coluna
+  tool.product_type (enum antigo), check valid_product_type
+
+  Código refatorado:
+  - packages/db/src/schema/tools.ts — tabela renomeada, type ProductType agora
+  inferido
+  - packages/db/src/index.ts — import/registro atualizado
+  - tool-schema.ts, tool-form.tsx, tool-filters.tsx, tools-table.tsx,
+  actions.ts, page.tsx, new/page.tsx, [id]/page.tsx, [id]/edit/page.tsx — campo
+  único productTypeId, um select obrigatório, filtro unificado ?productType=<id>
+  - Pasta /dashboard/categories/ → /dashboard/product-types/ (deletada a antiga,
+   criados 10 arquivos novos com nomes/identificadores coerentes)
+  - app-sidebar.tsx, stock-filters.tsx, stock/page.tsx, dashboard/page.tsx —
+  labels e queries atualizadas
+
+  Verificação:
+  - bunx tsc --noEmit — zero erros reais (só .next/dev/types/validator.ts stale,
+   regenera no próximo bun dev)
+  - grep exaustivo: zero referências a categoryId, PRODUCT_TYPE_OPTIONS,
+  listCategories, dashboard/categories etc em apps/web/src/ e packages/db/src/
+  (só migrations históricas do drizzle, esperado)
+  - Biome lint: config do projeto não processa paths via CLI (pré-existente)
+
+  Validação pendente (sua): bun dev:web, abrir /dashboard/product-types
+  (listar/criar/editar/deletar), /dashboard/tools/new (um select obrigatório),
+  /dashboard/tools?productType=<id> (filtro funcional).
+
+  Não commitei conforme CLAUDE.md — aguardando sua ordem explícita. Sugestão de
+  commits atômicos no plano em
+  ~/.claude/plans/eu-quero-sua-ajuda-encapsulated-corbato.md.
+
+✻ Brewed for 18m 23s
+
+※ recap: Unifiquei `category` e `productType` em tabela única `product_type` — DB migrado (30 tools, zero órfãs), UI/rotas/queries refatoradas, typecheck limpo. Próximo passo: você roda `bun dev:web` e valida `/dashboard/product-types` e `/dashboard/tools/new`. (disable recaps in /config)
+
+❯ Poderia pedir para o codex verificar seu codigo!                              
+
+● Skill(codex:rescue)
+  ⎿  Successfully loaded skill · 3 tools allowed
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● codex:codex-rescue(Codex review migration refactor)
+  ⎿  Done (1 tool use · 12.2k tokens · 2m 14s)
+  (ctrl+o to expand)
+
+● Codex revisando em background. Notificação quando concluir.
+
+✻ Crunched for 2m 37s
+
+※ recap: Concluí refactor category → product_type (DB, schema, UI, rotas, sidebar) — typecheck limpo, 30 tools migradas sem órfãs. Aguardando Codex terminar review em background antes de commitar. (disable recaps in /config)
+
+❯ Ele ja te retornou?                                                           
+
+● Task Output(non-blocking) aac4e699ba2bba868
+  ⎿  Error: No task found with ID: aac4e699ba2bba868
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Ainda rodando. Codex lendo os arquivos (já inspecionou edit/page + detail
+  page). Status running há 50s. Continuar aguardando.
+
+※ recap: Migration `category` → `product_type` completa (DB + UI + rotas). Codex revisando código em background há ~1min; aguardar conclusão pra ler findings. (disable recaps in /config)
+
+❯ verifica novamente com ele ta                                                 
+
+  Read 1 file, ran 2 shell commands (ctrl+o to expand)
+● Processo Codex morreu (PID 133906 não existe). Status stale. Verificando
+  último output captured no log completo.
+
+  Read 1 file (ctrl+o to expand)
+
+● Codex crashou depois de ler os arquivos, sem gerar report final. Limpando
+  zombie e reiniciando.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Zombie cancelado. Relançando review.
+
+● codex:codex-rescue(Codex review migration refactor retry)
+  ⎿  Done (3 tool uses · 24.6k tokens · 5m 43s)
+  (ctrl+o to expand)
+
+● Codex retornou. Quatro findings:
+
+  ---
+  HIGH — apps/web/src/app/dashboard/(inventory)/tools/new/page.tsx:11
+  Create-tool page renderiza form unconditionally mesmo com zero product types.
+  productTypeId é obrigatório no tool-schema.ts:67 e o select em
+  tool-form.tsx:527 não tem fallback — /dashboard/tools/new fica impossível de
+  submeter se último product type for deletado. Fix: guard if 
+  (productTypes.length === 0) + redirect/CTA pra /dashboard/product-types/new.
+
+  ---
+  MEDIUM — apps/web/src/app/dashboard/(inventory)/tools/actions.ts:116 (linhas
+  203, 226)
+  Create/update/delete de tool só revalidate rotas de tools. Product-type detail
+   pages (tool counts), /dashboard/stock filter options e summary card
+  /dashboard lêem tool data e servem cache stale. Fix: adicionar
+  revalidatePath("/dashboard"), revalidatePath("/dashboard/stock"),
+  revalidatePath("/dashboard/product-types") + rotas de detalhe afetadas após
+  cada mutation.
+
+  ---
+  MEDIUM — apps/web/src/app/dashboard/product-types/actions.ts:149 (linhas 173,
+  203)
+  Create/rename/delete de product-type só revalidate /dashboard/product-types e
+  /dashboard/tools. Dashboard card (dashboard/page.tsx:33, product_types_total)
+  e stock filter options (stock/page.tsx:45) ficam stale. Fix:
+  revalidatePath("/dashboard") + revalidatePath("/dashboard/stock") em todo
+  branch de sucesso; revalidate tool detail em rename.
+
+  ---
+  NIT — apps/web/src/app/dashboard/product-types/_components/product-types-table
+  .tsx:84
+  Delete CTA aparece mesmo com row.toolsCount > 0, mas deleteProductType rejeita
+   vínculos via FK RESTRICT. UI expõe ação garantida a falhar. Fix: disable/hide
+   trigger quando toolsCount > 0, mostrar razão inline.
+
+  ---
+  Quer aplicar os fixes? Recomendo começar pelo HIGH (bug funcional) + os 2
+  MEDIUMs (cache stale causa confusão visível) — o NIT é polish.

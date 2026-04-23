@@ -1,6 +1,6 @@
 import { db } from "@emach/db";
 import {
-	category,
+	productType,
 	supplier,
 	tool,
 	toolImage,
@@ -11,7 +11,6 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/session";
 import { ToolForm } from "../../_components/tool-form";
 import type {
-	ProductTypeValue,
 	ToolFormValues,
 	ToolStatusValue,
 } from "../../_components/tool-schema";
@@ -34,7 +33,6 @@ function toFormValues(
 		barcode: row.barcode ?? "",
 		manufacturerName: row.manufacturerName ?? "",
 		countryOfOrigin: row.countryOfOrigin ?? "",
-		productType: (row.productType ?? "") as ProductTypeValue | "",
 		status: (row.status ?? "draft") as ToolStatusValue,
 		hsCode: row.hsCode ?? "",
 		ncm: row.ncm ?? "",
@@ -49,7 +47,7 @@ function toFormValues(
 		heightCm: row.heightCm ? Number(row.heightCm) : undefined,
 		price: row.price ? Number(row.price) : undefined,
 		cost: row.cost ? Number(row.cost) : undefined,
-		categoryId: row.categoryId ?? "",
+		productTypeId: row.productTypeId,
 		supplierId: row.supplierId ?? "",
 		visibleOnSite: row.visibleOnSite,
 		images: images.map((img) => ({
@@ -69,16 +67,16 @@ export default async function EditToolPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const [images, categories, suppliers] = await Promise.all([
+	const [images, productTypes, suppliers] = await Promise.all([
 		db
 			.select()
 			.from(toolImage)
 			.where(eq(toolImage.toolId, id))
 			.orderBy(asc(toolImage.sortOrder)),
 		db
-			.select({ id: category.id, name: category.name })
-			.from(category)
-			.orderBy(asc(category.name)),
+			.select({ id: productType.id, name: productType.name })
+			.from(productType)
+			.orderBy(asc(productType.name)),
 		db
 			.select({ id: supplier.id, name: supplier.name })
 			.from(supplier)
@@ -95,10 +93,10 @@ export default async function EditToolPage({ params }: PageProps) {
 			</div>
 
 			<ToolForm
-				categories={categories}
 				defaultValues={toFormValues(row, images)}
 				existingSlug={row.slug ?? undefined}
 				mode="edit"
+				productTypes={productTypes}
 				suppliers={suppliers}
 				toolId={id}
 			/>
