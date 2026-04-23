@@ -11,6 +11,13 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import {
+	PRODUCT_TYPE_LABELS,
+	PRODUCT_TYPE_OPTIONS,
+	TOOL_STATUS_LABELS,
+	TOOL_STATUS_OPTIONS,
+} from "./tool-schema";
+
 interface CategoryOption {
 	id: string;
 	name: string;
@@ -31,6 +38,14 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 	const [search, setSearch] = useState(urlSearch);
 	const currentCategory = searchParams.get("category") ?? ALL;
 	const currentVisibility = searchParams.get("visible") ?? ALL;
+	const currentStatus = searchParams.get("status") ?? ALL;
+	const currentProductType = searchParams.get("productType") ?? ALL;
+	const urlNcm = searchParams.get("ncm") ?? "";
+	const [ncm, setNcm] = useState(urlNcm);
+
+	useEffect(() => {
+		setNcm(urlNcm);
+	}, [urlNcm]);
 
 	useEffect(() => {
 		setSearch(urlSearch);
@@ -65,6 +80,24 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 		const qs = next.toString();
 		router.replace(qs ? `/dashboard/tools?${qs}` : "/dashboard/tools");
 	}
+
+	// debounce NCM input → URL
+	useEffect(() => {
+		if (ncm === urlNcm) {
+			return;
+		}
+		const handle = setTimeout(() => {
+			const next = new URLSearchParams(searchParams.toString());
+			if (ncm) {
+				next.set("ncm", ncm);
+			} else {
+				next.delete("ncm");
+			}
+			const qs = next.toString();
+			router.replace(qs ? `/dashboard/tools?${qs}` : "/dashboard/tools");
+		}, DEBOUNCE_MS);
+		return () => clearTimeout(handle);
+	}, [ncm, urlNcm, router, searchParams]);
 
 	return (
 		<div className="flex flex-col gap-3 md:flex-row md:items-end">
@@ -135,6 +168,90 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 						<SelectItem value="false">Oculto</SelectItem>
 					</SelectContent>
 				</Select>
+			</div>
+
+			<div className="flex flex-col gap-1 md:w-44">
+				<label
+					className="text-muted-foreground text-xs"
+					htmlFor="tool-status"
+				>
+					Status
+				</label>
+				<Select
+					onValueChange={(v) => updateParam("status", v)}
+					value={currentStatus}
+				>
+					<SelectTrigger id="tool-status">
+						<SelectValue>
+							{(v: string) => {
+								if (v === ALL) {
+									return "Todos";
+								}
+								return (
+									TOOL_STATUS_LABELS[
+										v as (typeof TOOL_STATUS_OPTIONS)[number]
+									] ?? v
+								);
+							}}
+						</SelectValue>
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value={ALL}>Todos</SelectItem>
+						{TOOL_STATUS_OPTIONS.map((s) => (
+							<SelectItem key={s} value={s}>
+								{TOOL_STATUS_LABELS[s]}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			</div>
+
+			<div className="flex flex-col gap-1 md:w-44">
+				<label
+					className="text-muted-foreground text-xs"
+					htmlFor="tool-product-type"
+				>
+					Tipo
+				</label>
+				<Select
+					onValueChange={(v) => updateParam("productType", v)}
+					value={currentProductType}
+				>
+					<SelectTrigger id="tool-product-type">
+						<SelectValue>
+							{(v: string) => {
+								if (v === ALL) {
+									return "Todos";
+								}
+								return (
+									PRODUCT_TYPE_LABELS[
+										v as (typeof PRODUCT_TYPE_OPTIONS)[number]
+									] ?? v
+								);
+							}}
+						</SelectValue>
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value={ALL}>Todos</SelectItem>
+						{PRODUCT_TYPE_OPTIONS.map((p) => (
+							<SelectItem key={p} value={p}>
+								{PRODUCT_TYPE_LABELS[p]}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			</div>
+
+			<div className="flex flex-col gap-1 md:w-36">
+				<label className="text-muted-foreground text-xs" htmlFor="tool-ncm">
+					NCM (prefixo)
+				</label>
+				<Input
+					id="tool-ncm"
+					onChange={(e) => setNcm(e.target.value)}
+					placeholder="Ex: 8467"
+					value={ncm}
+				/>
 			</div>
 		</div>
 	);
