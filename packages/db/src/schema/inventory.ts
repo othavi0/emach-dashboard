@@ -1,6 +1,5 @@
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
-	check,
 	index,
 	integer,
 	pgTable,
@@ -32,8 +31,6 @@ export const stockLevel = pgTable(
 			.notNull()
 			.references(() => branch.id, { onDelete: "cascade" }),
 		quantity: integer("quantity").notNull().default(0),
-		minQty: integer("min_qty").notNull().default(0),
-		reorderPoint: integer("reorder_point").notNull().default(0),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
@@ -43,12 +40,6 @@ export const stockLevel = pgTable(
 		primaryKey({ columns: [table.toolId, table.branchId] }),
 		index("stock_level_tool_id_idx").on(table.toolId),
 		index("stock_level_branch_id_idx").on(table.branchId),
-		check("min_qty_non_negative", sql`${table.minQty} >= 0`),
-		check("reorder_point_non_negative", sql`${table.reorderPoint} >= 0`),
-		check(
-			"reorder_gte_min",
-			sql`${table.reorderPoint} >= ${table.minQty}`
-		),
 	]
 );
 
