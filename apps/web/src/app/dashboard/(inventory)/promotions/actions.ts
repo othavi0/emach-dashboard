@@ -6,6 +6,7 @@ import { tool } from "@emach/db/schema/tools";
 import { and, eq, gte, inArray, isNull, lte, ne, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+import { logger } from "@/lib/logger";
 import { requireCurrentSession, requireRole } from "@/lib/session";
 import {
 	createPromotionSchema,
@@ -57,7 +58,7 @@ export interface PromotionDetail extends PromotionListItem {
 // ---------------------------------------------------------------------------
 
 function dbErrorMessage(error: unknown): string {
-	console.error("[promotions] DB error:", error);
+	logger.error("promotions", error);
 	return "Erro ao processar operação. Tente novamente.";
 }
 

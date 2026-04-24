@@ -1,11 +1,6 @@
 import { db } from "@emach/db";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
-import {
-	productType,
-	supplier,
-	tool,
-	toolImage,
-} from "@emach/db/schema/tools";
+import { productType, supplier, tool, toolImage } from "@emach/db/schema/tools";
 import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
@@ -47,6 +42,7 @@ interface PageProps {
 	params: Promise<{ id: string }>;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: página detalhe com múltiplas seções; refactor em docs/plano-melhorias.md
 export default async function ToolDetailPage({ params }: PageProps) {
 	const session = await requireCurrentSession();
 	const canMutate = (session.user.role ?? "user") === "admin";
@@ -265,25 +261,25 @@ export default async function ToolDetailPage({ params }: PageProps) {
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Potência</dt>
-								<dd>{row.powerWatts != null ? `${row.powerWatts} W` : "—"}</dd>
+								<dd>{row.powerWatts == null ? "—" : `${row.powerWatts} W`}</dd>
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Frequência</dt>
 								<dd>
-									{row.frequencyHz != null ? `${row.frequencyHz} Hz` : "—"}
+									{row.frequencyHz == null ? "—" : `${row.frequencyHz} Hz`}
 								</dd>
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Garantia</dt>
 								<dd>
-									{row.warrantyMonths != null
-										? `${row.warrantyMonths} meses`
-										: "—"}
+									{row.warrantyMonths == null
+										? "—"
+										: `${row.warrantyMonths} meses`}
 								</dd>
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Peso</dt>
-								<dd>{row.weightKg != null ? `${row.weightKg} kg` : "—"}</dd>
+								<dd>{row.weightKg == null ? "—" : `${row.weightKg} kg`}</dd>
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Dimensões (C×L×A)</dt>
