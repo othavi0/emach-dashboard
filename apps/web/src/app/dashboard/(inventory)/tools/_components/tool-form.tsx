@@ -42,10 +42,10 @@ interface SupplierOption {
 }
 
 interface ToolFormProps {
-	productTypes: ProductTypeOption[];
 	defaultValues: Partial<ToolFormValues>;
 	existingSlug?: string;
 	mode: "create" | "edit";
+	productTypes: ProductTypeOption[];
 	suppliers: SupplierOption[];
 	toolId?: string;
 }
@@ -81,7 +81,9 @@ function formatBRL(reais: number | undefined): string {
 
 function parseDecimal(display: string): number | undefined {
 	const cleaned = display.replace(",", ".").replace(/[^\d.]/g, "");
-	if (!cleaned) return undefined;
+	if (!cleaned) {
+		return;
+	}
 	const n = Number(cleaned);
 	return Number.isNaN(n) ? undefined : n;
 }
@@ -123,6 +125,7 @@ const EMPTY_VALUES: ToolFormValues = {
 	images: [],
 };
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: form monolítico com múltiplas seções; refactor em docs/plano-melhorias.md
 export function ToolForm({
 	mode,
 	toolId,
@@ -203,10 +206,7 @@ export function ToolForm({
 	}
 
 	return (
-		<form
-			className="flex w-full flex-col gap-6"
-			onSubmit={handleSubmit}
-		>
+		<form className="flex w-full flex-col gap-6" onSubmit={handleSubmit}>
 			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas

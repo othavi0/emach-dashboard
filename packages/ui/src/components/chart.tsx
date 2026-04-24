@@ -209,23 +209,21 @@ function ChartTooltipContent({
 			<div className="grid gap-1.5">
 				{payload
 					.filter((item) => item.type !== "none")
-					.map((item, index) => {
-						return (
-							<ChartTooltipRow
-								color={color}
-								config={config}
-								formatter={formatter}
-								hideIndicator={hideIndicator}
-								index={index}
-								indicator={indicator}
-								item={item}
-								key={`${nameKey ?? item.name ?? item.dataKey ?? "value"}-${index}`}
-								nameKey={nameKey}
-								nestLabel={nestLabel}
-								tooltipLabel={nestLabel ? tooltipLabel : null}
-							/>
-						);
-					})}
+					.map((item, index) => (
+						<ChartTooltipRow
+							color={color}
+							config={config}
+							formatter={formatter}
+							hideIndicator={hideIndicator}
+							index={index}
+							indicator={indicator}
+							item={item}
+							key={`${nameKey ?? item.name ?? item.dataKey ?? "value"}-${index}`}
+							nameKey={nameKey}
+							nestLabel={nestLabel}
+							tooltipLabel={nestLabel ? tooltipLabel : null}
+						/>
+					))}
 			</div>
 		</div>
 	);
@@ -382,7 +380,7 @@ function ChartLegendContent({
 							className={cn(
 								"flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground"
 							)}
-							key={index}
+							key={`${key}-${index}`}
 						>
 							{itemConfig?.icon && !hideIcon ? (
 								<itemConfig.icon />
@@ -408,7 +406,7 @@ function getPayloadConfigFromPayload(
 	key: string
 ) {
 	if (typeof payload !== "object" || payload === null) {
-		return undefined;
+		return;
 	}
 
 	const payloadPayload =

@@ -1,10 +1,7 @@
 "use server";
 
 import { requireRole } from "@/lib/session";
-import {
-	supabaseAdmin,
-	TOOL_IMAGES_BUCKET,
-} from "@/lib/supabase-server";
+import { supabaseAdmin, TOOL_IMAGES_BUCKET } from "@/lib/supabase-server";
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -66,6 +63,6 @@ export async function deleteToolImage(url: string): Promise<void> {
 		.from(TOOL_IMAGES_BUCKET)
 		.remove([path]);
 	if (error) {
-		console.warn(`Falha ao remover ${path}: ${error.message}`);
+		throw new Error(`Falha ao remover imagem do storage: ${error.message}`);
 	}
 }

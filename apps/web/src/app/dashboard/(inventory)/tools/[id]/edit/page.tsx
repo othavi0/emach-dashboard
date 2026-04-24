@@ -1,10 +1,5 @@
 import { db } from "@emach/db";
-import {
-	productType,
-	supplier,
-	tool,
-	toolImage,
-} from "@emach/db/schema/tools";
+import { productType, supplier, tool, toolImage } from "@emach/db/schema/tools";
 import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
@@ -13,13 +8,14 @@ import { ToolForm } from "../../_components/tool-form";
 import type {
 	ToolFormValues,
 	ToolStatusValue,
+	VOLTAGE_OPTIONS,
 } from "../../_components/tool-schema";
-import { VOLTAGE_OPTIONS } from "../../_components/tool-schema";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: mapeamento denso row→form; refactor pendente em docs/plano-melhorias.md
 function toFormValues(
 	row: typeof tool.$inferSelect,
 	images: (typeof toolImage.$inferSelect)[]
