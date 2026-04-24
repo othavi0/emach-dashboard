@@ -88,9 +88,6 @@ export const sessionRelations = relations(session, ({ one }) => ({
 	}),
 }));
 
-
-
-
 export const accountRelations = relations(account, ({ one }) => ({
 	user: one(user, {
 		fields: [account.userId],

@@ -68,7 +68,9 @@ export default async function SupplierDetailPage({
 			<Card>
 				<CardHeader>
 					<CardTitle>Contato</CardTitle>
-					<CardDescription>Dados comerciais e observações internas.</CardDescription>
+					<CardDescription>
+						Dados comerciais e observações internas.
+					</CardDescription>
 				</CardHeader>
 				<CardContent className="grid gap-2 text-sm">
 					<p>
@@ -121,7 +123,9 @@ export default async function SupplierDetailPage({
 											{tool.sku ?? "—"}
 										</TableCell>
 										<TableCell className="text-right">
-											<Badge variant={tool.visibleOnSite ? "default" : "outline"}>
+											<Badge
+												variant={tool.visibleOnSite ? "default" : "outline"}
+											>
 												{tool.visibleOnSite ? "Visível" : "Oculto"}
 											</Badge>
 										</TableCell>

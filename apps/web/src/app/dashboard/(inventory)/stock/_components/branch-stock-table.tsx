@@ -113,7 +113,10 @@ export function BranchStockTable({
 								<TableCell className="text-right">
 									<div className="flex justify-end gap-2">
 										<Link
-											className={buttonVariants({ size: "sm", variant: "ghost" })}
+											className={buttonVariants({
+												size: "sm",
+												variant: "ghost",
+											})}
 											href={`/dashboard/tools/${row.toolId}/stock`}
 										>
 											Detalhes

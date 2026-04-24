@@ -32,8 +32,8 @@ interface StockPageRow extends Record<string, unknown> {
 }
 
 interface StockPageParams {
-	productType?: string;
 	ordem?: "nome" | "maior" | "menor";
+	productType?: string;
 	q?: string;
 	search?: string;
 }

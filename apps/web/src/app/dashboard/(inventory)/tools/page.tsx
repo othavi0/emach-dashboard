@@ -139,7 +139,7 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 			params.visible ||
 			params.status ||
 			params.productType ||
-			params.ncm,
+			params.ncm
 	);
 	const isEmpty = tools.length === 0;
 

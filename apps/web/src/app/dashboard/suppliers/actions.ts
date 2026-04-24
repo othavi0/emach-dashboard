@@ -191,7 +191,10 @@ export async function deleteSupplier(id: string): Promise<ActionResult> {
 
 	try {
 		await db.transaction(async (tx) => {
-			await tx.update(tool).set({ supplierId: null }).where(eq(tool.supplierId, id));
+			await tx
+				.update(tool)
+				.set({ supplierId: null })
+				.where(eq(tool.supplierId, id));
 			await tx.delete(supplier).where(eq(supplier.id, id));
 		});
 	} catch (error) {

@@ -11,11 +11,7 @@ import {
 	unique,
 } from "drizzle-orm/pg-core";
 
-export type ToolStatus =
-	| "draft"
-	| "active"
-	| "discontinued"
-	| "out_of_stock";
+export type ToolStatus = "draft" | "active" | "discontinued" | "out_of_stock";
 
 export const productType = pgTable("product_type", {
 	id: text("id").primaryKey(),
@@ -52,10 +48,7 @@ export const tool = pgTable(
 		sku: text("sku").unique(),
 		model: text("model"),
 		invoiceModel: text("invoice_model"),
-		status: text("status")
-			.$type<ToolStatus>()
-			.notNull()
-			.default("draft"),
+		status: text("status").$type<ToolStatus>().notNull().default("draft"),
 		voltage: text("voltage"),
 		powerWatts: integer("power_watts"),
 		frequencyHz: integer("frequency_hz"),

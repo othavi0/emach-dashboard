@@ -67,7 +67,9 @@ export const toolFormSchema = z
 		productTypeId: z.string().min(1, "Tipo de produto obrigatório"),
 		supplierId: optionalString,
 		visibleOnSite: z.boolean().default(true),
-		images: z.array(toolImageSchema).max(MAX_IMAGES, `Máximo de ${MAX_IMAGES} imagens`),
+		images: z
+			.array(toolImageSchema)
+			.max(MAX_IMAGES, `Máximo de ${MAX_IMAGES} imagens`),
 	})
 	.superRefine((data, ctx) => {
 		if (data.status === "active" && data.images.length < MIN_IMAGES_ACTIVE) {

@@ -12,10 +12,7 @@ import { toast } from "sonner";
 import type { ZodError } from "zod";
 
 import { createSupplier, updateSupplier } from "../actions";
-import {
-	type SupplierFormValues,
-	supplierSchema,
-} from "./supplier-schema";
+import { type SupplierFormValues, supplierSchema } from "./supplier-schema";
 
 interface SupplierFormProps {
 	defaultValues: Partial<SupplierFormValues>;
@@ -107,7 +104,10 @@ export function SupplierForm({
 	}
 
 	return (
-		<form className="flex w-full max-w-2xl flex-col gap-6" onSubmit={handleSubmit}>
+		<form
+			className="flex w-full max-w-2xl flex-col gap-6"
+			onSubmit={handleSubmit}
+		>
 			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas

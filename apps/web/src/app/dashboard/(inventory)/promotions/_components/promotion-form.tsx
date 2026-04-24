@@ -194,10 +194,7 @@ function ToolCombobox({
 			{selectedTools.length > 0 && (
 				<div className="flex flex-wrap gap-1.5">
 					{selectedTools.map((tool) => (
-						<Badge
-							key={tool.id}
-							variant="secondary"
-						>
+						<Badge key={tool.id} variant="secondary">
 							{tool.name}
 							<button
 								className="ml-0.5 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-primary"
@@ -323,8 +320,11 @@ export function PromotionForm({
 		});
 	}
 
-		return (
-		<form className="flex w-full max-w-3xl flex-col gap-6" onSubmit={handleSubmit}>
+	return (
+		<form
+			className="flex w-full max-w-3xl flex-col gap-6"
+			onSubmit={handleSubmit}
+		>
 			{/* Server-side error banner */}
 			{serverError && (
 				<div

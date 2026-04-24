@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Card,
 	CardContent,
@@ -6,7 +7,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@emach/ui/components/card";
-import { buttonVariants } from "@emach/ui/components/button";
 import { sql } from "drizzle-orm";
 import Link from "next/link";
 
@@ -14,8 +14,8 @@ import { requireCurrentSession } from "@/lib/session";
 
 interface InventoryStats extends Record<string, number> {
 	branches_total: number;
-	product_types_total: number;
 	items_to_reorder: number;
+	product_types_total: number;
 	stock_total: number;
 	suppliers_total: number;
 	tools_hidden: number;
@@ -166,7 +166,11 @@ function StatCard({
 }
 
 const QUICK_ACTIONS = [
-	{ href: "/dashboard/tools", label: "Abrir ferramentas", variant: "secondary" },
+	{
+		href: "/dashboard/tools",
+		label: "Abrir ferramentas",
+		variant: "secondary",
+	},
 	{ href: "/dashboard/stock", label: "Estoque geral", variant: "secondary" },
 	{
 		href: "/dashboard/stock/branches",
@@ -175,5 +179,9 @@ const QUICK_ACTIONS = [
 	},
 	{ href: "/dashboard/branches", label: "Filiais", variant: "ghost" },
 	{ href: "/dashboard/suppliers", label: "Fornecedores", variant: "ghost" },
-	{ href: "/dashboard/product-types", label: "Tipos de produto", variant: "ghost" },
+	{
+		href: "/dashboard/product-types",
+		label: "Tipos de produto",
+		variant: "ghost",
+	},
 ] as const;
