@@ -1,126 +1,37 @@
-# Ultracite Code Standards
+# Agents — emach-dashboard
 
-This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
+> **Fonte canônica de instruções:** `.claude/CLAUDE.md`. Toda regra de stack, auth, schema, design system, anti-patterns e workflow vive lá. Esse arquivo existe para que agentes que não auto-descobrem `.claude/CLAUDE.md` (Codex, OpenCode, etc.) encontrem o ponto de entrada.
 
-## Quick Reference
+## Quick reference
 
-- **Format code**: `bun x ultracite fix`
-- **Check for issues**: `bun x ultracite check`
-- **Diagnose setup**: `bun x ultracite doctor`
+- **Stack:** Bun 1.3 + Turborepo 2.9, Next 16 / React 19 (`apps/web`), Drizzle + Supabase Postgres, Better Auth dual (dashboard + ecomerce), Tailwind 4 + shadcn (`packages/ui`).
+- **Comandos:** `bun install`, `bun dev:web` (port 3001), `bun check`, `bun fix`, `bun check-types`, `bun db:push` (dev) / `bun db:generate` + `bun db:migrate` (prod).
+- **Lint/format:** Ultracite (`bun fix`) — também roda como hook PostToolUse do Claude Code.
+- **Idioma:** comunicação **PT**; identificadores e termos técnicos **EN**.
+- **Commits:** Conventional Commits PT (`feat:`/`fix:`/`refactor:`/`test:`/`docs:`/`chore:`). **Nunca** commitar sem confirmação explícita do user.
 
-Biome (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
+## Documentos a consultar
 
----
+| Para... | Ler |
+|---|---|
+| Regras gerais (stack, auth, schema, anti-patterns, gotchas) | `.claude/CLAUDE.md` |
+| Sistema visual completo (paleta, tipografia, componentes, depth) | `DESIGN.md` |
+| Integrar app ecomerce passo-a-passo (footguns, env, cookies) | `docs/auth/ecommerce-integration.md` |
+| Setup inicial / scripts disponíveis | `README.md` |
 
-## Core Principles
+## Invariantes que NUNCA podem ser violados
 
-Write code that is **accessible, performant, type-safe, and maintainable**. Focus on clarity and explicit intent over brevity.
+1. `apps/web` **nunca** importa `@emach/db/schema/client` ou `@emach/auth/ecommerce`. App ecomerce **nunca** importa `@emach/db/schema/auth`.
+2. `DashboardSession` ≠ `EcommerceSession` — não há tipo "Session" genérico.
+3. **Nunca** setar `advanced.cookies.<name>.attributes.domain = ".emach.com.br"` — apps em subdomínios isolam por host.
+4. CPF/CNPJ: validação responsabilidade do app (zod refine + dígito verificador). Sempre normalizar (só dígitos) antes de persistir.
+5. Migrations em prod: `drizzle-kit generate` + migration versionada. `--force` só em dev/staging.
+6. Design: paleta exclusivamente warm-toned. Nada de cool blue-grays, gradientes traditional, sharp corners <6px ou pure white de fundo. Detalhes em `DESIGN.md`.
+7. IDs gerados via `crypto.randomUUID()` em server actions/scripts — sem nanoid.
 
-### Type Safety & Explicitness
+## Skills e MCPs disponíveis
 
-- Use explicit types for function parameters and return values when they enhance clarity
-- Prefer `unknown` over `any` when the type is genuinely unknown
-- Use const assertions (`as const`) for immutable values and literal types
-- Leverage TypeScript's type narrowing instead of type assertions
-- Use meaningful variable names instead of magic numbers - extract constants with descriptive names
+Tabelas com gatilhos completos em `.claude/CLAUDE.md` (seções "Skills locais" e "MCP servers"). Resumo:
 
-### Modern JavaScript/TypeScript
-
-- Use arrow functions for callbacks and short functions
-- Prefer `for...of` loops over `.forEach()` and indexed `for` loops
-- Use optional chaining (`?.`) and nullish coalescing (`??`) for safer property access
-- Prefer template literals over string concatenation
-- Use destructuring for object and array assignments
-- Use `const` by default, `let` only when reassignment is needed, never `var`
-
-### Async & Promises
-
-- Always `await` promises in async functions - don't forget to use the return value
-- Use `async/await` syntax instead of promise chains for better readability
-- Handle errors appropriately in async code with try-catch blocks
-- Don't use async functions as Promise executors
-
-### React & JSX
-
-- Use function components over class components
-- Call hooks at the top level only, never conditionally
-- Specify all dependencies in hook dependency arrays correctly
-- Use the `key` prop for elements in iterables (prefer unique IDs over array indices)
-- Nest children between opening and closing tags instead of passing as props
-- Don't define components inside other components
-- Use semantic HTML and ARIA attributes for accessibility:
-  - Provide meaningful alt text for images
-  - Use proper heading hierarchy
-  - Add labels for form inputs
-  - Include keyboard event handlers alongside mouse events
-  - Use semantic elements (`<button>`, `<nav>`, etc.) instead of divs with roles
-
-### Error Handling & Debugging
-
-- Remove `console.log`, `debugger`, and `alert` statements from production code
-- Throw `Error` objects with descriptive messages, not strings or other values
-- Use `try-catch` blocks meaningfully - don't catch errors just to rethrow them
-- Prefer early returns over nested conditionals for error cases
-
-### Code Organization
-
-- Keep functions focused and under reasonable cognitive complexity limits
-- Extract complex conditions into well-named boolean variables
-- Use early returns to reduce nesting
-- Prefer simple conditionals over nested ternary operators
-- Group related code together and separate concerns
-
-### Security
-
-- Add `rel="noopener"` when using `target="_blank"` on links
-- Avoid `dangerouslySetInnerHTML` unless absolutely necessary
-- Don't use `eval()` or assign directly to `document.cookie`
-- Validate and sanitize user input
-
-### Performance
-
-- Avoid spread syntax in accumulators within loops
-- Use top-level regex literals instead of creating them in loops
-- Prefer specific imports over namespace imports
-- Avoid barrel files (index files that re-export everything)
-- Use proper image components (e.g., Next.js `<Image>`) over `<img>` tags
-
-### Framework-Specific Guidance
-
-**Next.js:**
-
-- Use Next.js `<Image>` component for images
-- Use `next/head` or App Router metadata API for head elements
-- Use Server Components for async data fetching instead of async Client Components
-
-**React 19+:**
-
-- Use ref as a prop instead of `React.forwardRef`
-
-**Solid/Svelte/Vue/Qwik:**
-
-- Use `class` and `for` attributes (not `className` or `htmlFor`)
-
----
-
-## Testing
-
-- Write assertions inside `it()` or `test()` blocks
-- Avoid done callbacks in async tests - use async/await instead
-- Don't use `.only` or `.skip` in committed code
-- Keep test suites reasonably flat - avoid excessive `describe` nesting
-
-## When Biome Can't Help
-
-Biome's linter will catch most issues automatically. Focus your attention on:
-
-1. **Business logic correctness** - Biome can't validate your algorithms
-2. **Meaningful naming** - Use descriptive names for functions, variables, and types
-3. **Architecture decisions** - Component structure, data flow, and API design
-4. **Edge cases** - Handle boundary conditions and error states
-5. **User experience** - Accessibility, performance, and usability considerations
-6. **Documentation** - Add comments for complex logic, but prefer self-documenting code
-
----
-
-Most formatting and common issues are automatically fixed by Biome. Run `bun x ultracite fix` before committing to ensure compliance.
+- **Skills:** `better-auth-best-practices`, `next-best-practices`, `next-cache-components`, `shadcn`, `supabase-postgres-best-practices`, `turborepo`, `ultracite`, `vercel-composition-patterns`, `vercel-react-best-practices`, `web-design-guidelines`.
+- **MCP servers:** `context7` (docs libs), `better-auth` (HTTP Inkeep), `supabase` (HTTP), `shadcn`, `next-devtools`, `better-t-stack` (apenas histórico).

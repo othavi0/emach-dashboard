@@ -1,18 +1,21 @@
-# emach
+# emach-dashboard
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines Next.js, Self, and more.
+Dashboard interno + base para futuro ecomerce BR. Monorepo Bun + Turborepo. Auth dual (Better Auth) sobre Supabase Postgres.
 
-## Features
+> **Para agentes/IA:** o guia canônico de stack, regras, design e workflows é `.claude/CLAUDE.md` (espelhado em `AGENTS.md`). Sistema visual completo em `DESIGN.md`.
 
-- **TypeScript** - For type safety and improved developer experience
-- **Next.js** - Full-stack React framework
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Drizzle** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Biome** - Linting and formatting
-- **Turborepo** - Optimized monorepo build system
+## Stack
+
+- **Runtime:** Bun 1.3 (workspaces + catalog)
+- **Build:** Turborepo 2.9 (TUI)
+- **Frontend:** Next 16 + React 19 (`apps/web`, port 3001)
+- **UI:** shadcn/ui + Tailwind 4 + Base UI React (`packages/ui`)
+- **DB:** PostgreSQL via Supabase + Drizzle ORM (`packages/db`)
+- **Auth:** Better Auth 1.5 — dual instances (`packages/auth/src/dashboard.ts` + `ecommerce.ts`)
+- **Env validation:** `@t3-oss/env-core` + Zod (`packages/env`)
+- **Lint/format:** Biome 2.4 + Ultracite 7.6
+- **Storage:** Supabase Storage (`tool-images` bucket) para imagens de produtos
+- **Design system:** "Anthropic/Claude" — warm parchment + terracotta (ver `DESIGN.md`)
 
 ## Getting Started
 
@@ -76,13 +79,21 @@ If you want to add app-specific blocks instead of shared primitives, run the sha
 ## Project Structure
 
 ```
-emach/
+emach-dashboard/
 ├── apps/
-│   └── web/         # Fullstack application (Next.js)
+│   └── web/             # Next 16 dashboard (port 3001)
+│       └── src/app/dashboard/(inventory)/{tools,stock,promotions}
 ├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
+│   ├── ui/              # shadcn/ui primitives + globals.css
+│   ├── auth/            # Better Auth dual: dashboard.ts + ecommerce.ts
+│   ├── db/              # Drizzle schema + createDb factory
+│   ├── env/             # Zod-validated env (@t3-oss/env-core)
+│   └── config/          # tsconfig.base.json compartilhado
+├── docs/
+│   └── auth/ecommerce-integration.md
+├── .claude/CLAUDE.md    # Guia canônico para Claude Code (e Codex via AGENTS.md)
+├── DESIGN.md            # Sistema visual Anthropic/Claude
+└── .mcp.json            # MCP servers: context7, supabase, shadcn, ...
 ```
 
 ## Available Scripts
