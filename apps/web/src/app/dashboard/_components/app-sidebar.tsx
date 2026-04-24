@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
 	Sidebar,
 	SidebarContent,
@@ -102,10 +103,12 @@ type FooterUser = { name: string; email: string } | null | undefined;
 
 function FooterContent({
 	isPending,
+	isSigningOut,
 	user,
 	onSignOut,
 }: {
 	isPending: boolean;
+	isSigningOut: boolean;
 	user: FooterUser;
 	onSignOut: () => Promise<void>;
 }) {
@@ -123,18 +126,27 @@ function FooterContent({
 	}
 
 	return (
-		<div className="flex flex-col gap-2 px-2 py-2">
+		<div className="flex flex-col gap-3 px-2 py-2">
 			<div>
 				<p className="font-medium text-sm">{user.name}</p>
 				<p className="text-muted-foreground text-xs">{user.email}</p>
 			</div>
-			<button
-				className="w-full rounded bg-secondary px-3 py-1.5 text-left text-secondary-foreground text-sm hover:bg-accent"
-				onClick={onSignOut}
-				type="button"
-			>
-				Sair
-			</button>
+			<SidebarMenu>
+				<SidebarMenuItem>
+					<SidebarMenuButton
+						aria-disabled={isSigningOut}
+						disabled={isSigningOut}
+						onClick={() => {
+							void onSignOut();
+						}}
+						render={
+							<button type="button">
+								{isSigningOut ? "Saindo..." : "Sair"}
+							</button>
+						}
+					/>
+				</SidebarMenuItem>
+			</SidebarMenu>
 		</div>
 	);
 }
@@ -143,16 +155,27 @@ export function AppSidebar() {
 	const pathname = usePathname();
 	const router = useRouter();
 	const { data: session, isPending } = authClient.useSession();
+	const [isSigningOut, setIsSigningOut] = useState(false);
 
 	const handleSignOut = async () => {
-		await authClient.signOut({
-			fetchOptions: {
-				onSuccess: () => {
-					router.replace("/login");
-					router.refresh();
+		if (isSigningOut) {
+			return;
+		}
+
+		setIsSigningOut(true);
+
+		try {
+			await authClient.signOut({
+				fetchOptions: {
+					onSuccess: () => {
+						router.replace("/login");
+						router.refresh();
+					},
 				},
-			},
-		});
+			});
+		} finally {
+			setIsSigningOut(false);
+		}
 	};
 
 	return (
@@ -213,6 +236,7 @@ export function AppSidebar() {
 			<SidebarFooter>
 				<FooterContent
 					isPending={isPending}
+					isSigningOut={isSigningOut}
 					onSignOut={handleSignOut}
 					user={session?.user}
 				/>
