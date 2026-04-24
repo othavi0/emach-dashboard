@@ -57,9 +57,7 @@ export default async function ProductTypesPage({ searchParams }: PageProps) {
 				<Empty>
 					<EmptyHeader>
 						<EmptyTitle>
-							{hasFilters
-								? "Nenhum tipo encontrado"
-								: "Nenhum tipo cadastrado"}
+							{hasFilters ? "Nenhum tipo encontrado" : "Nenhum tipo cadastrado"}
 						</EmptyTitle>
 						<EmptyDescription>
 							{hasFilters

@@ -195,9 +195,7 @@ export async function updateTool(
 	}
 
 	if (toDelete.length > 0) {
-		await Promise.allSettled(
-			toDelete.map((row) => deleteToolImage(row.url))
-		);
+		await Promise.allSettled(toDelete.map((row) => deleteToolImage(row.url)));
 	}
 
 	revalidatePath(TOOLS_PATH);

@@ -69,16 +69,16 @@ export function BranchesTable({ branches, canMutate }: BranchesTableProps) {
 								</Link>
 								{canMutate && (
 									<>
-									<Link
-										className={buttonVariants({
-											variant: "ghost",
-											size: "sm",
-										})}
-										href={`/dashboard/branches/${b.id}/edit`}
-									>
-										Editar
-									</Link>
-									<DeleteBranchDialog branchId={b.id} branchName={b.name} />
+										<Link
+											className={buttonVariants({
+												variant: "ghost",
+												size: "sm",
+											})}
+											href={`/dashboard/branches/${b.id}/edit`}
+										>
+											Editar
+										</Link>
+										<DeleteBranchDialog branchId={b.id} branchName={b.name} />
 									</>
 								)}
 							</div>

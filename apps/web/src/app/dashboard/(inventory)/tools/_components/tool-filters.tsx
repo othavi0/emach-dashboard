@@ -166,10 +166,7 @@ export function ToolFilters({ productTypes }: ToolFiltersProps) {
 			</div>
 
 			<div className="flex flex-col gap-1 md:w-44">
-				<label
-					className="text-muted-foreground text-xs"
-					htmlFor="tool-status"
-				>
+				<label className="text-muted-foreground text-xs" htmlFor="tool-status">
 					Status
 				</label>
 				<Select

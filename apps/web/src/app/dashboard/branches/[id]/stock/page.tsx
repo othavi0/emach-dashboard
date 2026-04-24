@@ -20,7 +20,9 @@ interface BranchStockPageProps {
 
 export const dynamic = "force-dynamic";
 
-export default async function BranchStockPage({ params }: BranchStockPageProps) {
+export default async function BranchStockPage({
+	params,
+}: BranchStockPageProps) {
 	const session = await requireCurrentSession();
 	const canMutate = (session.user.role ?? "user") === "admin";
 	const { id } = await params;

@@ -26,11 +26,11 @@ const STATUS_BADGE_VARIANT: Record<
 };
 
 export interface ToolRow {
-	productTypeName: string | null;
 	id: string;
 	imageUrl: string | null;
 	model: string | null;
 	name: string;
+	productTypeName: string | null;
 	sku: string | null;
 	slug: string | null;
 	status: string;
