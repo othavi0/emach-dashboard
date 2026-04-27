@@ -7,7 +7,8 @@ import { and, eq, gte, inArray, isNull, lte, ne, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { logger } from "@/lib/logger";
-import { requireCurrentSession, requireRole } from "@/lib/session";
+import { requireCapability } from "@/lib/permissions";
+import { requireCurrentSession } from "@/lib/session";
 import {
 	createPromotionSchema,
 	type PromotionFormValues,
@@ -270,7 +271,7 @@ export async function createPromotion(
 	input: PromotionFormValues
 ): Promise<ActionResult<{ id: string }>> {
 	try {
-		await requireRole("admin");
+		await requireCapability("promotions.manage");
 	} catch (error) {
 		return safeRequireRole(error);
 	}
@@ -339,7 +340,7 @@ export async function updatePromotion(
 	input: PromotionFormValues
 ): Promise<ActionResult<{ id: string }>> {
 	try {
-		await requireRole("admin");
+		await requireCapability("promotions.manage");
 	} catch (error) {
 		return safeRequireRole(error);
 	}
@@ -413,7 +414,7 @@ export async function deletePromotion(
 	id: string
 ): Promise<ActionResult<undefined>> {
 	try {
-		await requireRole("admin");
+		await requireCapability("promotions.manage");
 	} catch (error) {
 		return safeRequireRole(error);
 	}
