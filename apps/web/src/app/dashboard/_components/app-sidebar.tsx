@@ -60,6 +60,13 @@ const NAV_GROUPS: NavGroup[] = [
 		],
 	},
 	{
+		label: "Vendas",
+		items: [
+			{ label: "Pedidos", href: "/dashboard/orders" as Route },
+			{ label: "Avaliações", href: "/dashboard/reviews" as Route },
+		],
+	},
+	{
 		label: "Cadastros",
 		items: [
 			{

@@ -35,11 +35,22 @@ import {
 	stockLevelRelations,
 } from "./schema/inventory";
 import {
+	order,
+	orderItem,
+	orderItemRelations,
+	orderNote,
+	orderNoteRelations,
+	orderRelations,
+	orderStatusHistory,
+	orderStatusHistoryRelations,
+} from "./schema/orders";
+import {
 	promotion,
 	promotionRelations,
 	promotionTool,
 	promotionToolRelations,
 } from "./schema/promotions";
+import { review, reviewRelations } from "./schema/reviews";
 import {
 	stockMovement,
 	stockMovementRelations,
@@ -73,10 +84,20 @@ const schema = {
 	clientVerification,
 	consentLog,
 	consentLogRelations,
+	order,
+	orderItem,
+	orderItemRelations,
+	orderNote,
+	orderNoteRelations,
+	orderRelations,
+	orderStatusHistory,
+	orderStatusHistoryRelations,
 	promotion,
 	promotionRelations,
 	promotionTool,
 	promotionToolRelations,
+	review,
+	reviewRelations,
 	session,
 	sessionRelations,
 	stockLevel,

@@ -16,6 +16,7 @@ interface InventoryStats extends Record<string, number> {
 	branches_total: number;
 	categories_total: number;
 	items_to_reorder: number;
+	orders_pending: number;
 	stock_total: number;
 	suppliers_total: number;
 	tools_hidden: number;
@@ -33,6 +34,7 @@ async function fetchInventoryStats(): Promise<InventoryStats> {
 			(SELECT COUNT(*)::int FROM category) AS categories_total,
 			(SELECT COUNT(*)::int FROM supplier) AS suppliers_total,
 			(SELECT COUNT(*)::int FROM branch) AS branches_total,
+			(SELECT COUNT(*)::int FROM "order" WHERE status IN ('paid', 'preparing')) AS orders_pending,
 			(SELECT COUNT(*)::int FROM stock_level WHERE reorder_point > 0 AND quantity <= reorder_point) AS items_to_reorder
 	`);
 	return result.rows[0];
@@ -73,6 +75,12 @@ export default async function DashboardPage() {
 					href="/dashboard/stock/branches"
 					title="Itens para repor"
 					value={stats.items_to_reorder}
+				/>
+				<StatCard
+					description="Pagos ou em preparação"
+					href="/dashboard/orders"
+					title="Pedidos pendentes"
+					value={stats.orders_pending}
 				/>
 				<StatCard
 					description="Hierarquia do catálogo"
