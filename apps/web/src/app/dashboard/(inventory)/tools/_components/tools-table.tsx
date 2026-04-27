@@ -30,7 +30,7 @@ export interface ToolRow {
 	imageUrl: string | null;
 	model: string | null;
 	name: string;
-	productTypeName: string | null;
+	primaryCategoryName: string | null;
 	sku: string | null;
 	slug: string | null;
 	status: string;
@@ -89,7 +89,7 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 								<p className="text-muted-foreground text-xs">SKU: {t.sku}</p>
 							)}
 						</TableCell>
-						<TableCell>{t.productTypeName ?? "—"}</TableCell>
+						<TableCell>{t.primaryCategoryName ?? "—"}</TableCell>
 						<TableCell>{t.supplierName ?? "—"}</TableCell>
 						<TableCell>
 							{t.model ? (
