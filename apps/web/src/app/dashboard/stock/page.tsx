@@ -11,6 +11,7 @@ import {
 import { asc, sql } from "drizzle-orm";
 import Link from "next/link";
 
+import { PageHeader } from "@/components/page-header";
 import { requireCurrentSession } from "@/lib/session";
 import { StockFilters } from "./_components/stock-filters";
 import { type StockRow, StockTable } from "./_components/stock-table";
@@ -136,14 +137,11 @@ export default async function StockPage({ searchParams }: StockPageProps) {
 	const hasFilters = Boolean(search || params.categoryId || params.ordem);
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div>
-				<h1 className="font-serif text-2xl">Estoque Geral</h1>
-				<p className="text-muted-foreground text-sm">
-					Visão centralizada do estoque de cada ferramenta somando todas as
-					filiais. Use a ação na tabela para abrir o ajuste por filial.
-				</p>
-			</div>
+		<>
+			<PageHeader
+				description="Visão centralizada do estoque de cada ferramenta somando todas as filiais. Use a ação na tabela para abrir o ajuste por filial."
+				title="Estoque Geral"
+			/>
 
 			<StockFilters categories={categories} />
 
@@ -182,6 +180,6 @@ export default async function StockPage({ searchParams }: StockPageProps) {
 			) : (
 				<StockTable rows={rows} />
 			)}
-		</div>
+		</>
 	);
 }

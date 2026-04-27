@@ -11,6 +11,7 @@ import {
 import { type and, asc, ilike, sql } from "drizzle-orm";
 import Link from "next/link";
 
+import { PageHeader } from "@/components/page-header";
 import { requireCurrentSession } from "@/lib/session";
 import { ToolFilters } from "./_components/tool-filters";
 import { type ToolRow, ToolsTable } from "./_components/tools-table";
@@ -151,23 +152,21 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 	const isEmpty = tools.length === 0;
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="font-serif text-2xl">Ferramentas</h1>
-					<p className="text-muted-foreground text-sm">
-						Gerencie o catálogo de ferramentas e suas configurações de exibição.
-					</p>
-				</div>
-				{canMutate && (
-					<Link
-						className={buttonVariants({ variant: "default" })}
-						href="/dashboard/tools/new"
-					>
-						Nova ferramenta
-					</Link>
-				)}
-			</div>
+		<>
+			<PageHeader
+				action={
+					canMutate ? (
+						<Link
+							className={buttonVariants({ variant: "default" })}
+							href="/dashboard/tools/new"
+						>
+							Nova ferramenta
+						</Link>
+					) : null
+				}
+				description="Gerencie o catálogo de ferramentas e suas configurações de exibição."
+				title="Ferramentas"
+			/>
 
 			<ToolFilters categories={categories} />
 
@@ -204,6 +203,6 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 			) : (
 				<ToolsTable canMutate={canMutate} tools={tools} />
 			)}
-		</div>
+		</>
 	);
 }

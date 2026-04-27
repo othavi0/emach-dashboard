@@ -8,6 +8,7 @@ import {
 } from "@emach/ui/components/empty";
 import Link from "next/link";
 
+import { PageHeader } from "@/components/page-header";
 import { requireCapability } from "@/lib/permissions";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrderTable } from "./_components/order-table";
@@ -54,22 +55,19 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 	);
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex items-start justify-between gap-4">
-				<div>
-					<h1 className="font-serif text-2xl">Pedidos</h1>
-					<p className="max-w-3xl text-muted-foreground text-sm">
-						Listagem operacional com busca por número e cliente, filtros por
-						data e filial e atalhos para fulfillment.
-					</p>
-				</div>
-				<Link
-					className={buttonVariants({ variant: "ghost" })}
-					href="/dashboard"
-				>
-					Voltar ao painel
-				</Link>
-			</div>
+		<>
+			<PageHeader
+				action={
+					<Link
+						className={buttonVariants({ variant: "ghost" })}
+						href="/dashboard"
+					>
+						Voltar ao painel
+					</Link>
+				}
+				description="Listagem operacional com busca por número e cliente, filtros por data e filial e atalhos para fulfillment."
+				title="Pedidos"
+			/>
 
 			<OrderFiltersPanel
 				branches={branches}
@@ -106,6 +104,6 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 					totalPages={result.totalPages}
 				/>
 			)}
-		</div>
+		</>
 	);
 }
