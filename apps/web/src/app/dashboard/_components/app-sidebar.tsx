@@ -14,6 +14,7 @@ import {
 } from "@emach/ui/components/sidebar";
 import { Skeleton } from "@emach/ui/components/skeleton";
 import type { Route } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -193,8 +194,19 @@ export function AppSidebar() {
 	return (
 		<Sidebar collapsible="offcanvas">
 			<SidebarHeader>
-				<Link className="px-2 py-2 font-serif text-lg" href={DASHBOARD_HREF}>
-					emach
+				<Link
+					aria-label="Emach — ir para o dashboard"
+					className="flex items-center justify-center px-2 py-2"
+					href={DASHBOARD_HREF}
+				>
+					<Image
+						alt="Emach"
+						className="h-7 w-auto"
+						height={56}
+						priority
+						src="/emach-nome-branco.svg"
+						width={224}
+					/>
 				</Link>
 			</SidebarHeader>
 
