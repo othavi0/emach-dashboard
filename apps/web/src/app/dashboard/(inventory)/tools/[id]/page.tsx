@@ -1,6 +1,7 @@
 import { db } from "@emach/db";
+import { category, toolCategory } from "@emach/db/schema/categories";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
-import { productType, supplier, tool, toolImage } from "@emach/db/schema/tools";
+import { supplier, tool, toolImage } from "@emach/db/schema/tools";
 import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
@@ -75,11 +76,9 @@ export default async function ToolDetailPage({ params }: PageProps) {
 			price: tool.price,
 			cost: tool.cost,
 			visibleOnSite: tool.visibleOnSite,
-			productTypeName: productType.name,
 			supplierName: supplier.name,
 		})
 		.from(tool)
-		.leftJoin(productType, eq(productType.id, tool.productTypeId))
 		.leftJoin(supplier, eq(supplier.id, tool.supplierId))
 		.where(eq(tool.id, id))
 		.limit(1);
@@ -87,6 +86,22 @@ export default async function ToolDetailPage({ params }: PageProps) {
 	if (!row) {
 		notFound();
 	}
+
+	const toolCategoriesRows = await db
+		.select({
+			categoryId: toolCategory.categoryId,
+			categoryName: category.name,
+			isPrimary: toolCategory.isPrimary,
+		})
+		.from(toolCategory)
+		.innerJoin(category, eq(category.id, toolCategory.categoryId))
+		.where(eq(toolCategory.toolId, id))
+		.orderBy(asc(category.name));
+	const primaryCategoryName =
+		toolCategoriesRows.find((c) => c.isPrimary)?.categoryName ?? null;
+	const allCategoryNames = toolCategoriesRows
+		.map((c) => c.categoryName)
+		.join(", ");
 
 	const images = await db
 		.select({ id: toolImage.id, url: toolImage.url })
@@ -187,8 +202,13 @@ export default async function ToolDetailPage({ params }: PageProps) {
 					</CardHeader>
 					<CardContent className="grid gap-2 text-sm">
 						<p>
-							<strong>Tipo de produto:</strong> {row.productTypeName ?? "—"}
+							<strong>Categoria principal:</strong> {primaryCategoryName ?? "—"}
 						</p>
+						{allCategoryNames && (
+							<p>
+								<strong>Todas as categorias:</strong> {allCategoryNames}
+							</p>
+						)}
 						<p>
 							<strong>Fornecedor:</strong> {row.supplierName ?? "—"}
 						</p>

@@ -64,7 +64,10 @@ export const toolFormSchema = z
 		heightCm: optionalNumber,
 		price: optionalNumber,
 		cost: optionalNumber,
-		productTypeId: z.string().min(1, "Tipo de produto obrigatório"),
+		categoryIds: z
+			.array(z.string().min(1))
+			.min(1, "Selecione ao menos uma categoria"),
+		primaryCategoryId: z.string().min(1, "Selecione a categoria principal"),
 		supplierId: optionalString,
 		visibleOnSite: z.boolean().default(true),
 		images: z
@@ -77,6 +80,13 @@ export const toolFormSchema = z
 				code: "custom",
 				path: ["images"],
 				message: `Ativar exige mínimo de ${MIN_IMAGES_ACTIVE} imagens`,
+			});
+		}
+		if (!data.categoryIds.includes(data.primaryCategoryId)) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["primaryCategoryId"],
+				message: "A categoria principal deve estar selecionada",
 			});
 		}
 	});
