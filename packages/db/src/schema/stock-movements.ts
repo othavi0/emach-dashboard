@@ -3,7 +3,6 @@ import {
 	check,
 	index,
 	integer,
-	pgEnum,
 	pgTable,
 	text,
 	timestamp,
@@ -12,6 +11,8 @@ import {
 import { apiKey } from "./api-keys";
 import { user } from "./auth";
 import { branch } from "./inventory";
+import { order, orderItem } from "./orders";
+import { actorTypeEnum } from "./shared-enums";
 import { tool } from "./tools";
 
 export type StockMovementReason =
@@ -20,9 +21,6 @@ export type StockMovementReason =
 	| "ajuste_inventario"
 	| "perda"
 	| "outro";
-
-export const actorTypeEnum = pgEnum("actor_type", ["user", "apiKey", "system"]);
-export type ActorType = (typeof actorTypeEnum.enumValues)[number];
 
 export const stockMovement = pgTable(
 	"stock_movement",
@@ -39,9 +37,12 @@ export const stockMovement = pgTable(
 		delta: integer("delta").notNull(),
 		reason: text("reason").$type<StockMovementReason>().notNull(),
 		reasonNote: text("reason_note"),
-		// referência ao pedido (Fase B cria as tabelas; aqui só prepara)
-		orderId: text("order_id"),
-		orderItemId: text("order_item_id"),
+		orderId: text("order_id").references(() => order.id, {
+			onDelete: "set null",
+		}),
+		orderItemId: text("order_item_id").references(() => orderItem.id, {
+			onDelete: "set null",
+		}),
 		// auditoria
 		actorType: actorTypeEnum("actor_type").notNull().default("system"),
 		actorId: text("actor_id").references(() => user.id, {
@@ -91,6 +92,14 @@ export const stockMovementRelations = relations(stockMovement, ({ one }) => ({
 	apiKey: one(apiKey, {
 		fields: [stockMovement.apiKeyId],
 		references: [apiKey.id],
+	}),
+	order: one(order, {
+		fields: [stockMovement.orderId],
+		references: [order.id],
+	}),
+	orderItem: one(orderItem, {
+		fields: [stockMovement.orderItemId],
+		references: [orderItem.id],
 	}),
 }));
 
