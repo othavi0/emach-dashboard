@@ -1,3 +1,4 @@
+import type { UserRole } from "@emach/db/schema/auth";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Empty,
@@ -7,8 +8,6 @@ import {
 	EmptyTitle,
 } from "@emach/ui/components/empty";
 import Link from "next/link";
-
-import type { UserRole } from "@emach/db/schema/auth";
 
 import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
