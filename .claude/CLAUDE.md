@@ -38,6 +38,11 @@ apps/
       dashboard/          Protegida via requireCurrentSession
         (inventory)/      Route group: tools/, stock/, promotions/
         branches/, suppliers/, product-types/
+        orders/           (planejado) listagem, detalhe, status, notas
+        customers/        (planejado) clientes, leads, tags, exports
+        site/             (planejado) banners, settings, anúncios
+        reviews/          (planejado) moderação de avaliações
+        categories/       (planejado) árvore hierárquica
       api/auth/[...all]/  Better Auth catch-all (dashboard)
     src/lib/
       auth-client.ts      Better Auth client (browser)
@@ -77,6 +82,9 @@ bun clean                          # remove node_modules + caches Turbo/Next
 
 Env de scripts em `packages/*/scripts/*` resolve `.env` via path múltiplo (commit `f0f2992`). Para rodar local: garantir `apps/web/.env` populado a partir de `apps/web/.env.example`.
 
+### Testes
+Não há suite ainda. Roadmap inclui Vitest (unit) + Playwright (E2E) — ver `docs/roadmap.md` quando criado. Por ora, validação = `bun check-types` + `bun fix` + smoke manual em `bun dev:web`.
+
 ---
 
 ## Auth — regras invioláveis
@@ -95,6 +103,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 3. **Nunca** setar `advanced.cookies.<name>.attributes.domain = ".emach.com.br"`. Apps em subdomínios distintos isolam por host.
 4. CPF/CNPJ: validação é responsabilidade do app (zod refine + dígito verificador). Sempre normalizar (só dígitos) antes de persistir em `client.document`.
 5. Migrations em prod: `drizzle-kit generate` + migration versionada. `--force` só em dev/staging.
+6. **Integração com app ecomerce externo (DB compartilhada)**: ambos escrevem na mesma DB Supabase via Drizzle. Admin **não** chama o app ecomerce; o app ecomerce **não** chama o admin. Coordenação acontece pelo schema compartilhado + endpoint `POST /api/internal/revalidate` (signed via `apiKey`) quando uma das pontas precisar invalidar cache da outra. Contrato em `docs/integration/admin-ecommerce.md`.
 
 **Roles dashboard** (extensíveis): `user.role = "admin" | "manager" | "user"`. Verificação via `requireRole("admin")` em server actions. `client` **não** tem `role`.
 
@@ -187,7 +196,7 @@ Quando usar cada um:
 
 ## Anti-patterns banidos (P0/P1)
 
-- `console.log/warn/error` em código de produção (exceto logger central). Em catch de server action, usar `throw new Error("mensagem")` que server action devolve como `actionResult.error`.
+- `console.log/warn/error` em código de produção. Use `logger` de `apps/web/src/lib/logger.ts` (export default). Em catch de server action, usar `throw new Error("mensagem")` que server action devolve como `actionResult.error`.
 - `: any`, `<any>`, `as any`, `@ts-ignore`, `@ts-expect-error` (exceto em `.next/` gerado).
 - `key={index}` em `.map()` — usar ID estável.
 - `<img>` puro — sempre `next/image`.
@@ -215,6 +224,7 @@ Quando usar cada um:
 ## Onde se aprofundar
 
 - **Auth ecomerce passo-a-passo:** `docs/auth/ecommerce-integration.md`
+- **Contrato DB compartilhada (admin ↔ site ecomerce):** `docs/integration/admin-ecommerce.md`
 - **Sidebar logout design:** `docs/superpowers/specs/2026-04-23-sidebar-logout-design.md`
 - **Ultracite rules detalhadas:** rodar skill `ultracite` ou consultar `node_modules/ultracite/dist`
 - **Tudo de UI:** `DESIGN.md`
