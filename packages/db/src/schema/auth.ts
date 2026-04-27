@@ -1,7 +1,15 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	index,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 
-export type UserRole = "admin" | "manager" | "user";
+export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "user"]);
+export type UserRole = (typeof userRoleEnum.enumValues)[number];
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
@@ -9,7 +17,7 @@ export const user = pgTable("user", {
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").default(false).notNull(),
 	image: text("image"),
-	role: text("role").$type<UserRole>().notNull().default("user"),
+	role: userRoleEnum("role").notNull().default("user"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
