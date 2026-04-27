@@ -63,8 +63,8 @@ const NAV_GROUPS: NavGroup[] = [
 		label: "Cadastros",
 		items: [
 			{
-				label: "Tipos de produto",
-				href: "/dashboard/product-types" as Route,
+				label: "Categorias",
+				href: "/dashboard/categories" as Route,
 			},
 			{
 				label: "Fornecedores",
