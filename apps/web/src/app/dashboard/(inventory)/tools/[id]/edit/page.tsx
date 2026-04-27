@@ -1,29 +1,31 @@
 import { db } from "@emach/db";
-import {
-	productType,
-	supplier,
-	tool,
-	toolImage,
-} from "@emach/db/schema/tools";
+import { category, toolCategory } from "@emach/db/schema/categories";
+import { supplier, tool, toolImage } from "@emach/db/schema/tools";
 import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
-import { requireRole } from "@/lib/session";
+import { requireCapability } from "@/lib/permissions";
 import { ToolForm } from "../../_components/tool-form";
 import type {
 	ToolFormValues,
 	ToolStatusValue,
+	VOLTAGE_OPTIONS,
 } from "../../_components/tool-schema";
-import { VOLTAGE_OPTIONS } from "../../_components/tool-schema";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: mapeamento denso row→form; refactor pendente em docs/plano-melhorias.md
 function toFormValues(
 	row: typeof tool.$inferSelect,
-	images: (typeof toolImage.$inferSelect)[]
+	images: (typeof toolImage.$inferSelect)[],
+	toolCats: (typeof toolCategory.$inferSelect)[]
 ): Partial<ToolFormValues> {
+	const categoryIds = toolCats.map((tc) => tc.categoryId);
+	const primaryRow = toolCats.find((tc) => tc.isPrimary);
+	const primaryCategoryId = primaryRow?.categoryId ?? categoryIds[0] ?? "";
+
 	return {
 		name: row.name,
 		description: row.description ?? "",
@@ -47,7 +49,8 @@ function toFormValues(
 		heightCm: row.heightCm ? Number(row.heightCm) : undefined,
 		price: row.price ? Number(row.price) : undefined,
 		cost: row.cost ? Number(row.cost) : undefined,
-		productTypeId: row.productTypeId,
+		categoryIds,
+		primaryCategoryId,
 		supplierId: row.supplierId ?? "",
 		visibleOnSite: row.visibleOnSite,
 		images: images.map((img) => ({
@@ -59,7 +62,7 @@ function toFormValues(
 }
 
 export default async function EditToolPage({ params }: PageProps) {
-	await requireRole("admin");
+	await requireCapability("tools.update");
 	const { id } = await params;
 
 	const [row] = await db.select().from(tool).where(eq(tool.id, id)).limit(1);
@@ -67,20 +70,27 @@ export default async function EditToolPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const [images, productTypes, suppliers] = await Promise.all([
+	const [images, categories, suppliers, toolCats] = await Promise.all([
 		db
 			.select()
 			.from(toolImage)
 			.where(eq(toolImage.toolId, id))
 			.orderBy(asc(toolImage.sortOrder)),
 		db
-			.select({ id: productType.id, name: productType.name })
-			.from(productType)
-			.orderBy(asc(productType.name)),
+			.select({
+				id: category.id,
+				slug: category.slug,
+				name: category.name,
+				path: category.path,
+				depth: category.depth,
+			})
+			.from(category)
+			.orderBy(asc(category.path)),
 		db
 			.select({ id: supplier.id, name: supplier.name })
 			.from(supplier)
 			.orderBy(asc(supplier.name)),
+		db.select().from(toolCategory).where(eq(toolCategory.toolId, id)),
 	]);
 
 	return (
@@ -93,10 +103,10 @@ export default async function EditToolPage({ params }: PageProps) {
 			</div>
 
 			<ToolForm
-				defaultValues={toFormValues(row, images)}
+				categories={categories}
+				defaultValues={toFormValues(row, images, toolCats)}
 				existingSlug={row.slug ?? undefined}
 				mode="edit"
-				productTypes={productTypes}
 				suppliers={suppliers}
 				toolId={id}
 			/>

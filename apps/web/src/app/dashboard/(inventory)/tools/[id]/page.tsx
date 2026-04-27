@@ -1,11 +1,7 @@
 import { db } from "@emach/db";
+import { category, toolCategory } from "@emach/db/schema/categories";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
-import {
-	productType,
-	supplier,
-	tool,
-	toolImage,
-} from "@emach/db/schema/tools";
+import { supplier, tool, toolImage } from "@emach/db/schema/tools";
 import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
@@ -47,6 +43,7 @@ interface PageProps {
 	params: Promise<{ id: string }>;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: página detalhe com múltiplas seções; refactor em docs/plano-melhorias.md
 export default async function ToolDetailPage({ params }: PageProps) {
 	const session = await requireCurrentSession();
 	const canMutate = (session.user.role ?? "user") === "admin";
@@ -79,11 +76,9 @@ export default async function ToolDetailPage({ params }: PageProps) {
 			price: tool.price,
 			cost: tool.cost,
 			visibleOnSite: tool.visibleOnSite,
-			productTypeName: productType.name,
 			supplierName: supplier.name,
 		})
 		.from(tool)
-		.leftJoin(productType, eq(productType.id, tool.productTypeId))
 		.leftJoin(supplier, eq(supplier.id, tool.supplierId))
 		.where(eq(tool.id, id))
 		.limit(1);
@@ -91,6 +86,22 @@ export default async function ToolDetailPage({ params }: PageProps) {
 	if (!row) {
 		notFound();
 	}
+
+	const toolCategoriesRows = await db
+		.select({
+			categoryId: toolCategory.categoryId,
+			categoryName: category.name,
+			isPrimary: toolCategory.isPrimary,
+		})
+		.from(toolCategory)
+		.innerJoin(category, eq(category.id, toolCategory.categoryId))
+		.where(eq(toolCategory.toolId, id))
+		.orderBy(asc(category.name));
+	const primaryCategoryName =
+		toolCategoriesRows.find((c) => c.isPrimary)?.categoryName ?? null;
+	const allCategoryNames = toolCategoriesRows
+		.map((c) => c.categoryName)
+		.join(", ");
 
 	const images = await db
 		.select({ id: toolImage.id, url: toolImage.url })
@@ -191,8 +202,13 @@ export default async function ToolDetailPage({ params }: PageProps) {
 					</CardHeader>
 					<CardContent className="grid gap-2 text-sm">
 						<p>
-							<strong>Tipo de produto:</strong> {row.productTypeName ?? "—"}
+							<strong>Categoria principal:</strong> {primaryCategoryName ?? "—"}
 						</p>
+						{allCategoryNames && (
+							<p>
+								<strong>Todas as categorias:</strong> {allCategoryNames}
+							</p>
+						)}
 						<p>
 							<strong>Fornecedor:</strong> {row.supplierName ?? "—"}
 						</p>
@@ -265,25 +281,25 @@ export default async function ToolDetailPage({ params }: PageProps) {
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Potência</dt>
-								<dd>{row.powerWatts != null ? `${row.powerWatts} W` : "—"}</dd>
+								<dd>{row.powerWatts == null ? "—" : `${row.powerWatts} W`}</dd>
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Frequência</dt>
 								<dd>
-									{row.frequencyHz != null ? `${row.frequencyHz} Hz` : "—"}
+									{row.frequencyHz == null ? "—" : `${row.frequencyHz} Hz`}
 								</dd>
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Garantia</dt>
 								<dd>
-									{row.warrantyMonths != null
-										? `${row.warrantyMonths} meses`
-										: "—"}
+									{row.warrantyMonths == null
+										? "—"
+										: `${row.warrantyMonths} meses`}
 								</dd>
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Peso</dt>
-								<dd>{row.weightKg != null ? `${row.weightKg} kg` : "—"}</dd>
+								<dd>{row.weightKg == null ? "—" : `${row.weightKg} kg`}</dd>
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Dimensões (C×L×A)</dt>

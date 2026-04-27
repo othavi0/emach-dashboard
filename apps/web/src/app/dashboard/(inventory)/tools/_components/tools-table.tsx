@@ -26,11 +26,11 @@ const STATUS_BADGE_VARIANT: Record<
 };
 
 export interface ToolRow {
-	productTypeName: string | null;
 	id: string;
 	imageUrl: string | null;
 	model: string | null;
 	name: string;
+	primaryCategoryName: string | null;
 	sku: string | null;
 	slug: string | null;
 	status: string;
@@ -89,7 +89,7 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 								<p className="text-muted-foreground text-xs">SKU: {t.sku}</p>
 							)}
 						</TableCell>
-						<TableCell>{t.productTypeName ?? "—"}</TableCell>
+						<TableCell>{t.primaryCategoryName ?? "—"}</TableCell>
 						<TableCell>{t.supplierName ?? "—"}</TableCell>
 						<TableCell>
 							{t.model ? (

@@ -29,15 +29,15 @@ export function BranchStockThresholdInputs({
 	const [reorderPoint, setReorderPoint] = useState(initialReorderPoint);
 
 	const validationError =
-		reorderPoint < minQty
-			? "Reposição deve ser ≥ mínimo"
-			: null;
+		reorderPoint < minQty ? "Reposição deve ser ≥ mínimo" : null;
 
 	const isDirty =
 		minQty !== initialMinQty || reorderPoint !== initialReorderPoint;
 
 	function handleSave() {
-		if (validationError) return;
+		if (validationError) {
+			return;
+		}
 
 		startTransition(async () => {
 			const result = await updateStockThresholds({

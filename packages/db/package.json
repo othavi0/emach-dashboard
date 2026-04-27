@@ -13,7 +13,14 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:apply-triggers": "bun run scripts/apply-triggers.ts",
+    "db:seed-categories": "bun run scripts/seed-categories.ts",
+    "db:anonymize-client": "bun run scripts/anonymize-client.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:supabase:start": "supabase start --workdir .",
+    "test:supabase:stop": "supabase stop --workdir ."
   },
   "dependencies": {
     "@emach/env": "workspace:*",
@@ -25,6 +32,8 @@
     "@emach/config": "workspace:*",
     "@types/pg": "^8.16.0",
     "drizzle-kit": "^0.31.8",
-    "typescript": "^5"
+    "execa": "^9.5.2",
+    "typescript": "^5",
+    "vitest": "^2.1.8"
   }
 }

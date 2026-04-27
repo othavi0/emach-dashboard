@@ -1,11 +1,12 @@
 "use server";
 
 import { db } from "@emach/db";
+import { toolCategory } from "@emach/db/schema/categories";
 import { tool, toolImage } from "@emach/db/schema/tools";
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import { requireRole } from "@/lib/session";
+import { requireCapability } from "@/lib/permissions";
 import { deleteToolImage } from "./_components/image-actions";
 import {
 	slugify,
@@ -77,7 +78,6 @@ function normalizePayload(input: ToolFormValues) {
 		price: toNumericString(input.price),
 		cost: toNumericString(input.cost),
 		visibleOnSite: input.visibleOnSite,
-		productTypeId: input.productTypeId,
 		supplierId: nullableText(input.supplierId),
 	};
 }
@@ -85,7 +85,7 @@ function normalizePayload(input: ToolFormValues) {
 export async function createTool(
 	input: ToolFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireRole("admin");
+	await requireCapability("tools.create");
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: errorMessage(parsed.error) };
@@ -108,6 +108,14 @@ export async function createTool(
 					}))
 				);
 			}
+
+			await tx.insert(toolCategory).values(
+				parsed.data.categoryIds.map((catId) => ({
+					toolId: id,
+					categoryId: catId,
+					isPrimary: catId === parsed.data.primaryCategoryId,
+				}))
+			);
 		});
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
@@ -121,7 +129,7 @@ export async function updateTool(
 	id: string,
 	input: ToolFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireRole("admin");
+	await requireCapability("tools.update");
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: errorMessage(parsed.error) };
@@ -189,15 +197,23 @@ export async function updateTool(
 					});
 				}
 			}
+
+			// Sync tool_category: delete existing rows then re-insert
+			await tx.delete(toolCategory).where(eq(toolCategory.toolId, id));
+			await tx.insert(toolCategory).values(
+				parsed.data.categoryIds.map((catId) => ({
+					toolId: id,
+					categoryId: catId,
+					isPrimary: catId === parsed.data.primaryCategoryId,
+				}))
+			);
 		});
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}
 
 	if (toDelete.length > 0) {
-		await Promise.allSettled(
-			toDelete.map((row) => deleteToolImage(row.url))
-		);
+		await Promise.allSettled(toDelete.map((row) => deleteToolImage(row.url)));
 	}
 
 	revalidatePath(TOOLS_PATH);
@@ -206,7 +222,7 @@ export async function updateTool(
 }
 
 export async function deleteTool(id: string): Promise<ActionResult> {
-	await requireRole("admin");
+	await requireCapability("tools.delete");
 
 	const urls = await db
 		.select({ url: toolImage.url })

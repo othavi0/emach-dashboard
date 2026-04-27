@@ -1,194 +1,242 @@
-# Auth Architecture
+# Emach Dashboard — Guia Claude Code
 
-Dois better-auth paralelos, totalmente isolados, compartilhando o mesmo banco Supabase.
+Monorepo Bun + Turborepo. Dashboard Next 16 / React 19 com auth dual (funcionários internos × clientes BR), Supabase Postgres + Drizzle, design system inspirado em Anthropic/Claude.
 
-## Instâncias
-
-| Instância | Package import | Tabelas | Consumers |
-|---|---|---|---|
-| Dashboard (funcionários internos — roles admin/manager/user) | `@emach/auth/dashboard` → `authDashboard`, `DashboardSession` | `user`, `session`, `account`, `verification` | `apps/web` |
-| Ecomerce (clientes finais BR) | `@emach/auth/ecommerce` → `authEcommerce`, `EcommerceSession` | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | `apps/<ecommerce>` (futuro) |
-
-## Schema
-
-- `packages/db/src/schema/auth.ts` — tabelas dashboard (nomes better-auth padrão).
-- `packages/db/src/schema/client.ts` — tabelas ecomerce + `clientAddress` com campos BR (`country` default `"BR"`, etc).
-- `client` extras: `phone` (nullable), `document` (CPF/CNPJ, text unique nullable).
-- Roles do dashboard: `user.role = "admin" | "manager" | "user"` (extensível — novas roles tipo `stockist` virão depois). `client` **não** tem coluna `role`.
-
-## Cookies / isolamento
-
-- `authDashboard` usa cookie prefix padrão; `authEcommerce` usa `cookiePrefix: "ecommerce"`.
-- Apps rodam em subdomínios distintos — cookies isolados por host. **Nunca** setar `advanced.cookies.<name>.attributes.domain = ".emach.com.br"`.
-- `BETTER_AUTH_SECRET` compartilhado (ok enquanto apps em subdomínios).
-- `trustedOrigins`: `authDashboard` → `CORS_ORIGIN`; `authEcommerce` → `ECOMMERCE_ORIGIN`.
-
-## Env vars
-
-- `DATABASE_URL`, `BETTER_AUTH_SECRET` — compartilhadas.
-- `BETTER_AUTH_URL` + `CORS_ORIGIN` — dashboard.
-- `BETTER_AUTH_URL_ECOMMERCE` + `ECOMMERCE_ORIGIN` — ecomerce (optional no env central; obrigatórias no app ecomerce).
-
-## Regras invioláveis
-
-1. **Nunca importar schema do domínio oposto.** `apps/web` (dashboard) nunca importa `@emach/db/schema/client`. App ecomerce nunca importa `@emach/db/schema/auth`.
-2. **Nunca misturar tipos de sessão** — `DashboardSession` ≠ `EcommerceSession`.
-3. **Validação CPF/CNPJ é responsabilidade do app** (zod refine com dígito verificador) — better-auth não valida. Sempre normalizar (só dígitos) antes de persistir.
-4. **Migrations em prod**: usar `drizzle-kit generate` + migration versionada. `--force` só em dev/staging.
-
-Guia completo de integração do ecomerce (passo-a-passo + footguns detalhados): `docs/auth/ecommerce-integration.md`.
+> **Documentos referenciados (leia antes de tocar no domínio):**
+> - `DESIGN.md` — sistema visual completo (paleta warm parchment + terracotta, Anthropic Serif, ring shadows). Toda mudança de UI deve seguir.
+> - `docs/auth/ecommerce-integration.md` — passo-a-passo + footguns para integrar o app ecomerce.
+> - `bts.jsonc` — origem do scaffold (Better-T-Stack), apenas histórico.
 
 ---
-
-# Project Context
 
 ## Stack
 
-- Monorepo Bun workspaces + Turborepo. `apps/web` (Next 16, React 19), `packages/db` (Drizzle + Postgres/Supabase), `packages/auth` (Better Auth), `packages/env`, `packages/ui`.
-- IDs gerados via `crypto.randomUUID()` em server actions/scripts (sem nanoid).
-- DB workflow: edit schema em `packages/db/src/schema/*.ts` → `bun db:push` (dev) ou `bun db:generate` + `bun db:migrate` (prod). Env vem de `apps/web/.env`.
+| Camada | Versão | Onde |
+|---|---|---|
+| Runtime / package manager | Bun 1.3.11 | `package.json` (catalog) |
+| Build orquestrador | Turborepo 2.9.6 | `turbo.json` |
+| Frontend | Next 16.2 + React 19.2 | `apps/web` |
+| UI primitives | shadcn/ui + Tailwind 4.1 + Base UI React | `packages/ui` |
+| ORM | Drizzle 0.45 + node-postgres | `packages/db` |
+| DB | Supabase Postgres + Storage (`tool-images` bucket) | env: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_*` |
+| Auth | Better Auth 1.5.5 (dual instances) | `packages/auth` |
+| Env validation | `@t3-oss/env-core` + Zod | `packages/env` |
+| Linter / formatter | Biome 2.4.12 + Ultracite 7.6 | `biome.json` |
+| TypeScript | 6.0 (strict, noUncheckedIndexedAccess) | `packages/config/tsconfig.base.json` |
 
-## Schema `tool` (campos-chave)
-
-Arquivos: `packages/db/src/schema/tools.ts`, `inventory.ts`, `stock-movements.ts`, `promotions.ts`.
-
-Tabela `tool` inclui:
-- Identificação: `sku` (unique), `model` (curto, agrupa variantes de voltagem), `invoiceModel` (código fábrica, não-unique — repete legitimamente), `barcode` (unique), `manufacturerName`, `countryOfOrigin`.
-- Classificação: `productType` enum `'machine'|'equipment'|'part'|'accessory'`, `status` enum `'draft'|'active'|'discontinued'|'out_of_stock'`.
-- Fiscais: `hsCode`, `ncm`, `cest`.
-- Físicos: `weightKg`, `lengthCm`, `widthCm`, `heightCm`.
-- Técnicos: `voltage`, `powerWatts`, `frequencyHz`, `warrantyMonths`.
-- Visibilidade site pública = `status = 'active' AND visibleOnSite = true` (coexistem).
-
-Variantes de voltagem (127V/220V) = rows `tool` separadas compartilhando `model`. Não há tabela `tool_variant`.
-
-`stock_level` tem `minQty` + `reorderPoint` por filial (check `reorder >= min`).
+IDs em server actions/scripts: **`crypto.randomUUID()`** (sem nanoid).
 
 ---
 
-# Ultracite Code Standards
+## Topologia
 
-This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
+```
+apps/
+  web/                    Next 16 dashboard (port 3001)
+    src/app/
+      login/              Pública
+      dashboard/          Protegida via requireCurrentSession
+        (inventory)/      Route group: tools/, stock/, promotions/
+        branches/, suppliers/
+        categories/       Árvore hierárquica (CRUD básico — Fase A)
+        orders/           (planejado Fase B) listagem, detalhe, status, notas
+        customers/        (planejado Fase C) clientes, leads, tags, exports
+        site/             (planejado Fase D) banners, settings, anúncios
+        reviews/          (planejado Fase E) moderação de avaliações
+      api/auth/[...all]/  Better Auth catch-all (dashboard)
+    src/lib/
+      auth-client.ts      Better Auth client (browser)
+      session.ts          getCurrentSession / requireRole helpers
+      permissions.ts      Capabilities + can() + requireCapability
+      consent.ts          LGPD: logConsent / revokeConsent / getActiveConsent
+      logger.ts           Logger central
+      supabase-server.ts  Service-role client (uploads)
 
-## Quick Reference
-
-- **Format code**: `bun x ultracite fix`
-- **Check for issues**: `bun x ultracite check`
-- **Diagnose setup**: `bun x ultracite doctor`
-
-Biome (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
-
----
-
-## Core Principles
-
-Write code that is **accessible, performant, type-safe, and maintainable**. Focus on clarity and explicit intent over brevity.
-
-### Type Safety & Explicitness
-
-- Use explicit types for function parameters and return values when they enhance clarity
-- Prefer `unknown` over `any` when the type is genuinely unknown
-- Use const assertions (`as const`) for immutable values and literal types
-- Leverage TypeScript's type narrowing instead of type assertions
-- Use meaningful variable names instead of magic numbers - extract constants with descriptive names
-
-### Modern JavaScript/TypeScript
-
-- Use arrow functions for callbacks and short functions
-- Prefer `for...of` loops over `.forEach()` and indexed `for` loops
-- Use optional chaining (`?.`) and nullish coalescing (`??`) for safer property access
-- Prefer template literals over string concatenation
-- Use destructuring for object and array assignments
-- Use `const` by default, `let` only when reassignment is needed, never `var`
-
-### Async & Promises
-
-- Always `await` promises in async functions - don't forget to use the return value
-- Use `async/await` syntax instead of promise chains for better readability
-- Handle errors appropriately in async code with try-catch blocks
-- Don't use async functions as Promise executors
-
-### React & JSX
-
-- Use function components over class components
-- Call hooks at the top level only, never conditionally
-- Specify all dependencies in hook dependency arrays correctly
-- Use the `key` prop for elements in iterables (prefer unique IDs over array indices)
-- Nest children between opening and closing tags instead of passing as props
-- Don't define components inside other components
-- Use semantic HTML and ARIA attributes for accessibility:
-  - Provide meaningful alt text for images
-  - Use proper heading hierarchy
-  - Add labels for form inputs
-  - Include keyboard event handlers alongside mouse events
-  - Use semantic elements (`<button>`, `<nav>`, etc.) instead of divs with roles
-
-### Error Handling & Debugging
-
-- Remove `console.log`, `debugger`, and `alert` statements from production code
-- Throw `Error` objects with descriptive messages, not strings or other values
-- Use `try-catch` blocks meaningfully - don't catch errors just to rethrow them
-- Prefer early returns over nested conditionals for error cases
-
-### Code Organization
-
-- Keep functions focused and under reasonable cognitive complexity limits
-- Extract complex conditions into well-named boolean variables
-- Use early returns to reduce nesting
-- Prefer simple conditionals over nested ternary operators
-- Group related code together and separate concerns
-
-### Security
-
-- Add `rel="noopener"` when using `target="_blank"` on links
-- Avoid `dangerouslySetInnerHTML` unless absolutely necessary
-- Don't use `eval()` or assign directly to `document.cookie`
-- Validate and sanitize user input
-
-### Performance
-
-- Avoid spread syntax in accumulators within loops
-- Use top-level regex literals instead of creating them in loops
-- Prefer specific imports over namespace imports
-- Avoid barrel files (index files that re-export everything)
-- Use proper image components (e.g., Next.js `<Image>`) over `<img>` tags
-
-### Framework-Specific Guidance
-
-**Next.js:**
-
-- Use Next.js `<Image>` component for images
-- Use `next/head` or App Router metadata API for head elements
-- Use Server Components for async data fetching instead of async Client Components
-
-**React 19+:**
-
-- Use ref as a prop instead of `React.forwardRef`
-
-**Solid/Svelte/Vue/Qwik:**
-
-- Use `class` and `for` attributes (not `className` or `htmlFor`)
+packages/
+  auth/   src/dashboard.ts, src/ecommerce.ts (instâncias isoladas)
+  db/     src/index.ts (createDb + db singleton); src/schema/*.ts
+  env/    src/server.ts (Zod-validated env)
+  ui/     src/components/* (50+ shadcn primitives) + src/styles/globals.css
+  config/ tsconfig.base.json (compartilhado)
+```
 
 ---
 
-## Testing
+## Comandos do dia-a-dia
 
-- Write assertions inside `it()` or `test()` blocks
-- Avoid done callbacks in async tests - use async/await instead
-- Don't use `.only` or `.skip` in committed code
-- Keep test suites reasonably flat - avoid excessive `describe` nesting
+```bash
+bun install                        # instalar
+bun dev:web                        # apenas o web em :3001 (preferido)
+bun dev                            # todos os apps em paralelo (Turbo TUI)
+bun check                          # ultracite check (lint+format dry-run)
+bun fix                            # ultracite fix (auto-format) — também roda como hook PostToolUse
+bun check-types                    # tsc --noEmit em todos os workspaces
 
-## When Biome Can't Help
+# DB (em desenvolvimento)
+bun db:push                        # drizzle-kit push (schema → DB sem migration)
+bun db:studio                      # UI inspetora de tabelas
+bun db:apply-triggers              # aplica src/migrations/_triggers.sql (anti-ciclo + idempotência)
 
-Biome's linter will catch most issues automatically. Focus your attention on:
+# DB (produção/staging)
+bun db:generate                    # cria SQL de migration versionada
+bun db:migrate                     # aplica migrations pendentes
 
-1. **Business logic correctness** - Biome can't validate your algorithms
-2. **Meaningful naming** - Use descriptive names for functions, variables, and types
-3. **Architecture decisions** - Component structure, data flow, and API design
-4. **Edge cases** - Handle boundary conditions and error states
-5. **User experience** - Accessibility, performance, and usability considerations
-6. **Documentation** - Add comments for complex logic, but prefer self-documenting code
+# DB scripts utilitários (em packages/db)
+bun --cwd packages/db db:seed-categories       # bootstrap 5 categorias raiz
+bun --cwd packages/db db:anonymize-client <id> # LGPD direito ao esquecimento
+
+bun clean                          # remove node_modules + caches Turbo/Next
+```
+
+Env de scripts em `packages/*/scripts/*` resolve `.env` via path múltiplo (commit `f0f2992`). Para rodar local: garantir `apps/web/.env` populado a partir de `apps/web/.env.example`.
+
+### Testes
+Não há suite ainda. Roadmap inclui Vitest (unit) + Playwright (E2E) — ver `docs/roadmap.md` quando criado. Por ora, validação = `bun check-types` + `bun fix` + smoke manual em `bun dev:web`.
 
 ---
 
-Most formatting and common issues are automatically fixed by Biome. Run `bun x ultracite fix` before committing to ensure compliance.
+## Auth — regras invioláveis
+
+Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, escopos disjuntos.
+
+| Instância | Import | Tabelas | Cookie prefix | trustedOrigins | Consumer |
+|---|---|---|---|---|---|
+| Dashboard (admin/manager/user) | `@emach/auth/dashboard` → `authDashboard`, `DashboardSession` | `user`, `session`, `account`, `verification` | default | `CORS_ORIGIN` | `apps/web` |
+| Ecomerce (clientes BR) | `@emach/auth/ecommerce` → `authEcommerce`, `EcommerceSession` | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | `ecommerce` | `ECOMMERCE_ORIGIN` | `apps/<futuro>` |
+
+**Invariantes (P0 — qualquer violação é bug crítico):**
+
+1. `apps/web` **nunca** importa `@emach/db/schema/client` nem `@emach/auth/ecommerce`. App ecomerce **nunca** importa `@emach/db/schema/auth`.
+2. `DashboardSession` ≠ `EcommerceSession`. Não há tipo "Session" genérico.
+3. **Nunca** setar `advanced.cookies.<name>.attributes.domain = ".emach.com.br"`. Apps em subdomínios distintos isolam por host.
+4. CPF/CNPJ: validação é responsabilidade do app (zod refine + dígito verificador). Sempre normalizar (só dígitos) antes de persistir em `client.document`.
+5. Migrations em prod: `drizzle-kit generate` + migration versionada. `--force` só em dev/staging.
+6. **Integração com app ecomerce externo (DB compartilhada)**: ambos escrevem na mesma DB Supabase via Drizzle. Admin **não** chama o app ecomerce; o app ecomerce **não** chama o admin. Coordenação acontece pelo schema compartilhado + endpoint `POST /api/internal/revalidate` (signed via `apiKey`) quando uma das pontas precisar invalidar cache da outra. Contrato em `docs/integration/admin-ecommerce.md`.
+
+**Roles dashboard**: `user.role` é `pgEnum('user_role', ['admin','manager','user'])` (Fase A — não é mais `text`). Verificação em **server actions sensíveis** via `requireCapability(cap)` em `apps/web/src/lib/permissions.ts` (capabilities granulares). Gates grosseiros ainda usam `requireRole("admin")` em layouts. `client` **não** tem `role`.
+
+**Env compartilhado:** `DATABASE_URL`, `BETTER_AUTH_SECRET` (ok enquanto subdomínios). **Específicos:** dashboard precisa `BETTER_AUTH_URL` + `CORS_ORIGIN`; ecomerce precisa `BETTER_AUTH_URL_ECOMMERCE` + `ECOMMERCE_ORIGIN` (fallbacks aceitáveis no env central).
+
+---
+
+## Schema Drizzle (`packages/db/src/schema/`)
+
+| Arquivo | Tabelas-chave | Notas |
+|---|---|---|
+| `auth.ts` | `user`, `session`, `account`, `verification` | `user.role` = `pgEnum('user_role', [...])`. |
+| `client.ts` | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | Campos BR (`country` default `"BR"`, `phone`, `document` unique nullable). |
+| `tools.ts` | `supplier`, `tool`, `toolImage` | `tool.sku`/`barcode` unique; `model` agrupa variantes de voltagem; `invoiceModel` repete legitimamente; visibilidade pública = `status='active' AND visibleOnSite=true`. **Categorias via `tool_category`** (M2M; uma `isPrimary=true`). |
+| `categories.ts` | `category`, `toolCategory` | Árvore com `parent_id` + `path`/`depth` materializados via trigger pl/pgSQL. Anti-ciclo + cascade de path. Depth máximo 5. |
+| `inventory.ts` | `branch`, `stockLevel` | `stockLevel` tem `minQty` + `reorderPoint` + check `quantity >= 0` (oversell guard). |
+| `promotions.ts` | `promotion`, `promotionTool` | Cupons via `promotion.type='promocode'` (não há tabela `coupon`). |
+| `stock-movements.ts` | `stockMovement` | Audit trail; `actorType` (`user`/`apiKey`/`system`) + `actorId` + `apiKeyId`; partial unique index garante idempotência de débito de venda; check `delta != 0`. |
+| `api-keys.ts` | `apiKey` | `scopes` + `allowedTags` (text[]) controlam escopo. GIN index em scopes. |
+| `consent-log.ts` | `consentLog` | LGPD: TOS/privacy/marketing/cookies por client/lead. Helper em `apps/web/src/lib/consent.ts`. |
+
+**Variantes de voltagem (127V/220V):** rows `tool` separadas compartilhando `model`. **Não há** tabela `tool_variant`.
+
+**Triggers PL/pgSQL** em `packages/db/src/migrations/_triggers.sql` (Drizzle Kit não gera triggers — aplicar via `bun db:apply-triggers`).
+
+`packages/db/src/index.ts` exporta `createDb()` (factory, usada em `@emach/auth/*`) e `db` (singleton, usado em server actions). Manter o factory para auth (evita ciclo de import com env). Em código novo do app, prefira `import { db } from "@emach/db"`.
+
+---
+
+## Design system — `DESIGN.md`
+
+Sistema "Claude/Anthropic" — paleta exclusivamente **warm-toned**. Toda decisão de UI deve passar pelo doc.
+
+**Paleta crítica (memorize ou consulte sempre):**
+- Brand CTA: Terracotta `#c96442`
+- Page bg: Parchment `#f5f4ed`
+- Card surface: Ivory `#faf9f5`
+- Text primário: Anthropic Near Black `#141413`
+- Text secundário: Olive Gray `#5e5d59`
+- Bordas claras: Cream `#f0eee6`
+
+**Não:** cool blue-grays, gradientes tradicionais, sharp corners <6px, `<img>` puro, sans-serif para títulos, pure white de fundo, drop shadow pesado, injeção de HTML cru via APIs perigosas.
+**Sim:** Anthropic Serif weight 500 para headlines (1 só weight), ring shadows `0px 0px 0px 1px`, line-height 1.60 em body, `<Image>` do Next, alternância light/dark de seções.
+
+Toda revisão de componente UI: **rodar a skill `web-design-guidelines` antes de aprovar**.
+
+---
+
+## Skills locais (`.claude/skills/` → `.agents/skills/`)
+
+Skills carregadas localmente. Use a tool `Skill` quando o gatilho bater.
+
+| Skill | Quando usar |
+|---|---|
+| `better-auth-best-practices` | Configurar/auditar Better Auth, plugins, sessões, adapters. |
+| `next-best-practices` | RSC boundaries, async APIs, route handlers, image/font, metadata Next 16. |
+| `next-cache-components` | PPR, `use cache`, `cacheLife`, `cacheTag`, `updateTag` no Next 16. |
+| `shadcn` | Adicionar/buscar/auditar componentes shadcn — preferir antes de instalar manual. |
+| `supabase-postgres-best-practices` | Performance, schema, RLS, índices, queries. |
+| `turborepo` | Mexer em `turbo.json`, pipelines, caching, `--filter`, `--affected`, boundaries. |
+| `ultracite` | Setup, lint/format, troubleshoot Biome. Em geral basta `bun fix`. |
+| `vercel-composition-patterns` | Refator de boolean-prop hell, compound components, render props, React 19 APIs. |
+| `vercel-react-best-practices` | Performance React/Next, bundling, data fetching, Server Components. |
+| `web-design-guidelines` | **Obrigatório** antes de aprovar qualquer mudança visual significativa. |
+
+---
+
+## MCP servers (`.mcp.json`)
+
+Quando usar cada um:
+
+| MCP | Quando |
+|---|---|
+| `context7` | Docs atualizadas de **qualquer** lib. Em código novo / migração / refactor com import: invocar via skill `context7-cli` (preferida — passa pelo RTK). |
+| `better-auth` (Inkeep HTTP) | Pergunta específica sobre API/feature do Better Auth — usar quando context7 não basta. |
+| `supabase` (HTTP) | `list_tables`, `execute_sql`, `generate_typescript_types`, `get_advisors`, logs. **Confirmar custo** antes de operações pagas. |
+| `shadcn` | `search_items_in_registries`, `view_items_in_registries`, `get_add_command_for_items`, `get_audit_checklist`. Preferir sobre `npx shadcn add` quando precisar inspecionar antes. |
+| `next-devtools` | `nextjs_docs`, `nextjs_call`, `browser_eval`, `enable_cache_components` (Next 16 Cache Components flag). |
+| `better-t-stack` | Apenas histórico — projeto já scaffoldado. Usar só para `bts_add_addons` se decidir adicionar feature do BTS. |
+
+---
+
+## Workflow de mudança
+
+1. **Antes de tocar UI:** abrir `DESIGN.md` na seção relevante; invocar `web-design-guidelines` se for review.
+2. **Antes de tocar schema:** editar `packages/db/src/schema/*.ts` → em dev `bun db:push`; em prod `bun db:generate` + commit da migration + `bun db:migrate`.
+3. **Server actions:** sempre `"use server"` no topo, `await requireRole(...)` ou `requireCurrentSession()` no início, validar input com Zod, normalizar antes de persistir.
+4. **Imagens em forms:** upload via `uploadToolImage(formData)` (`apps/web/.../image-actions.ts`), URL pública vai pro form; deletar via `deleteToolImage(url)`.
+5. **Validação targeted first:** `bun check-types` no workspace alterado, `bun fix` no escopo. Suite inteira só se necessário.
+6. **Commit:** Conventional Commits em **PT** (`feat:`/`fix:`/`refactor:`/`test:`/`docs:`/`chore:`). **Nunca** commitar sem confirmação explícita do user.
+7. **PR:** `gh pr create` — título <70 chars, body com Summary + Test plan.
+
+---
+
+## Anti-patterns banidos (P0/P1)
+
+- `console.log/warn/error` em código de produção. Use `logger` de `apps/web/src/lib/logger.ts` (export default). Em catch de server action, usar `throw new Error("mensagem")` que server action devolve como `actionResult.error`.
+- `: any`, `<any>`, `as any`, `@ts-ignore`, `@ts-expect-error` (exceto em `.next/` gerado).
+- `key={index}` em `.map()` — usar ID estável.
+- `<img>` puro — sempre `next/image`.
+- `React.forwardRef` — React 19 usa `ref` como prop normal.
+- Barrel files (`index.ts` que só re-exporta) em `packages/ui/src`, `apps/web/src`, `packages/auth/src`.
+- `async function` em Client Component (`"use client"`) — usar Server Component pra fetching.
+- `.forEach()` em hot path — preferir `for...of`.
+- `new RegExp(...)` ou regex literal dentro de loops — extrair top-level.
+- `target="_blank"` sem `rel="noopener"`.
+- APIs que injetam HTML não-sanitizado (a "perigosa" do React) — evitar exceto necessidade absoluta com sanitização (DOMPurify).
+- Cool blue-grays no design — todo neutro tem undertone yellow-brown.
+
+---
+
+## Gotchas conhecidos
+
+- **`createDb()` × `db` singleton:** `packages/auth/src/*` chama `createDb()` para evitar ciclo de import; resto do código usa `db` exportado. Não "consertar" forçando um padrão único.
+- **Hook auto-format:** `.claude/settings.json` registra PostToolUse hook que roda `bun fix --skip=correctness/noUnusedImports` após `Write`/`Edit`. Se sumir esse hook, edições deixam de auto-formatar.
+- **`.env` resolution para scripts em `packages/*`:** carregamos de múltiplos paths (commit `f0f2992`). Não assumir `process.cwd()`.
+- **Master Part List:** importação de 34 SKUs em status `draft` (commit `421189b`) — itens existem mas não são públicos. Para promover, mudar `status` para `active` + `visibleOnSite=true`.
+- **Schema regredido em `2dacae8`:** corrigido em `35972ca`. Histórico para contexto se algo parecer estranho em `inventory.ts`/`tools.ts`.
+
+---
+
+## Onde se aprofundar
+
+- **Auth ecomerce passo-a-passo:** `docs/auth/ecommerce-integration.md`
+- **Contrato DB compartilhada (admin ↔ site ecomerce):** `docs/integration/admin-ecommerce.md`
+- **Sidebar logout design:** `docs/superpowers/specs/2026-04-23-sidebar-logout-design.md`
+- **Ultracite rules detalhadas:** rodar skill `ultracite` ou consultar `node_modules/ultracite/dist`
+- **Tudo de UI:** `DESIGN.md`

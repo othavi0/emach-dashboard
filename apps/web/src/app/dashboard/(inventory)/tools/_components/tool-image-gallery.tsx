@@ -10,8 +10,8 @@ import { deleteToolImage, uploadToolImage } from "./image-actions";
 
 export interface ToolImage {
 	id?: string;
-	url: string;
 	sortOrder: number;
+	url: string;
 }
 
 interface ToolImageGalleryProps {
@@ -42,6 +42,7 @@ export function ToolImageGallery({
 	const remaining = max - sorted.length;
 
 	const uploadFiles = useCallback(
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: upload com validação e fallback parcial; refactor em docs/plano-melhorias.md
 		async (files: FileList | File[]) => {
 			const fileArray = Array.from(files);
 			const slotsLeft = max - sorted.length;
@@ -104,7 +105,7 @@ export function ToolImageGallery({
 		if (!files || files.length === 0) {
 			return;
 		}
-		void uploadFiles(files);
+		uploadFiles(files).catch(() => undefined);
 		event.target.value = "";
 	}
 
@@ -113,7 +114,7 @@ export function ToolImageGallery({
 		setIsDragging(false);
 		const files = event.dataTransfer.files;
 		if (files.length > 0) {
-			void uploadFiles(files);
+			uploadFiles(files).catch(() => undefined);
 		}
 	}
 
@@ -151,8 +152,8 @@ export function ToolImageGallery({
 		onChange(reindex(next));
 		try {
 			await deleteToolImage(target.url);
-		} catch (err) {
-			console.warn("Falha ao limpar imagem do storage", err);
+		} catch {
+			toast.error("Não foi possível remover a imagem do storage.");
 		}
 	}
 
@@ -199,9 +200,7 @@ export function ToolImageGallery({
 										src={img.url}
 									/>
 									<div className="flex min-w-0 flex-1 flex-col">
-										<span className="truncate text-xs">
-											Imagem {index + 1}
-										</span>
+										<span className="truncate text-xs">Imagem {index + 1}</span>
 										{isPrimary && (
 											<span className="font-medium text-[10px] text-primary uppercase tracking-wide">
 												● Principal
@@ -248,7 +247,7 @@ export function ToolImageGallery({
 										<Button
 											aria-label="Remover imagem"
 											onClick={() => {
-												void removeAt(index);
+												removeAt(index).catch(() => undefined);
 											}}
 											size="sm"
 											type="button"

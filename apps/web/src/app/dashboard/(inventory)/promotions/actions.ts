@@ -6,7 +6,9 @@ import { tool } from "@emach/db/schema/tools";
 import { and, eq, gte, inArray, isNull, lte, ne, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import { requireCurrentSession, requireRole } from "@/lib/session";
+import { logger } from "@/lib/logger";
+import { requireCapability } from "@/lib/permissions";
+import { requireCurrentSession } from "@/lib/session";
 import {
 	createPromotionSchema,
 	type PromotionFormValues,
@@ -57,7 +59,7 @@ export interface PromotionDetail extends PromotionListItem {
 // ---------------------------------------------------------------------------
 
 function dbErrorMessage(error: unknown): string {
-	console.error("[promotions] DB error:", error);
+	logger.error("promotions", error);
 	return "Erro ao processar operação. Tente novamente.";
 }
 
@@ -269,7 +271,7 @@ export async function createPromotion(
 	input: PromotionFormValues
 ): Promise<ActionResult<{ id: string }>> {
 	try {
-		await requireRole("admin");
+		await requireCapability("promotions.manage");
 	} catch (error) {
 		return safeRequireRole(error);
 	}
@@ -338,7 +340,7 @@ export async function updatePromotion(
 	input: PromotionFormValues
 ): Promise<ActionResult<{ id: string }>> {
 	try {
-		await requireRole("admin");
+		await requireCapability("promotions.manage");
 	} catch (error) {
 		return safeRequireRole(error);
 	}
@@ -412,7 +414,7 @@ export async function deletePromotion(
 	id: string
 ): Promise<ActionResult<undefined>> {
 	try {
-		await requireRole("admin");
+		await requireCapability("promotions.manage");
 	} catch (error) {
 		return safeRequireRole(error);
 	}
