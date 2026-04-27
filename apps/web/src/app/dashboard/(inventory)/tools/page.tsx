@@ -58,7 +58,11 @@ async function fetchTools(params: {
 	if (params.status) {
 		const statuses = params.status.split(",").filter(Boolean);
 		if (statuses.length > 0) {
-			conditions.push(sql`t.status = ANY(${statuses})`);
+			const placeholders = sql.join(
+				statuses.map((s) => sql`${s}`),
+				sql`, `
+			);
+			conditions.push(sql`t.status IN (${placeholders})`);
 		}
 	}
 	if (params.ncm) {
