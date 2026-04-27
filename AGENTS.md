@@ -12,12 +12,12 @@
 
 ## Documentos a consultar
 
-| Para... | Ler |
-|---|---|
-| Regras gerais (stack, auth, schema, anti-patterns, gotchas) | `.claude/CLAUDE.md` |
-| Sistema visual completo (paleta, tipografia, componentes, depth) | `DESIGN.md` |
-| Integrar app ecomerce passo-a-passo (footguns, env, cookies) | `docs/auth/ecommerce-integration.md` |
-| Setup inicial / scripts disponíveis | `README.md` |
+| Para...                                                          | Ler                                  |
+| ---------------------------------------------------------------- | ------------------------------------ |
+| Regras gerais (stack, auth, schema, anti-patterns, gotchas)      | `.claude/CLAUDE.md`                  |
+| Sistema visual completo (paleta, tipografia, componentes, depth) | `DESIGN.md`                          |
+| Integrar app ecomerce passo-a-passo (footguns, env, cookies)     | `docs/auth/ecommerce-integration.md` |
+| Setup inicial / scripts disponíveis                              | `README.md`                          |
 
 ## Invariantes que NUNCA podem ser violados
 
