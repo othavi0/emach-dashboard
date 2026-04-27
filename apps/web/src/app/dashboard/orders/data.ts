@@ -185,7 +185,11 @@ export async function listOrders(
 	const to = normalizeDateParam(filters.to);
 
 	if (tab.statuses) {
-		conditions.push(sql`o.status = ANY(${tab.statuses})`);
+		const placeholders = sql.join(
+			tab.statuses.map((s) => sql`${s}`),
+			sql`, `
+		);
+		conditions.push(sql`o.status IN (${placeholders})`);
 	}
 	if (query) {
 		conditions.push(
