@@ -37,16 +37,19 @@ apps/
       login/              Pública
       dashboard/          Protegida via requireCurrentSession
         (inventory)/      Route group: tools/, stock/, promotions/
-        branches/, suppliers/, product-types/
-        orders/           (planejado) listagem, detalhe, status, notas
-        customers/        (planejado) clientes, leads, tags, exports
-        site/             (planejado) banners, settings, anúncios
-        reviews/          (planejado) moderação de avaliações
-        categories/       (planejado) árvore hierárquica
+        branches/, suppliers/
+        categories/       Árvore hierárquica (CRUD básico — Fase A)
+        orders/           (planejado Fase B) listagem, detalhe, status, notas
+        customers/        (planejado Fase C) clientes, leads, tags, exports
+        site/             (planejado Fase D) banners, settings, anúncios
+        reviews/          (planejado Fase E) moderação de avaliações
       api/auth/[...all]/  Better Auth catch-all (dashboard)
     src/lib/
       auth-client.ts      Better Auth client (browser)
       session.ts          getCurrentSession / requireRole helpers
+      permissions.ts      Capabilities + can() + requireCapability
+      consent.ts          LGPD: logConsent / revokeConsent / getActiveConsent
+      logger.ts           Logger central
       supabase-server.ts  Service-role client (uploads)
 
 packages/
@@ -72,10 +75,15 @@ bun check-types                    # tsc --noEmit em todos os workspaces
 # DB (em desenvolvimento)
 bun db:push                        # drizzle-kit push (schema → DB sem migration)
 bun db:studio                      # UI inspetora de tabelas
+bun db:apply-triggers              # aplica src/migrations/_triggers.sql (anti-ciclo + idempotência)
 
 # DB (produção/staging)
 bun db:generate                    # cria SQL de migration versionada
 bun db:migrate                     # aplica migrations pendentes
+
+# DB scripts utilitários (em packages/db)
+bun --cwd packages/db db:seed-categories       # bootstrap 5 categorias raiz
+bun --cwd packages/db db:anonymize-client <id> # LGPD direito ao esquecimento
 
 bun clean                          # remove node_modules + caches Turbo/Next
 ```
@@ -105,7 +113,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 5. Migrations em prod: `drizzle-kit generate` + migration versionada. `--force` só em dev/staging.
 6. **Integração com app ecomerce externo (DB compartilhada)**: ambos escrevem na mesma DB Supabase via Drizzle. Admin **não** chama o app ecomerce; o app ecomerce **não** chama o admin. Coordenação acontece pelo schema compartilhado + endpoint `POST /api/internal/revalidate` (signed via `apiKey`) quando uma das pontas precisar invalidar cache da outra. Contrato em `docs/integration/admin-ecommerce.md`.
 
-**Roles dashboard** (extensíveis): `user.role = "admin" | "manager" | "user"`. Verificação via `requireRole("admin")` em server actions. `client` **não** tem `role`.
+**Roles dashboard**: `user.role` é `pgEnum('user_role', ['admin','manager','user'])` (Fase A — não é mais `text`). Verificação em **server actions sensíveis** via `requireCapability(cap)` em `apps/web/src/lib/permissions.ts` (capabilities granulares). Gates grosseiros ainda usam `requireRole("admin")` em layouts. `client` **não** tem `role`.
 
 **Env compartilhado:** `DATABASE_URL`, `BETTER_AUTH_SECRET` (ok enquanto subdomínios). **Específicos:** dashboard precisa `BETTER_AUTH_URL` + `CORS_ORIGIN`; ecomerce precisa `BETTER_AUTH_URL_ECOMMERCE` + `ECOMMERCE_ORIGIN` (fallbacks aceitáveis no env central).
 
@@ -115,15 +123,19 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 
 | Arquivo | Tabelas-chave | Notas |
 |---|---|---|
-| `auth.ts` | `user`, `session`, `account`, `verification` | Better Auth padrão. `user.role` enum extensível. |
+| `auth.ts` | `user`, `session`, `account`, `verification` | `user.role` = `pgEnum('user_role', [...])`. |
 | `client.ts` | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | Campos BR (`country` default `"BR"`, `phone`, `document` unique nullable). |
-| `tools.ts` | `productType`, `supplier`, `tool`, `toolImage` | `tool.sku`/`barcode` unique; `model` agrupa variantes de voltagem; `invoiceModel` repete legitimamente; enums `productType` e `status`; visibilidade pública = `status='active' AND visibleOnSite=true`. |
-| `inventory.ts` | `branch`, `stockLevel` | `stockLevel` tem `minQty` + `reorderPoint` por filial (check `reorder >= min`). |
-| `promotions.ts` | `promotion`, `promotionTool` | Join tools↔promotion. |
-| `stock-movements.ts` | `stockMovement` | Audit trail; enum `StockMovementReason`. |
-| `api-keys.ts` | `apiKey` | Credenciais externas. |
+| `tools.ts` | `supplier`, `tool`, `toolImage` | `tool.sku`/`barcode` unique; `model` agrupa variantes de voltagem; `invoiceModel` repete legitimamente; visibilidade pública = `status='active' AND visibleOnSite=true`. **Categorias via `tool_category`** (M2M; uma `isPrimary=true`). |
+| `categories.ts` | `category`, `toolCategory` | Árvore com `parent_id` + `path`/`depth` materializados via trigger pl/pgSQL. Anti-ciclo + cascade de path. Depth máximo 5. |
+| `inventory.ts` | `branch`, `stockLevel` | `stockLevel` tem `minQty` + `reorderPoint` + check `quantity >= 0` (oversell guard). |
+| `promotions.ts` | `promotion`, `promotionTool` | Cupons via `promotion.type='promocode'` (não há tabela `coupon`). |
+| `stock-movements.ts` | `stockMovement` | Audit trail; `actorType` (`user`/`apiKey`/`system`) + `actorId` + `apiKeyId`; partial unique index garante idempotência de débito de venda; check `delta != 0`. |
+| `api-keys.ts` | `apiKey` | `scopes` + `allowedTags` (text[]) controlam escopo. GIN index em scopes. |
+| `consent-log.ts` | `consentLog` | LGPD: TOS/privacy/marketing/cookies por client/lead. Helper em `apps/web/src/lib/consent.ts`. |
 
 **Variantes de voltagem (127V/220V):** rows `tool` separadas compartilhando `model`. **Não há** tabela `tool_variant`.
+
+**Triggers PL/pgSQL** em `packages/db/src/migrations/_triggers.sql` (Drizzle Kit não gera triggers — aplicar via `bun db:apply-triggers`).
 
 `packages/db/src/index.ts` exporta `createDb()` (factory, usada em `@emach/auth/*`) e `db` (singleton, usado em server actions). Manter o factory para auth (evita ciclo de import com env). Em código novo do app, prefira `import { db } from "@emach/db"`.
 
