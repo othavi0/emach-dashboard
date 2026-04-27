@@ -7,7 +7,7 @@ import { stockMovement } from "@emach/db/schema/stock-movements";
 import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import { requireRole } from "@/lib/session";
+import { requireCapability } from "@/lib/permissions";
 import {
 	type StockAdjustmentInput,
 	stockAdjustmentSchema,
@@ -23,7 +23,7 @@ export type ActionResult<T = undefined> =
 
 interface AdjustStockSuccess {
 	delta: number;
-	movementId: string;
+	movementId: string | null;
 	newQty: number;
 	previousQty: number;
 }
@@ -38,7 +38,7 @@ function errorMessage(error: unknown): string {
 export async function adjustStock(
 	input: StockAdjustmentInput
 ): Promise<ActionResult<AdjustStockSuccess>> {
-	const session = await requireRole("admin");
+	const session = await requireCapability("stock.adjust");
 
 	const parsed = stockAdjustmentSchema.safeParse(input);
 	if (!parsed.success) {
@@ -51,13 +51,10 @@ export async function adjustStock(
 
 	const { toolId, branchId, newQty, reason, reasonNote } = parsed.data;
 	const actorId = session.user.id;
-	const movementId = crypto.randomUUID();
 
 	try {
 		const result = await db.transaction(async (tx) => {
-			// Step 1: Materialize row with quantity 0 if missing. ON CONFLICT DO
-			// NOTHING is a no-op if the row already exists. This guarantees the
-			// SELECT FOR UPDATE in step 2 will find a row to lock.
+			// Step 1: Materialize row with quantity 0 if missing.
 			await tx
 				.insert(stockLevel)
 				.values({
@@ -70,9 +67,7 @@ export async function adjustStock(
 					target: [stockLevel.toolId, stockLevel.branchId],
 				});
 
-			// Step 2: Lock the row. After step 1 the row is guaranteed to exist.
-			// If another transaction is inside its own sequence, this SELECT blocks
-			// until that transaction commits, then reads the committed quantity.
+			// Step 2: Lock the row.
 			const lockedRows = await tx
 				.select({ quantity: stockLevel.quantity })
 				.from(stockLevel)
@@ -84,7 +79,12 @@ export async function adjustStock(
 			const previousQty = lockedRows[0]?.quantity ?? 0;
 			const delta = newQty - previousQty;
 
-			// Step 4: Update quantity (row is already locked from step 2).
+			// No-op when nothing changed: stockMovement.delta_non_zero rejeitaria.
+			if (delta === 0) {
+				return { previousQty, delta, movementId: null as string | null };
+			}
+
+			// Step 3: Update quantity.
 			await tx
 				.update(stockLevel)
 				.set({ quantity: newQty, updatedAt: new Date() })
@@ -92,7 +92,8 @@ export async function adjustStock(
 					and(eq(stockLevel.toolId, toolId), eq(stockLevel.branchId, branchId))
 				);
 
-			// Step 5: Insert movement row in the same transaction.
+			// Step 4: Insert movement row with actor audit.
+			const movementId = crypto.randomUUID();
 			await tx.insert(stockMovement).values({
 				id: movementId,
 				toolId,
@@ -100,12 +101,13 @@ export async function adjustStock(
 				previousQty,
 				newQty,
 				delta,
-				reason: reason ?? null,
+				reason: reason ?? "ajuste_inventario",
 				reasonNote: reasonNote ?? null,
+				actorType: "user",
 				actorId,
 			});
 
-			return { previousQty, delta };
+			return { previousQty, delta, movementId: movementId as string | null };
 		});
 
 		revalidatePath("/dashboard/stock");
@@ -119,7 +121,7 @@ export async function adjustStock(
 				previousQty: result.previousQty,
 				newQty,
 				delta: result.delta,
-				movementId,
+				movementId: result.movementId,
 			},
 		};
 	} catch (error) {
@@ -130,7 +132,7 @@ export async function adjustStock(
 export async function updateStockThresholds(
 	input: StockThresholdInput
 ): Promise<ActionResult> {
-	await requireRole("admin");
+	await requireCapability("stock.adjust");
 
 	const parsed = stockThresholdSchema.safeParse(input);
 	if (!parsed.success) {
@@ -145,7 +147,6 @@ export async function updateStockThresholds(
 
 	try {
 		await db.transaction(async (tx) => {
-			// Materialize the row if it doesn't exist yet.
 			await tx
 				.insert(stockLevel)
 				.values({
@@ -160,7 +161,6 @@ export async function updateStockThresholds(
 					target: [stockLevel.toolId, stockLevel.branchId],
 				});
 
-			// Update thresholds on the existing row.
 			await tx
 				.update(stockLevel)
 				.set({ minQty, reorderPoint, updatedAt: new Date() })
