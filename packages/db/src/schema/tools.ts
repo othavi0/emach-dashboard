@@ -13,18 +13,6 @@ import {
 
 export type ToolStatus = "draft" | "active" | "discontinued" | "out_of_stock";
 
-export const productType = pgTable("product_type", {
-	id: text("id").primaryKey(),
-	name: text("name").notNull(),
-	slug: text("slug").unique(),
-	description: text("description"),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-	updatedAt: timestamp("updated_at")
-		.defaultNow()
-		.$onUpdate(() => /* @__PURE__ */ new Date())
-		.notNull(),
-});
-
 export const supplier = pgTable("supplier", {
 	id: text("id").primaryKey(),
 	name: text("name").notNull(),
@@ -66,9 +54,6 @@ export const tool = pgTable(
 		price: numeric("price", { precision: 10, scale: 2 }),
 		cost: numeric("cost", { precision: 10, scale: 2 }),
 		visibleOnSite: boolean("visible_on_site").notNull().default(true),
-		productTypeId: text("product_type_id")
-			.notNull()
-			.references(() => productType.id, { onDelete: "restrict" }),
 		supplierId: text("supplier_id").references(() => supplier.id, {
 			onDelete: "set null",
 		}),
@@ -79,7 +64,6 @@ export const tool = pgTable(
 			.notNull(),
 	},
 	(table) => [
-		index("tool_product_type_id_idx").on(table.productTypeId),
 		index("tool_supplier_id_idx").on(table.supplierId),
 		index("tool_model_idx").on(table.model),
 		index("tool_invoice_model_idx").on(table.invoiceModel),
@@ -112,10 +96,6 @@ export const tool = pgTable(
 	]
 );
 
-export const productTypeRelations = relations(productType, ({ many }) => ({
-	tools: many(tool),
-}));
-
 export const supplierRelations = relations(supplier, ({ many }) => ({
 	tools: many(tool),
 }));
@@ -138,10 +118,6 @@ export const toolImage = pgTable(
 );
 
 export const toolRelations = relations(tool, ({ one, many }) => ({
-	productType: one(productType, {
-		fields: [tool.productTypeId],
-		references: [productType.id],
-	}),
 	supplier: one(supplier, {
 		fields: [tool.supplierId],
 		references: [supplier.id],
@@ -150,14 +126,9 @@ export const toolRelations = relations(tool, ({ one, many }) => ({
 }));
 
 export const toolImageRelations = relations(toolImage, ({ one }) => ({
-	tool: one(tool, {
-		fields: [toolImage.toolId],
-		references: [tool.id],
-	}),
+	tool: one(tool, { fields: [toolImage.toolId], references: [tool.id] }),
 }));
 
-export type ProductType = typeof productType.$inferSelect;
-export type NewProductType = typeof productType.$inferInsert;
 export type Supplier = typeof supplier.$inferSelect;
 export type NewSupplier = typeof supplier.$inferInsert;
 export type Tool = typeof tool.$inferSelect;
