@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Card,
 	CardContent,
@@ -6,7 +7,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@emach/ui/components/card";
-import { buttonVariants } from "@emach/ui/components/button";
 import { sql } from "drizzle-orm";
 import Link from "next/link";
 
@@ -14,7 +14,7 @@ import { requireCurrentSession } from "@/lib/session";
 
 interface InventoryStats extends Record<string, number> {
 	branches_total: number;
-	product_types_total: number;
+	categories_total: number;
 	items_to_reorder: number;
 	stock_total: number;
 	suppliers_total: number;
@@ -30,7 +30,7 @@ async function fetchInventoryStats(): Promise<InventoryStats> {
 			(SELECT COUNT(*)::int FROM tool WHERE visible_on_site = true) AS tools_visible,
 			(SELECT COUNT(*)::int FROM tool WHERE visible_on_site = false) AS tools_hidden,
 			(SELECT COALESCE(SUM(quantity), 0)::int FROM stock_level) AS stock_total,
-			(SELECT COUNT(*)::int FROM product_type) AS product_types_total,
+			(SELECT COUNT(*)::int FROM category) AS categories_total,
 			(SELECT COUNT(*)::int FROM supplier) AS suppliers_total,
 			(SELECT COUNT(*)::int FROM branch) AS branches_total,
 			(SELECT COUNT(*)::int FROM stock_level WHERE reorder_point > 0 AND quantity <= reorder_point) AS items_to_reorder
@@ -75,10 +75,10 @@ export default async function DashboardPage() {
 					value={stats.items_to_reorder}
 				/>
 				<StatCard
-					description="Cadastrados"
-					href="/dashboard/product-types"
-					title="Tipos de produto"
-					value={stats.product_types_total}
+					description="Hierarquia do catálogo"
+					href="/dashboard/categories"
+					title="Categorias"
+					value={stats.categories_total}
 				/>
 				<StatCard
 					description="Cadastrados"
@@ -166,7 +166,11 @@ function StatCard({
 }
 
 const QUICK_ACTIONS = [
-	{ href: "/dashboard/tools", label: "Abrir ferramentas", variant: "secondary" },
+	{
+		href: "/dashboard/tools",
+		label: "Abrir ferramentas",
+		variant: "secondary",
+	},
 	{ href: "/dashboard/stock", label: "Estoque geral", variant: "secondary" },
 	{
 		href: "/dashboard/stock/branches",
@@ -175,5 +179,9 @@ const QUICK_ACTIONS = [
 	},
 	{ href: "/dashboard/branches", label: "Filiais", variant: "ghost" },
 	{ href: "/dashboard/suppliers", label: "Fornecedores", variant: "ghost" },
-	{ href: "/dashboard/product-types", label: "Tipos de produto", variant: "ghost" },
+	{
+		href: "/dashboard/categories",
+		label: "Categorias",
+		variant: "ghost",
+	},
 ] as const;

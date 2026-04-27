@@ -5,7 +5,8 @@ import { supplier, tool } from "@emach/db/schema/tools";
 import { asc, eq, ilike, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import { requireCurrentSession, requireRole } from "@/lib/session";
+import { requireCapability } from "@/lib/permissions";
+import { requireCurrentSession } from "@/lib/session";
 import {
 	type SupplierFormValues,
 	supplierSchema,
@@ -139,7 +140,7 @@ export async function getSupplier(id: string): Promise<SupplierDetail | null> {
 export async function createSupplier(
 	input: SupplierFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireRole("admin");
+	await requireCapability("suppliers.manage");
 
 	const parsed = supplierSchema.safeParse(input);
 	if (!parsed.success) {
@@ -164,7 +165,7 @@ export async function updateSupplier(
 	id: string,
 	input: SupplierFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireRole("admin");
+	await requireCapability("suppliers.manage");
 
 	const parsed = supplierSchema.safeParse(input);
 	if (!parsed.success) {
@@ -187,11 +188,14 @@ export async function updateSupplier(
 }
 
 export async function deleteSupplier(id: string): Promise<ActionResult> {
-	await requireRole("admin");
+	await requireCapability("suppliers.manage");
 
 	try {
 		await db.transaction(async (tx) => {
-			await tx.update(tool).set({ supplierId: null }).where(eq(tool.supplierId, id));
+			await tx
+				.update(tool)
+				.set({ supplierId: null })
+				.where(eq(tool.supplierId, id));
 			await tx.delete(supplier).where(eq(supplier.id, id));
 		});
 	} catch (error) {

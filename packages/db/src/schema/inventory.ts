@@ -45,10 +45,8 @@ export const stockLevel = pgTable(
 		index("stock_level_branch_id_idx").on(table.branchId),
 		check("min_qty_non_negative", sql`${table.minQty} >= 0`),
 		check("reorder_point_non_negative", sql`${table.reorderPoint} >= 0`),
-		check(
-			"reorder_gte_min",
-			sql`${table.reorderPoint} >= ${table.minQty}`
-		),
+		check("reorder_gte_min", sql`${table.reorderPoint} >= ${table.minQty}`),
+		check("quantity_non_negative", sql`${table.quantity} >= 0`),
 	]
 );
 

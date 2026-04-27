@@ -10,11 +10,10 @@ const ROLE_WEIGHT: Record<UserRole, number> = {
 	user: 1,
 };
 
-export const getCurrentSession = async (): Promise<DashboardSession | null> => {
-	return authDashboard.api.getSession({
+export const getCurrentSession = async (): Promise<DashboardSession | null> =>
+	authDashboard.api.getSession({
 		headers: await headers(),
 	});
-};
 
 export const requireCurrentSession = async (): Promise<DashboardSession> => {
 	const session = await getCurrentSession();
@@ -26,7 +25,9 @@ export const requireCurrentSession = async (): Promise<DashboardSession> => {
 	return session;
 };
 
-export const requireRole = async (role: UserRole): Promise<DashboardSession> => {
+export const requireRole = async (
+	role: UserRole
+): Promise<DashboardSession> => {
 	const session = await requireCurrentSession();
 	const currentRole = (session.user.role ?? "user") as UserRole;
 

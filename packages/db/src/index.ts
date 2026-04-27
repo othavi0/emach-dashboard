@@ -11,6 +11,12 @@ import {
 	userRelations,
 } from "./schema/auth";
 import {
+	category,
+	categoryRelations,
+	toolCategory,
+	toolCategoryRelations,
+} from "./schema/categories";
+import {
 	client,
 	clientAccount,
 	clientAccountRelations,
@@ -21,6 +27,7 @@ import {
 	clientSessionRelations,
 	clientVerification,
 } from "./schema/client";
+import { consentLog, consentLogRelations } from "./schema/consent-log";
 import {
 	branch,
 	branchRelations,
@@ -38,8 +45,6 @@ import {
 	stockMovementRelations,
 } from "./schema/stock-movements";
 import {
-	productType,
-	productTypeRelations,
 	supplier,
 	supplierRelations,
 	tool,
@@ -55,6 +60,8 @@ const schema = {
 	apiKeyRelations,
 	branch,
 	branchRelations,
+	category,
+	categoryRelations,
 	client,
 	clientAccount,
 	clientAccountRelations,
@@ -64,8 +71,8 @@ const schema = {
 	clientSession,
 	clientSessionRelations,
 	clientVerification,
-	productType,
-	productTypeRelations,
+	consentLog,
+	consentLogRelations,
 	promotion,
 	promotionRelations,
 	promotionTool,
@@ -79,6 +86,8 @@ const schema = {
 	supplier,
 	supplierRelations,
 	tool,
+	toolCategory,
+	toolCategoryRelations,
 	toolImage,
 	toolImageRelations,
 	toolRelations,

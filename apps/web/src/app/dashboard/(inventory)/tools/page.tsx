@@ -1,5 +1,5 @@
 import { db } from "@emach/db";
-import { productType } from "@emach/db/schema/tools";
+import { category } from "@emach/db/schema/categories";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Empty,
@@ -17,8 +17,8 @@ import { type ToolRow, ToolsTable } from "./_components/tools-table";
 
 interface PageProps {
 	searchParams: Promise<{
+		categoryId?: string;
 		ncm?: string;
-		productType?: string;
 		q?: string;
 		search?: string;
 		status?: string;
@@ -26,16 +26,16 @@ interface PageProps {
 	}>;
 }
 
-async function fetchProductTypes() {
+async function fetchCategories() {
 	return db
-		.select({ id: productType.id, name: productType.name })
-		.from(productType)
-		.orderBy(asc(productType.name));
+		.select({ id: category.id, name: category.name })
+		.from(category)
+		.orderBy(asc(category.path));
 }
 
 async function fetchTools(params: {
+	categoryId?: string;
 	ncm?: string;
-	productType?: string;
 	search?: string;
 	status?: string;
 	visible?: string;
@@ -45,8 +45,10 @@ async function fetchTools(params: {
 	if (params.search) {
 		conditions.push(ilike(sql`t.name`, `%${params.search}%`));
 	}
-	if (params.productType) {
-		conditions.push(sql`t.product_type_id = ${params.productType}`);
+	if (params.categoryId) {
+		conditions.push(
+			sql`EXISTS (SELECT 1 FROM tool_category tc WHERE tc.tool_id = t.id AND tc.category_id = ${params.categoryId})`
+		);
 	}
 	if (params.visible === "true") {
 		conditions.push(sql`t.visible_on_site = true`);
@@ -76,7 +78,7 @@ async function fetchTools(params: {
 		status: string;
 		image_url: string | null;
 		visible_on_site: boolean;
-		product_type_name: string | null;
+		primary_category_name: string | null;
 		supplier_name: string | null;
 		total_stock: number;
 	}>(sql`
@@ -95,15 +97,20 @@ async function fetchTools(params: {
 				LIMIT 1
 			) AS image_url,
 			t.visible_on_site,
-			pt.name AS product_type_name,
+			(
+				SELECT c.name
+				FROM tool_category tc
+				JOIN category c ON c.id = tc.category_id
+				WHERE tc.tool_id = t.id AND tc.is_primary = true
+				LIMIT 1
+			) AS primary_category_name,
 			s.name AS supplier_name,
 			COALESCE(SUM(sl.quantity), 0)::int AS total_stock
 		FROM tool t
-		LEFT JOIN product_type pt ON pt.id = t.product_type_id
 		LEFT JOIN supplier s ON s.id = t.supplier_id
 		LEFT JOIN stock_level sl ON sl.tool_id = t.id
 		${whereClause}
-		GROUP BY t.id, pt.name, s.name
+		GROUP BY t.id, s.name
 		ORDER BY t.name ASC
 	`);
 
@@ -116,7 +123,7 @@ async function fetchTools(params: {
 		status: r.status,
 		imageUrl: r.image_url,
 		visibleOnSite: r.visible_on_site,
-		productTypeName: r.product_type_name,
+		primaryCategoryName: r.primary_category_name,
 		supplierName: r.supplier_name,
 		totalStock: Number(r.total_stock ?? 0),
 	}));
@@ -129,17 +136,13 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 	const params = await searchParams;
 	const search = params.search ?? params.q;
 
-	const [tools, productTypes] = await Promise.all([
+	const [tools, categories] = await Promise.all([
 		fetchTools({ ...params, search }),
-		fetchProductTypes(),
+		fetchCategories(),
 	]);
 
 	const hasFilters = Boolean(
-		search ||
-			params.visible ||
-			params.status ||
-			params.productType ||
-			params.ncm,
+		search || params.visible || params.status || params.categoryId || params.ncm
 	);
 	const isEmpty = tools.length === 0;
 
@@ -162,7 +165,7 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 				)}
 			</div>
 
-			<ToolFilters productTypes={productTypes} />
+			<ToolFilters categories={categories} />
 
 			{isEmpty ? (
 				<Empty>

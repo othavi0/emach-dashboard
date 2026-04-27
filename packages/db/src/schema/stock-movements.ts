@@ -1,6 +1,15 @@
-import { relations } from "drizzle-orm";
-import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import {
+	check,
+	index,
+	integer,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 
+import { apiKey } from "./api-keys";
 import { user } from "./auth";
 import { branch } from "./inventory";
 import { tool } from "./tools";
@@ -11,6 +20,9 @@ export type StockMovementReason =
 	| "ajuste_inventario"
 	| "perda"
 	| "outro";
+
+export const actorTypeEnum = pgEnum("actor_type", ["user", "apiKey", "system"]);
+export type ActorType = (typeof actorTypeEnum.enumValues)[number];
 
 export const stockMovement = pgTable(
 	"stock_movement",
@@ -25,9 +37,17 @@ export const stockMovement = pgTable(
 		previousQty: integer("previous_qty").notNull(),
 		newQty: integer("new_qty").notNull(),
 		delta: integer("delta").notNull(),
-		reason: text("reason").$type<StockMovementReason>(),
+		reason: text("reason").$type<StockMovementReason>().notNull(),
 		reasonNote: text("reason_note"),
+		// referência ao pedido (Fase B cria as tabelas; aqui só prepara)
+		orderId: text("order_id"),
+		orderItemId: text("order_item_id"),
+		// auditoria
+		actorType: actorTypeEnum("actor_type").notNull().default("system"),
 		actorId: text("actor_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		apiKeyId: text("api_key_id").references(() => apiKey.id, {
 			onDelete: "set null",
 		}),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -37,7 +57,21 @@ export const stockMovement = pgTable(
 			table.toolId,
 			table.createdAt.desc()
 		),
-		index("stock_movement_actor_id_idx").on(table.actorId),
+		index("stock_movement_order_idx").on(table.orderId),
+		index("stock_movement_actor_idx").on(
+			table.actorType,
+			table.actorId,
+			table.apiKeyId
+		),
+		check("delta_non_zero", sql`${table.delta} <> 0`),
+		check(
+			"actor_coherence",
+			sql`(
+				(${table.actorType} = 'user'   AND ${table.actorId}   IS NOT NULL AND ${table.apiKeyId} IS NULL)
+				OR (${table.actorType} = 'apiKey' AND ${table.apiKeyId} IS NOT NULL AND ${table.actorId} IS NULL)
+				OR (${table.actorType} = 'system' AND ${table.actorId} IS NULL  AND ${table.apiKeyId} IS NULL)
+			)`
+		),
 	]
 );
 
@@ -53,6 +87,10 @@ export const stockMovementRelations = relations(stockMovement, ({ one }) => ({
 	actor: one(user, {
 		fields: [stockMovement.actorId],
 		references: [user.id],
+	}),
+	apiKey: one(apiKey, {
+		fields: [stockMovement.apiKeyId],
+		references: [apiKey.id],
 	}),
 }));
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
 	Sidebar,
 	SidebarContent,
@@ -17,6 +16,7 @@ import { Skeleton } from "@emach/ui/components/skeleton";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -63,8 +63,8 @@ const NAV_GROUPS: NavGroup[] = [
 		label: "Cadastros",
 		items: [
 			{
-				label: "Tipos de produto",
-				href: "/dashboard/product-types" as Route,
+				label: "Categorias",
+				href: "/dashboard/categories" as Route,
 			},
 			{
 				label: "Fornecedores",
@@ -79,10 +79,15 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 function isToolStockPath(pathname: string): boolean {
-	return pathname.startsWith("/dashboard/tools/") && pathname.endsWith("/stock");
+	return (
+		pathname.startsWith("/dashboard/tools/") && pathname.endsWith("/stock")
+	);
 }
 
-function isActive(pathname: string, item: Pick<NavItem, "exact" | "href">): boolean {
+function isActive(
+	pathname: string,
+	item: Pick<NavItem, "exact" | "href">
+): boolean {
 	const href = item.href;
 	if (href === DASHBOARD_HREF) {
 		return pathname === DASHBOARD_HREF;
@@ -137,7 +142,7 @@ function FooterContent({
 						aria-disabled={isSigningOut}
 						disabled={isSigningOut}
 						onClick={() => {
-							void onSignOut();
+							onSignOut().catch(() => undefined);
 						}}
 						render={
 							<button type="button">

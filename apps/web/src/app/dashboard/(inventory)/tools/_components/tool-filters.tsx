@@ -13,25 +13,25 @@ import { useEffect, useState } from "react";
 
 import { TOOL_STATUS_LABELS, TOOL_STATUS_OPTIONS } from "./tool-schema";
 
-interface ProductTypeOption {
+interface CategoryOption {
 	id: string;
 	name: string;
 }
 
 interface ToolFiltersProps {
-	productTypes: ProductTypeOption[];
+	categories: CategoryOption[];
 }
 
 const DEBOUNCE_MS = 300;
 const ALL = "__all__";
 
-export function ToolFilters({ productTypes }: ToolFiltersProps) {
+export function ToolFilters({ categories }: ToolFiltersProps) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const urlSearch = searchParams.get("search") ?? searchParams.get("q") ?? "";
 
 	const [search, setSearch] = useState(urlSearch);
-	const currentProductType = searchParams.get("productType") ?? ALL;
+	const currentCategoryId = searchParams.get("categoryId") ?? ALL;
 	const currentVisibility = searchParams.get("visible") ?? ALL;
 	const currentStatus = searchParams.get("status") ?? ALL;
 	const urlNcm = searchParams.get("ncm") ?? "";
@@ -108,28 +108,28 @@ export function ToolFilters({ productTypes }: ToolFiltersProps) {
 			<div className="flex flex-col gap-1 md:w-56">
 				<label
 					className="text-muted-foreground text-xs"
-					htmlFor="tool-product-type"
+					htmlFor="tool-category"
 				>
-					Tipo de produto
+					Categoria
 				</label>
 				<Select
-					onValueChange={(v) => updateParam("productType", v)}
-					value={currentProductType}
+					onValueChange={(v) => updateParam("categoryId", v)}
+					value={currentCategoryId}
 				>
-					<SelectTrigger id="tool-product-type">
+					<SelectTrigger id="tool-category">
 						<SelectValue>
 							{(v: string) =>
 								v === ALL
-									? "Todos"
-									: (productTypes.find((p) => p.id === v)?.name ?? "Todos")
+									? "Todas"
+									: (categories.find((c) => c.id === v)?.name ?? "Todas")
 							}
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value={ALL}>Todos</SelectItem>
-						{productTypes.map((p) => (
-							<SelectItem key={p.id} value={p.id}>
-								{p.name}
+						<SelectItem value={ALL}>Todas</SelectItem>
+						{categories.map((c) => (
+							<SelectItem key={c.id} value={c.id}>
+								{c.name}
 							</SelectItem>
 						))}
 					</SelectContent>
@@ -166,10 +166,7 @@ export function ToolFilters({ productTypes }: ToolFiltersProps) {
 			</div>
 
 			<div className="flex flex-col gap-1 md:w-44">
-				<label
-					className="text-muted-foreground text-xs"
-					htmlFor="tool-status"
-				>
+				<label className="text-muted-foreground text-xs" htmlFor="tool-status">
 					Status
 				</label>
 				<Select

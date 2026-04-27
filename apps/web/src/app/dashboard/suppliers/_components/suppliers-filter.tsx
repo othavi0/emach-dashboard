@@ -43,7 +43,10 @@ export function SuppliersFilter({ initialSearch }: SuppliersFilterProps) {
 
 	return (
 		<div className="flex flex-col gap-1 md:max-w-md">
-			<label className="text-muted-foreground text-xs" htmlFor="supplier-search">
+			<label
+				className="text-muted-foreground text-xs"
+				htmlFor="supplier-search"
+			>
 				Buscar por nome, e-mail ou telefone
 			</label>
 			<Input

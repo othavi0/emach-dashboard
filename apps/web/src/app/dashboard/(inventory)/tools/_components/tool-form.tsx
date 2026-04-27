@@ -1,8 +1,10 @@
 "use client";
 
 import { Button } from "@emach/ui/components/button";
+import { Checkbox } from "@emach/ui/components/checkbox";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
+import { RadioGroup, RadioGroupItem } from "@emach/ui/components/radio-group";
 import {
 	Select,
 	SelectContent,
@@ -31,9 +33,12 @@ import {
 	VOLTAGE_OPTIONS,
 } from "./tool-schema";
 
-interface ProductTypeOption {
+interface CategoryOption {
+	depth: number;
 	id: string;
 	name: string;
+	path: string;
+	slug: string;
 }
 
 interface SupplierOption {
@@ -42,7 +47,7 @@ interface SupplierOption {
 }
 
 interface ToolFormProps {
-	productTypes: ProductTypeOption[];
+	categories: CategoryOption[];
 	defaultValues: Partial<ToolFormValues>;
 	existingSlug?: string;
 	mode: "create" | "edit";
@@ -81,7 +86,9 @@ function formatBRL(reais: number | undefined): string {
 
 function parseDecimal(display: string): number | undefined {
 	const cleaned = display.replace(",", ".").replace(/[^\d.]/g, "");
-	if (!cleaned) return undefined;
+	if (!cleaned) {
+		return;
+	}
 	const n = Number(cleaned);
 	return Number.isNaN(n) ? undefined : n;
 }
@@ -117,17 +124,19 @@ const EMPTY_VALUES: ToolFormValues = {
 	heightCm: undefined,
 	price: undefined,
 	cost: undefined,
-	productTypeId: "",
+	categoryIds: [],
+	primaryCategoryId: "",
 	supplierId: "",
 	visibleOnSite: true,
 	images: [],
 };
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: form monolítico com múltiplas seções; refactor em docs/plano-melhorias.md
 export function ToolForm({
 	mode,
 	toolId,
 	defaultValues,
-	productTypes,
+	categories,
 	suppliers,
 	existingSlug,
 }: ToolFormProps) {
@@ -203,10 +212,7 @@ export function ToolForm({
 	}
 
 	return (
-		<form
-			className="flex w-full flex-col gap-6"
-			onSubmit={handleSubmit}
-		>
+		<form className="flex w-full flex-col gap-6" onSubmit={handleSubmit}>
 			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas
@@ -522,34 +528,85 @@ export function ToolForm({
 					Classificação
 				</h2>
 
-				<div className="grid gap-4 md:grid-cols-2">
+				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="productTypeId">Tipo de produto</Label>
-						<Select
-							onValueChange={(v) => update("productTypeId", v ?? "")}
-							value={values.productTypeId}
-						>
-							<SelectTrigger id="productTypeId">
-								<SelectValue placeholder="Selecione um tipo">
-									{(v: string) =>
-										productTypes.find((p) => p.id === v)?.name ??
-										"Selecione um tipo"
-									}
-								</SelectValue>
-							</SelectTrigger>
-							<SelectContent>
-								{productTypes.map((p) => (
-									<SelectItem key={p.id} value={p.id}>
-										{p.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						{errors.productTypeId && (
-							<p className="text-destructive text-xs">{errors.productTypeId}</p>
+						<Label>Categorias</Label>
+						<div className="flex flex-col gap-1 rounded border border-border p-3">
+							{categories.map((cat) => {
+								const checked = values.categoryIds.includes(cat.id);
+								return (
+									<div
+										className="flex items-center gap-2"
+										key={cat.id}
+										style={{ paddingLeft: cat.depth * 16 }}
+									>
+										<Checkbox
+											checked={checked}
+											id={`cat-${cat.id}`}
+											onCheckedChange={(v) => {
+												if (v) {
+													const next = [...values.categoryIds, cat.id];
+													update("categoryIds", next);
+													if (next.length === 1) {
+														update("primaryCategoryId", cat.id);
+													}
+												} else {
+													const next = values.categoryIds.filter(
+														(c) => c !== cat.id
+													);
+													update("categoryIds", next);
+													if (values.primaryCategoryId === cat.id) {
+														update("primaryCategoryId", next[0] ?? "");
+													}
+												}
+											}}
+										/>
+										<label
+											className="cursor-pointer text-sm"
+											htmlFor={`cat-${cat.id}`}
+										>
+											{cat.name}
+										</label>
+									</div>
+								);
+							})}
+						</div>
+						{errors.categoryIds && (
+							<p className="text-destructive text-xs">{errors.categoryIds}</p>
 						)}
 					</div>
 
+					{values.categoryIds.length > 0 && (
+						<div className="flex flex-col gap-2">
+							<Label>Categoria principal</Label>
+							<RadioGroup
+								onValueChange={(v) => update("primaryCategoryId", v)}
+								value={values.primaryCategoryId}
+							>
+								{categories
+									.filter((cat) => values.categoryIds.includes(cat.id))
+									.map((cat) => (
+										<div className="flex items-center gap-2" key={cat.id}>
+											<RadioGroupItem id={`primary-${cat.id}`} value={cat.id} />
+											<label
+												className="cursor-pointer text-sm"
+												htmlFor={`primary-${cat.id}`}
+											>
+												{cat.name}
+											</label>
+										</div>
+									))}
+							</RadioGroup>
+							{errors.primaryCategoryId && (
+								<p className="text-destructive text-xs">
+									{errors.primaryCategoryId}
+								</p>
+							)}
+						</div>
+					)}
+				</div>
+
+				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="supplierId">Fornecedor</Label>
 						<Select

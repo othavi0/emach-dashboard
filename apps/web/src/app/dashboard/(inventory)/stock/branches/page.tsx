@@ -109,7 +109,10 @@ export default async function BranchesStockPage({
 					name="search"
 					placeholder="Buscar ferramenta ou SKU nesta filial"
 				/>
-				<button className={buttonVariants({ variant: "secondary" })} type="submit">
+				<button
+					className={buttonVariants({ variant: "secondary" })}
+					type="submit"
+				>
 					Buscar
 				</button>
 			</form>
