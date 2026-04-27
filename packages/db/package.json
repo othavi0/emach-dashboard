@@ -15,6 +15,7 @@
     "db:studio": "drizzle-kit studio",
     "db:migrate": "drizzle-kit migrate",
     "db:apply-triggers": "bun run scripts/apply-triggers.ts",
+    "db:seed-categories": "bun run scripts/seed-categories.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:supabase:start": "supabase start --workdir .",
