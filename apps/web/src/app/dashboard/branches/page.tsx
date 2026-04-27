@@ -8,6 +8,7 @@ import {
 } from "@emach/ui/components/empty";
 import Link from "next/link";
 
+import { PageHeader } from "@/components/page-header";
 import { requireCurrentSession } from "@/lib/session";
 import { BranchesTable, type BranchRow } from "./_components/branches-table";
 import { listBranches } from "./actions";
@@ -30,24 +31,21 @@ export default async function BranchesPage() {
 	const isEmpty = branches.length === 0;
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="font-serif text-2xl">Filiais</h1>
-					<p className="text-muted-foreground text-sm">
-						Gerencie as filiais que recebem estoque e aparecem em ajustes de
-						inventário.
-					</p>
-				</div>
-				{canMutate && (
-					<Link
-						className={buttonVariants({ variant: "default" })}
-						href="/dashboard/branches/new"
-					>
-						Nova filial
-					</Link>
-				)}
-			</div>
+		<>
+			<PageHeader
+				action={
+					canMutate ? (
+						<Link
+							className={buttonVariants({ variant: "default" })}
+							href="/dashboard/branches/new"
+						>
+							Nova filial
+						</Link>
+					) : null
+				}
+				description="Gerencie as filiais que recebem estoque e aparecem em ajustes de inventário."
+				title="Filiais"
+			/>
 
 			{isEmpty ? (
 				<Empty>
@@ -72,6 +70,6 @@ export default async function BranchesPage() {
 			) : (
 				<BranchesTable branches={branches} canMutate={canMutate} />
 			)}
-		</div>
+		</>
 	);
 }

@@ -27,7 +27,8 @@
       "!**/wrangler.jsonc",
       "!**/.source",
       "!**/convex/_generated",
-      "!packages/db/src/migrations"
+      "!packages/db/src/migrations",
+      "!**/.superpowers"
     ]
   },
   "formatter": {

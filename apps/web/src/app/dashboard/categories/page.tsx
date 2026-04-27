@@ -9,6 +9,7 @@ import {
 } from "@emach/ui/components/empty";
 import Link from "next/link";
 
+import { PageHeader } from "@/components/page-header";
 import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import {
@@ -37,24 +38,21 @@ export default async function CategoriesPage() {
 	const isEmpty = categories.length === 0;
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="font-serif text-2xl">Categorias</h1>
-					<p className="text-muted-foreground text-sm">
-						Hierarquia de categorias usada para classificar ferramentas no
-						catálogo. Subcategorias herdam o caminho do pai.
-					</p>
-				</div>
-				{canMutate && (
-					<Link
-						className={buttonVariants({ variant: "default" })}
-						href="/dashboard/categories/new"
-					>
-						Nova categoria
-					</Link>
-				)}
-			</div>
+		<>
+			<PageHeader
+				action={
+					canMutate ? (
+						<Link
+							className={buttonVariants({ variant: "default" })}
+							href="/dashboard/categories/new"
+						>
+							Nova categoria
+						</Link>
+					) : null
+				}
+				description="Hierarquia de categorias usada para classificar ferramentas no catálogo. Subcategorias herdam o caminho do pai."
+				title="Categorias"
+			/>
 
 			{isEmpty ? (
 				<Empty>
@@ -79,6 +77,6 @@ export default async function CategoriesPage() {
 			) : (
 				<CategoriesTable canMutate={canMutate} categories={categories} />
 			)}
-		</div>
+		</>
 	);
 }

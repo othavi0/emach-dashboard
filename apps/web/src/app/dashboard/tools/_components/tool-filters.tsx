@@ -8,8 +8,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@emach/ui/components/select";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+
+import { FiltersBar } from "@/components/filters-bar";
+import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
 
 import { TOOL_STATUS_LABELS, TOOL_STATUS_OPTIONS } from "./tool-schema";
 
@@ -22,77 +23,36 @@ interface ToolFiltersProps {
 	categories: CategoryOption[];
 }
 
-const DEBOUNCE_MS = 300;
 const ALL = "__all__";
+const BASE = "/dashboard/tools";
+const TRACKED = [
+	"search",
+	"q",
+	"categoryId",
+	"visible",
+	"status",
+	"ncm",
+] as const;
 
 export function ToolFilters({ categories }: ToolFiltersProps) {
-	const router = useRouter();
-	const searchParams = useSearchParams();
-	const urlSearch = searchParams.get("search") ?? searchParams.get("q") ?? "";
-
-	const [search, setSearch] = useState(urlSearch);
+	const { searchParams, setParam, clearAll, hasActive } = useFilterState({
+		basePath: BASE,
+		trackedKeys: TRACKED,
+	});
+	const [search, setSearch] = useDebouncedParam({
+		basePath: BASE,
+		key: "search",
+	});
+	const [ncm, setNcm] = useDebouncedParam({
+		basePath: BASE,
+		key: "ncm",
+	});
 	const currentCategoryId = searchParams.get("categoryId") ?? ALL;
 	const currentVisibility = searchParams.get("visible") ?? ALL;
 	const currentStatus = searchParams.get("status") ?? ALL;
-	const urlNcm = searchParams.get("ncm") ?? "";
-	const [ncm, setNcm] = useState(urlNcm);
-
-	useEffect(() => {
-		setNcm(urlNcm);
-	}, [urlNcm]);
-
-	useEffect(() => {
-		setSearch(urlSearch);
-	}, [urlSearch]);
-
-	useEffect(() => {
-		if (search === urlSearch) {
-			return;
-		}
-		const handle = setTimeout(() => {
-			const next = new URLSearchParams(searchParams.toString());
-			next.delete("q");
-			if (search) {
-				next.set("search", search);
-			} else {
-				next.delete("search");
-			}
-			const qs = next.toString();
-			router.replace(qs ? `/dashboard/tools?${qs}` : "/dashboard/tools");
-		}, DEBOUNCE_MS);
-		return () => clearTimeout(handle);
-	}, [router, search, searchParams, urlSearch]);
-
-	function updateParam(key: string, value: string | null) {
-		const next = new URLSearchParams(searchParams.toString());
-		if (!value || value === ALL) {
-			next.delete(key);
-		} else {
-			next.set(key, value);
-		}
-		const qs = next.toString();
-		router.replace(qs ? `/dashboard/tools?${qs}` : "/dashboard/tools");
-	}
-
-	useEffect(() => {
-		if (ncm === urlNcm) {
-			return;
-		}
-		const handle = setTimeout(() => {
-			const next = new URLSearchParams(searchParams.toString());
-			if (ncm) {
-				next.set("ncm", ncm);
-			} else {
-				next.delete("ncm");
-			}
-			const qs = next.toString();
-			router.replace(qs ? `/dashboard/tools?${qs}` : "/dashboard/tools");
-		}, DEBOUNCE_MS);
-		return () => clearTimeout(handle);
-	}, [ncm, urlNcm, router, searchParams]);
 
 	return (
-		<div className="flex flex-col gap-3 md:flex-row md:items-end">
+		<FiltersBar hasActive={hasActive} onClear={clearAll}>
 			<div className="flex flex-1 flex-col gap-1">
 				<label className="text-muted-foreground text-xs" htmlFor="tool-q">
 					Buscar por nome
@@ -113,7 +73,7 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 					Categoria
 				</label>
 				<Select
-					onValueChange={(v) => updateParam("categoryId", v)}
+					onValueChange={(v) => setParam("categoryId", v === ALL ? null : v)}
 					value={currentCategoryId}
 				>
 					<SelectTrigger id="tool-category">
@@ -141,7 +101,7 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 					Visibilidade
 				</label>
 				<Select
-					onValueChange={(v) => updateParam("visible", v)}
+					onValueChange={(v) => setParam("visible", v === ALL ? null : v)}
 					value={currentVisibility}
 				>
 					<SelectTrigger id="tool-vis">
@@ -170,7 +130,7 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 					Status
 				</label>
 				<Select
-					onValueChange={(v) => updateParam("status", v)}
+					onValueChange={(v) => setParam("status", v === ALL ? null : v)}
 					value={currentStatus}
 				>
 					<SelectTrigger id="tool-status">
@@ -209,6 +169,6 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 					value={ncm}
 				/>
 			</div>
-		</div>
+		</FiltersBar>
 	);
 }

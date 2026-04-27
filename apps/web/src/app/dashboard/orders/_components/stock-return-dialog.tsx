@@ -12,9 +12,12 @@ import {
 	DialogTrigger,
 } from "@emach/ui/components/dialog";
 import {
-	NativeSelect,
-	NativeSelectOption,
-} from "@emach/ui/components/native-select";
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@emach/ui/components/select";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
@@ -167,21 +170,32 @@ export function StockReturnDialog({
 									>
 										Filial de retorno
 									</label>
-									<NativeSelect
+									<Select
 										disabled={!state?.checked}
-										id={branchSelectId}
-										onChange={(event) =>
-											updateBranch(item.id, event.target.value)
+										onValueChange={(v) =>
+											updateBranch(item.id, !v || v === "__none__" ? "" : v)
 										}
-										value={state?.branchId ?? ""}
+										value={state?.branchId || "__none__"}
 									>
-										<NativeSelectOption value="">Selecionar</NativeSelectOption>
-										{branches.map((branch) => (
-											<NativeSelectOption key={branch.id} value={branch.id}>
-												{branch.name}
-											</NativeSelectOption>
-										))}
-									</NativeSelect>
+										<SelectTrigger id={branchSelectId}>
+											<SelectValue>
+												{(v: string) =>
+													v === "__none__"
+														? "Selecionar"
+														: (branches.find((b) => b.id === v)?.name ??
+															"Selecionar")
+												}
+											</SelectValue>
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="__none__">Selecionar</SelectItem>
+											{branches.map((branch) => (
+												<SelectItem key={branch.id} value={branch.id}>
+													{branch.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 								</div>
 							</div>
 						);

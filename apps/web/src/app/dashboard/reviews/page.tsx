@@ -5,14 +5,12 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
-import {
-	NativeSelect,
-	NativeSelectOption,
-} from "@emach/ui/components/native-select";
 import Link from "next/link";
 
+import { PageHeader } from "@/components/page-header";
 import { requireCapability } from "@/lib/permissions";
 import { ReviewQueueTable } from "./_components/review-queue-table";
+import { ReviewsFilters } from "./_components/reviews-filters";
 import { listReviews, REVIEW_STATUS_LABELS } from "./data";
 
 interface ReviewsPageProps {
@@ -35,38 +33,13 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
 			: "pending";
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div>
-				<h1 className="font-serif text-2xl">Avaliações</h1>
-				<p className="text-muted-foreground text-sm">
-					Fila simples de moderação com foco em reviews pendentes do site.
-				</p>
-			</div>
+		<>
+			<PageHeader
+				description="Fila simples de moderação com foco em reviews pendentes do site."
+				title="Avaliações"
+			/>
 
-			<form
-				action="/dashboard/reviews"
-				className="flex max-w-xs flex-col gap-1"
-			>
-				<label
-					className="text-muted-foreground text-xs"
-					htmlFor="reviews-status"
-				>
-					Status
-				</label>
-				<NativeSelect
-					defaultValue={currentStatus}
-					id="reviews-status"
-					name="status"
-				>
-					<NativeSelectOption value="pending">Pendentes</NativeSelectOption>
-					<NativeSelectOption value="approved">Aprovadas</NativeSelectOption>
-					<NativeSelectOption value="rejected">Rejeitadas</NativeSelectOption>
-					<NativeSelectOption value="spam">Spam</NativeSelectOption>
-				</NativeSelect>
-				<button className="sr-only" type="submit">
-					Filtrar
-				</button>
-			</form>
+			<ReviewsFilters />
 
 			{reviews.length === 0 ? (
 				<Empty>
@@ -90,6 +63,6 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
 			) : (
 				<ReviewQueueTable reviews={reviews} />
 			)}
-		</div>
+		</>
 	);
 }

@@ -20,7 +20,7 @@ export default async function DashboardLayout({
 					<SidebarTrigger />
 					<span className="font-serif text-base">emach</span>
 				</header>
-				{children}
+				<div className="flex w-full flex-col gap-6 px-6 py-6">{children}</div>
 			</SidebarInset>
 		</SidebarProvider>
 	);
