@@ -10,9 +10,12 @@ import {
 } from "@emach/ui/components/card";
 import { Input } from "@emach/ui/components/input";
 import {
-	NativeSelect,
-	NativeSelectOption,
-} from "@emach/ui/components/native-select";
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@emach/ui/components/select";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
@@ -185,21 +188,33 @@ export function OrderActionsPanel({
 										Filial responsável
 									</label>
 									<div className="flex gap-2">
-										<NativeSelect
-											className="w-full"
-											id="branch-assign"
-											onChange={(event) => setBranchId(event.target.value)}
-											value={branchId}
+										<Select
+											onValueChange={(v) =>
+												setBranchId(!v || v === "__none__" ? "" : v)
+											}
+											value={branchId || "__none__"}
 										>
-											<NativeSelectOption value="">
-												Selecionar filial
-											</NativeSelectOption>
-											{branches.map((branch) => (
-												<NativeSelectOption key={branch.id} value={branch.id}>
-													{branch.name}
-												</NativeSelectOption>
-											))}
-										</NativeSelect>
+											<SelectTrigger id="branch-assign">
+												<SelectValue>
+													{(v: string) =>
+														v === "__none__"
+															? "Selecionar filial"
+															: (branches.find((b) => b.id === v)?.name ??
+																"Selecionar filial")
+													}
+												</SelectValue>
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="__none__">
+													Selecionar filial
+												</SelectItem>
+												{branches.map((branch) => (
+													<SelectItem key={branch.id} value={branch.id}>
+														{branch.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 										<Button
 											disabled={isPending || !branchId}
 											onClick={handleAssignBranch}

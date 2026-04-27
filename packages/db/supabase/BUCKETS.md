@@ -37,7 +37,7 @@ Salvar a URL resultante em `tool_image.url` (uma linha por imagem, `sort_order` 
 
 ### Arquitetura de acesso
 
-Upload e delete acontecem **server-side** via server actions em `apps/web/src/app/dashboard/(inventory)/tools/_components/image-actions.ts` usando `supabaseAdmin` (`apps/web/src/lib/supabase-server.ts`) com `SUPABASE_SERVICE_ROLE_KEY`. Bucket RLS permanece fechado para `anon` — apenas leitura pública via URL direta.
+Upload e delete acontecem **server-side** via server actions em `apps/web/src/app/dashboard/tools/_components/image-actions.ts` usando `supabaseAdmin` (`apps/web/src/lib/supabase-server.ts`) com `SUPABASE_SERVICE_ROLE_KEY`. Bucket RLS permanece fechado para `anon` — apenas leitura pública via URL direta.
 
 Validações de tipo e tamanho (5 MB, JPG/PNG/WEBP) acontecem tanto no client (`tool-image-gallery.tsx`) quanto no server (`image-actions.ts`) — defesa em camadas.
 

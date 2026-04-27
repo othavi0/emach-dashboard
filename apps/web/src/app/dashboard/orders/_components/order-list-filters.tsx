@@ -1,10 +1,19 @@
+"use client";
+
+import { Badge } from "@emach/ui/components/badge";
 import { Input } from "@emach/ui/components/input";
 import {
-	NativeSelect,
-	NativeSelectOption,
-} from "@emach/ui/components/native-select";
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@emach/ui/components/select";
 import { Tabs, TabsList, TabsTrigger } from "@emach/ui/components/tabs";
 import Link from "next/link";
+
+import { FiltersBar } from "@/components/filters-bar";
+import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
 
 import type {
 	BranchOption,
@@ -19,41 +28,29 @@ interface OrderListFiltersProps {
 	filters: OrderListFilterState;
 }
 
-function buildHref(
-	filters: OrderListFilterState,
-	overrides: Partial<OrderListFilterState>
-): string {
+const BASE = "/dashboard/orders";
+const TRACKED = ["tab", "q", "from", "to", "branchId", "page"] as const;
+const BRANCH_ALL = "__all__";
+
+function buildTabHref(filters: OrderListFilterState, tabKey: string): string {
 	const params = new URLSearchParams();
-	const next = {
-		tab: overrides.tab ?? filters.tab,
-		q: overrides.q ?? filters.q,
-		from: overrides.from ?? filters.from,
-		to: overrides.to ?? filters.to,
-		branchId: overrides.branchId ?? filters.branchId,
-		page: overrides.page ?? filters.page,
-	};
-
-	if (next.tab && next.tab !== "all") {
-		params.set("tab", next.tab);
+	if (tabKey && tabKey !== "all") {
+		params.set("tab", tabKey);
 	}
-	if (next.q) {
-		params.set("q", next.q);
+	if (filters.q) {
+		params.set("q", filters.q);
 	}
-	if (next.from) {
-		params.set("from", next.from);
+	if (filters.from) {
+		params.set("from", filters.from);
 	}
-	if (next.to) {
-		params.set("to", next.to);
+	if (filters.to) {
+		params.set("to", filters.to);
 	}
-	if (next.branchId) {
-		params.set("branchId", next.branchId);
+	if (filters.branchId) {
+		params.set("branchId", filters.branchId);
 	}
-	if (next.page && next.page > 1) {
-		params.set("page", String(next.page));
-	}
-
-	const query = params.toString();
-	return query ? `/dashboard/orders?${query}` : "/dashboard/orders";
+	const qs = params.toString();
+	return qs ? `${BASE}?${qs}` : BASE;
 }
 
 function tabCount(
@@ -77,43 +74,52 @@ export function OrderFiltersPanel({
 }: OrderListFiltersProps) {
 	const currentTab = filters.tab ?? "all";
 
+	const { searchParams, setParam, clearAll, hasActive } = useFilterState({
+		basePath: BASE,
+		trackedKeys: TRACKED,
+	});
+	const [q, setQ] = useDebouncedParam({ basePath: BASE, key: "q" });
+	const [from, setFrom] = useDebouncedParam({ basePath: BASE, key: "from" });
+	const [to, setTo] = useDebouncedParam({ basePath: BASE, key: "to" });
+	const currentBranch = searchParams.get("branchId") ?? BRANCH_ALL;
+
 	return (
 		<div className="flex flex-col gap-4">
 			<Tabs value={currentTab}>
-				<TabsList className="max-w-full overflow-x-auto">
-					{ORDER_TABS.map((tab) => (
-						<TabsTrigger
-							key={tab.key}
-							nativeButton={false}
-							render={
-								<Link href={buildHref(filters, { page: 1, tab: tab.key })} />
-							}
-							value={tab.key}
-						>
-							{tab.label} ({tabCount(counts, tab.key, tab.statuses)})
-						</TabsTrigger>
-					))}
+				<TabsList scrollable>
+					{ORDER_TABS.map((tab) => {
+						const count = tabCount(counts, tab.key, tab.statuses);
+						return (
+							<TabsTrigger
+								key={tab.key}
+								nativeButton={false}
+								render={<Link href={buildTabHref(filters, tab.key)} />}
+								value={tab.key}
+							>
+								<span>{tab.label}</span>
+								<Badge className="ml-1.5" variant="secondary">
+									{count}
+								</Badge>
+							</TabsTrigger>
+						);
+					})}
 				</TabsList>
 			</Tabs>
 
-			<form
-				action="/dashboard/orders"
-				className="grid gap-3 lg:grid-cols-[2fr_1fr_1fr_1fr_auto]"
-			>
-				<input name="tab" type="hidden" value={currentTab} />
-				<div className="flex flex-col gap-1">
+			<FiltersBar hasActive={hasActive} onClear={clearAll}>
+				<div className="flex flex-1 flex-col gap-1">
 					<label className="text-muted-foreground text-xs" htmlFor="orders-q">
 						Buscar pedido ou cliente
 					</label>
 					<Input
-						defaultValue={filters.q ?? ""}
 						id="orders-q"
-						name="q"
+						onChange={(e) => setQ(e.target.value)}
 						placeholder="Ex: 2026-000123 ou Cliente"
+						value={q}
 					/>
 				</div>
 
-				<div className="flex flex-col gap-1">
+				<div className="flex flex-col gap-1 md:w-40">
 					<label
 						className="text-muted-foreground text-xs"
 						htmlFor="orders-from"
@@ -121,61 +127,58 @@ export function OrderFiltersPanel({
 						De
 					</label>
 					<Input
-						defaultValue={filters.from ?? ""}
 						id="orders-from"
-						name="from"
+						onChange={(e) => setFrom(e.target.value)}
 						type="date"
+						value={from}
 					/>
 				</div>
 
-				<div className="flex flex-col gap-1">
+				<div className="flex flex-col gap-1 md:w-40">
 					<label className="text-muted-foreground text-xs" htmlFor="orders-to">
 						Até
 					</label>
 					<Input
-						defaultValue={filters.to ?? ""}
 						id="orders-to"
-						name="to"
+						onChange={(e) => setTo(e.target.value)}
 						type="date"
+						value={to}
 					/>
 				</div>
 
-				<div className="flex flex-col gap-1">
+				<div className="flex flex-col gap-1 md:w-52">
 					<label
 						className="text-muted-foreground text-xs"
 						htmlFor="orders-branch"
 					>
 						Filial
 					</label>
-					<NativeSelect
-						defaultValue={filters.branchId ?? ""}
-						id="orders-branch"
-						name="branchId"
+					<Select
+						onValueChange={(v) =>
+							setParam("branchId", v === BRANCH_ALL ? null : v)
+						}
+						value={currentBranch}
 					>
-						<NativeSelectOption value="">Todas</NativeSelectOption>
-						{branches.map((branch) => (
-							<NativeSelectOption key={branch.id} value={branch.id}>
-								{branch.name}
-							</NativeSelectOption>
-						))}
-					</NativeSelect>
+						<SelectTrigger id="orders-branch">
+							<SelectValue>
+								{(v: string) =>
+									v === BRANCH_ALL
+										? "Todas"
+										: (branches.find((b) => b.id === v)?.name ?? "Todas")
+								}
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value={BRANCH_ALL}>Todas</SelectItem>
+							{branches.map((branch) => (
+								<SelectItem key={branch.id} value={branch.id}>
+									{branch.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
-
-				<div className="flex items-end gap-2">
-					<button
-						className="h-8 rounded-none bg-primary px-3 text-primary-foreground text-xs"
-						type="submit"
-					>
-						Aplicar
-					</button>
-					<Link
-						className="inline-flex h-8 items-center rounded-none border border-border px-3 text-xs"
-						href="/dashboard/orders"
-					>
-						Limpar
-					</Link>
-				</div>
-			</form>
+			</FiltersBar>
 		</div>
 	);
 }

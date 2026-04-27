@@ -10,8 +10,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { requireCurrentSession } from "@/lib/session";
-import { BranchStockTable } from "../../../(inventory)/stock/_components/branch-stock-table";
-import { fetchBranchStockRows } from "../../../(inventory)/stock/branch-stock-data";
+import { BranchStockTable } from "../../../stock/_components/branch-stock-table";
+import { fetchBranchStockRows } from "../../../stock/branch-stock-data";
 import { getBranch } from "../../actions";
 
 interface BranchStockPageProps {
