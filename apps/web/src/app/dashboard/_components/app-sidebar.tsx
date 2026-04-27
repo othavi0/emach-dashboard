@@ -51,16 +51,6 @@ const NAV_GROUPS: NavGroup[] = [
 		],
 	},
 	{
-		label: "Catálogo",
-		items: [
-			{ label: "Ferramentas", href: "/dashboard/tools" as Route },
-			{
-				label: "Promoções",
-				href: "/dashboard/promotions" as Route,
-			},
-		],
-	},
-	{
 		label: "Vendas",
 		items: [
 			{ label: "Pedidos", href: "/dashboard/orders" as Route },
@@ -68,8 +58,28 @@ const NAV_GROUPS: NavGroup[] = [
 		],
 	},
 	{
-		label: "Cadastros",
+		label: "Site",
 		items: [
+			{
+				label: "Promoções",
+				href: "/dashboard/promotions" as Route,
+			},
+			{
+				label: "Banners",
+				href: "/dashboard/site/banners" as Route,
+				disabled: true,
+			},
+			{
+				label: "Configurações",
+				href: "/dashboard/site/settings" as Route,
+				disabled: true,
+			},
+		],
+	},
+	{
+		label: "Catálogo",
+		items: [
+			{ label: "Ferramentas", href: "/dashboard/tools" as Route },
 			{
 				label: "Categorias",
 				href: "/dashboard/categories" as Route,
@@ -86,12 +96,6 @@ const NAV_GROUPS: NavGroup[] = [
 	},
 ];
 
-function isToolStockPath(pathname: string): boolean {
-	return (
-		pathname.startsWith("/dashboard/tools/") && pathname.endsWith("/stock")
-	);
-}
-
 function isActive(
 	pathname: string,
 	item: Pick<NavItem, "exact" | "href">
@@ -99,12 +103,6 @@ function isActive(
 	const href = item.href;
 	if (href === DASHBOARD_HREF) {
 		return pathname === DASHBOARD_HREF;
-	}
-	if (href === "/dashboard/stock") {
-		return pathname === href || isToolStockPath(pathname);
-	}
-	if (href === "/dashboard/tools" && isToolStockPath(pathname)) {
-		return false;
 	}
 	if (item.exact) {
 		return pathname === href;

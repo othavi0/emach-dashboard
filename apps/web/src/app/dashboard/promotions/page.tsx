@@ -8,6 +8,7 @@ import {
 } from "@emach/ui/components/empty";
 import Link from "next/link";
 
+import { PageHeader } from "@/components/page-header";
 import { requireCurrentSession } from "@/lib/session";
 import { PromotionsFilters } from "./_components/promotions-filters";
 import { PromotionsTable } from "./_components/promotions-table";
@@ -43,24 +44,21 @@ export default async function PromotionsPage({ searchParams }: PageProps) {
 	const isEmpty = promotions.length === 0;
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="font-serif text-2xl">Promoções</h1>
-					<p className="text-muted-foreground text-sm">
-						Gerencie promoções automáticas e cupons aplicados a ferramentas
-						específicas.
-					</p>
-				</div>
-				{canMutate && (
-					<Link
-						className={buttonVariants({ variant: "default" })}
-						href="/dashboard/promotions/new"
-					>
-						Nova promoção
-					</Link>
-				)}
-			</div>
+		<>
+			<PageHeader
+				action={
+					canMutate ? (
+						<Link
+							className={buttonVariants({ variant: "default" })}
+							href="/dashboard/promotions/new"
+						>
+							Nova promoção
+						</Link>
+					) : null
+				}
+				description="Gerencie promoções automáticas e cupons aplicados a ferramentas específicas."
+				title="Promoções"
+			/>
 
 			<PromotionsFilters initialSearch={search} initialType={typeFilter} />
 
@@ -101,6 +99,6 @@ export default async function PromotionsPage({ searchParams }: PageProps) {
 			) : (
 				<PromotionsTable canMutate={canMutate} promotions={promotions} />
 			)}
-		</div>
+		</>
 	);
 }

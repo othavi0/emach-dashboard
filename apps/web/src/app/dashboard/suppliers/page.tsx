@@ -8,6 +8,7 @@ import {
 } from "@emach/ui/components/empty";
 import Link from "next/link";
 
+import { PageHeader } from "@/components/page-header";
 import { requireCurrentSession } from "@/lib/session";
 import { SuppliersFilter } from "./_components/suppliers-filter";
 import { SuppliersTable } from "./_components/suppliers-table";
@@ -31,23 +32,21 @@ export default async function SuppliersPage({ searchParams }: PageProps) {
 	const isEmpty = suppliers.length === 0;
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="font-serif text-2xl">Fornecedores</h1>
-					<p className="text-muted-foreground text-sm">
-						Gerencie contatos comerciais usados no cadastro de ferramentas.
-					</p>
-				</div>
-				{canMutate && (
-					<Link
-						className={buttonVariants({ variant: "default" })}
-						href="/dashboard/suppliers/new"
-					>
-						Novo fornecedor
-					</Link>
-				)}
-			</div>
+		<>
+			<PageHeader
+				action={
+					canMutate ? (
+						<Link
+							className={buttonVariants({ variant: "default" })}
+							href="/dashboard/suppliers/new"
+						>
+							Novo fornecedor
+						</Link>
+					) : null
+				}
+				description="Gerencie contatos comerciais usados no cadastro de ferramentas."
+				title="Fornecedores"
+			/>
 
 			<SuppliersFilter initialSearch={search} />
 
@@ -88,6 +87,6 @@ export default async function SuppliersPage({ searchParams }: PageProps) {
 			) : (
 				<SuppliersTable canMutate={canMutate} suppliers={suppliers} />
 			)}
-		</div>
+		</>
 	);
 }

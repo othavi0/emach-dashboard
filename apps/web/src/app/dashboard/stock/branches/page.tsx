@@ -6,12 +6,13 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
-import { Input } from "@emach/ui/components/input";
 import { Tabs, TabsList, TabsTrigger } from "@emach/ui/components/tabs";
 import Link from "next/link";
 
 import { listBranches } from "@/app/dashboard/branches/actions";
+import { PageHeader } from "@/components/page-header";
 import { requireCurrentSession } from "@/lib/session";
+import { BranchSearchInput } from "../_components/branch-search-input";
 import { BranchStockTable } from "../_components/branch-stock-table";
 import { fetchBranchStockRows } from "../branch-stock-data";
 
@@ -42,13 +43,11 @@ export default async function BranchesStockPage({
 
 	if (branches.length === 0) {
 		return (
-			<div className="flex flex-col gap-6">
-				<div>
-					<h1 className="font-serif text-2xl">Estoque por Filiais</h1>
-					<p className="text-muted-foreground text-sm">
-						Consulte o estoque local de cada filial.
-					</p>
-				</div>
+			<>
+				<PageHeader
+					description="Consulte o estoque local de cada filial."
+					title="Estoque por Filiais"
+				/>
 				<Empty>
 					<EmptyHeader>
 						<EmptyTitle>Nenhuma filial cadastrada</EmptyTitle>
@@ -65,7 +64,7 @@ export default async function BranchesStockPage({
 						</Link>
 					</EmptyContent>
 				</Empty>
-			</div>
+			</>
 		);
 	}
 
@@ -78,17 +77,14 @@ export default async function BranchesStockPage({
 	});
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div>
-				<h1 className="font-serif text-2xl">Estoque por Filiais</h1>
-				<p className="text-muted-foreground text-sm">
-					Selecione uma filial para ver e ajustar o estoque local de cada
-					ferramenta.
-				</p>
-			</div>
+		<>
+			<PageHeader
+				description="Selecione uma filial para ver e ajustar o estoque local de cada ferramenta."
+				title="Estoque por Filiais"
+			/>
 
 			<Tabs value={selectedBranch.id}>
-				<TabsList className="max-w-full overflow-x-auto">
+				<TabsList scrollable>
 					{branches.map((branch) => (
 						<TabsTrigger
 							key={branch.id}
@@ -102,20 +98,7 @@ export default async function BranchesStockPage({
 				</TabsList>
 			</Tabs>
 
-			<form action="/dashboard/stock/branches" className="flex max-w-md gap-2">
-				<input name="branch" type="hidden" value={selectedBranch.id} />
-				<Input
-					defaultValue={search}
-					name="search"
-					placeholder="Buscar ferramenta ou SKU nesta filial"
-				/>
-				<button
-					className={buttonVariants({ variant: "secondary" })}
-					type="submit"
-				>
-					Buscar
-				</button>
-			</form>
+			<BranchSearchInput />
 
 			<div className="flex items-center justify-between gap-4">
 				<div>
@@ -158,6 +141,6 @@ export default async function BranchesStockPage({
 					rows={rows}
 				/>
 			)}
-		</div>
+		</>
 	);
 }
