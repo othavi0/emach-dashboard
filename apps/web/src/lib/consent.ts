@@ -3,15 +3,15 @@ import { db } from "@emach/db";
 import { type ConsentKind, consentLog } from "@emach/db/schema/consent-log";
 import { and, desc, eq, isNull } from "drizzle-orm";
 
-type ConsentInput = {
+interface ConsentInput {
 	actorType: "client" | "lead";
 	clientId?: string;
-	leadId?: string;
-	kind: ConsentKind;
 	granted: boolean;
-	version: string;
+	kind: ConsentKind;
+	leadId?: string;
 	request: Request;
-};
+	version: string;
+}
 
 export async function logConsent(input: ConsentInput): Promise<void> {
 	const ipAddress =
