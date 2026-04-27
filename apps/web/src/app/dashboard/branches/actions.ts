@@ -5,7 +5,7 @@ import { branch } from "@emach/db/schema/inventory";
 import { asc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import { requireRole } from "@/lib/session";
+import { requireCapability } from "@/lib/permissions";
 import {
 	type BranchFormValues,
 	branchSchema,
@@ -46,7 +46,7 @@ export async function getBranch(id: string): Promise<BranchListItem | null> {
 export async function createBranch(
 	input: BranchFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireRole("admin");
+	await requireCapability("branches.manage");
 
 	const parsed = branchSchema.safeParse(input);
 	if (!parsed.success) {
@@ -70,7 +70,7 @@ export async function updateBranch(
 	id: string,
 	input: BranchFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireRole("admin");
+	await requireCapability("branches.manage");
 
 	const parsed = branchSchema.safeParse(input);
 	if (!parsed.success) {
@@ -91,7 +91,7 @@ export async function updateBranch(
 }
 
 export async function deleteBranch(id: string): Promise<ActionResult> {
-	await requireRole("admin");
+	await requireCapability("branches.manage");
 
 	try {
 		await db.delete(branch).where(eq(branch.id, id));
