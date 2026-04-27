@@ -21,11 +21,7 @@ export type StockMovementReason =
 	| "perda"
 	| "outro";
 
-export const actorTypeEnum = pgEnum("actor_type", [
-	"user",
-	"apiKey",
-	"system",
-]);
+export const actorTypeEnum = pgEnum("actor_type", ["user", "apiKey", "system"]);
 export type ActorType = (typeof actorTypeEnum.enumValues)[number];
 
 export const stockMovement = pgTable(
@@ -59,13 +55,13 @@ export const stockMovement = pgTable(
 	(table) => [
 		index("stock_movement_tool_created_idx").on(
 			table.toolId,
-			table.createdAt.desc(),
+			table.createdAt.desc()
 		),
 		index("stock_movement_order_idx").on(table.orderId),
 		index("stock_movement_actor_idx").on(
 			table.actorType,
 			table.actorId,
-			table.apiKeyId,
+			table.apiKeyId
 		),
 		check("delta_non_zero", sql`${table.delta} <> 0`),
 		check(
@@ -74,9 +70,9 @@ export const stockMovement = pgTable(
 				(${table.actorType} = 'user'   AND ${table.actorId}   IS NOT NULL AND ${table.apiKeyId} IS NULL)
 				OR (${table.actorType} = 'apiKey' AND ${table.apiKeyId} IS NOT NULL AND ${table.actorId} IS NULL)
 				OR (${table.actorType} = 'system' AND ${table.actorId} IS NULL  AND ${table.apiKeyId} IS NULL)
-			)`,
+			)`
 		),
-	],
+	]
 );
 
 export const stockMovementRelations = relations(stockMovement, ({ one }) => ({
