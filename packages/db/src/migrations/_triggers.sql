@@ -54,3 +54,6 @@ FOR EACH ROW EXECUTE FUNCTION cascade_category_path();
 CREATE UNIQUE INDEX IF NOT EXISTS stock_movement_sale_idempotency
 ON stock_movement (order_item_id)
 WHERE reason = 'saida_venda' AND order_item_id IS NOT NULL;
+
+-- Sequence para número do pedido (formato YYYY-000NNN)
+CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1;

@@ -1,0 +1,100 @@
+"use client";
+
+import { Button } from "@emach/ui/components/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@emach/ui/components/card";
+import { Spinner } from "@emach/ui/components/spinner";
+import { Textarea } from "@emach/ui/components/textarea";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+
+import { moderateReview } from "../actions";
+import type { ReviewDetail, ReviewStatus } from "../data";
+
+function isNoteRequired(status: ReviewStatus) {
+	return status === "rejected" || status === "spam";
+}
+
+export function ModerateActions({ review }: { review: ReviewDetail }) {
+	const router = useRouter();
+	const [moderationNote, setModerationNote] = useState(
+		review.moderationNote ?? ""
+	);
+	const [isPending, startTransition] = useTransition();
+
+	function handleModeration(
+		status: Extract<ReviewStatus, "approved" | "rejected" | "spam">
+	) {
+		if (isNoteRequired(status) && !moderationNote.trim()) {
+			toast.error("Informe uma nota ao rejeitar ou marcar como spam");
+			return;
+		}
+
+		startTransition(async () => {
+			try {
+				const result = await moderateReview({
+					reviewId: review.id,
+					status,
+					moderationNote: moderationNote.trim() || undefined,
+				});
+
+				if (!result.ok) {
+					toast.error(result.error);
+					return;
+				}
+
+				toast.success("Moderação salva");
+				router.refresh();
+			} catch {
+				toast.error("Não foi possível salvar a moderação");
+			}
+		});
+	}
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>Ações de moderação</CardTitle>
+				<CardDescription>
+					Aprove, rejeite ou marque como spam. Rejeição e spam exigem nota.
+				</CardDescription>
+			</CardHeader>
+			<CardContent className="space-y-3">
+				<Textarea
+					onChange={(event) => setModerationNote(event.target.value)}
+					placeholder="Explique a decisão para registro interno"
+					value={moderationNote}
+				/>
+				<div className="flex flex-wrap gap-2">
+					<Button
+						disabled={isPending}
+						onClick={() => handleModeration("approved")}
+						variant="default"
+					>
+						{isPending ? <Spinner /> : "Aprovar"}
+					</Button>
+					<Button
+						disabled={isPending}
+						onClick={() => handleModeration("rejected")}
+						variant="secondary"
+					>
+						{isPending ? <Spinner /> : "Rejeitar"}
+					</Button>
+					<Button
+						disabled={isPending}
+						onClick={() => handleModeration("spam")}
+						variant="destructive"
+					>
+						{isPending ? <Spinner /> : "Spam"}
+					</Button>
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
