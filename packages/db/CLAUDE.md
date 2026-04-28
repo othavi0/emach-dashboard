@@ -24,9 +24,11 @@ bun db:apply-triggers   # idempotente (CREATE OR REPLACE FUNCTION + DROP TRIGGER
 - Enums: criar com `pgEnum`, derivar tipo. Ex: `export const userRoleEnum = pgEnum("user_role", ["admin","manager","user"]); export type UserRole = (typeof userRoleEnum.enumValues)[number]`.
 - FK: explicitar `onDelete: "cascade" | "restrict" | "set null"`. Default = restrict para integridade.
 - `unique()` em colunas de busca natural (sku, barcode, slug, document).
-- Money: `numeric(12, 2)` — nunca `real`/`double`.
+- Money: `numeric(10, 2)` para preço/custo de produto (`tool_variant.priceAmount`, `costAmount`); `numeric(12, 2)` em totais de pedido (`order.totalAmount`). Nunca `real`/`double`.
 - Listas pequenas: `text[]` (Postgres array, GIN-friendly) ou tabela própria se for ≥ entidade.
+- JSONB com schema livre: `jsonb("col").$type<MyShape>()` + parser cuidadoso ao ler. Ex: `attribute_definition.options`.
 - Auditoria: tabelas de movimento incluem `actorType pgEnum('actor_type', ['user','apiKey','system'])` + `actorId` (FK user) + `apiKeyId` (FK apiKey). CHECK garante coerência (`actor_coherence`).
+- Partial unique index para "no máximo 1 marcado": ex `tool_variant.isDefault` usa `uniqueIndex(...).on(toolId).where(sql\`${isDefault} = true\`)` para garantir 1 default por tool.
 
 ## Exports
 
@@ -49,12 +51,25 @@ bun db:studio              # UI inspetora
 
 bun db:apply-triggers      # aplica src/migrations/_triggers.sql
 bun db:seed-categories     # bootstrap 5 categorias raiz idempotente
+bun db:seed-attributes     # attribute_definitions iniciais (RPM, mandril, percussão, etc) por categoria raiz
 bun db:anonymize-client <id>  # LGPD direito ao esquecimento
 ```
+
+**Drop & recreate em dev** (quando renames ambíguos quebram drizzle-kit push em ambiente sem TTY):
+
+```ts
+// snippet via pg client direto
+await client.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres, public;");
+// depois: bunx drizzle-kit push && bun db:apply-triggers && bun db:seed-categories && bun db:seed-attributes
+```
+
+⚠️ Só em dev. Em staging/prod sempre via migration versionada.
 
 ## Schema compartilhado com app ecomerce
 
 Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `lead`. Cópia versionada do schema sincronizada manualmente a cada migration. Ver `docs/integration/admin-ecommerce.md` para o contrato completo. Mudanças nessas tabelas exigem coordenação.
+
+**Atenção pós-refactor de variants:** `stock_level`, `stock_movement` e `order_item` agora referenciam `tool_variant.id` (não mais `tool.id`). O app ecomerce precisa enviar `variantId` em pedidos e movimentos, não `toolId`. Ler `tool_variant` para obter SKU vendável; `tool` é o produto-pai (informações comuns).
 
 ## Testes (futuro)
 
