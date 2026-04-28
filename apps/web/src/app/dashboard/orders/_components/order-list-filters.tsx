@@ -5,6 +5,7 @@ import { Input } from "@emach/ui/components/input";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -169,12 +170,14 @@ export function OrderFiltersPanel({
 							</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value={BRANCH_ALL}>Todas</SelectItem>
-							{branches.map((branch) => (
-								<SelectItem key={branch.id} value={branch.id}>
-									{branch.name}
-								</SelectItem>
-							))}
+							<SelectGroup>
+								<SelectItem value={BRANCH_ALL}>Todas</SelectItem>
+								{branches.map((branch) => (
+									<SelectItem key={branch.id} value={branch.id}>
+										{branch.name}
+									</SelectItem>
+								))}
+							</SelectGroup>
 						</SelectContent>
 					</Select>
 				</div>

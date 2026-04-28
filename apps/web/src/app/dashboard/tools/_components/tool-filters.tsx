@@ -4,6 +4,7 @@ import { Input } from "@emach/ui/components/input";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -86,12 +87,14 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value={ALL}>Todas</SelectItem>
-						{categories.map((c) => (
-							<SelectItem key={c.id} value={c.id}>
-								{c.name}
-							</SelectItem>
-						))}
+						<SelectGroup>
+							<SelectItem value={ALL}>Todas</SelectItem>
+							{categories.map((c) => (
+								<SelectItem key={c.id} value={c.id}>
+									{c.name}
+								</SelectItem>
+							))}
+						</SelectGroup>
 					</SelectContent>
 				</Select>
 			</div>
@@ -118,9 +121,11 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value={ALL}>Todos</SelectItem>
-						<SelectItem value="true">Visível</SelectItem>
-						<SelectItem value="false">Oculto</SelectItem>
+						<SelectGroup>
+							<SelectItem value={ALL}>Todos</SelectItem>
+							<SelectItem value="true">Visível</SelectItem>
+							<SelectItem value="false">Oculto</SelectItem>
+						</SelectGroup>
 					</SelectContent>
 				</Select>
 			</div>
@@ -148,12 +153,14 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value={ALL}>Todos</SelectItem>
-						{TOOL_STATUS_OPTIONS.map((s) => (
-							<SelectItem key={s} value={s}>
-								{TOOL_STATUS_LABELS[s]}
-							</SelectItem>
-						))}
+						<SelectGroup>
+							<SelectItem value={ALL}>Todos</SelectItem>
+							{TOOL_STATUS_OPTIONS.map((s) => (
+								<SelectItem key={s} value={s}>
+									{TOOL_STATUS_LABELS[s]}
+								</SelectItem>
+							))}
+						</SelectGroup>
 					</SelectContent>
 				</Select>
 			</div>
