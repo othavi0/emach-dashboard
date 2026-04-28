@@ -341,7 +341,10 @@ export function PromotionForm({
 			<section className="flex flex-col gap-6 rounded-md border border-border bg-card p-6">
 				{/* Tipo */}
 				<div className="flex flex-col gap-2">
-					<Label>Tipo</Label>
+					<Label>
+						Tipo
+						<span className="text-destructive"> *</span>
+					</Label>
 					{mode === "create" ? (
 						<RadioGroup
 							onValueChange={(v: string) => setType(v as PromotionType)}
@@ -373,7 +376,10 @@ export function PromotionForm({
 
 				{/* Título */}
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="promo-title">Título</Label>
+					<Label htmlFor="promo-title">
+						Título
+						<span className="text-destructive"> *</span>
+					</Label>
 					<Input
 						disabled={isPending}
 						id="promo-title"
@@ -404,7 +410,10 @@ export function PromotionForm({
 
 				{/* Desconto (%) */}
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="promo-discount">Desconto (%)</Label>
+					<Label htmlFor="promo-discount">
+						Desconto (%)
+						<span className="text-destructive"> *</span>
+					</Label>
 					<Input
 						disabled={isPending}
 						id="promo-discount"
@@ -465,7 +474,10 @@ export function PromotionForm({
 				{/* Código — only when type === 'promocode' */}
 				{type === "promocode" && (
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="promo-code">Código</Label>
+						<Label htmlFor="promo-code">
+							Código
+							<span className="text-destructive"> *</span>
+						</Label>
 						<Input
 							disabled={isPending}
 							id="promo-code"
@@ -484,7 +496,10 @@ export function PromotionForm({
 
 				{/* Ferramentas */}
 				<div className="flex flex-col gap-2">
-					<Label>Ferramentas</Label>
+					<Label>
+						Ferramentas
+						<span className="text-destructive"> *</span>
+					</Label>
 					<ToolCombobox
 						availableTools={availableTools}
 						disabled={isPending}

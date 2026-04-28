@@ -82,6 +82,7 @@ export function DynamicSpecsEditor({
 									onChange={(e) =>
 										onChange(def.slug, { ...v, valueText: e.target.value })
 									}
+									placeholder={`Informe ${def.label.toLowerCase()}`}
 									value={v.valueText ?? ""}
 								/>
 							</div>
@@ -104,6 +105,7 @@ export function DynamicSpecsEditor({
 											valueNumeric: parseNumber(e.target.value),
 										})
 									}
+									placeholder={def.unit ? `Ex: 0 ${def.unit}` : "Ex: 0"}
 									value={v.valueNumeric ?? ""}
 								/>
 							</div>

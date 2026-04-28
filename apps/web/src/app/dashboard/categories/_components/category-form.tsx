@@ -153,7 +153,10 @@ export function CategoryForm({
 				</h2>
 
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-name">Nome</Label>
+					<Label htmlFor="category-name">
+						Nome
+						<span className="text-destructive"> *</span>
+					</Label>
 					<Input
 						disabled={isPending}
 						id="category-name"
@@ -173,7 +176,10 @@ export function CategoryForm({
 				</div>
 
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-slug">Slug</Label>
+					<Label htmlFor="category-slug">
+						Slug
+						<span className="text-destructive"> *</span>
+					</Label>
 					<Input
 						disabled={isPending || mode === "create"}
 						id="category-slug"
@@ -262,6 +268,7 @@ export function CategoryForm({
 						id="category-sort"
 						min={0}
 						onChange={(event) => setSortOrder(event.target.value)}
+						placeholder="0"
 						type="number"
 						value={sortOrder}
 					/>

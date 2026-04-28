@@ -187,7 +187,10 @@ export function AttributeForm({
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<div className="grid gap-4 md:grid-cols-2">
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="label">Rótulo</Label>
+						<Label htmlFor="label">
+							Rótulo
+							<span className="text-destructive"> *</span>
+						</Label>
 						<Input
 							id="label"
 							onChange={(e) => {
@@ -205,7 +208,10 @@ export function AttributeForm({
 						)}
 					</div>
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="slug">Slug</Label>
+						<Label htmlFor="slug">
+							Slug
+							<span className="text-destructive"> *</span>
+						</Label>
 						<Input
 							disabled={mode === "create"}
 							id="slug"
@@ -226,7 +232,10 @@ export function AttributeForm({
 
 				<div className="grid gap-4 md:grid-cols-3">
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="inputType">Tipo de campo</Label>
+						<Label htmlFor="inputType">
+							Tipo de campo
+							<span className="text-destructive"> *</span>
+						</Label>
 						<Select
 							onValueChange={(v) =>
 								update("inputType", v as AttributeFormValues["inputType"])
@@ -297,6 +306,7 @@ export function AttributeForm({
 							onChange={(e) =>
 								update("sortOrder", Number.parseInt(e.target.value, 10) || 0)
 							}
+							placeholder="0"
 							type="number"
 							value={values.sortOrder}
 						/>

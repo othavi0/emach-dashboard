@@ -65,6 +65,7 @@ export function BranchStockThresholdInputs({
 					disabled={isPending}
 					min={0}
 					onChange={(e) => setMinQty(Number.parseInt(e.target.value, 10) || 0)}
+					placeholder="Mín"
 					type="number"
 					value={minQty}
 				/>
@@ -76,6 +77,7 @@ export function BranchStockThresholdInputs({
 					onChange={(e) =>
 						setReorderPoint(Number.parseInt(e.target.value, 10) || 0)
 					}
+					placeholder="Repor"
 					type="number"
 					value={reorderPoint}
 				/>
