@@ -1,0 +1,89 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "publicPackages": ["@emach/db", "@emach/ui", "@emach/auth"],
+  "entry": ["apps/web/src/lib/consent.ts"],
+  "ignoreDependencies": ["shadcn", "babel-plugin-react-compiler", "execa"],
+  "rules": {
+    "unused-types": "off",
+    "unused-exports": "warn",
+    "duplicate-exports": "warn",
+    "unused-dependencies": "error",
+    "unlisted-dependencies": "error",
+    "circular-dependencies": "error",
+    "boundary-violation": "error",
+    "coverage-gaps": "off"
+  },
+  "boundaries": {
+    "zones": [
+      {
+        "name": "web-src",
+        "patterns": ["apps/web/src/**"]
+      },
+      {
+        "name": "ui-src",
+        "patterns": ["packages/ui/src/**"]
+      },
+      {
+        "name": "auth-dashboard",
+        "patterns": ["packages/auth/src/dashboard.ts"]
+      },
+      {
+        "name": "auth-ecommerce",
+        "patterns": ["packages/auth/src/ecommerce.ts"]
+      },
+      {
+        "name": "db-client-schema",
+        "patterns": ["packages/db/src/schema/client.ts"]
+      },
+      {
+        "name": "db-auth-schema",
+        "patterns": ["packages/db/src/schema/auth.ts"]
+      },
+      {
+        "name": "db-admin-schema",
+        "patterns": ["packages/db/src/schema/**"]
+      },
+      {
+        "name": "db-core",
+        "patterns": ["packages/db/src/**"]
+      },
+      {
+        "name": "env",
+        "patterns": ["packages/env/src/**"]
+      }
+    ],
+    "rules": [
+      {
+        "from": "web-src",
+        "allow": [
+          "ui-src",
+          "auth-dashboard",
+          "db-core",
+          "db-auth-schema",
+          "db-admin-schema",
+          "env"
+        ]
+      },
+      {
+        "from": "ui-src",
+        "allow": []
+      },
+      {
+        "from": "auth-dashboard",
+        "allow": ["db-core", "db-auth-schema", "env"]
+      },
+      {
+        "from": "auth-ecommerce",
+        "allow": ["db-core", "db-client-schema", "env"]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["packages/ui/src/styles/globals.css"],
+      "rules": {
+        "unresolved-imports": "off"
+      }
+    }
+  ]
+}
