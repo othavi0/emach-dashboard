@@ -114,7 +114,10 @@ export function SupplierForm({
 				</h2>
 
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="supplier-name">Nome</Label>
+					<Label htmlFor="supplier-name">
+						Nome
+						<span className="text-destructive"> *</span>
+					</Label>
 					<Input
 						disabled={isPending}
 						id="supplier-name"

@@ -96,7 +96,10 @@ export function VariantsEditor({
 					key={index}
 				>
 					<div className="flex flex-col gap-2">
-						<Label htmlFor={`var-sku-${index}`}>SKU</Label>
+						<Label htmlFor={`var-sku-${index}`}>
+							SKU
+							<span className="text-destructive"> *</span>
+						</Label>
 						<Input
 							id={`var-sku-${index}`}
 							onChange={(e) => update(index, { sku: e.target.value })}
@@ -129,7 +132,10 @@ export function VariantsEditor({
 						</Select>
 					</div>
 					<div className="flex flex-col gap-2">
-						<Label htmlFor={`var-price-${index}`}>Preço</Label>
+						<Label htmlFor={`var-price-${index}`}>
+							Preço
+							<span className="text-destructive"> *</span>
+						</Label>
 						<Input
 							id={`var-price-${index}`}
 							inputMode="numeric"
@@ -159,6 +165,7 @@ export function VariantsEditor({
 						<Input
 							id={`var-barcode-${index}`}
 							onChange={(e) => update(index, { barcode: e.target.value })}
+							placeholder="Ex: 7891234567890"
 							value={variant.barcode ?? ""}
 						/>
 					</div>
@@ -176,7 +183,10 @@ export function VariantsEditor({
 			))}
 			{value.length > 0 && (
 				<div className="flex flex-col gap-2 rounded-md border border-border p-3">
-					<Label>Variante padrão</Label>
+					<Label>
+						Variante padrão
+						<span className="text-destructive"> *</span>
+					</Label>
 					<RadioGroup
 						onValueChange={(v) => setDefault(Number(v))}
 						value={String(value.findIndex((v) => v.isDefault))}

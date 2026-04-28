@@ -148,13 +148,17 @@ export function AdjustStockDialog({
 					</DialogHeader>
 
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="adjust-new-qty">Nova quantidade</Label>
+						<Label htmlFor="adjust-new-qty">
+							Nova quantidade
+							<span className="text-destructive"> *</span>
+						</Label>
 						<Input
 							disabled={isPending}
 							id="adjust-new-qty"
 							inputMode="numeric"
 							min={0}
 							onChange={(event) => setNewQty(event.target.value)}
+							placeholder="Ex: 10"
 							step={1}
 							type="number"
 							value={newQty}

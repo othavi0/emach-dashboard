@@ -99,7 +99,10 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 				</h2>
 
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="branch-name">Nome</Label>
+					<Label htmlFor="branch-name">
+						Nome
+						<span className="text-destructive"> *</span>
+					</Label>
 					<Input
 						disabled={isPending}
 						id="branch-name"

@@ -244,7 +244,10 @@ export function ToolForm({
 					Informações básicas
 				</h2>
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="name">Nome</Label>
+					<Label htmlFor="name">
+						Nome
+						<span className="text-destructive"> *</span>
+					</Label>
 					<Input
 						id="name"
 						onChange={(e) => update("name", e.target.value)}
@@ -315,6 +318,7 @@ export function ToolForm({
 						<Input
 							id="manufacturerName"
 							onChange={(e) => update("manufacturerName", e.target.value)}
+							placeholder="Ex: Bosch, Makita"
 							value={values.manufacturerName ?? ""}
 						/>
 					</div>
@@ -349,6 +353,7 @@ export function ToolForm({
 						<Input
 							id="cest"
 							onChange={(e) => update("cest", e.target.value)}
+							placeholder="Ex: 28.038.00"
 							value={values.cest ?? ""}
 						/>
 					</div>
@@ -375,6 +380,7 @@ export function ToolForm({
 							id="weightKg"
 							inputMode="decimal"
 							onChange={(e) => update("weightKg", parseDecimal(e.target.value))}
+							placeholder="Ex: 2,5"
 							value={values.weightKg ?? ""}
 						/>
 					</div>
@@ -384,6 +390,7 @@ export function ToolForm({
 							id="lengthCm"
 							inputMode="decimal"
 							onChange={(e) => update("lengthCm", parseDecimal(e.target.value))}
+							placeholder="Ex: 30"
 							value={values.lengthCm ?? ""}
 						/>
 					</div>
@@ -393,6 +400,7 @@ export function ToolForm({
 							id="widthCm"
 							inputMode="decimal"
 							onChange={(e) => update("widthCm", parseDecimal(e.target.value))}
+							placeholder="Ex: 10"
 							value={values.widthCm ?? ""}
 						/>
 					</div>
@@ -402,6 +410,7 @@ export function ToolForm({
 							id="heightCm"
 							inputMode="decimal"
 							onChange={(e) => update("heightCm", parseDecimal(e.target.value))}
+							placeholder="Ex: 20"
 							value={values.heightCm ?? ""}
 						/>
 					</div>
@@ -413,6 +422,7 @@ export function ToolForm({
 							onChange={(e) =>
 								update("powerWatts", parseDecimal(e.target.value))
 							}
+							placeholder="Ex: 700"
 							value={values.powerWatts ?? ""}
 						/>
 					</div>
@@ -450,7 +460,10 @@ export function ToolForm({
 					Classificação
 				</h2>
 				<div className="flex flex-col gap-2">
-					<Label>Categorias</Label>
+					<Label>
+						Categorias
+						<span className="text-destructive"> *</span>
+					</Label>
 					<div className="flex flex-col gap-1 rounded border border-border p-3">
 						{categories.map((cat) => {
 							const checked = values.categoryIds.includes(cat.id);
@@ -497,7 +510,10 @@ export function ToolForm({
 				</div>
 				{values.categoryIds.length > 0 && (
 					<div className="flex flex-col gap-2">
-						<Label>Categoria principal</Label>
+						<Label>
+							Categoria principal
+							<span className="text-destructive"> *</span>
+						</Label>
 						<RadioGroup
 							onValueChange={(v) => update("primaryCategoryId", v)}
 							value={values.primaryCategoryId}
@@ -545,7 +561,10 @@ export function ToolForm({
 				</div>
 				<div className="grid gap-4 border-border border-t pt-4 md:grid-cols-2">
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="status">Status</Label>
+						<Label htmlFor="status">
+							Status
+							<span className="text-destructive"> *</span>
+						</Label>
 						<Select
 							onValueChange={(v) =>
 								update("status", v as ToolFormValues["status"])

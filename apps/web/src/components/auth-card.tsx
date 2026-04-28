@@ -114,30 +114,41 @@ export default function AuthCard() {
 				>
 					{mode === "sign-up" ? (
 						<div className="flex flex-col gap-2">
-							<Label htmlFor="name">Nome</Label>
+							<Label htmlFor="name">
+								Nome
+								<span className="text-destructive"> *</span>
+							</Label>
 							<Input
 								autoComplete="name"
 								id="name"
 								minLength={2}
 								name="name"
+								placeholder="Seu nome completo"
 								required
 							/>
 						</div>
 					) : null}
 
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="email">Email</Label>
+						<Label htmlFor="email">
+							Email
+							<span className="text-destructive"> *</span>
+						</Label>
 						<Input
 							autoComplete="email"
 							id="email"
 							name="email"
+							placeholder="voce@empresa.com"
 							required
 							type="email"
 						/>
 					</div>
 
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="password">Senha</Label>
+						<Label htmlFor="password">
+							Senha
+							<span className="text-destructive"> *</span>
+						</Label>
 						<Input
 							autoComplete={
 								mode === "sign-up" ? "new-password" : "current-password"
@@ -145,6 +156,7 @@ export default function AuthCard() {
 							id="password"
 							minLength={8}
 							name="password"
+							placeholder="Mínimo 8 caracteres"
 							required
 							type="password"
 						/>
