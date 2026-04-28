@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@emach/db";
-import { supplier, tool } from "@emach/db/schema/tools";
-import { asc, eq, ilike, or, sql } from "drizzle-orm";
+import { supplier, tool, toolVariant } from "@emach/db/schema/tools";
+import { and, asc, eq, ilike, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { requireCapability } from "@/lib/permissions";
@@ -124,10 +124,14 @@ export async function getSupplier(id: string): Promise<SupplierDetail | null> {
 		.select({
 			id: tool.id,
 			name: tool.name,
-			sku: tool.sku,
+			sku: toolVariant.sku,
 			visibleOnSite: tool.visibleOnSite,
 		})
 		.from(tool)
+		.leftJoin(
+			toolVariant,
+			and(eq(toolVariant.toolId, tool.id), eq(toolVariant.isDefault, true))
+		)
 		.where(eq(tool.supplierId, id))
 		.orderBy(asc(tool.name));
 

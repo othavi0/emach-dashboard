@@ -13,7 +13,7 @@ import { user } from "./auth";
 import { branch } from "./inventory";
 import { order, orderItem } from "./orders";
 import { actorTypeEnum } from "./shared-enums";
-import { tool } from "./tools";
+import { toolVariant } from "./tools";
 
 export type StockMovementReason =
 	| "entrada_compra"
@@ -26,7 +26,7 @@ export const stockMovement = pgTable(
 	"stock_movement",
 	{
 		id: text("id").primaryKey(),
-		toolId: text("tool_id").references(() => tool.id, {
+		variantId: text("variant_id").references(() => toolVariant.id, {
 			onDelete: "set null",
 		}),
 		branchId: text("branch_id").references(() => branch.id, {
@@ -54,8 +54,8 @@ export const stockMovement = pgTable(
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
 	(table) => [
-		index("stock_movement_tool_created_idx").on(
-			table.toolId,
+		index("stock_movement_variant_created_idx").on(
+			table.variantId,
 			table.createdAt.desc()
 		),
 		index("stock_movement_order_idx").on(table.orderId),
@@ -77,9 +77,9 @@ export const stockMovement = pgTable(
 );
 
 export const stockMovementRelations = relations(stockMovement, ({ one }) => ({
-	tool: one(tool, {
-		fields: [stockMovement.toolId],
-		references: [tool.id],
+	variant: one(toolVariant, {
+		fields: [stockMovement.variantId],
+		references: [toolVariant.id],
 	}),
 	branch: one(branch, {
 		fields: [stockMovement.branchId],

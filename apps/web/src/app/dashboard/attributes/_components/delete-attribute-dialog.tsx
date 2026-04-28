@@ -17,48 +17,70 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { deleteTool } from "../actions";
+import { deleteAttribute } from "../actions";
 
-interface DeleteToolDialogProps {
-	toolId: string;
-	toolName: string;
+interface DeleteAttributeDialogProps {
+	attributeId: string;
+	attributeLabel: string;
+	usageCount: number;
 }
 
-export function DeleteToolDialog({ toolId, toolName }: DeleteToolDialogProps) {
+export function DeleteAttributeDialog({
+	attributeId,
+	attributeLabel,
+	usageCount,
+}: DeleteAttributeDialogProps) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
 
 	function handleConfirm() {
 		startTransition(async () => {
-			const result = await deleteTool(toolId);
+			const result = await deleteAttribute(attributeId);
 			if (result.ok) {
-				toast.success("Ferramenta removida");
+				toast.success("Atributo removido");
 				setOpen(false);
-				router.push("/dashboard/tools");
 				router.refresh();
 			} else {
-				const message =
-					"error" in result
-						? result.error
-						: "Não foi possível remover a ferramenta";
-				toast.error(message);
+				toast.error(result.error || "Não foi possível remover o atributo");
 			}
 		});
 	}
 
 	return (
 		<AlertDialog onOpenChange={setOpen} open={open}>
-			<AlertDialogTrigger render={<Button size="sm" variant="ghost" />}>
+			<AlertDialogTrigger
+				render={
+					<Button
+						className="text-destructive hover:bg-destructive/10"
+						size="sm"
+						variant="ghost"
+					/>
+				}
+			>
 				Remover
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Remover ferramenta?</AlertDialogTitle>
+					<AlertDialogTitle>Remover atributo?</AlertDialogTitle>
 					<AlertDialogDescription>
-						Esta ação não pode ser desfeita. A ferramenta{" "}
-						<strong>{toolName}</strong> será removida permanentemente do sistema
-						e seus estoques por filial também.
+						O atributo <strong>{attributeLabel}</strong> será removido
+						permanentemente.
+						{usageCount > 0 ? (
+							<>
+								{" "}
+								<strong>
+									{usageCount === 1
+										? "1 ferramenta usa este atributo"
+										: `${usageCount} ferramentas usam este atributo`}
+								</strong>
+								. Os valores preenchidos nessas ferramentas também serão
+								apagados (cascade).
+							</>
+						) : (
+							" Nenhuma ferramenta usa este atributo no momento."
+						)}{" "}
+						Esta ação não pode ser desfeita.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>

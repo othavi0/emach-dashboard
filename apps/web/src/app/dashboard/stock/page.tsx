@@ -24,12 +24,14 @@ interface StockPageRow extends Record<string, unknown> {
 		branch_name: string;
 		quantity: number;
 	}> | null;
+	default_sku: string | null;
+	default_voltage: string | null;
 	id: string;
 	image_url: string | null;
 	name: string;
-	sku: string | null;
 	slug: string | null;
 	total_stock: number;
+	variant_count: number;
 }
 
 interface StockPageParams {
@@ -81,7 +83,17 @@ async function fetchStockRows(params: StockPageParams): Promise<StockRow[]> {
 			t.id,
 			t.name,
 			t.slug,
-			t.sku,
+			(
+				SELECT tv.sku FROM tool_variant tv
+				WHERE tv.tool_id = t.id AND tv.is_default = true
+				LIMIT 1
+			) AS default_sku,
+			(
+				SELECT tv.voltage::text FROM tool_variant tv
+				WHERE tv.tool_id = t.id AND tv.is_default = true
+				LIMIT 1
+			) AS default_voltage,
+			(SELECT COUNT(*)::int FROM tool_variant tv WHERE tv.tool_id = t.id) AS variant_count,
 			(
 				SELECT ti.url
 				FROM tool_image ti
@@ -89,23 +101,32 @@ async function fetchStockRows(params: StockPageParams): Promise<StockRow[]> {
 				ORDER BY ti.sort_order ASC
 				LIMIT 1
 			) AS image_url,
-			COALESCE(SUM(sl.quantity), 0)::int AS total_stock,
-			COALESCE(
-				json_agg(
+			COALESCE((
+				SELECT SUM(sl.quantity)::int FROM stock_level sl
+				JOIN tool_variant tv ON tv.id = sl.variant_id
+				WHERE tv.tool_id = t.id
+			), 0) AS total_stock,
+			COALESCE((
+				SELECT json_agg(
 					json_build_object(
 						'branch_id', b.id,
 						'branch_name', b.name,
-						'quantity', sl.quantity
+						'quantity', branch_total
 					)
 					ORDER BY b.name ASC
-				) FILTER (WHERE b.id IS NOT NULL),
-				'[]'::json
-			) AS branches_breakdown
+				)
+				FROM (
+					SELECT b2.id AS bid, SUM(sl2.quantity)::int AS branch_total
+					FROM stock_level sl2
+					JOIN tool_variant tv2 ON tv2.id = sl2.variant_id
+					JOIN branch b2 ON b2.id = sl2.branch_id
+					WHERE tv2.tool_id = t.id
+					GROUP BY b2.id
+				) g
+				JOIN branch b ON b.id = g.bid
+			), '[]'::json) AS branches_breakdown
 		FROM tool t
-		LEFT JOIN stock_level sl ON sl.tool_id = t.id
-		LEFT JOIN branch b ON b.id = sl.branch_id
 		${whereClause}
-		GROUP BY t.id
 		${orderClause}
 	`);
 
@@ -113,7 +134,9 @@ async function fetchStockRows(params: StockPageParams): Promise<StockRow[]> {
 		id: r.id,
 		name: r.name,
 		slug: r.slug,
-		sku: r.sku,
+		sku: r.default_sku,
+		voltage: r.default_voltage,
+		variantCount: Number(r.variant_count ?? 0),
 		imageUrl: r.image_url,
 		totalStock: Number(r.total_stock ?? 0),
 		branches: (r.branches_breakdown ?? []).map((item) => ({

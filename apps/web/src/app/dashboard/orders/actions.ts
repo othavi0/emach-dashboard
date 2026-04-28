@@ -61,7 +61,10 @@ async function applyStockReturns(
 ) {
 	for (const item of returnItems) {
 		const [oi] = await tx
-			.select({ quantity: orderItem.quantity, toolId: orderItem.toolId })
+			.select({
+				quantity: orderItem.quantity,
+				variantId: orderItem.variantId,
+			})
 			.from(orderItem)
 			.where(
 				and(eq(orderItem.id, item.orderItemId), eq(orderItem.orderId, orderId))
@@ -76,7 +79,7 @@ async function applyStockReturns(
 			.from(stockLevel)
 			.where(
 				and(
-					eq(stockLevel.toolId, oi.toolId),
+					eq(stockLevel.variantId, oi.variantId),
 					eq(stockLevel.branchId, item.branchId)
 				)
 			)
@@ -88,19 +91,19 @@ async function applyStockReturns(
 		await tx
 			.insert(stockLevel)
 			.values({
-				toolId: oi.toolId,
+				variantId: oi.variantId,
 				branchId: item.branchId,
 				quantity: newQty,
 				updatedAt: new Date(),
 			})
 			.onConflictDoUpdate({
-				target: [stockLevel.toolId, stockLevel.branchId],
+				target: [stockLevel.variantId, stockLevel.branchId],
 				set: { quantity: newQty, updatedAt: new Date() },
 			});
 
 		await tx.insert(stockMovement).values({
 			id: crypto.randomUUID(),
-			toolId: oi.toolId,
+			variantId: oi.variantId,
 			branchId: item.branchId,
 			previousQty,
 			newQty,

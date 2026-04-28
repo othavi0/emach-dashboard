@@ -5,13 +5,23 @@ import {
 	index,
 	integer,
 	numeric,
+	pgEnum,
 	pgTable,
 	text,
 	timestamp,
 	unique,
+	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export type ToolStatus = "draft" | "active" | "discontinued" | "out_of_stock";
+
+export const voltageEnum = pgEnum("voltage", [
+	"127V",
+	"220V",
+	"Bivolt",
+	"380V",
+]);
+export type Voltage = (typeof voltageEnum.enumValues)[number];
 
 export const supplier = pgTable("supplier", {
 	id: text("id").primaryKey(),
@@ -33,26 +43,19 @@ export const tool = pgTable(
 		name: text("name").notNull(),
 		slug: text("slug").unique(),
 		description: text("description"),
-		sku: text("sku").unique(),
 		model: text("model"),
 		invoiceModel: text("invoice_model"),
 		status: text("status").$type<ToolStatus>().notNull().default("draft"),
-		voltage: text("voltage"),
 		powerWatts: integer("power_watts"),
-		frequencyHz: integer("frequency_hz"),
-		warrantyMonths: integer("warranty_months"),
 		weightKg: numeric("weight_kg", { precision: 10, scale: 3 }),
 		lengthCm: numeric("length_cm", { precision: 10, scale: 2 }),
 		widthCm: numeric("width_cm", { precision: 10, scale: 2 }),
 		heightCm: numeric("height_cm", { precision: 10, scale: 2 }),
-		barcode: text("barcode").unique(),
 		manufacturerName: text("manufacturer_name"),
 		countryOfOrigin: text("country_of_origin"),
 		hsCode: text("hs_code"),
 		ncm: text("ncm"),
 		cest: text("cest"),
-		price: numeric("price", { precision: 10, scale: 2 }),
-		cost: numeric("cost", { precision: 10, scale: 2 }),
 		visibleOnSite: boolean("visible_on_site").notNull().default(true),
 		supplierId: text("supplier_id").references(() => supplier.id, {
 			onDelete: "set null",
@@ -85,13 +88,39 @@ export const tool = pgTable(
 			"power_watts_positive",
 			sql`${table.powerWatts} IS NULL OR ${table.powerWatts} >= 0`
 		),
+	]
+);
+
+export const toolVariant = pgTable(
+	"tool_variant",
+	{
+		id: text("id").primaryKey(),
+		toolId: text("tool_id")
+			.notNull()
+			.references(() => tool.id, { onDelete: "cascade" }),
+		sku: text("sku").notNull().unique(),
+		barcode: text("barcode").unique(),
+		voltage: voltageEnum("voltage"),
+		priceAmount: numeric("price_amount", { precision: 10, scale: 2 }).notNull(),
+		costAmount: numeric("cost_amount", { precision: 10, scale: 2 }),
+		isDefault: boolean("is_default").notNull().default(false),
+		sortOrder: integer("sort_order").notNull().default(0),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("tool_variant_tool_id_idx").on(table.toolId),
+		unique("tool_variant_tool_sort_unique").on(table.toolId, table.sortOrder),
+		uniqueIndex("tool_variant_one_default_per_tool")
+			.on(table.toolId)
+			.where(sql`${table.isDefault} = true`),
+		check("price_amount_positive", sql`${table.priceAmount} >= 0`),
 		check(
-			"frequency_hz_positive",
-			sql`${table.frequencyHz} IS NULL OR ${table.frequencyHz} >= 0`
-		),
-		check(
-			"warranty_months_positive",
-			sql`${table.warrantyMonths} IS NULL OR ${table.warrantyMonths} >= 0`
+			"cost_amount_positive",
+			sql`${table.costAmount} IS NULL OR ${table.costAmount} >= 0`
 		),
 	]
 );
@@ -123,6 +152,11 @@ export const toolRelations = relations(tool, ({ one, many }) => ({
 		references: [supplier.id],
 	}),
 	images: many(toolImage),
+	variants: many(toolVariant),
+}));
+
+export const toolVariantRelations = relations(toolVariant, ({ one }) => ({
+	tool: one(tool, { fields: [toolVariant.toolId], references: [tool.id] }),
 }));
 
 export const toolImageRelations = relations(toolImage, ({ one }) => ({
@@ -133,5 +167,7 @@ export type Supplier = typeof supplier.$inferSelect;
 export type NewSupplier = typeof supplier.$inferInsert;
 export type Tool = typeof tool.$inferSelect;
 export type NewTool = typeof tool.$inferInsert;
+export type ToolVariant = typeof toolVariant.$inferSelect;
+export type NewToolVariant = typeof toolVariant.$inferInsert;
 export type ToolImage = typeof toolImage.$inferSelect;
 export type NewToolImage = typeof toolImage.$inferInsert;

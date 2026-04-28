@@ -1,14 +1,21 @@
 import { db } from "@emach/db";
+import {
+	attributeDefinition,
+	toolAttributeValue,
+} from "@emach/db/schema/attributes";
 import { category, toolCategory } from "@emach/db/schema/categories";
-import { supplier, tool, toolImage } from "@emach/db/schema/tools";
+import { supplier, tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { requireCapability } from "@/lib/permissions";
+import { buildDefinitionsByCategory } from "../../_components/attribute-helpers";
 import { ToolForm } from "../../_components/tool-form";
 import type {
+	AttributeValueInput,
 	ToolFormValues,
 	ToolStatusValue,
+	ToolVariantInput,
 	VOLTAGE_OPTIONS,
 } from "../../_components/tool-schema";
 
@@ -16,39 +23,61 @@ interface PageProps {
 	params: Promise<{ id: string }>;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: mapeamento denso row→form; refactor pendente em docs/plano-melhorias.md
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: mapeamento denso row→form com normalização de nullables e numerics; preferimos uma função pura que apenas formate o payload
 function toFormValues(
 	row: typeof tool.$inferSelect,
 	images: (typeof toolImage.$inferSelect)[],
-	toolCats: (typeof toolCategory.$inferSelect)[]
+	toolCats: (typeof toolCategory.$inferSelect)[],
+	variants: (typeof toolVariant.$inferSelect)[],
+	attributeValues: {
+		slug: string;
+		valueText: string | null;
+		valueNumeric: string | null;
+		valueNumericMax: string | null;
+		valueBool: boolean | null;
+	}[]
 ): Partial<ToolFormValues> {
 	const categoryIds = toolCats.map((tc) => tc.categoryId);
 	const primaryRow = toolCats.find((tc) => tc.isPrimary);
 	const primaryCategoryId = primaryRow?.categoryId ?? categoryIds[0] ?? "";
 
+	const formVariants: ToolVariantInput[] = variants.map((v) => ({
+		id: v.id,
+		sku: v.sku,
+		barcode: v.barcode ?? "",
+		voltage: (v.voltage ?? "") as (typeof VOLTAGE_OPTIONS)[number] | "",
+		priceAmount: Number(v.priceAmount),
+		costAmount: v.costAmount ? Number(v.costAmount) : undefined,
+		isDefault: v.isDefault,
+		sortOrder: v.sortOrder,
+	}));
+
+	const attrValuesMap: Record<string, AttributeValueInput> = {};
+	for (const av of attributeValues) {
+		attrValuesMap[av.slug] = {
+			valueText: av.valueText,
+			valueNumeric: av.valueNumeric ? Number(av.valueNumeric) : null,
+			valueNumericMax: av.valueNumericMax ? Number(av.valueNumericMax) : null,
+			valueBool: av.valueBool,
+		};
+	}
+
 	return {
 		name: row.name,
 		description: row.description ?? "",
-		sku: row.sku ?? "",
 		model: row.model ?? "",
 		invoiceModel: row.invoiceModel ?? "",
-		barcode: row.barcode ?? "",
 		manufacturerName: row.manufacturerName ?? "",
 		countryOfOrigin: row.countryOfOrigin ?? "",
 		status: (row.status ?? "draft") as ToolStatusValue,
 		hsCode: row.hsCode ?? "",
 		ncm: row.ncm ?? "",
 		cest: row.cest ?? "",
-		voltage: (row.voltage ?? "") as (typeof VOLTAGE_OPTIONS)[number] | "",
 		powerWatts: row.powerWatts ?? undefined,
-		frequencyHz: row.frequencyHz ?? undefined,
-		warrantyMonths: row.warrantyMonths ?? undefined,
 		weightKg: row.weightKg ? Number(row.weightKg) : undefined,
 		lengthCm: row.lengthCm ? Number(row.lengthCm) : undefined,
 		widthCm: row.widthCm ? Number(row.widthCm) : undefined,
 		heightCm: row.heightCm ? Number(row.heightCm) : undefined,
-		price: row.price ? Number(row.price) : undefined,
-		cost: row.cost ? Number(row.cost) : undefined,
 		categoryIds,
 		primaryCategoryId,
 		supplierId: row.supplierId ?? "",
@@ -58,6 +87,8 @@ function toFormValues(
 			url: img.url,
 			sortOrder: img.sortOrder,
 		})),
+		variants: formVariants,
+		attributeValues: attrValuesMap,
 	};
 }
 
@@ -70,7 +101,15 @@ export default async function EditToolPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const [images, categories, suppliers, toolCats] = await Promise.all([
+	const [
+		images,
+		categories,
+		suppliers,
+		toolCats,
+		variants,
+		attrValues,
+		definitionsByCategory,
+	] = await Promise.all([
 		db
 			.select()
 			.from(toolImage)
@@ -91,6 +130,26 @@ export default async function EditToolPage({ params }: PageProps) {
 			.from(supplier)
 			.orderBy(asc(supplier.name)),
 		db.select().from(toolCategory).where(eq(toolCategory.toolId, id)),
+		db
+			.select()
+			.from(toolVariant)
+			.where(eq(toolVariant.toolId, id))
+			.orderBy(asc(toolVariant.sortOrder)),
+		db
+			.select({
+				slug: attributeDefinition.slug,
+				valueText: toolAttributeValue.valueText,
+				valueNumeric: toolAttributeValue.valueNumeric,
+				valueNumericMax: toolAttributeValue.valueNumericMax,
+				valueBool: toolAttributeValue.valueBool,
+			})
+			.from(toolAttributeValue)
+			.innerJoin(
+				attributeDefinition,
+				eq(attributeDefinition.id, toolAttributeValue.attributeId)
+			)
+			.where(eq(toolAttributeValue.toolId, id)),
+		buildDefinitionsByCategory(),
 	]);
 
 	return (
@@ -104,7 +163,14 @@ export default async function EditToolPage({ params }: PageProps) {
 
 			<ToolForm
 				categories={categories}
-				defaultValues={toFormValues(row, images, toolCats)}
+				defaultValues={toFormValues(
+					row,
+					images,
+					toolCats,
+					variants,
+					attrValues
+				)}
+				definitionsByCategory={definitionsByCategory}
 				existingSlug={row.slug ?? undefined}
 				mode="edit"
 				suppliers={suppliers}

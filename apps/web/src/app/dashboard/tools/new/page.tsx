@@ -4,12 +4,13 @@ import { supplier } from "@emach/db/schema/tools";
 import { asc } from "drizzle-orm";
 
 import { requireCapability } from "@/lib/permissions";
+import { buildDefinitionsByCategory } from "../_components/attribute-helpers";
 import { ToolForm } from "../_components/tool-form";
 
 export default async function NewToolPage() {
 	await requireCapability("tools.create");
 
-	const [categories, suppliers] = await Promise.all([
+	const [categories, suppliers, definitionsByCategory] = await Promise.all([
 		db
 			.select({
 				id: category.id,
@@ -24,6 +25,7 @@ export default async function NewToolPage() {
 			.select({ id: supplier.id, name: supplier.name })
 			.from(supplier)
 			.orderBy(asc(supplier.name)),
+		buildDefinitionsByCategory(),
 	]);
 
 	return (
@@ -38,6 +40,7 @@ export default async function NewToolPage() {
 			<ToolForm
 				categories={categories}
 				defaultValues={{}}
+				definitionsByCategory={definitionsByCategory}
 				mode="create"
 				suppliers={suppliers}
 			/>

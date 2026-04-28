@@ -18,6 +18,8 @@
     "next": "^16.2.0",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "react-markdown": "^10.1.0",
+    "rehype-sanitize": "^6.0.0",
     "sonner": "catalog:",
     "zod": "catalog:"
   },

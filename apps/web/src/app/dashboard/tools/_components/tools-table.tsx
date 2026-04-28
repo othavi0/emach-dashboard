@@ -36,7 +36,9 @@ export interface ToolRow {
 	status: string;
 	supplierName: string | null;
 	totalStock: number;
+	variantCount: number;
 	visibleOnSite: boolean;
+	voltage: string | null;
 }
 
 interface ToolsTableProps {
@@ -86,7 +88,13 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 								{t.name}
 							</Link>
 							{t.sku && (
-								<p className="text-muted-foreground text-xs">SKU: {t.sku}</p>
+								<p className="text-muted-foreground text-xs">
+									SKU: {t.sku}
+									{t.voltage ? ` · ${t.voltage}` : ""}
+									{t.variantCount > 1
+										? ` · +${t.variantCount - 1} variantes`
+										: ""}
+								</p>
 							)}
 						</TableCell>
 						<TableCell>{t.primaryCategoryName ?? "—"}</TableCell>

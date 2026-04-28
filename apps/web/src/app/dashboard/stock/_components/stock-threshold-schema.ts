@@ -13,7 +13,7 @@ export const stockThresholdSchema = z
 			.int("Ponto de reposição deve ser inteiro")
 			.min(0, "Ponto de reposição não pode ser negativo")
 			.max(999_999, "Valor excede o limite permitido"),
-		toolId: z.string().min(1, "Ferramenta obrigatória"),
+		variantId: z.string().min(1, "Variante obrigatória"),
 	})
 	.refine((data) => data.reorderPoint >= data.minQty, {
 		path: ["reorderPoint"],

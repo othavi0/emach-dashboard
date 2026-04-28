@@ -37,7 +37,11 @@ export type Capability =
 	| "reviews.moderate"
 	| "users.manage"
 	| "apikeys.manage"
-	| "audit.read";
+	| "audit.read"
+	| "attributes.read"
+	| "attributes.create"
+	| "attributes.update"
+	| "attributes.delete";
 
 const ALL_CAPS: readonly Capability[] = [
 	"tools.read",
@@ -74,6 +78,10 @@ const ALL_CAPS: readonly Capability[] = [
 	"users.manage",
 	"apikeys.manage",
 	"audit.read",
+	"attributes.read",
+	"attributes.create",
+	"attributes.update",
+	"attributes.delete",
 ];
 
 const USER_CAPS: readonly Capability[] = [
@@ -91,6 +99,7 @@ const USER_CAPS: readonly Capability[] = [
 	"stock.adjust",
 	"orders.update_status",
 	"orders.add_note",
+	"attributes.read",
 ];
 
 const MANAGER_CAPS: readonly Capability[] = [
@@ -111,6 +120,9 @@ const MANAGER_CAPS: readonly Capability[] = [
 	"site.publish_announcements",
 	"reviews.moderate",
 	"audit.read",
+	"attributes.create",
+	"attributes.update",
+	"attributes.delete",
 ];
 
 const ROLE_CAPS: Record<UserRole, readonly Capability[]> = {

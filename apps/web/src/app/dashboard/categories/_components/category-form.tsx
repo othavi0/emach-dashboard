@@ -19,6 +19,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
 
+import { slugifyLabel } from "../../attributes/schema";
 import {
 	type CategoryListItem,
 	createCategory,
@@ -155,7 +156,13 @@ export function CategoryForm({
 					<Input
 						disabled={isPending}
 						id="category-name"
-						onChange={(event) => setName(event.target.value)}
+						onChange={(event) => {
+							const next = event.target.value;
+							setName(next);
+							if (mode === "create") {
+								setSlug(slugifyLabel(next));
+							}
+						}}
 						placeholder="Ex: Furadeiras"
 						value={name}
 					/>
@@ -167,12 +174,17 @@ export function CategoryForm({
 				<div className="flex flex-col gap-2">
 					<Label htmlFor="category-slug">Slug</Label>
 					<Input
-						disabled={isPending}
+						disabled={isPending || mode === "create"}
 						id="category-slug"
 						onChange={(event) => setSlug(event.target.value)}
 						placeholder="furadeiras"
 						value={slug}
 					/>
+					<p className="text-muted-foreground text-xs">
+						{mode === "create"
+							? "Gerado automaticamente a partir do nome."
+							: "Atenção: alterar o slug pode quebrar URLs salvas."}
+					</p>
 					{errors.slug && (
 						<p className="text-destructive text-sm">{errors.slug}</p>
 					)}

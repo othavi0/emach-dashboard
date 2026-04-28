@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { CategoryAttributesPanel } from "../../_components/category-attributes-panel";
 import { CategoryForm } from "../../_components/category-form";
 import { getCategory, listCategories } from "../../actions";
 
@@ -47,6 +48,7 @@ export default async function EditCategoryPage({ params }: PageProps) {
 				}}
 				mode="edit"
 			/>
+			<CategoryAttributesPanel categoryId={id} />
 		</div>
 	);
 }

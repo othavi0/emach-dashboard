@@ -1,0 +1,458 @@
+"use client";
+
+import { Button } from "@emach/ui/components/button";
+import { Input } from "@emach/ui/components/input";
+import { Label } from "@emach/ui/components/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@emach/ui/components/select";
+import { Spinner } from "@emach/ui/components/spinner";
+import { Switch } from "@emach/ui/components/switch";
+import { Plus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+import type { ZodError } from "zod";
+
+import { createAttribute, updateAttribute } from "../actions";
+import {
+	ATTRIBUTE_INPUT_TYPE_LABELS,
+	ATTRIBUTE_INPUT_TYPES,
+	type AttributeFormValues,
+	attributeFormSchema,
+	slugifyLabel,
+} from "../schema";
+
+interface CategoryOption {
+	depth: number;
+	id: string;
+	name: string;
+}
+
+interface AttributeFormProps {
+	attributeId?: string;
+	categories: CategoryOption[];
+	defaultValues: Partial<AttributeFormValues>;
+	mode: "create" | "edit";
+}
+
+function renderSubmitLabel(isPending: boolean, mode: "create" | "edit") {
+	if (isPending) {
+		return (
+			<>
+				<Spinner /> Salvando…
+			</>
+		);
+	}
+	return mode === "create" ? "Criar atributo" : "Salvar alterações";
+}
+
+const EMPTY: AttributeFormValues = {
+	slug: "",
+	label: "",
+	inputType: "text",
+	unit: "",
+	isRequired: false,
+	categoryId: "",
+	sortOrder: 0,
+	options: [],
+	swatches: [],
+};
+
+export function AttributeForm({
+	mode,
+	attributeId,
+	defaultValues,
+	categories,
+}: AttributeFormProps) {
+	const router = useRouter();
+	const [isPending, startTransition] = useTransition();
+	const [values, setValues] = useState<AttributeFormValues>({
+		...EMPTY,
+		...defaultValues,
+		options: defaultValues.options ?? [],
+		swatches: defaultValues.swatches ?? [],
+	});
+	const [errors, setErrors] = useState<
+		Partial<Record<keyof AttributeFormValues, string>>
+	>({});
+	const [allIssues, setAllIssues] = useState<
+		{ path: string; message: string }[]
+	>([]);
+
+	function update<K extends keyof AttributeFormValues>(
+		key: K,
+		value: AttributeFormValues[K]
+	) {
+		setValues((prev) => ({ ...prev, [key]: value }));
+	}
+
+	const FIELD_LABELS: Record<string, string> = {
+		label: "Rótulo",
+		slug: "Slug",
+		inputType: "Tipo de campo",
+		unit: "Unidade",
+		categoryId: "Categoria",
+		sortOrder: "Ordem",
+		options: "Opções da lista",
+		swatches: "Cores",
+		isRequired: "Obrigatório",
+	};
+
+	function pathToLabel(path: readonly PropertyKey[]): string {
+		if (path.length === 0) {
+			return "Formulário";
+		}
+		const head = String(path[0]);
+		const root = FIELD_LABELS[head] ?? head;
+		if (path.length === 1) {
+			return root;
+		}
+		const rest = path
+			.slice(1)
+			.map((p) => (typeof p === "number" ? `#${p + 1}` : p))
+			.join(" › ");
+		return `${root} ${rest}`;
+	}
+
+	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		const result = attributeFormSchema.safeParse(values);
+		if (!result.success) {
+			const fieldErrors: Partial<Record<keyof AttributeFormValues, string>> =
+				{};
+			const issues = (result.error as ZodError<AttributeFormValues>).issues;
+			for (const issue of issues) {
+				const key = issue.path[0] as keyof AttributeFormValues | undefined;
+				if (key && !fieldErrors[key]) {
+					fieldErrors[key] = issue.message;
+				}
+			}
+			setErrors(fieldErrors);
+			setAllIssues(
+				issues.map((i) => ({ path: pathToLabel(i.path), message: i.message }))
+			);
+			toast.error(
+				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
+			);
+			return;
+		}
+		setErrors({});
+		setAllIssues([]);
+		startTransition(async () => {
+			const action =
+				mode === "create"
+					? await createAttribute(result.data)
+					: await updateAttribute(attributeId ?? "", result.data);
+			if (action.ok) {
+				toast.success(
+					mode === "create" ? "Atributo criado" : "Atributo atualizado"
+				);
+				router.push("/dashboard/attributes");
+				router.refresh();
+				return;
+			}
+			toast.error(action.error || "Falha ao salvar");
+		});
+	}
+
+	const showOptions = values.inputType === "select";
+	const showSwatches = values.inputType === "color";
+	const showUnit =
+		values.inputType === "number" || values.inputType === "numeric_range";
+
+	return (
+		<form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+			{allIssues.length > 0 && (
+				<div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-destructive">
+					<p className="font-semibold text-sm">
+						{allIssues.length === 1
+							? "1 erro impede salvar:"
+							: `${allIssues.length} erros impedem salvar:`}
+					</p>
+					<ul className="mt-2 list-disc pl-5 text-sm">
+						{allIssues.map((issue, idx) => (
+							<li key={`${issue.path}-${idx}`}>
+								<strong>{issue.path}:</strong> {issue.message}
+							</li>
+						))}
+					</ul>
+				</div>
+			)}
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
+				<div className="grid gap-4 md:grid-cols-2">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="label">Rótulo</Label>
+						<Input
+							id="label"
+							onChange={(e) => {
+								const v = e.target.value;
+								update("label", v);
+								if (mode === "create") {
+									update("slug", slugifyLabel(v));
+								}
+							}}
+							placeholder="RPM máximo"
+							value={values.label}
+						/>
+						{errors.label && (
+							<p className="text-destructive text-xs">{errors.label}</p>
+						)}
+					</div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="slug">Slug</Label>
+						<Input
+							disabled={mode === "create"}
+							id="slug"
+							onChange={(e) => update("slug", e.target.value)}
+							placeholder="rpm-maximo"
+							value={values.slug}
+						/>
+						<p className="text-muted-foreground text-xs">
+							{mode === "create"
+								? "Gerado automaticamente a partir do rótulo."
+								: "Atenção: alterar o slug pode quebrar referências."}
+						</p>
+						{errors.slug && (
+							<p className="text-destructive text-xs">{errors.slug}</p>
+						)}
+					</div>
+				</div>
+
+				<div className="grid gap-4 md:grid-cols-3">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="inputType">Tipo de campo</Label>
+						<Select
+							onValueChange={(v) =>
+								update("inputType", v as AttributeFormValues["inputType"])
+							}
+							value={values.inputType}
+						>
+							<SelectTrigger id="inputType">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{ATTRIBUTE_INPUT_TYPES.map((t) => (
+									<SelectItem key={t} value={t}>
+										{ATTRIBUTE_INPUT_TYPE_LABELS[t]}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+					{showUnit && (
+						<div className="flex flex-col gap-2">
+							<Label htmlFor="unit">Unidade</Label>
+							<Input
+								id="unit"
+								onChange={(e) => update("unit", e.target.value)}
+								placeholder="RPM, mm, kg, W"
+								value={values.unit ?? ""}
+							/>
+						</div>
+					)}
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="categoryId">Categoria</Label>
+						<Select
+							onValueChange={(v) => update("categoryId", v ?? "")}
+							value={values.categoryId ?? ""}
+						>
+							<SelectTrigger id="categoryId">
+								<SelectValue placeholder="Global (todas)" />
+							</SelectTrigger>
+							<SelectContent>
+								{categories.map((c) => (
+									<SelectItem key={c.id} value={c.id}>
+										{"— ".repeat(c.depth)}
+										{c.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+				</div>
+
+				<div className="grid gap-4 md:grid-cols-2">
+					<div className="flex items-center justify-between rounded-md border border-border p-3">
+						<Label htmlFor="isRequired">Obrigatório</Label>
+						<Switch
+							checked={values.isRequired}
+							id="isRequired"
+							onCheckedChange={(checked) => update("isRequired", checked)}
+						/>
+					</div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="sortOrder">Ordem</Label>
+						<Input
+							id="sortOrder"
+							onChange={(e) =>
+								update("sortOrder", Number.parseInt(e.target.value, 10) || 0)
+							}
+							type="number"
+							value={values.sortOrder}
+						/>
+					</div>
+				</div>
+			</section>
+
+			{showOptions && (
+				<section className="flex flex-col gap-3 rounded-md border border-border bg-card p-6">
+					<h3 className="font-semibold text-sm uppercase tracking-wide">
+						Opções da lista
+					</h3>
+					{values.options.map((opt, index) => (
+						<div className="grid grid-cols-[2fr_2fr_auto] gap-2" key={index}>
+							<Input
+								onChange={(e) => {
+									const label = e.target.value;
+									const next = [...values.options];
+									next[index] = {
+										...next[index],
+										label,
+										value:
+											mode === "create"
+												? slugifyLabel(label)
+												: next[index].value,
+									};
+									update("options", next);
+								}}
+								placeholder="Rótulo visível"
+								value={opt.label}
+							/>
+							<Input
+								disabled={mode === "create"}
+								onChange={(e) => {
+									const next = [...values.options];
+									next[index] = { ...next[index], value: e.target.value };
+									update("options", next);
+								}}
+								placeholder="slug-da-opcao"
+								value={opt.value}
+							/>
+							<Button
+								onClick={() =>
+									update(
+										"options",
+										values.options.filter((_, i) => i !== index)
+									)
+								}
+								size="sm"
+								type="button"
+								variant="ghost"
+							>
+								<Trash2 className="size-4" />
+							</Button>
+						</div>
+					))}
+					<Button
+						onClick={() =>
+							update("options", [...values.options, { value: "", label: "" }])
+						}
+						size="sm"
+						type="button"
+						variant="outline"
+					>
+						<Plus className="size-4" /> Adicionar opção
+					</Button>
+					{errors.options && (
+						<p className="text-destructive text-xs">{errors.options}</p>
+					)}
+				</section>
+			)}
+
+			{showSwatches && (
+				<section className="flex flex-col gap-3 rounded-md border border-border bg-card p-6">
+					<h3 className="font-semibold text-sm uppercase tracking-wide">
+						Cores
+					</h3>
+					{values.swatches.map((sw, index) => (
+						<div
+							className="grid grid-cols-[1fr_2fr_2fr_auto] gap-2"
+							key={index}
+						>
+							<Input
+								onChange={(e) => {
+									const next = [...values.swatches];
+									next[index] = { ...next[index], hex: e.target.value };
+									update("swatches", next);
+								}}
+								placeholder="#1a1a1a"
+								value={sw.hex}
+							/>
+							<Input
+								onChange={(e) => {
+									const label = e.target.value;
+									const next = [...values.swatches];
+									next[index] = {
+										...next[index],
+										label,
+										value:
+											mode === "create"
+												? slugifyLabel(label)
+												: next[index].value,
+									};
+									update("swatches", next);
+								}}
+								placeholder="Rótulo"
+								value={sw.label}
+							/>
+							<Input
+								disabled={mode === "create"}
+								onChange={(e) => {
+									const next = [...values.swatches];
+									next[index] = { ...next[index], value: e.target.value };
+									update("swatches", next);
+								}}
+								placeholder="slug-da-cor"
+								value={sw.value}
+							/>
+							<Button
+								onClick={() =>
+									update(
+										"swatches",
+										values.swatches.filter((_, i) => i !== index)
+									)
+								}
+								size="sm"
+								type="button"
+								variant="ghost"
+							>
+								<Trash2 className="size-4" />
+							</Button>
+						</div>
+					))}
+					<Button
+						onClick={() =>
+							update("swatches", [
+								...values.swatches,
+								{ hex: "#000000", value: "", label: "" },
+							])
+						}
+						size="sm"
+						type="button"
+						variant="outline"
+					>
+						<Plus className="size-4" /> Adicionar cor
+					</Button>
+				</section>
+			)}
+
+			<div className="flex gap-3">
+				<Button disabled={isPending} type="submit">
+					{renderSubmitLabel(isPending, mode)}
+				</Button>
+				<Button
+					onClick={() => router.push("/dashboard/attributes")}
+					type="button"
+					variant="ghost"
+				>
+					Cancelar
+				</Button>
+			</div>
+		</form>
+	);
+}

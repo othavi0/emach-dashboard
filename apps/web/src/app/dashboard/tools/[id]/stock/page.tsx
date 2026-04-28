@@ -1,7 +1,13 @@
 import { db } from "@emach/db";
 import { stockLevel } from "@emach/db/schema/inventory";
-import { tool } from "@emach/db/schema/tools";
+import { tool, toolVariant } from "@emach/db/schema/tools";
 import { buttonVariants } from "@emach/ui/components/button";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@emach/ui/components/card";
 import {
 	Table,
 	TableBody,
@@ -10,7 +16,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -75,27 +81,12 @@ function formatDelta(delta: number): {
 	};
 }
 
-async function fetchTool(id: string) {
-	const rows = await db.select().from(tool).where(eq(tool.id, id)).limit(1);
-	return rows[0] ?? null;
-}
-
-async function fetchStockLevelsForTool(toolId: string) {
-	return await db
-		.select({
-			branchId: stockLevel.branchId,
-			quantity: stockLevel.quantity,
-			updatedAt: stockLevel.updatedAt,
-		})
-		.from(stockLevel)
-		.where(eq(stockLevel.toolId, toolId));
-}
-
-interface BranchStockRow {
+interface VariantBranchRow {
 	branchId: string;
 	branchName: string;
 	quantity: number;
 	updatedAt: Date | null;
+	variantId: string;
 }
 
 export default async function ToolStockPage({ params }: PageProps) {
@@ -104,30 +95,41 @@ export default async function ToolStockPage({ params }: PageProps) {
 	const role = session.user.role ?? "user";
 	const canMutate = role === "admin";
 
-	const currentTool = await fetchTool(id);
+	const [currentTool] = await db
+		.select()
+		.from(tool)
+		.where(eq(tool.id, id))
+		.limit(1);
 	if (!currentTool) {
 		notFound();
 	}
 
-	const [branches, stockLevels, movements] = await Promise.all([
+	const [variants, branches, stockLevels, movements] = await Promise.all([
+		db
+			.select()
+			.from(toolVariant)
+			.where(eq(toolVariant.toolId, id))
+			.orderBy(asc(toolVariant.sortOrder)),
 		listBranches(),
-		fetchStockLevelsForTool(id),
+		db
+			.select({
+				variantId: stockLevel.variantId,
+				branchId: stockLevel.branchId,
+				quantity: stockLevel.quantity,
+				updatedAt: stockLevel.updatedAt,
+			})
+			.from(stockLevel)
+			.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
+			.where(eq(toolVariant.toolId, id)),
 		getStockMovements(id, 50),
 	]);
 
-	const stockByBranch = new Map(stockLevels.map((sl) => [sl.branchId, sl]));
+	const stockByVariantBranch = new Map<string, (typeof stockLevels)[number]>();
+	for (const sl of stockLevels) {
+		stockByVariantBranch.set(`${sl.variantId}:${sl.branchId}`, sl);
+	}
 
-	const rows: BranchStockRow[] = branches
-		.map((b) => {
-			const row = stockByBranch.get(b.id);
-			return {
-				branchId: b.id,
-				branchName: b.name,
-				quantity: row?.quantity ?? 0,
-				updatedAt: row?.updatedAt ?? null,
-			};
-		})
-		.sort((a, b) => a.branchName.localeCompare(b.branchName, "pt-BR"));
+	const defaultVariant = variants.find((v) => v.isDefault) ?? variants[0];
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -135,7 +137,9 @@ export default async function ToolStockPage({ params }: PageProps) {
 				<div>
 					<h1 className="font-serif text-2xl">{currentTool.name}</h1>
 					<p className="text-muted-foreground text-sm">
-						{currentTool.sku ? `SKU: ${currentTool.sku}` : "Sem SKU"}
+						{defaultVariant
+							? `SKU padrão: ${defaultVariant.sku}`
+							: "Sem variantes"}
 					</p>
 				</div>
 				<Link
@@ -146,59 +150,91 @@ export default async function ToolStockPage({ params }: PageProps) {
 				</Link>
 			</div>
 
-			<div>
-				<h2 className="mb-3 font-serif text-lg">Estoque por filial</h2>
-				{branches.length === 0 ? (
-					<p className="text-muted-foreground text-sm">
-						Nenhuma filial cadastrada. Crie uma filial em{" "}
-						<Link className="underline" href="/dashboard/branches">
-							/dashboard/branches
-						</Link>
-						.
-					</p>
-				) : (
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Filial</TableHead>
-								<TableHead className="text-right">Quantidade atual</TableHead>
-								<TableHead>Última atualização</TableHead>
-								{canMutate && (
-									<TableHead className="w-32 text-right">Ações</TableHead>
+			{variants.length === 0 ? (
+				<p className="text-muted-foreground text-sm">
+					Cadastre variantes na página de edição para gerenciar estoque.
+				</p>
+			) : (
+				variants.map((variant) => {
+					const rows: VariantBranchRow[] = branches
+						.map((b) => {
+							const row = stockByVariantBranch.get(`${variant.id}:${b.id}`);
+							return {
+								variantId: variant.id,
+								branchId: b.id,
+								branchName: b.name,
+								quantity: row?.quantity ?? 0,
+								updatedAt: row?.updatedAt ?? null,
+							};
+						})
+						.sort((a, b) => a.branchName.localeCompare(b.branchName, "pt-BR"));
+					return (
+						<Card key={variant.id}>
+							<CardHeader>
+								<CardTitle>
+									{variant.sku}
+									{variant.voltage ? ` · ${variant.voltage}` : ""}
+									{variant.isDefault ? " · padrão" : ""}
+								</CardTitle>
+							</CardHeader>
+							<CardContent>
+								{branches.length === 0 ? (
+									<p className="text-muted-foreground text-sm">
+										Nenhuma filial cadastrada.
+									</p>
+								) : (
+									<Table>
+										<TableHeader>
+											<TableRow>
+												<TableHead>Filial</TableHead>
+												<TableHead className="text-right">
+													Quantidade atual
+												</TableHead>
+												<TableHead>Última atualização</TableHead>
+												{canMutate && (
+													<TableHead className="w-32 text-right">
+														Ações
+													</TableHead>
+												)}
+											</TableRow>
+										</TableHeader>
+										<TableBody>
+											{rows.map((row) => (
+												<TableRow key={`${row.variantId}-${row.branchId}`}>
+													<TableCell className="font-medium">
+														{row.branchName}
+													</TableCell>
+													<TableCell className="text-right font-mono">
+														{row.quantity}
+													</TableCell>
+													<TableCell className="text-muted-foreground text-sm">
+														{formatDateTime(row.updatedAt)}
+													</TableCell>
+													{canMutate && (
+														<TableCell className="text-right">
+															<StockAdjustButton
+																branchId={row.branchId}
+																branchName={row.branchName}
+																currentQty={row.quantity}
+																variantId={row.variantId}
+															/>
+														</TableCell>
+													)}
+												</TableRow>
+											))}
+										</TableBody>
+									</Table>
 								)}
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{rows.map((row) => (
-								<TableRow key={row.branchId}>
-									<TableCell className="font-medium">
-										{row.branchName}
-									</TableCell>
-									<TableCell className="text-right font-mono">
-										{row.quantity}
-									</TableCell>
-									<TableCell className="text-muted-foreground text-sm">
-										{formatDateTime(row.updatedAt)}
-									</TableCell>
-									{canMutate && (
-										<TableCell className="text-right">
-											<StockAdjustButton
-												branchId={row.branchId}
-												branchName={row.branchName}
-												currentQty={row.quantity}
-												toolId={id}
-											/>
-										</TableCell>
-									)}
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				)}
-			</div>
+							</CardContent>
+						</Card>
+					);
+				})
+			)}
 
 			<div>
-				<h2 className="mb-3 font-serif text-lg">Histórico de movimentações</h2>
+				<h2 className="mb-3 font-serif text-lg">
+					Histórico de movimentações (todas as variantes)
+				</h2>
 				{movements.length === 0 ? (
 					<p className="text-muted-foreground text-sm">
 						Nenhuma movimentação registrada

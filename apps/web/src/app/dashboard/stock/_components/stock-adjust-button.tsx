@@ -6,21 +6,21 @@ interface StockAdjustButtonProps {
 	branchId: string;
 	branchName: string;
 	currentQty: number;
-	toolId: string;
+	variantId: string;
 }
 
 export function StockAdjustButton({
 	branchId,
 	branchName,
 	currentQty,
-	toolId,
+	variantId,
 }: StockAdjustButtonProps) {
 	return (
 		<AdjustStockDialog
 			branchId={branchId}
 			branchName={branchName}
 			currentQty={currentQty}
-			toolId={toolId}
+			variantId={variantId}
 		/>
 	);
 }

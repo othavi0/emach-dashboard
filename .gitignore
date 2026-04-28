@@ -61,3 +61,9 @@ temp
 packages/db/supabase/supabase/
 packages/db/supabase/.temp/
 packages/db/supabase/.branches/
+
+# Playwright MCP runtime artifacts (snapshots/console logs gerados pelo browser_eval)
+.playwright-mcp/
+
+# Claude Code scheduled-task lock file (in-memory state)
+.claude/scheduled_tasks.lock

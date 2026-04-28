@@ -13,14 +13,14 @@ interface BranchStockThresholdInputsProps {
 	branchId: string;
 	initialMinQty: number;
 	initialReorderPoint: number;
-	toolId: string;
+	variantId: string;
 }
 
 export function BranchStockThresholdInputs({
 	branchId,
 	initialMinQty,
 	initialReorderPoint,
-	toolId,
+	variantId,
 }: BranchStockThresholdInputsProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
@@ -41,7 +41,7 @@ export function BranchStockThresholdInputs({
 
 		startTransition(async () => {
 			const result = await updateStockThresholds({
-				toolId,
+				variantId,
 				branchId,
 				minQty,
 				reorderPoint,
