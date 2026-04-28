@@ -20,6 +20,7 @@ Monorepo Bun + Turborepo. Dashboard Next 16 / React 19 com auth dual (funcionár
 | ORM | Drizzle 0.45 + node-postgres | `packages/db` |
 | DB | Supabase Postgres + Storage (`tool-images` bucket) | env: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_*` |
 | Auth | Better Auth 1.5.5 (dual instances) | `packages/auth` |
+| Markdown render | `react-markdown` + `rehype-sanitize` | `apps/web/src/components/tool-description.tsx` |
 | Env validation | `@t3-oss/env-core` + Zod | `packages/env` |
 | Linter / formatter | Biome 2.4.12 + Ultracite 7.6 | `biome.json` |
 | TypeScript | 6.0 (strict, noUncheckedIndexedAccess) | `packages/config/tsconfig.base.json` |
@@ -36,14 +37,20 @@ apps/
     src/app/
       login/              Pública
       dashboard/          Protegida via requireCurrentSession
-        (inventory)/      Route group: tools/, stock/, promotions/
-        branches/, suppliers/
-        categories/       Árvore hierárquica (CRUD básico — Fase A)
-        orders/           (planejado Fase B) listagem, detalhe, status, notas
+        tools/            Ferramentas (catálogo) — variantes, specs dinâmicas, mídia
+        attributes/       Catálogo de specs técnicas dinâmicas (CRUD)
+        categories/       Árvore hierárquica + painel de atributos por categoria
+        suppliers/        Fornecedores
+        branches/         Filiais
+        stock/            Visão por ferramenta + por filial; movimentos por variante
+        promotions/       Promoções e cupons
+        orders/           Pedidos (read + status update)
         customers/        (planejado Fase C) clientes, leads, tags, exports
         site/             (planejado Fase D) banners, settings, anúncios
-        reviews/          (planejado Fase E) moderação de avaliações
+        reviews/          Moderação de avaliações
       api/auth/[...all]/  Better Auth catch-all (dashboard)
+    src/components/
+      tool-description.tsx  Renderer markdown sanitizado (descrição de ferramenta)
     src/lib/
       auth-client.ts      Better Auth client (browser)
       session.ts          getCurrentSession / requireRole helpers
@@ -83,15 +90,27 @@ bun db:migrate                     # aplica migrations pendentes
 
 # DB scripts utilitários (em packages/db)
 bun --cwd packages/db db:seed-categories       # bootstrap 5 categorias raiz
+bun --cwd packages/db db:seed-attributes       # bootstrap attribute_definitions iniciais por categoria
 bun --cwd packages/db db:anonymize-client <id> # LGPD direito ao esquecimento
 
 bun clean                          # remove node_modules + caches Turbo/Next
 ```
 
-Env de scripts em `packages/*/scripts/*` resolve `.env` via path múltiplo (commit `f0f2992`). Para rodar local: garantir `apps/web/.env` populado a partir de `apps/web/.env.example`.
+Env de scripts em `packages/*/scripts/*` resolve `.env` via path múltiplo. Para rodar local: garantir `apps/web/.env` populado a partir de `apps/web/.env.example`.
+
+### Drop & recreate em dev
+Se o schema diverge muito e drizzle-kit não consegue resolver renames (TTY prompt em CI):
+
+```bash
+# DROP SCHEMA public CASCADE; CREATE SCHEMA public;  via pg client
+# depois: bunx drizzle-kit push
+# depois: bun db:apply-triggers && bun db:seed-categories && bun db:seed-attributes
+```
+
+⚠️ Só rodar em DB de dev. **Nunca** em staging/prod.
 
 ### Testes
-Não há suite ainda. Roadmap inclui Vitest (unit) + Playwright (E2E) — ver `docs/roadmap.md` quando criado. Por ora, validação = `bun check-types` + `bun fix` + smoke manual em `bun dev:web`.
+Não há suite ainda. Roadmap inclui Vitest (unit) + Playwright (E2E). Por ora, validação = `bun check-types` + `bun fix` + smoke manual em `bun dev:web`.
 
 ---
 
@@ -113,7 +132,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 5. Migrations em prod: `drizzle-kit generate` + migration versionada. `--force` só em dev/staging.
 6. **Integração com app ecomerce externo (DB compartilhada)**: ambos escrevem na mesma DB Supabase via Drizzle. Admin **não** chama o app ecomerce; o app ecomerce **não** chama o admin. Coordenação acontece pelo schema compartilhado + endpoint `POST /api/internal/revalidate` (signed via `apiKey`) quando uma das pontas precisar invalidar cache da outra. Contrato em `docs/integration/admin-ecommerce.md`.
 
-**Roles dashboard**: `user.role` é `pgEnum('user_role', ['admin','manager','user'])` (Fase A — não é mais `text`). Verificação em **server actions sensíveis** via `requireCapability(cap)` em `apps/web/src/lib/permissions.ts` (capabilities granulares). Gates grosseiros ainda usam `requireRole("admin")` em layouts. `client` **não** tem `role`.
+**Roles dashboard**: `user.role` é `pgEnum('user_role', ['admin','manager','user'])`. Verificação em **server actions sensíveis** via `requireCapability(cap)` em `apps/web/src/lib/permissions.ts` (capabilities granulares). Gates grosseiros ainda usam `requireRole("admin")` em layouts. `client` **não** tem `role`.
 
 **Env compartilhado:** `DATABASE_URL`, `BETTER_AUTH_SECRET` (ok enquanto subdomínios). **Específicos:** dashboard precisa `BETTER_AUTH_URL` + `CORS_ORIGIN`; ecomerce precisa `BETTER_AUTH_URL_ECOMMERCE` + `ECOMMERCE_ORIGIN` (fallbacks aceitáveis no env central).
 
@@ -125,15 +144,21 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 |---|---|---|
 | `auth.ts` | `user`, `session`, `account`, `verification` | `user.role` = `pgEnum('user_role', [...])`. |
 | `client.ts` | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | Campos BR (`country` default `"BR"`, `phone`, `document` unique nullable). |
-| `tools.ts` | `supplier`, `tool`, `toolImage` | `tool.sku`/`barcode` unique; `model` agrupa variantes de voltagem; `invoiceModel` repete legitimamente; visibilidade pública = `status='active' AND visibleOnSite=true`. **Categorias via `tool_category`** (M2M; uma `isPrimary=true`). |
+| `tools.ts` | `supplier`, `tool`, `toolVariant`, `toolImage` | `tool` enxuto (sem sku/voltage/price); SKU + voltagem + preço/custo + barcode vivem em `tool_variant`. `voltage` é `pgEnum('voltage', ['127V','220V','Bivolt','380V'])`. **Toda ferramenta tem ≥1 `tool_variant`** (uma marcada `isDefault=true` via partial unique index). |
+| `attributes.ts` | `attributeDefinition`, `toolAttributeValue` | Catálogo de specs dinâmicas (Saleor-lite). `attribute_definition` define `inputType` (`text`/`number`/`select`/`boolean`/`numeric_range`/`color`), `unit`, `options jsonb`, opcionalmente `categoryId`. `tool_attribute_value` armazena valor tipado por coluna (`valueText`, `valueNumeric`, `valueNumericMax`, `valueBool`). |
 | `categories.ts` | `category`, `toolCategory` | Árvore com `parent_id` + `path`/`depth` materializados via trigger pl/pgSQL. Anti-ciclo + cascade de path. Depth máximo 5. |
-| `inventory.ts` | `branch`, `stockLevel` | `stockLevel` tem `minQty` + `reorderPoint` + check `quantity >= 0` (oversell guard). |
-| `promotions.ts` | `promotion`, `promotionTool` | Cupons via `promotion.type='promocode'` (não há tabela `coupon`). |
-| `stock-movements.ts` | `stockMovement` | Audit trail; `actorType` (`user`/`apiKey`/`system`) + `actorId` + `apiKeyId`; partial unique index garante idempotência de débito de venda; check `delta != 0`. |
+| `inventory.ts` | `branch`, `stockLevel` | PK `(variantId, branchId)`. `minQty` + `reorderPoint` + check `quantity >= 0` (oversell guard). |
+| `promotions.ts` | `promotion`, `promotionTool` | Cupons via `promotion.type='promocode'` (não há tabela `coupon`). Promoção continua por ferramenta-pai. |
+| `stock-movements.ts` | `stockMovement` | Audit trail por **variante**; `actorType` (`user`/`apiKey`/`system`) + `actorId` + `apiKeyId`; partial unique index garante idempotência de débito de venda; check `delta != 0`. |
+| `orders.ts` | `order`, `orderItem`, `orderStatusHistory`, `orderNote` | `orderItem` carrega `toolId` + `variantId` + snapshots fiscais/dimensão. |
+| `reviews.ts` | `review` | Moderação por admin (`status` pgEnum). Unique `(clientId, toolId, orderId)`. |
 | `api-keys.ts` | `apiKey` | `scopes` + `allowedTags` (text[]) controlam escopo. GIN index em scopes. |
 | `consent-log.ts` | `consentLog` | LGPD: TOS/privacy/marketing/cookies por client/lead. Helper em `apps/web/src/lib/consent.ts`. |
 
-**Variantes de voltagem (127V/220V):** rows `tool` separadas compartilhando `model`. **Não há** tabela `tool_variant`.
+**Especificações técnicas dinâmicas — herança:**
+- `attribute_definition.categoryId` aponta para a categoria onde a spec aplica (ou `NULL` = global).
+- Ao montar form de uma ferramenta, server action carrega definitions cuja `categoryId` está em `category.path` da categoria primary do tool (recursão via CTE em `tools/actions.ts`) **OU** é `NULL`.
+- Ao trocar a categoria primary de uma ferramenta, `updateTool` detecta valores órfãos (`tool_attribute_value` cuja `attribute_definition` não está mais no path da nova categoria) e devolve `actionResult.warning = "orphan_attributes"`. Form pede confirmação antes de deletar.
 
 **Triggers PL/pgSQL** em `packages/db/src/migrations/_triggers.sql` (Drizzle Kit não gera triggers — aplicar via `bun db:apply-triggers`).
 
@@ -189,7 +214,7 @@ Quando usar cada um:
 | `better-auth` (Inkeep HTTP) | Pergunta específica sobre API/feature do Better Auth — usar quando context7 não basta. |
 | `supabase` (HTTP) | `list_tables`, `execute_sql`, `generate_typescript_types`, `get_advisors`, logs. **Confirmar custo** antes de operações pagas. |
 | `shadcn` | `search_items_in_registries`, `view_items_in_registries`, `get_add_command_for_items`, `get_audit_checklist`. Preferir sobre `npx shadcn add` quando precisar inspecionar antes. |
-| `next-devtools` | `nextjs_docs`, `nextjs_call`, `browser_eval`, `enable_cache_components` (Next 16 Cache Components flag). |
+| `next-devtools` | `nextjs_docs`, `nextjs_call`, `browser_eval` (Playwright Firefox), `enable_cache_components`. `nextjs_call <port> get_errors` é a maneira mais rápida de pegar stack trace de SSR error em dev. |
 | `better-t-stack` | Apenas histórico — projeto já scaffoldado. Usar só para `bts_add_addons` se decidir adicionar feature do BTS. |
 
 ---
@@ -198,11 +223,21 @@ Quando usar cada um:
 
 1. **Antes de tocar UI:** abrir `DESIGN.md` na seção relevante; invocar `web-design-guidelines` se for review.
 2. **Antes de tocar schema:** editar `packages/db/src/schema/*.ts` → em dev `bun db:push`; em prod `bun db:generate` + commit da migration + `bun db:migrate`.
-3. **Server actions:** sempre `"use server"` no topo, `await requireRole(...)` ou `requireCurrentSession()` no início, validar input com Zod, normalizar antes de persistir.
-4. **Imagens em forms:** upload via `uploadToolImage(formData)` (`apps/web/.../image-actions.ts`), URL pública vai pro form; deletar via `deleteToolImage(url)`.
+3. **Server actions:** sempre `"use server"` no topo, `await requireCapability(cap)` ou `requireCurrentSession()` no início, validar input com Zod, normalizar antes de persistir.
+4. **Imagens em forms:** upload via `uploadToolImage(formData)` (`apps/web/src/app/dashboard/tools/_components/image-actions.ts`), URL pública vai pro form; deletar via `deleteToolImage(url)`.
 5. **Validação targeted first:** `bun check-types` no workspace alterado, `bun fix` no escopo. Suite inteira só se necessário.
-6. **Commit:** Conventional Commits em **PT** (`feat:`/`fix:`/`refactor:`/`test:`/`docs:`/`chore:`). **Nunca** commitar sem confirmação explícita do user.
-7. **PR:** `gh pr create` — título <70 chars, body com Summary + Test plan.
+6. **Smoke run-time:** quando refactor toca SSR, sempre rodar `bun dev:web` e visitar as rotas afetadas — `tsc` não detecta SQL inválido nem queries com colunas removidas. `nextjs_call <port> get_errors` mostra stack trace.
+7. **Commit:** Conventional Commits em **PT** (`feat:`/`fix:`/`refactor:`/`test:`/`docs:`/`chore:`). **Nunca** commitar sem confirmação explícita do user.
+8. **PR:** `gh pr create` — título <70 chars, body com Summary + Test plan.
+
+---
+
+## Convenções de UX em forms (admin)
+
+- **Slug auto-gerado em modo `create`:** input fica `disabled`, valor deriva do label/nome via `slugifyLabel()` (em `apps/web/src/app/dashboard/attributes/schema.ts`). Em `edit` fica editável com aviso "alterar pode quebrar URLs/referências".
+- **Painel de erros no topo do form:** quando Zod falha, listar todos os issues em `<ul>` vermelho com path traduzido (ver `attribute-form.tsx`). Toast complementa com contagem ("3 erros — veja detalhes acima"). Evita "Revise os campos" genérico.
+- **Variantes em `tool_variant`:** pelo menos 1; uma marcada `isDefault` (radio group). Form valida via `superRefine` que `defaults.length === 1` e SKUs únicos.
+- **Atributos dinâmicos:** form de tool busca `definitionsByCategory[primaryCategoryId]` (pré-computado server-side em `attribute-helpers.ts`). Inputs renderizados por `inputType` em `dynamic-specs-editor.tsx`.
 
 ---
 
@@ -210,15 +245,15 @@ Quando usar cada um:
 
 - `console.log/warn/error` em código de produção. Use `logger` de `apps/web/src/lib/logger.ts` (export default). Em catch de server action, usar `throw new Error("mensagem")` que server action devolve como `actionResult.error`.
 - `: any`, `<any>`, `as any`, `@ts-ignore`, `@ts-expect-error` (exceto em `.next/` gerado).
-- `key={index}` em `.map()` — usar ID estável.
-- `<img>` puro — sempre `next/image`.
+- `key={index}` em `.map()` — usar ID estável. Exceções (variantes/options sem id) ficam com biome-ignore explícito.
+- `<img>` puro — sempre `next/image` (exceto thumbs Supabase com biome-ignore documentado).
 - `React.forwardRef` — React 19 usa `ref` como prop normal.
-- Barrel files (`index.ts` que só re-exporta) em `packages/ui/src`, `apps/web/src`, `packages/auth/src`.
+- Barrel files (`index.ts` que só re-exporta) em `packages/ui/src`, `apps/web/src`, `packages/auth/src`. Em `packages/db/src/schema/index.ts` o barrel é **intencional** (marcado com `// biome-ignore lint/performance/noBarrelFile`).
 - `async function` em Client Component (`"use client"`) — usar Server Component pra fetching.
 - `.forEach()` em hot path — preferir `for...of`.
 - `new RegExp(...)` ou regex literal dentro de loops — extrair top-level.
 - `target="_blank"` sem `rel="noopener"`.
-- APIs que injetam HTML não-sanitizado (a "perigosa" do React) — evitar exceto necessidade absoluta com sanitização (DOMPurify).
+- APIs que injetam HTML não-sanitizado — evitar exceto necessidade absoluta com sanitização (ex: `react-markdown` + `rehype-sanitize` com preset `defaultSchema`).
 - Cool blue-grays no design — todo neutro tem undertone yellow-brown.
 
 ---
@@ -226,10 +261,11 @@ Quando usar cada um:
 ## Gotchas conhecidos
 
 - **`createDb()` × `db` singleton:** `packages/auth/src/*` chama `createDb()` para evitar ciclo de import; resto do código usa `db` exportado. Não "consertar" forçando um padrão único.
-- **Hook auto-format:** `.claude/settings.json` registra PostToolUse hook que roda `bun fix --skip=correctness/noUnusedImports` após `Write`/`Edit`. Se sumir esse hook, edições deixam de auto-formatar.
-- **`.env` resolution para scripts em `packages/*`:** carregamos de múltiplos paths (commit `f0f2992`). Não assumir `process.cwd()`.
-- **Master Part List:** importação de 34 SKUs em status `draft` (commit `421189b`) — itens existem mas não são públicos. Para promover, mudar `status` para `active` + `visibleOnSite=true`.
-- **Schema regredido em `2dacae8`:** corrigido em `35972ca`. Histórico para contexto se algo parecer estranho em `inventory.ts`/`tools.ts`.
+- **Hook auto-format:** `.claude/settings.json` registra PostToolUse hook que roda `bun fix --skip=correctness/noUnusedImports` após `Write`/`Edit`. Se sumir esse hook, edições deixam de auto-formatar. Pode reordenar campos e quebrar `old_string` de Edits subsequentes — re-ler o arquivo se um Edit falhar com "string não encontrada".
+- **`.env` resolution para scripts em `packages/*`:** carregamos de múltiplos paths. Não assumir `process.cwd()`.
+- **Server actions com payload grande (uploads em base64 inline):** o limite default Next 16 é 1MB e levanta `Error: Body exceeded 1 MB limit.` no console do dev. Configuração atual em `apps/web/next.config.ts`: `experimental.serverActions.bodySizeLimit = "5mb"`.
+- **Drizzle-kit push + TTY:** `bunx drizzle-kit push` sem TTY falha quando há rename ambíguo de coluna. Em CI/scripted, dropar+recriar schema é o caminho mais previsível em dev.
+- **Promoção de role para admin:** seed de Better Auth cria user com role `user` por default; promover via SQL `UPDATE "user" SET role='admin' WHERE email='...'`.
 
 ---
 
