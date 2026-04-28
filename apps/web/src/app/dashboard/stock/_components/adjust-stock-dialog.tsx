@@ -15,6 +15,7 @@ import { Label } from "@emach/ui/components/label";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -174,11 +175,13 @@ export function AdjustStockDialog({
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								{REASON_OPTIONS.map((option) => (
-									<SelectItem key={option.value} value={option.value}>
-										{option.label}
-									</SelectItem>
-								))}
+								<SelectGroup>
+									{REASON_OPTIONS.map((option) => (
+										<SelectItem key={option.value} value={option.value}>
+											{option.label}
+										</SelectItem>
+									))}
+								</SelectGroup>
 							</SelectContent>
 						</Select>
 					</div>

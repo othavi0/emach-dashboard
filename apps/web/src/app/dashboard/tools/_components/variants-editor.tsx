@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@emach/ui/components/radio-group";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -117,11 +118,13 @@ export function VariantsEditor({
 								<SelectValue placeholder="—" />
 							</SelectTrigger>
 							<SelectContent>
-								{VOLTAGE_OPTIONS.map((v) => (
-									<SelectItem key={v} value={v}>
-										{v}
-									</SelectItem>
-								))}
+								<SelectGroup>
+									{VOLTAGE_OPTIONS.map((v) => (
+										<SelectItem key={v} value={v}>
+											{v}
+										</SelectItem>
+									))}
+								</SelectGroup>
 							</SelectContent>
 						</Select>
 					</div>

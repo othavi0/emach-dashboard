@@ -3,6 +3,7 @@
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -50,11 +51,13 @@ export function ReviewsFilters() {
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
-						{STATUS_OPTIONS.map((o) => (
-							<SelectItem key={o.value} value={o.value}>
-								{o.label}
-							</SelectItem>
-						))}
+						<SelectGroup>
+							{STATUS_OPTIONS.map((o) => (
+								<SelectItem key={o.value} value={o.value}>
+									{o.label}
+								</SelectItem>
+							))}
+						</SelectGroup>
 					</SelectContent>
 				</Select>
 			</div>

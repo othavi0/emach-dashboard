@@ -20,6 +20,7 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
@@ -143,20 +144,24 @@ export function DropdownShowcase() {
 			/>
 			<DropdownMenuContent className="min-w-44">
 				<DropdownMenuLabel>Ações do pedido</DropdownMenuLabel>
-				<DropdownMenuItem onClick={() => toast("Editar")}>
-					<SettingsIcon /> Editar
-					<DropdownMenuShortcut>⌘E</DropdownMenuShortcut>
-				</DropdownMenuItem>
-				<DropdownMenuItem onClick={() => toast("Marcado como pronto")}>
-					Marcar pronto
-				</DropdownMenuItem>
+				<DropdownMenuGroup>
+					<DropdownMenuItem onClick={() => toast("Editar")}>
+						<SettingsIcon /> Editar
+						<DropdownMenuShortcut>⌘E</DropdownMenuShortcut>
+					</DropdownMenuItem>
+					<DropdownMenuItem onClick={() => toast("Marcado como pronto")}>
+						Marcar pronto
+					</DropdownMenuItem>
+				</DropdownMenuGroup>
 				<DropdownMenuSeparator />
-				<DropdownMenuItem
-					onClick={() => toast.error("Excluído")}
-					variant="destructive"
-				>
-					Excluir
-				</DropdownMenuItem>
+				<DropdownMenuGroup>
+					<DropdownMenuItem
+						onClick={() => toast.error("Excluído")}
+						variant="destructive"
+					>
+						Excluir
+					</DropdownMenuItem>
+				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

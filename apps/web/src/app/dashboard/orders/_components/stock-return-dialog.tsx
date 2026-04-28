@@ -14,6 +14,7 @@ import {
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -188,12 +189,14 @@ export function StockReturnDialog({
 											</SelectValue>
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="__none__">Selecionar</SelectItem>
-											{branches.map((branch) => (
-												<SelectItem key={branch.id} value={branch.id}>
-													{branch.name}
-												</SelectItem>
-											))}
+											<SelectGroup>
+												<SelectItem value="__none__">Selecionar</SelectItem>
+												{branches.map((branch) => (
+													<SelectItem key={branch.id} value={branch.id}>
+														{branch.name}
+													</SelectItem>
+												))}
+											</SelectGroup>
 										</SelectContent>
 									</Select>
 								</div>

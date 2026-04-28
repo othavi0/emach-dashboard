@@ -6,6 +6,7 @@ import { Label } from "@emach/ui/components/label";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -201,13 +202,15 @@ export function CategoryForm({
 							<SelectValue placeholder="Nenhuma (raiz)" />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value={NO_PARENT}>Nenhuma (raiz)</SelectItem>
-							{parentOptions.map((c) => (
-								<SelectItem key={c.id} value={c.id}>
-									{"— ".repeat(c.depth)}
-									{c.name}
-								</SelectItem>
-							))}
+							<SelectGroup>
+								<SelectItem value={NO_PARENT}>Nenhuma (raiz)</SelectItem>
+								{parentOptions.map((c) => (
+									<SelectItem key={c.id} value={c.id}>
+										{"— ".repeat(c.depth)}
+										{c.name}
+									</SelectItem>
+								))}
+							</SelectGroup>
 						</SelectContent>
 					</Select>
 				</div>

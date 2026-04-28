@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@emach/ui/components/radio-group";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -532,11 +533,13 @@ export function ToolForm({
 							<SelectValue placeholder="Opcional" />
 						</SelectTrigger>
 						<SelectContent>
-							{suppliers.map((s) => (
-								<SelectItem key={s.id} value={s.id}>
-									{s.name}
-								</SelectItem>
-							))}
+							<SelectGroup>
+								{suppliers.map((s) => (
+									<SelectItem key={s.id} value={s.id}>
+										{s.name}
+									</SelectItem>
+								))}
+							</SelectGroup>
 						</SelectContent>
 					</Select>
 				</div>
@@ -553,11 +556,13 @@ export function ToolForm({
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								{TOOL_STATUS_OPTIONS.map((s) => (
-									<SelectItem key={s} value={s}>
-										{TOOL_STATUS_LABELS[s]}
-									</SelectItem>
-								))}
+								<SelectGroup>
+									{TOOL_STATUS_OPTIONS.map((s) => (
+										<SelectItem key={s} value={s}>
+											{TOOL_STATUS_LABELS[s]}
+										</SelectItem>
+									))}
+								</SelectGroup>
 							</SelectContent>
 						</Select>
 						<p className="text-muted-foreground text-xs">

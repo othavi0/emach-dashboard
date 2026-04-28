@@ -36,6 +36,16 @@ interface PanelRow {
 	sourceLabel: string;
 }
 
+function getSourceBadgeVariant(source: PanelRow["source"]) {
+	if (source === "self") {
+		return "default";
+	}
+	if (source === "inherited") {
+		return "secondary";
+	}
+	return "outline";
+}
+
 async function loadPanelRows(categoryId: string): Promise<PanelRow[]> {
 	const [self] = await db
 		.select({ id: category.id, parentId: category.parentId })
@@ -163,15 +173,7 @@ export async function CategoryAttributesPanel({
 									</TableCell>
 									<TableCell>{row.def.unit ?? "—"}</TableCell>
 									<TableCell>
-										<Badge
-											variant={
-												row.source === "self"
-													? "default"
-													: row.source === "inherited"
-														? "secondary"
-														: "outline"
-											}
-										>
+										<Badge variant={getSourceBadgeVariant(row.source)}>
 											{row.sourceLabel}
 										</Badge>
 									</TableCell>
