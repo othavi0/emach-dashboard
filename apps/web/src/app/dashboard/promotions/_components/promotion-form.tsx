@@ -157,7 +157,7 @@ function ToolCombobox({
 		<div className="flex flex-col gap-2">
 			<Popover onOpenChange={setOpen} open={open}>
 				<PopoverTrigger
-					className="flex h-10 w-full items-center justify-between rounded-none border border-border bg-background px-3 py-2 text-sm focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+					className="flex h-10 w-full items-center justify-between rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
 					disabled={disabled}
 					render={<button type="button" />}
 				>
@@ -335,7 +335,7 @@ export function PromotionForm({
 				</div>
 			)}
 
-			<section className="flex flex-col gap-6 rounded-none border border-border bg-card p-6">
+			<section className="flex flex-col gap-6 rounded-md border border-border bg-card p-6">
 				{/* Tipo */}
 				<div className="flex flex-col gap-2">
 					<Label>Tipo</Label>

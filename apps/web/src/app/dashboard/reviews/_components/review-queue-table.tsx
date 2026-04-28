@@ -43,14 +43,14 @@ export function ReviewQueueTable({ reviews }: { reviews: ReviewListItem[] }) {
 							{review.imageUrl ? (
 								<Image
 									alt={review.toolName}
-									className="h-10 w-10 rounded-none object-cover"
+									className="h-10 w-10 rounded-md object-cover"
 									height={40}
 									src={review.imageUrl}
 									unoptimized
 									width={40}
 								/>
 							) : (
-								<div className="h-10 w-10 rounded-none border border-border border-dashed" />
+								<div className="h-10 w-10 rounded-md border border-border border-dashed" />
 							)}
 						</TableCell>
 						<TableCell>

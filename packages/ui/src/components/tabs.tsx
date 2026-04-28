@@ -5,133 +5,143 @@ import { cn } from "@emach/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-function Tabs({ className, orientation = "horizontal", ...props }: TabsPrimitive.Root.Props) {
-  return (
-    <TabsPrimitive.Root
-      className={cn("group/tabs flex gap-2 data-horizontal:flex-col", className)}
-      data-orientation={orientation}
-      data-slot="tabs"
-      {...props}
-    />
-  );
+function Tabs({
+	className,
+	orientation = "horizontal",
+	...props
+}: TabsPrimitive.Root.Props) {
+	return (
+		<TabsPrimitive.Root
+			className={cn(
+				"group/tabs flex gap-2 data-horizontal:flex-col",
+				className
+			)}
+			data-orientation={orientation}
+			data-slot="tabs"
+			{...props}
+		/>
+	);
 }
 
 const tabsListVariants = cva(
-  "group/tabs-list inline-flex w-fit items-center justify-center rounded-none p-[3px] text-muted-foreground data-[variant=line]:rounded-none group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col",
-  {
-    variants: {
-      variant: {
-        default: "bg-muted",
-        line: "gap-1 bg-transparent",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
+	"group/tabs-list inline-flex w-fit items-center justify-center rounded-md p-[3px] text-muted-foreground data-[variant=line]:rounded-md group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col",
+	{
+		variants: {
+			variant: {
+				default: "bg-muted",
+				line: "gap-1 bg-transparent",
+			},
+		},
+		defaultVariants: {
+			variant: "default",
+		},
+	}
 );
 
 function TabsList({
-  className,
-  variant = "default",
-  scrollable = false,
-  ...props
-}: TabsPrimitive.List.Props & VariantProps<typeof tabsListVariants> & { scrollable?: boolean }) {
-  if (!scrollable) {
-    return (
-      <TabsPrimitive.List
-        className={cn(tabsListVariants({ variant }), className)}
-        data-slot="tabs-list"
-        data-variant={variant}
-        {...props}
-      />
-    );
-  }
-  return <ScrollableTabsList className={className} variant={variant} {...props} />;
+	className,
+	variant = "default",
+	scrollable = false,
+	...props
+}: TabsPrimitive.List.Props &
+	VariantProps<typeof tabsListVariants> & { scrollable?: boolean }) {
+	if (!scrollable) {
+		return (
+			<TabsPrimitive.List
+				className={cn(tabsListVariants({ variant }), className)}
+				data-slot="tabs-list"
+				data-variant={variant}
+				{...props}
+			/>
+		);
+	}
+	return (
+		<ScrollableTabsList className={className} variant={variant} {...props} />
+	);
 }
 
 function ScrollableTabsList({
-  className,
-  variant,
-  ...props
+	className,
+	variant,
+	...props
 }: TabsPrimitive.List.Props & VariantProps<typeof tabsListVariants>) {
-  const listRef = useRef<HTMLDivElement | null>(null);
-  const [hasOverflow, setHasOverflow] = useState(false);
+	const listRef = useRef<HTMLDivElement | null>(null);
+	const [hasOverflow, setHasOverflow] = useState(false);
 
-  const update = useCallback(() => {
-    const el = listRef.current;
-    if (!el) {
-      return;
-    }
-    const overflow = el.scrollWidth - el.clientWidth > 1;
-    const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
-    setHasOverflow(overflow && !atEnd);
-  }, []);
+	const update = useCallback(() => {
+		const el = listRef.current;
+		if (!el) {
+			return;
+		}
+		const overflow = el.scrollWidth - el.clientWidth > 1;
+		const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
+		setHasOverflow(overflow && !atEnd);
+	}, []);
 
-  useEffect(() => {
-    update();
-    const el = listRef.current;
-    if (!el) {
-      return;
-    }
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    el.addEventListener("scroll", update, { passive: true });
-    return () => {
-      ro.disconnect();
-      el.removeEventListener("scroll", update);
-    };
-  }, [update]);
+	useEffect(() => {
+		update();
+		const el = listRef.current;
+		if (!el) {
+			return;
+		}
+		const ro = new ResizeObserver(update);
+		ro.observe(el);
+		el.addEventListener("scroll", update, { passive: true });
+		return () => {
+			ro.disconnect();
+			el.removeEventListener("scroll", update);
+		};
+	}, [update]);
 
-  return (
-    <div className="relative max-w-full" data-slot="tabs-list-scroll-wrapper">
-      <TabsPrimitive.List
-        className={cn(
-          tabsListVariants({ variant }),
-          "max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          className,
-        )}
-        data-scrollable="true"
-        data-slot="tabs-list"
-        data-variant={variant}
-        ref={listRef as never}
-        {...props}
-      />
-      {hasOverflow ? (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-r from-transparent to-muted"
-          data-slot="tabs-list-fade"
-        />
-      ) : null}
-    </div>
-  );
+	return (
+		<div className="relative max-w-full" data-slot="tabs-list-scroll-wrapper">
+			<TabsPrimitive.List
+				className={cn(
+					tabsListVariants({ variant }),
+					"max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+					className
+				)}
+				data-scrollable="true"
+				data-slot="tabs-list"
+				data-variant={variant}
+				ref={listRef as never}
+				{...props}
+			/>
+			{hasOverflow ? (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-r from-transparent to-muted"
+					data-slot="tabs-list-fade"
+				/>
+			) : null}
+		</div>
+	);
 }
 
 function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
-  return (
-    <TabsPrimitive.Tab
-      className={cn(
-        "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-none border border-transparent px-1.5 py-0.5 font-medium text-foreground/60 text-xs transition-all hover:text-foreground focus-visible:border-ring focus-visible:outline-1 focus-visible:outline-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 has-data-[icon=inline-end]:pr-1 has-data-[icon=inline-start]:pl-1 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start group-data-vertical/tabs:py-[calc(--spacing(1.25))] dark:text-muted-foreground dark:hover:text-foreground [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
-        "group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-active:bg-transparent dark:group-data-[variant=line]/tabs-list:data-active:border-transparent dark:group-data-[variant=line]/tabs-list:data-active:bg-transparent",
-        "data-active:bg-background data-active:text-foreground dark:data-active:border-input dark:data-active:bg-input/30 dark:data-active:text-foreground",
-        "after:absolute after:bg-foreground after:opacity-0 after:transition-opacity group-data-horizontal/tabs:after:inset-x-0 group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-right-1 group-data-horizontal/tabs:after:bottom-[-5px] group-data-horizontal/tabs:after:h-0.5 group-data-vertical/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-active:after:opacity-100",
-        className,
-      )}
-      data-slot="tabs-trigger"
-      {...props}
-    />
-  );
+	return (
+		<TabsPrimitive.Tab
+			className={cn(
+				"relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-1.5 py-0.5 font-medium text-foreground/60 text-xs transition-all hover:text-foreground focus-visible:border-ring focus-visible:outline-1 focus-visible:outline-ring focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 has-data-[icon=inline-end]:pr-1 has-data-[icon=inline-start]:pl-1 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start group-data-vertical/tabs:py-[calc(--spacing(1.25))] dark:text-muted-foreground dark:hover:text-foreground [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+				"group-data-[variant=line]/tabs-list:bg-transparent group-data-[variant=line]/tabs-list:data-active:bg-transparent dark:group-data-[variant=line]/tabs-list:data-active:border-transparent dark:group-data-[variant=line]/tabs-list:data-active:bg-transparent",
+				"data-active:bg-background data-active:text-foreground dark:data-active:border-input dark:data-active:bg-input/30 dark:data-active:text-foreground",
+				"after:absolute after:bg-foreground after:opacity-0 after:transition-opacity group-data-horizontal/tabs:after:inset-x-0 group-data-vertical/tabs:after:inset-y-0 group-data-vertical/tabs:after:-right-1 group-data-horizontal/tabs:after:bottom-[-5px] group-data-horizontal/tabs:after:h-0.5 group-data-vertical/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-active:after:opacity-100",
+				className
+			)}
+			data-slot="tabs-trigger"
+			{...props}
+		/>
+	);
 }
 
 function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
-  return (
-    <TabsPrimitive.Panel
-      className={cn("flex-1 text-xs/relaxed outline-none", className)}
-      data-slot="tabs-content"
-      {...props}
-    />
-  );
+	return (
+		<TabsPrimitive.Panel
+			className={cn("flex-1 text-xs/relaxed outline-none", className)}
+			data-slot="tabs-content"
+			{...props}
+		/>
+	);
 }
 
 export { Tabs, TabsContent, TabsList, TabsTrigger, tabsListVariants };

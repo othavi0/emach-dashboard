@@ -7,120 +7,125 @@
 @custom-variant dark (&:is(.dark *));
 
 .dark {
-	/* Radius — comfortable 8px */
-	--radius: 0.5rem;
+  /* Radius — base unit 8px; components opt into rounded individually */
+  --radius: 0.5rem;
 
-	/* Base surfaces — Anthropic parchment dark palette (DESIGN.md §2) */
-	--background: oklch(0.13 0.005 85); /* Near Black #141413 */
-	--foreground: oklch(0.97 0.008 85); /* Parchment #f5f4ed */
+  /* Base surface — surface-dark (#181715) — page floor */
+  --background: oklch(0.16 0.004 70);
+  --foreground: oklch(0.97 0.008 85); /* on-dark #faf9f5 */
 
-	/* Card — elevated surface */
-	--card: oklch(0.24 0.007 85); /* Dark Surface #30302e */
-	--card-foreground: oklch(0.97 0.008 85);
+  /* Card — surface-dark-elevated (#252320) */
+  --card: oklch(0.21 0.005 70);
+  --card-foreground: oklch(0.97 0.008 85);
 
-	/* Popover */
-	--popover: oklch(0.24 0.007 85);
-	--popover-foreground: oklch(0.97 0.008 85);
+  /* Popover — same elevation as card */
+  --popover: oklch(0.21 0.005 70);
+  --popover-foreground: oklch(0.97 0.008 85);
 
-	/* Primary — Terracotta brand */
-	--primary: oklch(0.58 0.15 35); /* Terracotta #c96442 */
-	--primary-foreground: oklch(0.99 0.005 85); /* Ivory #faf9f5 */
+  /* Primary — Coral (#cc785c), Anthropic brand voltage */
+  --primary: oklch(0.62 0.12 38);
+  --primary-foreground: oklch(1 0 0); /* on-primary #ffffff */
 
-	/* Secondary — Olive Gray */
-	--secondary: oklch(0.42 0.01 85); /* Olive Gray #5e5d59 */
-	--secondary-foreground: oklch(0.97 0.008 85);
+  /* Secondary — body strong tone (#3d3d3a), used for emphasized surfaces */
+  --secondary: oklch(0.32 0.005 70);
+  --secondary-foreground: oklch(0.97 0.008 85);
 
-	/* Muted */
-	--muted: oklch(0.24 0.007 85);
-	--muted-foreground: oklch(0.73 0.01 85); /* Warm Silver #b0aea5 */
+  /* Muted — surface-dark-soft (#1f1e1b) — inset surfaces (tracks, code blocks, skeletons) */
+  --muted: oklch(0.18 0.004 70);
+  --muted-foreground: oklch(0.66 0.008 75); /* on-dark-soft #a09d96 */
 
-	/* Accent — Olive Gray in dark context */
-	--accent: oklch(0.42 0.01 85);
-	--accent-foreground: oklch(0.97 0.008 85);
+  /* Accent — same elevation as card; emphasis via state, not bg shift */
+  --accent: oklch(0.21 0.005 70);
+  --accent-foreground: oklch(0.97 0.008 85);
 
-	/* Destructive — warm red */
-	--destructive: oklch(0.55 0.18 22);
+  /* Destructive — error (#c64545) */
+  --destructive: oklch(0.56 0.17 22);
+  --destructive-foreground: oklch(1 0 0); /* white */
 
-	/* Borders & Input */
-	--border: oklch(0.42 0.01 85);
-	--input: oklch(0.42 0.01 85);
+  /* Borders — visible hairline (~#3d3d3a), distinguíveis sobre background e card */
+  --border: oklch(0.32 0.006 70);
+  /* Input — borda ligeiramente mais forte (~#48464a) — affordance de interatividade */
+  --input: oklch(0.36 0.006 70);
 
-	/* Ring — disabled (transparent) per design rule */
-	--ring: oklch(0 0 0 / 0);
+  /* Ring — coral 40% alpha; */
+  --ring: oklch(0.62 0.12 38 / 0.4);
 
-	/* Chart — warm palette only, zero cool blues */
-	--chart-1: oklch(0.58 0.15 35); /* Terracotta */
-	--chart-2: oklch(0.57 0.01 85); /* Stone Gray #87867f */
-	--chart-3: oklch(0.42 0.01 85); /* Olive Gray */
-	--chart-4: oklch(0.92 0.01 85); /* Warm Sand #e8e6dc */
-	--chart-5: oklch(0.24 0.007 85); /* Dark Surface */
+  /* Chart — warm palette anchored on coral, zero cool blues */
+  --chart-1: oklch(0.62 0.12 38); /* Coral primary */
+  --chart-2: oklch(0.66 0.08 75); /* Accent amber-ish */
+  --chart-3: oklch(0.55 0.06 175); /* Accent teal (#5db8a6) */
+  --chart-4: oklch(0.66 0.008 75); /* on-dark-soft */
+  --chart-5: oklch(0.32 0.005 70); /* secondary */
 
-	/* Sidebar — warm dark palette */
-	--sidebar: oklch(0.18 0.006 85);
-	--sidebar-foreground: oklch(0.97 0.008 85);
-	--sidebar-primary: oklch(0.58 0.15 35);
-	--sidebar-primary-foreground: oklch(0.99 0.005 85);
-	--sidebar-accent: oklch(0.24 0.007 85);
-	--sidebar-accent-foreground: oklch(0.97 0.008 85);
-	--sidebar-border: oklch(0.42 0.01 85);
-	--sidebar-ring: oklch(0 0 0 / 0); /* Disabled (transparent) */
+  /* Sidebar — slightly darker than background for hierarchy */
+  --sidebar: oklch(0.13 0.004 70);
+  --sidebar-foreground: oklch(0.97 0.008 85);
+  --sidebar-primary: oklch(0.62 0.12 38);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.21 0.005 70);
+  --sidebar-accent-foreground: oklch(0.97 0.008 85);
+  --sidebar-border: oklch(0.32 0.006 70);
+  --sidebar-ring: oklch(0.62 0.12 38 / 0.4);
 }
 
 @theme inline {
-	--font-sans: "Inter Variable", sans-serif;
-	--font-serif: "Georgia", serif;
-	--color-sidebar-ring: var(--sidebar-ring);
-	--color-sidebar-border: var(--sidebar-border);
-	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-	--color-sidebar-accent: var(--sidebar-accent);
-	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-	--color-sidebar-primary: var(--sidebar-primary);
-	--color-sidebar-foreground: var(--sidebar-foreground);
-	--color-sidebar: var(--sidebar);
-	--color-chart-5: var(--chart-5);
-	--color-chart-4: var(--chart-4);
-	--color-chart-3: var(--chart-3);
-	--color-chart-2: var(--chart-2);
-	--color-chart-1: var(--chart-1);
-	--color-ring: var(--ring);
-	--color-input: var(--input);
-	--color-border: var(--border);
-	--color-destructive: var(--destructive);
-	--color-accent-foreground: var(--accent-foreground);
-	--color-accent: var(--accent);
-	--color-muted-foreground: var(--muted-foreground);
-	--color-muted: var(--muted);
-	--color-secondary-foreground: var(--secondary-foreground);
-	--color-secondary: var(--secondary);
-	--color-primary-foreground: var(--primary-foreground);
-	--color-primary: var(--primary);
-	--color-popover-foreground: var(--popover-foreground);
-	--color-popover: var(--popover);
-	--color-card-foreground: var(--card-foreground);
-	--color-card: var(--card);
-	--color-foreground: var(--foreground);
-	--color-background: var(--background);
-	--radius-sm: calc(var(--radius) - 4px);
-	--radius-md: calc(var(--radius) - 2px);
-	--radius-lg: var(--radius);
-	--radius-xl: calc(var(--radius) + 4px);
-	--radius-2xl: calc(var(--radius) + 8px);
-	--radius-3xl: calc(var(--radius) + 12px);
-	--radius-4xl: calc(var(--radius) + 16px);
+  --font-sans: var(--font-sans-loaded), "Inter", system-ui, sans-serif;
+  --font-serif: var(--font-serif-loaded), "Cormorant Garamond", Georgia, serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
 }
 
 @layer base {
-	* {
-		@apply border-border;
-	}
-	body {
-		@apply font-sans bg-background text-foreground;
-	}
-	html {
-		@apply font-sans;
-	}
-	:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: 2px;
-	}
+  * {
+    @apply border-border;
+  }
+  html {
+    color-scheme: dark;
+    @apply font-sans;
+  }
+  body {
+    accent-color: var(--primary);
+    @apply font-sans bg-background text-foreground;
+  }
+  :focus-visible {
+    outline: 1px solid var(--primary);
+    outline-offset: 1px;
+  }
 }
