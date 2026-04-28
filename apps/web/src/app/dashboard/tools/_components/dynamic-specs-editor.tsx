@@ -6,6 +6,7 @@ import { Label } from "@emach/ui/components/label";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -144,11 +145,13 @@ export function DynamicSpecsEditor({
 										<SelectValue placeholder="Selecione" />
 									</SelectTrigger>
 									<SelectContent>
-										{opts.map((o) => (
-											<SelectItem key={o.value} value={o.value}>
-												{o.label}
-											</SelectItem>
-										))}
+										<SelectGroup>
+											{opts.map((o) => (
+												<SelectItem key={o.value} value={o.value}>
+													{o.label}
+												</SelectItem>
+											))}
+										</SelectGroup>
 									</SelectContent>
 								</Select>
 							</div>

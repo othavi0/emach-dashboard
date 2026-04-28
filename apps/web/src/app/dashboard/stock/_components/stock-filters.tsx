@@ -4,6 +4,7 @@ import { Input } from "@emach/ui/components/input";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -85,13 +86,15 @@ export function StockFilters({ categories }: StockFiltersProps) {
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value={ALL}>Todas</SelectItem>
-						{categories.map((c) => (
-							<SelectItem key={c.id} value={c.id}>
-								{"— ".repeat(c.depth)}
-								{c.name}
-							</SelectItem>
-						))}
+						<SelectGroup>
+							<SelectItem value={ALL}>Todas</SelectItem>
+							{categories.map((c) => (
+								<SelectItem key={c.id} value={c.id}>
+									{"— ".repeat(c.depth)}
+									{c.name}
+								</SelectItem>
+							))}
+						</SelectGroup>
 					</SelectContent>
 				</Select>
 			</div>
@@ -110,11 +113,13 @@ export function StockFilters({ categories }: StockFiltersProps) {
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
-						{SORT_OPTIONS.map((o) => (
-							<SelectItem key={o.value} value={o.value}>
-								{o.label}
-							</SelectItem>
-						))}
+						<SelectGroup>
+							{SORT_OPTIONS.map((o) => (
+								<SelectItem key={o.value} value={o.value}>
+									{o.label}
+								</SelectItem>
+							))}
+						</SelectGroup>
 					</SelectContent>
 				</Select>
 			</div>

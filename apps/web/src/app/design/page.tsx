@@ -52,6 +52,7 @@ import { RadioGroup, RadioGroupItem } from "@emach/ui/components/radio-group";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -312,9 +313,11 @@ export default function DesignPage() {
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="draft">Rascunho</SelectItem>
-									<SelectItem value="active">Ativo</SelectItem>
-									<SelectItem value="archived">Arquivado</SelectItem>
+									<SelectGroup>
+										<SelectItem value="draft">Rascunho</SelectItem>
+										<SelectItem value="active">Ativo</SelectItem>
+										<SelectItem value="archived">Arquivado</SelectItem>
+									</SelectGroup>
 								</SelectContent>
 							</Select>
 						</div>

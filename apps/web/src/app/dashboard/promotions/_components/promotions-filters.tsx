@@ -4,6 +4,7 @@ import { Input } from "@emach/ui/components/input";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -68,9 +69,11 @@ export function PromotionsFilters(_props: PromotionsFiltersProps) {
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value={ALL}>Todos</SelectItem>
-						<SelectItem value="promotion">Promoção</SelectItem>
-						<SelectItem value="promocode">Código</SelectItem>
+						<SelectGroup>
+							<SelectItem value={ALL}>Todos</SelectItem>
+							<SelectItem value="promotion">Promoção</SelectItem>
+							<SelectItem value="promocode">Código</SelectItem>
+						</SelectGroup>
 					</SelectContent>
 				</Select>
 			</div>
