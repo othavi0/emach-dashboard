@@ -5,6 +5,7 @@ import { Button } from "@emach/ui/components/button";
 import {
 	Command,
 	CommandEmpty,
+	CommandGroup,
 	CommandInput,
 	CommandItem,
 	CommandList,
@@ -173,19 +174,21 @@ function ToolCombobox({
 						<CommandInput placeholder="Buscar ferramenta…" />
 						<CommandList>
 							<CommandEmpty>Nenhuma ferramenta encontrada.</CommandEmpty>
-							{availableTools.map((tool) => {
-								const isSelected = selectedIds.includes(tool.id);
-								return (
-									<CommandItem
-										data-checked={isSelected}
-										key={tool.id}
-										onSelect={() => toggleTool(tool.id)}
-										value={tool.name}
-									>
-										{tool.name}
-									</CommandItem>
-								);
-							})}
+							<CommandGroup>
+								{availableTools.map((tool) => {
+									const isSelected = selectedIds.includes(tool.id);
+									return (
+										<CommandItem
+											data-checked={isSelected}
+											key={tool.id}
+											onSelect={() => toggleTool(tool.id)}
+											value={tool.name}
+										>
+											{tool.name}
+										</CommandItem>
+									);
+								})}
+							</CommandGroup>
 						</CommandList>
 					</Command>
 				</PopoverContent>

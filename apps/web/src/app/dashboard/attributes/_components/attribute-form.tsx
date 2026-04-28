@@ -6,6 +6,7 @@ import { Label } from "@emach/ui/components/label";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
@@ -236,11 +237,13 @@ export function AttributeForm({
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								{ATTRIBUTE_INPUT_TYPES.map((t) => (
-									<SelectItem key={t} value={t}>
-										{ATTRIBUTE_INPUT_TYPE_LABELS[t]}
-									</SelectItem>
-								))}
+								<SelectGroup>
+									{ATTRIBUTE_INPUT_TYPES.map((t) => (
+										<SelectItem key={t} value={t}>
+											{ATTRIBUTE_INPUT_TYPE_LABELS[t]}
+										</SelectItem>
+									))}
+								</SelectGroup>
 							</SelectContent>
 						</Select>
 					</div>
@@ -265,12 +268,14 @@ export function AttributeForm({
 								<SelectValue placeholder="Global (todas)" />
 							</SelectTrigger>
 							<SelectContent>
-								{categories.map((c) => (
-									<SelectItem key={c.id} value={c.id}>
-										{"— ".repeat(c.depth)}
-										{c.name}
-									</SelectItem>
-								))}
+								<SelectGroup>
+									{categories.map((c) => (
+										<SelectItem key={c.id} value={c.id}>
+											{"— ".repeat(c.depth)}
+											{c.name}
+										</SelectItem>
+									))}
+								</SelectGroup>
 							</SelectContent>
 						</Select>
 					</div>
