@@ -3,9 +3,70 @@
 import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { cn } from "@emach/ui/lib/utils";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
-import type * as React from "react";
+import {
+	Children,
+	createContext,
+	isValidElement,
+	type ReactNode,
+	useContext,
+	useMemo,
+} from "react";
 
-const Select = SelectPrimitive.Root;
+interface SelectLabelItem {
+	label: ReactNode;
+	value: unknown;
+}
+
+const SelectLabelsContext = createContext<readonly SelectLabelItem[]>([]);
+
+function collectSelectItems(children: ReactNode, items: SelectLabelItem[]) {
+	Children.forEach(children, (child) => {
+		if (!isValidElement(child)) {
+			return;
+		}
+
+		const props = child.props as {
+			children?: ReactNode;
+			value?: unknown;
+		};
+
+		if (child.type === SelectItem && "value" in props) {
+			items.push({
+				label: props.children,
+				value: props.value,
+			});
+			return;
+		}
+
+		if ("children" in props) {
+			collectSelectItems(props.children, items);
+		}
+	});
+}
+
+function Select({
+	children,
+	...props
+}: SelectPrimitive.Root.Props<unknown> & {
+	children?: ReactNode;
+}) {
+	const labelItems = useMemo(() => {
+		const collected: SelectLabelItem[] = [];
+		collectSelectItems(children, collected);
+		return collected;
+	}, [children]);
+
+	return (
+		<SelectLabelsContext.Provider value={labelItems}>
+			<SelectPrimitive.Root
+				items={labelItems.length > 0 ? labelItems : undefined}
+				{...props}
+			>
+				{children}
+			</SelectPrimitive.Root>
+		</SelectLabelsContext.Provider>
+	);
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
 	return (
@@ -17,13 +78,35 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
 	);
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({
+	children,
+	className,
+	placeholder,
+	...props
+}: SelectPrimitive.Value.Props) {
+	const labelItems = useContext(SelectLabelsContext);
+	const valueRenderer =
+		children ??
+		((value: unknown) => {
+			const item = labelItems.find((option) => Object.is(option.value, value));
+
+			if (item) {
+				return item.label;
+			}
+
+			return value == null || value === "" ? placeholder : String(value);
+		});
+
 	return (
 		<SelectPrimitive.Value
 			className={cn("flex flex-1 text-left", className)}
 			data-slot="select-value"
+			placeholder={placeholder}
+			suppressHydrationWarning
 			{...props}
-		/>
+		>
+			{valueRenderer}
+		</SelectPrimitive.Value>
 	);
 }
 
@@ -137,6 +220,8 @@ function SelectItem({
 		</SelectPrimitive.Item>
 	);
 }
+
+SelectItem.displayName = "SelectItem";
 
 function SelectSeparator({
 	className,
