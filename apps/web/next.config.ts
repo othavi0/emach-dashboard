@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
 	// Re-habilitar na Phase 2 quando todos os pages estiverem populados.
 	typedRoutes: false,
 	reactCompiler: true,
+	experimental: {
+		serverActions: {
+			bodySizeLimit: "5mb",
+		},
+	},
 	images: supabaseHostname
 		? {
 				remotePatterns: [

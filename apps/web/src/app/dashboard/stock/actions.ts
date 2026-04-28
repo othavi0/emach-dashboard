@@ -4,6 +4,7 @@ import { db } from "@emach/db";
 import { user } from "@emach/db/schema/auth";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
 import { stockMovement } from "@emach/db/schema/stock-movements";
+import { toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -49,54 +50,55 @@ export async function adjustStock(
 		};
 	}
 
-	const { toolId, branchId, newQty, reason, reasonNote } = parsed.data;
+	const { variantId, branchId, newQty, reason, reasonNote } = parsed.data;
 	const actorId = session.user.id;
 
 	try {
 		const result = await db.transaction(async (tx) => {
-			// Step 1: Materialize row with quantity 0 if missing.
 			await tx
 				.insert(stockLevel)
 				.values({
-					toolId,
+					variantId,
 					branchId,
 					quantity: 0,
 					updatedAt: new Date(),
 				})
 				.onConflictDoNothing({
-					target: [stockLevel.toolId, stockLevel.branchId],
+					target: [stockLevel.variantId, stockLevel.branchId],
 				});
 
-			// Step 2: Lock the row.
 			const lockedRows = await tx
 				.select({ quantity: stockLevel.quantity })
 				.from(stockLevel)
 				.where(
-					and(eq(stockLevel.toolId, toolId), eq(stockLevel.branchId, branchId))
+					and(
+						eq(stockLevel.variantId, variantId),
+						eq(stockLevel.branchId, branchId)
+					)
 				)
 				.for("update");
 
 			const previousQty = lockedRows[0]?.quantity ?? 0;
 			const delta = newQty - previousQty;
 
-			// No-op when nothing changed: stockMovement.delta_non_zero rejeitaria.
 			if (delta === 0) {
 				return { previousQty, delta, movementId: null as string | null };
 			}
 
-			// Step 3: Update quantity.
 			await tx
 				.update(stockLevel)
 				.set({ quantity: newQty, updatedAt: new Date() })
 				.where(
-					and(eq(stockLevel.toolId, toolId), eq(stockLevel.branchId, branchId))
+					and(
+						eq(stockLevel.variantId, variantId),
+						eq(stockLevel.branchId, branchId)
+					)
 				);
 
-			// Step 4: Insert movement row with actor audit.
 			const movementId = crypto.randomUUID();
 			await tx.insert(stockMovement).values({
 				id: movementId,
-				toolId,
+				variantId,
 				branchId,
 				previousQty,
 				newQty,
@@ -110,10 +112,20 @@ export async function adjustStock(
 			return { previousQty, delta, movementId: movementId as string | null };
 		});
 
+		// Recupera toolId associado para revalidação de paths.
+		const [variantRow] = await db
+			.select({ toolId: toolVariant.toolId })
+			.from(toolVariant)
+			.where(eq(toolVariant.id, variantId))
+			.limit(1);
+		const toolId = variantRow?.toolId;
+
 		revalidatePath("/dashboard/stock");
 		revalidatePath("/dashboard/stock/branches");
 		revalidatePath(`/dashboard/branches/${branchId}/stock`);
-		revalidatePath(`/dashboard/tools/${toolId}/stock`);
+		if (toolId) {
+			revalidatePath(`/dashboard/tools/${toolId}/stock`);
+		}
 
 		return {
 			ok: true,
@@ -143,14 +155,14 @@ export async function updateStockThresholds(
 		};
 	}
 
-	const { toolId, branchId, minQty, reorderPoint } = parsed.data;
+	const { variantId, branchId, minQty, reorderPoint } = parsed.data;
 
 	try {
 		await db.transaction(async (tx) => {
 			await tx
 				.insert(stockLevel)
 				.values({
-					toolId,
+					variantId,
 					branchId,
 					quantity: 0,
 					minQty,
@@ -158,21 +170,33 @@ export async function updateStockThresholds(
 					updatedAt: new Date(),
 				})
 				.onConflictDoNothing({
-					target: [stockLevel.toolId, stockLevel.branchId],
+					target: [stockLevel.variantId, stockLevel.branchId],
 				});
 
 			await tx
 				.update(stockLevel)
 				.set({ minQty, reorderPoint, updatedAt: new Date() })
 				.where(
-					and(eq(stockLevel.toolId, toolId), eq(stockLevel.branchId, branchId))
+					and(
+						eq(stockLevel.variantId, variantId),
+						eq(stockLevel.branchId, branchId)
+					)
 				);
 		});
+
+		const [variantRow] = await db
+			.select({ toolId: toolVariant.toolId })
+			.from(toolVariant)
+			.where(eq(toolVariant.id, variantId))
+			.limit(1);
+		const toolId = variantRow?.toolId;
 
 		revalidatePath("/dashboard/stock");
 		revalidatePath("/dashboard/stock/branches");
 		revalidatePath(`/dashboard/branches/${branchId}/stock`);
-		revalidatePath(`/dashboard/tools/${toolId}/stock`);
+		if (toolId) {
+			revalidatePath(`/dashboard/tools/${toolId}/stock`);
+		}
 
 		return { ok: true, data: undefined };
 	} catch (error) {
@@ -194,6 +218,9 @@ export interface StockMovementRow {
 	reasonNote: string | null;
 }
 
+/**
+ * Lista movimentos de estoque para todas as variantes de uma tool.
+ */
 export async function getStockMovements(
 	toolId: string,
 	limit = 50
@@ -213,9 +240,10 @@ export async function getStockMovements(
 			actorName: user.name,
 		})
 		.from(stockMovement)
+		.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
 		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
 		.leftJoin(user, eq(stockMovement.actorId, user.id))
-		.where(eq(stockMovement.toolId, toolId))
+		.where(eq(toolVariant.toolId, toolId))
 		.orderBy(desc(stockMovement.createdAt))
 		.limit(limit);
 }

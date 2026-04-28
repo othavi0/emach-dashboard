@@ -1,5 +1,6 @@
 "use client";
 
+import type { AttributeDefinition } from "@emach/db/schema/attributes";
 import { Button } from "@emach/ui/components/button";
 import { Checkbox } from "@emach/ui/components/checkbox";
 import { Input } from "@emach/ui/components/input";
@@ -21,17 +22,20 @@ import { toast } from "sonner";
 import type { ZodError } from "zod";
 
 import { createTool, updateTool } from "../actions";
+import { DynamicSpecsEditor } from "./dynamic-specs-editor";
 import { ToolImageGallery } from "./tool-image-gallery";
 import {
+	type AttributeValueInput,
 	MAX_IMAGES,
 	MIN_IMAGES_ACTIVE,
 	slugify,
 	TOOL_STATUS_LABELS,
 	TOOL_STATUS_OPTIONS,
 	type ToolFormValues,
+	type ToolVariantInput,
 	toolFormSchema,
-	VOLTAGE_OPTIONS,
 } from "./tool-schema";
+import { VariantsEditor } from "./variants-editor";
 
 interface CategoryOption {
 	depth: number;
@@ -49,6 +53,7 @@ interface SupplierOption {
 interface ToolFormProps {
 	categories: CategoryOption[];
 	defaultValues: Partial<ToolFormValues>;
+	definitionsByCategory: Record<string, AttributeDefinition[]>;
 	existingSlug?: string;
 	mode: "create" | "edit";
 	suppliers: SupplierOption[];
@@ -72,18 +77,6 @@ function SubmitLabel({
 	return <>{mode === "create" ? "Criar ferramenta" : "Salvar alterações"}</>;
 }
 
-const BRL_FORMATTER = new Intl.NumberFormat("pt-BR", {
-	style: "currency",
-	currency: "BRL",
-});
-
-function formatBRL(reais: number | undefined): string {
-	if (reais === undefined || Number.isNaN(reais)) {
-		return "";
-	}
-	return BRL_FORMATTER.format(reais);
-}
-
 function parseDecimal(display: string): number | undefined {
 	const cleaned = display.replace(",", ".").replace(/[^\d.]/g, "");
 	if (!cleaned) {
@@ -93,45 +86,42 @@ function parseDecimal(display: string): number | undefined {
 	return Number.isNaN(n) ? undefined : n;
 }
 
-function parseBRLToReais(display: string): number | undefined {
-	const digits = display.replace(/\D/g, "");
-	if (!digits) {
-		return;
-	}
-	return Number(digits) / 100;
-}
-
 const EMPTY_VALUES: ToolFormValues = {
 	name: "",
 	description: "",
-	sku: "",
 	model: "",
 	invoiceModel: "",
-	barcode: "",
 	manufacturerName: "",
 	countryOfOrigin: "",
 	status: "draft",
 	hsCode: "",
 	ncm: "",
 	cest: "",
-	voltage: "",
 	powerWatts: undefined,
-	frequencyHz: undefined,
-	warrantyMonths: undefined,
 	weightKg: undefined,
 	lengthCm: undefined,
 	widthCm: undefined,
 	heightCm: undefined,
-	price: undefined,
-	cost: undefined,
 	categoryIds: [],
 	primaryCategoryId: "",
 	supplierId: "",
 	visibleOnSite: true,
 	images: [],
+	variants: [
+		{
+			sku: "",
+			barcode: "",
+			voltage: "",
+			priceAmount: 0,
+			costAmount: undefined,
+			isDefault: true,
+			sortOrder: 0,
+		},
+	],
+	attributeValues: {},
 };
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: form monolítico com múltiplas seções; refactor em docs/plano-melhorias.md
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: form com seções múltiplas; sub-componentes em variants-editor / dynamic-specs-editor
 export function ToolForm({
 	mode,
 	toolId,
@@ -139,16 +129,25 @@ export function ToolForm({
 	categories,
 	suppliers,
 	existingSlug,
+	definitionsByCategory,
 }: ToolFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const [values, setValues] = useState<ToolFormValues>({
 		...EMPTY_VALUES,
 		...defaultValues,
+		variants:
+			defaultValues.variants && defaultValues.variants.length > 0
+				? defaultValues.variants
+				: EMPTY_VALUES.variants,
+		attributeValues: defaultValues.attributeValues ?? {},
 	});
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof ToolFormValues, string>>
 	>({});
+	const [pendingConfirmation, setPendingConfirmation] = useState<{
+		labels: string[];
+	} | null>(null);
 
 	const slugPreview = useMemo(() => {
 		if (mode === "edit" && existingSlug) {
@@ -157,6 +156,11 @@ export function ToolForm({
 		return slugify(values.name) || "—";
 	}, [mode, existingSlug, values.name]);
 
+	const activeDefinitions = useMemo(
+		() => definitionsByCategory[values.primaryCategoryId] ?? [],
+		[definitionsByCategory, values.primaryCategoryId]
+	);
+
 	function update<K extends keyof ToolFormValues>(
 		key: K,
 		value: ToolFormValues[K]
@@ -164,10 +168,20 @@ export function ToolForm({
 		setValues((prev) => ({ ...prev, [key]: value }));
 	}
 
-	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		const result = toolFormSchema.safeParse(values);
+	function updateAttribute(slug: string, value: AttributeValueInput) {
+		setValues((prev) => ({
+			...prev,
+			attributeValues: { ...prev.attributeValues, [slug]: value },
+		}));
+	}
 
+	function updateVariants(next: ToolVariantInput[]) {
+		setValues((prev) => ({ ...prev, variants: next }));
+	}
+
+	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: orquestra Zod, transição e dois caminhos de retorno (sucesso, warning de órfãos, erro); coeso o suficiente para uma função inline
+	async function submit(confirmOrphans = false) {
+		const result = toolFormSchema.safeParse(values);
 		if (!result.success) {
 			const zodError = result.error as ZodError<ToolFormValues>;
 			const fieldErrors: Partial<Record<keyof ToolFormValues, string>> = {};
@@ -181,34 +195,45 @@ export function ToolForm({
 			toast.error("Revise os campos do formulário");
 			return;
 		}
-
 		setErrors({});
 
-		startTransition(async () => {
-			try {
-				const actionResult =
-					mode === "create"
-						? await createTool(result.data)
-						: await updateTool(toolId ?? "", result.data);
+		const actionResult =
+			mode === "create"
+				? await createTool(result.data)
+				: await updateTool(toolId ?? "", result.data, { confirmOrphans });
 
-				if (actionResult.ok) {
-					toast.success(
-						mode === "create"
-							? "Ferramenta criada com sucesso"
-							: "Ferramenta atualizada com sucesso"
-					);
-					router.push("/dashboard/tools");
-					router.refresh();
-					return;
-				}
+		if (actionResult.ok) {
+			toast.success(
+				mode === "create"
+					? "Ferramenta criada com sucesso"
+					: "Ferramenta atualizada com sucesso"
+			);
+			router.push("/dashboard/tools");
+			router.refresh();
+			return;
+		}
 
-				toast.error(actionResult.error || "Falha ao salvar a ferramenta");
-			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Erro desconhecido";
-				toast.error(`Falha ao salvar: ${message}`);
-			}
-		});
+		if (
+			"warning" in actionResult &&
+			actionResult.warning === "orphan_attributes"
+		) {
+			setPendingConfirmation({ labels: actionResult.orphanLabels });
+			return;
+		}
+
+		toast.error(
+			("error" in actionResult && actionResult.error) || "Falha ao salvar"
+		);
+	}
+
+	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		startTransition(() => submit(false));
+	}
+
+	function handleConfirmOrphans() {
+		setPendingConfirmation(null);
+		startTransition(() => submit(true));
 	}
 
 	return (
@@ -217,7 +242,6 @@ export function ToolForm({
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas
 				</h2>
-
 				<div className="flex flex-col gap-2">
 					<Label htmlFor="name">Nome</Label>
 					<Input
@@ -233,49 +257,12 @@ export function ToolForm({
 						<p className="text-destructive text-xs">{errors.name}</p>
 					)}
 				</div>
-
-				<div className="grid gap-4 md:grid-cols-2">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="sku">SKU</Label>
-						<Input
-							id="sku"
-							onChange={(e) => update("sku", e.target.value)}
-							placeholder="Ex: FUR-700-BSH"
-							value={values.sku}
-						/>
-						{errors.sku && (
-							<p className="text-destructive text-xs">{errors.sku}</p>
-						)}
-					</div>
-
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="voltage">Voltagem</Label>
-						<Select
-							onValueChange={(v) =>
-								update("voltage", v as (typeof VOLTAGE_OPTIONS)[number])
-							}
-							value={values.voltage ?? ""}
-						>
-							<SelectTrigger id="voltage">
-								<SelectValue placeholder="Selecione" />
-							</SelectTrigger>
-							<SelectContent>
-								{VOLTAGE_OPTIONS.map((v) => (
-									<SelectItem key={v} value={v}>
-										{v}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
-
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="description">Descrição</Label>
+					<Label htmlFor="description">Descrição (markdown)</Label>
 					<Textarea
 						id="description"
 						onChange={(e) => update("description", e.target.value)}
-						placeholder="Descreva especificações técnicas, destaques e uso recomendado."
+						placeholder="Descreva especificações técnicas, destaques e uso recomendado. Aceita markdown (**negrito**, listas com -, etc)."
 						rows={4}
 						value={values.description ?? ""}
 					/>
@@ -284,9 +271,23 @@ export function ToolForm({
 
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+					Variantes
+				</h2>
+				<p className="text-muted-foreground text-xs">
+					Cada variante é uma SKU vendável. Use voltagens distintas (127V/220V)
+					ou outras variações como linhas separadas.
+				</p>
+				<VariantsEditor
+					error={errors.variants}
+					onChange={updateVariants}
+					value={values.variants}
+				/>
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
+				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Identificação extra
 				</h2>
-
 				<div className="grid gap-4 md:grid-cols-2">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="model">Modelo (curto)</Label>
@@ -297,7 +298,6 @@ export function ToolForm({
 							value={values.model ?? ""}
 						/>
 					</div>
-
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="invoiceModel">Modelo de invoice (fábrica)</Label>
 						<Input
@@ -308,17 +308,7 @@ export function ToolForm({
 						/>
 					</div>
 				</div>
-
-				<div className="grid gap-4 md:grid-cols-3">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="barcode">Barcode (EAN/GTIN)</Label>
-						<Input
-							id="barcode"
-							onChange={(e) => update("barcode", e.target.value)}
-							value={values.barcode ?? ""}
-						/>
-					</div>
-
+				<div className="grid gap-4 md:grid-cols-2">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="manufacturerName">Fabricante</Label>
 						<Input
@@ -327,7 +317,6 @@ export function ToolForm({
 							value={values.manufacturerName ?? ""}
 						/>
 					</div>
-
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="countryOfOrigin">País de origem</Label>
 						<Input
@@ -344,18 +333,7 @@ export function ToolForm({
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Classificação fiscal
 				</h2>
-
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="hsCode">HS Code (invoice)</Label>
-					<Input
-						id="hsCode"
-						onChange={(e) => update("hsCode", e.target.value)}
-						placeholder="Ex: 8467291000"
-						value={values.hsCode ?? ""}
-					/>
-				</div>
-
-				<div className="grid gap-4 md:grid-cols-2">
+				<div className="grid gap-4 md:grid-cols-3">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="ncm">NCM</Label>
 						<Input
@@ -365,7 +343,6 @@ export function ToolForm({
 							value={values.ncm ?? ""}
 						/>
 					</div>
-
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="cest">CEST</Label>
 						<Input
@@ -374,15 +351,23 @@ export function ToolForm({
 							value={values.cest ?? ""}
 						/>
 					</div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="hsCode">HS Code (invoice)</Label>
+						<Input
+							id="hsCode"
+							onChange={(e) => update("hsCode", e.target.value)}
+							placeholder="Ex: 8467291000"
+							value={values.hsCode ?? ""}
+						/>
+					</div>
 				</div>
 			</section>
 
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Dimensões & peso
+					Dimensões, peso e potência
 				</h2>
-
-				<div className="grid gap-4 md:grid-cols-4">
+				<div className="grid gap-4 md:grid-cols-5">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="weightKg">Peso (kg)</Label>
 						<Input
@@ -391,11 +376,7 @@ export function ToolForm({
 							onChange={(e) => update("weightKg", parseDecimal(e.target.value))}
 							value={values.weightKg ?? ""}
 						/>
-						{errors.weightKg && (
-							<p className="text-destructive text-xs">{errors.weightKg}</p>
-						)}
 					</div>
-
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="lengthCm">Comprimento (cm)</Label>
 						<Input
@@ -405,7 +386,6 @@ export function ToolForm({
 							value={values.lengthCm ?? ""}
 						/>
 					</div>
-
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="widthCm">Largura (cm)</Label>
 						<Input
@@ -415,7 +395,6 @@ export function ToolForm({
 							value={values.widthCm ?? ""}
 						/>
 					</div>
-
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="heightCm">Altura (cm)</Label>
 						<Input
@@ -425,15 +404,6 @@ export function ToolForm({
 							value={values.heightCm ?? ""}
 						/>
 					</div>
-				</div>
-			</section>
-
-			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
-				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Especificações técnicas
-				</h2>
-
-				<div className="grid gap-4 md:grid-cols-3">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="powerWatts">Potência (W)</Label>
 						<Input
@@ -445,31 +415,18 @@ export function ToolForm({
 							value={values.powerWatts ?? ""}
 						/>
 					</div>
-
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="frequencyHz">Frequência (Hz)</Label>
-						<Input
-							id="frequencyHz"
-							inputMode="numeric"
-							onChange={(e) =>
-								update("frequencyHz", parseDecimal(e.target.value))
-							}
-							value={values.frequencyHz ?? ""}
-						/>
-					</div>
-
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="warrantyMonths">Garantia (meses)</Label>
-						<Input
-							id="warrantyMonths"
-							inputMode="numeric"
-							onChange={(e) =>
-								update("warrantyMonths", parseDecimal(e.target.value))
-							}
-							value={values.warrantyMonths ?? ""}
-						/>
-					</div>
 				</div>
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
+				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+					Especificações técnicas dinâmicas
+				</h2>
+				<DynamicSpecsEditor
+					definitions={activeDefinitions}
+					onChange={updateAttribute}
+					values={values.attributeValues}
+				/>
 			</section>
 
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
@@ -489,148 +446,100 @@ export function ToolForm({
 
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Preço
-				</h2>
-
-				<div className="grid gap-4 md:grid-cols-2">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="price">Preço</Label>
-						<Input
-							id="price"
-							inputMode="numeric"
-							onChange={(e) => update("price", parseBRLToReais(e.target.value))}
-							placeholder="R$ 0,00"
-							value={formatBRL(values.price)}
-						/>
-						{errors.price && (
-							<p className="text-destructive text-xs">{errors.price}</p>
-						)}
-					</div>
-
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="cost">Custo</Label>
-						<Input
-							id="cost"
-							inputMode="numeric"
-							onChange={(e) => update("cost", parseBRLToReais(e.target.value))}
-							placeholder="R$ 0,00"
-							value={formatBRL(values.cost)}
-						/>
-						{errors.cost && (
-							<p className="text-destructive text-xs">{errors.cost}</p>
-						)}
-					</div>
-				</div>
-			</section>
-
-			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
-				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Classificação
 				</h2>
-
-				<div className="flex flex-col gap-4">
-					<div className="flex flex-col gap-2">
-						<Label>Categorias</Label>
-						<div className="flex flex-col gap-1 rounded border border-border p-3">
-							{categories.map((cat) => {
-								const checked = values.categoryIds.includes(cat.id);
-								return (
-									<div
-										className="flex items-center gap-2"
-										key={cat.id}
-										style={{ paddingLeft: cat.depth * 16 }}
-									>
-										<Checkbox
-											checked={checked}
-											id={`cat-${cat.id}`}
-											onCheckedChange={(v) => {
-												if (v) {
-													const next = [...values.categoryIds, cat.id];
-													update("categoryIds", next);
-													if (next.length === 1) {
-														update("primaryCategoryId", cat.id);
-													}
-												} else {
-													const next = values.categoryIds.filter(
-														(c) => c !== cat.id
-													);
-													update("categoryIds", next);
-													if (values.primaryCategoryId === cat.id) {
-														update("primaryCategoryId", next[0] ?? "");
-													}
+				<div className="flex flex-col gap-2">
+					<Label>Categorias</Label>
+					<div className="flex flex-col gap-1 rounded border border-border p-3">
+						{categories.map((cat) => {
+							const checked = values.categoryIds.includes(cat.id);
+							return (
+								<div
+									className="flex items-center gap-2"
+									key={cat.id}
+									style={{ paddingLeft: cat.depth * 16 }}
+								>
+									<Checkbox
+										checked={checked}
+										id={`cat-${cat.id}`}
+										onCheckedChange={(v) => {
+											if (v) {
+												const next = [...values.categoryIds, cat.id];
+												update("categoryIds", next);
+												if (next.length === 1) {
+													update("primaryCategoryId", cat.id);
 												}
-											}}
-										/>
+											} else {
+												const next = values.categoryIds.filter(
+													(c) => c !== cat.id
+												);
+												update("categoryIds", next);
+												if (values.primaryCategoryId === cat.id) {
+													update("primaryCategoryId", next[0] ?? "");
+												}
+											}
+										}}
+									/>
+									<label
+										className="cursor-pointer text-sm"
+										htmlFor={`cat-${cat.id}`}
+									>
+										{cat.name}
+									</label>
+								</div>
+							);
+						})}
+					</div>
+					{errors.categoryIds && (
+						<p className="text-destructive text-xs">{errors.categoryIds}</p>
+					)}
+				</div>
+				{values.categoryIds.length > 0 && (
+					<div className="flex flex-col gap-2">
+						<Label>Categoria principal</Label>
+						<RadioGroup
+							onValueChange={(v) => update("primaryCategoryId", v)}
+							value={values.primaryCategoryId}
+						>
+							{categories
+								.filter((cat) => values.categoryIds.includes(cat.id))
+								.map((cat) => (
+									<div className="flex items-center gap-2" key={cat.id}>
+										<RadioGroupItem id={`primary-${cat.id}`} value={cat.id} />
 										<label
 											className="cursor-pointer text-sm"
-											htmlFor={`cat-${cat.id}`}
+											htmlFor={`primary-${cat.id}`}
 										>
 											{cat.name}
 										</label>
 									</div>
-								);
-							})}
-						</div>
-						{errors.categoryIds && (
-							<p className="text-destructive text-xs">{errors.categoryIds}</p>
+								))}
+						</RadioGroup>
+						{errors.primaryCategoryId && (
+							<p className="text-destructive text-xs">
+								{errors.primaryCategoryId}
+							</p>
 						)}
 					</div>
-
-					{values.categoryIds.length > 0 && (
-						<div className="flex flex-col gap-2">
-							<Label>Categoria principal</Label>
-							<RadioGroup
-								onValueChange={(v) => update("primaryCategoryId", v)}
-								value={values.primaryCategoryId}
-							>
-								{categories
-									.filter((cat) => values.categoryIds.includes(cat.id))
-									.map((cat) => (
-										<div className="flex items-center gap-2" key={cat.id}>
-											<RadioGroupItem id={`primary-${cat.id}`} value={cat.id} />
-											<label
-												className="cursor-pointer text-sm"
-												htmlFor={`primary-${cat.id}`}
-											>
-												{cat.name}
-											</label>
-										</div>
-									))}
-							</RadioGroup>
-							{errors.primaryCategoryId && (
-								<p className="text-destructive text-xs">
-									{errors.primaryCategoryId}
-								</p>
-							)}
-						</div>
-					)}
+				)}
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="supplierId">Fornecedor</Label>
+					<Select
+						onValueChange={(v) => update("supplierId", v ?? "")}
+						value={values.supplierId ?? ""}
+					>
+						<SelectTrigger id="supplierId">
+							<SelectValue placeholder="Opcional" />
+						</SelectTrigger>
+						<SelectContent>
+							{suppliers.map((s) => (
+								<SelectItem key={s.id} value={s.id}>
+									{s.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
-
-				<div className="flex flex-col gap-4">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="supplierId">Fornecedor</Label>
-						<Select
-							onValueChange={(v) => update("supplierId", v ?? "")}
-							value={values.supplierId ?? ""}
-						>
-							<SelectTrigger id="supplierId">
-								<SelectValue placeholder="Opcional">
-									{(v: string) =>
-										suppliers.find((s) => s.id === v)?.name ?? "Opcional"
-									}
-								</SelectValue>
-							</SelectTrigger>
-							<SelectContent>
-								{suppliers.map((s) => (
-									<SelectItem key={s.id} value={s.id}>
-										{s.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
-
 				<div className="grid gap-4 border-border border-t pt-4 md:grid-cols-2">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="status">Status</Label>
@@ -655,7 +564,6 @@ export function ToolForm({
 							"Ativo" exige {MIN_IMAGES_ACTIVE} imagens.
 						</p>
 					</div>
-
 					<div className="flex items-center justify-between">
 						<Label htmlFor="visibleOnSite">Visível no site público</Label>
 						<Switch
@@ -666,6 +574,40 @@ export function ToolForm({
 					</div>
 				</div>
 			</section>
+
+			{pendingConfirmation && (
+				<div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-900">
+					<p className="font-semibold text-sm">
+						A categoria mudou e existem especificações órfãs:
+					</p>
+					<ul className="mt-2 list-disc pl-5 text-sm">
+						{pendingConfirmation.labels.map((label) => (
+							<li key={label}>{label}</li>
+						))}
+					</ul>
+					<p className="mt-2 text-sm">
+						Salvar agora vai apagar esses valores. Confirma?
+					</p>
+					<div className="mt-3 flex gap-2">
+						<Button
+							onClick={handleConfirmOrphans}
+							size="sm"
+							type="button"
+							variant="destructive"
+						>
+							Apagar e salvar
+						</Button>
+						<Button
+							onClick={() => setPendingConfirmation(null)}
+							size="sm"
+							type="button"
+							variant="ghost"
+						>
+							Cancelar
+						</Button>
+					</div>
+				</div>
+			)}
 
 			<div className="flex gap-3">
 				<Button disabled={isPending} type="submit">

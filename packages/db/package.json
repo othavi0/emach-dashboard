@@ -16,6 +16,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:apply-triggers": "bun run scripts/apply-triggers.ts",
     "db:seed-categories": "bun run scripts/seed-categories.ts",
+    "db:seed-attributes": "bun run scripts/seed-attributes.ts",
     "db:anonymize-client": "bun run scripts/anonymize-client.ts",
     "test": "vitest run",
     "test:watch": "vitest",

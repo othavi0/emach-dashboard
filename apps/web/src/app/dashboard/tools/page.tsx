@@ -78,7 +78,9 @@ async function fetchTools(params: {
 		id: string;
 		name: string;
 		slug: string | null;
-		sku: string | null;
+		default_sku: string | null;
+		default_voltage: string | null;
+		variant_count: number;
 		model: string | null;
 		status: string;
 		image_url: string | null;
@@ -91,7 +93,17 @@ async function fetchTools(params: {
 			t.id,
 			t.name,
 			t.slug,
-			t.sku,
+			(
+				SELECT tv.sku FROM tool_variant tv
+				WHERE tv.tool_id = t.id AND tv.is_default = true
+				LIMIT 1
+			) AS default_sku,
+			(
+				SELECT tv.voltage::text FROM tool_variant tv
+				WHERE tv.tool_id = t.id AND tv.is_default = true
+				LIMIT 1
+			) AS default_voltage,
+			(SELECT COUNT(*)::int FROM tool_variant tv WHERE tv.tool_id = t.id) AS variant_count,
 			t.model,
 			t.status,
 			(
@@ -110,12 +122,14 @@ async function fetchTools(params: {
 				LIMIT 1
 			) AS primary_category_name,
 			s.name AS supplier_name,
-			COALESCE(SUM(sl.quantity), 0)::int AS total_stock
+			COALESCE((
+				SELECT SUM(sl.quantity)::int FROM stock_level sl
+				JOIN tool_variant tv ON tv.id = sl.variant_id
+				WHERE tv.tool_id = t.id
+			), 0) AS total_stock
 		FROM tool t
 		LEFT JOIN supplier s ON s.id = t.supplier_id
-		LEFT JOIN stock_level sl ON sl.tool_id = t.id
 		${whereClause}
-		GROUP BY t.id, s.name
 		ORDER BY t.name ASC
 	`);
 
@@ -123,7 +137,9 @@ async function fetchTools(params: {
 		id: r.id,
 		name: r.name,
 		slug: r.slug,
-		sku: r.sku,
+		sku: r.default_sku,
+		voltage: r.default_voltage,
+		variantCount: Number(r.variant_count ?? 0),
 		model: r.model,
 		status: r.status,
 		imageUrl: r.image_url,

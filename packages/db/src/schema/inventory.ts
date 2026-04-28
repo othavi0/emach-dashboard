@@ -9,7 +9,7 @@ import {
 	timestamp,
 } from "drizzle-orm/pg-core";
 
-import { tool } from "./tools";
+import { toolVariant } from "./tools";
 
 export const branch = pgTable("branch", {
 	id: text("id").primaryKey(),
@@ -25,9 +25,9 @@ export const branch = pgTable("branch", {
 export const stockLevel = pgTable(
 	"stock_level",
 	{
-		toolId: text("tool_id")
+		variantId: text("variant_id")
 			.notNull()
-			.references(() => tool.id, { onDelete: "cascade" }),
+			.references(() => toolVariant.id, { onDelete: "cascade" }),
 		branchId: text("branch_id")
 			.notNull()
 			.references(() => branch.id, { onDelete: "cascade" }),
@@ -40,8 +40,8 @@ export const stockLevel = pgTable(
 			.notNull(),
 	},
 	(table) => [
-		primaryKey({ columns: [table.toolId, table.branchId] }),
-		index("stock_level_tool_id_idx").on(table.toolId),
+		primaryKey({ columns: [table.variantId, table.branchId] }),
+		index("stock_level_variant_id_idx").on(table.variantId),
 		index("stock_level_branch_id_idx").on(table.branchId),
 		check("min_qty_non_negative", sql`${table.minQty} >= 0`),
 		check("reorder_point_non_negative", sql`${table.reorderPoint} >= 0`),
@@ -55,9 +55,9 @@ export const branchRelations = relations(branch, ({ many }) => ({
 }));
 
 export const stockLevelRelations = relations(stockLevel, ({ one }) => ({
-	tool: one(tool, {
-		fields: [stockLevel.toolId],
-		references: [tool.id],
+	variant: one(toolVariant, {
+		fields: [stockLevel.variantId],
+		references: [toolVariant.id],
 	}),
 	branch: one(branch, {
 		fields: [stockLevel.branchId],

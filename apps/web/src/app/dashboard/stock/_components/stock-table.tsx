@@ -30,6 +30,8 @@ export interface StockRow {
 	sku: string | null;
 	slug: string | null;
 	totalStock: number;
+	variantCount: number;
+	voltage: string | null;
 }
 
 interface StockTableProps {
@@ -73,6 +75,10 @@ export function StockTable({ rows }: StockTableProps) {
 						</TableCell>
 						<TableCell className="text-muted-foreground text-sm">
 							{row.sku ?? "—"}
+							{row.voltage ? ` · ${row.voltage}` : ""}
+							{row.variantCount > 1
+								? ` · +${row.variantCount - 1} variantes`
+								: ""}
 						</TableCell>
 						<TableCell className="text-right font-mono">
 							{row.totalStock}

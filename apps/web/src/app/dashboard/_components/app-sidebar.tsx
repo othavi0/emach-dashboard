@@ -81,6 +81,10 @@ const NAV_GROUPS: NavGroup[] = [
 		items: [
 			{ label: "Ferramentas", href: "/dashboard/tools" as Route },
 			{
+				label: "Atributos",
+				href: "/dashboard/attributes" as Route,
+			},
+			{
 				label: "Categorias",
 				href: "/dashboard/categories" as Route,
 			},

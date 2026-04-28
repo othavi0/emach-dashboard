@@ -36,7 +36,7 @@ interface AdjustStockDialogProps {
 	branchId: string;
 	branchName: string;
 	currentQty: number;
-	toolId: string;
+	variantId: string;
 }
 
 const REASON_OPTIONS = [
@@ -65,7 +65,7 @@ export function AdjustStockDialog({
 	branchId,
 	branchName,
 	currentQty,
-	toolId,
+	variantId,
 }: AdjustStockDialogProps) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
@@ -104,7 +104,7 @@ export function AdjustStockDialog({
 			reasonNote.trim() === "" ? undefined : reasonNote.trim();
 
 		const input: StockAdjustmentInput = {
-			toolId,
+			variantId,
 			branchId,
 			newQty: parsedQty,
 			reason: resolvedReason,

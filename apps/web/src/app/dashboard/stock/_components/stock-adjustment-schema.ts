@@ -12,7 +12,7 @@ export type StockMovementReason = (typeof STOCK_MOVEMENT_REASONS)[number];
 
 export const stockAdjustmentSchema = z
 	.object({
-		toolId: z.string().min(1, "Ferramenta obrigatória"),
+		variantId: z.string().min(1, "Variante obrigatória"),
 		branchId: z.string().min(1, "Filial obrigatória"),
 		newQty: z
 			.int("Quantidade deve ser inteira")

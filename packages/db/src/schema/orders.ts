@@ -16,7 +16,7 @@ import { user } from "./auth";
 import { client } from "./client";
 import { branch } from "./inventory";
 import { actorTypeEnum } from "./shared-enums";
-import { tool } from "./tools";
+import { tool, toolVariant } from "./tools";
 
 // --- Enums ---
 
@@ -107,6 +107,9 @@ export const orderItem = pgTable(
 		toolId: text("tool_id")
 			.notNull()
 			.references(() => tool.id, { onDelete: "restrict" }),
+		variantId: text("variant_id")
+			.notNull()
+			.references(() => toolVariant.id, { onDelete: "restrict" }),
 		sku: text("sku"),
 		name: text("name").notNull(),
 		model: text("model"),
@@ -201,6 +204,10 @@ export const orderRelations = relations(order, ({ one, many }) => ({
 export const orderItemRelations = relations(orderItem, ({ one }) => ({
 	order: one(order, { fields: [orderItem.orderId], references: [order.id] }),
 	tool: one(tool, { fields: [orderItem.toolId], references: [tool.id] }),
+	variant: one(toolVariant, {
+		fields: [orderItem.variantId],
+		references: [toolVariant.id],
+	}),
 }));
 
 export const orderStatusHistoryRelations = relations(

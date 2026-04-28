@@ -63,7 +63,7 @@ export function BranchStockTable({
 			</TableHeader>
 			<TableBody>
 				{rows.map((row) => (
-					<TableRow key={row.toolId}>
+					<TableRow key={row.variantId}>
 						<TableCell>
 							{row.imageUrl ? (
 								// biome-ignore lint/performance/noImgElement: Supabase public URL
@@ -86,7 +86,8 @@ export function BranchStockTable({
 							</Link>
 						</TableCell>
 						<TableCell className="text-muted-foreground text-sm">
-							{row.sku ?? "—"}
+							{row.sku}
+							{row.voltage ? ` · ${row.voltage}` : ""}
 						</TableCell>
 						<TableCell className="text-right">
 							<div className="flex items-center justify-end gap-2">
@@ -106,7 +107,7 @@ export function BranchStockTable({
 											branchId={branchId}
 											initialMinQty={row.minQty}
 											initialReorderPoint={row.reorderPoint}
-											toolId={row.toolId}
+											variantId={row.variantId}
 										/>
 									</div>
 								</TableCell>
@@ -125,7 +126,7 @@ export function BranchStockTable({
 											branchId={branchId}
 											branchName={branchName}
 											currentQty={row.quantity}
-											toolId={row.toolId}
+											variantId={row.variantId}
 										/>
 									</div>
 								</TableCell>

@@ -1,7 +1,11 @@
 import { db } from "@emach/db";
+import {
+	attributeDefinition,
+	toolAttributeValue,
+} from "@emach/db/schema/attributes";
 import { category, toolCategory } from "@emach/db/schema/categories";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
-import { supplier, tool, toolImage } from "@emach/db/schema/tools";
+import { supplier, tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
@@ -23,6 +27,7 @@ import { asc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ToolDescription } from "@/components/tool-description";
 import { requireCurrentSession } from "@/lib/session";
 import {
 	TOOL_STATUS_LABELS,
@@ -39,11 +44,47 @@ const STATUS_BADGE_VARIANT: Record<
 	out_of_stock: "destructive",
 };
 
+const BRL = new Intl.NumberFormat("pt-BR", {
+	style: "currency",
+	currency: "BRL",
+});
+
 interface PageProps {
 	params: Promise<{ id: string }>;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: página detalhe com múltiplas seções; refactor em docs/plano-melhorias.md
+function formatAttributeValue(row: {
+	inputType: string;
+	unit: string | null;
+	valueText: string | null;
+	valueNumeric: string | null;
+	valueNumericMax: string | null;
+	valueBool: boolean | null;
+}): string {
+	const unit = row.unit ? ` ${row.unit}` : "";
+	switch (row.inputType) {
+		case "text":
+		case "select":
+		case "color":
+			return row.valueText ?? "—";
+		case "number":
+			return row.valueNumeric == null ? "—" : `${row.valueNumeric}${unit}`;
+		case "boolean":
+			return row.valueBool ? "Sim" : "Não";
+		case "numeric_range":
+			if (row.valueNumeric == null) {
+				return "—";
+			}
+			if (row.valueNumericMax == null) {
+				return `${row.valueNumeric}${unit}`;
+			}
+			return `${row.valueNumeric} – ${row.valueNumericMax}${unit}`;
+		default:
+			return "—";
+	}
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: página detalhe com múltiplas seções
 export default async function ToolDetailPage({ params }: PageProps) {
 	const session = await requireCurrentSession();
 	const canMutate = (session.user.role ?? "user") === "admin";
@@ -54,27 +95,20 @@ export default async function ToolDetailPage({ params }: PageProps) {
 			id: tool.id,
 			name: tool.name,
 			slug: tool.slug,
-			sku: tool.sku,
 			description: tool.description,
 			model: tool.model,
 			invoiceModel: tool.invoiceModel,
-			barcode: tool.barcode,
 			manufacturerName: tool.manufacturerName,
 			countryOfOrigin: tool.countryOfOrigin,
 			status: tool.status,
 			hsCode: tool.hsCode,
 			ncm: tool.ncm,
 			cest: tool.cest,
-			voltage: tool.voltage,
 			powerWatts: tool.powerWatts,
-			frequencyHz: tool.frequencyHz,
-			warrantyMonths: tool.warrantyMonths,
 			weightKg: tool.weightKg,
 			lengthCm: tool.lengthCm,
 			widthCm: tool.widthCm,
 			heightCm: tool.heightCm,
-			price: tool.price,
-			cost: tool.cost,
 			visibleOnSite: tool.visibleOnSite,
 			supplierName: supplier.name,
 		})
@@ -87,38 +121,71 @@ export default async function ToolDetailPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const toolCategoriesRows = await db
-		.select({
-			categoryId: toolCategory.categoryId,
-			categoryName: category.name,
-			isPrimary: toolCategory.isPrimary,
-		})
-		.from(toolCategory)
-		.innerJoin(category, eq(category.id, toolCategory.categoryId))
-		.where(eq(toolCategory.toolId, id))
-		.orderBy(asc(category.name));
+	const [toolCategoriesRows, images, variants, attributeValues, stockRows] =
+		await Promise.all([
+			db
+				.select({
+					categoryId: toolCategory.categoryId,
+					categoryName: category.name,
+					isPrimary: toolCategory.isPrimary,
+				})
+				.from(toolCategory)
+				.innerJoin(category, eq(category.id, toolCategory.categoryId))
+				.where(eq(toolCategory.toolId, id))
+				.orderBy(asc(category.name)),
+			db
+				.select({ id: toolImage.id, url: toolImage.url })
+				.from(toolImage)
+				.where(eq(toolImage.toolId, id))
+				.orderBy(asc(toolImage.sortOrder)),
+			db
+				.select()
+				.from(toolVariant)
+				.where(eq(toolVariant.toolId, id))
+				.orderBy(asc(toolVariant.sortOrder)),
+			db
+				.select({
+					slug: attributeDefinition.slug,
+					label: attributeDefinition.label,
+					inputType: attributeDefinition.inputType,
+					unit: attributeDefinition.unit,
+					valueText: toolAttributeValue.valueText,
+					valueNumeric: toolAttributeValue.valueNumeric,
+					valueNumericMax: toolAttributeValue.valueNumericMax,
+					valueBool: toolAttributeValue.valueBool,
+				})
+				.from(toolAttributeValue)
+				.innerJoin(
+					attributeDefinition,
+					eq(attributeDefinition.id, toolAttributeValue.attributeId)
+				)
+				.where(eq(toolAttributeValue.toolId, id))
+				.orderBy(
+					asc(attributeDefinition.sortOrder),
+					asc(attributeDefinition.label)
+				),
+			db
+				.select({
+					variantId: toolVariant.id,
+					variantSku: toolVariant.sku,
+					variantVoltage: toolVariant.voltage,
+					branchId: branch.id,
+					branchName: branch.name,
+					quantity: stockLevel.quantity,
+				})
+				.from(stockLevel)
+				.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
+				.innerJoin(branch, eq(branch.id, stockLevel.branchId))
+				.where(eq(toolVariant.toolId, id))
+				.orderBy(asc(toolVariant.sortOrder), asc(branch.name)),
+		]);
+
 	const primaryCategoryName =
 		toolCategoriesRows.find((c) => c.isPrimary)?.categoryName ?? null;
 	const allCategoryNames = toolCategoriesRows
 		.map((c) => c.categoryName)
 		.join(", ");
-
-	const images = await db
-		.select({ id: toolImage.id, url: toolImage.url })
-		.from(toolImage)
-		.where(eq(toolImage.toolId, id))
-		.orderBy(asc(toolImage.sortOrder));
-
-	const stockRows = await db
-		.select({
-			branchId: branch.id,
-			branchName: branch.name,
-			quantity: stockLevel.quantity,
-		})
-		.from(stockLevel)
-		.innerJoin(branch, eq(branch.id, stockLevel.branchId))
-		.where(eq(stockLevel.toolId, id))
-		.orderBy(asc(branch.name));
+	const defaultVariant = variants.find((v) => v.isDefault) ?? variants[0];
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -126,7 +193,9 @@ export default async function ToolDetailPage({ params }: PageProps) {
 				<div>
 					<h1 className="font-serif text-2xl">{row.name}</h1>
 					<p className="text-muted-foreground text-sm">
-						{row.sku ? `SKU: ${row.sku}` : "Sem SKU definido"}
+						{defaultVariant
+							? `SKU padrão: ${defaultVariant.sku}`
+							: "Sem variantes cadastradas"}
 					</p>
 				</div>
 				<div className="flex gap-2">
@@ -212,23 +281,65 @@ export default async function ToolDetailPage({ params }: PageProps) {
 						<p>
 							<strong>Fornecedor:</strong> {row.supplierName ?? "—"}
 						</p>
-						<p>
-							<strong>Voltagem:</strong> {row.voltage ?? "—"}
-						</p>
-						<p>
-							<strong>Preço:</strong> {row.price ?? "—"}
-						</p>
-						<p>
-							<strong>Custo:</strong> {row.cost ?? "—"}
-						</p>
 						{row.description && (
-							<p>
-								<strong>Descrição:</strong> {row.description}
-							</p>
+							<div>
+								<strong>Descrição:</strong>
+								<ToolDescription markdown={row.description} />
+							</div>
 						)}
 					</CardContent>
 				</Card>
 			</div>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>Variantes</CardTitle>
+					<CardDescription>
+						SKUs vendáveis. Estoque por filial é gerenciado em "Gerenciar
+						estoque".
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					{variants.length === 0 ? (
+						<p className="text-muted-foreground text-sm">
+							Nenhuma variante cadastrada.
+						</p>
+					) : (
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>SKU</TableHead>
+									<TableHead>Voltagem</TableHead>
+									<TableHead>Código de barras</TableHead>
+									<TableHead className="text-right">Preço</TableHead>
+									<TableHead className="text-right">Custo</TableHead>
+									<TableHead>Padrão</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{variants.map((v) => (
+									<TableRow key={v.id}>
+										<TableCell className="font-mono text-xs">{v.sku}</TableCell>
+										<TableCell>{v.voltage ?? "—"}</TableCell>
+										<TableCell className="font-mono text-xs">
+											{v.barcode ?? "—"}
+										</TableCell>
+										<TableCell className="text-right tabular-nums">
+											{BRL.format(Number(v.priceAmount))}
+										</TableCell>
+										<TableCell className="text-right tabular-nums">
+											{v.costAmount ? BRL.format(Number(v.costAmount)) : "—"}
+										</TableCell>
+										<TableCell>
+											{v.isDefault ? <Badge>Padrão</Badge> : "—"}
+										</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					)}
+				</CardContent>
+			</Card>
 
 			<div className="grid gap-6 md:grid-cols-2">
 				<Card>
@@ -255,7 +366,7 @@ export default async function ToolDetailPage({ params }: PageProps) {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>Especificações</CardTitle>
+						<CardTitle>Especificações fixas</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<dl className="grid gap-2 text-sm">
@@ -268,10 +379,6 @@ export default async function ToolDetailPage({ params }: PageProps) {
 								<dd>{row.invoiceModel ?? "—"}</dd>
 							</div>
 							<div className="flex justify-between">
-								<dt className="text-muted-foreground">Barcode</dt>
-								<dd>{row.barcode ?? "—"}</dd>
-							</div>
-							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Fabricante</dt>
 								<dd>{row.manufacturerName ?? "—"}</dd>
 							</div>
@@ -282,20 +389,6 @@ export default async function ToolDetailPage({ params }: PageProps) {
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Potência</dt>
 								<dd>{row.powerWatts == null ? "—" : `${row.powerWatts} W`}</dd>
-							</div>
-							<div className="flex justify-between">
-								<dt className="text-muted-foreground">Frequência</dt>
-								<dd>
-									{row.frequencyHz == null ? "—" : `${row.frequencyHz} Hz`}
-								</dd>
-							</div>
-							<div className="flex justify-between">
-								<dt className="text-muted-foreground">Garantia</dt>
-								<dd>
-									{row.warrantyMonths == null
-										? "—"
-										: `${row.warrantyMonths} meses`}
-								</dd>
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Peso</dt>
@@ -318,9 +411,34 @@ export default async function ToolDetailPage({ params }: PageProps) {
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Estoque por Filial</CardTitle>
+					<CardTitle>Especificações técnicas dinâmicas</CardTitle>
 					<CardDescription>
-						Quantidade disponível por unidade da rede.
+						Atributos definidos pela categoria principal.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					{attributeValues.length === 0 ? (
+						<p className="text-muted-foreground text-sm">
+							Nenhuma especificação cadastrada.
+						</p>
+					) : (
+						<dl className="grid gap-2 text-sm md:grid-cols-2">
+							{attributeValues.map((av) => (
+								<div className="flex justify-between" key={av.slug}>
+									<dt className="text-muted-foreground">{av.label}</dt>
+									<dd>{formatAttributeValue(av)}</dd>
+								</div>
+							))}
+						</dl>
+					)}
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>Estoque por variante e filial</CardTitle>
+					<CardDescription>
+						Quantidade disponível por SKU em cada unidade.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -332,13 +450,19 @@ export default async function ToolDetailPage({ params }: PageProps) {
 						<Table>
 							<TableHeader>
 								<TableRow>
+									<TableHead>SKU</TableHead>
+									<TableHead>Voltagem</TableHead>
 									<TableHead>Filial</TableHead>
 									<TableHead className="text-right">Quantidade</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
 								{stockRows.map((s) => (
-									<TableRow key={s.branchId}>
+									<TableRow key={`${s.variantId}-${s.branchId}`}>
+										<TableCell className="font-mono text-xs">
+											{s.variantSku}
+										</TableCell>
+										<TableCell>{s.variantVoltage ?? "—"}</TableCell>
 										<TableCell>{s.branchName}</TableCell>
 										<TableCell className="text-right tabular-nums">
 											{s.quantity}
