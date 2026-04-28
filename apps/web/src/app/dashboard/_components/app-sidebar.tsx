@@ -232,7 +232,7 @@ export function AppSidebar() {
 										<SidebarMenuItem key={item.href}>
 											<div
 												aria-disabled="true"
-												className="flex h-8 w-full items-center gap-2 rounded-none p-2 text-left text-xs opacity-50"
+												className="flex h-8 w-full items-center gap-2 rounded-md p-2 text-left text-xs opacity-50"
 											>
 												<span>{item.label}</span>
 												<span className="ml-auto text-[10px] text-muted-foreground uppercase tracking-wide">

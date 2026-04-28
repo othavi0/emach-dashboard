@@ -176,7 +176,7 @@ export function ToolImageGallery({
 				</div>
 
 				{sorted.length === 0 ? (
-					<div className="flex min-h-40 items-center justify-center rounded-none border border-border border-dashed p-4 text-center text-muted-foreground text-xs">
+					<div className="flex min-h-40 items-center justify-center rounded-md border border-border border-dashed p-4 text-center text-muted-foreground text-xs">
 						Nenhuma imagem ainda
 					</div>
 				) : (
@@ -187,8 +187,8 @@ export function ToolImageGallery({
 								<li
 									className={
 										isPrimary
-											? "flex items-center gap-2 rounded-none border border-primary bg-primary/5 p-2"
-											: "flex items-center gap-2 rounded-none border border-border bg-card p-2"
+											? "flex items-center gap-2 rounded-md border border-primary bg-primary/5 p-2"
+											: "flex items-center gap-2 rounded-md border border-border bg-card p-2"
 									}
 									key={img.id ?? img.url}
 								>
@@ -196,7 +196,7 @@ export function ToolImageGallery({
 									{/** biome-ignore lint/correctness/useImageSize: fixed thumbnail via Tailwind */}
 									<img
 										alt={`Imagem ${index + 1}`}
-										className="h-12 w-12 shrink-0 rounded-none border border-border object-cover"
+										className="h-12 w-12 shrink-0 rounded-md border border-border object-cover"
 										src={img.url}
 									/>
 									<div className="flex min-w-0 flex-1 flex-col">
@@ -266,8 +266,8 @@ export function ToolImageGallery({
 			<button
 				className={
 					isDragging
-						? "flex min-h-40 flex-col items-center justify-center gap-2 rounded-none border border-primary border-dashed bg-primary/10 p-6 text-center transition-colors"
-						: "flex min-h-40 flex-col items-center justify-center gap-2 rounded-none border border-border border-dashed bg-muted/30 p-6 text-center transition-colors hover:border-foreground/40 disabled:cursor-not-allowed disabled:opacity-50"
+						? "flex min-h-40 flex-col items-center justify-center gap-2 rounded-md border border-primary border-dashed bg-primary/10 p-6 text-center transition-colors"
+						: "flex min-h-40 flex-col items-center justify-center gap-2 rounded-md border border-border border-dashed bg-muted/30 p-6 text-center transition-colors hover:border-foreground/40 disabled:cursor-not-allowed disabled:opacity-50"
 				}
 				disabled={uploading || remaining <= 0}
 				onClick={() => fileInput.current?.click()}

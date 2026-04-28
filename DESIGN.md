@@ -1,312 +1,257 @@
-# Design System Inspired by Claude (Anthropic)
+# Design System — emach dashboard (Anthropic Claude inspired)
 
-## 1. Visual Theme & Atmosphere
+> Derivado de `~/Downloads/DESIGN-claude.md` (sistema atual de claude.com), adaptado para um dashboard interno em **dark mode único**. Filosofia editorial mantida; vocabulário marketing (hero bands, pricing tiers, coral callouts) descartado por irrelevância no contexto.
 
-Claude's interface is a literary salon reimagined as a product page — warm, unhurried, and quietly intellectual. The entire experience is built on a parchment-toned canvas (`#f5f4ed`) that deliberately evokes the feeling of high-quality paper rather than a digital surface. Where most AI product pages lean into cold, futuristic aesthetics, Claude's design radiates human warmth, as if the AI itself has good taste in interior design.
+## 1. Visão & Atmosfera
 
-The signature move is the custom Anthropic Serif typeface — a medium-weight serif with generous proportions that gives every headline the gravitas of a book title. Combined with organic, hand-drawn-feeling illustrations in terracotta (`#c96442`), black, and muted green, the visual language says "thoughtful companion" rather than "powerful tool." The serif headlines breathe at tight-but-comfortable line-heights (1.10–1.30), creating a cadence that feels more like reading an essay than scanning a product page.
+O dashboard emach respira o mesmo ar do claude.com: serif editorial nos títulos, sans humanista no body, paleta exclusivamente **warm-toned** sem nenhum cool blue-gray, e voltagem cromática vinda de um **único accent coral** que aparece com discrição. A diferença é que aqui o cream-canvas vira `surface-dark` — o app é admin interno, dark-only, e o ritmo light/dark de seções do site marketing é trocado por **uma hierarquia de superfícies dark coerente**.
 
-What makes Claude's design truly distinctive is its warm neutral palette. Every gray has a yellow-brown undertone (`#5e5d59`, `#87867f`, `#4d4c48`) — there are no cool blue-grays anywhere. Borders are cream-tinted (`#f0eee6`, `#e8e6dc`), shadows use warm transparent blacks, and even the darkest surfaces (`#141413`, `#30302e`) carry a barely perceptible olive warmth. This chromatic consistency creates a space that feels lived-in and trustworthy.
+A assinatura visual é a combinação de:
 
-**Key Characteristics:**
-- Warm parchment canvas (`#f5f4ed`) evoking premium paper, not screens
-- Custom Anthropic type family: Serif for headlines, Sans for UI, Mono for code
-- Terracotta brand accent (`#c96442`) — warm, earthy, deliberately un-tech
-- Exclusively warm-toned neutrals — every gray has a yellow-brown undertone
-- Organic, editorial illustrations replacing typical tech iconography
-- Ring-based shadow system (`0px 0px 0px 1px`) creating border-like depth without visible borders
-- Magazine-like pacing with generous section spacing and serif-driven hierarchy
+1. Tipografia editorial — Cormorant Garamond serif weight 400 com `tracking-tight` nos display sizes; Inter sans 400/500 para body e UI.
+2. Paleta **dark warm** com 5 níveis de elevação distintos (`background → muted → border → card → secondary`).
+3. Coral `#cc785c` como única cor saturada — usada em CTA primário, badge "novo", focus ring de inputs.
+4. Hairline borders que funcionam como degraus de elevação (não linhas de tinta).
+5. Sombra praticamente ausente — depth vem do contraste entre surfaces, não de drop shadows.
 
-## 2. Color Palette & Roles
+## 2. Paleta
 
-### Primary
-- **Anthropic Near Black** (`#141413`): The primary text color and dark-theme surface — not pure black but a warm, almost olive-tinted dark that's gentler on the eyes. The warmest "black" in any major tech brand.
-- **Terracotta Brand** (`#c96442`): The core brand color — a burnt orange-brown used for primary CTA buttons, brand moments, and the signature accent. Deliberately earthy and un-tech.
-- **Coral Accent** (`#d97757`): A lighter, warmer variant of the brand color used for text accents, links on dark surfaces, and secondary emphasis.
+Todos os tokens estão em `packages/ui/src/styles/globals.css`, escopados em `.dark`. Use os tokens via Tailwind (`bg-card`, `text-foreground`, etc.) — **nunca** hardcode hex em componentes.
 
-### Secondary & Accent
-- **Error Crimson** (`#b53333`): A deep, warm red for error states — serious without being alarming.
-- **Focus Blue** (`#3898ec`): Standard blue for input focus rings — the only cool color in the entire system, used purely for accessibility.
+### Surfaces (do mais escuro para o mais claro)
 
-### Surface & Background
-- **Parchment** (`#f5f4ed`): The primary page background — a warm cream with a yellow-green tint that feels like aged paper. The emotional foundation of the entire design.
-- **Ivory** (`#faf9f5`): The lightest surface — used for cards and elevated containers on the Parchment background. Barely distinguishable but creates subtle layering.
-- **Pure White** (`#ffffff`): Reserved for specific button surfaces and maximum-contrast elements.
-- **Warm Sand** (`#e8e6dc`): Button backgrounds and prominent interactive surfaces — a noticeably warm light gray.
-- **Dark Surface** (`#30302e`): Dark-theme containers, nav borders, and elevated dark elements — warm charcoal.
-- **Deep Dark** (`#141413`): Dark-theme page background and primary dark surface.
+| Token | Hex aprox | Uso |
+|---|---|---|
+| `--sidebar` | `#13110f` | Sidebar do dashboard (mais escuro que background) |
+| `--background` | `#181715` | Page floor — surface-dark |
+| `--muted` | `#1f1e1b` | Inset surfaces: tracks de slider/progress, skeletons, code blocks, tab list bg |
+| `--card` / `--popover` / `--accent` | `#252320` | Cards, popovers, dialog content — surface-dark-elevated |
+| `--border` | `#3d3d3a` | Hairline borders visíveis sobre background e card — degrau de elevação |
+| `--input` | `#48464a` | Borda de inputs/selects/textareas — 1 degrau mais forte que `--border` por affordance de interatividade |
+| `--secondary` | `#3d3d3a` | Botões secundários, surfaces de ênfase moderada (mesma luminância de `--border`, role distinto) |
 
-### Neutrals & Text
-- **Charcoal Warm** (`#4d4c48`): Button text on light warm surfaces — the go-to dark-on-light text.
-- **Olive Gray** (`#5e5d59`): Secondary body text — a distinctly warm medium-dark gray.
-- **Stone Gray** (`#87867f`): Tertiary text, footnotes, and de-emphasized metadata.
-- **Dark Warm** (`#3d3d3a`): Dark text links and emphasized secondary text.
-- **Warm Silver** (`#b0aea5`): Text on dark surfaces — a warm, parchment-tinted light gray.
+### Brand & Semantic
 
-### Semantic & Accent
-- **Border Cream** (`#f0eee6`): Standard light-theme border — barely visible warm cream, creating the gentlest possible containment.
-- **Border Warm** (`#e8e6dc`): Prominent borders, section dividers, and emphasized containment on light surfaces.
-- **Border Dark** (`#30302e`): Standard border on dark surfaces — maintains the warm tone.
-- **Ring Warm** (`#d1cfc5`): Shadow ring color for button hover/focus states.
-- **Ring Subtle** (`#dedc01`): Secondary ring variant for lighter interactive surfaces.
-- **Ring Deep** (`#c2c0b6`): Deeper ring for active/pressed states.
+| Token | Hex | Uso |
+|---|---|---|
+| `--primary` | `#cc785c` | Coral — CTA primário, focus ring, badge default, chart-1 |
+| `--primary-foreground` | `#ffffff` | Texto sobre coral |
+| `--destructive` | `#c64545` | Estados de erro, badge cancelado, botão destrutivo |
+| `--destructive-foreground` | `#ffffff` | Texto sobre destructive |
+| `--ring` | coral 40% alpha | Componentes aplicam `ring-2 ring-ring` (coral 40% × 3px) — ring sólido, sem multiplicar opacidade |
 
-### Gradient System
-- Claude's design is **gradient-free** in the traditional sense. Depth and visual richness come from the interplay of warm surface tones, organic illustrations, and light/dark section alternation. The warm palette itself creates a "gradient" effect as the eye moves through cream → sand → stone → charcoal → black sections.
+### Foreground (textos)
 
-## 3. Typography Rules
+| Token | Hex | Uso |
+|---|---|---|
+| `--foreground` | `#faf9f5` | Texto primário — on-dark cream-tinted |
+| `--card-foreground` / `--popover-foreground` | `#faf9f5` | Mesmo, em cards/popovers |
+| `--muted-foreground` | `#a09d96` | Secondary text, captions, metadata, footer-adjacent |
+| `--accent-foreground` / `--secondary-foreground` | `#faf9f5` | Texto em surfaces de ênfase |
 
-### Font Family
-- **Headline**: `Anthropic Serif`, with fallback: `Georgia`
-- **Body / UI**: `Anthropic Sans`, with fallback: `Arial`
-- **Code**: `Anthropic Mono`, with fallback: `Arial`
+### Charts
 
-*Note: These are custom typefaces. For external implementations, Georgia serves as the serif substitute and system-ui/Inter as the sans substitute.*
+5 séries warm-tone, ancoradas em coral:
 
-### Hierarchy
+- `--chart-1`: Coral `#cc785c`
+- `--chart-2`: Amber-tinted gray
+- `--chart-3`: Teal `#5db8a6` (único matiz frio permitido — accent-teal do DESIGN-claude.md)
+- `--chart-4`: Stone gray
+- `--chart-5`: Secondary
 
-| Role | Font | Size | Weight | Line Height | Letter Spacing | Notes |
-|------|------|------|--------|-------------|----------------|-------|
-| Display / Hero | Anthropic Serif | 64px (4rem) | 500 | 1.10 (tight) | normal | Maximum impact, book-title presence |
-| Section Heading | Anthropic Serif | 52px (3.25rem) | 500 | 1.20 (tight) | normal | Feature section anchors |
-| Sub-heading Large | Anthropic Serif | 36–36.8px (~2.3rem) | 500 | 1.30 | normal | Secondary section markers |
-| Sub-heading | Anthropic Serif | 32px (2rem) | 500 | 1.10 (tight) | normal | Card titles, feature names |
-| Sub-heading Small | Anthropic Serif | 25–25.6px (~1.6rem) | 500 | 1.20 | normal | Smaller section titles |
-| Feature Title | Anthropic Serif | 20.8px (1.3rem) | 500 | 1.20 | normal | Small feature headings |
-| Body Serif | Anthropic Serif | 17px (1.06rem) | 400 | 1.60 (relaxed) | normal | Serif body text (editorial passages) |
-| Body Large | Anthropic Sans | 20px (1.25rem) | 400 | 1.60 (relaxed) | normal | Intro paragraphs |
-| Body / Nav | Anthropic Sans | 17px (1.06rem) | 400–500 | 1.00–1.60 | normal | Navigation links, UI text |
-| Body Standard | Anthropic Sans | 16px (1rem) | 400–500 | 1.25–1.60 | normal | Standard body, button text |
-| Body Small | Anthropic Sans | 15px (0.94rem) | 400–500 | 1.00–1.60 | normal | Compact body text |
-| Caption | Anthropic Sans | 14px (0.88rem) | 400 | 1.43 | normal | Metadata, descriptions |
-| Label | Anthropic Sans | 12px (0.75rem) | 400–500 | 1.25–1.60 | 0.12px | Badges, small labels |
-| Overline | Anthropic Sans | 10px (0.63rem) | 400 | 1.60 | 0.5px | Uppercase overline labels |
-| Micro | Anthropic Sans | 9.6px (0.6rem) | 400 | 1.60 | 0.096px | Smallest text |
-| Code | Anthropic Mono | 15px (0.94rem) | 400 | 1.60 | -0.32px | Inline code, terminal |
+> **Regra:** sem cool blue-grays em UI chrome. Teal só em charts (status indicators, distinções de série).
 
-### Principles
-- **Serif for authority, sans for utility**: Anthropic Serif carries all headline content with medium weight (500), giving every heading the gravitas of a published title. Anthropic Sans handles all functional UI text — buttons, labels, navigation — with quiet efficiency.
-- **Single weight for serifs**: All Anthropic Serif headings use weight 500 — no bold, no light. This creates a consistent "voice" across all headline sizes, as if the same author wrote every heading.
-- **Relaxed body line-height**: Most body text uses 1.60 line-height — significantly more generous than typical tech sites (1.4–1.5). This creates a reading experience closer to a book than a dashboard.
-- **Tight-but-not-compressed headings**: Line-heights of 1.10–1.30 for headings are tight but never claustrophobic. The serif letterforms need breathing room that sans-serif fonts don't.
-- **Micro letter-spacing on labels**: Small sans text (12px and below) uses deliberate letter-spacing (0.12px–0.5px) to maintain readability at tiny sizes.
+## 3. Tipografia
 
-## 4. Component Stylings
+Carregada via `next/font/google` em `apps/web/src/app/layout.tsx`:
+
+- **Serif (display/headlines):** `Cormorant Garamond` weight 400/500/600 — substituto open-source do Copernicus/Tiempos Headline da Anthropic. Variável CSS: `--font-serif-loaded`. Token Tailwind: `font-serif`.
+- **Sans (body/UI):** `Inter` variable — substituto direto do StyreneB. Variável CSS: `--font-sans-loaded`. Token Tailwind: `font-sans`.
+- **Mono (código):** stack do sistema (`ui-monospace`, fallback Tailwind). Token: `font-mono`.
+
+### Hierarquia
+
+| Função | Classes Tailwind | Notas |
+|---|---|---|
+| Display hero (raro em dashboard) | `font-serif text-5xl font-normal tracking-tight leading-[1.1]` | 48px / 1.1 / -0.025em |
+| h1 página | `font-serif text-2xl font-normal tracking-tight` | Padrão dashboard atual; era weight 500, agora 400 |
+| h2 seção | `font-serif text-xl font-normal tracking-tight` | |
+| h3 sub-seção | `font-serif text-lg font-normal` | |
+| Title prominent | `font-sans text-base font-medium` | Card titles em listas densas |
+| Body padrão | `font-sans text-sm leading-relaxed` | UI chrome — 14px com line-height 1.55 |
+| Body alternativo | `font-sans text-base leading-relaxed` | Páginas com leitura intensa (16px) |
+| Caption | `font-sans text-xs text-muted-foreground` | Metadata, labels, helpers |
+| Caption uppercase | `font-sans text-[11px] tracking-widest uppercase font-medium` | Section markers, badge text |
+| Code | `font-mono text-xs` | Inline code, IDs, atalhos |
+
+### Princípios
+
+- **Serif weight 400, não 500.** Cormorant Garamond ganha personalidade em peso regular com tracking negativo. Bold (700) lê como bombástico; evitar.
+- **Tracking negativo nos display sizes.** `tracking-tight` (-0.025em) cobre h1/h2; `tracking-tighter` (-0.05em) para hero excepcional. Nunca `tracking-normal` ou positivo em serif headlines.
+- **Body em 14px (`text-sm`)** é o default do dashboard — UI denso. Subir para `text-base` (16px) só em páginas de leitura.
+- **Line-height generosa em body.** `leading-relaxed` (1.625) ou `text-sm/relaxed` — copiar o ritmo de leitura do site Anthropic.
+- **Sem mistura:** serif **só** em headlines; sans em todo o resto. Mono **só** em código.
+
+## 4. Componentes
+
+> Os 50+ componentes em `packages/ui/src/components/*` são shadcn buildados sobre `@base-ui/react` (não Radix). O registry inicial era `base-lyra` (que produz `rounded-none` em todos os componentes), mas **migramos os cantos para a hierarquia DESIGN-claude.md** — surfaces grandes em `rounded-lg`, interactive em `rounded-md`, tracks circulares em `rounded-full`, tiny em `rounded-sm`. Override individual via className quando necessário.
 
 ### Buttons
 
-**Warm Sand (Secondary)**
-- Background: Warm Sand (`#e8e6dc`)
-- Text: Charcoal Warm (`#4d4c48`)
-- Padding: 0px 12px 0px 8px (asymmetric — icon-first layout)
-- Radius: comfortably rounded (8px)
-- Shadow: ring-based (`#e8e6dc 0px 0px 0px 0px, #d1cfc5 0px 0px 0px 1px`)
-- The workhorse button — warm, unassuming, clearly interactive
+`packages/ui/src/components/button.tsx` — variants: `default` (coral), `secondary`, `outline`, `ghost`, `destructive`, `link`. Sizes: `xs / sm / default / lg / icon / icon-xs / icon-sm / icon-lg`.
 
-**White Surface**
-- Background: Pure White (`#ffffff`)
-- Text: Anthropic Near Black (`#141413`)
-- Padding: 8px 16px 8px 12px
-- Radius: generously rounded (12px)
-- Hover: shifts to secondary background color
-- Clean, elevated button for light surfaces
+| Variant | Bg | Text |
+|---|---|---|
+| `default` | `bg-primary` (coral) | `text-primary-foreground` (white) |
+| `secondary` | `bg-secondary` (#3d3d3a) | `text-secondary-foreground` |
+| `outline` | `bg-background` + `border-border` (#3d3d3a) | `text-foreground` |
+| `ghost` | transparent → hover `bg-muted` | `text-foreground` |
+| `destructive` | `bg-destructive` (sólido) | `text-destructive-foreground` (white) |
+| `link` | transparent | `text-primary` (coral) underline on hover |
 
-**Dark Charcoal**
-- Background: Dark Surface (`#30302e`)
-- Text: Ivory (`#faf9f5`)
-- Padding: 0px 12px 0px 8px
-- Radius: comfortably rounded (8px)
-- Shadow: ring-based (`#30302e 0px 0px 0px 0px, ring 0px 0px 0px 1px`)
-- The inverted variant for dark-on-light emphasis
-
-**Brand Terracotta**
-- Background: Terracotta Brand (`#c96442`)
-- Text: Ivory (`#faf9f5`)
-- Radius: 8–12px
-- Shadow: ring-based (`#c96442 0px 0px 0px 0px, #c96442 0px 0px 0px 1px`)
-- The primary CTA — the only button with chromatic color
-
-**Dark Primary**
-- Background: Anthropic Near Black (`#141413`)
-- Text: Warm Silver (`#b0aea5`)
-- Padding: 9.6px 16.8px
-- Radius: generously rounded (12px)
-- Border: thin solid Dark Surface (`1px solid #30302e`)
-- Used on dark theme surfaces
+Todos os botões compartilham o mesmo focus state: border flipa pra coral + `ring-2 ring-ring`. Idêntico ao spec dos inputs — afford­ance consistente em todo elemento focável.
 
 ### Cards & Containers
-- Background: Ivory (`#faf9f5`) or Pure White (`#ffffff`) on light surfaces; Dark Surface (`#30302e`) on dark
-- Border: thin solid Border Cream (`1px solid #f0eee6`) on light; `1px solid #30302e` on dark
-- Radius: comfortably rounded (8px) for standard cards; generously rounded (16px) for featured; very rounded (32px) for hero containers and embedded media
-- Shadow: whisper-soft (`rgba(0,0,0,0.05) 0px 4px 24px`) for elevated content
-- Ring shadow: `0px 0px 0px 1px` patterns for interactive card states
-- Section borders: `1px 0px 0px` (top-only) for list item separators
 
-### Inputs & Forms
-- Text: Anthropic Near Black (`#141413`)
-- Padding: 1.6px 12px (very compact vertical)
-- Border: standard warm borders
-- Focus: ring with Focus Blue (`#3898ec`) border-color — the only cool color moment
-- Radius: generously rounded (12px)
+- `Card`: `bg-card`, ring `ring-1 ring-foreground/10` (substitui border tradicional), padding interno 16–32px.
+- `Dialog`/`Popover`: mesma elevação que Card; abrem em portal com `z-50` + ring sutil.
+- Sidebar: `bg-sidebar` (mais escuro que background — hierarquia visual canvas → sidebar darker).
 
-### Navigation
-- Sticky top nav with warm background
-- Logo: Claude wordmark in Anthropic Near Black
-- Links: mix of Near Black (`#141413`), Olive Gray (`#5e5d59`), and Dark Warm (`#3d3d3a`)
-- Nav border: `1px solid #30302e` (dark) or `1px solid #f0eee6` (light)
-- CTA: Terracotta Brand button or White Surface button
-- Hover: text shifts to foreground-primary, no decoration
+### Inputs
 
-### Image Treatment
-- Product screenshots showing the Claude chat interface
-- Generous border-radius on media (16–32px)
-- Embedded video players with rounded corners
-- Dark UI screenshots provide contrast against warm light canvas
-- Organic, hand-drawn illustrations for conceptual sections
+- `Input` / `Textarea` / `Select` trigger / `Combobox` / `Field`:
+  - **Default:** `bg-transparent` + `border-input` (#48464a — hairline forte, distinguível tanto sobre background quanto sobre card).
+  - **Focus:** border flipa pra coral (`focus-visible:border-ring`) + ring sólido de **2px coral 40%** (`focus-visible:ring-2 focus-visible:ring-ring`). 2px se mostrou o sweet spot em dark mode — DESIGN-claude.md prescreve "3px" mas em dark com coral 40% fica visualmente pesado demais; 2px mantém a affordance sem dominar.
+  - **Invalid:** border vira `destructive` + ring 1px destructive 20%.
+- `Checkbox` / `RadioGroup` / `Switch`: bg coral quando checked.
+- Outros componentes que usam o mesmo spec: `InputGroup`, `InputOTP`.
 
-### Distinctive Components
+### Badges
 
-**Model Comparison Cards**
-- Opus 4.5, Sonnet 4.5, Haiku 4.5 presented in a clean card grid
-- Each model gets a bordered card with name, description, and capability badges
-- Border Warm (`#e8e6dc`) separation between items
+`bg-primary` (coral) para destaque, `bg-secondary` para neutro, `bg-destructive` sólido para erro/cancelado. `outline` = border-border + bg transparente.
 
-**Organic Illustrations**
-- Hand-drawn-feeling vector illustrations in terracotta, black, and muted green
-- Abstract, conceptual rather than literal product diagrams
-- The primary visual personality — no other AI company uses this style
+### Feedback
 
-**Dark/Light Section Alternation**
-- The page alternates between Parchment light and Near Black dark sections
-- Creates a reading rhythm like chapters in a book
-- Each section feels like a distinct environment
+- `Alert` default: `bg-card` + texto foreground.
+- `Alert` destructive: `bg-card` + texto `text-destructive` (mantém legibilidade — diferente do Button destrutivo, que é fill).
+- `Skeleton`/`Slider track`/`Progress track`: todos em `bg-muted` (`#1f1e1b`) — distintos do card.
 
-## 5. Layout Principles
+### Não use
 
-### Spacing System
-- Base unit: 8px
-- Scale: 3px, 4px, 6px, 8px, 10px, 12px, 16px, 20px, 24px, 30px
-- Button padding: asymmetric (0px 12px 0px 8px) or balanced (8px 16px)
-- Card internal padding: approximately 24–32px
-- Section vertical spacing: generous (estimated 80–120px between major sections)
+- `<img>` nu — sempre `next/image` (CLAUDE.md regra P1).
+- Cool blue-grays em qualquer lugar de UI chrome.
+- `text-xs` no body principal — fica denso demais; use `text-sm` mínimo.
+- Drop shadows pesados — depth vem de surface contrast.
+- Bold weight em serif headlines.
 
-### Grid & Container
-- Max container width: approximately 1200px, centered
-- Hero: centered with editorial layout
-- Feature sections: single-column or 2–3 column card grids
-- Model comparison: clean 3-column grid
-- Full-width dark sections breaking the container for emphasis
+## 5. Layout
 
-### Whitespace Philosophy
-- **Editorial pacing**: Each section breathes like a magazine spread — generous top/bottom margins create natural reading pauses.
-- **Serif-driven rhythm**: The serif headings establish a literary cadence that demands more whitespace than sans-serif designs.
-- **Content island approach**: Sections alternate between light and dark environments, creating distinct "rooms" for each message.
+### Spacing
 
-### Border Radius Scale
-- Sharp (4px): Minimal inline elements
-- Subtly rounded (6–7.5px): Small buttons, secondary interactive elements
-- Comfortably rounded (8–8.5px): Standard buttons, cards, containers
-- Generously rounded (12px): Primary buttons, input fields, nav elements
-- Very rounded (16px): Featured containers, video players, tab lists
-- Highly rounded (24px): Tag-like elements, highlighted containers
-- Maximum rounded (32px): Hero containers, embedded media, large cards
+Base 4px (Tailwind default). Tokens preferidos:
 
-## 6. Depth & Elevation
+| Tailwind | Px | Uso |
+|---|---|---|
+| `gap-1` | 4 | Inline elements |
+| `gap-2` | 8 | Stacks compactos |
+| `gap-3` | 12 | Forms, lists |
+| `gap-4` | 16 | Card content |
+| `gap-6` | 24 | Section internal |
+| `gap-8` | 32 | Card padding interno |
+| `py-12` / `py-16` | 48–64 | Page section vertical |
+| `py-24` | 96 | Hero/marquee em landings (raro no dashboard) |
 
-| Level | Treatment | Use |
-|-------|-----------|-----|
-| Flat (Level 0) | No shadow, no border | Parchment background, inline text |
-| Contained (Level 1) | `1px solid #f0eee6` (light) or `1px solid #30302e` (dark) | Standard cards, sections |
-| Ring (Level 2) | `0px 0px 0px 1px` ring shadows using warm grays | Interactive cards, buttons, hover states |
-| Whisper (Level 3) | `rgba(0,0,0,0.05) 0px 4px 24px` | Elevated feature cards, product screenshots |
-| Inset (Level 4) | `inset 0px 0px 0px 1px` at 15% opacity | Active/pressed button states |
+### Container
 
-**Shadow Philosophy**: Claude communicates depth through **warm-toned ring shadows** rather than traditional drop shadows. The signature `0px 0px 0px 1px` pattern creates a border-like halo that's softer than an actual border — it's a shadow pretending to be a border, or a border that's technically a shadow. When drop shadows do appear, they're extremely soft (0.05 opacity, 24px blur) — barely visible lifts that suggest floating rather than casting.
+- Max-width default em pages: `max-w-7xl` (1280px) com `mx-auto`.
+- Páginas de leitura/forms: `max-w-3xl` ou `max-w-5xl`.
+- Sidebar: largura fixa 16rem (configurada no shadcn `Sidebar`).
 
-### Decorative Depth
-- **Light/Dark alternation**: The most dramatic depth effect comes from alternating between Parchment (`#f5f4ed`) and Near Black (`#141413`) sections — entire sections shift elevation by changing the ambient light level.
-- **Warm ring halos**: Button and card interactions use ring shadows that match the warm palette — never cool-toned or generic gray.
+### Border Radius
 
-## 7. Do's and Don'ts
+Mapping aplicado nos componentes (substitui o `rounded-none` default do registry base-lyra):
+
+| Token | Px | Componentes |
+|---|---|---|
+| `rounded-sm` | 6 | `Checkbox`, `Kbd`, `Skeleton` |
+| `rounded-md` | 8 | `Button`, `Input`, `Textarea`, `Select`, `Tooltip`, `Item`, `Badge`, `DropdownMenu`/`ContextMenu`/`Menubar` items, `Tabs`, `Toggle`, `Combobox`, `Field`, `InputGroup`, `InputOTP`, `Sidebar` items, form sections do dashboard |
+| `rounded-lg` | 12 | `Card`, `Dialog`, `AlertDialog`, `Alert`, `Popover`, `HoverCard`, `Command`, `Drawer`, `Empty` |
+| `rounded-xl` | 16 | Hero containers (raro no dashboard) |
+| `rounded-full` | ∞ | `Slider` track/thumb, `Progress`, `ScrollArea`, `Resizable` handle, avatars, pill badges |
+
+**Exceção semântica preservada:** `Calendar` mantém `rounded-none` no `range_middle` — o "meio" de um intervalo de datas precisa de cantos retos pra fundir visualmente com start/end.
+
+Ao escrever página/componente novo, sempre use os tokens acima — nunca volte a `rounded-none` por hábito do registry original.
+
+## 6. Profundidade & Elevação
+
+| Nível | Tratamento | Uso |
+|---|---|---|
+| Flat | sem shadow, sem border | Sections, page floor, top nav |
+| Hairline | `border-border` (1px) | Inputs, divisores, table rows |
+| Ring | `ring-1 ring-foreground/10` | Cards, popovers, dialogs (substituto a shadow) |
+| Surface elevation | `bg-card` em cima de `bg-background` | Cards, panels |
+| Drop shadow | `shadow-md` | Apenas overlays portados (Dropdown, Tooltip, Select content) — herdado do shadcn |
+
+**Filosofia:** depth vem de contraste de surface, não de shadow. O dashboard é flat-first; sombras só em overlays e mesmo assim sutis. Diferente do DESIGN.md anterior, **não** prescrevemos `0px 0px 0px 1px` ring shadows em todo lugar — a realidade do código é ring + border + bg-shift, e isso é suficiente.
+
+## 7. Do's & Don'ts
 
 ### Do
-- Use Parchment (`#f5f4ed`) as the primary light background — the warm cream tone IS the Claude personality
-- Use Anthropic Serif at weight 500 for all headlines — the single-weight consistency is intentional
-- Use Terracotta Brand (`#c96442`) only for primary CTAs and the highest-signal brand moments
-- Keep all neutrals warm-toned — every gray should have a yellow-brown undertone
-- Use ring shadows (`0px 0px 0px 1px`) for interactive element states instead of drop shadows
-- Maintain the editorial serif/sans hierarchy — serif for content headlines, sans for UI
-- Use generous body line-height (1.60) for a literary reading experience
-- Alternate between light and dark sections to create chapter-like page rhythm
-- Apply generous border-radius (12–32px) for a soft, approachable feel
+
+- Use os tokens (`bg-card`, `text-foreground`) — nunca hex literal em componentes.
+- Coral (`bg-primary`) **só** em CTAs primários, focus rings, charts series principal e badge "novo". Reservado, não decorativo.
+- Serif Cormorant weight 400 com `tracking-tight` em display headlines.
+- Body sans `text-sm leading-relaxed` (14px / 1.55) por padrão.
+- Hairline borders em `border-border` (`#3d3d3a`) — degrau de elevação visível, não linha de tinta preta.
+- Inputs em `border-input` (`#48464a`) — borda mais forte que `border-border` por affordance.
+- Focus em qualquer elemento focável: border flipa pra coral + `ring-2 ring-ring`.
+- 5 níveis de surface dark distintos — respeite a hierarquia.
+- Use os tokens de radius corretos (`rounded-md` interactive, `rounded-lg` surfaces, `rounded-full` circular, `rounded-sm` tiny). Nunca `rounded-none` em componente novo.
 
 ### Don't
-- Don't use cool blue-grays anywhere — the palette is exclusively warm-toned
-- Don't use bold (700+) weight on Anthropic Serif — weight 500 is the ceiling for serifs
-- Don't introduce saturated colors beyond Terracotta — the palette is deliberately muted
-- Don't use sharp corners (< 6px radius) on buttons or cards — softness is core to the identity
-- Don't apply heavy drop shadows — depth comes from ring shadows and background color shifts
-- Don't use pure white (`#ffffff`) as a page background — Parchment (`#f5f4ed`) or Ivory (`#faf9f5`) are always warmer
-- Don't use geometric/tech-style illustrations — Claude's illustrations are organic and hand-drawn-feeling
-- Don't reduce body line-height below 1.40 — the generous spacing supports the editorial personality
-- Don't use monospace fonts for non-code content — Anthropic Mono is strictly for code
-- Don't mix in sans-serif for headlines — the serif/sans split is the typographic identity
 
-## 8. Responsive Behavior
+- Não introduza cool blue-grays. Toda neutra tem chroma warm (oklch hue ~70-85).
+- Não use Cormorant em weight 700 — quebra o ritmo editorial.
+- Não pinte coisas de coral aleatoriamente. Restrinja.
+- Não confunda `--muted` com `--card` — são distintos por design (diff de ~3% de luminância).
+- Não use `--border` e `--input` como sinônimos — input é 1 degrau mais forte.
+- Não adicione drop shadows pesados em cards. Use o ring `ring-1 ring-foreground/10` que já está nos componentes.
+- Não use `<h1>` sem `font-serif` — o serif **é** a personalidade.
+- Não use `text-xs` (12px) em body principal — fica denso demais para o feel editorial.
+- Não escreva `rounded-none` em componente novo — use o token correto da escala.
+- Não use focus ring de 1px ou opacity multiplicada (ex: `ring-1 ring-ring/50`) — sempre `ring-2 ring-ring`.
 
-### Breakpoints
-| Name | Width | Key Changes |
-|------|-------|-------------|
-| Small Mobile | <479px | Minimum layout, stacked everything, compact typography |
-| Mobile | 479–640px | Single column, hamburger nav, reduced heading sizes |
-| Large Mobile | 640–767px | Slightly wider content area |
-| Tablet | 768–991px | 2-column grids begin, condensed nav |
-| Desktop | 992px+ | Full multi-column layout, expanded nav, maximum hero typography (64px) |
+## 8. Histórico de migrações aplicadas
 
-### Touch Targets
-- Buttons use generous padding (8–16px vertical minimum)
-- Navigation links adequately spaced for thumb navigation
-- Card surfaces serve as large touch targets
-- Minimum recommended: 44x44px
+Mudanças sistêmicas já consolidadas no código (registro pra não regredir):
 
-### Collapsing Strategy
-- **Navigation**: Full horizontal nav collapses to hamburger on mobile
-- **Feature sections**: Multi-column → stacked single column
-- **Hero text**: 64px → 36px → ~25px progressive scaling
-- **Model cards**: 3-column → stacked vertical
-- **Section padding**: Reduces proportionally but maintains editorial rhythm
-- **Illustrations**: Scale proportionally, maintain aspect ratios
+- **Paleta dark refeita** sobre `surface-dark` / `surface-dark-soft` / `surface-dark-elevated` do DESIGN-claude.md. Saiu da terracotta `#c96442` pra coral `#cc785c`. Eliminou colisões (`--card == --popover == --muted` antes; agora 5 níveis distintos).
+- **Tokens `--border` e `--input` separados.** `--border` em `#3d3d3a` (visível como hairline); `--input` em `#48464a` (1 degrau mais forte por affordance). Antes ambos em `#2a2825` — invisíveis sobre o background.
+- **`--ring` em coral 40% sólido** + componentes aplicando `ring-2 ring-ring` (era `ring-1 ring-ring/50` = 1px @ 20% effective). Focus state tem peso real agora.
+- **Tipografia editorial via `next/font/google`.** Cormorant Garamond (display weight 400 + tracking tight) + Inter (UI). Antes era Georgia + system fonts via fallback.
+- **Cantos arredondados.** 99 ocorrências de `rounded-none` em 39 componentes shadcn substituídas por `rounded-md`/`rounded-lg`/`rounded-full`/`rounded-sm` conforme categoria. 22 ocorrências em pages do dashboard (`tool-form`, `branch-form`, `supplier-form`, `category-form`, `promotion-form`, `tool-image-gallery`, `app-sidebar`, etc.) limpas junto.
+- **Body type subiu** de `text-xs` (12px) para `text-sm` (14px) em `Button` e `Card` base. Override pontual com `text-xs/relaxed` se layout apertado precisar.
+- **`--destructive-foreground` adicionado.** Variants destructive de Button/Badge agora são fill sólido + texto white (eram bg/10 + text-destructive — contraste fraco).
 
-### Image Behavior
-- Product screenshots scale proportionally within rounded containers
-- Illustrations maintain quality at all sizes
-- Video embeds maintain 16:9 aspect ratio with rounded corners
-- No art direction changes between breakpoints
+## 9. Referência rápida (para prompts e PRs)
 
-## 9. Agent Prompt Guide
+| Pergunta | Resposta |
+|---|---|
+| Qual a cor de marca? | Coral `#cc785c` (token `--primary`) |
+| Qual a fonte de headlines? | Cormorant Garamond weight 400 com tracking-tight |
+| Posso usar pure white de fundo? | Não. Page floor é `bg-background` (#181715) |
+| Como faço destaque sem coral? | `bg-secondary` (#3d3d3a) ou `bg-card` + `border-border` |
+| Onde está o token de erro? | `bg-destructive` / `text-destructive-foreground` (#c64545 + white) |
+| Posso usar cool gray? | Apenas em chart-3 (teal). Em UI chrome, não. |
+| Qual a linha base de body? | `text-sm leading-relaxed` (14px / 1.55) |
+| Como faço focus state? | `focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring` |
+| Qual radius pra um card novo? | `rounded-lg` (12px). Botões/inputs em `rounded-md` (8px). |
+| Borda de input precisa ser mais forte que de card? | Sim — input usa `border-input` (#48464a), card/section usa `border-border` (#3d3d3a). |
 
-### Quick Color Reference
-- Brand CTA: "Terracotta Brand (#c96442)"
-- Page Background: "Parchment (#f5f4ed)"
-- Card Surface: "Ivory (#faf9f5)"
-- Primary Text: "Anthropic Near Black (#141413)"
-- Secondary Text: "Olive Gray (#5e5d59)"
-- Tertiary Text: "Stone Gray (#87867f)"
-- Borders (light): "Border Cream (#f0eee6)"
-- Dark Surface: "Dark Surface (#30302e)"
+## 10. Origem
 
-### Example Component Prompts
-- "Create a hero section on Parchment (#f5f4ed) with a headline at 64px Anthropic Serif weight 500, line-height 1.10. Use Anthropic Near Black (#141413) text. Add a subtitle in Olive Gray (#5e5d59) at 20px Anthropic Sans with 1.60 line-height. Place a Terracotta Brand (#c96442) CTA button with Ivory text, 12px radius."
-- "Design a feature card on Ivory (#faf9f5) with a 1px solid Border Cream (#f0eee6) border and comfortably rounded corners (8px). Title in Anthropic Serif at 25px weight 500, description in Olive Gray (#5e5d59) at 16px Anthropic Sans. Add a whisper shadow (rgba(0,0,0,0.05) 0px 4px 24px)."
-- "Build a dark section on Anthropic Near Black (#141413) with Ivory (#faf9f5) headline text in Anthropic Serif at 52px weight 500. Use Warm Silver (#b0aea5) for body text. Borders in Dark Surface (#30302e)."
-- "Create a button in Warm Sand (#e8e6dc) with Charcoal Warm (#4d4c48) text, 8px radius, and a ring shadow (0px 0px 0px 1px #d1cfc5). Padding: 0px 12px 0px 8px."
-- "Design a model comparison grid with three cards on Ivory surfaces. Each card gets a Border Warm (#e8e6dc) top border, model name in Anthropic Serif at 25px, and description in Olive Gray at 15px Anthropic Sans."
-
-### Iteration Guide
-1. Focus on ONE component at a time
-2. Reference specific color names — "use Olive Gray (#5e5d59)" not "make it gray"
-3. Always specify warm-toned variants — no cool grays
-4. Describe serif vs sans usage explicitly — "Anthropic Serif for the heading, Anthropic Sans for the label"
-5. For shadows, use "ring shadow (0px 0px 0px 1px)" or "whisper shadow" — never generic "drop shadow"
-6. Specify the warm background — "on Parchment (#f5f4ed)" or "on Near Black (#141413)"
-7. Keep illustrations organic and conceptual — describe "hand-drawn-feeling" style
+- Filosofia visual e tokens: `~/Downloads/DESIGN-claude.md` (Anthropic Claude marketing site, abril 2026).
+- Adaptação dashboard-dark: este documento.
+- Implementação canônica: `packages/ui/src/styles/globals.css` + `apps/web/src/app/layout.tsx`.
+- Showcase visual: `apps/web/src/app/design/page.tsx` em `http://localhost:3001/design`.

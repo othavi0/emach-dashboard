@@ -213,7 +213,7 @@ export function ToolForm({
 
 	return (
 		<form className="flex w-full flex-col gap-6" onSubmit={handleSubmit}>
-			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas
 				</h2>
@@ -282,7 +282,7 @@ export function ToolForm({
 				</div>
 			</section>
 
-			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Identificação extra
 				</h2>
@@ -340,7 +340,7 @@ export function ToolForm({
 				</div>
 			</section>
 
-			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Classificação fiscal
 				</h2>
@@ -377,7 +377,7 @@ export function ToolForm({
 				</div>
 			</section>
 
-			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Dimensões & peso
 				</h2>
@@ -428,7 +428,7 @@ export function ToolForm({
 				</div>
 			</section>
 
-			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Especificações técnicas
 				</h2>
@@ -472,7 +472,7 @@ export function ToolForm({
 				</div>
 			</section>
 
-			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Mídia · {values.images.length} de {MAX_IMAGES}
 				</h2>
@@ -487,7 +487,7 @@ export function ToolForm({
 				)}
 			</section>
 
-			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Preço
 				</h2>
@@ -523,7 +523,7 @@ export function ToolForm({
 				</div>
 			</section>
 
-			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Classificação
 				</h2>

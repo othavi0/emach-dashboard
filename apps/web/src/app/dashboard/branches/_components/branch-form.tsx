@@ -93,7 +93,7 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 			className="flex w-full max-w-2xl flex-col gap-6"
 			onSubmit={handleSubmit}
 		>
-			<section className="flex flex-col gap-4 rounded-none border border-border bg-card p-6">
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas
 				</h2>
