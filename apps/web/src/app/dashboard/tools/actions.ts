@@ -4,11 +4,12 @@ import { db } from "@emach/db";
 import {
 	type AttributeDefinition,
 	attributeDefinition,
+	toolAttributeAssignment,
 	toolAttributeValue,
 } from "@emach/db/schema/attributes";
 import { toolCategory } from "@emach/db/schema/categories";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { requireCapability } from "@/lib/permissions";
@@ -25,8 +26,7 @@ const TOOLS_PATH = "/dashboard/tools";
 
 export type ActionResult<T = undefined> =
 	| { ok: true; data: T }
-	| { ok: false; error: string }
-	| { ok: false; warning: "orphan_attributes"; orphanLabels: string[] };
+	| { ok: false; error: string };
 
 function errorMessage(error: unknown): string {
 	if (error instanceof Error) {
@@ -97,25 +97,17 @@ function normalizeVariantValues(
 	};
 }
 
-/**
- * Recursive ancestor walk on category, returning all attribute definitions
- * whose categoryId is null (global) or matches any ancestor of the given category.
- */
-async function fetchActiveAttributeDefinitions(
-	categoryId: string
-): Promise<AttributeDefinition[]> {
-	const rows = await db.execute(sql`
-		WITH RECURSIVE chain AS (
-			SELECT id, parent_id FROM category WHERE id = ${categoryId}
-			UNION ALL
-			SELECT c.id, c.parent_id FROM category c
-			JOIN chain ON c.id = chain.parent_id
-		)
-		SELECT ad.* FROM attribute_definition ad
-		WHERE ad.category_id IN (SELECT id FROM chain) OR ad.category_id IS NULL
-		ORDER BY ad.sort_order, ad.label
-	`);
-	return rows.rows as unknown as AttributeDefinition[];
+async function fetchDefinitionsBySlug(
+	slugs: string[]
+): Promise<Map<string, AttributeDefinition>> {
+	if (slugs.length === 0) {
+		return new Map();
+	}
+	const rows = await db
+		.select()
+		.from(attributeDefinition)
+		.where(inArray(attributeDefinition.slug, slugs));
+	return new Map(rows.map((d) => [d.slug, d]));
 }
 
 function attributeValueRow(
@@ -198,12 +190,12 @@ export async function createTool(
 	const payload = normalizeToolPayload(parsed.data);
 	const slug = slugify(parsed.data.name);
 
-	const definitions = await fetchActiveAttributeDefinitions(
-		parsed.data.primaryCategoryId
+	const definitionsBySlug = await fetchDefinitionsBySlug(
+		parsed.data.attributeAssignments
 	);
-	const definitionsBySlug = new Map(definitions.map((d) => [d.slug, d]));
 
 	try {
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: transação coesa criando tool, variants, images, categorias, assignments e values em sequência ordenada
 		await db.transaction(async (tx) => {
 			await tx.insert(tool).values({ id, slug, ...payload });
 
@@ -234,9 +226,33 @@ export async function createTool(
 				}))
 			);
 
-			const attributeRows: (typeof toolAttributeValue.$inferInsert)[] = [];
-			for (const [slug, value] of Object.entries(parsed.data.attributeValues)) {
-				const def = definitionsBySlug.get(slug);
+			const assignmentRows: (typeof toolAttributeAssignment.$inferInsert)[] =
+				[];
+			let order = 0;
+			for (const assignedSlug of parsed.data.attributeAssignments) {
+				const def = definitionsBySlug.get(assignedSlug);
+				if (!def) {
+					continue;
+				}
+				assignmentRows.push({
+					toolId: id,
+					attributeId: def.id,
+					sortOrder: order++,
+				});
+			}
+			if (assignmentRows.length > 0) {
+				await tx.insert(toolAttributeAssignment).values(assignmentRows);
+			}
+
+			const assignedSlugs = new Set(parsed.data.attributeAssignments);
+			const valueRows: (typeof toolAttributeValue.$inferInsert)[] = [];
+			for (const [valueSlug, value] of Object.entries(
+				parsed.data.attributeValues
+			)) {
+				if (!assignedSlugs.has(valueSlug)) {
+					continue;
+				}
+				const def = definitionsBySlug.get(valueSlug);
 				if (!def) {
 					continue;
 				}
@@ -244,10 +260,10 @@ export async function createTool(
 				if (!row) {
 					continue;
 				}
-				attributeRows.push({ toolId: id, attributeId: def.id, ...row });
+				valueRows.push({ toolId: id, attributeId: def.id, ...row });
 			}
-			if (attributeRows.length > 0) {
-				await tx.insert(toolAttributeValue).values(attributeRows);
+			if (valueRows.length > 0) {
+				await tx.insert(toolAttributeValue).values(valueRows);
 			}
 		});
 	} catch (error) {
@@ -260,8 +276,7 @@ export async function createTool(
 
 export async function updateTool(
 	id: string,
-	input: ToolFormValues,
-	options: { confirmOrphans?: boolean } = {}
+	input: ToolFormValues
 ): Promise<ActionResult<{ id: string }>> {
 	await requireCapability("tools.update");
 	const parsed = toolFormSchema.safeParse(input);
@@ -270,39 +285,14 @@ export async function updateTool(
 	}
 	const payload = normalizeToolPayload(parsed.data);
 
-	const definitions = await fetchActiveAttributeDefinitions(
-		parsed.data.primaryCategoryId
+	const definitionsBySlug = await fetchDefinitionsBySlug(
+		parsed.data.attributeAssignments
 	);
-	const activeDefIds = new Set(definitions.map((d) => d.id));
-	const definitionsBySlug = new Map(definitions.map((d) => [d.slug, d]));
-
-	const existingValues = await db
-		.select({
-			attributeId: toolAttributeValue.attributeId,
-			label: attributeDefinition.label,
-		})
-		.from(toolAttributeValue)
-		.innerJoin(
-			attributeDefinition,
-			eq(attributeDefinition.id, toolAttributeValue.attributeId)
-		)
-		.where(eq(toolAttributeValue.toolId, id));
-
-	const orphans = existingValues.filter(
-		(v) => !activeDefIds.has(v.attributeId)
-	);
-	if (orphans.length > 0 && !options.confirmOrphans) {
-		return {
-			ok: false,
-			warning: "orphan_attributes",
-			orphanLabels: orphans.map((o) => o.label),
-		};
-	}
 
 	let toDelete: { id: string; url: string }[] = [];
 
 	try {
-		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: transação coeso atualizando 4 entidades (tool, variants, images, categories, attribute_values) com sincronização order-aware
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: transação coesa atualizando 5 entidades (tool, variants, images, categories, attribute assignments + values) com sincronização order-aware
 		await db.transaction(async (tx) => {
 			await tx.update(tool).set(payload).where(eq(tool.id, id));
 
@@ -412,13 +402,41 @@ export async function updateTool(
 				}))
 			);
 
-			// --- Atributos dinâmicos ---
+			// --- Atribuições e valores de atributos ---
 			await tx
 				.delete(toolAttributeValue)
 				.where(eq(toolAttributeValue.toolId, id));
-			const attributeRows: (typeof toolAttributeValue.$inferInsert)[] = [];
-			for (const [slug, value] of Object.entries(parsed.data.attributeValues)) {
-				const def = definitionsBySlug.get(slug);
+			await tx
+				.delete(toolAttributeAssignment)
+				.where(eq(toolAttributeAssignment.toolId, id));
+
+			const assignmentRows: (typeof toolAttributeAssignment.$inferInsert)[] =
+				[];
+			let order = 0;
+			for (const assignedSlug of parsed.data.attributeAssignments) {
+				const def = definitionsBySlug.get(assignedSlug);
+				if (!def) {
+					continue;
+				}
+				assignmentRows.push({
+					toolId: id,
+					attributeId: def.id,
+					sortOrder: order++,
+				});
+			}
+			if (assignmentRows.length > 0) {
+				await tx.insert(toolAttributeAssignment).values(assignmentRows);
+			}
+
+			const assignedSlugs = new Set(parsed.data.attributeAssignments);
+			const valueRows: (typeof toolAttributeValue.$inferInsert)[] = [];
+			for (const [valueSlug, value] of Object.entries(
+				parsed.data.attributeValues
+			)) {
+				if (!assignedSlugs.has(valueSlug)) {
+					continue;
+				}
+				const def = definitionsBySlug.get(valueSlug);
 				if (!def) {
 					continue;
 				}
@@ -426,10 +444,10 @@ export async function updateTool(
 				if (!row) {
 					continue;
 				}
-				attributeRows.push({ toolId: id, attributeId: def.id, ...row });
+				valueRows.push({ toolId: id, attributeId: def.id, ...row });
 			}
-			if (attributeRows.length > 0) {
-				await tx.insert(toolAttributeValue).values(attributeRows);
+			if (valueRows.length > 0) {
+				await tx.insert(toolAttributeValue).values(valueRows);
 			}
 		});
 	} catch (error) {

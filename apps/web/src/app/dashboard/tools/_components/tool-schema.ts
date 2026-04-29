@@ -99,6 +99,7 @@ export const toolFormSchema = z
 		attributeValues: z
 			.record(z.string(), attributeValueInputSchema)
 			.default({}),
+		attributeAssignments: z.array(z.string()).default([]),
 	})
 	.superRefine((data, ctx) => {
 		if (data.status === "active" && data.images.length < MIN_IMAGES_ACTIVE) {
@@ -135,6 +136,17 @@ export const toolFormSchema = z
 			}
 			if (sku) {
 				skus.add(sku);
+			}
+		}
+		const assignmentSet = new Set(data.attributeAssignments);
+		for (const slug of Object.keys(data.attributeValues)) {
+			if (!assignmentSet.has(slug)) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["attributeValues", slug],
+					message:
+						"Valor preenchido para atributo que não está vinculado à ferramenta",
+				});
 			}
 		}
 	});

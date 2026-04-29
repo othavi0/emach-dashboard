@@ -20,7 +20,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
 
-import { slugifyLabel } from "../../attributes/schema";
+import { slugifyLabel } from "../_lib/attribute-schema";
 import {
 	type CategoryListItem,
 	createCategory,

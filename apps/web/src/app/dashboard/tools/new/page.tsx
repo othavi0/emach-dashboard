@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import { attributeDefinition } from "@emach/db/schema/attributes";
 import { category } from "@emach/db/schema/categories";
 import { supplier } from "@emach/db/schema/tools";
 import { asc } from "drizzle-orm";
@@ -10,23 +11,31 @@ import { ToolForm } from "../_components/tool-form";
 export default async function NewToolPage() {
 	await requireCapability("tools.create");
 
-	const [categories, suppliers, definitionsByCategory] = await Promise.all([
-		db
-			.select({
-				id: category.id,
-				slug: category.slug,
-				name: category.name,
-				path: category.path,
-				depth: category.depth,
-			})
-			.from(category)
-			.orderBy(asc(category.path)),
-		db
-			.select({ id: supplier.id, name: supplier.name })
-			.from(supplier)
-			.orderBy(asc(supplier.name)),
-		buildDefinitionsByCategory(),
-	]);
+	const [categories, suppliers, definitionsByCategory, allDefinitions] =
+		await Promise.all([
+			db
+				.select({
+					id: category.id,
+					slug: category.slug,
+					name: category.name,
+					path: category.path,
+					depth: category.depth,
+				})
+				.from(category)
+				.orderBy(asc(category.path)),
+			db
+				.select({ id: supplier.id, name: supplier.name })
+				.from(supplier)
+				.orderBy(asc(supplier.name)),
+			buildDefinitionsByCategory(),
+			db
+				.select()
+				.from(attributeDefinition)
+				.orderBy(
+					asc(attributeDefinition.sortOrder),
+					asc(attributeDefinition.label)
+				),
+		]);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -38,6 +47,7 @@ export default async function NewToolPage() {
 			</div>
 
 			<ToolForm
+				allDefinitions={allDefinitions}
 				categories={categories}
 				defaultValues={{}}
 				definitionsByCategory={definitionsByCategory}

@@ -156,7 +156,7 @@ export function OrderFiltersPanel({
 					</label>
 					<Select
 						onValueChange={(v) =>
-							setParam("branchId", v === BRANCH_ALL ? null : v)
+							setParam("branchId", v === BRANCH_ALL ? null : (v as string))
 						}
 						value={currentBranch}
 					>
