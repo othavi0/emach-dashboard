@@ -50,9 +50,11 @@ export const attributeDefinition = pgTable(
 		unit: text("unit"),
 		options: jsonb("options").$type<AttributeOptions>(),
 		isRequired: boolean("is_required").notNull().default(false),
-		categoryId: text("category_id").references(() => category.id, {
-			onDelete: "restrict",
-		}),
+		categoryId: text("category_id")
+			.notNull()
+			.references(() => category.id, {
+				onDelete: "restrict",
+			}),
 		sortOrder: integer("sort_order").notNull().default(0),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
