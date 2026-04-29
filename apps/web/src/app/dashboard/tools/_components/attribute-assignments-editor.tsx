@@ -85,7 +85,7 @@ export function AttributeAssignmentsEditor({
 	if (rows.length === 0 && availableExtras.length === 0) {
 		return (
 			<p className="text-muted-foreground text-sm">
-				Nenhum atributo cadastrado. Cadastre atributos em /dashboard/attributes.
+				Nenhum atributo cadastrado. Cadastre atributos editando uma categoria.
 			</p>
 		);
 	}

@@ -13,9 +13,7 @@ import {
 	type AttributeFormValues,
 	attributeFormSchema,
 	buildOptionsField,
-} from "./schema";
-
-const ATTRS_PATH = "/dashboard/attributes";
+} from "./attribute-schema";
 
 export type ActionResult<T = undefined> =
 	| { ok: true; data: T }
@@ -28,7 +26,7 @@ function errorMessage(error: unknown): string {
 	return "Erro inesperado";
 }
 
-function normalize(input: AttributeFormValues) {
+function normalize(input: AttributeFormValues, categoryId: string) {
 	return {
 		slug: input.slug.trim(),
 		label: input.label.trim(),
@@ -36,12 +34,13 @@ function normalize(input: AttributeFormValues) {
 		unit: input.unit?.trim() ? input.unit.trim() : null,
 		options: buildOptionsField(input),
 		isRequired: input.isRequired,
-		categoryId: input.categoryId?.trim() ? input.categoryId : null,
+		categoryId,
 		sortOrder: input.sortOrder,
 	};
 }
 
-export async function createAttribute(
+export async function createCategoryAttribute(
+	categoryId: string,
 	input: AttributeFormValues
 ): Promise<ActionResult<{ id: string }>> {
 	await requireCapability("attributes.create");
@@ -53,16 +52,17 @@ export async function createAttribute(
 	try {
 		await db
 			.insert(attributeDefinition)
-			.values({ id, ...normalize(parsed.data) });
+			.values({ id, ...normalize(parsed.data, categoryId) });
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}
-	revalidatePath(ATTRS_PATH);
+	revalidatePath(`/dashboard/categories/${categoryId}/edit`);
 	return { ok: true, data: { id } };
 }
 
-export async function updateAttribute(
+export async function updateCategoryAttribute(
 	id: string,
+	categoryId: string,
 	input: AttributeFormValues
 ): Promise<ActionResult<{ id: string }>> {
 	await requireCapability("attributes.update");
@@ -73,17 +73,19 @@ export async function updateAttribute(
 	try {
 		await db
 			.update(attributeDefinition)
-			.set(normalize(parsed.data))
+			.set(normalize(parsed.data, categoryId))
 			.where(eq(attributeDefinition.id, id));
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}
-	revalidatePath(ATTRS_PATH);
-	revalidatePath(`${ATTRS_PATH}/${id}/edit`);
+	revalidatePath(`/dashboard/categories/${categoryId}/edit`);
 	return { ok: true, data: { id } };
 }
 
-export async function deleteAttribute(id: string): Promise<ActionResult> {
+export async function deleteCategoryAttribute(
+	id: string,
+	categoryId: string
+): Promise<ActionResult> {
 	await requireCapability("attributes.delete");
 	try {
 		// Cascade na FK de toolAttributeValue lida com valores existentes.
@@ -91,13 +93,10 @@ export async function deleteAttribute(id: string): Promise<ActionResult> {
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}
-	revalidatePath(ATTRS_PATH);
+	revalidatePath(`/dashboard/categories/${categoryId}/edit`);
 	return { ok: true, data: undefined };
 }
 
-/**
- * Conta quantas ferramentas usam o atributo, para alertar antes de deletar.
- */
 export async function getAttributeUsage(id: string): Promise<number> {
 	const rows = await db
 		.select({ toolId: toolAttributeValue.toolId })

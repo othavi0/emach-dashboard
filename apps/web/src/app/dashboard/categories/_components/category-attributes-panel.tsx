@@ -1,207 +1,126 @@
-import { db } from "@emach/db";
-import {
-	type AttributeDefinition,
-	attributeDefinition,
+"use client";
+
+import type {
+	AttributeDefinition,
+	AttributeOptions,
 } from "@emach/db/schema/attributes";
-import { category } from "@emach/db/schema/categories";
-import { Badge } from "@emach/ui/components/badge";
-import { buttonVariants } from "@emach/ui/components/button";
+import { Button } from "@emach/ui/components/button";
 import {
 	Card,
+	CardAction,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "@emach/ui/components/card";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@emach/ui/components/table";
-import { eq, isNull, or } from "drizzle-orm";
-import Link from "next/link";
+import { Plus } from "lucide-react";
+import { useState } from "react";
 
-import { ATTRIBUTE_INPUT_TYPE_LABELS } from "../../attributes/schema";
+import type { AttributeFormValues } from "../_lib/attribute-schema";
+import { AttributeSheet, type AttributeSheetMode } from "./attribute-sheet";
+import {
+	InheritedAttributesTable,
+	type InheritedRow,
+	OwnAttributesTable,
+	type OwnRow,
+} from "./attributes-table";
 
 interface CategoryAttributesPanelProps {
+	canCreate: boolean;
+	canDelete: boolean;
+	canUpdate: boolean;
 	categoryId: string;
+	categoryName: string;
+	inheritedRows: InheritedRow[];
+	ownRows: OwnRow[];
 }
 
-interface PanelRow {
-	def: AttributeDefinition;
-	source: "self" | "inherited" | "global";
-	sourceLabel: string;
+function defToFormValues(
+	def: AttributeDefinition
+): Partial<AttributeFormValues> {
+	const opts = def.options as AttributeOptions | null;
+	return {
+		slug: def.slug,
+		label: def.label,
+		inputType: def.inputType,
+		unit: def.unit ?? "",
+		isRequired: def.isRequired,
+		sortOrder: def.sortOrder,
+		options: opts && opts.kind === "select" ? opts.options : [],
+		swatches: opts && opts.kind === "color" ? opts.swatches : [],
+	};
 }
 
-function getSourceBadgeVariant(source: PanelRow["source"]) {
-	if (source === "self") {
-		return "default";
-	}
-	if (source === "inherited") {
-		return "secondary";
-	}
-	return "outline";
-}
-
-async function loadPanelRows(categoryId: string): Promise<PanelRow[]> {
-	const [self] = await db
-		.select({ id: category.id, parentId: category.parentId })
-		.from(category)
-		.where(eq(category.id, categoryId))
-		.limit(1);
-	if (!self) {
-		return [];
-	}
-
-	const ancestors: { id: string; name: string }[] = [];
-	let cursor: string | null = self.parentId;
-	while (cursor) {
-		const [row]: { id: string; name: string; parentId: string | null }[] =
-			await db
-				.select({
-					id: category.id,
-					name: category.name,
-					parentId: category.parentId,
-				})
-				.from(category)
-				.where(eq(category.id, cursor))
-				.limit(1);
-		if (!row) {
-			break;
-		}
-		ancestors.push({ id: row.id, name: row.name });
-		cursor = row.parentId;
-	}
-
-	const ancestorIds = ancestors.map((a) => a.id);
-	const ancestorNameById = new Map(ancestors.map((a) => [a.id, a.name]));
-
-	const definitions = await db
-		.select()
-		.from(attributeDefinition)
-		.where(
-			ancestorIds.length > 0
-				? or(
-						eq(attributeDefinition.categoryId, categoryId),
-						isNull(attributeDefinition.categoryId),
-						...ancestorIds.map((id) => eq(attributeDefinition.categoryId, id))
-					)
-				: or(
-						eq(attributeDefinition.categoryId, categoryId),
-						isNull(attributeDefinition.categoryId)
-					)
-		);
-
-	return definitions
-		.map<PanelRow>((def) => {
-			if (def.categoryId === categoryId) {
-				return { def, source: "self", sourceLabel: "Própria" };
-			}
-			if (def.categoryId === null) {
-				return { def, source: "global", sourceLabel: "Global" };
-			}
-			return {
-				def,
-				source: "inherited",
-				sourceLabel: `Herdada de ${ancestorNameById.get(def.categoryId) ?? "ancestral"}`,
-			};
-		})
-		.sort((a, b) => {
-			const order = { self: 0, inherited: 1, global: 2 } as const;
-			return (
-				order[a.source] - order[b.source] ||
-				a.def.sortOrder - b.def.sortOrder ||
-				a.def.label.localeCompare(b.def.label)
-			);
-		});
-}
-
-export async function CategoryAttributesPanel({
+export function CategoryAttributesPanel({
+	canCreate,
+	canDelete,
+	canUpdate,
 	categoryId,
+	categoryName,
+	inheritedRows,
+	ownRows,
 }: CategoryAttributesPanelProps) {
-	const rows = await loadPanelRows(categoryId);
+	const [sheetMode, setSheetMode] = useState<AttributeSheetMode | null>(null);
 
 	return (
-		<Card>
-			<CardHeader className="flex flex-row items-start justify-between gap-3">
-				<div className="flex flex-col gap-1">
-					<CardTitle>Atributos sugeridos para esta categoria</CardTitle>
+		<>
+			<Card>
+				<CardHeader>
+					<CardTitle>Atributos próprios</CardTitle>
 					<CardDescription>
-						Tools desta categoria começam com estes atributos pré-marcados, mas
-						podem desligá-los ou anexar extras individualmente. Inclui herdadas
-						de ancestrais e globais.
+						Definidos nesta categoria. Aplicam-se a ela e a todas as
+						descendentes.
 					</CardDescription>
-				</div>
-				<Link
-					className={buttonVariants({ size: "sm" })}
-					href={`/dashboard/attributes/new?categoryId=${categoryId}`}
-				>
-					Novo atributo
-				</Link>
-			</CardHeader>
-			<CardContent>
-				{rows.length === 0 ? (
-					<p className="text-muted-foreground text-sm">
-						Nenhum atributo sugerido para esta categoria. Clique em "Novo
-						atributo" para adicionar.
-					</p>
-				) : (
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Rótulo</TableHead>
-								<TableHead>Tipo</TableHead>
-								<TableHead>Unidade</TableHead>
-								<TableHead>Origem</TableHead>
-								<TableHead>Obrigatório</TableHead>
-								<TableHead className="w-24 text-right">Ações</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{rows.map((row) => (
-								<TableRow key={row.def.id}>
-									<TableCell className="font-medium">
-										{row.def.label}
-										<p className="font-mono text-muted-foreground text-xs">
-											{row.def.slug}
-										</p>
-									</TableCell>
-									<TableCell>
-										{ATTRIBUTE_INPUT_TYPE_LABELS[row.def.inputType]}
-									</TableCell>
-									<TableCell>{row.def.unit ?? "—"}</TableCell>
-									<TableCell>
-										<Badge variant={getSourceBadgeVariant(row.source)}>
-											{row.sourceLabel}
-										</Badge>
-									</TableCell>
-									<TableCell>
-										{row.def.isRequired ? (
-											<Badge>Obrigatório</Badge>
-										) : (
-											<span className="text-muted-foreground">—</span>
-										)}
-									</TableCell>
-									<TableCell className="text-right">
-										<Link
-											className={buttonVariants({
-												size: "sm",
-												variant: "ghost",
-											})}
-											href={`/dashboard/attributes/${row.def.id}/edit`}
-										>
-											Editar
-										</Link>
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				)}
-			</CardContent>
-		</Card>
+					{canCreate && (
+						<CardAction>
+							<Button
+								onClick={() => setSheetMode({ kind: "create" })}
+								size="sm"
+								type="button"
+							>
+								<Plus /> Novo atributo
+							</Button>
+						</CardAction>
+					)}
+				</CardHeader>
+				<CardContent>
+					<OwnAttributesTable
+						canDelete={canDelete}
+						canUpdate={canUpdate}
+						categoryId={categoryId}
+						onEdit={(def) =>
+							setSheetMode({
+								kind: "edit",
+								attributeId: def.id,
+								defaultValues: defToFormValues(def),
+							})
+						}
+						rows={ownRows}
+					/>
+				</CardContent>
+			</Card>
+
+			{inheritedRows.length > 0 && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Atributos herdados</CardTitle>
+						<CardDescription>
+							Vindos de categorias-pai. Edite na categoria de origem para
+							alterar em todas as descendentes.
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<InheritedAttributesTable rows={inheritedRows} />
+					</CardContent>
+				</Card>
+			)}
+
+			<AttributeSheet
+				categoryId={categoryId}
+				categoryName={categoryName}
+				mode={sheetMode}
+				onClose={() => setSheetMode(null)}
+			/>
+		</>
 	);
 }
