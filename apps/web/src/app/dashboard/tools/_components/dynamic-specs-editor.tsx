@@ -54,7 +54,7 @@ export function DynamicSpecsEditor({
 		return (
 			<p className="text-muted-foreground text-sm">
 				Nenhuma especificação dinâmica definida para a categoria principal
-				selecionada. Cadastre atributos em /dashboard/attributes.
+				selecionada. Cadastre atributos editando a categoria.
 			</p>
 		);
 	}
