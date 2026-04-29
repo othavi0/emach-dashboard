@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1777293885197,
-      "tag": "0000_fair_the_captain",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1777305060778,
-      "tag": "0001_dapper_omega_sentinel",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1777686000000,
-      "tag": "0002_attributes_require_category",
+      "when": 1777485638528,
+      "tag": "0000_familiar_junta",
       "breakpoints": true
     }
   ]
