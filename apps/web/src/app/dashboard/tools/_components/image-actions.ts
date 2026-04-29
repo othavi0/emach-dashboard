@@ -3,7 +3,7 @@
 import { requireRole } from "@/lib/session";
 import { supabaseAdmin, TOOL_IMAGES_BUCKET } from "@/lib/supabase-server";
 
-const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_SIZE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export async function uploadToolImage(
@@ -21,7 +21,9 @@ export async function uploadToolImage(
 	}
 
 	if (file.size > MAX_SIZE_BYTES) {
-		throw new Error("Imagem excede 5MB");
+		throw new Error(
+			"Imagem excede 2MB após compressão (cliente deveria ter comprimido)"
+		);
 	}
 
 	const extension = file.name.split(".").pop() ?? "bin";

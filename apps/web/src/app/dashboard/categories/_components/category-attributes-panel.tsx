@@ -128,10 +128,11 @@ export async function CategoryAttributesPanel({
 		<Card>
 			<CardHeader className="flex flex-row items-start justify-between gap-3">
 				<div className="flex flex-col gap-1">
-					<CardTitle>Atributos desta categoria</CardTitle>
+					<CardTitle>Atributos sugeridos para esta categoria</CardTitle>
 					<CardDescription>
-						Especificações técnicas que aparecem no formulário de ferramentas
-						classificadas aqui. Inclui herdadas de ancestrais e globais.
+						Tools desta categoria começam com estes atributos pré-marcados, mas
+						podem desligá-los ou anexar extras individualmente. Inclui herdadas
+						de ancestrais e globais.
 					</CardDescription>
 				</div>
 				<Link
@@ -144,8 +145,8 @@ export async function CategoryAttributesPanel({
 			<CardContent>
 				{rows.length === 0 ? (
 					<p className="text-muted-foreground text-sm">
-						Nenhum atributo aplicado a esta categoria. Clique em "Novo atributo"
-						para adicionar.
+						Nenhum atributo sugerido para esta categoria. Clique em "Novo
+						atributo" para adicionar.
 					</p>
 				) : (
 					<Table>
