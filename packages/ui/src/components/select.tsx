@@ -47,7 +47,7 @@ function collectSelectItems(children: ReactNode, items: SelectLabelItem[]) {
 function Select({
 	children,
 	...props
-}: SelectPrimitive.Root.Props<unknown> & {
+}: SelectPrimitive.Root.Props<string> & {
 	children?: ReactNode;
 }) {
 	const labelItems = useMemo(() => {
