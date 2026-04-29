@@ -47,7 +47,6 @@ const optionalInt = z
 export const toolVariantSchema = z.object({
 	id: z.string().optional(),
 	sku: z.string().min(1, "SKU obrigatório"),
-	barcode: optionalString,
 	voltage: z.enum(VOLTAGE_OPTIONS).optional().or(z.literal("")),
 	priceAmount: z
 		.number()
@@ -74,7 +73,6 @@ export const toolFormSchema = z
 		model: optionalString,
 		invoiceModel: optionalString,
 		manufacturerName: optionalString,
-		countryOfOrigin: optionalString,
 		status: z.enum(TOOL_STATUS_OPTIONS).default("draft"),
 		hsCode: optionalString,
 		ncm: optionalString,

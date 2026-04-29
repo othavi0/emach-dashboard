@@ -24,7 +24,6 @@ interface PageProps {
 	params: Promise<{ id: string }>;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: mapeamento denso row→form com normalização de nullables e numerics; preferimos uma função pura que apenas formate o payload
 function toFormValues(
 	row: typeof tool.$inferSelect,
 	images: (typeof toolImage.$inferSelect)[],
@@ -46,7 +45,6 @@ function toFormValues(
 	const formVariants: ToolVariantInput[] = variants.map((v) => ({
 		id: v.id,
 		sku: v.sku,
-		barcode: v.barcode ?? "",
 		voltage: (v.voltage ?? "") as (typeof VOLTAGE_OPTIONS)[number] | "",
 		priceAmount: Number(v.priceAmount),
 		costAmount: v.costAmount ? Number(v.costAmount) : undefined,
@@ -70,7 +68,6 @@ function toFormValues(
 		model: row.model ?? "",
 		invoiceModel: row.invoiceModel ?? "",
 		manufacturerName: row.manufacturerName ?? "",
-		countryOfOrigin: row.countryOfOrigin ?? "",
 		status: (row.status ?? "draft") as ToolStatusValue,
 		hsCode: row.hsCode ?? "",
 		ncm: row.ncm ?? "",

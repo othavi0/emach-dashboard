@@ -95,7 +95,6 @@ const EMPTY_VALUES: ToolFormValues = {
 	model: "",
 	invoiceModel: "",
 	manufacturerName: "",
-	countryOfOrigin: "",
 	status: "draft",
 	hsCode: "",
 	ncm: "",
@@ -113,7 +112,6 @@ const EMPTY_VALUES: ToolFormValues = {
 	variants: [
 		{
 			sku: "",
-			barcode: "",
 			voltage: "",
 			priceAmount: 0,
 			costAmount: undefined,
@@ -348,25 +346,14 @@ export function ToolForm({
 						/>
 					</div>
 				</div>
-				<div className="grid gap-4 md:grid-cols-2">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="manufacturerName">Fabricante</Label>
-						<Input
-							id="manufacturerName"
-							onChange={(e) => update("manufacturerName", e.target.value)}
-							placeholder="Ex: Bosch, Makita"
-							value={values.manufacturerName ?? ""}
-						/>
-					</div>
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="countryOfOrigin">País de origem</Label>
-						<Input
-							id="countryOfOrigin"
-							onChange={(e) => update("countryOfOrigin", e.target.value)}
-							placeholder="Ex: BR, CN"
-							value={values.countryOfOrigin ?? ""}
-						/>
-					</div>
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="manufacturerName">Fabricante</Label>
+					<Input
+						id="manufacturerName"
+						onChange={(e) => update("manufacturerName", e.target.value)}
+						placeholder="Ex: Bosch, Makita"
+						value={values.manufacturerName ?? ""}
+					/>
 				</div>
 			</section>
 
