@@ -18,11 +18,12 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
 import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
 
 import { createTool, updateTool } from "../actions";
+import { AttributeAssignmentsEditor } from "./attribute-assignments-editor";
 import { DynamicSpecsEditor } from "./dynamic-specs-editor";
 import { ToolImageGallery } from "./tool-image-gallery";
 import {
@@ -52,6 +53,7 @@ interface SupplierOption {
 }
 
 interface ToolFormProps {
+	allDefinitions: AttributeDefinition[];
 	categories: CategoryOption[];
 	defaultValues: Partial<ToolFormValues>;
 	definitionsByCategory: Record<string, AttributeDefinition[]>;
@@ -120,9 +122,10 @@ const EMPTY_VALUES: ToolFormValues = {
 		},
 	],
 	attributeValues: {},
+	attributeAssignments: [],
 };
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: form com seções múltiplas; sub-componentes em variants-editor / dynamic-specs-editor
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: form com seções múltiplas; sub-componentes em variants-editor / dynamic-specs-editor / attribute-assignments-editor
 export function ToolForm({
 	mode,
 	toolId,
@@ -131,6 +134,7 @@ export function ToolForm({
 	suppliers,
 	existingSlug,
 	definitionsByCategory,
+	allDefinitions,
 }: ToolFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
@@ -142,13 +146,11 @@ export function ToolForm({
 				? defaultValues.variants
 				: EMPTY_VALUES.variants,
 		attributeValues: defaultValues.attributeValues ?? {},
+		attributeAssignments: defaultValues.attributeAssignments ?? [],
 	});
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof ToolFormValues, string>>
 	>({});
-	const [pendingConfirmation, setPendingConfirmation] = useState<{
-		labels: string[];
-	} | null>(null);
 
 	const slugPreview = useMemo(() => {
 		if (mode === "edit" && existingSlug) {
@@ -157,10 +159,43 @@ export function ToolForm({
 		return slugify(values.name) || "—";
 	}, [mode, existingSlug, values.name]);
 
-	const activeDefinitions = useMemo(
+	const suggestedDefinitions = useMemo(
 		() => definitionsByCategory[values.primaryCategoryId] ?? [],
 		[definitionsByCategory, values.primaryCategoryId]
 	);
+
+	const definitionsBySlug = useMemo(
+		() => new Map(allDefinitions.map((d) => [d.slug, d])),
+		[allDefinitions]
+	);
+
+	const assignedDefinitions = useMemo(() => {
+		const out: AttributeDefinition[] = [];
+		for (const slug of values.attributeAssignments) {
+			const def = definitionsBySlug.get(slug);
+			if (def) {
+				out.push(def);
+			}
+		}
+		return out;
+	}, [values.attributeAssignments, definitionsBySlug]);
+
+	// Em modo create: trocar primary category reseta assignments para o pool sugerido.
+	// Em edit: assignments vêm do banco e não são alterados automaticamente.
+	const skipNextSyncRef = useRef(true);
+	useEffect(() => {
+		if (skipNextSyncRef.current) {
+			skipNextSyncRef.current = false;
+			return;
+		}
+		if (mode !== "create") {
+			return;
+		}
+		setValues((prev) => ({
+			...prev,
+			attributeAssignments: suggestedDefinitions.map((d) => d.slug),
+		}));
+	}, [suggestedDefinitions, mode]);
 
 	function update<K extends keyof ToolFormValues>(
 		key: K,
@@ -176,12 +211,28 @@ export function ToolForm({
 		}));
 	}
 
+	function updateAttributeAssignments(next: string[]) {
+		setValues((prev) => {
+			const nextSet = new Set(next);
+			const trimmedValues: Record<string, AttributeValueInput> = {};
+			for (const [k, v] of Object.entries(prev.attributeValues)) {
+				if (nextSet.has(k)) {
+					trimmedValues[k] = v;
+				}
+			}
+			return {
+				...prev,
+				attributeAssignments: next,
+				attributeValues: trimmedValues,
+			};
+		});
+	}
+
 	function updateVariants(next: ToolVariantInput[]) {
 		setValues((prev) => ({ ...prev, variants: next }));
 	}
 
-	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: orquestra Zod, transição e dois caminhos de retorno (sucesso, warning de órfãos, erro); coeso o suficiente para uma função inline
-	async function submit(confirmOrphans = false) {
+	async function submit() {
 		const result = toolFormSchema.safeParse(values);
 		if (!result.success) {
 			const zodError = result.error as ZodError<ToolFormValues>;
@@ -201,7 +252,7 @@ export function ToolForm({
 		const actionResult =
 			mode === "create"
 				? await createTool(result.data)
-				: await updateTool(toolId ?? "", result.data, { confirmOrphans });
+				: await updateTool(toolId ?? "", result.data);
 
 		if (actionResult.ok) {
 			toast.success(
@@ -214,27 +265,12 @@ export function ToolForm({
 			return;
 		}
 
-		if (
-			"warning" in actionResult &&
-			actionResult.warning === "orphan_attributes"
-		) {
-			setPendingConfirmation({ labels: actionResult.orphanLabels });
-			return;
-		}
-
-		toast.error(
-			("error" in actionResult && actionResult.error) || "Falha ao salvar"
-		);
+		toast.error(actionResult.error || "Falha ao salvar");
 	}
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		startTransition(() => submit(false));
-	}
-
-	function handleConfirmOrphans() {
-		setPendingConfirmation(null);
-		startTransition(() => submit(true));
+		startTransition(submit);
 	}
 
 	return (
@@ -431,13 +467,27 @@ export function ToolForm({
 
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Especificações técnicas dinâmicas
+					Especificações técnicas
 				</h2>
-				<DynamicSpecsEditor
-					definitions={activeDefinitions}
-					onChange={updateAttribute}
-					values={values.attributeValues}
-				/>
+				<div className="flex flex-col gap-2">
+					<h3 className="font-medium text-sm">Atributos vinculados</h3>
+					<AttributeAssignmentsEditor
+						allDefinitions={allDefinitions}
+						onChange={updateAttributeAssignments}
+						suggested={suggestedDefinitions}
+						value={values.attributeAssignments}
+					/>
+				</div>
+				{assignedDefinitions.length > 0 && (
+					<div className="flex flex-col gap-2 border-border border-t pt-4">
+						<h3 className="font-medium text-sm">Valores</h3>
+						<DynamicSpecsEditor
+							definitions={assignedDefinitions}
+							onChange={updateAttribute}
+							values={values.attributeValues}
+						/>
+					</div>
+				)}
 			</section>
 
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
@@ -598,40 +648,6 @@ export function ToolForm({
 					</div>
 				</div>
 			</section>
-
-			{pendingConfirmation && (
-				<div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-900">
-					<p className="font-semibold text-sm">
-						A categoria mudou e existem especificações órfãs:
-					</p>
-					<ul className="mt-2 list-disc pl-5 text-sm">
-						{pendingConfirmation.labels.map((label) => (
-							<li key={label}>{label}</li>
-						))}
-					</ul>
-					<p className="mt-2 text-sm">
-						Salvar agora vai apagar esses valores. Confirma?
-					</p>
-					<div className="mt-3 flex gap-2">
-						<Button
-							onClick={handleConfirmOrphans}
-							size="sm"
-							type="button"
-							variant="destructive"
-						>
-							Apagar e salvar
-						</Button>
-						<Button
-							onClick={() => setPendingConfirmation(null)}
-							size="sm"
-							type="button"
-							variant="ghost"
-						>
-							Cancelar
-						</Button>
-					</div>
-				</div>
-			)}
 
 			<div className="flex gap-3">
 				<Button disabled={isPending} type="submit">

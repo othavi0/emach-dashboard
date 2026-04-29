@@ -21,6 +21,8 @@ export const ATTRIBUTE_INPUT_TYPE_LABELS: Record<AttributeInputType, string> = {
 	color: "Cor",
 };
 
+// categoryId NÃO faz parte do form — é injetado pela página da categoria
+// no momento de chamar a server action.
 export const attributeFormSchema = z
 	.object({
 		slug: z
@@ -31,7 +33,6 @@ export const attributeFormSchema = z
 		inputType: z.enum(ATTRIBUTE_INPUT_TYPES),
 		unit: z.string().optional().or(z.literal("")),
 		isRequired: z.boolean().default(false),
-		categoryId: z.string().optional().or(z.literal("")),
 		sortOrder: z.number().int().min(0).default(0),
 		options: z
 			.array(z.object({ value: z.string().min(1), label: z.string().min(1) }))

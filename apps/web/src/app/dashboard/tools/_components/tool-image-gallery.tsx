@@ -6,6 +6,8 @@ import { ArrowDown, ArrowUp, Star, Upload, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { compressImageForUpload } from "@/lib/image-compression";
+
 import { deleteToolImage, uploadToolImage } from "./image-actions";
 
 export interface ToolImage {
@@ -21,7 +23,8 @@ interface ToolImageGalleryProps {
 	value: ToolImage[];
 }
 
-const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_RAW_INPUT_BYTES = 15 * 1024 * 1024;
+const MAX_COMPRESSED_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function reindex(images: ToolImage[]): ToolImage[] {
@@ -35,8 +38,9 @@ export function ToolImageGallery({
 	max = 8,
 }: ToolImageGalleryProps) {
 	const fileInput = useRef<HTMLInputElement>(null);
-	const [uploading, setUploading] = useState(false);
+	const [statusLabel, setStatusLabel] = useState<string | null>(null);
 	const [isDragging, setIsDragging] = useState(false);
+	const uploading = statusLabel !== null;
 
 	const sorted = [...value].sort((a, b) => a.sortOrder - b.sortOrder);
 	const remaining = max - sorted.length;
@@ -59,22 +63,40 @@ export function ToolImageGallery({
 				);
 			}
 
-			setUploading(true);
+			const total = selected.length;
+			setStatusLabel(total > 0 ? `Preparando 0 de ${total}…` : "Processando…");
 			try {
 				const uploaded: ToolImage[] = [];
+				let index = 0;
 				for (const file of selected) {
+					index += 1;
 					if (!ALLOWED_TYPES.has(file.type)) {
 						toast.error(`${file.name}: formato inválido (JPG/PNG/WEBP)`);
 						continue;
 					}
-					if (file.size > MAX_SIZE_BYTES) {
-						toast.error(`${file.name}: excede 5MB`);
+					if (file.size > MAX_RAW_INPUT_BYTES) {
+						toast.error(`${file.name}: arquivo bruto excede 15MB`);
 						continue;
 					}
 
+					setStatusLabel(`Comprimindo ${index} de ${total}…`);
+					let compressed: File;
+					try {
+						compressed = await compressImageForUpload(file);
+					} catch {
+						toast.error(`${file.name}: falha ao processar imagem`);
+						continue;
+					}
+
+					if (compressed.size > MAX_COMPRESSED_BYTES) {
+						toast.error(`${file.name}: imagem ainda grande após compressão`);
+						continue;
+					}
+
+					setStatusLabel(`Enviando ${index} de ${total}…`);
 					try {
 						const formData = new FormData();
-						formData.append("file", file);
+						formData.append("file", compressed);
 						const { url } = await uploadToolImage(formData);
 						uploaded.push({ url, sortOrder: 0 });
 					} catch (err) {
@@ -94,7 +116,7 @@ export function ToolImageGallery({
 					);
 				}
 			} finally {
-				setUploading(false);
+				setStatusLabel(null);
 			}
 		},
 		[sorted, max, onChange]
@@ -282,7 +304,9 @@ export function ToolImageGallery({
 				{uploading ? (
 					<>
 						<Spinner />
-						<span className="text-muted-foreground text-xs">Enviando…</span>
+						<span className="text-muted-foreground text-xs">
+							{statusLabel ?? "Enviando…"}
+						</span>
 					</>
 				) : (
 					<>
@@ -293,7 +317,7 @@ export function ToolImageGallery({
 								: `Limite de ${max} imagens atingido`}
 						</span>
 						<span className="text-[10px] text-muted-foreground">
-							JPG/PNG/WEBP · máx 5MB cada
+							JPG/PNG/WEBP · até 15MB (compressão automática)
 						</span>
 					</>
 				)}

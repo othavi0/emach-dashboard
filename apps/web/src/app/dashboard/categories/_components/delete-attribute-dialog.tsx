@@ -13,34 +13,33 @@ import {
 } from "@emach/ui/components/alert-dialog";
 import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { deleteAttribute } from "../actions";
+import { deleteCategoryAttribute } from "../_lib/attribute-actions";
 
 interface DeleteAttributeDialogProps {
 	attributeId: string;
 	attributeLabel: string;
+	categoryId: string;
 	usageCount: number;
 }
 
 export function DeleteAttributeDialog({
 	attributeId,
 	attributeLabel,
+	categoryId,
 	usageCount,
 }: DeleteAttributeDialogProps) {
-	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
 
 	function handleConfirm() {
 		startTransition(async () => {
-			const result = await deleteAttribute(attributeId);
+			const result = await deleteCategoryAttribute(attributeId, categoryId);
 			if (result.ok) {
 				toast.success("Atributo removido");
 				setOpen(false);
-				router.refresh();
 			} else {
 				toast.error(result.error || "Não foi possível remover o atributo");
 			}

@@ -50,9 +50,11 @@ export const attributeDefinition = pgTable(
 		unit: text("unit"),
 		options: jsonb("options").$type<AttributeOptions>(),
 		isRequired: boolean("is_required").notNull().default(false),
-		categoryId: text("category_id").references(() => category.id, {
-			onDelete: "restrict",
-		}),
+		categoryId: text("category_id")
+			.notNull()
+			.references(() => category.id, {
+				onDelete: "restrict",
+			}),
 		sortOrder: integer("sort_order").notNull().default(0),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
@@ -131,7 +133,43 @@ export const toolAttributeValueRelations = relations(
 	})
 );
 
+export const toolAttributeAssignment = pgTable(
+	"tool_attribute_assignment",
+	{
+		toolId: text("tool_id")
+			.notNull()
+			.references(() => tool.id, { onDelete: "cascade" }),
+		attributeId: text("attribute_id")
+			.notNull()
+			.references(() => attributeDefinition.id, { onDelete: "cascade" }),
+		sortOrder: integer("sort_order").notNull().default(0),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.toolId, table.attributeId] }),
+		index("tool_attribute_assignment_tool_idx").on(table.toolId),
+	]
+);
+
+export const toolAttributeAssignmentRelations = relations(
+	toolAttributeAssignment,
+	({ one }) => ({
+		tool: one(tool, {
+			fields: [toolAttributeAssignment.toolId],
+			references: [tool.id],
+		}),
+		attribute: one(attributeDefinition, {
+			fields: [toolAttributeAssignment.attributeId],
+			references: [attributeDefinition.id],
+		}),
+	})
+);
+
 export type AttributeDefinition = typeof attributeDefinition.$inferSelect;
 export type NewAttributeDefinition = typeof attributeDefinition.$inferInsert;
 export type ToolAttributeValue = typeof toolAttributeValue.$inferSelect;
 export type NewToolAttributeValue = typeof toolAttributeValue.$inferInsert;
+export type ToolAttributeAssignment =
+	typeof toolAttributeAssignment.$inferSelect;
+export type NewToolAttributeAssignment =
+	typeof toolAttributeAssignment.$inferInsert;

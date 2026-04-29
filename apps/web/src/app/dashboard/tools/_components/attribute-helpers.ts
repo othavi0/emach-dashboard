@@ -8,10 +8,9 @@ import { asc } from "drizzle-orm";
 
 /**
  * Returns a record keyed by category.id, where each value is the list of
- * AttributeDefinitions active for that category — the union of definitions
- * tied to any ancestor in the category's chain plus globals (categoryId IS NULL).
+ * AttributeDefinitions active for that category — definitions tied to the
+ * category itself plus any of its ancestors.
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: walks ancestor chain + dedup; encapsulado em uma função pura para evitar consultas N+1
 export async function buildDefinitionsByCategory(): Promise<
 	Record<string, AttributeDefinition[]>
 > {
@@ -32,12 +31,8 @@ export async function buildDefinitionsByCategory(): Promise<
 	]);
 
 	const parentById = new Map(categories.map((c) => [c.id, c.parentId]));
-	const globalDefs = definitions.filter((d) => d.categoryId === null);
 	const defsByCategoryId = new Map<string, AttributeDefinition[]>();
 	for (const d of definitions) {
-		if (d.categoryId === null) {
-			continue;
-		}
 		const list = defsByCategoryId.get(d.categoryId) ?? [];
 		list.push(d);
 		defsByCategoryId.set(d.categoryId, list);
@@ -59,12 +54,6 @@ export async function buildDefinitionsByCategory(): Promise<
 					list.push(d);
 					seen.add(d.id);
 				}
-			}
-		}
-		for (const d of globalDefs) {
-			if (!seen.has(d.id)) {
-				list.push(d);
-				seen.add(d.id);
 			}
 		}
 		list.sort(
