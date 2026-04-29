@@ -1,6 +1,7 @@
 import { db } from "@emach/db";
 import {
 	attributeDefinition,
+	toolAttributeAssignment,
 	toolAttributeValue,
 } from "@emach/db/schema/attributes";
 import { category, toolCategory } from "@emach/db/schema/categories";
@@ -35,7 +36,8 @@ function toFormValues(
 		valueNumeric: string | null;
 		valueNumericMax: string | null;
 		valueBool: boolean | null;
-	}[]
+	}[],
+	attributeAssignments: string[]
 ): Partial<ToolFormValues> {
 	const categoryIds = toolCats.map((tc) => tc.categoryId);
 	const primaryRow = toolCats.find((tc) => tc.isPrimary);
@@ -89,6 +91,7 @@ function toFormValues(
 		})),
 		variants: formVariants,
 		attributeValues: attrValuesMap,
+		attributeAssignments,
 	};
 }
 
@@ -109,6 +112,8 @@ export default async function EditToolPage({ params }: PageProps) {
 		variants,
 		attrValues,
 		definitionsByCategory,
+		allDefinitions,
+		assignmentRows,
 	] = await Promise.all([
 		db
 			.select()
@@ -150,7 +155,25 @@ export default async function EditToolPage({ params }: PageProps) {
 			)
 			.where(eq(toolAttributeValue.toolId, id)),
 		buildDefinitionsByCategory(),
+		db
+			.select()
+			.from(attributeDefinition)
+			.orderBy(
+				asc(attributeDefinition.sortOrder),
+				asc(attributeDefinition.label)
+			),
+		db
+			.select({ slug: attributeDefinition.slug })
+			.from(toolAttributeAssignment)
+			.innerJoin(
+				attributeDefinition,
+				eq(attributeDefinition.id, toolAttributeAssignment.attributeId)
+			)
+			.where(eq(toolAttributeAssignment.toolId, id))
+			.orderBy(asc(toolAttributeAssignment.sortOrder)),
 	]);
+
+	const attributeAssignments = assignmentRows.map((r) => r.slug);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -162,13 +185,15 @@ export default async function EditToolPage({ params }: PageProps) {
 			</div>
 
 			<ToolForm
+				allDefinitions={allDefinitions}
 				categories={categories}
 				defaultValues={toFormValues(
 					row,
 					images,
 					toolCats,
 					variants,
-					attrValues
+					attrValues,
+					attributeAssignments
 				)}
 				definitionsByCategory={definitionsByCategory}
 				existingSlug={row.slug ?? undefined}
