@@ -99,7 +99,6 @@ export default async function ToolDetailPage({ params }: PageProps) {
 			model: tool.model,
 			invoiceModel: tool.invoiceModel,
 			manufacturerName: tool.manufacturerName,
-			countryOfOrigin: tool.countryOfOrigin,
 			status: tool.status,
 			hsCode: tool.hsCode,
 			ncm: tool.ncm,
@@ -310,7 +309,6 @@ export default async function ToolDetailPage({ params }: PageProps) {
 								<TableRow>
 									<TableHead>SKU</TableHead>
 									<TableHead>Voltagem</TableHead>
-									<TableHead>Código de barras</TableHead>
 									<TableHead className="text-right">Preço</TableHead>
 									<TableHead className="text-right">Custo</TableHead>
 									<TableHead>Padrão</TableHead>
@@ -321,9 +319,6 @@ export default async function ToolDetailPage({ params }: PageProps) {
 									<TableRow key={v.id}>
 										<TableCell className="font-mono text-xs">{v.sku}</TableCell>
 										<TableCell>{v.voltage ?? "—"}</TableCell>
-										<TableCell className="font-mono text-xs">
-											{v.barcode ?? "—"}
-										</TableCell>
 										<TableCell className="text-right tabular-nums">
 											{BRL.format(Number(v.priceAmount))}
 										</TableCell>
@@ -381,10 +376,6 @@ export default async function ToolDetailPage({ params }: PageProps) {
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Fabricante</dt>
 								<dd>{row.manufacturerName ?? "—"}</dd>
-							</div>
-							<div className="flex justify-between">
-								<dt className="text-muted-foreground">País de origem</dt>
-								<dd>{row.countryOfOrigin ?? "—"}</dd>
 							</div>
 							<div className="flex justify-between">
 								<dt className="text-muted-foreground">Potência</dt>

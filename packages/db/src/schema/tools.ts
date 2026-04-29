@@ -52,7 +52,6 @@ export const tool = pgTable(
 		widthCm: numeric("width_cm", { precision: 10, scale: 2 }),
 		heightCm: numeric("height_cm", { precision: 10, scale: 2 }),
 		manufacturerName: text("manufacturer_name"),
-		countryOfOrigin: text("country_of_origin"),
 		hsCode: text("hs_code"),
 		ncm: text("ncm"),
 		cest: text("cest"),
@@ -99,7 +98,6 @@ export const toolVariant = pgTable(
 			.notNull()
 			.references(() => tool.id, { onDelete: "cascade" }),
 		sku: text("sku").notNull().unique(),
-		barcode: text("barcode").unique(),
 		voltage: voltageEnum("voltage"),
 		priceAmount: numeric("price_amount", { precision: 10, scale: 2 }).notNull(),
 		costAmount: numeric("cost_amount", { precision: 10, scale: 2 }),

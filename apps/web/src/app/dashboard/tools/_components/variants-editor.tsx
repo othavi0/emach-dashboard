@@ -41,7 +41,6 @@ function parseBRLToReais(display: string): number {
 
 const EMPTY_VARIANT: ToolVariantInput = {
 	sku: "",
-	barcode: "",
 	voltage: "",
 	priceAmount: 0,
 	costAmount: undefined,
@@ -158,15 +157,6 @@ export function VariantsEditor({
 							}
 							placeholder="R$ 0,00"
 							value={formatBRL(variant.costAmount)}
-						/>
-					</div>
-					<div className="flex flex-col gap-2">
-						<Label htmlFor={`var-barcode-${index}`}>Código de barras</Label>
-						<Input
-							id={`var-barcode-${index}`}
-							onChange={(e) => update(index, { barcode: e.target.value })}
-							placeholder="Ex: 7891234567890"
-							value={variant.barcode ?? ""}
 						/>
 					</div>
 					<div className="flex items-end justify-end">

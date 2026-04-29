@@ -68,7 +68,6 @@ function normalizeToolPayload(input: ToolFormValues) {
 		model: nullableText(input.model),
 		invoiceModel: nullableText(input.invoiceModel),
 		manufacturerName: nullableText(input.manufacturerName),
-		countryOfOrigin: nullableText(input.countryOfOrigin),
 		status: input.status,
 		hsCode: nullableText(input.hsCode),
 		ncm: nullableText(input.ncm),
@@ -88,7 +87,6 @@ function normalizeVariantValues(
 ): Omit<typeof toolVariant.$inferInsert, "id" | "toolId"> {
 	return {
 		sku: v.sku.trim(),
-		barcode: nullableText(v.barcode),
 		voltage: v.voltage ? v.voltage : null,
 		priceAmount: v.priceAmount.toFixed(2),
 		costAmount: toNumericString(v.costAmount ?? null),
