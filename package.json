@@ -25,7 +25,7 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
-    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules .turbo apps/*/.next apps/*/.turbo packages/*/.turbo && bun pm cache rm",
+    "clean": "bash scripts/clean.sh -y --cache",
     "dev:web": "turbo -F web dev",
     "db:push": "turbo -F @emach/db db:push",
     "db:studio": "turbo -F @emach/db db:studio",
