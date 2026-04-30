@@ -13,6 +13,9 @@ import {
 } from "@emach/ui/components/select";
 import { Switch } from "@emach/ui/components/switch";
 
+import { MaskedInput } from "@/components/masked-input";
+import { decimalMask } from "@/lib/masks";
+
 import type { AttributeValueInput } from "./tool-schema";
 
 interface DynamicSpecsEditorProps {
@@ -34,15 +37,6 @@ function resolveOptions(
 		return options.swatches.map((s) => ({ value: s.value, label: s.label }));
 	}
 	return [];
-}
-
-function parseNumber(s: string): number | null {
-	const cleaned = s.replace(",", ".").replace(/[^\d.-]/g, "");
-	if (!cleaned) {
-		return null;
-	}
-	const n = Number(cleaned);
-	return Number.isNaN(n) ? null : n;
 }
 
 export function DynamicSpecsEditor({
@@ -96,17 +90,17 @@ export function DynamicSpecsEditor({
 										<span className="text-destructive"> *</span>
 									)}
 								</Label>
-								<Input
+								<MaskedInput
 									id={`attr-${def.slug}`}
-									inputMode="decimal"
-									onChange={(e) =>
+									mask={decimalMask}
+									onChange={(next) =>
 										onChange(def.slug, {
 											...v,
-											valueNumeric: parseNumber(e.target.value),
+											valueNumeric: next ?? null,
 										})
 									}
 									placeholder={def.unit ? `Ex: 0 ${def.unit}` : "Ex: 0"}
-									value={v.valueNumeric ?? ""}
+									value={v.valueNumeric ?? undefined}
 								/>
 							</div>
 						);
@@ -169,27 +163,27 @@ export function DynamicSpecsEditor({
 									)}
 								</Label>
 								<div className="grid grid-cols-2 gap-2">
-									<Input
-										inputMode="decimal"
-										onChange={(e) =>
+									<MaskedInput
+										mask={decimalMask}
+										onChange={(next) =>
 											onChange(def.slug, {
 												...v,
-												valueNumeric: parseNumber(e.target.value),
+												valueNumeric: next ?? null,
 											})
 										}
 										placeholder="mínimo"
-										value={v.valueNumeric ?? ""}
+										value={v.valueNumeric ?? undefined}
 									/>
-									<Input
-										inputMode="decimal"
-										onChange={(e) =>
+									<MaskedInput
+										mask={decimalMask}
+										onChange={(next) =>
 											onChange(def.slug, {
 												...v,
-												valueNumericMax: parseNumber(e.target.value),
+												valueNumericMax: next ?? null,
 											})
 										}
 										placeholder="máximo"
-										value={v.valueNumericMax ?? ""}
+										value={v.valueNumericMax ?? undefined}
 									/>
 								</div>
 							</div>

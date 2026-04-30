@@ -10,7 +10,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@emach/ui/components/dialog";
-import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import {
 	Select,
@@ -26,6 +25,9 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
+
+import { MaskedInput } from "@/components/masked-input";
+import { integerMask } from "@/lib/masks";
 
 import { adjustStock } from "../actions";
 import {
@@ -71,7 +73,7 @@ export function AdjustStockDialog({
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
-	const [newQty, setNewQty] = useState(String(currentQty));
+	const [newQty, setNewQty] = useState<number | undefined>(currentQty);
 	const [reason, setReason] = useState<string>("__none__");
 	const [reasonNote, setReasonNote] = useState("");
 	const [errors, setErrors] = useState<
@@ -79,7 +81,7 @@ export function AdjustStockDialog({
 	>({});
 
 	function resetForm() {
-		setNewQty(String(currentQty));
+		setNewQty(currentQty);
 		setReason("__none__");
 		setReasonNote("");
 		setErrors({});
@@ -96,7 +98,7 @@ export function AdjustStockDialog({
 		event.preventDefault();
 		setErrors({});
 
-		const parsedQty = Number(newQty);
+		const parsedQty = newQty ?? Number.NaN;
 		const resolvedReason =
 			reason === "__none__"
 				? undefined
@@ -152,15 +154,12 @@ export function AdjustStockDialog({
 							Nova quantidade
 							<span className="text-destructive"> *</span>
 						</Label>
-						<Input
+						<MaskedInput
 							disabled={isPending}
 							id="adjust-new-qty"
-							inputMode="numeric"
-							min={0}
-							onChange={(event) => setNewQty(event.target.value)}
+							mask={integerMask}
+							onChange={setNewQty}
 							placeholder="Ex: 10"
-							step={1}
-							type="number"
 							value={newQty}
 						/>
 						{errors.newQty && (

@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@emach/ui/components/button";
-import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import { RadioGroup, RadioGroupItem } from "@emach/ui/components/radio-group";
 import {
@@ -14,29 +13,15 @@ import {
 } from "@emach/ui/components/select";
 import { Plus, Trash2 } from "lucide-react";
 
+import { MaskedInput } from "@/components/masked-input";
+import { brlMask, skuMask } from "@/lib/masks";
+
 import { type ToolVariantInput, VOLTAGE_OPTIONS } from "./tool-schema";
 
 interface VariantsEditorProps {
 	error?: string;
 	onChange: (next: ToolVariantInput[]) => void;
 	value: ToolVariantInput[];
-}
-
-const BRL_FORMATTER = new Intl.NumberFormat("pt-BR", {
-	style: "currency",
-	currency: "BRL",
-});
-
-function formatBRL(reais: number | undefined): string {
-	if (reais === undefined || Number.isNaN(reais)) {
-		return "";
-	}
-	return BRL_FORMATTER.format(reais);
-}
-
-function parseBRLToReais(display: string): number {
-	const digits = display.replace(/\D/g, "");
-	return digits ? Number(digits) / 100 : 0;
 }
 
 const EMPTY_VARIANT: ToolVariantInput = {
@@ -91,7 +76,7 @@ export function VariantsEditor({
 			)}
 			{value.map((variant, index) => (
 				<div
-					className="grid gap-3 rounded-md border border-border bg-background p-4 md:grid-cols-[2fr_1fr_1fr_1fr_2fr_auto]"
+					className="grid gap-3 rounded-md border border-border bg-card p-4 md:grid-cols-[2fr_1fr_1fr_1fr_2fr_auto]"
 					key={index}
 				>
 					<div className="flex flex-col gap-2">
@@ -99,10 +84,10 @@ export function VariantsEditor({
 							SKU
 							<span className="text-destructive"> *</span>
 						</Label>
-						<Input
+						<MaskedInput
 							id={`var-sku-${index}`}
-							onChange={(e) => update(index, { sku: e.target.value })}
-							placeholder="FUR-700-127"
+							mask={skuMask}
+							onChange={(v) => update(index, { sku: v ?? "" })}
 							value={variant.sku}
 						/>
 					</div>
@@ -135,28 +120,20 @@ export function VariantsEditor({
 							Preço
 							<span className="text-destructive"> *</span>
 						</Label>
-						<Input
+						<MaskedInput
 							id={`var-price-${index}`}
-							inputMode="numeric"
-							onChange={(e) =>
-								update(index, { priceAmount: parseBRLToReais(e.target.value) })
-							}
-							placeholder="R$ 0,00"
-							value={formatBRL(variant.priceAmount)}
+							mask={brlMask}
+							onChange={(v) => update(index, { priceAmount: v ?? 0 })}
+							value={variant.priceAmount}
 						/>
 					</div>
 					<div className="flex flex-col gap-2">
 						<Label htmlFor={`var-cost-${index}`}>Custo</Label>
-						<Input
+						<MaskedInput
 							id={`var-cost-${index}`}
-							inputMode="numeric"
-							onChange={(e) =>
-								update(index, {
-									costAmount: parseBRLToReais(e.target.value) || undefined,
-								})
-							}
-							placeholder="R$ 0,00"
-							value={formatBRL(variant.costAmount)}
+							mask={brlMask}
+							onChange={(v) => update(index, { costAmount: v })}
+							value={variant.costAmount}
 						/>
 					</div>
 					<div className="flex items-end justify-end">
@@ -164,7 +141,7 @@ export function VariantsEditor({
 							onClick={() => remove(index)}
 							size="sm"
 							type="button"
-							variant="ghost"
+							variant="destructive"
 						>
 							<Trash2 className="size-4" />
 						</Button>

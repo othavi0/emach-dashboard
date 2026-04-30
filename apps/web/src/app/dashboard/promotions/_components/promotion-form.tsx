@@ -28,6 +28,9 @@ import { toast } from "sonner";
 
 import type { ZodError } from "zod";
 
+import { MaskedInput } from "@/components/masked-input";
+import { percentageMask } from "@/lib/masks";
+
 import { createPromotion, updatePromotion } from "../actions";
 import {
 	createPromotionSchema,
@@ -75,12 +78,6 @@ function parseInputDate(value: string): Date | null {
 	// Interpret as local midnight (not UTC) to avoid off-by-one timezone issues
 	const d = new Date(`${value}T00:00:00`);
 	return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function parseDiscountInput(value: string): number | undefined {
-	const normalized = value.replace(",", ".");
-	const n = Number.parseFloat(normalized);
-	return Number.isNaN(n) ? undefined : n;
 }
 
 function typeLabel(type: PromotionType): string {
@@ -237,10 +234,8 @@ export function PromotionForm({
 	const [description, setDescription] = useState(
 		defaultValues?.description ?? ""
 	);
-	const [discountRaw, setDiscountRaw] = useState(
-		defaultValues?.discountPct == null
-			? ""
-			: String(defaultValues.discountPct).replace(".", ",")
+	const [discountPct, setDiscountPct] = useState<number | undefined>(
+		defaultValues?.discountPct ?? undefined
 	);
 	const [active, setActive] = useState(defaultValues?.active ?? true);
 	const [startsAt, setStartsAt] = useState(
@@ -263,7 +258,7 @@ export function PromotionForm({
 		const base = {
 			title,
 			description: description.trim() === "" ? null : description.trim(),
-			discountPct: parseDiscountInput(discountRaw) ?? 0,
+			discountPct: discountPct ?? 0,
 			active,
 			startsAt: parseInputDate(startsAt),
 			endsAt: parseInputDate(endsAt),
@@ -414,13 +409,13 @@ export function PromotionForm({
 						Desconto (%)
 						<span className="text-destructive"> *</span>
 					</Label>
-					<Input
+					<MaskedInput
 						disabled={isPending}
 						id="promo-discount"
-						inputMode="decimal"
-						onChange={(e) => setDiscountRaw(e.target.value)}
+						mask={percentageMask}
+						onChange={setDiscountPct}
 						placeholder="Ex: 10 ou 10,5"
-						value={discountRaw}
+						value={discountPct}
 					/>
 					{errors.discountPct && (
 						<p className="text-destructive text-sm">{errors.discountPct}</p>

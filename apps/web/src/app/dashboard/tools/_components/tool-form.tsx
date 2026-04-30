@@ -22,6 +22,15 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
 
+import { MaskedInput } from "@/components/masked-input";
+import {
+	cestMask,
+	decimalMask,
+	hsCodeMask,
+	integerMask,
+	ncmMask,
+} from "@/lib/masks";
+
 import { createTool, updateTool } from "../actions";
 import { AttributeAssignmentsEditor } from "./attribute-assignments-editor";
 import { DynamicSpecsEditor } from "./dynamic-specs-editor";
@@ -80,15 +89,6 @@ function SubmitLabel({
 	return <>{mode === "create" ? "Criar ferramenta" : "Salvar alterações"}</>;
 }
 
-function parseDecimal(display: string): number | undefined {
-	const cleaned = display.replace(",", ".").replace(/[^\d.]/g, "");
-	if (!cleaned) {
-		return;
-	}
-	const n = Number(cleaned);
-	return Number.isNaN(n) ? undefined : n;
-}
-
 const EMPTY_VALUES: ToolFormValues = {
 	name: "",
 	description: "",
@@ -123,7 +123,6 @@ const EMPTY_VALUES: ToolFormValues = {
 	attributeAssignments: [],
 };
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: form com seções múltiplas; sub-componentes em variants-editor / dynamic-specs-editor / attribute-assignments-editor
 export function ToolForm({
 	mode,
 	toolId,
@@ -274,9 +273,14 @@ export function ToolForm({
 	return (
 		<form className="flex w-full flex-col gap-6" onSubmit={handleSubmit}>
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
-				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Informações básicas
-				</h2>
+				<div className="flex flex-col gap-1">
+					<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+						Identidade do produto
+					</h2>
+					<p className="text-muted-foreground text-xs">
+						Como a ferramenta aparece no catálogo e na URL pública.
+					</p>
+				</div>
 				<div className="flex flex-col gap-2">
 					<Label htmlFor="name">
 						Nome
@@ -289,7 +293,7 @@ export function ToolForm({
 						value={values.name}
 					/>
 					<p className="font-mono text-muted-foreground text-xs">
-						URL: /ferramentas/{slugPreview}
+						Endereço público: /ferramentas/{slugPreview}
 					</p>
 					{errors.name && (
 						<p className="text-destructive text-xs">{errors.name}</p>
@@ -308,13 +312,15 @@ export function ToolForm({
 			</section>
 
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
-				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Variantes
-				</h2>
-				<p className="text-muted-foreground text-xs">
-					Cada variante é uma SKU vendável. Use voltagens distintas (127V/220V)
-					ou outras variações como linhas separadas.
-				</p>
+				<div className="flex flex-col gap-1">
+					<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+						Variantes (SKUs vendáveis)
+					</h2>
+					<p className="text-muted-foreground text-xs">
+						Cada variante é uma SKU vendável. Use voltagens distintas
+						(127V/220V) ou outras variações como linhas separadas.
+					</p>
+				</div>
 				<VariantsEditor
 					error={errors.variants}
 					onChange={updateVariants}
@@ -323,179 +329,16 @@ export function ToolForm({
 			</section>
 
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
-				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Identificação extra
-				</h2>
-				<div className="grid gap-4 md:grid-cols-2">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="model">Modelo (curto)</Label>
-						<Input
-							id="model"
-							onChange={(e) => update("model", e.target.value)}
-							placeholder="Ex: ELT 800"
-							value={values.model ?? ""}
-						/>
-					</div>
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="invoiceModel">Modelo de invoice (fábrica)</Label>
-						<Input
-							id="invoiceModel"
-							onChange={(e) => update("invoiceModel", e.target.value)}
-							placeholder="Ex: FG-S225L-3-220V"
-							value={values.invoiceModel ?? ""}
-						/>
-					</div>
+				<div className="flex flex-col gap-1">
+					<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+						Categorização
+					</h2>
+					<p className="text-muted-foreground text-xs">
+						Onde a ferramenta aparece na árvore do site e quem fornece. A
+						categoria principal define o conjunto de especificações técnicas
+						disponíveis abaixo.
+					</p>
 				</div>
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="manufacturerName">Fabricante</Label>
-					<Input
-						id="manufacturerName"
-						onChange={(e) => update("manufacturerName", e.target.value)}
-						placeholder="Ex: Bosch, Makita"
-						value={values.manufacturerName ?? ""}
-					/>
-				</div>
-			</section>
-
-			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
-				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Classificação fiscal
-				</h2>
-				<div className="grid gap-4 md:grid-cols-3">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="ncm">NCM</Label>
-						<Input
-							id="ncm"
-							onChange={(e) => update("ncm", e.target.value)}
-							placeholder="Ex: 8467.29.99"
-							value={values.ncm ?? ""}
-						/>
-					</div>
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="cest">CEST</Label>
-						<Input
-							id="cest"
-							onChange={(e) => update("cest", e.target.value)}
-							placeholder="Ex: 28.038.00"
-							value={values.cest ?? ""}
-						/>
-					</div>
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="hsCode">HS Code (invoice)</Label>
-						<Input
-							id="hsCode"
-							onChange={(e) => update("hsCode", e.target.value)}
-							placeholder="Ex: 8467291000"
-							value={values.hsCode ?? ""}
-						/>
-					</div>
-				</div>
-			</section>
-
-			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
-				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Dimensões, peso e potência
-				</h2>
-				<div className="grid gap-4 md:grid-cols-5">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="weightKg">Peso (kg)</Label>
-						<Input
-							id="weightKg"
-							inputMode="decimal"
-							onChange={(e) => update("weightKg", parseDecimal(e.target.value))}
-							placeholder="Ex: 2,5"
-							value={values.weightKg ?? ""}
-						/>
-					</div>
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="lengthCm">Comprimento (cm)</Label>
-						<Input
-							id="lengthCm"
-							inputMode="decimal"
-							onChange={(e) => update("lengthCm", parseDecimal(e.target.value))}
-							placeholder="Ex: 30"
-							value={values.lengthCm ?? ""}
-						/>
-					</div>
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="widthCm">Largura (cm)</Label>
-						<Input
-							id="widthCm"
-							inputMode="decimal"
-							onChange={(e) => update("widthCm", parseDecimal(e.target.value))}
-							placeholder="Ex: 10"
-							value={values.widthCm ?? ""}
-						/>
-					</div>
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="heightCm">Altura (cm)</Label>
-						<Input
-							id="heightCm"
-							inputMode="decimal"
-							onChange={(e) => update("heightCm", parseDecimal(e.target.value))}
-							placeholder="Ex: 20"
-							value={values.heightCm ?? ""}
-						/>
-					</div>
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="powerWatts">Potência (W)</Label>
-						<Input
-							id="powerWatts"
-							inputMode="numeric"
-							onChange={(e) =>
-								update("powerWatts", parseDecimal(e.target.value))
-							}
-							placeholder="Ex: 700"
-							value={values.powerWatts ?? ""}
-						/>
-					</div>
-				</div>
-			</section>
-
-			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
-				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Especificações técnicas
-				</h2>
-				<div className="flex flex-col gap-2">
-					<h3 className="font-medium text-sm">Atributos vinculados</h3>
-					<AttributeAssignmentsEditor
-						allDefinitions={allDefinitions}
-						onChange={updateAttributeAssignments}
-						suggested={suggestedDefinitions}
-						value={values.attributeAssignments}
-					/>
-				</div>
-				{assignedDefinitions.length > 0 && (
-					<div className="flex flex-col gap-2 border-border border-t pt-4">
-						<h3 className="font-medium text-sm">Valores</h3>
-						<DynamicSpecsEditor
-							definitions={assignedDefinitions}
-							onChange={updateAttribute}
-							values={values.attributeValues}
-						/>
-					</div>
-				)}
-			</section>
-
-			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
-				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Mídia · {values.images.length} de {MAX_IMAGES}
-				</h2>
-				<ToolImageGallery
-					max={MAX_IMAGES}
-					min={values.status === "active" ? MIN_IMAGES_ACTIVE : 0}
-					onChange={(images) => update("images", images)}
-					value={values.images}
-				/>
-				{errors.images && (
-					<p className="text-destructive text-xs">{errors.images}</p>
-				)}
-			</section>
-
-			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
-				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Classificação
-				</h2>
 				<div className="flex flex-col gap-2">
 					<Label>
 						Categorias
@@ -596,7 +439,212 @@ export function ToolForm({
 						</SelectContent>
 					</Select>
 				</div>
-				<div className="grid gap-4 border-border border-t pt-4 md:grid-cols-2">
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
+				<div className="flex flex-col gap-1">
+					<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+						Especificações técnicas
+					</h2>
+					<p className="text-muted-foreground text-xs">
+						Atributos definidos pela categoria principal. Selecione quais se
+						aplicam a esta ferramenta e preencha os valores.
+					</p>
+				</div>
+				<div className="flex flex-col gap-2">
+					<h3 className="font-medium text-sm">Atributos desta ferramenta</h3>
+					<AttributeAssignmentsEditor
+						allDefinitions={allDefinitions}
+						onChange={updateAttributeAssignments}
+						suggested={suggestedDefinitions}
+						value={values.attributeAssignments}
+					/>
+				</div>
+				{assignedDefinitions.length > 0 && (
+					<div className="flex flex-col gap-2 border-border border-t pt-4">
+						<h3 className="font-medium text-sm">Valores</h3>
+						<DynamicSpecsEditor
+							definitions={assignedDefinitions}
+							onChange={updateAttribute}
+							values={values.attributeValues}
+						/>
+					</div>
+				)}
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
+				<div className="flex flex-col gap-1">
+					<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+						Dimensões físicas
+					</h2>
+					<p className="text-muted-foreground text-xs">
+						Usado para cálculo de frete e ficha técnica no site.
+					</p>
+				</div>
+				<div className="grid gap-4 md:grid-cols-5">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="weightKg">Peso (kg)</Label>
+						<MaskedInput
+							id="weightKg"
+							mask={decimalMask}
+							onChange={(v) => update("weightKg", v)}
+							placeholder="Ex: 2,5"
+							value={values.weightKg}
+						/>
+					</div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="lengthCm">Comprimento (cm)</Label>
+						<MaskedInput
+							id="lengthCm"
+							mask={decimalMask}
+							onChange={(v) => update("lengthCm", v)}
+							placeholder="Ex: 30"
+							value={values.lengthCm}
+						/>
+					</div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="widthCm">Largura (cm)</Label>
+						<MaskedInput
+							id="widthCm"
+							mask={decimalMask}
+							onChange={(v) => update("widthCm", v)}
+							placeholder="Ex: 10"
+							value={values.widthCm}
+						/>
+					</div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="heightCm">Altura (cm)</Label>
+						<MaskedInput
+							id="heightCm"
+							mask={decimalMask}
+							onChange={(v) => update("heightCm", v)}
+							placeholder="Ex: 20"
+							value={values.heightCm}
+						/>
+					</div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="powerWatts">Potência (W)</Label>
+						<MaskedInput
+							id="powerWatts"
+							mask={integerMask}
+							onChange={(v) => update("powerWatts", v)}
+							placeholder="Ex: 700"
+							value={values.powerWatts}
+						/>
+					</div>
+				</div>
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
+				<div className="flex flex-col gap-1">
+					<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+						Identificação fiscal
+					</h2>
+					<p className="text-muted-foreground text-xs">
+						Códigos e nomes usados em nota fiscal, importação e relacionamento
+						com o fabricante.
+					</p>
+				</div>
+				<div className="grid gap-4 md:grid-cols-2">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="model">Modelo comercial</Label>
+						<Input
+							id="model"
+							onChange={(e) => update("model", e.target.value)}
+							placeholder="Ex: ELT 800"
+							value={values.model ?? ""}
+						/>
+						<p className="text-muted-foreground text-xs">
+							Nome curto pra catálogo e busca interna.
+						</p>
+					</div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="invoiceModel">Modelo da fábrica</Label>
+						<Input
+							id="invoiceModel"
+							onChange={(e) => update("invoiceModel", e.target.value)}
+							placeholder="Ex: FG-S225L-3-220V"
+							value={values.invoiceModel ?? ""}
+						/>
+						<p className="text-muted-foreground text-xs">
+							Identificação completa usada em invoice/importação.
+						</p>
+					</div>
+				</div>
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="manufacturerName">Marca / fabricante</Label>
+					<Input
+						id="manufacturerName"
+						onChange={(e) => update("manufacturerName", e.target.value)}
+						placeholder="Ex: Bosch, Makita"
+						value={values.manufacturerName ?? ""}
+					/>
+				</div>
+				<div className="grid gap-4 border-border border-t pt-4 md:grid-cols-3">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="ncm">NCM</Label>
+						<MaskedInput
+							id="ncm"
+							mask={ncmMask}
+							onChange={(v) => update("ncm", v ?? "")}
+							value={values.ncm ?? ""}
+						/>
+					</div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="cest">CEST</Label>
+						<MaskedInput
+							id="cest"
+							mask={cestMask}
+							onChange={(v) => update("cest", v ?? "")}
+							value={values.cest ?? ""}
+						/>
+					</div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="hsCode">HS Code</Label>
+						<MaskedInput
+							id="hsCode"
+							mask={hsCodeMask}
+							onChange={(v) => update("hsCode", v ?? "")}
+							value={values.hsCode ?? ""}
+						/>
+						<p className="text-muted-foreground text-xs">
+							Código aduaneiro usado em importação.
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
+				<div className="flex flex-col gap-1">
+					<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+						Imagens · {values.images.length} de {MAX_IMAGES}
+					</h2>
+					<p className="text-muted-foreground text-xs">
+						Primeira imagem é a capa. Status "Ativo" exige no mínimo{" "}
+						{MIN_IMAGES_ACTIVE} imagens.
+					</p>
+				</div>
+				<ToolImageGallery
+					max={MAX_IMAGES}
+					min={values.status === "active" ? MIN_IMAGES_ACTIVE : 0}
+					onChange={(images) => update("images", images)}
+					value={values.images}
+				/>
+				{errors.images && (
+					<p className="text-destructive text-xs">{errors.images}</p>
+				)}
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
+				<div className="flex flex-col gap-1">
+					<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+						Publicação
+					</h2>
+					<p className="text-muted-foreground text-xs">
+						Define se a ferramenta aparece no site e em qual estado.
+					</p>
+				</div>
+				<div className="grid gap-4 md:grid-cols-2">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="status">
 							Status
@@ -626,7 +674,7 @@ export function ToolForm({
 						</p>
 					</div>
 					<div className="flex items-center justify-between">
-						<Label htmlFor="visibleOnSite">Visível no site público</Label>
+						<Label htmlFor="visibleOnSite">Visível no site</Label>
 						<Switch
 							checked={values.visibleOnSite}
 							id="visibleOnSite"
