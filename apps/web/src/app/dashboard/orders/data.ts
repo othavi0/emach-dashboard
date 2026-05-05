@@ -345,6 +345,99 @@ export async function getOrdersTabCounts(): Promise<Record<string, number>> {
 	);
 }
 
+export type OrderReviewState =
+	| "no_review_open"
+	| "no_review_expired"
+	| "has_review"
+	| "order_not_paid";
+
+export interface OrderReviewRow {
+	daysRemaining: number | null;
+	review: {
+		id: string;
+		rating: number;
+		status: string;
+	} | null;
+	reviewState: OrderReviewState;
+	thumbUrl: string | null;
+	toolId: string;
+	toolName: string;
+}
+
+export async function getOrderReviewsOverview(
+	orderId: string
+): Promise<OrderReviewRow[]> {
+	const result = await db.execute<{
+		tool_id: string;
+		tool_name: string;
+		thumb_url: string | null;
+		review_id: string | null;
+		rating: number | null;
+		review_status: string | null;
+		review_state: OrderReviewState;
+		days_remaining: number | null;
+	}>(sql`
+		WITH order_meta AS (
+			SELECT id, payment_status, paid_at,
+				(paid_at + interval '90 days') AS review_deadline
+			FROM "order" WHERE id = ${orderId}
+		),
+		tools_in_order AS (
+			SELECT DISTINCT ON (oi.tool_id)
+				oi.tool_id,
+				t.name AS tool_name,
+				(
+					SELECT ti.url FROM tool_image ti
+					WHERE ti.tool_id = t.id
+					ORDER BY ti.sort_order ASC
+					LIMIT 1
+				) AS thumb_url
+			FROM order_item oi
+			JOIN tool t ON t.id = oi.tool_id
+			WHERE oi.order_id = ${orderId}
+		)
+		SELECT
+			tio.tool_id,
+			tio.tool_name,
+			tio.thumb_url,
+			r.id AS review_id,
+			r.rating,
+			r.status AS review_status,
+			CASE
+				WHEN om.payment_status <> 'paid' OR om.paid_at IS NULL THEN 'order_not_paid'
+				WHEN r.id IS NOT NULL THEN 'has_review'
+				WHEN now() > om.review_deadline THEN 'no_review_expired'
+				ELSE 'no_review_open'
+			END AS review_state,
+			CASE
+				WHEN om.paid_at IS NULL THEN NULL
+				ELSE GREATEST(0, EXTRACT(day FROM (om.review_deadline - now())))::int
+			END AS days_remaining
+		FROM tools_in_order tio
+		CROSS JOIN order_meta om
+		LEFT JOIN review r
+			ON r.order_id = ${orderId} AND r.tool_id = tio.tool_id
+		ORDER BY tio.tool_name ASC
+	`);
+
+	return result.rows.map((row) => ({
+		toolId: row.tool_id,
+		toolName: row.tool_name,
+		thumbUrl: row.thumb_url,
+		review:
+			row.review_id && row.rating !== null && row.review_status
+				? {
+						id: row.review_id,
+						rating: Number(row.rating),
+						status: row.review_status,
+					}
+				: null,
+		reviewState: row.review_state,
+		daysRemaining:
+			row.days_remaining === null ? null : Number(row.days_remaining),
+	}));
+}
+
 export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 	const [base, items, history, notes] = await Promise.all([
 		db.execute<{
