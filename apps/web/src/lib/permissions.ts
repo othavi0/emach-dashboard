@@ -23,6 +23,7 @@ export type Capability =
 	| "orders.cancel"
 	| "orders.refund"
 	| "orders.add_note"
+	| "orders.export"
 	| "customers.read"
 	| "customers.update_tags"
 	| "customers.update_status"
@@ -63,6 +64,7 @@ const ALL_CAPS: readonly Capability[] = [
 	"orders.cancel",
 	"orders.refund",
 	"orders.add_note",
+	"orders.export",
 	"customers.read",
 	"customers.update_tags",
 	"customers.update_status",
@@ -112,6 +114,7 @@ const MANAGER_CAPS: readonly Capability[] = [
 	"promotions.manage",
 	"orders.cancel",
 	"orders.refund",
+	"orders.export",
 	"customers.update_tags",
 	"customers.update_status",
 	"leads.manage",
