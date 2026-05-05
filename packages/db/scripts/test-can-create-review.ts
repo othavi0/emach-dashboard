@@ -275,7 +275,9 @@ async function main() {
 			console.log(
 				`[${tag}] ${c.label}  expected=${c.expected}  actual=${actual}`
 			);
-			if (!pass) failures++;
+			if (!pass) {
+				failures++;
+			}
 		}
 	} finally {
 		await cleanup(fixture);

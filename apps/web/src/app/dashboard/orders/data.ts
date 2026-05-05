@@ -257,6 +257,69 @@ export async function listOrders(
 	};
 }
 
+export interface OrdersMetrics {
+	avgTicket30d: number;
+	statusBreakdown: Record<OrderStatus, number>;
+	todayCount: number;
+	todayTotal: number;
+	weekCount: number;
+	weekTotal: number;
+}
+
+export async function getOrdersMetrics(): Promise<OrdersMetrics> {
+	const result = await db.execute<{
+		today_count: number;
+		today_total: string;
+		week_count: number;
+		week_total: string;
+		avg_ticket_30d: string;
+		status_breakdown: Record<string, number>;
+	}>(sql`
+		WITH base AS (
+			SELECT id, status, total_amount, created_at FROM "order"
+		),
+		breakdown AS (
+			SELECT jsonb_object_agg(status, count) AS status_breakdown
+			FROM (SELECT status, COUNT(*)::int AS count FROM base GROUP BY status) s
+		)
+		SELECT
+			COUNT(*) FILTER (WHERE created_at >= date_trunc('day', now()))::int AS today_count,
+			COALESCE(SUM(total_amount) FILTER (WHERE created_at >= date_trunc('day', now())), 0)::text AS today_total,
+			COUNT(*) FILTER (WHERE created_at >= date_trunc('week', now()))::int AS week_count,
+			COALESCE(SUM(total_amount) FILTER (WHERE created_at >= date_trunc('week', now())), 0)::text AS week_total,
+			COALESCE(AVG(total_amount) FILTER (WHERE created_at >= now() - interval '30 days'), 0)::text AS avg_ticket_30d,
+			(SELECT status_breakdown FROM breakdown) AS status_breakdown
+		FROM base
+	`);
+
+	const row = result.rows[0];
+	const emptyBreakdown: Record<OrderStatus, number> = {
+		pending_payment: 0,
+		paid: 0,
+		preparing: 0,
+		shipped: 0,
+		delivered: 0,
+		canceled: 0,
+		refunded: 0,
+	};
+	const breakdownRaw = row?.status_breakdown ?? {};
+	const statusBreakdown = { ...emptyBreakdown };
+	for (const [k, v] of Object.entries(breakdownRaw)) {
+		if (k in emptyBreakdown) {
+			statusBreakdown[k as OrderStatus] = Number(v);
+		}
+	}
+
+	return {
+		todayCount: Number(row?.today_count ?? 0),
+		todayTotal: Number(row?.today_total ?? 0),
+		weekCount: Number(row?.week_count ?? 0),
+		weekTotal: Number(row?.week_total ?? 0),
+		avgTicket30d: Number(row?.avg_ticket_30d ?? 0),
+		statusBreakdown,
+	};
+}
+
 export async function getOrdersTabCounts(): Promise<Record<string, number>> {
 	const result = await db.execute<Record<string, number>>(sql`
 		SELECT

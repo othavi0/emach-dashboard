@@ -12,41 +12,41 @@ import { PageHeader } from "@/components/page-header";
 import { requireCapability } from "@/lib/permissions";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrderTable } from "./_components/order-table";
+import { OrdersMetricsCards } from "./_components/orders-metrics";
 import {
+	getOrdersMetrics,
 	getOrdersTabCounts,
 	listOrderBranches,
 	listOrders,
 	type OrderListFilters,
 } from "./data";
+import { ordersListFiltersSchema } from "./schema";
 
 interface PageProps {
-	searchParams: Promise<{
-		branchId?: string;
-		from?: string;
-		page?: string;
-		q?: string;
-		tab?: string;
-		to?: string;
-	}>;
+	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export const dynamic = "force-dynamic";
 
 export default async function OrdersPage({ searchParams }: PageProps) {
 	await requireCapability("orders.read");
-	const params = await searchParams;
+	const raw = await searchParams;
+	const parsed = ordersListFiltersSchema.safeParse(raw);
+	const data = parsed.success ? parsed.data : ordersListFiltersSchema.parse({});
+
 	const filters: OrderListFilters = {
-		tab: params.tab,
-		q: params.q,
-		from: params.from,
-		to: params.to,
-		branchId: params.branchId,
-		page: params.page ? Number(params.page) : 1,
+		tab: data.tab,
+		q: data.q,
+		from: data.from,
+		to: data.to,
+		branchId: data.branchId,
+		page: data.page,
 	};
 
-	const [branches, counts, result] = await Promise.all([
+	const [branches, counts, metrics, result] = await Promise.all([
 		listOrderBranches(),
 		getOrdersTabCounts(),
+		getOrdersMetrics(),
 		listOrders(filters),
 	]);
 
@@ -68,6 +68,8 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 				description="Listagem operacional com busca por número e cliente, filtros por data e filial e atalhos para fulfillment."
 				title="Pedidos"
 			/>
+
+			<OrdersMetricsCards metrics={metrics} />
 
 			<OrderFiltersPanel
 				branches={branches}
