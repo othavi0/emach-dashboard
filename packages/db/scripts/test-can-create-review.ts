@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import { eq, inArray, like } from "drizzle-orm";
+import { inArray, like } from "drizzle-orm";
 
 import { db } from "../src";
 import { canCreateReview, REVIEW_WINDOW_DAYS } from "../src/queries/reviews";
