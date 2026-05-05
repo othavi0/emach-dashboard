@@ -71,6 +71,23 @@ Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `revi
 
 **Atenção pós-refactor de variants:** `stock_level`, `stock_movement` e `order_item` agora referenciam `tool_variant.id` (não mais `tool.id`). O app ecomerce precisa enviar `variantId` em pedidos e movimentos, não `toolId`. Ler `tool_variant` para obter SKU vendável; `tool` é o produto-pai (informações comuns).
 
+## Storage de imagens (Supabase)
+
+- **Bucket:** `tool-images` (constante `TOOL_IMAGES_BUCKET` em `apps/web/src/lib/supabase-server.ts`).
+- **Acesso:** public read. Storefront anon serve direto via `next/image` sem signed URL.
+- **Path no bucket:** flat `<uuid>.<ext>` (UUID via `crypto.randomUUID()` no upload). Sem prefixo por tool.
+- **Formatos aceitos:** `image/jpeg`, `image/png`, `image/webp`. Cap 2MB pós-compressão cliente. Lógica em `apps/web/src/app/dashboard/tools/_components/image-actions.ts`.
+- **`tool_image.url` armazena URL pública absoluta completa** — formato `https://<projeto>.supabase.co/storage/v1/object/public/tool-images/<uuid>.<ext>`, gerada por `supabase.storage.from(TOOL_IMAGES_BUCKET).getPublicUrl(path).publicUrl`. Nada de path relativo; consumidores usam `<Image src={toolImage.url} />` direto.
+- **Ecommerce:** drop-in via `next/image`. Whitelist o host Supabase em `next.config.ts > images.remotePatterns` (`{ protocol: "https", hostname: "<projeto>.supabase.co", pathname: "/storage/v1/object/public/tool-images/**" }`).
+
+## Queries compartilhadas com ecommerce
+
+`packages/db/src/queries/*.ts` é **owned-by-dashboard**: ferramentas de leitura/regra de negócio que o storefront precisa consumir. Lista atual: `reviews.ts` (`canCreateReview`), `catalog.ts` (10 funções de catálogo: `getTools`, `getToolBySlug`, `getCategoryTree`, `getCategoryBySlug`, `getActivePromotions`, `getRecentTools`, `searchTools`, `getReviews`, `getReviewStats`, `getAllToolSlugs`/`getAllCategorySlugs`).
+
+**Regra de sync:** dashboard é fonte de verdade. Ecommerce sincroniza byte-a-byte (cópia manual a cada mudança). **Não editar em isolamento no ecommerce** — mudanças de regra de negócio começam aqui e propagam.
+
+Padrão de assinatura para novas queries: `db: NodePgDatabase<Record<string, unknown>>` parametrizado (não usar singleton `db` exportado), tipos exportados via `export type`, sem `select *` nas projeções (esconder `costAmount` em endpoints públicos).
+
 ## Testes (futuro)
 
 Suíte vitest em `test/` será adicionada na Fase F (requer Supabase local CLI + Docker). Atualmente, a única cobertura é `apps/web/__tests__/permissions.test.ts` (puramente unit, sem DB).
