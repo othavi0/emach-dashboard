@@ -167,6 +167,15 @@ function toBoolean(value: unknown): boolean {
 	return value === true || value === "t" || value === "true" || value === 1;
 }
 
+// Postgres ARRAY[$1, $2, ...]::T[] — interpolar array TS direto em
+// drizzle-orm vira tupla `($1, $2)` que Postgres recusa em ANY()/= ANY().
+function arrayLiteral<T>(values: T[], castType: string) {
+	return sql`ARRAY[${sql.join(
+		values.map((v) => sql`${v}`),
+		sql`, `
+	)}]::${sql.raw(castType)}`;
+}
+
 const REVIEWER_NAME_SPLIT_RE = /\s+/;
 
 // SQL fragments shared by getTools / getRecentTools / getActivePromotions
@@ -224,7 +233,7 @@ function buildToolListWhere(input: GetToolsInput) {
 	if (input.voltage && input.voltage.length > 0) {
 		filters.push(sql`EXISTS (
 			SELECT 1 FROM tool_variant tvf
-			WHERE tvf.tool_id = t.id AND tvf.voltage = ANY(${input.voltage}::voltage[])
+			WHERE tvf.tool_id = t.id AND tvf.voltage = ANY(${arrayLiteral(input.voltage, "voltage[]")})
 		)`);
 	}
 
@@ -653,7 +662,7 @@ export async function getCategoryBySlug(
 			       is_active AS "isActive", description, image_url AS "imageUrl",
 			       path, depth, created_at AS "createdAt", updated_at AS "updatedAt"
 			FROM category
-			WHERE id = ANY(${ancestorIds}::text[])
+			WHERE id = ANY(${arrayLiteral(ancestorIds, "text[]")})
 			ORDER BY depth ASC
 		`);
 		ancestors = ancestorsRes.rows;
@@ -718,7 +727,7 @@ export async function getActivePromotions(
 			INNER JOIN tool_variant dv ON dv.tool_id = t.id AND dv.is_default = true
 			LEFT JOIN tool_category tc ON tc.tool_id = t.id AND tc.is_primary = true
 			LEFT JOIN category pc ON pc.id = tc.category_id
-			WHERE t.id = ANY(${toolIds}::text[])
+			WHERE t.id = ANY(${arrayLiteral(toolIds, "text[]")})
 			  AND t.visible_on_site = true
 			  AND ${STOREFRONT_STATUS_SQL}
 			ORDER BY t.created_at DESC
