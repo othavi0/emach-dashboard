@@ -1,5 +1,38 @@
 import type { OrderStatus } from "@emach/db/schema/orders";
+import { orderStatusEnum, paymentStatusEnum } from "@emach/db/schema/orders";
 import { z } from "zod";
+
+const isoDate = z
+	.string()
+	.regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (YYYY-MM-DD)")
+	.optional();
+
+export const ordersListFiltersSchema = z
+	.object({
+		tab: z.string().optional(),
+		q: z.string().trim().max(100).optional(),
+		from: isoDate,
+		to: isoDate,
+		branchId: z.string().uuid().optional(),
+		paymentStatus: z.enum(paymentStatusEnum.enumValues).optional(),
+		page: z.coerce.number().int().min(1).default(1),
+		pageSize: z.coerce.number().int().min(1).max(100).default(20),
+	})
+	.superRefine((data, ctx) => {
+		if (data.from && data.to && data.to < data.from) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Data 'até' deve ser >= 'de'",
+				path: ["to"],
+			});
+		}
+	});
+
+export type OrdersListFiltersInput = z.input<typeof ordersListFiltersSchema>;
+export type OrdersListFiltersParsed = z.infer<typeof ordersListFiltersSchema>;
+
+export const ALL_ORDER_STATUSES = orderStatusEnum.enumValues;
+export const ALL_PAYMENT_STATUSES = paymentStatusEnum.enumValues;
 
 const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 	pending_payment: ["canceled"],
