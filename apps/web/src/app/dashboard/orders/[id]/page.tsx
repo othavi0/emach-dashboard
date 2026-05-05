@@ -6,8 +6,13 @@ import { notFound } from "next/navigation";
 import { can, requireCapability } from "@/lib/permissions";
 import { OrderActionsPanel } from "../_components/order-actions-panel";
 import { OrderDetailInfo } from "../_components/order-detail-info";
+import { OrderReviewsSection } from "../_components/order-reviews-section";
 import { OrderTimeline } from "../_components/order-timeline";
-import { getOrderDetail, listOrderBranches } from "../data";
+import {
+	getOrderDetail,
+	getOrderReviewsOverview,
+	listOrderBranches,
+} from "../data";
 
 interface OrderDetailPageProps {
 	params: Promise<{ id: string }>;
@@ -20,9 +25,10 @@ export default async function OrderDetailPage({
 }: OrderDetailPageProps) {
 	const session = await requireCapability("orders.read");
 	const { id } = await params;
-	const [branches, order] = await Promise.all([
+	const [branches, order, reviewsOverview] = await Promise.all([
 		listOrderBranches(),
 		getOrderDetail(id),
+		getOrderReviewsOverview(id),
 	]);
 
 	if (!order) {
@@ -76,6 +82,8 @@ export default async function OrderDetailPage({
 					<OrderTimeline history={order.history} notes={order.notes} />
 				</div>
 			</div>
+
+			<OrderReviewsSection rows={reviewsOverview} />
 		</div>
 	);
 }
