@@ -33,6 +33,8 @@ import {
 	TOOL_STATUS_LABELS,
 	type ToolStatusValue,
 } from "../_components/tool-schema";
+import { ToolReviewsSection } from "./_components/tool-reviews-section";
+import { getToolReviewsSummary } from "./_lib/reviews-data";
 
 const STATUS_BADGE_VARIANT: Record<
 	ToolStatusValue,
@@ -120,64 +122,71 @@ export default async function ToolDetailPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const [toolCategoriesRows, images, variants, attributeValues, stockRows] =
-		await Promise.all([
-			db
-				.select({
-					categoryId: toolCategory.categoryId,
-					categoryName: category.name,
-					isPrimary: toolCategory.isPrimary,
-				})
-				.from(toolCategory)
-				.innerJoin(category, eq(category.id, toolCategory.categoryId))
-				.where(eq(toolCategory.toolId, id))
-				.orderBy(asc(category.name)),
-			db
-				.select({ id: toolImage.id, url: toolImage.url })
-				.from(toolImage)
-				.where(eq(toolImage.toolId, id))
-				.orderBy(asc(toolImage.sortOrder)),
-			db
-				.select()
-				.from(toolVariant)
-				.where(eq(toolVariant.toolId, id))
-				.orderBy(asc(toolVariant.sortOrder)),
-			db
-				.select({
-					slug: attributeDefinition.slug,
-					label: attributeDefinition.label,
-					inputType: attributeDefinition.inputType,
-					unit: attributeDefinition.unit,
-					valueText: toolAttributeValue.valueText,
-					valueNumeric: toolAttributeValue.valueNumeric,
-					valueNumericMax: toolAttributeValue.valueNumericMax,
-					valueBool: toolAttributeValue.valueBool,
-				})
-				.from(toolAttributeValue)
-				.innerJoin(
-					attributeDefinition,
-					eq(attributeDefinition.id, toolAttributeValue.attributeId)
-				)
-				.where(eq(toolAttributeValue.toolId, id))
-				.orderBy(
-					asc(attributeDefinition.sortOrder),
-					asc(attributeDefinition.label)
-				),
-			db
-				.select({
-					variantId: toolVariant.id,
-					variantSku: toolVariant.sku,
-					variantVoltage: toolVariant.voltage,
-					branchId: branch.id,
-					branchName: branch.name,
-					quantity: stockLevel.quantity,
-				})
-				.from(stockLevel)
-				.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
-				.innerJoin(branch, eq(branch.id, stockLevel.branchId))
-				.where(eq(toolVariant.toolId, id))
-				.orderBy(asc(toolVariant.sortOrder), asc(branch.name)),
-		]);
+	const [
+		toolCategoriesRows,
+		images,
+		variants,
+		attributeValues,
+		stockRows,
+		reviewsSummary,
+	] = await Promise.all([
+		db
+			.select({
+				categoryId: toolCategory.categoryId,
+				categoryName: category.name,
+				isPrimary: toolCategory.isPrimary,
+			})
+			.from(toolCategory)
+			.innerJoin(category, eq(category.id, toolCategory.categoryId))
+			.where(eq(toolCategory.toolId, id))
+			.orderBy(asc(category.name)),
+		db
+			.select({ id: toolImage.id, url: toolImage.url })
+			.from(toolImage)
+			.where(eq(toolImage.toolId, id))
+			.orderBy(asc(toolImage.sortOrder)),
+		db
+			.select()
+			.from(toolVariant)
+			.where(eq(toolVariant.toolId, id))
+			.orderBy(asc(toolVariant.sortOrder)),
+		db
+			.select({
+				slug: attributeDefinition.slug,
+				label: attributeDefinition.label,
+				inputType: attributeDefinition.inputType,
+				unit: attributeDefinition.unit,
+				valueText: toolAttributeValue.valueText,
+				valueNumeric: toolAttributeValue.valueNumeric,
+				valueNumericMax: toolAttributeValue.valueNumericMax,
+				valueBool: toolAttributeValue.valueBool,
+			})
+			.from(toolAttributeValue)
+			.innerJoin(
+				attributeDefinition,
+				eq(attributeDefinition.id, toolAttributeValue.attributeId)
+			)
+			.where(eq(toolAttributeValue.toolId, id))
+			.orderBy(
+				asc(attributeDefinition.sortOrder),
+				asc(attributeDefinition.label)
+			),
+		db
+			.select({
+				variantId: toolVariant.id,
+				variantSku: toolVariant.sku,
+				variantVoltage: toolVariant.voltage,
+				branchId: branch.id,
+				branchName: branch.name,
+				quantity: stockLevel.quantity,
+			})
+			.from(stockLevel)
+			.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
+			.innerJoin(branch, eq(branch.id, stockLevel.branchId))
+			.where(eq(toolVariant.toolId, id))
+			.orderBy(asc(toolVariant.sortOrder), asc(branch.name)),
+		getToolReviewsSummary(id),
+	]);
 
 	const primaryCategoryName =
 		toolCategoriesRows.find((c) => c.isPrimary)?.categoryName ?? null;
@@ -465,6 +474,8 @@ export default async function ToolDetailPage({ params }: PageProps) {
 					)}
 				</CardContent>
 			</Card>
+
+			<ToolReviewsSection summary={reviewsSummary} toolId={id} />
 		</div>
 	);
 }
