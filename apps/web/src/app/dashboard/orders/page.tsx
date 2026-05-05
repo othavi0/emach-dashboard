@@ -1,3 +1,4 @@
+import type { UserRole } from "@emach/db/schema/auth";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Empty,
@@ -7,9 +8,9 @@ import {
 	EmptyTitle,
 } from "@emach/ui/components/empty";
 import Link from "next/link";
-
 import { PageHeader } from "@/components/page-header";
-import { requireCapability } from "@/lib/permissions";
+import { can, requireCapability } from "@/lib/permissions";
+import { ExportCsvLink } from "./_components/export-csv-link";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrderTable } from "./_components/order-table";
 import { OrdersMetricsCards } from "./_components/orders-metrics";
@@ -29,7 +30,8 @@ interface PageProps {
 export const dynamic = "force-dynamic";
 
 export default async function OrdersPage({ searchParams }: PageProps) {
-	await requireCapability("orders.read");
+	const session = await requireCapability("orders.read");
+	const canExport = can(session.user.role as UserRole, "orders.export");
 	const raw = await searchParams;
 	const parsed = ordersListFiltersSchema.safeParse(raw);
 	const data = parsed.success ? parsed.data : ordersListFiltersSchema.parse({});
@@ -58,12 +60,15 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 		<>
 			<PageHeader
 				action={
-					<Link
-						className={buttonVariants({ variant: "ghost" })}
-						href="/dashboard"
-					>
-						Voltar ao painel
-					</Link>
+					<div className="flex items-center gap-2">
+						{canExport && <ExportCsvLink filters={filters} />}
+						<Link
+							className={buttonVariants({ variant: "ghost" })}
+							href="/dashboard"
+						>
+							Voltar ao painel
+						</Link>
+					</div>
 				}
 				description="Listagem operacional com busca por número e cliente, filtros por data e filial e atalhos para fulfillment."
 				title="Pedidos"

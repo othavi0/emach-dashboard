@@ -6,4 +6,9 @@ export const logger = {
 			console.error(`[${scope}]`, error);
 		}
 	},
+	info(scope: string, payload?: unknown): void {
+		if (isDev) {
+			console.info(`[${scope}]`, payload ?? "");
+		}
+	},
 };
