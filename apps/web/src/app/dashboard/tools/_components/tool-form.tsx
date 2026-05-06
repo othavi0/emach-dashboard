@@ -20,7 +20,7 @@ import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import type { ZodError } from "zod";
+import type { ZodError, ZodIssue } from "zod";
 
 import { MaskedInput } from "@/components/masked-input";
 import {
@@ -89,6 +89,59 @@ function SubmitLabel({
 	return <>{mode === "create" ? "Criar ferramenta" : "Salvar alterações"}</>;
 }
 
+const FIELD_LABELS: Record<string, string> = {
+	name: "Nome",
+	description: "Descrição",
+	model: "Modelo comercial",
+	invoiceModel: "Modelo da fábrica",
+	manufacturerName: "Marca / fabricante",
+	status: "Status",
+	hsCode: "HS Code",
+	ncm: "NCM",
+	cest: "CEST",
+	powerWatts: "Potência (W)",
+	weightKg: "Peso (kg)",
+	lengthCm: "Comprimento (cm)",
+	widthCm: "Largura (cm)",
+	heightCm: "Altura (cm)",
+	categoryIds: "Categorias",
+	primaryCategoryId: "Categoria principal",
+	supplierId: "Fornecedor",
+	visibleOnSite: "Visível no site",
+	images: "Imagens",
+	variants: "Variantes",
+	attributeValues: "Especificações técnicas",
+	attributeAssignments: "Atributos vinculados",
+};
+
+function formatIssuePath(path: ReadonlyArray<PropertyKey>): string {
+	if (path.length === 0) {
+		return "Formulário";
+	}
+	const head = String(path[0]);
+	const headLabel = FIELD_LABELS[head] ?? head;
+	if (path.length === 1) {
+		return headLabel;
+	}
+	if (head === "variants" && typeof path[1] === "number") {
+		const idx = (path[1] as number) + 1;
+		const subKey = path[2] ? String(path[2]) : "";
+		const subLabel =
+			subKey === "sku"
+				? "SKU"
+				: subKey === "priceAmount"
+					? "preço"
+					: subKey === "costAmount"
+						? "custo"
+						: subKey;
+		return subLabel ? `Variante ${idx} · ${subLabel}` : `Variante ${idx}`;
+	}
+	if (head === "attributeValues" && path[1]) {
+		return `Atributo "${String(path[1])}"`;
+	}
+	return `${headLabel} · ${path.slice(1).map(String).join(".")}`;
+}
+
 const EMPTY_VALUES: ToolFormValues = {
 	name: "",
 	description: "",
@@ -148,6 +201,8 @@ export function ToolForm({
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof ToolFormValues, string>>
 	>({});
+	const [formIssues, setFormIssues] = useState<ZodIssue[]>([]);
+	const errorPanelRef = useRef<HTMLDivElement | null>(null);
 
 	const slugPreview = useMemo(() => {
 		if (mode === "edit" && existingSlug) {
@@ -241,10 +296,20 @@ export function ToolForm({
 				}
 			}
 			setErrors(fieldErrors);
-			toast.error("Revise os campos do formulário");
+			setFormIssues(zodError.issues);
+			toast.error(
+				`${zodError.issues.length} erro${zodError.issues.length === 1 ? "" : "s"} — veja detalhes acima`
+			);
+			requestAnimationFrame(() => {
+				errorPanelRef.current?.scrollIntoView({
+					behavior: "smooth",
+					block: "start",
+				});
+			});
 			return;
 		}
 		setErrors({});
+		setFormIssues([]);
 
 		const actionResult =
 			mode === "create"
@@ -272,6 +337,29 @@ export function ToolForm({
 
 	return (
 		<form className="flex w-full flex-col gap-6" onSubmit={handleSubmit}>
+			{formIssues.length > 0 && (
+				<div
+					className="flex flex-col gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-4"
+					ref={errorPanelRef}
+				>
+					<h2 className="font-semibold text-destructive text-sm">
+						{formIssues.length} erro{formIssues.length === 1 ? "" : "s"} no
+						formulário
+					</h2>
+					<ul className="flex list-disc flex-col gap-1 pl-5 text-destructive text-xs">
+						{formIssues.map((issue, i) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: zod issues lack stable id
+							<li key={i}>
+								<span className="font-medium">
+									{formatIssuePath(issue.path)}
+								</span>
+								{": "}
+								{issue.message}
+							</li>
+						))}
+					</ul>
+				</div>
+			)}
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<div className="flex flex-col gap-1">
 					<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">

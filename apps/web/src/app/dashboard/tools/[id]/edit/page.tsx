@@ -42,15 +42,29 @@ function toFormValues(
 	const primaryRow = toolCats.find((tc) => tc.isPrimary);
 	const primaryCategoryId = primaryRow?.categoryId ?? categoryIds[0] ?? "";
 
-	const formVariants: ToolVariantInput[] = variants.map((v) => ({
-		id: v.id,
-		sku: v.sku,
-		voltage: (v.voltage ?? "") as (typeof VOLTAGE_OPTIONS)[number] | "",
-		priceAmount: Number(v.priceAmount),
-		costAmount: v.costAmount ? Number(v.costAmount) : undefined,
-		isDefault: v.isDefault,
-		sortOrder: v.sortOrder,
-	}));
+	const parsedVariants: ToolVariantInput[] = variants.map((v) => {
+		const priceNum = v.priceAmount == null ? 0 : Number(v.priceAmount);
+		const costNum =
+			v.costAmount == null || v.costAmount === ""
+				? undefined
+				: Number(v.costAmount);
+		return {
+			id: v.id,
+			sku: v.sku ?? "",
+			voltage: (v.voltage ?? "") as (typeof VOLTAGE_OPTIONS)[number] | "",
+			priceAmount: Number.isFinite(priceNum) ? priceNum : 0,
+			costAmount:
+				costNum !== undefined && Number.isFinite(costNum) ? costNum : undefined,
+			isDefault: v.isDefault,
+			sortOrder: v.sortOrder,
+		};
+	});
+
+	// Garante exatamente 1 variant marcada como default (invariante do schema).
+	const formVariants: ToolVariantInput[] =
+		parsedVariants.length > 0 && !parsedVariants.some((v) => v.isDefault)
+			? parsedVariants.map((v, i) => ({ ...v, isDefault: i === 0 }))
+			: parsedVariants;
 
 	const attrValuesMap: Record<string, AttributeValueInput> = {};
 	for (const av of attributeValues) {
