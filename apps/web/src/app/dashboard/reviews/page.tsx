@@ -1,3 +1,4 @@
+import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Empty,
 	EmptyContent,
@@ -9,6 +10,7 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
 import { requireCapability } from "@/lib/permissions";
+import { getCurrentSession } from "@/lib/session";
 import { ReviewQueueTable } from "./_components/review-queue-table";
 import { ReviewsFilters } from "./_components/reviews-filters";
 import { listReviews, REVIEW_STATUS_LABELS } from "./data";
@@ -21,6 +23,9 @@ export const dynamic = "force-dynamic";
 
 export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
 	await requireCapability("reviews.read");
+	const session = await getCurrentSession();
+	const role = session?.user.role ?? "user";
+	const canMutate = role === "admin" || role === "manager";
 	const params = await searchParams;
 	const status = params.status;
 	const reviews = await listReviews(status);
@@ -35,6 +40,16 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
 	return (
 		<>
 			<PageHeader
+				action={
+					canMutate ? (
+						<Link
+							className={buttonVariants({ variant: "default" })}
+							href="/dashboard/reviews/new"
+						>
+							Nova editorial
+						</Link>
+					) : null
+				}
 				description="Fila simples de moderação com foco em reviews pendentes do site."
 				title="Avaliações"
 			/>
