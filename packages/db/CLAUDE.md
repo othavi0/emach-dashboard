@@ -36,6 +36,25 @@ bun db:apply-triggers   # idempotente (CREATE OR REPLACE FUNCTION + DROP TRIGGER
 
 Importação preferida em consumidores: `import { category } from "@emach/db/schema/categories"` (caminho específico) — barrel é fallback.
 
+## Armadilha: `db.execute()` raw devolve timestamp como string
+
+`drizzle-orm@0.45.x` sobrescreve os `getTypeParser` para timestamp/timestamptz/date/interval em `rawQueryConfig` (`node_modules/.../drizzle-orm/node-postgres/session.cjs`). Como `db.execute(sql\`…\`)` não passa pelo column mapper (sem `fields`/`customResultMapper`), o consumer recebe **string raw do Postgres** — não Date.
+
+Sintoma: `Intl.DateTimeFormat.format(value)` lança `RangeError: Invalid time value` em alguma rota com `db.execute<{ created_at: Date }>`.
+
+Regras:
+
+- **Sempre que tipar uma coluna timestamp como `Date` no shape público de uma função que usa `db.execute`, coercer no boundary** com `toDate` (`packages/db/src/utils.ts`):
+
+  ```ts
+  import { toDate } from "@emach/db/utils";
+  // ...
+  return rows.map((row) => ({ createdAt: toDate(row.created_at), ... }));
+  ```
+
+- `db.query.X.findMany` (relational API) e `db.select().from(...)` (query builder) **não** sofrem do bug — devolvem `Date`. Não precisa de coerção nesses caminhos.
+- Para retornos de objetos inteiros (ex: `Tool`, `Promotion`, `Category`) em `queries/catalog.ts`, há um helper interno `coerceDates(obj, [...keys])` no próprio arquivo.
+
 ## `db` × `createDb()`
 
 - `db` (singleton em `src/index.ts`) — uso geral em server actions.

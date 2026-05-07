@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import { toDate } from "@emach/db/utils";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Card,
@@ -100,7 +101,7 @@ async function fetchRecentActivity(): Promise<ActivityEvent[]> {
 	return result.rows.map((r) => ({
 		id: r.id,
 		kind: r.kind,
-		at: new Date(r.created_at),
+		at: toDate(r.created_at),
 		primary: r.primary,
 		secondary: r.secondary ?? undefined,
 		href: r.href ?? undefined,

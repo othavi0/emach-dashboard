@@ -2,6 +2,7 @@ import { db } from "@emach/db";
 import { apiKey } from "@emach/db/schema/api-keys";
 import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
+import { toDate } from "@emach/db/utils";
 
 export type { OrderStatus } from "@emach/db/schema/orders";
 
@@ -247,7 +248,7 @@ export async function listOrders(
 			number: row.number,
 			status: row.status,
 			totalAmount: Number(row.total_amount),
-			createdAt: row.created_at,
+			createdAt: toDate(row.created_at),
 			clientName: row.client_name,
 			branchName: row.branch_name,
 		})),
@@ -291,7 +292,7 @@ export async function getRecentOrderActivity(
 		orderId: r.order_id,
 		orderNumber: r.order_number,
 		toStatus: r.to_status,
-		createdAt: new Date(r.created_at),
+		createdAt: toDate(r.created_at),
 	}));
 }
 
@@ -528,11 +529,11 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		shippingAddress: row.shipping_address ?? {},
 		shippingMethod: row.shipping_method,
 		shippingTrackingCode: row.shipping_tracking_code,
-		createdAt: row.created_at,
-		paidAt: row.paid_at,
-		shippedAt: row.shipped_at,
-		deliveredAt: row.delivered_at,
-		canceledAt: row.canceled_at,
+		createdAt: toDate(row.created_at),
+		paidAt: toDate(row.paid_at),
+		shippedAt: toDate(row.shipped_at),
+		deliveredAt: toDate(row.delivered_at),
+		canceledAt: toDate(row.canceled_at),
 		items: items.map((item) => ({
 			id: item.id,
 			orderId: item.orderId,
