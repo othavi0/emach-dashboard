@@ -67,3 +67,4 @@ packages/db/supabase/.branches/
 
 # Claude Code scheduled-task lock file (in-memory state)
 .claude/scheduled_tasks.lock
+docs/superpowers
