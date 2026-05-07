@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import { toDate } from "@emach/db/utils";
 import { sql } from "drizzle-orm";
 
 import { logger } from "@/lib/logger";
@@ -171,7 +172,7 @@ export async function GET(req: Request) {
 					const ok = enqueueLine(
 						encodeRow([
 							r.number,
-							r.created_at,
+							toDate(r.created_at),
 							r.status,
 							r.payment_status,
 							r.client_name,

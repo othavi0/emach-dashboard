@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import { toDate } from "@emach/db/utils";
 
 export type { ReviewStatus } from "@emach/db/schema/reviews";
 
@@ -88,7 +89,7 @@ export async function listReviews(status?: string): Promise<ReviewListItem[]> {
 		clientName: row.client_name,
 		rating: row.rating,
 		status: row.status,
-		createdAt: row.created_at,
+		createdAt: toDate(row.created_at),
 		imageUrl: row.image_url,
 		bodyPreview:
 			row.body.length > 80 ? `${row.body.slice(0, 77).trimEnd()}...` : row.body,
@@ -162,9 +163,9 @@ export async function getReviewDetail(
 		body: row.body,
 		status: row.status,
 		moderationNote: row.moderation_note,
-		moderatedAt: row.moderated_at,
+		moderatedAt: toDate(row.moderated_at),
 		moderatedByName: row.moderated_by_name,
-		createdAt: row.created_at,
+		createdAt: toDate(row.created_at),
 		imageUrl: row.image_url,
 	};
 }
