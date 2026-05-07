@@ -22,6 +22,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError, ZodIssue } from "zod";
 
+import { FormErrorPanel } from "@/components/form-error-panel";
 import { MaskedInput } from "@/components/masked-input";
 import {
 	cestMask,
@@ -337,29 +338,13 @@ export function ToolForm({
 
 	return (
 		<form className="flex w-full flex-col gap-6" onSubmit={handleSubmit}>
-			{formIssues.length > 0 && (
-				<div
-					className="flex flex-col gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-4"
-					ref={errorPanelRef}
-				>
-					<h2 className="font-semibold text-destructive text-sm">
-						{formIssues.length} erro{formIssues.length === 1 ? "" : "s"} no
-						formulário
-					</h2>
-					<ul className="flex list-disc flex-col gap-1 pl-5 text-destructive text-xs">
-						{formIssues.map((issue, i) => (
-							// biome-ignore lint/suspicious/noArrayIndexKey: zod issues lack stable id
-							<li key={i}>
-								<span className="font-medium">
-									{formatIssuePath(issue.path)}
-								</span>
-								{": "}
-								{issue.message}
-							</li>
-						))}
-					</ul>
-				</div>
-			)}
+			<FormErrorPanel
+				issues={formIssues.map((issue) => ({
+					path: formatIssuePath(issue.path),
+					message: issue.message,
+				}))}
+				ref={errorPanelRef}
+			/>
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<div className="flex flex-col gap-1">
 					<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
@@ -375,6 +360,8 @@ export function ToolForm({
 						<span className="text-destructive"> *</span>
 					</Label>
 					<Input
+						aria-invalid={errors.name ? true : undefined}
+						aria-required="true"
 						id="name"
 						onChange={(e) => update("name", e.target.value)}
 						placeholder="Ex: Furadeira de impacto 700W"

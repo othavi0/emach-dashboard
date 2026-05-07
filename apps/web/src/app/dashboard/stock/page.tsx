@@ -29,6 +29,7 @@ interface StockPageRow extends Record<string, unknown> {
 	id: string;
 	image_url: string | null;
 	name: string;
+	reorder_count: number;
 	slug: string | null;
 	total_stock: number;
 	variant_count: number;
@@ -107,6 +108,13 @@ async function fetchStockRows(params: StockPageParams): Promise<StockRow[]> {
 				WHERE tv.tool_id = t.id
 			), 0) AS total_stock,
 			COALESCE((
+				SELECT COUNT(*)::int FROM stock_level sl
+				JOIN tool_variant tv ON tv.id = sl.variant_id
+				WHERE tv.tool_id = t.id
+					AND sl.reorder_point > 0
+					AND sl.quantity <= sl.reorder_point
+			), 0) AS reorder_count,
+			COALESCE((
 				SELECT json_agg(
 					json_build_object(
 						'branch_id', b.id,
@@ -139,6 +147,7 @@ async function fetchStockRows(params: StockPageParams): Promise<StockRow[]> {
 		variantCount: Number(r.variant_count ?? 0),
 		imageUrl: r.image_url,
 		totalStock: Number(r.total_stock ?? 0),
+		reorderCount: Number(r.reorder_count ?? 0),
 		branches: (r.branches_breakdown ?? []).map((item) => ({
 			branchId: item.branch_id,
 			branchName: item.branch_name,

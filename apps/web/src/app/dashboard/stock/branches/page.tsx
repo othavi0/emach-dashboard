@@ -102,7 +102,9 @@ export default async function BranchesStockPage({
 
 			<div className="flex items-center justify-between gap-4">
 				<div>
-					<h2 className="font-serif text-lg">{selectedBranch.name}</h2>
+					<h2 className="font-medium text-lg tracking-tight">
+						{selectedBranch.name}
+					</h2>
 					<p className="text-muted-foreground text-sm">
 						{rows.length} ferramenta{rows.length === 1 ? "" : "s"} listada
 						{rows.length === 1 ? "" : "s"} nesta filial.

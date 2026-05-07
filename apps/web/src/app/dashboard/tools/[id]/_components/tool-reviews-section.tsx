@@ -55,7 +55,7 @@ export function ToolReviewsSection({
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle className="font-serif">Avaliações</CardTitle>
+				<CardTitle>Avaliações</CardTitle>
 				<CardDescription>
 					Reviews dos clientes que compraram esta ferramenta.
 				</CardDescription>
@@ -63,7 +63,7 @@ export function ToolReviewsSection({
 			<CardContent className="flex flex-col gap-6">
 				<div className="grid gap-6 md:grid-cols-[180px_1fr]">
 					<div className="flex flex-col items-center justify-center gap-1 rounded-md border border-border p-4">
-						<span className="font-medium font-serif text-4xl tabular-nums">
+						<span className="font-medium text-4xl tabular-nums tracking-tight">
 							{summary.total === 0 ? "—" : summary.avg.toFixed(1)}
 						</span>
 						<span className="text-muted-foreground text-xs">de 5</span>
