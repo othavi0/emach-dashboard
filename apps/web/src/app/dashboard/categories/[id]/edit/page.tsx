@@ -119,7 +119,9 @@ export default async function EditCategoryPage({ params }: PageProps) {
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-serif text-2xl">Editar categoria</h1>
+				<h1 className="font-medium text-2xl tracking-tight">
+					Editar categoria
+				</h1>
 				<p className="text-muted-foreground text-sm">
 					Caminho atual: <code className="text-xs">{existing.path}</code>
 				</p>

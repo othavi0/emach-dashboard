@@ -11,8 +11,19 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
 
+import {
+	FormErrorPanel,
+	type FormIssue,
+	zodIssuesToFormIssues,
+} from "@/components/form-error-panel";
+
 import { createBranch, updateBranch } from "../actions";
 import { type BranchFormValues, branchSchema } from "./branch-schema";
+
+const FIELD_LABELS: Record<string, string> = {
+	name: "Nome",
+	address: "Endereço",
+};
 
 interface BranchFormProps {
 	branchId?: string;
@@ -58,14 +69,21 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof BranchFormValues, string>>
 	>({});
+	const [formIssues, setFormIssues] = useState<FormIssue[]>([]);
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setErrors({});
+		setFormIssues([]);
 
 		const parsed = branchSchema.safeParse({ name, address });
 		if (!parsed.success) {
 			setErrors(zodErrorsToFieldMap(parsed.error));
+			const issues = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
+			setFormIssues(issues);
+			toast.error(
+				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
+			);
 			return;
 		}
 
@@ -93,6 +111,7 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 			className="flex w-full max-w-2xl flex-col gap-6"
 			onSubmit={handleSubmit}
 		>
+			<FormErrorPanel issues={formIssues} />
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas
@@ -104,6 +123,8 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 						<span className="text-destructive"> *</span>
 					</Label>
 					<Input
+						aria-invalid={errors.name ? true : undefined}
+						aria-required="true"
 						disabled={isPending}
 						id="branch-name"
 						onChange={(event) => setName(event.target.value)}

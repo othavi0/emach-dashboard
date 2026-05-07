@@ -38,7 +38,9 @@ export default async function BranchStockPage({
 		<div className="flex flex-col gap-6">
 			<div className="flex items-start justify-between gap-4">
 				<div>
-					<h1 className="font-serif text-2xl">Estoque: {branch.name}</h1>
+					<h1 className="font-medium text-2xl tracking-tight">
+						Estoque: {branch.name}
+					</h1>
 					<p className="text-muted-foreground text-sm">
 						Estoque local da filial. Use esta tela quando a operação começar
 						pela unidade.

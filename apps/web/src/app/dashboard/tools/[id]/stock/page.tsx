@@ -135,7 +135,9 @@ export default async function ToolStockPage({ params }: PageProps) {
 		<div className="flex flex-col gap-6">
 			<div className="flex items-center justify-between">
 				<div>
-					<h1 className="font-serif text-2xl">{currentTool.name}</h1>
+					<h1 className="font-medium text-2xl tracking-tight">
+						{currentTool.name}
+					</h1>
 					<p className="text-muted-foreground text-sm">
 						{defaultVariant
 							? `SKU padrão: ${defaultVariant.sku}`
@@ -232,7 +234,7 @@ export default async function ToolStockPage({ params }: PageProps) {
 			)}
 
 			<div>
-				<h2 className="mb-3 font-serif text-lg">
+				<h2 className="mb-3 font-medium text-lg tracking-tight">
 					Histórico de movimentações (todas as variantes)
 				</h2>
 				{movements.length === 0 ? (

@@ -59,7 +59,7 @@ export function OrderReviewsSection({ rows }: OrderReviewsSectionProps) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle className="font-serif">Avaliações</CardTitle>
+				<CardTitle>Avaliações</CardTitle>
 				<CardDescription>
 					{allUnpaid
 						? "Pedido ainda não pago — avaliações ficarão disponíveis após a confirmação."

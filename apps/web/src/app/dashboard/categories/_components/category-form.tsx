@@ -20,7 +20,24 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
 
-import { slugifyLabel } from "../_lib/attribute-schema";
+import {
+	FormErrorPanel,
+	type FormIssue,
+	zodIssuesToFormIssues,
+} from "@/components/form-error-panel";
+
+import { slugifyLabel, validateSlugFormat } from "../_lib/attribute-schema";
+
+const FIELD_LABELS: Record<string, string> = {
+	name: "Nome",
+	slug: "Slug",
+	parentId: "Categoria pai",
+	description: "Descrição",
+	imageUrl: "URL da imagem",
+	isActive: "Ativa",
+	sortOrder: "Ordem",
+};
+
 import {
 	type CategoryListItem,
 	createCategory,
@@ -91,6 +108,7 @@ export function CategoryForm({
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof CategoryInput, string>>
 	>({});
+	const [formIssues, setFormIssues] = useState<FormIssue[]>([]);
 
 	// Filtra parents possíveis: exclui a própria categoria e descendentes (evita ciclo
 	// e mensagem feia do trigger). Em modo create, mostra todos.
@@ -107,6 +125,7 @@ export function CategoryForm({
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setErrors({});
+		setFormIssues([]);
 
 		const parsed = categorySchema.safeParse({
 			name,
@@ -120,6 +139,11 @@ export function CategoryForm({
 
 		if (!parsed.success) {
 			setErrors(zodErrorsToFieldMap(parsed.error));
+			const issues = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
+			setFormIssues(issues);
+			toast.error(
+				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
+			);
 			return;
 		}
 
@@ -147,6 +171,7 @@ export function CategoryForm({
 			className="flex w-full max-w-2xl flex-col gap-6"
 			onSubmit={handleSubmit}
 		>
+			<FormErrorPanel issues={formIssues} />
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas
@@ -158,6 +183,8 @@ export function CategoryForm({
 						<span className="text-destructive"> *</span>
 					</Label>
 					<Input
+						aria-invalid={errors.name ? true : undefined}
+						aria-required="true"
 						disabled={isPending}
 						id="category-name"
 						onChange={(event) => {
@@ -181,8 +208,16 @@ export function CategoryForm({
 						<span className="text-destructive"> *</span>
 					</Label>
 					<Input
+						aria-invalid={errors.slug ? true : undefined}
+						aria-required="true"
 						disabled={isPending || mode === "create"}
 						id="category-slug"
+						onBlur={() => {
+							if (mode === "edit") {
+								const err = validateSlugFormat(slug);
+								setErrors((prev) => ({ ...prev, slug: err ?? undefined }));
+							}
+						}}
 						onChange={(event) => setSlug(event.target.value)}
 						placeholder="furadeiras"
 						value={slug}

@@ -11,7 +11,7 @@ export default async function NewCategoryPage() {
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-serif text-2xl">Nova categoria</h1>
+				<h1 className="font-medium text-2xl tracking-tight">Nova categoria</h1>
 				<p className="text-muted-foreground text-sm">
 					Crie uma categoria raiz ou subcategoria para classificar ferramentas.
 				</p>

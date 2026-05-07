@@ -8,20 +8,22 @@ import {
 	EmptyTitle,
 } from "@emach/ui/components/empty";
 import Link from "next/link";
+import { type ActivityEvent, ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
+import { type PendingGroup, PendingList } from "@/components/pending-list";
 import { can, requireCapability } from "@/lib/permissions";
 import { ExportCsvLink } from "./_components/export-csv-link";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrderTable } from "./_components/order-table";
-import { OrdersMetricsCards } from "./_components/orders-metrics";
 import {
-	getOrdersMetrics,
 	getOrdersTabCounts,
+	getRecentOrderActivity,
 	listOrderBranches,
 	listOrders,
 	type OrderListFilters,
 } from "./data";
 import { ordersListFiltersSchema } from "./schema";
+import { ORDER_STATUS_LABELS } from "./status-meta";
 
 interface PageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -45,16 +47,61 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 		page: data.page,
 	};
 
-	const [branches, counts, metrics, result] = await Promise.all([
+	const [branches, counts, recentActivity, result] = await Promise.all([
 		listOrderBranches(),
 		getOrdersTabCounts(),
-		getOrdersMetrics(),
+		getRecentOrderActivity(),
 		listOrders(filters),
 	]);
 
 	const hasFilters = Boolean(
 		filters.tab || filters.q || filters.from || filters.to || filters.branchId
 	);
+
+	const pendingGroups: PendingGroup[] = [
+		{
+			title: "Aguardando ação",
+			items: [
+				{
+					label: "Pagos · iniciar preparação",
+					count: counts.paid ?? 0,
+					href: "/dashboard/orders?tab=paid",
+					role: "warning",
+				},
+				{
+					label: "Pagamento pendente",
+					count: counts.pending_payment ?? 0,
+					href: "/dashboard/orders?tab=pending_payment",
+					role: "info",
+				},
+			],
+		},
+		{
+			title: "Em fluxo",
+			items: [
+				{
+					label: "Em preparação",
+					count: counts.preparing ?? 0,
+					href: "/dashboard/orders?tab=preparing",
+					role: "info",
+				},
+				{
+					label: "Em transporte",
+					count: counts.shipped ?? 0,
+					href: "/dashboard/orders?tab=shipped",
+					role: "info",
+				},
+			],
+		},
+	];
+
+	const activityEvents: ActivityEvent[] = recentActivity.map((row) => ({
+		id: row.id,
+		kind: "order" as const,
+		at: row.createdAt,
+		primary: `#${row.orderNumber} → ${ORDER_STATUS_LABELS[row.toStatus]}`,
+		href: `/dashboard/orders/${row.orderId}`,
+	}));
 
 	return (
 		<>
@@ -74,7 +121,18 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 				title="Pedidos"
 			/>
 
-			<OrdersMetricsCards metrics={metrics} />
+			<section className="grid gap-3 lg:grid-cols-2">
+				<PendingList
+					emptyMessage="Nenhum pedido aguardando ação."
+					groups={pendingGroups}
+					title="Pendências de pedidos"
+				/>
+				<ActivityFeed
+					emptyMessage="Sem mudanças de status recentes."
+					events={activityEvents}
+					title="Histórico recente"
+				/>
+			</section>
 
 			<OrderFiltersPanel
 				branches={branches}

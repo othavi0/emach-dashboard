@@ -10,6 +10,7 @@ import Link from "next/link";
 
 import type { ReviewDetail } from "../data";
 import { ReviewStatusBadge } from "./review-status-badge";
+import { StarRating } from "./star-rating";
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
 	day: "2-digit",
@@ -17,16 +18,14 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
 	year: "numeric",
 });
 
-function renderStars(rating: number) {
-	return `${"★".repeat(rating)}${"☆".repeat(5 - rating)}`;
-}
-
 export function ReviewDetailCard({ review }: { review: ReviewDetail }) {
 	return (
 		<Card>
 			<CardHeader>
 				<CardTitle className="flex items-center gap-3">
-					<span className="font-serif text-2xl">Avaliação do cliente</span>
+					<span className="font-medium text-2xl tracking-tight">
+						Avaliação do cliente
+					</span>
 					<ReviewStatusBadge status={review.status} />
 				</CardTitle>
 				<CardDescription>
@@ -75,8 +74,9 @@ export function ReviewDetailCard({ review }: { review: ReviewDetail }) {
 								Abrir pedido
 							</Link>
 						</p>
-						<p>
-							<strong>Nota:</strong> {renderStars(review.rating)}
+						<p className="flex items-center gap-2">
+							<strong>Nota:</strong>
+							<StarRating rating={review.rating} />
 						</p>
 					</div>
 				</div>
@@ -84,7 +84,9 @@ export function ReviewDetailCard({ review }: { review: ReviewDetail }) {
 				<div className="space-y-4">
 					<div className="space-y-2">
 						{review.title && (
-							<h2 className="font-serif text-xl">{review.title}</h2>
+							<h2 className="font-medium text-xl tracking-tight">
+								{review.title}
+							</h2>
 						)}
 						<p className="text-sm leading-7">{review.body}</p>
 					</div>

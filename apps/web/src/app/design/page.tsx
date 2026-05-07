@@ -124,7 +124,8 @@ export default function DesignPage() {
 					<p className="mt-3 max-w-2xl text-muted-foreground text-sm leading-relaxed">
 						Galeria de referência dos componentes disponíveis em{" "}
 						<code className="font-mono text-xs">@emach/ui/components/*</code>.
-						Tema atual: dark warm (Anthropic-inspired). Paleta vem de{" "}
+						Sistema próprio: industrial dark warm + 6 roles cromáticas
+						distintas. Tokens em{" "}
 						<code className="font-mono text-xs">
 							packages/ui/src/styles/globals.css
 						</code>
@@ -151,84 +152,113 @@ export default function DesignPage() {
 				</nav>
 
 				<Section
-					description="Anthropic Serif (Georgia fallback) para títulos · Inter para UI · Mono para código."
+					description="Inter sans no chrome do dashboard — hierarquia por peso e case, não por família. Cormorant Garamond serif: uso restrito (login, capa de relatório)."
 					id="tipografia"
 					title="Tipografia"
 				>
-					<Showcase label="Serif scale">
+					<Showcase label="Sans (chrome)">
 						<div className="flex w-full flex-col gap-3">
-							<p className="font-medium font-serif text-5xl leading-[1.1]">
-								Display 48px / 1.10
+							<p className="font-medium text-3xl tracking-tight">
+								Display 30px / 500
 							</p>
-							<p className="font-medium font-serif text-3xl leading-tight">
-								Section 32px / 1.20
+							<p className="font-medium text-2xl tracking-tight">
+								h1 24px / 500
 							</p>
-							<p className="font-medium font-serif text-2xl leading-tight">
-								Sub 24px / 1.20
+							<p className="font-medium text-lg tracking-tight">
+								h2 18px / 500
 							</p>
-							<p className="font-serif text-base leading-relaxed">
-								Body serif 16px / 1.60 — usar em passagens editoriais ou copy
-								mais longa que pede gravidade tipográfica.
+							<p className="font-semibold text-sm uppercase tracking-wider">
+								h3 14px caps · section marker
+							</p>
+							<p className="font-medium text-base">
+								Title prominent 16px — card titles em listas
+							</p>
+							<p className="text-sm leading-relaxed">
+								Body 14px / 1.625 — baseline do dashboard. Equipe lê tudo.
+							</p>
+							<p className="text-muted-foreground text-xs">
+								Caption 12px — metadata, helpers, footers de tabela.
+							</p>
+							<p className="font-mono text-xs">
+								Mono 12px — SKU, IDs, atalhos, valores literais.
 							</p>
 						</div>
 					</Showcase>
-					<Showcase label="Sans (UI)">
-						<div className="flex w-full flex-col gap-2">
-							<p className="text-base leading-relaxed">
-								Body 16px — texto padrão de UI.
+					<Showcase label="Serif (uso restrito)">
+						<div className="flex w-full flex-col gap-3">
+							<p className="font-medium font-serif text-3xl leading-tight">
+								Cormorant 30px — login hero
 							</p>
-							<p className="text-sm leading-relaxed">
-								Small 14px — descrição secundária e helper text.
-							</p>
-							<p className="text-muted-foreground text-xs">
-								Caption 12px — metadata e legendas discretas.
-							</p>
-							<p className="font-mono text-xs">
-								mono 12px — códigos, IDs, atalhos.
+							<p className="font-serif text-base leading-relaxed">
+								Body serif 16px / 1.60 — capa de relatório impresso, momento
+								editorial discreto. Nunca no chrome do dashboard.
 							</p>
 						</div>
 					</Showcase>
 				</Section>
 
 				<Section
-					description="Anthropic dark — surface-dark + coral. 5 níveis de elevação distintos."
+					description="Industrial neutrals warm (chroma 70°) + 6 roles cromáticas distintas (≥20° de hue entre vizinhas). Cada role reconhecível à distância."
 					id="paleta"
 					title="Paleta"
 				>
+					<div className="mb-3 font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+						Surfaces (escuro → claro)
+					</div>
 					<div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-						<Swatch className="bg-background" hex="#181715" name="background" />
-						<Swatch className="bg-muted" hex="#1f1e1b" name="muted" />
-						<Swatch className="bg-card" hex="#252320" name="card / popover" />
-						<Swatch className="bg-border" hex="#2a2825" name="border / input" />
-						<Swatch className="bg-secondary" hex="#3d3d3a" name="secondary" />
+						<Swatch className="bg-sidebar" hex="#171612" name="sidebar" />
+						<Swatch className="bg-background" hex="#1d1b18" name="background" />
+						<Swatch className="bg-muted" hex="#221f1c" name="muted" />
+						<Swatch
+							className="bg-card"
+							hex="#262320"
+							name="card / popover / accent"
+						/>
+						<Swatch className="bg-border" hex="#4a4641" name="border" />
+						<Swatch className="bg-input" hex="#57524c" name="input" />
+						<Swatch className="bg-secondary" hex="#5c554d" name="secondary" />
+						<Swatch className="bg-foreground" hex="#fefefe" name="foreground" />
+					</div>
+
+					<div className="mt-6 mb-3 font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+						Roles cromáticos (6 distintos por hue)
+					</div>
+					<div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
 						<Swatch
 							className="bg-primary"
-							hex="#cc785c"
-							name="primary (coral)"
-						/>
-						<Swatch
-							className="bg-primary-foreground"
-							hex="#ffffff"
-							name="primary-fg"
+							hex="#c2724a"
+							name="primary · copper · 45°"
 						/>
 						<Swatch
 							className="bg-destructive"
-							hex="#c64545"
-							name="destructive"
+							hex="#c25240"
+							name="destructive · oxide · 25°"
 						/>
-						<Swatch className="bg-foreground" hex="#faf9f5" name="foreground" />
 						<Swatch
-							className="bg-muted-foreground"
-							hex="#a09d96"
-							name="muted-fg"
+							className="bg-warning"
+							hex="#cfa845"
+							name="warning · mustard · 85°"
 						/>
-						<Swatch className="bg-accent" hex="#252320" name="accent" />
-						<Swatch className="bg-popover" hex="#252320" name="popover" />
+						<Swatch
+							className="bg-info"
+							hex="#5da8ac"
+							name="info · teal · 200°"
+						/>
+						<Swatch
+							className="bg-success"
+							hex="#3fa580"
+							name="success · jade · 155°"
+						/>
+						<Swatch
+							className="bg-secondary"
+							hex="#5c554d"
+							name="secondary · graphite · 70°"
+						/>
 					</div>
 				</Section>
 
 				<Section
-					description="6 variants × 5 tamanhos. Brand CTA = variant default (coral)."
+					description="9 variants × 6 tamanhos. CTA primário = default (copper). Cada role saturada (destructive/warning/info/success) traz focus ring na própria cor."
 					id="buttons"
 					title="Buttons"
 				>
@@ -238,6 +268,9 @@ export default function DesignPage() {
 						<Button variant="outline">outline</Button>
 						<Button variant="ghost">ghost</Button>
 						<Button variant="destructive">destructive</Button>
+						<Button variant="warning">warning</Button>
+						<Button variant="info">info</Button>
+						<Button variant="success">success</Button>
 						<Button variant="link">link</Button>
 					</Showcase>
 					<Showcase label="sizes">
@@ -258,13 +291,38 @@ export default function DesignPage() {
 					</Showcase>
 				</Section>
 
-				<Section id="badges" title="Badges">
+				<Section
+					description="Mesmo conjunto de roles do Button. Status sempre = ícone + label + cor (color-blind safe)."
+					id="badges"
+					title="Badges"
+				>
 					<Showcase label="variants">
 						<Badge>default</Badge>
 						<Badge variant="secondary">secondary</Badge>
 						<Badge variant="outline">outline</Badge>
 						<Badge variant="destructive">destructive</Badge>
+						<Badge variant="warning">warning</Badge>
+						<Badge variant="info">info</Badge>
+						<Badge variant="success">success</Badge>
 						<Badge variant="ghost">ghost</Badge>
+					</Showcase>
+					<Showcase label="status com ícone (recomendado)">
+						<Badge variant="warning">
+							<AlertCircleIcon />
+							Estoque baixo
+						</Badge>
+						<Badge variant="success">
+							<BoxIcon />
+							Entregue
+						</Badge>
+						<Badge variant="info">
+							<MailIcon />
+							Aguardando NF
+						</Badge>
+						<Badge variant="destructive">
+							<AlertCircleIcon />
+							Cancelado
+						</Badge>
 					</Showcase>
 				</Section>
 
@@ -445,13 +503,44 @@ export default function DesignPage() {
 					</div>
 				</Section>
 
-				<Section id="alert" title="Alert">
+				<Section
+					description="bg-card sempre — texto carrega cor da role. Mantém legibilidade em dark sem fill saturado dominante."
+					id="alert"
+					title="Alert"
+				>
 					<Showcase label="default">
 						<Alert>
 							<BoxIcon />
 							<AlertTitle>Sincronização concluída</AlertTitle>
 							<AlertDescription>
 								102 produtos atualizados a partir do CSV de fornecedor.
+							</AlertDescription>
+						</Alert>
+					</Showcase>
+					<Showcase label="info">
+						<Alert variant="info">
+							<MailIcon />
+							<AlertTitle>Aguardando emissão de NF</AlertTitle>
+							<AlertDescription>
+								Pedido pago. NF será emitida no próximo lote.
+							</AlertDescription>
+						</Alert>
+					</Showcase>
+					<Showcase label="success">
+						<Alert variant="success">
+							<BoxIcon />
+							<AlertTitle>Estoque atualizado</AlertTitle>
+							<AlertDescription>
+								Movimento de 24 unidades registrado em FIL-SP.
+							</AlertDescription>
+						</Alert>
+					</Showcase>
+					<Showcase label="warning">
+						<Alert variant="warning">
+							<AlertCircleIcon />
+							<AlertTitle>Estoque abaixo do reorder</AlertTitle>
+							<AlertDescription>
+								12 ferramentas em ponto de pedido. Acionar fornecedor.
 							</AlertDescription>
 						</Alert>
 					</Showcase>
@@ -697,11 +786,12 @@ export default function DesignPage() {
 						<code className="font-mono">Collapsible</code>.
 					</p>
 					<p className="mt-2">
-						Tema: dark warm. Source de tokens:{" "}
+						Sistema: industrial dark warm + 6 roles. Tokens:{" "}
 						<code className="font-mono">
 							packages/ui/src/styles/globals.css
 						</code>
-						.
+						. Voz e princípios: <code className="font-mono">DESIGN.md</code> +{" "}
+						<code className="font-mono">PRODUCT.md</code>.
 					</p>
 				</footer>
 			</div>

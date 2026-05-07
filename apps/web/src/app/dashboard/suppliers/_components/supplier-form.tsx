@@ -11,8 +11,21 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
 
+import {
+	FormErrorPanel,
+	type FormIssue,
+	zodIssuesToFormIssues,
+} from "@/components/form-error-panel";
+
 import { createSupplier, updateSupplier } from "../actions";
 import { type SupplierFormValues, supplierSchema } from "./supplier-schema";
+
+const FIELD_LABELS: Record<string, string> = {
+	name: "Nome",
+	contactEmail: "E-mail",
+	phone: "Telefone",
+	notes: "Observações",
+};
 
 interface SupplierFormProps {
 	defaultValues: Partial<SupplierFormValues>;
@@ -67,10 +80,12 @@ export function SupplierForm({
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof SupplierFormValues, string>>
 	>({});
+	const [formIssues, setFormIssues] = useState<FormIssue[]>([]);
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setErrors({});
+		setFormIssues([]);
 
 		const parsed = supplierSchema.safeParse({
 			name,
@@ -81,6 +96,11 @@ export function SupplierForm({
 
 		if (!parsed.success) {
 			setErrors(zodErrorsToFieldMap(parsed.error));
+			const issues = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
+			setFormIssues(issues);
+			toast.error(
+				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
+			);
 			return;
 		}
 
@@ -108,6 +128,7 @@ export function SupplierForm({
 			className="flex w-full max-w-2xl flex-col gap-6"
 			onSubmit={handleSubmit}
 		>
+			<FormErrorPanel issues={formIssues} />
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas
@@ -119,6 +140,8 @@ export function SupplierForm({
 						<span className="text-destructive"> *</span>
 					</Label>
 					<Input
+						aria-invalid={errors.name ? true : undefined}
+						aria-required="true"
 						disabled={isPending}
 						id="supplier-name"
 						onChange={(event) => setName(event.target.value)}

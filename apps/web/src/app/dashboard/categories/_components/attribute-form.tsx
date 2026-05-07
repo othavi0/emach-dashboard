@@ -18,6 +18,8 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
 
+import { FormErrorPanel } from "@/components/form-error-panel";
+
 import {
 	createCategoryAttribute,
 	updateCategoryAttribute,
@@ -28,6 +30,7 @@ import {
 	type AttributeFormValues,
 	attributeFormSchema,
 	slugifyLabel,
+	validateSlugFormat,
 } from "../_lib/attribute-schema";
 
 interface AttributeFormProps {
@@ -166,22 +169,7 @@ export function AttributeForm({
 
 	return (
 		<form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-			{allIssues.length > 0 && (
-				<div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-destructive">
-					<p className="font-semibold text-xs">
-						{allIssues.length === 1
-							? "1 erro impede salvar:"
-							: `${allIssues.length} erros impedem salvar:`}
-					</p>
-					<ul className="mt-2 list-disc pl-5 text-xs">
-						{allIssues.map((issue, idx) => (
-							<li key={`${issue.path}-${idx}`}>
-								<strong>{issue.path}:</strong> {issue.message}
-							</li>
-						))}
-					</ul>
-				</div>
-			)}
+			<FormErrorPanel issues={allIssues} />
 
 			<div className="flex flex-col gap-2">
 				<Label htmlFor="label">
@@ -189,6 +177,8 @@ export function AttributeForm({
 					<span className="text-destructive"> *</span>
 				</Label>
 				<Input
+					aria-invalid={errors.label ? true : undefined}
+					aria-required="true"
 					id="label"
 					onChange={(e) => {
 						const v = e.target.value;
@@ -211,8 +201,16 @@ export function AttributeForm({
 					<span className="text-destructive"> *</span>
 				</Label>
 				<Input
+					aria-invalid={errors.slug ? true : undefined}
+					aria-required="true"
 					disabled={mode === "create"}
 					id="slug"
+					onBlur={() => {
+						if (mode === "edit") {
+							const err = validateSlugFormat(values.slug);
+							setErrors((prev) => ({ ...prev, slug: err ?? undefined }));
+						}
+					}}
 					onChange={(e) => update("slug", e.target.value)}
 					placeholder="rpm-maximo"
 					value={values.slug}
