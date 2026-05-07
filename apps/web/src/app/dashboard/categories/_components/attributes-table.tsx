@@ -11,6 +11,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
+import { Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { ATTRIBUTE_INPUT_TYPE_LABELS } from "../_lib/attribute-schema";
@@ -82,12 +83,13 @@ export function OwnAttributesTable({
 							<div className="flex justify-end gap-1">
 								{canUpdate && (
 									<Button
+										aria-label={`Editar atributo ${def.label}`}
 										onClick={() => onEdit(def)}
-										size="sm"
+										size="icon-sm"
 										type="button"
-										variant="ghost"
+										variant="secondary"
 									>
-										Editar
+										<Pencil aria-hidden className="size-3.5" />
 									</Button>
 								)}
 								{canDelete && (
