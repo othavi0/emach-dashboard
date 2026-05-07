@@ -11,62 +11,71 @@
 	/* Radius — base unit 8px; components opt into rounded individually */
 	--radius: 0.5rem;
 
-	/* Base surface — surface-dark (#181715) — page floor */
-	--background: oklch(0.16 0.004 70);
-	--foreground: oklch(0.97 0.008 85); /* on-dark #faf9f5 */
+	/* === Surfaces (warm-dark, industrial neutrals) === */
+	/* Page floor */
+	--background: oklch(0.16 0.005 70);
+	--foreground: oklch(0.97 0.008 85);
 
-	/* Card — surface-dark-elevated (#252320) */
-	--card: oklch(0.21 0.005 70);
-	--card-foreground: oklch(0.97 0.008 85);
-
-	/* Popover — same elevation as card */
-	--popover: oklch(0.21 0.005 70);
-	--popover-foreground: oklch(0.97 0.008 85);
-
-	/* Primary — Coral (#cc785c), Anthropic brand voltage */
-	--primary: oklch(0.62 0.12 38);
-	--primary-foreground: oklch(1 0 0); /* on-primary #ffffff */
-
-	/* Secondary — body strong tone (#3d3d3a), used for emphasized surfaces */
-	--secondary: oklch(0.32 0.005 70);
-	--secondary-foreground: oklch(0.97 0.008 85);
-
-	/* Muted — surface-dark-soft (#1f1e1b) — inset surfaces (tracks, code blocks, skeletons) */
+	/* Inset surface (tracks, skeletons, code blocks) */
 	--muted: oklch(0.18 0.004 70);
-	--muted-foreground: oklch(0.66 0.008 75); /* on-dark-soft #a09d96 */
+	--muted-foreground: oklch(0.7 0.01 75);
 
-	/* Accent — same elevation as card; emphasis via state, not bg shift */
-	--accent: oklch(0.21 0.005 70);
+	/* Elevated surface (cards, popovers, dialogs) */
+	--card: oklch(0.2 0.005 70);
+	--card-foreground: oklch(0.97 0.008 85);
+	--popover: oklch(0.2 0.005 70);
+	--popover-foreground: oklch(0.97 0.008 85);
+	--accent: oklch(0.2 0.005 70);
 	--accent-foreground: oklch(0.97 0.008 85);
 
-	/* Destructive — error (#c64545) */
-	--destructive: oklch(0.56 0.17 22);
-	--destructive-foreground: oklch(1 0 0); /* white */
+	/* Borders & inputs (1 step apart) */
+	--border: oklch(0.36 0.008 70);
+	--input: oklch(0.42 0.01 70);
 
-	/* Borders — visible hairline (~#3d3d3a), distinguíveis sobre background e card */
-	--border: oklch(0.32 0.006 70);
-	/* Input — borda ligeiramente mais forte (~#48464a) — affordance de interatividade */
-	--input: oklch(0.36 0.006 70);
+	/* Secondary surface (emphasized buttons, neutral badges) */
+	--secondary: oklch(0.42 0.02 70);
+	--secondary-foreground: oklch(0.97 0.008 85);
 
-	/* Ring — coral 40% alpha; */
-	--ring: oklch(0.62 0.12 38 / 0.4);
+	/* === Brand & semantic roles === */
+	/* Primary — Copper / Burnt (hue 45, oxidized, distinct from coral) */
+	--primary: oklch(0.65 0.15 45);
+	--primary-foreground: oklch(0.99 0 0);
 
-	/* Chart — warm palette anchored on coral, zero cool blues */
-	--chart-1: oklch(0.62 0.12 38); /* Coral primary */
-	--chart-2: oklch(0.66 0.08 75); /* Accent amber-ish */
-	--chart-3: oklch(0.55 0.06 175); /* Accent teal (#5db8a6) */
-	--chart-4: oklch(0.66 0.008 75); /* on-dark-soft */
-	--chart-5: oklch(0.32 0.005 70); /* secondary */
+	/* Destructive — Oxide red (hue 25, distinct from primary copper) */
+	--destructive: oklch(0.55 0.2 25);
+	--destructive-foreground: oklch(0.99 0 0);
 
-	/* Sidebar — slightly darker than background for hierarchy */
+	/* Warning — Mustard (hue 85, dark fg per AAA contrast) */
+	--warning: oklch(0.78 0.15 85);
+	--warning-foreground: oklch(0.16 0.005 70);
+
+	/* Info — Teal (hue 200, único frio permitido) */
+	--info: oklch(0.65 0.1 200);
+	--info-foreground: oklch(0.99 0 0);
+
+	/* Success — Jade (hue 155) */
+	--success: oklch(0.62 0.13 155);
+	--success-foreground: oklch(0.99 0 0);
+
+	/* Ring — primary 55% alpha; ring-2 sólido */
+	--ring: oklch(0.65 0.15 45 / 0.55);
+
+	/* === Charts (5 séries, anchored on copper) === */
+	--chart-1: oklch(0.65 0.15 45); /* Copper primary */
+	--chart-2: oklch(0.78 0.15 85); /* Warning mustard */
+	--chart-3: oklch(0.65 0.1 200); /* Info teal */
+	--chart-4: oklch(0.62 0.13 155); /* Success jade */
+	--chart-5: oklch(0.55 0.2 25); /* Destructive oxide */
+
+	/* === Sidebar === */
 	--sidebar: oklch(0.13 0.004 70);
 	--sidebar-foreground: oklch(0.97 0.008 85);
-	--sidebar-primary: oklch(0.62 0.12 38);
-	--sidebar-primary-foreground: oklch(1 0 0);
-	--sidebar-accent: oklch(0.21 0.005 70);
+	--sidebar-primary: oklch(0.65 0.15 45);
+	--sidebar-primary-foreground: oklch(0.99 0 0);
+	--sidebar-accent: oklch(0.2 0.005 70);
 	--sidebar-accent-foreground: oklch(0.97 0.008 85);
-	--sidebar-border: oklch(0.32 0.006 70);
-	--sidebar-ring: oklch(0.62 0.12 38 / 0.4);
+	--sidebar-border: oklch(0.36 0.008 70);
+	--sidebar-ring: oklch(0.65 0.15 45 / 0.55);
 }
 
 @theme inline {
@@ -90,6 +99,12 @@
 	--color-border: var(--border);
 	--color-destructive: var(--destructive);
 	--color-destructive-foreground: var(--destructive-foreground);
+	--color-warning: var(--warning);
+	--color-warning-foreground: var(--warning-foreground);
+	--color-info: var(--info);
+	--color-info-foreground: var(--info-foreground);
+	--color-success: var(--success);
+	--color-success-foreground: var(--success-foreground);
 	--color-accent-foreground: var(--accent-foreground);
 	--color-accent: var(--accent);
 	--color-muted-foreground: var(--muted-foreground);
@@ -130,9 +145,19 @@
 		outline-offset: 1px;
 	}
 
-	/* Scrollbar — alinhado ao DESIGN.md (warm dark, coral accent on hover).
-	   Aplicado globalmente em qualquer container scrollável (inclui ScrollArea
-	   do shadcn quando o nativo aparece, modais, sidebar, popovers). */
+	/* Reduced motion — kill transitions/animations quando user pediu. */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.001ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.001ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+
+	/* Scrollbar — warm dark, primary accent on active. */
 
 	/* Firefox */
 	* {
@@ -140,7 +165,7 @@
 		scrollbar-width: thin;
 	}
 
-	/* WebKit / Blink (Chrome, Safari, Edge) */
+	/* WebKit / Blink */
 	*::-webkit-scrollbar {
 		width: 10px;
 		height: 10px;
@@ -167,7 +192,6 @@
 		background: transparent;
 	}
 
-	/* Mobile / dense areas — scrollbar mais fina */
 	@media (max-width: 640px) {
 		*::-webkit-scrollbar {
 			width: 6px;
