@@ -14,7 +14,7 @@ export function Section({
 	return (
 		<section className="border-border border-t py-12" id={id}>
 			<header className="mb-6">
-				<h2 className="font-medium font-serif text-3xl leading-tight tracking-tight">
+				<h2 className="font-medium font-sans text-2xl leading-tight tracking-tight">
 					{title}
 				</h2>
 				{description ? (

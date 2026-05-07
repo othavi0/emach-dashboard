@@ -118,7 +118,7 @@ export default function DesignPage() {
 					<p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
 						/design
 					</p>
-					<h1 className="mt-2 font-medium font-serif text-5xl leading-[1.1] tracking-tight">
+					<h1 className="mt-2 font-medium font-sans text-5xl leading-[1.1] tracking-tight">
 						Design system — emach
 					</h1>
 					<p className="mt-3 max-w-2xl text-muted-foreground text-sm leading-relaxed">
