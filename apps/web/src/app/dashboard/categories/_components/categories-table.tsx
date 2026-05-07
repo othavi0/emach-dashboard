@@ -56,7 +56,7 @@ export function CategoriesTable({
 							<code className="text-xs">{c.path}</code>
 						</TableCell>
 						<TableCell>
-							<Badge variant={c.isActive ? "default" : "outline"}>
+							<Badge variant={c.isActive ? "success" : "outline"}>
 								{c.isActive ? "Ativa" : "Inativa"}
 							</Badge>
 						</TableCell>

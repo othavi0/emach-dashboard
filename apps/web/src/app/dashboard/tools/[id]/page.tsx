@@ -38,9 +38,9 @@ import { getToolReviewsSummary } from "./_lib/reviews-data";
 
 const STATUS_BADGE_VARIANT: Record<
 	ToolStatusValue,
-	"default" | "secondary" | "outline" | "destructive"
+	"destructive" | "outline" | "secondary" | "success"
 > = {
-	active: "default",
+	active: "success",
 	draft: "secondary",
 	discontinued: "outline",
 	out_of_stock: "destructive",
@@ -271,7 +271,7 @@ export default async function ToolDetailPage({ params }: PageProps) {
 										row.status}
 								</Badge>
 								<span className="ml-2">Visível no site:</span>
-								<Badge variant={row.visibleOnSite ? "default" : "outline"}>
+								<Badge variant={row.visibleOnSite ? "success" : "outline"}>
 									{row.visibleOnSite ? "Sim" : "Não"}
 								</Badge>
 							</span>

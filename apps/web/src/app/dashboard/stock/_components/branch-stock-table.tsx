@@ -34,7 +34,7 @@ function StockStatusBadge({
 		return <Badge variant="destructive">Crítico</Badge>;
 	}
 	if (reorderPoint > 0 && quantity > minQty && quantity <= reorderPoint) {
-		return <Badge variant="secondary">Repor</Badge>;
+		return <Badge variant="warning">Repor</Badge>;
 	}
 	return null;
 }
