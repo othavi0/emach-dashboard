@@ -17,9 +17,9 @@ import { TOOL_STATUS_LABELS, type ToolStatusValue } from "./tool-schema";
 
 const STATUS_BADGE_VARIANT: Record<
 	ToolStatusValue,
-	"default" | "secondary" | "destructive" | "outline"
+	"destructive" | "outline" | "secondary" | "success"
 > = {
-	active: "default",
+	active: "success",
 	draft: "secondary",
 	discontinued: "outline",
 	out_of_stock: "destructive",
@@ -116,7 +116,7 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 							</Badge>
 						</TableCell>
 						<TableCell>
-							<Badge variant={t.visibleOnSite ? "default" : "outline"}>
+							<Badge variant={t.visibleOnSite ? "success" : "outline"}>
 								{t.visibleOnSite ? "Visível" : "Oculto"}
 							</Badge>
 						</TableCell>

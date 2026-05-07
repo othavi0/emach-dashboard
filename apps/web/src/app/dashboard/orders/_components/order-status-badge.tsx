@@ -4,13 +4,13 @@ import { ORDER_STATUS_LABELS, type OrderStatus } from "../status-meta";
 
 const STATUS_VARIANTS: Record<
 	OrderStatus,
-	"default" | "destructive" | "outline" | "secondary"
+	"destructive" | "info" | "success" | "warning"
 > = {
-	pending_payment: "outline",
-	paid: "secondary",
-	preparing: "default",
-	shipped: "secondary",
-	delivered: "default",
+	pending_payment: "warning",
+	paid: "success",
+	preparing: "info",
+	shipped: "info",
+	delivered: "success",
 	canceled: "destructive",
 	refunded: "destructive",
 };

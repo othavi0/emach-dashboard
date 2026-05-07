@@ -4,11 +4,11 @@ import { REVIEW_STATUS_LABELS, type ReviewStatus } from "../data";
 
 const STATUS_VARIANTS: Record<
 	ReviewStatus,
-	"default" | "destructive" | "outline" | "secondary"
+	"destructive" | "success" | "warning"
 > = {
-	pending: "outline",
-	approved: "default",
-	rejected: "secondary",
+	pending: "warning",
+	approved: "success",
+	rejected: "destructive",
 	spam: "destructive",
 };
 

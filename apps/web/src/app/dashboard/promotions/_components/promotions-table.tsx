@@ -122,7 +122,7 @@ export function PromotionsTable({
 					<TableRow key={p.id}>
 						<TableCell>
 							{p.type === "promocode" ? (
-								<Badge variant="secondary">Cupom</Badge>
+								<Badge variant="info">Cupom</Badge>
 							) : (
 								<Badge variant="outline">Automática</Badge>
 							)}
@@ -140,7 +140,7 @@ export function PromotionsTable({
 
 						<TableCell>
 							{isPromotionActive(p) ? (
-								<Badge variant="default">Ativa</Badge>
+								<Badge variant="success">Ativa</Badge>
 							) : (
 								<Badge variant="outline">Inativa</Badge>
 							)}

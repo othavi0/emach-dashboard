@@ -25,10 +25,10 @@ const REVIEW_STATUS_LABEL: Record<string, string> = {
 
 const REVIEW_STATUS_VARIANT: Record<
 	string,
-	"default" | "secondary" | "destructive" | "outline"
+	"destructive" | "success" | "warning"
 > = {
-	pending: "secondary",
-	approved: "default",
+	pending: "warning",
+	approved: "success",
 	rejected: "destructive",
 	spam: "destructive",
 };
@@ -115,9 +115,7 @@ export function ToolReviewsSection({
 									{r.title && (
 										<span className="font-medium text-sm">{r.title}</span>
 									)}
-									<Badge
-										variant={REVIEW_STATUS_VARIANT[r.status] ?? "secondary"}
-									>
+									<Badge variant={REVIEW_STATUS_VARIANT[r.status] ?? "warning"}>
 										{REVIEW_STATUS_LABEL[r.status] ?? r.status}
 									</Badge>
 									<span className="ml-auto text-muted-foreground text-xs">
