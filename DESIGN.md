@@ -116,6 +116,19 @@ Todos compartilham focus state idêntico: `focus-visible:border-ring focus-visib
 
 Sizes: `xs / sm / default / lg / icon / icon-xs / icon-sm / icon-lg`.
 
+### Listing row actions
+
+Tabelas de listagem (`/dashboard/<recurso>` com tabela de itens) usam **botões-ícone** uniformes para ações inline em cada linha:
+
+| Ação | Trigger | Variant | Size | Icon (lucide-react) |
+|---|---|---|---|---|
+| Editar | `<Link>` ou `<Button>` | `secondary` | `icon-sm` | `Pencil` (`size-3.5`) |
+| Remover | `<AlertDialogTrigger>` com `<Button>` | `destructive` | `icon-sm` | `Trash2` (`size-3.5`) |
+
+Sempre incluir `aria-label` descritivo no trigger (ex: `Editar promoção ${title}`) — texto visível é só o ícone. `aria-hidden` no SVG. Mantém densidade da tabela e legibilidade da coluna Ações sem overlap em viewports estreitos.
+
+Implementação canônica: `apps/web/src/app/dashboard/promotions/_components/promotions-table.tsx` + `delete-promotion-dialog.tsx`.
+
 ### Badges
 
 `packages/ui/src/components/badge.tsx`. Mesmo conjunto de variants do Button — `default / secondary / destructive / warning / info / success / outline / ghost / link`. Use a role apropriada ao estado:

@@ -13,6 +13,7 @@ import {
 } from "@emach/ui/components/alert-dialog";
 import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
+import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -48,8 +49,11 @@ export function DeleteSupplierDialog({
 
 	return (
 		<AlertDialog onOpenChange={setOpen} open={open}>
-			<AlertDialogTrigger render={<Button size="sm" variant="ghost" />}>
-				Remover
+			<AlertDialogTrigger
+				aria-label={`Remover fornecedor ${supplierName}`}
+				render={<Button size="icon-sm" variant="destructive" />}
+			>
+				<Trash2 aria-hidden className="size-3.5" />
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>

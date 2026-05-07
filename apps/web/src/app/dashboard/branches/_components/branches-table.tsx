@@ -9,6 +9,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
+import { Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { DeleteBranchDialog } from "./delete-branch-dialog";
@@ -70,13 +71,14 @@ export function BranchesTable({ branches, canMutate }: BranchesTableProps) {
 								{canMutate && (
 									<>
 										<Link
+											aria-label={`Editar filial ${b.name}`}
 											className={buttonVariants({
-												variant: "ghost",
-												size: "sm",
+												size: "icon-sm",
+												variant: "secondary",
 											})}
 											href={`/dashboard/branches/${b.id}/edit`}
 										>
-											Editar
+											<Pencil aria-hidden className="size-3.5" />
 										</Link>
 										<DeleteBranchDialog branchId={b.id} branchName={b.name} />
 									</>
