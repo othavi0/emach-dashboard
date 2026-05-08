@@ -31,23 +31,32 @@ export type ActionResult<T = undefined> =
 	| { ok: true; data: T }
 	| { ok: false; error: string };
 
+export type PromotionStatus = "active" | "scheduled" | "expired" | "inactive";
+
 export interface PromotionToolItem {
 	id: string;
 	name: string;
+	sku: string | null;
+	slug: string | null;
+	thumbUrl: string | null;
 }
 
 export interface PromotionListItem {
 	active: boolean;
 	code: string | null;
 	createdAt: Date;
+	createdByName: string | null;
 	description: string | null;
 	discountPct: string;
 	endsAt: Date | null;
 	id: string;
 	startsAt: Date | null;
+	status: PromotionStatus;
 	title: string;
 	tools: PromotionToolItem[];
 	type: string;
+	updatedAt: Date;
+	updatedByName: string | null;
 }
 
 export interface PromotionDetail extends PromotionListItem {
@@ -145,12 +154,42 @@ async function assertNoStackingConflict(
 	}
 }
 
+function computeStatus(p: {
+	active: boolean;
+	startsAt: Date | null;
+	endsAt: Date | null;
+}): PromotionStatus {
+	const now = new Date();
+	if (p.endsAt && p.endsAt < now) {
+		return "expired";
+	}
+	if (!p.active) {
+		return "inactive";
+	}
+	if (p.startsAt && p.startsAt > now) {
+		return "scheduled";
+	}
+	return "active";
+}
+
 // ---------------------------------------------------------------------------
 // listPromotions — requires authenticated session
 // ---------------------------------------------------------------------------
 
+export type PromotionSort =
+	| "createdDesc"
+	| "createdAsc"
+	| "discountDesc"
+	| "discountAsc"
+	| "endsAtAsc";
+
 export interface ListPromotionsOptions {
+	discountMax?: number;
+	discountMin?: number;
 	search?: string;
+	sort?: PromotionSort;
+	status?: PromotionStatus | "all";
+	toolId?: string;
 	type?: "promotion" | "promocode" | "all";
 }
 
@@ -159,12 +198,31 @@ export async function listPromotions(
 ): Promise<PromotionListItem[]> {
 	await requireCurrentSession();
 
-	const { type = "all", search } = options;
+	const {
+		type = "all",
+		search,
+		status = "all",
+		toolId,
+		discountMin,
+		discountMax,
+		sort = "createdDesc",
+	} = options;
 
 	const rows = await db.query.promotion.findMany({
-		where: (p, { and: qAnd, eq: qEq, or: qOr, ilike: qIlike }) => {
-			const filters: (ReturnType<typeof qEq> | ReturnType<typeof qIlike>)[] =
-				[];
+		where: (
+			p,
+			{
+				and: qAnd,
+				eq: qEq,
+				or: qOr,
+				ilike: qIlike,
+				gte: qGte,
+				lte: qLte,
+				sql: qSql,
+				inArray: qInArray,
+			}
+		) => {
+			const filters: unknown[] = [];
 
 			if (type !== "all") {
 				filters.push(qEq(p.type, type));
@@ -172,44 +230,126 @@ export async function listPromotions(
 
 			if (search && search.trim() !== "") {
 				const term = `%${search.trim()}%`;
+				filters.push(qOr(qIlike(p.title, term), qIlike(p.code as never, term)));
+			}
+
+			if (typeof discountMin === "number") {
+				filters.push(qGte(p.discountPct, String(discountMin)));
+			}
+			if (typeof discountMax === "number") {
+				filters.push(qLte(p.discountPct, String(discountMax)));
+			}
+
+			if (toolId && UUID_RE.test(toolId)) {
 				filters.push(
-					qOr(qIlike(p.title, term), qIlike(p.code as never, term)) as never
+					qInArray(
+						p.id,
+						db
+							.select({ pid: promotionTool.promotionId })
+							.from(promotionTool)
+							.where(eq(promotionTool.toolId, toolId))
+					)
 				);
 			}
 
-			return filters.length > 0 ? qAnd(...(filters as [never])) : undefined;
+			if (status !== "all") {
+				switch (status) {
+					case "expired":
+						filters.push(qSql`${p.endsAt} < now()`);
+						break;
+					case "scheduled":
+						filters.push(
+							qSql`${p.active} = true AND ${p.startsAt} > now() AND (${p.endsAt} IS NULL OR ${p.endsAt} >= now())`
+						);
+						break;
+					case "active":
+						filters.push(
+							qSql`${p.active} = true AND (${p.startsAt} IS NULL OR ${p.startsAt} <= now()) AND (${p.endsAt} IS NULL OR ${p.endsAt} >= now())`
+						);
+						break;
+					case "inactive":
+						filters.push(
+							qSql`${p.active} = false AND (${p.endsAt} IS NULL OR ${p.endsAt} >= now())`
+						);
+						break;
+					default:
+						break;
+				}
+			}
+
+			return filters.length > 0
+				? qAnd(...(filters as Parameters<typeof qAnd>))
+				: undefined;
 		},
-		orderBy: (p, { desc: qDesc, asc: qAsc }) => [
-			qDesc(p.createdAt),
-			qAsc(p.id),
-		],
+		orderBy: (p, { desc: qDesc, asc: qAsc }) => {
+			switch (sort) {
+				case "createdAsc":
+					return [qAsc(p.createdAt), qAsc(p.id)];
+				case "discountDesc":
+					return [qDesc(p.discountPct), qDesc(p.createdAt)];
+				case "discountAsc":
+					return [qAsc(p.discountPct), qDesc(p.createdAt)];
+				case "endsAtAsc":
+					return [qAsc(p.endsAt), qDesc(p.createdAt)];
+				default:
+					return [qDesc(p.createdAt), qAsc(p.id)];
+			}
+		},
 		with: {
+			createdByUser: { columns: { name: true } },
+			updatedByUser: { columns: { name: true } },
 			promotionTools: {
 				with: {
 					tool: {
-						columns: { id: true, name: true },
+						columns: { id: true, name: true, slug: true },
+						with: {
+							variants: true,
+							images: {
+								columns: { url: true, sortOrder: true },
+								orderBy: (img, { asc: qAsc }) => qAsc(img.sortOrder),
+								limit: 1,
+							},
+						},
 					},
 				},
 			},
 		},
 	});
 
-	return rows.map((row) => ({
-		id: row.id,
-		title: row.title,
-		description: row.description,
-		type: row.type,
-		code: row.code,
-		discountPct: row.discountPct,
-		active: row.active,
-		startsAt: row.startsAt,
-		endsAt: row.endsAt,
-		createdAt: row.createdAt,
-		tools: row.promotionTools.map((pt) => ({
-			id: pt.tool.id,
-			name: pt.tool.name,
-		})),
-	}));
+	return rows.map((row) => {
+		const tools: PromotionToolItem[] = row.promotionTools.map((pt) => {
+			const defaultVariant = pt.tool.variants.find((v) => v.isDefault);
+			return {
+				id: pt.tool.id,
+				name: pt.tool.name,
+				slug: pt.tool.slug,
+				sku: defaultVariant?.sku ?? null,
+				thumbUrl: pt.tool.images[0]?.url ?? null,
+			};
+		});
+
+		return {
+			id: row.id,
+			title: row.title,
+			description: row.description,
+			type: row.type,
+			code: row.code,
+			discountPct: row.discountPct,
+			active: row.active,
+			startsAt: row.startsAt,
+			endsAt: row.endsAt,
+			createdAt: row.createdAt,
+			updatedAt: row.updatedAt,
+			status: computeStatus({
+				active: row.active,
+				startsAt: row.startsAt,
+				endsAt: row.endsAt,
+			}),
+			createdByName: row.createdByUser?.name ?? null,
+			updatedByName: row.updatedByUser?.name ?? null,
+			tools,
+		};
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -228,10 +368,20 @@ export async function getPromotion(
 	const row = await db.query.promotion.findFirst({
 		where: (p, { eq: qEq }) => qEq(p.id, id),
 		with: {
+			createdByUser: { columns: { name: true } },
+			updatedByUser: { columns: { name: true } },
 			promotionTools: {
 				with: {
 					tool: {
-						columns: { id: true, name: true },
+						columns: { id: true, name: true, slug: true },
+						with: {
+							variants: true,
+							images: {
+								columns: { url: true, sortOrder: true },
+								orderBy: (img, { asc: qAsc }) => qAsc(img.sortOrder),
+								limit: 1,
+							},
+						},
 					},
 				},
 			},
@@ -242,10 +392,16 @@ export async function getPromotion(
 		return null;
 	}
 
-	const tools = row.promotionTools.map((pt) => ({
-		id: pt.tool.id,
-		name: pt.tool.name,
-	}));
+	const tools: PromotionToolItem[] = row.promotionTools.map((pt) => {
+		const defaultVariant = pt.tool.variants.find((v) => v.isDefault);
+		return {
+			id: pt.tool.id,
+			name: pt.tool.name,
+			slug: pt.tool.slug,
+			sku: defaultVariant?.sku ?? null,
+			thumbUrl: pt.tool.images[0]?.url ?? null,
+		};
+	});
 
 	return {
 		id: row.id,
@@ -258,6 +414,14 @@ export async function getPromotion(
 		startsAt: row.startsAt,
 		endsAt: row.endsAt,
 		createdAt: row.createdAt,
+		updatedAt: row.updatedAt,
+		status: computeStatus({
+			active: row.active,
+			startsAt: row.startsAt,
+			endsAt: row.endsAt,
+		}),
+		createdByName: row.createdByUser?.name ?? null,
+		updatedByName: row.updatedByUser?.name ?? null,
 		tools,
 		toolIds: tools.map((t) => t.id),
 	};
@@ -288,6 +452,8 @@ export async function createPromotion(
 	const data = parsed.data;
 	const newId = crypto.randomUUID();
 
+	const session = await requireCurrentSession();
+
 	// H1 fix: all checks + insert inside single transaction
 	try {
 		await db.transaction(async (tx) => {
@@ -309,6 +475,8 @@ export async function createPromotion(
 				active: data.active,
 				startsAt: data.startsAt ?? null,
 				endsAt: data.endsAt ?? null,
+				createdBy: session.user.id,
+				updatedBy: session.user.id,
 			});
 
 			if (data.toolIds.length > 0) {
@@ -359,6 +527,8 @@ export async function updatePromotion(
 
 	const data = parsed.data;
 
+	const session = await requireCurrentSession();
+
 	// H1 fix: all checks + update inside single transaction
 	try {
 		await db.transaction(async (tx) => {
@@ -381,6 +551,7 @@ export async function updatePromotion(
 					active: data.active,
 					startsAt: data.startsAt ?? null,
 					endsAt: data.endsAt ?? null,
+					updatedBy: session.user.id,
 				})
 				.where(eq(promotion.id, id));
 
@@ -431,4 +602,161 @@ export async function deletePromotion(
 
 	revalidatePath(PROMOTIONS_PATH);
 	return { ok: true, data: undefined };
+}
+
+// ---------------------------------------------------------------------------
+// togglePromotionActive — requires admin/manager (promotions.manage)
+// ---------------------------------------------------------------------------
+
+export async function togglePromotionActive(
+	id: string
+): Promise<ActionResult<{ active: boolean }>> {
+	try {
+		await requireCapability("promotions.manage");
+	} catch (error) {
+		return safeRequireRole(error);
+	}
+
+	if (!UUID_RE.test(id)) {
+		return { ok: false, error: "ID inválido" };
+	}
+
+	const session = await requireCurrentSession();
+
+	try {
+		const next = await db.transaction(async (tx) => {
+			const current = await tx
+				.select({ active: promotion.active, type: promotion.type })
+				.from(promotion)
+				.where(eq(promotion.id, id))
+				.limit(1);
+
+			if (current.length === 0 || !current[0]) {
+				conflict("Promoção não encontrada");
+			}
+			const row = current[0];
+			if (!row) {
+				conflict("Promoção não encontrada");
+			}
+
+			const nextActive = !row.active;
+
+			if (nextActive && row.type === "promotion") {
+				const tools = await tx
+					.select({ toolId: promotionTool.toolId })
+					.from(promotionTool)
+					.where(eq(promotionTool.promotionId, id));
+				const toolIds = tools.map((t) => t.toolId);
+				if (toolIds.length > 0) {
+					await assertNoStackingConflict(tx, toolIds, id);
+				}
+			}
+
+			await tx
+				.update(promotion)
+				.set({ active: nextActive, updatedBy: session.user.id })
+				.where(eq(promotion.id, id));
+
+			return nextActive;
+		});
+		revalidatePath(PROMOTIONS_PATH);
+		return { ok: true, data: { active: next } };
+	} catch (error) {
+		if (error instanceof Error && error.message.startsWith("CONFLICT:")) {
+			return { ok: false, error: error.message.slice(9) };
+		}
+		return { ok: false, error: dbErrorMessage(error) };
+	}
+}
+
+// ---------------------------------------------------------------------------
+// duplicatePromotion — requires admin/manager (promotions.manage)
+// ---------------------------------------------------------------------------
+
+export async function duplicatePromotion(
+	id: string
+): Promise<ActionResult<{ id: string }>> {
+	try {
+		await requireCapability("promotions.manage");
+	} catch (error) {
+		return safeRequireRole(error);
+	}
+
+	if (!UUID_RE.test(id)) {
+		return { ok: false, error: "ID inválido" };
+	}
+
+	const session = await requireCurrentSession();
+	const newId = crypto.randomUUID();
+
+	try {
+		await db.transaction(async (tx) => {
+			const src = await tx
+				.select()
+				.from(promotion)
+				.where(eq(promotion.id, id))
+				.limit(1);
+			if (src.length === 0 || !src[0]) {
+				conflict("Promoção não encontrada");
+			}
+			const p = src[0];
+			if (!p) {
+				conflict("Promoção não encontrada");
+			}
+
+			const baseTitle = `${p.title} (cópia)`;
+			let candidate = baseTitle;
+			let n = 2;
+			while (true) {
+				const exists = await tx
+					.select({ id: promotion.id })
+					.from(promotion)
+					.where(
+						and(eq(promotion.type, p.type), eq(promotion.title, candidate))
+					)
+					.limit(1);
+				if (exists.length === 0) {
+					break;
+				}
+				candidate = `${baseTitle} ${n}`;
+				n += 1;
+				if (n > 50) {
+					conflict("Não foi possível gerar título único para a cópia");
+				}
+			}
+
+			await tx.insert(promotion).values({
+				id: newId,
+				title: candidate,
+				description: p.description,
+				type: p.type,
+				code: null,
+				discountPct: p.discountPct,
+				active: false,
+				startsAt: null,
+				endsAt: null,
+				createdBy: session.user.id,
+				updatedBy: session.user.id,
+			});
+
+			const tools = await tx
+				.select({ toolId: promotionTool.toolId })
+				.from(promotionTool)
+				.where(eq(promotionTool.promotionId, id));
+
+			if (tools.length > 0) {
+				await tx
+					.insert(promotionTool)
+					.values(tools.map((t) => ({ promotionId: newId, toolId: t.toolId })));
+			}
+		});
+	} catch (error) {
+		if (error instanceof Error && error.message.startsWith("CONFLICT:")) {
+			return { ok: false, error: error.message.slice(9) };
+		}
+		return { ok: false, error: dbErrorMessage(error) };
+	}
+
+	revalidatePath(PROMOTIONS_PATH);
+	return { ok: true, data: { id: newId } };
 }
