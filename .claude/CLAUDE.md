@@ -3,6 +3,7 @@
 Monorepo Bun + Turborepo. Dashboard Next 16 / React 19 com auth dual (funcionários internos × clientes BR), Supabase Postgres + Drizzle, design system inspirado em Anthropic/Claude.
 
 > **Documentos referenciados (leia antes de tocar no domínio):**
+>
 > - `DESIGN.md` — sistema visual completo (paleta warm parchment + terracotta, Anthropic Serif, ring shadows). Toda mudança de UI deve seguir.
 > - `docs/auth/ecommerce-integration.md` — passo-a-passo + footguns para integrar o app ecomerce.
 > - `bts.jsonc` — origem do scaffold (Better-T-Stack), apenas histórico.
@@ -11,19 +12,19 @@ Monorepo Bun + Turborepo. Dashboard Next 16 / React 19 com auth dual (funcionár
 
 ## Stack
 
-| Camada | Versão | Onde |
-|---|---|---|
-| Runtime / package manager | Bun 1.3.11 | `package.json` (catalog) |
-| Build orquestrador | Turborepo 2.9.6 | `turbo.json` |
-| Frontend | Next 16.2 + React 19.2 | `apps/web` |
-| UI primitives | shadcn/ui + Tailwind 4.1 + Base UI React | `packages/ui` |
-| ORM | Drizzle 0.45 + node-postgres | `packages/db` |
-| DB | Supabase Postgres + Storage (`tool-images` bucket) | env: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_*` |
-| Auth | Better Auth 1.5.5 (dual instances) | `packages/auth` |
-| Markdown render | `react-markdown` + `rehype-sanitize` | `apps/web/src/components/tool-description.tsx` |
-| Env validation | `@t3-oss/env-core` + Zod | `packages/env` |
-| Linter / formatter | Biome 2.4.12 + Ultracite 7.6 | `biome.json` |
-| TypeScript | 6.0 (strict, noUncheckedIndexedAccess) | `packages/config/tsconfig.base.json` |
+| Camada                    | Versão                                             | Onde                                           |
+| ------------------------- | -------------------------------------------------- | ---------------------------------------------- |
+| Runtime / package manager | Bun 1.3.11                                         | `package.json` (catalog)                       |
+| Build orquestrador        | Turborepo 2.9.6                                    | `turbo.json`                                   |
+| Frontend                  | Next 16.2 + React 19.2                             | `apps/web`                                     |
+| UI primitives             | shadcn/ui + Tailwind 4.1 + Base UI React           | `packages/ui`                                  |
+| ORM                       | Drizzle 0.45 + node-postgres                       | `packages/db`                                  |
+| DB                        | Supabase Postgres + Storage (`tool-images` bucket) | env: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_*`  |
+| Auth                      | Better Auth 1.5.5 (dual instances)                 | `packages/auth`                                |
+| Markdown render           | `react-markdown` + `rehype-sanitize`               | `apps/web/src/components/tool-description.tsx` |
+| Env validation            | `@t3-oss/env-core` + Zod                           | `packages/env`                                 |
+| Linter / formatter        | Biome 2.4.12 + Ultracite 7.6                       | `biome.json`                                   |
+| TypeScript                | 6.0 (strict, noUncheckedIndexedAccess)             | `packages/config/tsconfig.base.json`           |
 
 IDs em server actions/scripts: **`crypto.randomUUID()`** (sem nanoid).
 
@@ -99,6 +100,7 @@ bun clean                          # remove node_modules + caches Turbo/Next
 Env de scripts em `packages/*/scripts/*` resolve `.env` via path múltiplo. Para rodar local: garantir `apps/web/.env` populado a partir de `apps/web/.env.example`.
 
 ### Drop & recreate em dev
+
 Se o schema diverge muito e drizzle-kit não consegue resolver renames (TTY prompt em CI):
 
 ```bash
@@ -110,6 +112,7 @@ Se o schema diverge muito e drizzle-kit não consegue resolver renames (TTY prom
 ⚠️ Só rodar em DB de dev. **Nunca** em staging/prod.
 
 ### Testes
+
 Não há suite ainda. Roadmap inclui Vitest (unit) + Playwright (E2E). Por ora, validação = `bun check-types` + `bun fix` + smoke manual em `bun dev:web`.
 
 ---
@@ -118,10 +121,10 @@ Não há suite ainda. Roadmap inclui Vitest (unit) + Playwright (E2E). Por ora, 
 
 Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, escopos disjuntos.
 
-| Instância | Import | Tabelas | Cookie prefix | trustedOrigins | Consumer |
-|---|---|---|---|---|---|
-| Dashboard (admin/manager/user) | `@emach/auth/dashboard` → `authDashboard`, `DashboardSession` | `user`, `session`, `account`, `verification` | default | `CORS_ORIGIN` | `apps/web` |
-| Ecomerce (clientes BR) | `@emach/auth/ecommerce` → `authEcommerce`, `EcommerceSession` | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | `ecommerce` | `ECOMMERCE_ORIGIN` | `apps/<futuro>` |
+| Instância                      | Import                                                        | Tabelas                                                                           | Cookie prefix | trustedOrigins     | Consumer        |
+| ------------------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------- | ------------------ | --------------- |
+| Dashboard (admin/manager/user) | `@emach/auth/dashboard` → `authDashboard`, `DashboardSession` | `user`, `session`, `account`, `verification`                                      | default       | `CORS_ORIGIN`      | `apps/web`      |
+| Ecomerce (clientes BR)         | `@emach/auth/ecommerce` → `authEcommerce`, `EcommerceSession` | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | `ecommerce`   | `ECOMMERCE_ORIGIN` | `apps/<futuro>` |
 
 **Invariantes (P0 — qualquer violação é bug crítico):**
 
@@ -140,22 +143,23 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 
 ## Schema Drizzle (`packages/db/src/schema/`)
 
-| Arquivo | Tabelas-chave | Notas |
-|---|---|---|
-| `auth.ts` | `user`, `session`, `account`, `verification` | `user.role` = `pgEnum('user_role', [...])`. |
-| `client.ts` | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | Campos BR (`country` default `"BR"`, `phone`, `document` unique nullable). |
-| `tools.ts` | `supplier`, `tool`, `toolVariant`, `toolImage` | `tool` enxuto (sem sku/voltage/price); SKU + voltagem + preço/custo + barcode vivem em `tool_variant`. `voltage` é `pgEnum('voltage', ['127V','220V','Bivolt','380V'])`. **Toda ferramenta tem ≥1 `tool_variant`** (uma marcada `isDefault=true` via partial unique index). |
-| `attributes.ts` | `attributeDefinition`, `toolAttributeValue` | Catálogo de specs dinâmicas (Saleor-lite). `attribute_definition` define `inputType` (`text`/`number`/`select`/`boolean`/`numeric_range`/`color`), `unit`, `options jsonb`, opcionalmente `categoryId`. `tool_attribute_value` armazena valor tipado por coluna (`valueText`, `valueNumeric`, `valueNumericMax`, `valueBool`). |
-| `categories.ts` | `category`, `toolCategory` | Árvore com `parent_id` + `path`/`depth` materializados via trigger pl/pgSQL. Anti-ciclo + cascade de path. Depth máximo 5. |
-| `inventory.ts` | `branch`, `stockLevel` | PK `(variantId, branchId)`. `minQty` + `reorderPoint` + check `quantity >= 0` (oversell guard). |
-| `promotions.ts` | `promotion`, `promotionTool` | Cupons via `promotion.type='promocode'` (não há tabela `coupon`). Promoção continua por ferramenta-pai. |
-| `stock-movements.ts` | `stockMovement` | Audit trail por **variante**; `actorType` (`user`/`apiKey`/`system`) + `actorId` + `apiKeyId`; partial unique index garante idempotência de débito de venda; check `delta != 0`. |
-| `orders.ts` | `order`, `orderItem`, `orderStatusHistory`, `orderNote` | `orderItem` carrega `toolId` + `variantId` + snapshots fiscais/dimensão. |
-| `reviews.ts` | `review` | Moderação por admin (`status` pgEnum). Unique `(clientId, toolId, orderId)`. |
-| `api-keys.ts` | `apiKey` | `scopes` + `allowedTags` (text[]) controlam escopo. GIN index em scopes. |
-| `consent-log.ts` | `consentLog` | LGPD: TOS/privacy/marketing/cookies por client/lead. Helper em `apps/web/src/lib/consent.ts`. |
+| Arquivo              | Tabelas-chave                                                                     | Notas                                                                                                                                                                                                                                                                                                                          |
+| -------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `auth.ts`            | `user`, `session`, `account`, `verification`                                      | `user.role` = `pgEnum('user_role', [...])`.                                                                                                                                                                                                                                                                                    |
+| `client.ts`          | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | Campos BR (`country` default `"BR"`, `phone`, `document` unique nullable).                                                                                                                                                                                                                                                     |
+| `tools.ts`           | `supplier`, `tool`, `toolVariant`, `toolImage`                                    | `tool` enxuto (sem sku/voltage/price); SKU + voltagem + preço/custo + barcode vivem em `tool_variant`. `voltage` é `pgEnum('voltage', ['127V','220V','Bivolt','380V'])`. **Toda ferramenta tem ≥1 `tool_variant`** (uma marcada `isDefault=true` via partial unique index).                                                    |
+| `attributes.ts`      | `attributeDefinition`, `toolAttributeValue`                                       | Catálogo de specs dinâmicas (Saleor-lite). `attribute_definition` define `inputType` (`text`/`number`/`select`/`boolean`/`numeric_range`/`color`), `unit`, `options jsonb`, opcionalmente `categoryId`. `tool_attribute_value` armazena valor tipado por coluna (`valueText`, `valueNumeric`, `valueNumericMax`, `valueBool`). |
+| `categories.ts`      | `category`, `toolCategory`                                                        | Árvore com `parent_id` + `path`/`depth` materializados via trigger pl/pgSQL. Anti-ciclo + cascade de path. Depth máximo 5.                                                                                                                                                                                                     |
+| `inventory.ts`       | `branch`, `stockLevel`                                                            | PK `(variantId, branchId)`. `minQty` + `reorderPoint` + check `quantity >= 0` (oversell guard).                                                                                                                                                                                                                                |
+| `promotions.ts`      | `promotion`, `promotionTool`                                                      | Cupons via `promotion.type='promocode'` (não há tabela `coupon`). Promoção continua por ferramenta-pai.                                                                                                                                                                                                                        |
+| `stock-movements.ts` | `stockMovement`                                                                   | Audit trail por **variante**; `actorType` (`user`/`apiKey`/`system`) + `actorId` + `apiKeyId`; partial unique index garante idempotência de débito de venda; check `delta != 0`.                                                                                                                                               |
+| `orders.ts`          | `order`, `orderItem`, `orderStatusHistory`, `orderNote`                           | `orderItem` carrega `toolId` + `variantId` + snapshots fiscais/dimensão.                                                                                                                                                                                                                                                       |
+| `reviews.ts`         | `review`                                                                          | Moderação por admin (`status` pgEnum). Unique `(clientId, toolId, orderId)`.                                                                                                                                                                                                                                                   |
+| `api-keys.ts`        | `apiKey`                                                                          | `scopes` + `allowedTags` (text[]) controlam escopo. GIN index em scopes.                                                                                                                                                                                                                                                       |
+| `consent-log.ts`     | `consentLog`                                                                      | LGPD: TOS/privacy/marketing/cookies por client/lead. Helper em `apps/web/src/lib/consent.ts`.                                                                                                                                                                                                                                  |
 
 **Especificações técnicas dinâmicas — herança:**
+
 - `attribute_definition.categoryId` aponta para a categoria onde a spec aplica (ou `NULL` = global).
 - Ao montar form de uma ferramenta, server action carrega definitions cuja `categoryId` está em `category.path` da categoria primary do tool (recursão via CTE em `tools/actions.ts`) **OU** é `NULL`.
 - Ao trocar a categoria primary de uma ferramenta, `updateTool` detecta valores órfãos (`tool_attribute_value` cuja `attribute_definition` não está mais no path da nova categoria) e devolve `actionResult.warning = "orphan_attributes"`. Form pede confirmação antes de deletar.
@@ -171,6 +175,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 Sistema "Claude/Anthropic" — paleta exclusivamente **warm-toned**. Toda decisão de UI deve passar pelo doc.
 
 **Paleta crítica (memorize ou consulte sempre):**
+
 - Brand CTA: Terracotta `#c96442`
 - Page bg: Parchment `#f5f4ed`
 - Card surface: Ivory `#faf9f5`
@@ -189,18 +194,18 @@ Toda revisão de componente UI: **rodar a skill `web-design-guidelines` antes de
 
 Skills carregadas localmente. Use a tool `Skill` quando o gatilho bater.
 
-| Skill | Quando usar |
-|---|---|
-| `better-auth-best-practices` | Configurar/auditar Better Auth, plugins, sessões, adapters. |
-| `next-best-practices` | RSC boundaries, async APIs, route handlers, image/font, metadata Next 16. |
-| `next-cache-components` | PPR, `use cache`, `cacheLife`, `cacheTag`, `updateTag` no Next 16. |
-| `shadcn` | Adicionar/buscar/auditar componentes shadcn — preferir antes de instalar manual. |
-| `supabase-postgres-best-practices` | Performance, schema, RLS, índices, queries. |
-| `turborepo` | Mexer em `turbo.json`, pipelines, caching, `--filter`, `--affected`, boundaries. |
-| `ultracite` | Setup, lint/format, troubleshoot Biome. Em geral basta `bun fix`. |
-| `vercel-composition-patterns` | Refator de boolean-prop hell, compound components, render props, React 19 APIs. |
-| `vercel-react-best-practices` | Performance React/Next, bundling, data fetching, Server Components. |
-| `web-design-guidelines` | **Obrigatório** antes de aprovar qualquer mudança visual significativa. |
+| Skill                              | Quando usar                                                                      |
+| ---------------------------------- | -------------------------------------------------------------------------------- |
+| `better-auth-best-practices`       | Configurar/auditar Better Auth, plugins, sessões, adapters.                      |
+| `next-best-practices`              | RSC boundaries, async APIs, route handlers, image/font, metadata Next 16.        |
+| `next-cache-components`            | PPR, `use cache`, `cacheLife`, `cacheTag`, `updateTag` no Next 16.               |
+| `shadcn`                           | Adicionar/buscar/auditar componentes shadcn — preferir antes de instalar manual. |
+| `supabase-postgres-best-practices` | Performance, schema, RLS, índices, queries.                                      |
+| `turborepo`                        | Mexer em `turbo.json`, pipelines, caching, `--filter`, `--affected`, boundaries. |
+| `ultracite`                        | Setup, lint/format, troubleshoot Biome. Em geral basta `bun fix`.                |
+| `vercel-composition-patterns`      | Refator de boolean-prop hell, compound components, render props, React 19 APIs.  |
+| `vercel-react-best-practices`      | Performance React/Next, bundling, data fetching, Server Components.              |
+| `web-design-guidelines`            | **Obrigatório** antes de aprovar qualquer mudança visual significativa.          |
 
 ---
 
@@ -208,14 +213,14 @@ Skills carregadas localmente. Use a tool `Skill` quando o gatilho bater.
 
 Quando usar cada um:
 
-| MCP | Quando |
-|---|---|
-| `context7` | Docs atualizadas de **qualquer** lib. Em código novo / migração / refactor com import: invocar via skill `context7-cli` (preferida — passa pelo RTK). |
-| `better-auth` (Inkeep HTTP) | Pergunta específica sobre API/feature do Better Auth — usar quando context7 não basta. |
-| `supabase` (HTTP) | `list_tables`, `execute_sql`, `generate_typescript_types`, `get_advisors`, logs. **Confirmar custo** antes de operações pagas. |
-| `shadcn` | `search_items_in_registries`, `view_items_in_registries`, `get_add_command_for_items`, `get_audit_checklist`. Preferir sobre `npx shadcn add` quando precisar inspecionar antes. |
-| `next-devtools` | `nextjs_docs`, `nextjs_call`, `browser_eval` (Playwright Firefox), `enable_cache_components`. `nextjs_call <port> get_errors` é a maneira mais rápida de pegar stack trace de SSR error em dev. |
-| `better-t-stack` | Apenas histórico — projeto já scaffoldado. Usar só para `bts_add_addons` se decidir adicionar feature do BTS. |
+| MCP                         | Quando                                                                                                                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `context7`                  | Docs atualizadas de **qualquer** lib. Em código novo / migração / refactor com import: invocar via skill `context7-cli` (preferida — passa pelo RTK).                                           |
+| `better-auth` (Inkeep HTTP) | Pergunta específica sobre API/feature do Better Auth — usar quando context7 não basta.                                                                                                          |
+| `supabase` (HTTP)           | `list_tables`, `execute_sql`, `generate_typescript_types`, `get_advisors`, logs. **Confirmar custo** antes de operações pagas.                                                                  |
+| `shadcn`                    | `search_items_in_registries`, `view_items_in_registries`, `get_add_command_for_items`, `get_audit_checklist`. Preferir sobre `npx shadcn add` quando precisar inspecionar antes.                |
+| `next-devtools`             | `nextjs_docs`, `nextjs_call`, `browser_eval` (Playwright Firefox), `enable_cache_components`. `nextjs_call <port> get_errors` é a maneira mais rápida de pegar stack trace de SSR error em dev. |
+| `better-t-stack`            | Apenas histórico — projeto já scaffoldado. Usar só para `bts_add_addons` se decidir adicionar feature do BTS.                                                                                   |
 
 ---
 
