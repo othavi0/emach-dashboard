@@ -21,6 +21,7 @@ import {
 } from "@emach/ui/components/select";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
+import { Sliders } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -134,8 +135,11 @@ export function AdjustStockDialog({
 
 	return (
 		<Dialog onOpenChange={handleOpenChange} open={open}>
-			<DialogTrigger render={<Button size="sm" variant="outline" />}>
-				Ajustar
+			<DialogTrigger
+				aria-label={`Ajustar estoque de ${branchName}`}
+				render={<Button size="icon-sm" variant="outline" />}
+			>
+				<Sliders aria-hidden className="size-3.5" />
 			</DialogTrigger>
 			<DialogContent>
 				<form className="flex flex-col gap-4" onSubmit={handleSubmit}>

@@ -118,14 +118,18 @@ Sizes: `xs / sm / default / lg / icon / icon-xs / icon-sm / icon-lg`.
 
 ### Listing row actions
 
-Tabelas de listagem (`/dashboard/<recurso>` com tabela de itens) usam **botões-ícone** uniformes para ações inline em cada linha:
+Tabelas de listagem (`/dashboard/<recurso>` com tabela de itens) usam **botões-ícone** uniformes para ações inline em cada linha. `size="icon-sm"`, `aria-label` descritivo no trigger, `aria-hidden` no SVG, ícone `size-3.5`.
 
-| Ação | Trigger | Variant | Size | Icon (lucide-react) |
-|---|---|---|---|---|
-| Editar | `<Link>` ou `<Button>` | `secondary` | `icon-sm` | `Pencil` (`size-3.5`) |
-| Remover | `<AlertDialogTrigger>` com `<Button>` | `destructive` | `icon-sm` | `Trash2` (`size-3.5`) |
+| Ação semântica | Trigger | Variant | Icon (lucide-react) |
+|---|---|---|---|
+| Editar | `<Link>` ou `<Button>` | `secondary` | `Pencil` |
+| Remover | `<AlertDialogTrigger>` + `<Button>` | `destructive` | `Trash2` |
+| Abrir / Ver detalhe | `<Link>` | `outline` | `Eye` |
+| Gerenciar estoque | `<Link>` | `secondary` | `Boxes` |
+| Ajustar (modal) | `<DialogTrigger>` + `<Button>` | `outline` | `Sliders` |
+| Navegar p/ recurso de outro contexto | `<Link>` | `ghost` | `ArrowUpRight` |
 
-Sempre incluir `aria-label` descritivo no trigger (ex: `Editar promoção ${title}`) — texto visível é só o ícone. `aria-hidden` no SVG. Mantém densidade da tabela e legibilidade da coluna Ações sem overlap em viewports estreitos.
+**Manter texto** em ações onde o número/contagem é a informação principal (`Ver 3 filiais`) ou em mutações críticas inline (`Salvar` em threshold dirty). Ícone esconde valor que o usuário precisa ler à distância.
 
 Implementação canônica: `apps/web/src/app/dashboard/promotions/_components/promotions-table.tsx` + `delete-promotion-dialog.tsx`.
 
