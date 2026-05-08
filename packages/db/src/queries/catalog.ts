@@ -416,7 +416,21 @@ export async function getToolBySlug(
 	slug: string
 ): Promise<ToolDetail | null> {
 	const toolRows = await db.execute<Tool>(sql`
-		SELECT *
+		SELECT t.id, t.name, t.slug, t.description, t.model,
+		       t.invoice_model AS "invoiceModel",
+		       t.status,
+		       t.power_watts AS "powerWatts",
+		       t.weight_kg AS "weightKg",
+		       t.length_cm AS "lengthCm",
+		       t.width_cm AS "widthCm",
+		       t.height_cm AS "heightCm",
+		       t.manufacturer_name AS "manufacturerName",
+		       t.hs_code AS "hsCode",
+		       t.ncm, t.cest,
+		       t.visible_on_site AS "visibleOnSite",
+		       t.supplier_id AS "supplierId",
+		       t.created_at AS "createdAt",
+		       t.updated_at AS "updatedAt"
 		FROM tool t
 		WHERE t.slug = ${slug}
 		  AND t.visible_on_site = true
@@ -516,7 +530,13 @@ export async function getToolBySlug(
 			ORDER BY tc.is_primary DESC, c.name ASC
 		`),
 		db.execute<Promotion>(sql`
-			SELECT p.*
+			SELECT p.id, p.title, p.description, p.type, p.code,
+			       p.discount_pct AS "discountPct",
+			       p.active,
+			       p.starts_at AS "startsAt",
+			       p.ends_at AS "endsAt",
+			       p.created_at AS "createdAt",
+			       p.updated_at AS "updatedAt"
 			FROM promotion p
 			INNER JOIN promotion_tool pt ON pt.promotion_id = p.id
 			WHERE pt.tool_id = ${toolId}
@@ -713,7 +733,13 @@ export async function getActivePromotions(
 	limit: number = DEFAULT_PROMO_LIMIT
 ): Promise<PromotionWithTools[]> {
 	const promosRes = await db.execute<Promotion>(sql`
-		SELECT *
+		SELECT id, title, description, type, code,
+		       discount_pct AS "discountPct",
+		       active,
+		       starts_at AS "startsAt",
+		       ends_at AS "endsAt",
+		       created_at AS "createdAt",
+		       updated_at AS "updatedAt"
 		FROM promotion
 		WHERE active = true
 		  AND (starts_at IS NULL OR starts_at <= now())
