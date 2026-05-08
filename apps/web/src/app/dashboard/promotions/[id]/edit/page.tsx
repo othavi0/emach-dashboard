@@ -1,6 +1,8 @@
 import { db } from "@emach/db";
 import { tool } from "@emach/db/schema/tools";
 import { asc } from "drizzle-orm";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { requireRole } from "@/lib/session";
@@ -31,7 +33,14 @@ export default async function EditPromotionPage({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<div>
+			<div className="flex flex-col gap-2">
+				<Link
+					className="inline-flex w-fit items-center gap-1 text-muted-foreground text-sm hover:text-foreground"
+					href={`/dashboard/promotions?view=${id}`}
+				>
+					<ArrowLeft className="size-3.5" />
+					Voltar para promoções
+				</Link>
 				<h1 className="font-medium text-2xl tracking-tight">
 					Editar: {promotion.title}
 				</h1>
