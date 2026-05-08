@@ -55,6 +55,8 @@ Regras:
 - `db.query.X.findMany` (relational API) e `db.select().from(...)` (query builder) **não** sofrem do bug — devolvem `Date`. Não precisa de coerção nesses caminhos.
 - Para retornos de objetos inteiros (ex: `Tool`, `Promotion`, `Category`) em `queries/catalog.ts`, há um helper interno `coerceDates(obj, [...keys])` no próprio arquivo.
 
+**Regra mais ampla — colunas em snake_case:** o mesmo bypass do column mapper faz `db.execute<T>` devolver colunas com os **nomes literais do Postgres em snake_case**. O genérico `<T>` é só type cast — não renomeia nada em runtime. Sempre que tipar com um shape camelCase do Drizzle (`Tool`, `Promotion`, etc.), enumerar as colunas com `AS "camelCase"`. **Nunca `SELECT *`** quando o tipo declarado tem mapeamento snake → camel — `row.discountPct` virá `undefined` e qualquer interpolação em `sql\`\`` template gera SQL inválido (incidente #23: `ROUND(price * (1 -  / 100))` por `${promo.discountPct}` undefined). Se precisar de tudo, ou usa `db.select().from(table)` (passa pelo mapper) ou alias coluna por coluna.
+
 ## `db` × `createDb()`
 
 - `db` (singleton em `src/index.ts`) — uso geral em server actions.
