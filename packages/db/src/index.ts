@@ -3,12 +3,21 @@ import { drizzle } from "drizzle-orm/node-postgres";
 
 import { apiKey, apiKeyRelations } from "./schema/api-keys";
 import {
+	attributeDefinition,
+	attributeDefinitionRelations,
+	toolAttributeAssignment,
+	toolAttributeAssignmentRelations,
+	toolAttributeValue,
+	toolAttributeValueRelations,
+} from "./schema/attributes";
+import {
 	account,
 	accountRelations,
 	session,
 	sessionRelations,
 	user,
 	userRelations,
+	verification,
 } from "./schema/auth";
 import {
 	category,
@@ -62,6 +71,8 @@ import {
 	toolImage,
 	toolImageRelations,
 	toolRelations,
+	toolVariant,
+	toolVariantRelations,
 } from "./schema/tools";
 
 const schema = {
@@ -69,6 +80,8 @@ const schema = {
 	accountRelations,
 	apiKey,
 	apiKeyRelations,
+	attributeDefinition,
+	attributeDefinitionRelations,
 	branch,
 	branchRelations,
 	category,
@@ -107,13 +120,20 @@ const schema = {
 	supplier,
 	supplierRelations,
 	tool,
+	toolAttributeAssignment,
+	toolAttributeAssignmentRelations,
+	toolAttributeValue,
+	toolAttributeValueRelations,
 	toolCategory,
 	toolCategoryRelations,
 	toolImage,
 	toolImageRelations,
 	toolRelations,
+	toolVariant,
+	toolVariantRelations,
 	user,
 	userRelations,
+	verification,
 };
 
 export function createDb() {

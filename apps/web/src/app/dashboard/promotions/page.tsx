@@ -61,6 +61,7 @@ function parseDiscount(raw?: string): number | undefined {
 	return Number.isFinite(n) && n >= 0 && n <= 100 ? n : undefined;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Server Component com múltiplos filtros de searchParams — complexidade necessária
 export default async function PromotionsPage({ searchParams }: PageProps) {
 	const session = await requireCurrentSession();
 	const role = session.user.role ?? "user";

@@ -10,11 +10,17 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@emach/ui/components/sheet";
-import { Switch } from "@emach/ui/components/switch";
-import { Copy, ExternalLink, Pencil, Trash2 } from "lucide-react";
+import {
+	Copy,
+	ExternalLink,
+	PauseCircle,
+	Pencil,
+	PlayCircle,
+	Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
@@ -40,7 +46,7 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 
 	const open = Boolean(searchParams.get("view"));
 
-	function close() {
+	const close = useCallback(() => {
 		const params = new URLSearchParams(searchParams);
 		params.delete("view");
 		const query = params.toString();
@@ -48,7 +54,7 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 			query ? `/dashboard/promotions?${query}` : "/dashboard/promotions",
 			{ scroll: false }
 		);
-	}
+	}, [router, searchParams]);
 
 	// Auto-close se a promoção solicitada não existe (ex: deletada em paralelo)
 	useEffect(() => {
@@ -56,9 +62,9 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 			const timer = setTimeout(close, 1500);
 			return () => clearTimeout(timer);
 		}
-	}, [open, promotion]);
+	}, [open, promotion, close]);
 
-	function handleToggle(checked: boolean) {
+	function handleToggle() {
 		if (!promotion) {
 			return;
 		}
@@ -69,7 +75,7 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 				return;
 			}
 			toast.success(
-				result.data.active ? "Promoção ativada" : "Promoção desativada"
+				result.data.active ? "Promoção ativada" : "Promoção pausada"
 			);
 			router.refresh();
 		});
@@ -157,23 +163,40 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 							)}
 
 							{canMutate && (
-								<div className="flex items-center justify-between rounded-md border border-border bg-muted/40 p-3">
-									<div>
-										<div className="font-medium text-sm">Promoção ativa</div>
+								<div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 p-3">
+									<div className="min-w-0">
+										<div className="font-medium text-sm">
+											{promotion.active
+												? "Promoção em execução"
+												: "Promoção pausada"}
+										</div>
 										<p className="text-muted-foreground text-xs">
-											Toggle desliga sem deletar.
+											{promotion.active
+												? "Aparece no site para clientes elegíveis."
+												: "Não aparece no site. Pode ser reativada a qualquer momento."}
 										</p>
 									</div>
-									<Switch
-										aria-label={
-											promotion.active
-												? "Desativar promoção"
-												: "Ativar promoção"
-										}
-										checked={promotion.active}
-										disabled={isPending}
-										onCheckedChange={handleToggle}
-									/>
+									{promotion.active ? (
+										<Button
+											disabled={isPending}
+											onClick={handleToggle}
+											size="sm"
+											variant="secondary"
+										>
+											<PauseCircle className="mr-1.5 size-4" />
+											Pausar promoção
+										</Button>
+									) : (
+										<Button
+											disabled={isPending}
+											onClick={handleToggle}
+											size="sm"
+											variant="default"
+										>
+											<PlayCircle className="mr-1.5 size-4" />
+											Ativar promoção
+										</Button>
+									)}
 								</div>
 							)}
 
@@ -203,7 +226,9 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 													<img
 														alt={t.name}
 														className="size-full object-cover"
+														height={36}
 														src={t.thumbUrl}
+														width={36}
 													/>
 												) : null}
 											</div>
@@ -269,17 +294,10 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 						</div>
 
 						{canMutate && (
-							<SheetFooter className="border-border border-t bg-muted/40 px-6 py-4 sm:justify-between">
-								<Button
-									onClick={() => setDeleteOpen(true)}
-									size="sm"
-									variant="ghost"
-								>
-									<Trash2 className="mr-2 size-4" />
-									Excluir
-								</Button>
-								<div className="flex items-center gap-2">
+							<SheetFooter className="border-border border-t bg-muted/40 px-6 py-4">
+								<div className="flex w-full items-stretch gap-2">
 									<Button
+										className="flex-1"
 										disabled={isPending}
 										onClick={handleDuplicate}
 										size="sm"
@@ -289,12 +307,24 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 										Duplicar
 									</Button>
 									<Link
-										className={buttonVariants({ size: "sm" })}
+										className={buttonVariants({
+											size: "sm",
+											className: "flex-1",
+										})}
 										href={`/dashboard/promotions/${promotion.id}/edit`}
 									>
 										<Pencil className="mr-2 size-4" />
 										Editar
 									</Link>
+									<Button
+										className="flex-1"
+										onClick={() => setDeleteOpen(true)}
+										size="sm"
+										variant="destructive"
+									>
+										<Trash2 className="mr-2 size-4" />
+										Excluir
+									</Button>
 								</div>
 							</SheetFooter>
 						)}
