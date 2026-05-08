@@ -99,7 +99,8 @@ export function PromotionsFilters({
 	const [toolPopoverOpen, setToolPopoverOpen] = useState(false);
 	const [toolId, setToolId] = useState(initialToolId);
 
-	// Debounced search push
+	// Debounced search push — intencionalmente depende só de `search`
+	// biome-ignore lint/correctness/useExhaustiveDependencies: só dispara ao alterar o campo de busca
 	useEffect(() => {
 		const handle = setTimeout(() => {
 			const params = new URLSearchParams(sp);
@@ -112,7 +113,6 @@ export function PromotionsFilters({
 			router.replace(`/dashboard/promotions?${params.toString()}`);
 		}, 300);
 		return () => clearTimeout(handle);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [search]);
 
 	function pushParam(key: string, value: string | undefined) {

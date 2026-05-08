@@ -33,6 +33,7 @@ export function PromotionCard({ canMutate, promotion }: PromotionCardProps) {
 	const hasNoTools = promotion.tools.length === 0;
 
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: card interativo com conteúdo não-interativo interno (h3, badges, chips)
 		<div
 			className="flex cursor-pointer flex-col gap-3 rounded-[10px] border border-border bg-card p-4 shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-colors focus-within:ring-2 focus-within:ring-primary/30 hover:border-border/80"
 			onClick={openSheet}
@@ -108,12 +109,8 @@ export function PromotionCard({ canMutate, promotion }: PromotionCardProps) {
 			</div>
 
 			{canMutate && (
-				<div className="flex items-center justify-end border-border border-t pt-2">
-					<PromotionQuickActions
-						canMutate={canMutate}
-						promotion={promotion}
-						variant="card"
-					/>
+				<div className="border-border border-t pt-3">
+					<PromotionQuickActions canMutate={canMutate} promotion={promotion} />
 				</div>
 			)}
 		</div>
