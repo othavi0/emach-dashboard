@@ -9,6 +9,7 @@ import {
 	timestamp,
 } from "drizzle-orm/pg-core";
 
+import { user } from "./auth";
 import { tool } from "./tools";
 
 export const promotion = pgTable(
@@ -26,6 +27,12 @@ export const promotion = pgTable(
 		active: boolean("active").default(false).notNull(),
 		startsAt: timestamp("starts_at"),
 		endsAt: timestamp("ends_at"),
+		createdBy: text("created_by").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		updatedBy: text("updated_by").references(() => user.id, {
+			onDelete: "set null",
+		}),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()
@@ -61,8 +68,18 @@ export const promotionTool = pgTable(
 	(table) => [primaryKey({ columns: [table.promotionId, table.toolId] })]
 );
 
-export const promotionRelations = relations(promotion, ({ many }) => ({
+export const promotionRelations = relations(promotion, ({ many, one }) => ({
 	promotionTools: many(promotionTool),
+	createdByUser: one(user, {
+		fields: [promotion.createdBy],
+		references: [user.id],
+		relationName: "promotion_created_by",
+	}),
+	updatedByUser: one(user, {
+		fields: [promotion.updatedBy],
+		references: [user.id],
+		relationName: "promotion_updated_by",
+	}),
 }));
 
 export const promotionToolRelations = relations(promotionTool, ({ one }) => ({
