@@ -7,21 +7,19 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
+import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 import type { ReviewListItem } from "../data";
 import { ReviewStatusBadge } from "./review-status-badge";
+import { StarRating } from "./star-rating";
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
 	day: "2-digit",
 	month: "2-digit",
 	year: "numeric",
 });
-
-function renderStars(rating: number) {
-	return `${"★".repeat(rating)}${"☆".repeat(5 - rating)}`;
-}
 
 export function ReviewQueueTable({ reviews }: { reviews: ReviewListItem[] }) {
 	return (
@@ -63,10 +61,8 @@ export function ReviewQueueTable({ reviews }: { reviews: ReviewListItem[] }) {
 						</TableCell>
 						<TableCell>
 							<div className="flex flex-col gap-1">
-								<span className="font-medium text-amber-700 text-sm">
-									{renderStars(review.rating)}
-								</span>
-								<span className="text-muted-foreground text-xs">
+								<StarRating rating={review.rating} />
+								<span className="text-muted-foreground text-sm">
 									{review.bodyPreview}
 								</span>
 							</div>
@@ -79,10 +75,14 @@ export function ReviewQueueTable({ reviews }: { reviews: ReviewListItem[] }) {
 						</TableCell>
 						<TableCell className="text-right">
 							<Link
-								className={buttonVariants({ size: "sm", variant: "ghost" })}
+								aria-label={`Revisar avaliação de ${review.toolName}`}
+								className={buttonVariants({
+									size: "icon-sm",
+									variant: "outline",
+								})}
 								href={`/dashboard/reviews/${review.id}`}
 							>
-								Revisar
+								<Eye aria-hidden className="size-3.5" />
 							</Link>
 						</TableCell>
 					</TableRow>

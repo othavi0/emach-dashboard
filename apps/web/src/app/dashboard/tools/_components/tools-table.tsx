@@ -10,6 +10,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
+import { Boxes, Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { DeleteToolDialog } from "./delete-tool-dialog";
@@ -17,9 +18,9 @@ import { TOOL_STATUS_LABELS, type ToolStatusValue } from "./tool-schema";
 
 const STATUS_BADGE_VARIANT: Record<
 	ToolStatusValue,
-	"default" | "secondary" | "destructive" | "outline"
+	"destructive" | "outline" | "secondary" | "success"
 > = {
-	active: "default",
+	active: "success",
 	draft: "secondary",
 	discontinued: "outline",
 	out_of_stock: "destructive",
@@ -116,7 +117,7 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 							</Badge>
 						</TableCell>
 						<TableCell>
-							<Badge variant={t.visibleOnSite ? "default" : "outline"}>
+							<Badge variant={t.visibleOnSite ? "success" : "outline"}>
 								{t.visibleOnSite ? "Visível" : "Oculto"}
 							</Badge>
 						</TableCell>
@@ -127,19 +128,24 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 							<TableCell className="text-right">
 								<div className="flex justify-end gap-2">
 									<Link
+										aria-label={`Gerenciar estoque de ${t.name}`}
 										className={buttonVariants({
-											size: "sm",
+											size: "icon-sm",
 											variant: "secondary",
 										})}
 										href={`/dashboard/tools/${t.id}/stock`}
 									>
-										Gerenciar estoque
+										<Boxes aria-hidden className="size-3.5" />
 									</Link>
 									<Link
-										className={buttonVariants({ size: "sm", variant: "ghost" })}
+										aria-label={`Editar ferramenta ${t.name}`}
+										className={buttonVariants({
+											size: "icon-sm",
+											variant: "secondary",
+										})}
 										href={`/dashboard/tools/${t.id}/edit`}
 									>
-										Editar
+										<Pencil aria-hidden className="size-3.5" />
 									</Link>
 									<DeleteToolDialog toolId={t.id} toolName={t.name} />
 								</div>

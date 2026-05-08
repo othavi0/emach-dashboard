@@ -13,6 +13,7 @@ import {
 } from "@emach/ui/components/alert-dialog";
 import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
+import { Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -49,15 +50,10 @@ export function DeleteAttributeDialog({
 	return (
 		<AlertDialog onOpenChange={setOpen} open={open}>
 			<AlertDialogTrigger
-				render={
-					<Button
-						className="text-destructive hover:bg-destructive/10"
-						size="sm"
-						variant="ghost"
-					/>
-				}
+				aria-label={`Remover atributo ${attributeLabel}`}
+				render={<Button size="icon-sm" variant="destructive" />}
 			>
-				Remover
+				<Trash2 aria-hidden className="size-3.5" />
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>

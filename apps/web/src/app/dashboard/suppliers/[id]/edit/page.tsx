@@ -22,7 +22,9 @@ export default async function EditSupplierPage({
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-serif text-2xl">Editar fornecedor</h1>
+				<h1 className="font-medium text-2xl tracking-tight">
+					Editar fornecedor
+				</h1>
 				<p className="text-muted-foreground text-sm">
 					Atualize os dados de{" "}
 					<span className="font-medium text-foreground">{supplier.name}</span>.

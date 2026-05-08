@@ -31,7 +31,9 @@ export default async function ReviewDetailPage({
 			<div className="flex items-start justify-between gap-4">
 				<div>
 					<p className="text-muted-foreground text-sm">Review</p>
-					<h1 className="font-serif text-2xl">{review.toolName}</h1>
+					<h1 className="font-medium text-2xl tracking-tight">
+						{review.toolName}
+					</h1>
 					<p className="text-muted-foreground text-sm">{review.clientName}</p>
 				</div>
 				<Link

@@ -9,6 +9,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
+import { Pencil } from "lucide-react";
 import Link from "next/link";
 
 import type { SupplierListItem } from "../actions";
@@ -67,13 +68,14 @@ export function SuppliersTable({ suppliers, canMutate }: SuppliersTableProps) {
 							<TableCell className="text-right">
 								<div className="flex justify-end gap-2">
 									<Link
+										aria-label={`Editar fornecedor ${supplier.name}`}
 										className={buttonVariants({
-											size: "sm",
-											variant: "ghost",
+											size: "icon-sm",
+											variant: "secondary",
 										})}
 										href={`/dashboard/suppliers/${supplier.id}/edit`}
 									>
-										Editar
+										<Pencil aria-hidden className="size-3.5" />
 									</Link>
 									<DeleteSupplierDialog
 										supplierId={supplier.id}

@@ -78,6 +78,18 @@ export function buildOptionsField(
 	return null;
 }
 
+export const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+export function validateSlugFormat(slug: string): string | null {
+	if (slug.trim() === "") {
+		return "Slug obrigatório";
+	}
+	if (!SLUG_REGEX.test(slug)) {
+		return "Use apenas letras minúsculas, números e hífens (sem espaços ou acentos)";
+	}
+	return null;
+}
+
 export function slugifyLabel(input: string): string {
 	return input
 		.toLowerCase()

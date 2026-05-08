@@ -10,6 +10,28 @@ import type { Promotion } from "../schema/promotions";
 import type { Review } from "../schema/reviews";
 import type { Tool, ToolImage, ToolVariant, Voltage } from "../schema/tools";
 
+function coerceDates<T extends object>(obj: T, keys: readonly (keyof T)[]): T {
+	for (const k of keys) {
+		const v = obj[k];
+		if (v !== null && v !== undefined && !(v instanceof Date)) {
+			(obj as Record<keyof T, unknown>)[k] = new Date(v as string);
+		}
+	}
+	return obj;
+}
+
+const TOOL_DATE_KEYS = ["createdAt", "updatedAt"] as const;
+const VARIANT_DATE_KEYS = ["createdAt", "updatedAt"] as const;
+const IMAGE_DATE_KEYS = ["createdAt"] as const;
+const CATEGORY_DATE_KEYS = ["createdAt", "updatedAt"] as const;
+const PROMOTION_DATE_KEYS = [
+	"startsAt",
+	"endsAt",
+	"createdAt",
+	"updatedAt",
+] as const;
+const REVIEW_DATE_KEYS = ["moderatedAt", "createdAt", "updatedAt"] as const;
+
 type AnyDb = NodePgDatabase<Record<string, unknown>>;
 
 // ---------------------------------------------------------------------------
@@ -406,6 +428,7 @@ export async function getToolBySlug(
 	if (!toolRow) {
 		return null;
 	}
+	coerceDates(toolRow, TOOL_DATE_KEYS);
 	const toolId = toolRow.id;
 
 	const [
@@ -515,8 +538,10 @@ export async function getToolBySlug(
 
 	const reviewStats = await getReviewStats(db, toolId);
 
-	const variants = variantsResult.rows;
-	const images = imagesResult.rows;
+	const variants = variantsResult.rows.map((v) =>
+		coerceDates(v, VARIANT_DATE_KEYS)
+	);
+	const images = imagesResult.rows.map((i) => coerceDates(i, IMAGE_DATE_KEYS));
 
 	const attributes = attributesResult.rows.map((row) => ({
 		definition: {
@@ -529,8 +554,8 @@ export async function getToolBySlug(
 			isRequired: row.def_is_required,
 			categoryId: row.def_category_id,
 			sortOrder: row.def_sort_order,
-			createdAt: row.def_created_at,
-			updatedAt: row.def_updated_at,
+			createdAt: new Date(row.def_created_at as unknown as string),
+			updatedAt: new Date(row.def_updated_at as unknown as string),
 		} satisfies AttributeDefinition,
 		value: {
 			toolId,
@@ -539,8 +564,8 @@ export async function getToolBySlug(
 			valueNumeric: row.val_value_numeric,
 			valueNumericMax: row.val_value_numeric_max,
 			valueBool: row.val_value_bool,
-			createdAt: row.val_created_at,
-			updatedAt: row.val_updated_at,
+			createdAt: new Date(row.val_created_at as unknown as string),
+			updatedAt: new Date(row.val_updated_at as unknown as string),
 		} satisfies ToolAttributeValue,
 		sortOrder: row.assignment_sort,
 	}));
@@ -573,7 +598,9 @@ export async function getToolBySlug(
 		attributes,
 		primaryCategory,
 		allCategories,
-		activePromotion: activePromoResult.rows[0] ?? null,
+		activePromotion: activePromoResult.rows[0]
+			? coerceDates(activePromoResult.rows[0], PROMOTION_DATE_KEYS)
+			: null,
 		stockByVariant,
 		reviewStats,
 	};
@@ -653,6 +680,7 @@ export async function getCategoryBySlug(
 	if (!cat) {
 		return null;
 	}
+	coerceDates(cat, CATEGORY_DATE_KEYS);
 
 	const ancestorIds = cat.path
 		.split("/")
@@ -668,7 +696,9 @@ export async function getCategoryBySlug(
 			WHERE id = ANY(${arrayLiteral(ancestorIds, "text[]")})
 			ORDER BY depth ASC
 		`);
-		ancestors = ancestorsRes.rows;
+		ancestors = ancestorsRes.rows.map((a) =>
+			coerceDates(a, CATEGORY_DATE_KEYS)
+		);
 	}
 
 	return { ...cat, ancestors };
@@ -694,6 +724,7 @@ export async function getActivePromotions(
 
 	const result: PromotionWithTools[] = [];
 	for (const promo of promosRes.rows) {
+		coerceDates(promo, PROMOTION_DATE_KEYS);
 		const toolIdsRes = await db.execute<{ tool_id: string }>(sql`
 			SELECT tool_id FROM promotion_tool WHERE promotion_id = ${promo.id}
 		`);
@@ -859,8 +890,9 @@ export async function getReviews(
 
 	const reviews: ReviewWithReviewer[] = listRes.rows.map((row) => {
 		const { client_name, ...rest } = row;
+		const review = coerceDates(rest as Review, REVIEW_DATE_KEYS);
 		return {
-			...(rest as Review),
+			...review,
 			clientName: formatReviewerName(client_name),
 		};
 	});

@@ -22,6 +22,16 @@ const STATE_LABEL: Record<OrderReviewState, string> = {
 	order_not_paid: "Pendente de pagamento",
 };
 
+const STATE_VARIANT: Record<
+	OrderReviewState,
+	"outline" | "success" | "warning"
+> = {
+	has_review: "success",
+	no_review_open: "warning",
+	no_review_expired: "outline",
+	order_not_paid: "warning",
+};
+
 const REVIEW_STATUS_LABEL: Record<string, string> = {
 	pending: "Pendente moderação",
 	approved: "Aprovado",
@@ -31,10 +41,10 @@ const REVIEW_STATUS_LABEL: Record<string, string> = {
 
 const REVIEW_STATUS_VARIANT: Record<
 	string,
-	"default" | "secondary" | "destructive" | "outline"
+	"destructive" | "success" | "warning"
 > = {
-	pending: "secondary",
-	approved: "default",
+	pending: "warning",
+	approved: "success",
 	rejected: "destructive",
 	spam: "destructive",
 };
@@ -49,7 +59,7 @@ export function OrderReviewsSection({ rows }: OrderReviewsSectionProps) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle className="font-serif">Avaliações</CardTitle>
+				<CardTitle>Avaliações</CardTitle>
 				<CardDescription>
 					{allUnpaid
 						? "Pedido ainda não pago — avaliações ficarão disponíveis após a confirmação."
@@ -75,7 +85,9 @@ export function OrderReviewsSection({ rows }: OrderReviewsSectionProps) {
 						<div className="flex flex-1 flex-col gap-1">
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<span className="font-medium text-sm">{row.toolName}</span>
-								<Badge variant="outline">{STATE_LABEL[row.reviewState]}</Badge>
+								<Badge variant={STATE_VARIANT[row.reviewState]}>
+									{STATE_LABEL[row.reviewState]}
+								</Badge>
 							</div>
 							<ReviewStateDetail row={row} />
 						</div>
@@ -94,9 +106,7 @@ function ReviewStateDetail({ row }: { row: OrderReviewRow }) {
 					{"★".repeat(row.review.rating)}
 					{"☆".repeat(5 - row.review.rating)}
 				</span>
-				<Badge
-					variant={REVIEW_STATUS_VARIANT[row.review.status] ?? "secondary"}
-				>
+				<Badge variant={REVIEW_STATUS_VARIANT[row.review.status] ?? "warning"}>
 					{REVIEW_STATUS_LABEL[row.review.status] ?? row.review.status}
 				</Badge>
 				<Link

@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@emach/ui/components/badge";
 import {
 	Sidebar,
 	SidebarContent,
@@ -110,7 +111,22 @@ function isActive(
 	return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-type FooterUser = { name: string; email: string } | null | undefined;
+type FooterUser =
+	| { email: string; name: string; role?: string | null }
+	| null
+	| undefined;
+
+const ROLE_LABELS: Record<string, string> = {
+	admin: "Admin",
+	manager: "Manager",
+	user: "User",
+};
+
+const ROLE_VARIANTS: Record<string, "default" | "info" | "secondary"> = {
+	admin: "default",
+	manager: "info",
+	user: "secondary",
+};
 
 function FooterContent({
 	isPending,
@@ -138,8 +154,15 @@ function FooterContent({
 
 	return (
 		<div className="flex flex-col gap-3 px-2 py-2">
-			<div>
-				<p className="font-medium text-sm">{user.name}</p>
+			<div className="flex flex-col gap-1">
+				<div className="flex items-center gap-2">
+					<p className="font-medium text-sm">{user.name}</p>
+					{user.role && ROLE_LABELS[user.role] && (
+						<Badge variant={ROLE_VARIANTS[user.role] ?? "secondary"}>
+							{ROLE_LABELS[user.role]}
+						</Badge>
+					)}
+				</div>
 				<p className="text-muted-foreground text-xs">{user.email}</p>
 			</div>
 			<SidebarMenu>

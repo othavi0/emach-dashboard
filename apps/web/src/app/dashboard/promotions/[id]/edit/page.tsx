@@ -32,7 +32,9 @@ export default async function EditPromotionPage({
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-serif text-2xl">Editar: {promotion.title}</h1>
+				<h1 className="font-medium text-2xl tracking-tight">
+					Editar: {promotion.title}
+				</h1>
 				<p className="text-muted-foreground text-sm">
 					Atualize os dados da promoção{" "}
 					<span className="font-medium text-foreground">{promotion.title}</span>

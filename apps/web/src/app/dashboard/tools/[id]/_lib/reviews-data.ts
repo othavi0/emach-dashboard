@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import { toDate } from "@emach/db/utils";
 import { sql } from "drizzle-orm";
 
 export interface ToolReviewSummary {
@@ -96,7 +97,7 @@ export async function getToolReviewsSummary(
 			body: r.body,
 			status: r.status,
 			clientName: r.client_name,
-			createdAt: r.created_at,
+			createdAt: toDate(r.created_at),
 		})),
 	};
 }

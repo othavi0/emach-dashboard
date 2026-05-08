@@ -10,19 +10,17 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
+import { Pencil } from "lucide-react";
 import Link from "next/link";
 
 import type { PromotionListItem } from "../actions";
 import { DeletePromotionDialog } from "./delete-promotion-dialog";
+import { ScopePopover } from "./scope-popover";
 
 interface PromotionsTableProps {
 	canMutate: boolean;
 	promotions: PromotionListItem[];
 }
-
-// ---------------------------------------------------------------------------
-// Date formatter
-// ---------------------------------------------------------------------------
 
 const DATE_FMT = new Intl.DateTimeFormat("pt-BR", {
 	day: "2-digit",
@@ -34,10 +32,6 @@ function fmtDate(d: Date): string {
 	return DATE_FMT.format(d);
 }
 
-// ---------------------------------------------------------------------------
-// Janela (date range) — 4 conditional variants
-// ---------------------------------------------------------------------------
-
 function formatJanela(startsAt: Date | null, endsAt: Date | null): string {
 	if (startsAt && endsAt) {
 		return `${fmtDate(startsAt)} – ${fmtDate(endsAt)}`;
@@ -48,12 +42,8 @@ function formatJanela(startsAt: Date | null, endsAt: Date | null): string {
 	if (endsAt) {
 		return `Até ${fmtDate(endsAt)}`;
 	}
-	return "—";
+	return "Sem janela definida";
 }
-
-// ---------------------------------------------------------------------------
-// Ativa — window-aware active check
-// ---------------------------------------------------------------------------
 
 function isPromotionActive(row: PromotionListItem): boolean {
 	if (!row.active) {
@@ -69,10 +59,6 @@ function isPromotionActive(row: PromotionListItem): boolean {
 	return true;
 }
 
-// ---------------------------------------------------------------------------
-// Desconto — pt-BR format XX,XX%
-// ---------------------------------------------------------------------------
-
 function formatDesconto(discountPct: string): string {
 	const num = Number(discountPct);
 	return `${new Intl.NumberFormat("pt-BR", {
@@ -80,22 +66,6 @@ function formatDesconto(discountPct: string): string {
 		maximumFractionDigits: 2,
 	}).format(num)}%`;
 }
-
-function formatToolsScope(promotion: PromotionListItem): string {
-	if (promotion.tools.length === 0) {
-		return "Nenhuma ferramenta vinculada";
-	}
-
-	const visibleTools = promotion.tools.slice(0, 2).map((tool) => tool.name);
-	const hiddenCount = promotion.tools.length - visibleTools.length;
-	const suffix = hiddenCount > 0 ? ` +${hiddenCount}` : "";
-
-	return `Ferramentas específicas: ${visibleTools.join(", ")}${suffix}`;
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export function PromotionsTable({
 	promotions,
@@ -105,15 +75,13 @@ export function PromotionsTable({
 		<Table>
 			<TableHeader>
 				<TableRow>
-					<TableHead>Tipo</TableHead>
+					<TableHead>Tipo / Código</TableHead>
 					<TableHead>Título</TableHead>
-					<TableHead>Código</TableHead>
 					<TableHead>Desconto</TableHead>
-					<TableHead>Ativa</TableHead>
-					<TableHead>Janela</TableHead>
+					<TableHead>Status</TableHead>
 					<TableHead>Escopo</TableHead>
 					{canMutate && (
-						<TableHead className="w-40 text-right">Ações</TableHead>
+						<TableHead className="w-32 text-right">Ações</TableHead>
 					)}
 				</TableRow>
 			</TableHeader>
@@ -121,17 +89,24 @@ export function PromotionsTable({
 				{promotions.map((p) => (
 					<TableRow key={p.id}>
 						<TableCell>
-							{p.type === "promocode" ? (
-								<Badge variant="secondary">Cupom</Badge>
-							) : (
-								<Badge variant="outline">Automática</Badge>
-							)}
+							<div className="flex flex-col gap-1">
+								{p.type === "promocode" ? (
+									<Badge className="w-fit" variant="info">
+										Cupom
+									</Badge>
+								) : (
+									<Badge className="w-fit" variant="outline">
+										Automática
+									</Badge>
+								)}
+								<span className="font-mono text-muted-foreground text-xs">
+									{p.type === "promocode" ? (p.code ?? "—") : "—"}
+								</span>
+							</div>
 						</TableCell>
 
-						<TableCell className="font-medium">{p.title}</TableCell>
-
-						<TableCell className="font-mono text-muted-foreground text-sm">
-							{p.type === "promocode" ? (p.code ?? "—") : "—"}
+						<TableCell className="max-w-[280px] truncate font-medium">
+							{p.title}
 						</TableCell>
 
 						<TableCell className="tabular-nums">
@@ -139,29 +114,38 @@ export function PromotionsTable({
 						</TableCell>
 
 						<TableCell>
-							{isPromotionActive(p) ? (
-								<Badge variant="default">Ativa</Badge>
-							) : (
-								<Badge variant="outline">Inativa</Badge>
-							)}
+							<div className="flex flex-col gap-1">
+								{isPromotionActive(p) ? (
+									<Badge className="w-fit" variant="success">
+										Ativa
+									</Badge>
+								) : (
+									<Badge className="w-fit" variant="outline">
+										Inativa
+									</Badge>
+								)}
+								<span className="text-muted-foreground text-xs">
+									{formatJanela(p.startsAt, p.endsAt)}
+								</span>
+							</div>
 						</TableCell>
 
-						<TableCell className="text-muted-foreground text-sm">
-							{formatJanela(p.startsAt, p.endsAt)}
-						</TableCell>
-
-						<TableCell className="max-w-xs text-muted-foreground text-sm">
-							{formatToolsScope(p)}
+						<TableCell>
+							<ScopePopover tools={p.tools} />
 						</TableCell>
 
 						{canMutate && (
 							<TableCell className="text-right">
 								<div className="flex justify-end gap-2">
 									<Link
-										className={buttonVariants({ size: "sm", variant: "ghost" })}
+										aria-label={`Editar promoção ${p.title}`}
+										className={buttonVariants({
+											size: "icon-sm",
+											variant: "secondary",
+										})}
 										href={`/dashboard/promotions/${p.id}/edit`}
 									>
-										Editar
+										<Pencil aria-hidden className="size-3.5" />
 									</Link>
 									<DeletePromotionDialog
 										promotionId={p.id}
