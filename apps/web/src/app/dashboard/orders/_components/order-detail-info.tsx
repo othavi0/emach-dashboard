@@ -62,7 +62,9 @@ export function OrderDetailInfo({ order }: { order: OrderDetail }) {
 			<Card>
 				<CardHeader>
 					<CardTitle className="flex items-center gap-3">
-						<span className="font-serif text-2xl">{order.number}</span>
+						<span className="font-medium text-2xl tracking-tight">
+							{order.number}
+						</span>
 						<OrderStatusBadge status={order.status} />
 					</CardTitle>
 					<CardDescription>

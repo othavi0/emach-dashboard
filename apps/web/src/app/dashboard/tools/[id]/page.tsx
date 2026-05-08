@@ -38,9 +38,9 @@ import { getToolReviewsSummary } from "./_lib/reviews-data";
 
 const STATUS_BADGE_VARIANT: Record<
 	ToolStatusValue,
-	"default" | "secondary" | "outline" | "destructive"
+	"destructive" | "outline" | "secondary" | "success"
 > = {
-	active: "default",
+	active: "success",
 	draft: "secondary",
 	discontinued: "outline",
 	out_of_stock: "destructive",
@@ -199,7 +199,7 @@ export default async function ToolDetailPage({ params }: PageProps) {
 		<div className="flex flex-col gap-6">
 			<div className="flex items-start justify-between">
 				<div>
-					<h1 className="font-serif text-2xl">{row.name}</h1>
+					<h1 className="font-medium text-2xl tracking-tight">{row.name}</h1>
 					<p className="text-muted-foreground text-sm">
 						{defaultVariant
 							? `SKU padrão: ${defaultVariant.sku}`
@@ -271,7 +271,7 @@ export default async function ToolDetailPage({ params }: PageProps) {
 										row.status}
 								</Badge>
 								<span className="ml-2">Visível no site:</span>
-								<Badge variant={row.visibleOnSite ? "default" : "outline"}>
+								<Badge variant={row.visibleOnSite ? "success" : "outline"}>
 									{row.visibleOnSite ? "Sim" : "Não"}
 								</Badge>
 							</span>

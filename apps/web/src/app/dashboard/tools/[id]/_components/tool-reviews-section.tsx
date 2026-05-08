@@ -25,10 +25,10 @@ const REVIEW_STATUS_LABEL: Record<string, string> = {
 
 const REVIEW_STATUS_VARIANT: Record<
 	string,
-	"default" | "secondary" | "destructive" | "outline"
+	"destructive" | "success" | "warning"
 > = {
-	pending: "secondary",
-	approved: "default",
+	pending: "warning",
+	approved: "success",
 	rejected: "destructive",
 	spam: "destructive",
 };
@@ -55,7 +55,7 @@ export function ToolReviewsSection({
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle className="font-serif">Avaliações</CardTitle>
+				<CardTitle>Avaliações</CardTitle>
 				<CardDescription>
 					Reviews dos clientes que compraram esta ferramenta.
 				</CardDescription>
@@ -63,7 +63,7 @@ export function ToolReviewsSection({
 			<CardContent className="flex flex-col gap-6">
 				<div className="grid gap-6 md:grid-cols-[180px_1fr]">
 					<div className="flex flex-col items-center justify-center gap-1 rounded-md border border-border p-4">
-						<span className="font-medium font-serif text-4xl tabular-nums">
+						<span className="font-medium text-4xl tabular-nums tracking-tight">
 							{summary.total === 0 ? "—" : summary.avg.toFixed(1)}
 						</span>
 						<span className="text-muted-foreground text-xs">de 5</span>
@@ -115,9 +115,7 @@ export function ToolReviewsSection({
 									{r.title && (
 										<span className="font-medium text-sm">{r.title}</span>
 									)}
-									<Badge
-										variant={REVIEW_STATUS_VARIANT[r.status] ?? "secondary"}
-									>
+									<Badge variant={REVIEW_STATUS_VARIANT[r.status] ?? "warning"}>
 										{REVIEW_STATUS_LABEL[r.status] ?? r.status}
 									</Badge>
 									<span className="ml-auto text-muted-foreground text-xs">

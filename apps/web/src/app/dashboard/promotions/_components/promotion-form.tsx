@@ -28,6 +28,11 @@ import { toast } from "sonner";
 
 import type { ZodError } from "zod";
 
+import {
+	FormErrorPanel,
+	type FormIssue,
+	zodIssuesToFormIssues,
+} from "@/components/form-error-panel";
 import { MaskedInput } from "@/components/masked-input";
 import { percentageMask } from "@/lib/masks";
 
@@ -37,6 +42,24 @@ import {
 	type PromotionFormValues,
 	promotionSchema,
 } from "./promotion-schema";
+
+const FIELD_LABELS: Record<string, string> = {
+	title: "Título",
+	description: "Descrição",
+	type: "Tipo",
+	code: "Código",
+	discountType: "Tipo de desconto",
+	discountValue: "Valor do desconto",
+	startsAt: "Início",
+	endsAt: "Fim",
+	usageLimit: "Limite de uso",
+	minPurchaseAmount: "Compra mínima",
+	maxDiscountAmount: "Desconto máximo",
+	toolIds: "Ferramentas",
+	isActive: "Ativa",
+	stackable: "Cumulativa",
+	priority: "Prioridade",
+};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -251,6 +274,7 @@ export function PromotionForm({
 
 	// Error & submit state
 	const [errors, setErrors] = useState<Record<string, string>>({});
+	const [formIssues, setFormIssues] = useState<FormIssue[]>([]);
 	const [serverError, setServerError] = useState<string | null>(null);
 	const [submitted, setSubmitted] = useState(false);
 
@@ -274,6 +298,7 @@ export function PromotionForm({
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setErrors({});
+		setFormIssues([]);
 		setServerError(null);
 
 		const input = buildInput();
@@ -283,6 +308,11 @@ export function PromotionForm({
 		if (!parsed.success) {
 			setErrors(
 				zodErrorsToFieldMap(parsed.error as ZodError<PromotionFormValues>)
+			);
+			const issues = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
+			setFormIssues(issues);
+			toast.error(
+				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
 			);
 			return;
 		}
@@ -323,6 +353,7 @@ export function PromotionForm({
 			className="flex w-full max-w-3xl flex-col gap-6"
 			onSubmit={handleSubmit}
 		>
+			<FormErrorPanel issues={formIssues} />
 			{/* Server-side error banner */}
 			{serverError && (
 				<div

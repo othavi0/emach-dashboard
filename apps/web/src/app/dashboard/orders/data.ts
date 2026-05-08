@@ -2,6 +2,7 @@ import { db } from "@emach/db";
 import { apiKey } from "@emach/db/schema/api-keys";
 import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
+import { toDate } from "@emach/db/utils";
 
 export type { OrderStatus } from "@emach/db/schema/orders";
 
@@ -247,7 +248,7 @@ export async function listOrders(
 			number: row.number,
 			status: row.status,
 			totalAmount: Number(row.total_amount),
-			createdAt: row.created_at,
+			createdAt: toDate(row.created_at),
 			clientName: row.client_name,
 			branchName: row.branch_name,
 		})),
@@ -257,67 +258,42 @@ export async function listOrders(
 	};
 }
 
-export interface OrdersMetrics {
-	avgTicket30d: number;
-	statusBreakdown: Record<OrderStatus, number>;
-	todayCount: number;
-	todayTotal: number;
-	weekCount: number;
-	weekTotal: number;
+export interface OrderActivityRow {
+	createdAt: Date;
+	id: string;
+	orderId: string;
+	orderNumber: string;
+	toStatus: OrderStatus;
 }
 
-export async function getOrdersMetrics(): Promise<OrdersMetrics> {
+export async function getRecentOrderActivity(
+	limit = 15
+): Promise<OrderActivityRow[]> {
 	const result = await db.execute<{
-		today_count: number;
-		today_total: string;
-		week_count: number;
-		week_total: string;
-		avg_ticket_30d: string;
-		status_breakdown: Record<string, number>;
+		created_at: Date;
+		id: string;
+		order_id: string;
+		order_number: string;
+		to_status: OrderStatus;
 	}>(sql`
-		WITH base AS (
-			SELECT id, status, total_amount, created_at FROM "order"
-		),
-		breakdown AS (
-			SELECT jsonb_object_agg(status, count) AS status_breakdown
-			FROM (SELECT status, COUNT(*)::int AS count FROM base GROUP BY status) s
-		)
 		SELECT
-			COUNT(*) FILTER (WHERE created_at >= date_trunc('day', now()))::int AS today_count,
-			COALESCE(SUM(total_amount) FILTER (WHERE created_at >= date_trunc('day', now())), 0)::text AS today_total,
-			COUNT(*) FILTER (WHERE created_at >= date_trunc('week', now()))::int AS week_count,
-			COALESCE(SUM(total_amount) FILTER (WHERE created_at >= date_trunc('week', now())), 0)::text AS week_total,
-			COALESCE(AVG(total_amount) FILTER (WHERE created_at >= now() - interval '30 days'), 0)::text AS avg_ticket_30d,
-			(SELECT status_breakdown FROM breakdown) AS status_breakdown
-		FROM base
+			osh.id,
+			osh.order_id,
+			o.number AS order_number,
+			osh.to_status,
+			osh.created_at
+		FROM order_status_history osh
+		JOIN "order" o ON o.id = osh.order_id
+		ORDER BY osh.created_at DESC
+		LIMIT ${limit}
 	`);
-
-	const row = result.rows[0];
-	const emptyBreakdown: Record<OrderStatus, number> = {
-		pending_payment: 0,
-		paid: 0,
-		preparing: 0,
-		shipped: 0,
-		delivered: 0,
-		canceled: 0,
-		refunded: 0,
-	};
-	const breakdownRaw = row?.status_breakdown ?? {};
-	const statusBreakdown = { ...emptyBreakdown };
-	for (const [k, v] of Object.entries(breakdownRaw)) {
-		if (k in emptyBreakdown) {
-			statusBreakdown[k as OrderStatus] = Number(v);
-		}
-	}
-
-	return {
-		todayCount: Number(row?.today_count ?? 0),
-		todayTotal: Number(row?.today_total ?? 0),
-		weekCount: Number(row?.week_count ?? 0),
-		weekTotal: Number(row?.week_total ?? 0),
-		avgTicket30d: Number(row?.avg_ticket_30d ?? 0),
-		statusBreakdown,
-	};
+	return result.rows.map((r) => ({
+		id: r.id,
+		orderId: r.order_id,
+		orderNumber: r.order_number,
+		toStatus: r.to_status,
+		createdAt: toDate(r.created_at),
+	}));
 }
 
 export async function getOrdersTabCounts(): Promise<Record<string, number>> {
@@ -553,11 +529,11 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		shippingAddress: row.shipping_address ?? {},
 		shippingMethod: row.shipping_method,
 		shippingTrackingCode: row.shipping_tracking_code,
-		createdAt: row.created_at,
-		paidAt: row.paid_at,
-		shippedAt: row.shipped_at,
-		deliveredAt: row.delivered_at,
-		canceledAt: row.canceled_at,
+		createdAt: toDate(row.created_at),
+		paidAt: toDate(row.paid_at),
+		shippedAt: toDate(row.shipped_at),
+		deliveredAt: toDate(row.delivered_at),
+		canceledAt: toDate(row.canceled_at),
 		items: items.map((item) => ({
 			id: item.id,
 			orderId: item.orderId,

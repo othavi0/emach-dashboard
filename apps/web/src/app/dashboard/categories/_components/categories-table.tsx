@@ -10,6 +10,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
+import { Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { DeleteCategoryDialog } from "./delete-category-dialog";
@@ -56,7 +57,7 @@ export function CategoriesTable({
 							<code className="text-xs">{c.path}</code>
 						</TableCell>
 						<TableCell>
-							<Badge variant={c.isActive ? "default" : "outline"}>
+							<Badge variant={c.isActive ? "success" : "outline"}>
 								{c.isActive ? "Ativa" : "Inativa"}
 							</Badge>
 						</TableCell>
@@ -65,13 +66,14 @@ export function CategoriesTable({
 								{canMutate && (
 									<>
 										<Link
+											aria-label={`Editar categoria ${c.name}`}
 											className={buttonVariants({
-												variant: "ghost",
-												size: "sm",
+												size: "icon-sm",
+												variant: "secondary",
 											})}
 											href={`/dashboard/categories/${c.id}/edit`}
 										>
-											Editar
+											<Pencil aria-hidden className="size-3.5" />
 										</Link>
 										<DeleteCategoryDialog
 											categoryId={c.id}

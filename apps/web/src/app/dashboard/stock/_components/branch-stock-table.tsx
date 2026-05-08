@@ -8,6 +8,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
+import { Eye } from "lucide-react";
 import Link from "next/link";
 
 import type { BranchStockRow } from "../branch-stock-data";
@@ -34,7 +35,7 @@ function StockStatusBadge({
 		return <Badge variant="destructive">Crítico</Badge>;
 	}
 	if (reorderPoint > 0 && quantity > minQty && quantity <= reorderPoint) {
-		return <Badge variant="secondary">Repor</Badge>;
+		return <Badge variant="warning">Repor</Badge>;
 	}
 	return null;
 }
@@ -114,13 +115,14 @@ export function BranchStockTable({
 								<TableCell className="text-right">
 									<div className="flex justify-end gap-2">
 										<Link
+											aria-label={`Ver detalhes de estoque de ${row.toolName}`}
 											className={buttonVariants({
-												size: "sm",
-												variant: "ghost",
+												size: "icon-sm",
+												variant: "outline",
 											})}
 											href={`/dashboard/tools/${row.toolId}/stock`}
 										>
-											Detalhes
+											<Eye aria-hidden className="size-3.5" />
 										</Link>
 										<StockAdjustButton
 											branchId={branchId}

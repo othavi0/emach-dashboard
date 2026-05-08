@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@emach/ui/components/badge";
 import { Button, buttonVariants } from "@emach/ui/components/button";
 import {
 	Popover,
@@ -14,6 +15,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
+import { AlertTriangleIcon, Boxes } from "lucide-react";
 import Link from "next/link";
 
 export interface StockRowBranch {
@@ -27,6 +29,7 @@ export interface StockRow {
 	id: string;
 	imageUrl: string | null;
 	name: string;
+	reorderCount: number;
 	sku: string | null;
 	slug: string | null;
 	totalStock: number;
@@ -68,7 +71,16 @@ export function StockTable({ rows }: StockTableProps) {
 							)}
 						</TableCell>
 						<TableCell>
-							<p className="font-medium">{row.name}</p>
+							<div className="flex items-center gap-2">
+								<p className="font-medium">{row.name}</p>
+								{row.reorderCount > 0 && (
+									<Badge variant="warning">
+										<AlertTriangleIcon aria-hidden="true" />
+										Repor
+										{row.reorderCount > 1 ? ` (${row.reorderCount})` : ""}
+									</Badge>
+								)}
+							</div>
 							<p className="text-muted-foreground text-xs">
 								Gerenciar estoque por filial
 							</p>
@@ -116,10 +128,14 @@ export function StockTable({ rows }: StockTableProps) {
 						</TableCell>
 						<TableCell className="text-right">
 							<Link
-								className={buttonVariants({ size: "sm", variant: "ghost" })}
+								aria-label={`Gerenciar estoque de ${row.name}`}
+								className={buttonVariants({
+									size: "icon-sm",
+									variant: "secondary",
+								})}
 								href={`/dashboard/tools/${row.id}/stock`}
 							>
-								Gerenciar estoque
+								<Boxes aria-hidden className="size-3.5" />
 							</Link>
 						</TableCell>
 					</TableRow>
