@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { deletePromotion } from "../actions";
 
 interface DeletePromotionDialogProps {
+	controlled?: { open: boolean; onOpenChange: (next: boolean) => void };
 	promotionId: string;
 	promotionTitle: string;
 }
@@ -28,10 +29,14 @@ interface DeletePromotionDialogProps {
 export function DeletePromotionDialog({
 	promotionId,
 	promotionTitle,
+	controlled,
 }: DeletePromotionDialogProps) {
 	const router = useRouter();
-	const [open, setOpen] = useState(false);
+	const [internalOpen, setInternalOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
+
+	const open = controlled ? controlled.open : internalOpen;
+	const setOpen = controlled ? controlled.onOpenChange : setInternalOpen;
 
 	function handleConfirm() {
 		startTransition(async () => {
@@ -48,12 +53,14 @@ export function DeletePromotionDialog({
 
 	return (
 		<AlertDialog onOpenChange={setOpen} open={open}>
-			<AlertDialogTrigger
-				aria-label={`Remover promoção ${promotionTitle}`}
-				render={<Button size="icon-sm" variant="destructive" />}
-			>
-				<Trash2 aria-hidden className="size-3.5" />
-			</AlertDialogTrigger>
+			{!controlled && (
+				<AlertDialogTrigger
+					aria-label={`Remover promoção ${promotionTitle}`}
+					render={<Button size="icon-sm" variant="destructive" />}
+				>
+					<Trash2 aria-hidden className="size-3.5" />
+				</AlertDialogTrigger>
+			)}
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
