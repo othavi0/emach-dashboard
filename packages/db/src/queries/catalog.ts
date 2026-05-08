@@ -340,6 +340,7 @@ export async function getTools(
 			  AND p.active = true
 			  AND (p.starts_at IS NULL OR p.starts_at <= now())
 			  AND (p.ends_at IS NULL OR p.ends_at >= now())
+			ORDER BY p.discount_pct DESC, p.created_at DESC
 			LIMIT 1
 		) active_promo ON true
 		LEFT JOIN LATERAL (
@@ -367,6 +368,7 @@ export async function getTools(
 			  AND p.active = true
 			  AND (p.starts_at IS NULL OR p.starts_at <= now())
 			  AND (p.ends_at IS NULL OR p.ends_at >= now())
+			ORDER BY p.discount_pct DESC, p.created_at DESC
 			LIMIT 1
 		) active_promo ON true
 		WHERE ${where}
@@ -498,6 +500,7 @@ export async function getToolBySlug(
 			  AND p.active = true
 			  AND (p.starts_at IS NULL OR p.starts_at <= now())
 			  AND (p.ends_at IS NULL OR p.ends_at >= now())
+			ORDER BY p.discount_pct DESC, p.created_at DESC
 			LIMIT 1
 		`),
 		db.execute<{ variant_id: string; in_stock: boolean }>(sql`

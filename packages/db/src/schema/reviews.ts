@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+	boolean,
 	check,
 	index,
 	integer,
@@ -7,7 +8,7 @@ import {
 	pgTable,
 	text,
 	timestamp,
-	uniqueIndex,
+	unique,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -33,13 +34,14 @@ export const review = pgTable(
 		clientId: text("client_id")
 			.notNull()
 			.references(() => client.id, { onDelete: "restrict" }),
-		orderId: text("order_id")
-			.notNull()
-			.references(() => order.id, { onDelete: "restrict" }),
+		orderId: text("order_id").references(() => order.id, {
+			onDelete: "restrict",
+		}),
 		rating: integer("rating").notNull(),
 		title: text("title"),
 		body: text("body").notNull(),
 		status: reviewStatusEnum("status").notNull().default("pending"),
+		verifiedPurchase: boolean("verified_purchase").notNull().default(false),
 		moderatedBy: text("moderated_by").references(() => user.id, {
 			onDelete: "set null",
 		}),
@@ -53,11 +55,9 @@ export const review = pgTable(
 	},
 	(table) => [
 		check("rating_range", sql`${table.rating} >= 1 AND ${table.rating} <= 5`),
-		uniqueIndex("review_client_tool_order_idx").on(
-			table.clientId,
-			table.toolId,
-			table.orderId
-		),
+		unique("review_client_tool_order_unique")
+			.on(table.clientId, table.toolId, table.orderId)
+			.nullsNotDistinct(),
 		index("review_tool_id_idx").on(table.toolId),
 		index("review_status_created_idx").on(table.status, table.createdAt.desc()),
 	]
