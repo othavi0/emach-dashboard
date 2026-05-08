@@ -7,6 +7,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
+import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -74,10 +75,14 @@ export function ReviewQueueTable({ reviews }: { reviews: ReviewListItem[] }) {
 						</TableCell>
 						<TableCell className="text-right">
 							<Link
-								className={buttonVariants({ size: "sm", variant: "ghost" })}
+								aria-label={`Revisar avaliação de ${review.toolName}`}
+								className={buttonVariants({
+									size: "icon-sm",
+									variant: "outline",
+								})}
 								href={`/dashboard/reviews/${review.id}`}
 							>
-								Revisar
+								<Eye aria-hidden className="size-3.5" />
 							</Link>
 						</TableCell>
 					</TableRow>

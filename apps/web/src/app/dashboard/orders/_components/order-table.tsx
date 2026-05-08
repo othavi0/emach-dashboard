@@ -14,6 +14,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
+import { Eye } from "lucide-react";
 import Link from "next/link";
 
 import type { OrderListFilters, OrderListItem } from "../data";
@@ -134,10 +135,14 @@ export function OrderTable({
 							</TableCell>
 							<TableCell className="text-right">
 								<Link
-									className={buttonVariants({ size: "sm", variant: "ghost" })}
+									aria-label={`Abrir pedido ${item.number}`}
+									className={buttonVariants({
+										size: "icon-sm",
+										variant: "outline",
+									})}
 									href={`/dashboard/orders/${item.id}`}
 								>
-									Abrir
+									<Eye aria-hidden className="size-3.5" />
 								</Link>
 							</TableCell>
 						</TableRow>

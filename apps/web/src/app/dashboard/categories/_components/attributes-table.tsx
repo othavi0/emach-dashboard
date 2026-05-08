@@ -11,7 +11,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
-import { Pencil } from "lucide-react";
+import { ArrowUpRight, Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { ATTRIBUTE_INPUT_TYPE_LABELS } from "../_lib/attribute-schema";
@@ -139,10 +139,14 @@ export function InheritedAttributesTable({ rows }: InheritedTableProps) {
 						</TableCell>
 						<TableCell className="text-right">
 							<Link
-								className={buttonVariants({ size: "sm", variant: "ghost" })}
+								aria-label={`Abrir categoria ${ownerCategoryName}`}
+								className={buttonVariants({
+									size: "icon-sm",
+									variant: "ghost",
+								})}
 								href={`/dashboard/categories/${ownerCategoryId}/edit`}
 							>
-								Abrir →
+								<ArrowUpRight aria-hidden className="size-3.5" />
 							</Link>
 						</TableCell>
 					</TableRow>

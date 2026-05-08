@@ -15,7 +15,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
-import { AlertTriangleIcon } from "lucide-react";
+import { AlertTriangleIcon, Boxes } from "lucide-react";
 import Link from "next/link";
 
 export interface StockRowBranch {
@@ -128,10 +128,14 @@ export function StockTable({ rows }: StockTableProps) {
 						</TableCell>
 						<TableCell className="text-right">
 							<Link
-								className={buttonVariants({ size: "sm", variant: "ghost" })}
+								aria-label={`Gerenciar estoque de ${row.name}`}
+								className={buttonVariants({
+									size: "icon-sm",
+									variant: "secondary",
+								})}
 								href={`/dashboard/tools/${row.id}/stock`}
 							>
-								Gerenciar estoque
+								<Boxes aria-hidden className="size-3.5" />
 							</Link>
 						</TableCell>
 					</TableRow>

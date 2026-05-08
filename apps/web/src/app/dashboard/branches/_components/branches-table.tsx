@@ -9,7 +9,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
-import { Pencil } from "lucide-react";
+import { Boxes, Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { DeleteBranchDialog } from "./delete-branch-dialog";
@@ -60,13 +60,14 @@ export function BranchesTable({ branches, canMutate }: BranchesTableProps) {
 						<TableCell className="text-right">
 							<div className="flex justify-end gap-2">
 								<Link
+									aria-label={`Gerenciar estoque de ${b.name}`}
 									className={buttonVariants({
+										size: "icon-sm",
 										variant: "secondary",
-										size: "sm",
 									})}
 									href={`/dashboard/branches/${b.id}/stock`}
 								>
-									Gerenciar estoque
+									<Boxes aria-hidden className="size-3.5" />
 								</Link>
 								{canMutate && (
 									<>

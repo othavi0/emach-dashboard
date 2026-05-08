@@ -10,7 +10,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
-import { Pencil } from "lucide-react";
+import { Boxes, Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { DeleteToolDialog } from "./delete-tool-dialog";
@@ -128,13 +128,14 @@ export function ToolsTable({ tools, canMutate }: ToolsTableProps) {
 							<TableCell className="text-right">
 								<div className="flex justify-end gap-2">
 									<Link
+										aria-label={`Gerenciar estoque de ${t.name}`}
 										className={buttonVariants({
-											size: "sm",
+											size: "icon-sm",
 											variant: "secondary",
 										})}
 										href={`/dashboard/tools/${t.id}/stock`}
 									>
-										Gerenciar estoque
+										<Boxes aria-hidden className="size-3.5" />
 									</Link>
 									<Link
 										aria-label={`Editar ferramenta ${t.name}`}
