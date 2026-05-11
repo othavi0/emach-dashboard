@@ -64,6 +64,7 @@ export const stockLevel = pgTable(
 
 export const branchRelations = relations(branch, ({ many }) => ({
 	stockLevels: many(stockLevel),
+	userBranches: many(userBranch),
 }));
 
 export const stockLevelRelations = relations(stockLevel, ({ one }) => ({
@@ -94,6 +95,10 @@ export const userBranch = pgTable(
 		index("user_branch_branch_idx").on(table.branchId),
 	]
 );
+
+export const userBranchesRelations = relations(user, ({ many }) => ({
+	branches: many(userBranch),
+}));
 
 export const userBranchRelations = relations(userBranch, ({ one }) => ({
 	user: one(user, {
