@@ -33,7 +33,17 @@ const TRACKED = [
 	"visible",
 	"status",
 	"ncm",
+	"sort",
 ] as const;
+
+const SORT_OPTIONS = [
+	{ label: "Mais nova", value: "newest" },
+	{ label: "Nome (A–Z)", value: "name" },
+] as const;
+
+const SORT_LABEL: Record<string, string> = Object.fromEntries(
+	SORT_OPTIONS.map((o) => [o.value, o.label])
+);
 
 export function ToolFilters({ categories }: ToolFiltersProps) {
 	const { searchParams, setParam, clearAll, hasActive } = useFilterState({
@@ -51,6 +61,7 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 	const currentCategoryId = searchParams.get("categoryId") ?? ALL;
 	const currentVisibility = searchParams.get("visible") ?? ALL;
 	const currentStatus = searchParams.get("status") ?? ALL;
+	const currentSort = searchParams.get("sort") ?? "newest";
 
 	return (
 		<FiltersBar hasActive={hasActive} onClear={clearAll}>
@@ -175,6 +186,31 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 					placeholder="Ex: 8467"
 					value={ncm}
 				/>
+			</div>
+
+			<div className="flex flex-col gap-1 md:w-40">
+				<label className="text-muted-foreground text-xs" htmlFor="tool-sort">
+					Ordenar por
+				</label>
+				<Select
+					onValueChange={(v) => setParam("sort", v === "newest" ? null : v)}
+					value={currentSort}
+				>
+					<SelectTrigger id="tool-sort">
+						<SelectValue>
+							{(v: string) => SORT_LABEL[v] ?? "Mais nova"}
+						</SelectValue>
+					</SelectTrigger>
+					<SelectContent>
+						<SelectGroup>
+							{SORT_OPTIONS.map((o) => (
+								<SelectItem key={o.value} value={o.value}>
+									{o.label}
+								</SelectItem>
+							))}
+						</SelectGroup>
+					</SelectContent>
+				</Select>
 			</div>
 		</FiltersBar>
 	);

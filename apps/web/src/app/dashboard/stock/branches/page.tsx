@@ -13,8 +13,11 @@ import { listBranches } from "@/app/dashboard/branches/actions";
 import { PageHeader } from "@/components/page-header";
 import { requireCurrentSession } from "@/lib/session";
 import { BranchSearchInput } from "../_components/branch-search-input";
-import { BranchStockTable } from "../_components/branch-stock-table";
-import { fetchBranchStockRows } from "../branch-stock-data";
+import { BranchStockInfinite } from "../_components/branch-stock-infinite";
+import {
+	type BranchStockFiltersInput,
+	fetchBranchStockPage,
+} from "../branch-stock-data";
 
 export const dynamic = "force-dynamic";
 
@@ -71,10 +74,13 @@ export default async function BranchesStockPage({
 	const selectedBranch =
 		branches.find((branch) => branch.id === params.branch) ?? branches[0];
 	const search = params.search?.trim() ?? "";
-	const rows = await fetchBranchStockRows({
+	const filters: BranchStockFiltersInput = {
 		branchId: selectedBranch.id,
 		search: search || undefined,
-	});
+		sort: "newest",
+	};
+	const first = await fetchBranchStockPage({ filters, cursor: null });
+	const rows = first.items;
 
 	return (
 		<>
@@ -136,11 +142,12 @@ export default async function BranchesStockPage({
 					</EmptyContent>
 				</Empty>
 			) : (
-				<BranchStockTable
-					branchId={selectedBranch.id}
+				<BranchStockInfinite
 					branchName={selectedBranch.name}
 					canMutate={canMutate}
-					rows={rows}
+					filters={filters}
+					initial={rows}
+					initialCursor={first.nextCursor}
 				/>
 			)}
 		</>
