@@ -18,7 +18,7 @@ Dashboard interno emach: única fonte de verdade operacional para catálogo (fer
 
 ## Anti-references
 
-- **Anthropic / Claude visual signature.** Cormorant serif gigante editorial, cream parchment canvas, coral terracotta como cor de marca, copy "helpful AI assistant" tom suave. Inspiração tipográfica ok, mimetismo direto não. Trocar coral por sistema cromático próprio.
+- **Anthropic / Claude visual signature.** Cormorant serif gigante editorial em chrome, cream parchment canvas, coral terracotta como cor de marca, copy "helpful AI assistant" tom suave. **Sistema atual já saiu disso** — paleta industrial dark + copper própria, sans-only no chrome. Cormorant Garamond permanece carregada apenas para momentos editoriais restritos (login hero, capa de relatório impresso), nunca como assinatura sistêmica.
 - **Shopify / Magento admin.** Cards coloridos com ilustrações flat, dashboards com métricas hero gigantes, navegação com ícones genéricos.
 - **SaaS clone (Linear / Stripe / Notion stamp).** Cool blue-grays, navy gradients, layouts modernos sem identidade.
 - **Tom "AI prestativo".** Copy que pede desculpa, sugere com cautela, suaviza ações. Equipe quer ferramenta, não assistente.
@@ -26,10 +26,10 @@ Dashboard interno emach: única fonte de verdade operacional para catálogo (fer
 
 ## Design Principles
 
-1. **Cor é sistema, não decoração.** Cada role (primary, secondary, destructive, warning, info, success) tem cor distinta com hierarquia reconhecível. Usuário identifica estado pelo rabo do olho. Coral terracotta sai como assinatura — paleta nova, mais ampla e contrastante.
+1. **Cor é sistema, não decoração.** Cada role (primary copper, secondary warm graphite, destructive oxide red, warning mustard, info teal, success jade) tem matiz própria separada por ≥20° de hue circle. Usuário identifica estado pelo rabo do olho. Tokens canônicos em `DESIGN.md` seção Paleta.
 2. **Densidade > respiro.** Equipe interna preza informação na tela. text-sm baseline, padding compacto, listas densas. Nada de hero areas, nada de espaçamento marketing.
 3. **Voz de engenheiro, não de assistente.** Labels e error messages diretos: "SKU duplicado em variante 2" não "Parece que houve um problema com o SKU". Português técnico do domínio.
-4. **Editorial sai, utilitário entra.** Serif weight 400 tracking-tight em headline 48px é assinatura Anthropic — substituir por hierarquia tipográfica funcional (sans denso, contraste por peso/case, não por família serif).
+4. **Editorial sai do chrome, utilitário entra.** Hierarquia tipográfica funcional: Inter sans denso, contraste por peso (`font-medium` 500 baseline) e case (`uppercase tracking-wider` em section markers), não por família serif. Cormorant Garamond fica restrito a login hero + capa de relatório — nunca no chrome do dashboard.
 5. **AAA + reduced motion não-negociável.** Contraste 7:1 em body, focus visível com 2px sólido, animações respeitam `prefers-reduced-motion`. Equipe pode incluir gente com fadiga visual em sessão longa.
 
 ## Accessibility & Inclusion

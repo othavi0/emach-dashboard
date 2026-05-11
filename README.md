@@ -13,13 +13,11 @@ Dashboard interno + base para futuro ecomerce BR. Monorepo Bun + Turborepo. Auth
 - **DB:** PostgreSQL via Supabase + Drizzle ORM (`packages/db`)
 - **Auth:** Better Auth 1.5 — dual instances (`packages/auth/src/dashboard.ts` + `ecommerce.ts`)
 - **Env validation:** `@t3-oss/env-core` + Zod (`packages/env`)
-- **Lint/format:** Biome 2.4 + Ultracite 7.6
+- **Lint/format:** Biome 2.4.13 + Ultracite 7.6 (`bun fix`)
 - **Storage:** Supabase Storage (`tool-images` bucket) para imagens de produtos
-- **Design system:** "Anthropic/Claude" — warm parchment + terracotta (ver `DESIGN.md`)
+- **Design system:** Industrial neutrals warm-dark + copper, dark-mode único (ver `DESIGN.md`)
 
 ## Getting Started
-
-First, install the dependencies:
 
 ```bash
 bun install
@@ -27,83 +25,96 @@ bun install
 
 ## Database Setup
 
-This project uses PostgreSQL with Drizzle ORM.
+PostgreSQL + Drizzle ORM via Supabase.
 
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/web/.env` file with your PostgreSQL connection details.
-
-3. Apply the schema to your database:
-
-```bash
-bun run db:push
-```
-
-Then, run the development server:
+1. Provisionar Postgres (Supabase ou local).
+2. Popular `apps/web/.env` a partir de `apps/web/.env.example` (inclui `DATABASE_URL` + `NEXT_PUBLIC_SUPABASE_*`).
+3. Aplicar schema:
 
 ```bash
-bun run dev
+bun db:push                                  # dev: schema → DB sem migration
+bun --cwd packages/db db:apply-triggers      # triggers PL/pgSQL (anti-ciclo + idempotência)
+bun --cwd packages/db db:seed-categories     # bootstrap 5 categorias raiz
+bun --cwd packages/db db:seed-attributes     # attribute_definitions iniciais
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the fullstack application.
+Servidor de desenvolvimento:
+
+```bash
+bun dev:web    # apenas web em :3001 (preferido)
+bun dev        # todos os apps em paralelo (Turbo TUI)
+```
+
+Abrir [http://localhost:3001](http://localhost:3001).
 
 ## UI Customization
 
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
+Primitives shadcn/ui ficam em `packages/ui`.
 
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
+- Tokens de design + globals: `packages/ui/src/styles/globals.css`
+- Componentes shared: `packages/ui/src/components/*`
+- shadcn aliases: `packages/ui/components.json` + `apps/web/components.json`
 
-### Add more shared components
-
-Run this from the project root to add more primitives to the shared UI package:
+Adicionar primitives shared (rodar da raiz):
 
 ```bash
 npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
 ```
 
-Import shared components like this:
+Import:
 
 ```tsx
 import { Button } from "@emach/ui/components/button";
 ```
 
-### Add app-specific blocks
+Blocks específicos do app: rodar shadcn CLI dentro de `apps/web` (não em `packages/ui`).
 
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
+## Lint / Format
 
-## Git Hooks and Formatting
-
-- Format and lint fix: `bun run check`
+- `bun check` — dry-run (Ultracite check; falha se houver issue)
+- `bun fix` — aplica fixes automáticos (também roda como PostToolUse hook)
 
 ## Project Structure
 
 ```
 emach-dashboard/
 ├── apps/
-│   └── web/             # Next 16 dashboard (port 3001)
-│       └── src/app/dashboard/(inventory)/{tools,stock,promotions}
+│   └── web/                         # Next 16 dashboard (port 3001)
+│       └── src/app/dashboard/{tools,categories,suppliers,branches,stock,promotions,orders,reviews}
 ├── packages/
-│   ├── ui/              # shadcn/ui primitives + globals.css
-│   ├── auth/            # Better Auth dual: dashboard.ts + ecommerce.ts
-│   ├── db/              # Drizzle schema + createDb factory
-│   ├── env/             # Zod-validated env (@t3-oss/env-core)
-│   └── config/          # tsconfig.base.json compartilhado
+│   ├── ui/                          # shadcn/ui primitives + globals.css
+│   ├── auth/                        # Better Auth dual: dashboard.ts + ecommerce.ts
+│   ├── db/                          # Drizzle schema + createDb factory + scripts
+│   ├── env/                         # Zod-validated env (@t3-oss/env-core)
+│   └── config/                      # tsconfig.base.json compartilhado
 ├── docs/
-│   └── auth/ecommerce-integration.md
-├── .claude/CLAUDE.md    # Guia canônico para Claude Code (e Codex via AGENTS.md)
-├── DESIGN.md            # Sistema visual Anthropic/Claude
-└── .mcp.json            # MCP servers: context7, supabase, shadcn, ...
+│   ├── integration/admin-ecommerce.md
+│   └── storage-buckets.md
+├── scripts/
+│   ├── clean.sh
+│   └── validate-bts.mjs
+├── .claude/CLAUDE.md                # Guia canônico para Claude Code (e Codex via AGENTS.md)
+├── DESIGN.md                        # Sistema visual industrial dark + copper
+├── PRODUCT.md                       # Register product + personality + anti-references
+└── .mcp.json                        # MCP servers: context7, supabase, shadcn, ...
 ```
 
 ## Available Scripts
 
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run db:push`: Push schema changes to database
-- `bun run db:generate`: Generate database client/types
-- `bun run db:migrate`: Run database migrations
-- `bun run db:studio`: Open database studio UI
-- `bun run check`: Run Biome formatting and linting
+| Script                                              | Função                                                                    |
+| --------------------------------------------------- | ------------------------------------------------------------------------- |
+| `bun dev`                                           | Inicia todos os apps em paralelo (Turbo TUI)                              |
+| `bun dev:web`                                       | Inicia apenas o web (port 3001)                                           |
+| `bun build`                                         | Build de todos os apps                                                    |
+| `bun check-types`                                   | `tsc --noEmit` em todos os workspaces                                     |
+| `bun check`                                         | Ultracite check (lint/format dry-run; falha se issue)                     |
+| `bun fix`                                           | Ultracite fix (aplica auto-format)                                        |
+| `bun db:push`                                       | dev: sincroniza schema → DB sem migration                                 |
+| `bun db:generate`                                   | Gera SQL de migration versionada (`packages/db/src/migrations/*.sql`)     |
+| `bun db:migrate`                                    | Aplica migrations pendentes (prod/staging)                                |
+| `bun db:studio`                                     | UI inspetora de tabelas (drizzle-kit)                                     |
+| `bun --cwd packages/db db:apply-triggers`           | Aplica `src/migrations/_triggers.sql` (anti-ciclo + idempotência)         |
+| `bun --cwd packages/db db:seed-categories`          | Bootstrap 5 categorias raiz                                               |
+| `bun --cwd packages/db db:seed-attributes`          | Bootstrap `attribute_definitions` iniciais por categoria                  |
+| `bun --cwd packages/db db:anonymize-client <id>`    | LGPD direito ao esquecimento                                              |
+| `bun clean`                                         | Remove `node_modules` + caches Turbo/Next                                 |
