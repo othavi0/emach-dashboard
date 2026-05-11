@@ -10,8 +10,8 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
 import { requireCurrentSession } from "@/lib/session";
-import { BranchesTable, type BranchRow } from "./_components/branches-table";
-import { listBranches } from "./actions";
+import { BranchesInfinite } from "./_components/branches-infinite";
+import { type BranchesFiltersInput, fetchBranchesPage } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -20,15 +20,9 @@ export default async function BranchesPage() {
 	const role = session.user.role ?? "user";
 	const canMutate = role === "admin";
 
-	const rows = await listBranches();
-	const branches: BranchRow[] = rows.map((b) => ({
-		id: b.id,
-		name: b.name,
-		address: b.address,
-		createdAt: b.createdAt,
-	}));
-
-	const isEmpty = branches.length === 0;
+	const filters: BranchesFiltersInput = { sort: "newest" };
+	const first = await fetchBranchesPage({ filters, cursor: null });
+	const isEmpty = first.items.length === 0;
 
 	return (
 		<>
@@ -68,7 +62,12 @@ export default async function BranchesPage() {
 					</EmptyContent>
 				</Empty>
 			) : (
-				<BranchesTable branches={branches} canMutate={canMutate} />
+				<BranchesInfinite
+					canMutate={canMutate}
+					filters={filters}
+					initial={first.items}
+					initialCursor={first.nextCursor}
+				/>
 			)}
 		</>
 	);

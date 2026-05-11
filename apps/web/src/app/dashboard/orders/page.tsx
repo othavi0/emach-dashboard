@@ -14,13 +14,14 @@ import { type PendingGroup, PendingList } from "@/components/pending-list";
 import { can, requireCapability } from "@/lib/permissions";
 import { ExportCsvLink } from "./_components/export-csv-link";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
-import { OrderTable } from "./_components/order-table";
+import { OrdersInfinite } from "./_components/orders-infinite";
 import {
+	fetchOrdersPage,
 	getOrdersTabCounts,
 	getRecentOrderActivity,
 	listOrderBranches,
-	listOrders,
 	type OrderListFilters,
+	type OrdersPageFiltersInput,
 } from "./data";
 import { ordersListFiltersSchema } from "./schema";
 import { ORDER_STATUS_LABELS } from "./status-meta";
@@ -47,11 +48,19 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 		page: data.page,
 	};
 
+	const pageFilters: OrdersPageFiltersInput = {
+		tab: data.tab,
+		q: data.q,
+		from: data.from,
+		to: data.to,
+		branchId: data.branchId,
+	};
+
 	const [branches, counts, recentActivity, result] = await Promise.all([
 		listOrderBranches(),
 		getOrdersTabCounts(),
 		getRecentOrderActivity(),
-		listOrders(filters),
+		fetchOrdersPage({ filters: pageFilters, cursor: null }),
 	]);
 
 	const hasFilters = Boolean(
@@ -162,11 +171,11 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 					</EmptyContent>
 				</Empty>
 			) : (
-				<OrderTable
-					filters={filters}
-					items={result.items}
-					page={result.page}
-					totalPages={result.totalPages}
+				<OrdersInfinite
+					filters={pageFilters}
+					initial={result.items}
+					initialCursor={result.nextCursor}
+					tableFilters={filters}
 				/>
 			)}
 		</>
