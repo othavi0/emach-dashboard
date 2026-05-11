@@ -13,8 +13,14 @@ import { stockMovement } from "@emach/db/schema/stock-movements";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
+import {
+	fetchOrdersPage as fetchOrdersPageImpl,
+	type OrderListItem,
+	type OrdersPageFiltersInput,
+} from "./data";
 import {
 	type AddOrderNoteInput,
 	type AssignBranchInput,
@@ -32,6 +38,13 @@ export type ActionResult<T = undefined> =
 	| { ok: false; error: string };
 
 const ORDERS_PATH = "/dashboard/orders";
+
+export async function fetchOrdersPage(args: {
+	filters: OrdersPageFiltersInput;
+	cursor: string | null;
+}): Promise<InfiniteResult<OrderListItem>> {
+	return fetchOrdersPageImpl(args);
+}
 
 const STATUS_TIMESTAMP_MAP: Partial<Record<OrderStatus, string>> = {
 	paid: "paidAt",

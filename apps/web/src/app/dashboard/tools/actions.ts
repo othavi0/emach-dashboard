@@ -9,11 +9,14 @@ import {
 } from "@emach/db/schema/attributes";
 import { toolCategory } from "@emach/db/schema/categories";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
+import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
+import { decodeCursor, encodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 import { deleteToolImage } from "./_components/image-actions";
+import type { ToolStatusValue } from "./_components/tool-schema";
 import {
 	type AttributeValueInput,
 	slugify,
@@ -482,4 +485,184 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 	revalidatePath(TOOLS_PATH);
 	revalidatePath(`${TOOLS_PATH}/${id}`);
 	return { ok: true, data: undefined };
+}
+
+export type ToolSort = "newest" | "name";
+
+export interface ToolsFiltersInput {
+	categoryId?: string;
+	ncm?: string;
+	search?: string;
+	sort: ToolSort;
+	status?: string;
+	visible?: string;
+}
+
+interface ToolPageRow extends Record<string, unknown> {
+	branches_breakdown: Array<{
+		branch_id: string;
+		branch_name: string;
+		quantity: number;
+	}> | null;
+	created_at: string;
+	default_sku: string | null;
+	default_voltage: string | null;
+	id: string;
+	image_url: string | null;
+	model: string | null;
+	name: string;
+	primary_category_name: string | null;
+	reorder_count: number;
+	slug: string | null;
+	status: string;
+	supplier_name: string | null;
+	total_stock: number;
+	variant_count: number;
+	variant_voltages: string[];
+	visible_on_site: boolean;
+}
+
+function buildToolsWhereClause(
+	filters: ToolsFiltersInput,
+	decoded: ReturnType<typeof decodeCursor> | null
+) {
+	const whereParts: ReturnType<typeof sql>[] = [];
+	if (filters.search) {
+		whereParts.push(sql`t.name ILIKE ${`%${filters.search}%`}`);
+	}
+	if (filters.categoryId) {
+		whereParts.push(
+			sql`EXISTS (SELECT 1 FROM tool_category tc WHERE tc.tool_id = t.id AND tc.category_id = ${filters.categoryId})`
+		);
+	}
+	if (filters.visible === "true") {
+		whereParts.push(sql`t.visible_on_site = true`);
+	} else if (filters.visible === "false") {
+		whereParts.push(sql`t.visible_on_site = false`);
+	}
+	if (filters.status) {
+		const statuses = filters.status.split(",").filter(Boolean);
+		if (statuses.length > 0) {
+			const placeholders = sql.join(
+				statuses.map((s) => sql`${s}`),
+				sql`, `
+			);
+			whereParts.push(sql`t.status IN (${placeholders})`);
+		}
+	}
+	if (filters.ncm) {
+		whereParts.push(sql`t.ncm ILIKE ${`${filters.ncm}%`}`);
+	}
+	if (decoded) {
+		if (filters.sort === "newest" && decoded.sort === "newest") {
+			whereParts.push(
+				sql`(t.created_at, t.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+			);
+		} else if (filters.sort === "name" && decoded.sort === "name") {
+			whereParts.push(sql`(t.name, t.id) > (${decoded.name}, ${decoded.id})`);
+		} else {
+			throw new Error("Cursor não condiz com sort");
+		}
+	}
+	return whereParts.length
+		? sql`WHERE ${sql.join(whereParts, sql` AND `)}`
+		: sql``;
+}
+
+function buildToolsNextCursor(
+	sort: ToolSort,
+	last: { id: string; __createdAt: string; __name: string }
+): string {
+	if (sort === "name") {
+		return encodeCursor({ v: 1, sort: "name", name: last.__name, id: last.id });
+	}
+	return encodeCursor({
+		v: 1,
+		sort: "newest",
+		createdAt: last.__createdAt,
+		id: last.id,
+	});
+}
+
+export async function fetchToolsPage({
+	filters,
+	cursor,
+}: {
+	filters: ToolsFiltersInput;
+	cursor: string | null;
+}): Promise<InfiniteResult<ToolCardData>> {
+	const decoded = cursor ? decodeCursor(cursor) : null;
+	const whereClause = buildToolsWhereClause(filters, decoded);
+	const orderClause =
+		filters.sort === "name"
+			? sql`ORDER BY t.name ASC, t.id ASC`
+			: sql`ORDER BY t.created_at DESC, t.id DESC`;
+
+	const rows = await db.execute<ToolPageRow>(sql`
+		SELECT
+			t.id, t.name, t.slug,
+			(SELECT tv.sku FROM tool_variant tv WHERE tv.tool_id = t.id AND tv.is_default = true LIMIT 1) AS default_sku,
+			(SELECT tv.voltage::text FROM tool_variant tv WHERE tv.tool_id = t.id AND tv.is_default = true LIMIT 1) AS default_voltage,
+			(SELECT COUNT(*)::int FROM tool_variant tv WHERE tv.tool_id = t.id) AS variant_count,
+			(SELECT COALESCE(array_agg(DISTINCT tv.voltage::text ORDER BY tv.voltage::text), ARRAY[]::text[])
+				FROM tool_variant tv WHERE tv.tool_id = t.id) AS variant_voltages,
+			t.model, t.status,
+			(SELECT ti.url FROM tool_image ti WHERE ti.tool_id = t.id ORDER BY ti.sort_order ASC LIMIT 1) AS image_url,
+			t.visible_on_site,
+			(SELECT c.name FROM tool_category tc JOIN category c ON c.id = tc.category_id
+				WHERE tc.tool_id = t.id AND tc.is_primary = true LIMIT 1) AS primary_category_name,
+			s.name AS supplier_name,
+			COALESCE((SELECT SUM(sl.quantity)::int FROM stock_level sl
+				JOIN tool_variant tv ON tv.id = sl.variant_id WHERE tv.tool_id = t.id), 0) AS total_stock,
+			COALESCE((SELECT COUNT(*)::int FROM stock_level sl
+				JOIN tool_variant tv ON tv.id = sl.variant_id
+				WHERE tv.tool_id = t.id AND sl.reorder_point > 0 AND sl.quantity <= sl.reorder_point), 0) AS reorder_count,
+			COALESCE((SELECT json_agg(json_build_object('branch_id', b.id, 'branch_name', b.name, 'quantity', branch_total) ORDER BY b.name ASC)
+				FROM (SELECT b2.id AS bid, SUM(sl2.quantity)::int AS branch_total
+					FROM stock_level sl2 JOIN tool_variant tv2 ON tv2.id = sl2.variant_id
+					JOIN branch b2 ON b2.id = sl2.branch_id WHERE tv2.tool_id = t.id GROUP BY b2.id) g
+				JOIN branch b ON b.id = g.bid), '[]'::json) AS branches_breakdown,
+			t.created_at::text AS created_at
+		FROM tool t
+		LEFT JOIN supplier s ON s.id = t.supplier_id
+		${whereClause}
+		${orderClause}
+		LIMIT ${BATCH_SIZE + 1}
+	`);
+
+	const all = rows.rows.map((r) => ({
+		id: r.id,
+		name: r.name,
+		slug: r.slug,
+		imageUrl: r.image_url,
+		sku: r.default_sku,
+		voltage: r.default_voltage,
+		variantCount: Number(r.variant_count ?? 0),
+		variantSummaries: r.variant_voltages ?? [],
+		primaryCategoryName: r.primary_category_name,
+		supplierName: r.supplier_name,
+		status: r.status as ToolStatusValue,
+		visibleOnSite: r.visible_on_site,
+		totalStock: Number(r.total_stock ?? 0),
+		reorderCount: Number(r.reorder_count ?? 0),
+		branches: (r.branches_breakdown ?? []).map((b) => ({
+			branchId: b.branch_id,
+			branchName: b.branch_name,
+			quantity: b.quantity,
+		})),
+		__createdAt: r.created_at,
+		__name: r.name,
+	}));
+
+	const hasMore = all.length > BATCH_SIZE;
+	const items = hasMore ? all.slice(0, BATCH_SIZE) : all;
+	const last = items.at(-1);
+	const nextCursor =
+		hasMore && last ? buildToolsNextCursor(filters.sort, last) : null;
+
+	const cleanItems: ToolCardData[] = items.map(
+		({ __createdAt: _c, __name: _n, ...rest }) => rest
+	);
+
+	return { items: cleanItems, nextCursor };
 }

@@ -25,6 +25,8 @@ interface StockFiltersProps {
 }
 
 const SORT_OPTIONS = [
+	{ label: "Urgência", value: "urgencia" },
+	{ label: "Mais nova", value: "mais-nova" },
 	{ label: "Nome (A–Z)", value: "nome" },
 	{ label: "Maior estoque", value: "maior" },
 	{ label: "Menor estoque", value: "menor" },
@@ -48,7 +50,7 @@ export function StockFilters({ categories }: StockFiltersProps) {
 		key: "search",
 	});
 	const currentCategory = searchParams.get("categoryId") ?? ALL;
-	const currentOrdem = searchParams.get("ordem") ?? "nome";
+	const currentOrdem = searchParams.get("ordem") ?? "urgencia";
 
 	return (
 		<FiltersBar hasActive={hasActive} onClear={clearAll}>
@@ -104,12 +106,12 @@ export function StockFilters({ categories }: StockFiltersProps) {
 					Ordenar por
 				</label>
 				<Select
-					onValueChange={(v) => setParam("ordem", v === "nome" ? null : v)}
+					onValueChange={(v) => setParam("ordem", v === "urgencia" ? null : v)}
 					value={currentOrdem}
 				>
 					<SelectTrigger id="stock-ordem">
 						<SelectValue>
-							{(v: string) => SORT_LABEL[v] ?? "Nome (A–Z)"}
+							{(v: string) => SORT_LABEL[v] ?? "Urgência"}
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>

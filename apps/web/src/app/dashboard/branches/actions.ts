@@ -2,9 +2,11 @@
 
 import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
-import { asc, eq } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+import { decodeCursor, encodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 import {
 	type BranchFormValues,
@@ -36,6 +38,68 @@ function zodErrorMessage(error: unknown): string {
 
 export async function listBranches(): Promise<BranchListItem[]> {
 	return await db.select().from(branch).orderBy(asc(branch.name));
+}
+
+export type BranchSort = "newest" | "name";
+
+export interface BranchesFiltersInput {
+	search?: string;
+	sort: BranchSort;
+}
+
+export async function fetchBranchesPage({
+	filters,
+	cursor,
+}: {
+	filters: BranchesFiltersInput;
+	cursor: string | null;
+}): Promise<InfiniteResult<BranchListItem>> {
+	const decoded = cursor ? decodeCursor(cursor) : null;
+	const conditions: ReturnType<typeof sql>[] = [];
+	if (filters.search) {
+		conditions.push(sql`${branch.name} ILIKE ${`%${filters.search}%`}`);
+	}
+	if (decoded) {
+		if (filters.sort === "newest" && decoded.sort === "newest") {
+			conditions.push(
+				sql`(${branch.createdAt}, ${branch.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+			);
+		} else if (filters.sort === "name" && decoded.sort === "name") {
+			conditions.push(
+				sql`(${branch.name}, ${branch.id}) > (${decoded.name}, ${decoded.id})`
+			);
+		}
+	}
+
+	const whereExpr =
+		conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
+	const orderExprs =
+		filters.sort === "name"
+			? [asc(branch.name), asc(branch.id)]
+			: [desc(branch.createdAt), desc(branch.id)];
+
+	const rows = await db
+		.select()
+		.from(branch)
+		.where(whereExpr)
+		.orderBy(...orderExprs)
+		.limit(BATCH_SIZE + 1);
+	const hasMore = rows.length > BATCH_SIZE;
+	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
+	const last = items.at(-1);
+	let nextCursor: string | null = null;
+	if (hasMore && last) {
+		nextCursor =
+			filters.sort === "name"
+				? encodeCursor({ v: 1, sort: "name", name: last.name, id: last.id })
+				: encodeCursor({
+						v: 1,
+						sort: "newest",
+						createdAt: last.createdAt.toISOString(),
+						id: last.id,
+					});
+	}
+	return { items, nextCursor };
 }
 
 export async function getBranch(id: string): Promise<BranchListItem | null> {
