@@ -14,6 +14,19 @@ Ambos os apps compartilham o mesmo banco Supabase via Drizzle. O dashboard é **
 
 `packages/db/src/queries/*.ts` é owned-by-dashboard. Storefront sincroniza byte-a-byte. Não editar em isolamento no ecommerce.
 
+## Filial default do ecommerce
+
+A filial que processa pedidos do storefront vive em `branch.isDefault = true` no DB
+(partial unique index garante max 1 default ativa). Mudança via dashboard em
+`/dashboard/branches/[id]/edit` por super_admin (toggle "Filial padrão do ecommerce").
+
+O ecommerce lê via helper `getDefaultBranchId()` (`apps/web/src/lib/default-branch.ts`)
+cacheado por 1h. Trocar a default no dashboard chama `revalidatePath` localmente; o
+ecommerce só vê a mudança após o TTL (até 1h) ou redeploy.
+
+Histórico: substituiu o env var `ECOMMERCE_DEFAULT_BRANCH_ID` em 2026-05.
+
 ## Histórico de mudanças no schema
 
 - 2026-05-08: `promotion` ganha `created_by`, `updated_by` (FKs nullable para `user(id)` ON DELETE SET NULL). Storefront não consome essas colunas; sem ação necessária no repo ecommerce.
+- 2026-05-11: `branch` ganha `isDefault` (boolean, partial unique index). `user` ganha `status` (pgEnum: pending/active/suspended) e `super_admin` role. Tabela `user_branch` criada. Env var `ECOMMERCE_DEFAULT_BRANCH_ID` removido — ecommerce lê via `branch.isDefault`.
