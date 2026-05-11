@@ -13,6 +13,8 @@ import {
 	orderStatusHistory,
 } from "@emach/db/schema/orders";
 import { asc, desc, eq, sql } from "drizzle-orm";
+import { decodeCursor, encodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { ORDER_TABS } from "./status-meta";
 
 export const ORDERS_PAGE_SIZE = 20;
@@ -172,6 +174,109 @@ export function listOrderBranches(): Promise<BranchOption[]> {
 		.select({ id: branch.id, name: branch.name })
 		.from(branch)
 		.orderBy(asc(branch.name));
+}
+
+export interface OrdersPageFiltersInput {
+	branchId?: string;
+	from?: string;
+	q?: string;
+	tab?: string;
+	to?: string;
+}
+
+export async function fetchOrdersPage({
+	filters,
+	cursor,
+}: {
+	filters: OrdersPageFiltersInput;
+	cursor: string | null;
+}): Promise<InfiniteResult<OrderListItem>> {
+	const tab = resolveTab(filters.tab);
+	const decoded = cursor ? decodeCursor(cursor) : null;
+	const conditions = [] as ReturnType<typeof sql>[];
+	const query = filters.q?.trim();
+	const from = normalizeDateParam(filters.from);
+	const to = normalizeDateParam(filters.to);
+
+	if (tab.statuses) {
+		const placeholders = sql.join(
+			tab.statuses.map((s) => sql`${s}`),
+			sql`, `
+		);
+		conditions.push(sql`o.status IN (${placeholders})`);
+	}
+	if (query) {
+		conditions.push(
+			sql`(o.number ILIKE ${`%${query}%`} OR c.name ILIKE ${`%${query}%`})`
+		);
+	}
+	if (filters.branchId) {
+		conditions.push(sql`o.branch_id = ${filters.branchId}`);
+	}
+	if (from) {
+		conditions.push(sql`o.created_at >= ${from}::date`);
+	}
+	if (to) {
+		conditions.push(sql`o.created_at < (${to}::date + INTERVAL '1 day')`);
+	}
+	if (decoded && decoded.sort === "newest") {
+		conditions.push(
+			sql`(o.created_at, o.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+		);
+	}
+
+	const whereClause = conditions.length
+		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+		: sql``;
+
+	const rows = await db.execute<{
+		branch_name: string | null;
+		client_name: string;
+		created_at: Date;
+		id: string;
+		number: string;
+		status: OrderStatus;
+		total_amount: string;
+	}>(sql`
+		SELECT
+			o.id,
+			o.number,
+			o.status,
+			o.total_amount,
+			o.created_at,
+			c.name AS client_name,
+			b.name AS branch_name
+		FROM "order" o
+		JOIN client c ON c.id = o.client_id
+		LEFT JOIN branch b ON b.id = o.branch_id
+		${whereClause}
+		ORDER BY o.created_at DESC, o.id DESC
+		LIMIT ${BATCH_SIZE + 1}
+	`);
+
+	const mapped = rows.rows.map((row) => ({
+		id: row.id,
+		number: row.number,
+		status: row.status,
+		totalAmount: Number(row.total_amount),
+		createdAt: toDate(row.created_at),
+		clientName: row.client_name,
+		branchName: row.branch_name,
+	}));
+
+	const hasMore = mapped.length > BATCH_SIZE;
+	const items = hasMore ? mapped.slice(0, BATCH_SIZE) : mapped;
+	const last = items.at(-1);
+	const nextCursor =
+		hasMore && last
+			? encodeCursor({
+					v: 1,
+					sort: "newest",
+					createdAt: last.createdAt.toISOString(),
+					id: last.id,
+				})
+			: null;
+	return { items, nextCursor };
 }
 
 export async function listOrders(

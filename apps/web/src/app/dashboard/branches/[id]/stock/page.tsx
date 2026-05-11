@@ -10,8 +10,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { requireCurrentSession } from "@/lib/session";
-import { BranchStockTable } from "../../../stock/_components/branch-stock-table";
-import { fetchBranchStockRows } from "../../../stock/branch-stock-data";
+import { BranchStockInfinite } from "../../../stock/_components/branch-stock-infinite";
+import {
+	type BranchStockFiltersInput,
+	fetchBranchStockPage,
+} from "../../../stock/branch-stock-data";
 import { getBranch } from "../../actions";
 
 interface BranchStockPageProps {
@@ -32,7 +35,12 @@ export default async function BranchStockPage({
 		notFound();
 	}
 
-	const rows = await fetchBranchStockRows({ branchId: branch.id });
+	const filters: BranchStockFiltersInput = {
+		branchId: branch.id,
+		sort: "newest",
+	};
+	const first = await fetchBranchStockPage({ filters, cursor: null });
+	const rows = first.items;
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -80,11 +88,12 @@ export default async function BranchStockPage({
 					</EmptyContent>
 				</Empty>
 			) : (
-				<BranchStockTable
-					branchId={branch.id}
+				<BranchStockInfinite
 					branchName={branch.name}
 					canMutate={canMutate}
-					rows={rows}
+					filters={filters}
+					initial={rows}
+					initialCursor={first.nextCursor}
 				/>
 			)}
 		</div>
