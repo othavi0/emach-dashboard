@@ -12,9 +12,11 @@ import {
 	orderNote,
 	orderStatusHistory,
 } from "@emach/db/schema/orders";
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { requireCurrentSession } from "@/lib/session";
 import { ORDER_TABS } from "./status-meta";
 
 export const ORDERS_PAGE_SIZE = 20;
@@ -169,10 +171,23 @@ export function getOrderTabCountsKey(status: OrderStatus): string {
 	return status;
 }
 
-export function listOrderBranches(): Promise<BranchOption[]> {
+export async function listOrderBranches(): Promise<BranchOption[]> {
+	const session = await requireCurrentSession();
+	const scope = await getUserBranchScope(session);
+	const query = db
+		.select({ id: branch.id, name: branch.name })
+		.from(branch)
+		.orderBy(asc(branch.name));
+	if (scope === null) {
+		return query;
+	}
+	if (scope.length === 0) {
+		return [];
+	}
 	return db
 		.select({ id: branch.id, name: branch.name })
 		.from(branch)
+		.where(inArray(branch.id, scope))
 		.orderBy(asc(branch.name));
 }
 
@@ -191,6 +206,13 @@ export async function fetchOrdersPage({
 	filters: OrdersPageFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<OrderListItem>> {
+	const session = await requireCurrentSession();
+	const scope = await getUserBranchScope(session);
+
+	if (scope !== null && scope.length === 0) {
+		return { items: [], nextCursor: null };
+	}
+
 	const tab = resolveTab(filters.tab);
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const conditions = [] as ReturnType<typeof sql>[];
@@ -198,6 +220,13 @@ export async function fetchOrdersPage({
 	const from = normalizeDateParam(filters.from);
 	const to = normalizeDateParam(filters.to);
 
+	if (scope !== null) {
+		const placeholders = sql.join(
+			scope.map((id) => sql`${id}`),
+			sql`, `
+		);
+		conditions.push(sql`o.branch_id IN (${placeholders})`);
+	}
 	if (tab.statuses) {
 		const placeholders = sql.join(
 			tab.statuses.map((s) => sql`${s}`),
@@ -282,6 +311,13 @@ export async function fetchOrdersPage({
 export async function listOrders(
 	filters: OrderListFilters
 ): Promise<OrderListResult> {
+	const session = await requireCurrentSession();
+	const scope = await getUserBranchScope(session);
+
+	if (scope !== null && scope.length === 0) {
+		return { items: [], page: 1, total: 0, totalPages: 1 };
+	}
+
 	const tab = resolveTab(filters.tab);
 	const page = Math.max(1, filters.page ?? 1);
 	const offset = (page - 1) * ORDERS_PAGE_SIZE;
@@ -290,6 +326,13 @@ export async function listOrders(
 	const from = normalizeDateParam(filters.from);
 	const to = normalizeDateParam(filters.to);
 
+	if (scope !== null) {
+		const placeholders = sql.join(
+			scope.map((id) => sql`${id}`),
+			sql`, `
+		);
+		conditions.push(sql`o.branch_id IN (${placeholders})`);
+	}
 	if (tab.statuses) {
 		const placeholders = sql.join(
 			tab.statuses.map((s) => sql`${s}`),
