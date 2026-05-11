@@ -1,12 +1,13 @@
 # Emach Dashboard — Guia Claude Code
 
-Monorepo Bun + Turborepo. Dashboard Next 16 / React 19 com auth dual (funcionários internos × clientes BR), Supabase Postgres + Drizzle, design system inspirado em Anthropic/Claude.
+Monorepo Bun + Turborepo. Dashboard Next 16 / React 19 com auth dual (funcionários internos × clientes BR), Supabase Postgres + Drizzle, design system industrial dark + copper.
 
 > **Documentos referenciados (leia antes de tocar no domínio):**
 >
-> - `DESIGN.md` — sistema visual completo (paleta warm parchment + terracotta, Anthropic Serif, ring shadows). Toda mudança de UI deve seguir.
-> - `docs/auth/ecommerce-integration.md` — passo-a-passo + footguns para integrar o app ecomerce.
-> - `bts.jsonc` — origem do scaffold (Better-T-Stack), apenas histórico.
+> - `DESIGN.md` — sistema visual completo (industrial neutrals warm-dark + copper `oklch(0.65 0.15 45)` + Inter sans + 6 roles cromáticos). Toda mudança de UI deve seguir.
+> - `docs/integration/admin-ecommerce.md` — contrato DB compartilhada (admin ↔ site ecomerce) + tabelas owned-by-dashboard.
+> - `docs/storage-buckets.md` — Supabase Storage `tool-images` bucket (criação + URL pattern + cleanup).
+> - `PRODUCT.md` — register product, personality (confiante/técnico/denso), anti-references.
 
 ---
 
@@ -23,7 +24,7 @@ Monorepo Bun + Turborepo. Dashboard Next 16 / React 19 com auth dual (funcionár
 | Auth                      | Better Auth 1.5.5 (dual instances)                 | `packages/auth`                                |
 | Markdown render           | `react-markdown` + `rehype-sanitize`               | `apps/web/src/components/tool-description.tsx` |
 | Env validation            | `@t3-oss/env-core` + Zod                           | `packages/env`                                 |
-| Linter / formatter        | Biome 2.4.12 + Ultracite 7.6                       | `biome.json`                                   |
+| Linter / formatter        | Biome 2.4.13 + Ultracite 7.6                       | `biome.json`                                   |
 | TypeScript                | 6.0 (strict, noUncheckedIndexedAccess)             | `packages/config/tsconfig.base.json`           |
 
 IDs em server actions/scripts: **`crypto.randomUUID()`** (sem nanoid).
@@ -39,7 +40,6 @@ apps/
       login/              Pública
       dashboard/          Protegida via requireCurrentSession
         tools/            Ferramentas (catálogo) — variantes, specs dinâmicas, mídia
-        attributes/       Catálogo de specs técnicas dinâmicas (CRUD)
         categories/       Árvore hierárquica + painel de atributos por categoria
         suppliers/        Fornecedores
         branches/         Filiais
@@ -83,7 +83,7 @@ bun check-types                    # tsc --noEmit em todos os workspaces
 # DB (em desenvolvimento)
 bun db:push                        # drizzle-kit push (schema → DB sem migration)
 bun db:studio                      # UI inspetora de tabelas
-bun db:apply-triggers              # aplica src/migrations/_triggers.sql (anti-ciclo + idempotência)
+bun --cwd packages/db db:apply-triggers    # aplica src/migrations/_triggers.sql (anti-ciclo + idempotência)
 
 # DB (produção/staging)
 bun db:generate                    # cria SQL de migration versionada
@@ -106,14 +106,14 @@ Se o schema diverge muito e drizzle-kit não consegue resolver renames (TTY prom
 ```bash
 # DROP SCHEMA public CASCADE; CREATE SCHEMA public;  via pg client
 # depois: bunx drizzle-kit push
-# depois: bun db:apply-triggers && bun db:seed-categories && bun db:seed-attributes
+# depois: bun --cwd packages/db db:apply-triggers && bun --cwd packages/db db:seed-categories && bun --cwd packages/db db:seed-attributes
 ```
 
 ⚠️ Só rodar em DB de dev. **Nunca** em staging/prod.
 
 ### Testes
 
-Não há suite ainda. Roadmap inclui Vitest (unit) + Playwright (E2E). Por ora, validação = `bun check-types` + `bun fix` + smoke manual em `bun dev:web`.
+Cobertura mínima: `apps/web/__tests__/permissions.test.ts` (vitest unit). Roadmap: ampliar unit + Playwright (E2E) na Fase F. Por ora validação = `bun check-types` + `bun fix` + smoke manual em `bun dev:web`.
 
 ---
 
@@ -133,7 +133,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 3. **Nunca** setar `advanced.cookies.<name>.attributes.domain = ".emach.com.br"`. Apps em subdomínios distintos isolam por host.
 4. CPF/CNPJ: validação é responsabilidade do app (zod refine + dígito verificador). Sempre normalizar (só dígitos) antes de persistir em `client.document`.
 5. Migrations em prod: `drizzle-kit generate` + migration versionada. `--force` só em dev/staging.
-6. **Integração com app ecomerce externo (DB compartilhada)**: ambos escrevem na mesma DB Supabase via Drizzle. Admin **não** chama o app ecomerce; o app ecomerce **não** chama o admin. Coordenação acontece pelo schema compartilhado + endpoint `POST /api/internal/revalidate` (signed via `apiKey`) quando uma das pontas precisar invalidar cache da outra. Contrato em `docs/integration/admin-ecommerce.md`.
+6. **Integração com app ecomerce externo (DB compartilhada)**: ambos escrevem na mesma DB Supabase via Drizzle. Admin **não** chama o app ecomerce; o app ecomerce **não** chama o admin. Coordenação acontece pelo schema compartilhado. Contrato em `docs/integration/admin-ecommerce.md`.
 
 **Roles dashboard**: `user.role` é `pgEnum('user_role', ['admin','manager','user'])`. Verificação em **server actions sensíveis** via `requireCapability(cap)` em `apps/web/src/lib/permissions.ts` (capabilities granulares). Gates grosseiros ainda usam `requireRole("admin")` em layouts. `client` **não** tem `role`.
 
@@ -148,10 +148,10 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 | `auth.ts`            | `user`, `session`, `account`, `verification`                                      | `user.role` = `pgEnum('user_role', [...])`.                                                                                                                                                                                                                                                                                    |
 | `client.ts`          | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | Campos BR (`country` default `"BR"`, `phone`, `document` unique nullable).                                                                                                                                                                                                                                                     |
 | `tools.ts`           | `supplier`, `tool`, `toolVariant`, `toolImage`                                    | `tool` enxuto (sem sku/voltage/price); SKU + voltagem + preço/custo + barcode vivem em `tool_variant`. `voltage` é `pgEnum('voltage', ['127V','220V','Bivolt','380V'])`. **Toda ferramenta tem ≥1 `tool_variant`** (uma marcada `isDefault=true` via partial unique index).                                                    |
-| `attributes.ts`      | `attributeDefinition`, `toolAttributeValue`                                       | Catálogo de specs dinâmicas (Saleor-lite). `attribute_definition` define `inputType` (`text`/`number`/`select`/`boolean`/`numeric_range`/`color`), `unit`, `options jsonb`, opcionalmente `categoryId`. `tool_attribute_value` armazena valor tipado por coluna (`valueText`, `valueNumeric`, `valueNumericMax`, `valueBool`). |
+| `attributes.ts`      | `attributeDefinition`, `toolAttributeValue`                                       | Catálogo de specs dinâmicas (Saleor-lite). `attribute_definition` define `inputType` (`text`/`number`/`select`/`boolean`/`numeric_range`/`color`), `unit`, `options jsonb`, e `categoryId` **NOT NULL**. `tool_attribute_value` armazena valor tipado por coluna (`valueText`, `valueNumeric`, `valueNumericMax`, `valueBool`). |
 | `categories.ts`      | `category`, `toolCategory`                                                        | Árvore com `parent_id` + `path`/`depth` materializados via trigger pl/pgSQL. Anti-ciclo + cascade de path. Depth máximo 5.                                                                                                                                                                                                     |
 | `inventory.ts`       | `branch`, `stockLevel`                                                            | PK `(variantId, branchId)`. `minQty` + `reorderPoint` + check `quantity >= 0` (oversell guard).                                                                                                                                                                                                                                |
-| `promotions.ts`      | `promotion`, `promotionTool`                                                      | Cupons via `promotion.type='promocode'` (não há tabela `coupon`). Promoção continua por ferramenta-pai.                                                                                                                                                                                                                        |
+| `promotions.ts`      | `promotion`, `promotionTool`                                                      | Cupons via `promotion.type='promocode'` (não há tabela `coupon`). Promoção continua por ferramenta-pai. `createdBy`/`updatedBy` FKs para auditoria.                                                                                                                                                                            |
 | `stock-movements.ts` | `stockMovement`                                                                   | Audit trail por **variante**; `actorType` (`user`/`apiKey`/`system`) + `actorId` + `apiKeyId`; partial unique index garante idempotência de débito de venda; check `delta != 0`.                                                                                                                                               |
 | `orders.ts`          | `order`, `orderItem`, `orderStatusHistory`, `orderNote`                           | `orderItem` carrega `toolId` + `variantId` + snapshots fiscais/dimensão.                                                                                                                                                                                                                                                       |
 | `reviews.ts`         | `review`                                                                          | Moderação por admin (`status` pgEnum). Unique `(clientId, toolId, orderId)`.                                                                                                                                                                                                                                                   |
@@ -160,11 +160,11 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 
 **Especificações técnicas dinâmicas — herança:**
 
-- `attribute_definition.categoryId` aponta para a categoria onde a spec aplica (ou `NULL` = global).
-- Ao montar form de uma ferramenta, server action carrega definitions cuja `categoryId` está em `category.path` da categoria primary do tool (recursão via CTE em `tools/actions.ts`) **OU** é `NULL`.
+- `attribute_definition.categoryId` é **NOT NULL** — não há atributo global. Categoria-raiz "Geral" recebeu os anteriormente globais durante a migration.
+- Ao montar form de uma ferramenta, server action carrega definitions cuja `categoryId` está em `category.path` da categoria primary do tool (recursão via CTE em `tools/actions.ts`).
 - Ao trocar a categoria primary de uma ferramenta, `updateTool` detecta valores órfãos (`tool_attribute_value` cuja `attribute_definition` não está mais no path da nova categoria) e devolve `actionResult.warning = "orphan_attributes"`. Form pede confirmação antes de deletar.
 
-**Triggers PL/pgSQL** em `packages/db/src/migrations/_triggers.sql` (Drizzle Kit não gera triggers — aplicar via `bun db:apply-triggers`).
+**Triggers PL/pgSQL** em `packages/db/src/migrations/_triggers.sql` (Drizzle Kit não gera triggers — aplicar via `bun --cwd packages/db db:apply-triggers`).
 
 `packages/db/src/index.ts` exporta `createDb()` (factory, usada em `@emach/auth/*`) e `db` (singleton, usado em server actions). Manter o factory para auth (evita ciclo de import com env). Em código novo do app, prefira `import { db } from "@emach/db"`.
 
@@ -172,19 +172,23 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 
 ## Design system — `DESIGN.md`
 
-Sistema "Claude/Anthropic" — paleta exclusivamente **warm-toned**. Toda decisão de UI deve passar pelo doc.
+Sistema **Industrial neutrals + role-based color** — dark-mode único, AAA. Toda decisão de UI passa pelo doc canônico.
 
 **Paleta crítica (memorize ou consulte sempre):**
 
-- Brand CTA: Terracotta `#c96442`
-- Page bg: Parchment `#f5f4ed`
-- Card surface: Ivory `#faf9f5`
-- Text primário: Anthropic Near Black `#141413`
-- Text secundário: Olive Gray `#5e5d59`
-- Bordas claras: Cream `#f0eee6`
+- Brand CTA (primary copper): `oklch(0.65 0.15 45)` ≈ `#c2724a`
+- Page background: `oklch(0.16 0.005 70)` ≈ `#1d1b18` (warm-dark)
+- Card surface: `oklch(0.20 0.005 70)` ≈ `#262320`
+- Sidebar: `oklch(0.13 0.004 70)` ≈ `#171612` (mais escuro que background)
+- Foreground primário: `oklch(0.97 0.008 85)` (texto claro on-dark)
+- Border hairline: `oklch(0.36 0.008 70)` ≈ `#4a4641`
+- Input border (1 degrau acima): `oklch(0.42 0.010 70)` ≈ `#57524c`
 
-**Não:** cool blue-grays, gradientes tradicionais, sharp corners <6px, `<img>` puro, sans-serif para títulos, pure white de fundo, drop shadow pesado, injeção de HTML cru via APIs perigosas.
-**Sim:** Anthropic Serif weight 500 para headlines (1 só weight), ring shadows `0px 0px 0px 1px`, line-height 1.60 em body, `<Image>` do Next, alternância light/dark de seções.
+**Roles cromáticas (6 distintas, separação ≥20° de hue):** primary copper (45), destructive oxide red (25), warning mustard (85), info teal (200), success jade (155), secondary warm graphite (70).
+
+**Não:** cool blue-grays, light mode, `font-serif` em chrome do dashboard, ring 1px ou opacity multiplicada, drop shadows pesados, `<img>` puro, sharp corners <6px, status baseado só em cor (sempre ícone + label + cor), bold weight (700+) onde `font-medium` (500) já contrasta.
+
+**Sim:** Inter sans em chrome (peso 500 default para h1/h2/title), Cormorant Garamond restrito a login hero + capa de relatório, ring 2px sólido na cor da role da ação, depth via surface contrast (não shadow), `<Image>` do Next, `prefers-reduced-motion: reduce` respeitado.
 
 Toda revisão de componente UI: **rodar a skill `web-design-guidelines` antes de aprovar**.
 
@@ -215,12 +219,12 @@ Quando usar cada um:
 
 | MCP                         | Quando                                                                                                                                                                                          |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `context7`                  | Docs atualizadas de **qualquer** lib. Em código novo / migração / refactor com import: invocar via skill `context7-cli` (preferida — passa pelo RTK).                                           |
+| `context7`                  | Docs atualizadas de **qualquer** lib. Em código novo / migração / refactor com import: invocar via CLI `npx ctx7@latest library <name>` → `npx ctx7@latest docs <id> "<q>"` (passa pelo RTK).   |
 | `better-auth` (Inkeep HTTP) | Pergunta específica sobre API/feature do Better Auth — usar quando context7 não basta.                                                                                                          |
 | `supabase` (HTTP)           | `list_tables`, `execute_sql`, `generate_typescript_types`, `get_advisors`, logs. **Confirmar custo** antes de operações pagas.                                                                  |
 | `shadcn`                    | `search_items_in_registries`, `view_items_in_registries`, `get_add_command_for_items`, `get_audit_checklist`. Preferir sobre `npx shadcn add` quando precisar inspecionar antes.                |
 | `next-devtools`             | `nextjs_docs`, `nextjs_call`, `browser_eval` (Playwright Firefox), `enable_cache_components`. `nextjs_call <port> get_errors` é a maneira mais rápida de pegar stack trace de SSR error em dev. |
-| `better-t-stack`            | Apenas histórico — projeto já scaffoldado. Usar só para `bts_add_addons` se decidir adicionar feature do BTS.                                                                                   |
+| `better-t-stack`            | `bts_plan_addons` → `bts_add_addons` para puxar addon novo (fumadocs, skills, mcp) sem montar manual. Projeto já scaffoldado.                                                                   |
 
 ---
 
@@ -239,7 +243,7 @@ Quando usar cada um:
 
 ## Convenções de UX em forms (admin)
 
-- **Slug auto-gerado em modo `create`:** input fica `disabled`, valor deriva do label/nome via `slugifyLabel()` (em `apps/web/src/app/dashboard/attributes/schema.ts`). Em `edit` fica editável com aviso "alterar pode quebrar URLs/referências".
+- **Slug auto-gerado em modo `create`:** input fica `disabled`, valor deriva do label/nome via `slugifyLabel()` (em `apps/web/src/app/dashboard/categories/_lib/attribute-schema.ts`). Em `edit` fica editável com aviso "alterar pode quebrar URLs/referências".
 - **Painel de erros no topo do form:** quando Zod falha, listar todos os issues em `<ul>` vermelho com path traduzido (ver `attribute-form.tsx`). Toast complementa com contagem ("3 erros — veja detalhes acima"). Evita "Revise os campos" genérico.
 - **Variantes em `tool_variant`:** pelo menos 1; uma marcada `isDefault` (radio group). Form valida via `superRefine` que `defaults.length === 1` e SKUs únicos.
 - **Atributos dinâmicos:** form de tool busca `definitionsByCategory[primaryCategoryId]` (pré-computado server-side em `attribute-helpers.ts`). Inputs renderizados por `inputType` em `dynamic-specs-editor.tsx`.
@@ -259,7 +263,8 @@ Quando usar cada um:
 - `new RegExp(...)` ou regex literal dentro de loops — extrair top-level.
 - `target="_blank"` sem `rel="noopener"`.
 - APIs que injetam HTML não-sanitizado — evitar exceto necessidade absoluta com sanitização (ex: `react-markdown` + `rehype-sanitize` com preset `defaultSchema`).
-- Cool blue-grays no design — todo neutro tem undertone yellow-brown.
+- Cool blue-grays no design — todo neutro tem chroma warm (oklch hue ~70).
+- `font-serif` (Cormorant) em chrome do dashboard — restrito a login hero + capa de relatório.
 
 ---
 
@@ -271,13 +276,15 @@ Quando usar cada um:
 - **Server actions com payload grande (uploads em base64 inline):** o limite default Next 16 é 1MB e levanta `Error: Body exceeded 1 MB limit.` no console do dev. Configuração atual em `apps/web/next.config.ts`: `experimental.serverActions.bodySizeLimit = "5mb"`.
 - **Drizzle-kit push + TTY:** `bunx drizzle-kit push` sem TTY falha quando há rename ambíguo de coluna. Em CI/scripted, dropar+recriar schema é o caminho mais previsível em dev.
 - **Promoção de role para admin:** seed de Better Auth cria user com role `user` por default; promover via SQL `UPDATE "user" SET role='admin' WHERE email='...'`.
+- **`db.execute()` raw devolve timestamp como string:** drizzle-orm 0.45.x sobrescreve type parser em rawQueryConfig. Sempre que tipar coluna timestamp como `Date` em função que usa `db.execute`, coercer com `toDate` de `@emach/db/utils`. Detalhes em `packages/db/CLAUDE.md`.
 
 ---
 
 ## Onde se aprofundar
 
-- **Auth ecomerce passo-a-passo:** `docs/auth/ecommerce-integration.md`
 - **Contrato DB compartilhada (admin ↔ site ecomerce):** `docs/integration/admin-ecommerce.md`
-- **Sidebar logout design:** `docs/superpowers/specs/2026-04-23-sidebar-logout-design.md`
+- **Supabase Storage buckets:** `docs/storage-buckets.md`
+- **Convenções db schema + gotchas Drizzle:** `packages/db/CLAUDE.md`
+- **Convenções apps/web:** `apps/web/CLAUDE.md`
 - **Ultracite rules detalhadas:** rodar skill `ultracite` ou consultar `node_modules/ultracite/dist`
 - **Tudo de UI:** `DESIGN.md`

@@ -115,7 +115,7 @@ export function PromotionsFilters({
 		return () => clearTimeout(handle);
 	}, [search]);
 
-	function pushParam(key: string, value: string | undefined) {
+	function pushParam(key: string, value: string | null | undefined) {
 		const params = new URLSearchParams(sp);
 		if (value && value !== "all" && value !== "") {
 			params.set(key, value);
