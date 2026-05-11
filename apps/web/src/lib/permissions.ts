@@ -129,6 +129,7 @@ const MANAGER_CAPS: readonly Capability[] = [
 ];
 
 const ROLE_CAPS: Record<UserRole, readonly Capability[]> = {
+	super_admin: ALL_CAPS,
 	admin: ALL_CAPS,
 	manager: MANAGER_CAPS,
 	user: USER_CAPS,
