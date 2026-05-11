@@ -95,6 +95,17 @@ const NAV_GROUPS: NavGroup[] = [
 			},
 		],
 	},
+	{
+		label: "Usuários",
+		items: [
+			{ label: "Dashboard", href: "/dashboard/users" as Route },
+			{
+				label: "Clientes",
+				href: "/dashboard/users/clients" as Route,
+				disabled: true,
+			},
+		],
+	},
 ];
 
 function isActive(
@@ -185,7 +196,12 @@ function FooterContent({
 	);
 }
 
-export function AppSidebar() {
+interface AppSidebarProps {
+	canManageUsers: boolean;
+	pendingCount: number;
+}
+
+export function AppSidebar({ canManageUsers, pendingCount }: AppSidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
 	const { data: session, isPending } = authClient.useSession();
@@ -245,37 +261,52 @@ export function AppSidebar() {
 					</SidebarGroupContent>
 				</SidebarGroup>
 
-				{NAV_GROUPS.map((group) => (
-					<SidebarGroup key={group.label}>
-						<SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-						<SidebarGroupContent>
-							<SidebarMenu>
-								{group.items.map((item) =>
-									item.disabled ? (
-										<SidebarMenuItem key={item.href}>
-											<div
-												aria-disabled="true"
-												className="flex h-8 w-full items-center gap-2 rounded-md p-2 text-left text-xs opacity-50"
-											>
-												<span>{item.label}</span>
-												<span className="ml-auto text-[10px] text-muted-foreground uppercase tracking-wide">
-													em breve
-												</span>
-											</div>
-										</SidebarMenuItem>
-									) : (
-										<SidebarMenuItem key={item.href}>
-											<SidebarMenuButton
-												isActive={isActive(pathname, item)}
-												render={<Link href={item.href}>{item.label}</Link>}
-											/>
-										</SidebarMenuItem>
-									)
-								)}
-							</SidebarMenu>
-						</SidebarGroupContent>
-					</SidebarGroup>
-				))}
+				{NAV_GROUPS.map((group) => {
+					if (group.label === "Usuários" && !canManageUsers) {
+						return null;
+					}
+					return (
+						<SidebarGroup key={group.label}>
+							<SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+							<SidebarGroupContent>
+								<SidebarMenu>
+									{group.items.map((item) =>
+										item.disabled ? (
+											<SidebarMenuItem key={item.href}>
+												<div
+													aria-disabled="true"
+													className="flex h-8 w-full items-center gap-2 rounded-md p-2 text-left text-xs opacity-50"
+												>
+													<span>{item.label}</span>
+													<span className="ml-auto text-[10px] text-muted-foreground uppercase tracking-wide">
+														em breve
+													</span>
+												</div>
+											</SidebarMenuItem>
+										) : (
+											<SidebarMenuItem key={item.href}>
+												<SidebarMenuButton
+													isActive={isActive(pathname, item)}
+													render={
+														<Link href={item.href}>
+															{item.label}
+															{item.href === "/dashboard/users" &&
+																pendingCount > 0 && (
+																	<span className="ml-2 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">
+																		{pendingCount}
+																	</span>
+																)}
+														</Link>
+													}
+												/>
+											</SidebarMenuItem>
+										)
+									)}
+								</SidebarMenu>
+							</SidebarGroupContent>
+						</SidebarGroup>
+					);
+				})}
 			</SidebarContent>
 
 			<SidebarFooter>
