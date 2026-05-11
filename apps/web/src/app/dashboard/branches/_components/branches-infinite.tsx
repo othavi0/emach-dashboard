@@ -23,6 +23,7 @@ function toRow(b: BranchListItem): BranchRow {
 		name: b.name,
 		address: b.address,
 		createdAt: b.createdAt,
+		isDefault: b.isDefault,
 	};
 }
 
