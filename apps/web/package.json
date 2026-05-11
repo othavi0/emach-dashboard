@@ -6,6 +6,7 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
+    "check-types": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -13,9 +14,10 @@
     "@emach/auth": "workspace:*",
     "@emach/db": "workspace:*",
     "@emach/ui": "workspace:*",
+    "@supabase/supabase-js": "^2.105.1",
     "better-auth": "catalog:",
     "browser-image-compression": "^2",
-    "lucide-react": "^1.8.0",
+    "lucide-react": "catalog:",
     "next": "^16.2.0",
     "react": "catalog:",
     "react-dom": "catalog:",
@@ -27,12 +29,11 @@
   "devDependencies": {
     "@emach/config": "workspace:*",
     "@tailwindcss/postcss": "^4.1.18",
-    "@types/node": "^20",
+    "@types/node": "^25",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "babel-plugin-react-compiler": "^1.0.0",
     "tailwindcss": "catalog:",
-    "typescript": "^5",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.5"
   }
 }

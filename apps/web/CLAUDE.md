@@ -42,7 +42,7 @@ export async function updateX(input: unknown): Promise<ActionResult> {
 - `requireCapabilityOrRedirect(cap, redirectTo?)` — Server Components / pages. Redireciona em vez de lançar.
 - `requireRole(role)` (em `lib/session.ts`) — gates grosseiros (layout do dashboard); use `requireCapability` em mutations.
 
-**Matriz de roles** (resumida; ver `docs/superpowers/specs/2026-04-27-fase-a-fundacao-design.md`):
+**Matriz de roles** (resumida; fonte canônica em `src/lib/permissions.ts`):
 - `user` (estoquista + expedição): reads + `stock.adjust` + `orders.update_status` + `orders.add_note` + `attributes.read`.
 - `manager` (gerente operacional/comercial/conteúdo): tudo do user + catálogo CRUD + categorias/promoções/suppliers/atributos + orders.cancel/refund + customers.update_tags/status + site CRUD + reviews.moderate.
 - `admin`: tudo, exclusivos: `branches.manage`, `users.manage`, `apikeys.manage`, `customers.delete` (LGPD).
