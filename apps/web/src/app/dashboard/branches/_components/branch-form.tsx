@@ -4,6 +4,7 @@ import { Button, buttonVariants } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import { Spinner } from "@emach/ui/components/spinner";
+import { Switch } from "@emach/ui/components/switch";
 import { Textarea } from "@emach/ui/components/textarea";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,7 +18,7 @@ import {
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
 
-import { createBranch, updateBranch } from "../actions";
+import { createBranch, setDefaultBranch, updateBranch } from "../actions";
 import { type BranchFormValues, branchSchema } from "./branch-schema";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -27,7 +28,8 @@ const FIELD_LABELS: Record<string, string> = {
 
 interface BranchFormProps {
 	branchId?: string;
-	defaultValues: Partial<BranchFormValues>;
+	canSetDefault?: boolean;
+	defaultValues: Partial<BranchFormValues> & { isDefault?: boolean };
 	mode: "create" | "edit";
 }
 
@@ -61,11 +63,18 @@ function zodErrorsToFieldMap(
 	return map;
 }
 
-export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
+export function BranchForm({
+	branchId,
+	defaultValues,
+	mode,
+	canSetDefault,
+}: BranchFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const [name, setName] = useState(defaultValues.name ?? "");
 	const [address, setAddress] = useState(defaultValues.address ?? "");
+	const [isDefault, setIsDefault] = useState(defaultValues.isDefault ?? false);
+	const [isToggling, startToggle] = useTransition();
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof BranchFormValues, string>>
 	>({});
@@ -151,6 +160,40 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 					)}
 				</div>
 			</section>
+
+			{mode === "edit" && canSetDefault && (
+				<section className="flex flex-col gap-2 rounded-md border border-border bg-card p-6">
+					<div className="flex items-center justify-between">
+						<div>
+							<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+								Filial padrão do ecommerce
+							</h2>
+							<p className="text-muted-foreground text-sm">
+								Pedidos do site são processados nesta filial.
+							</p>
+						</div>
+						<Switch
+							checked={isDefault}
+							disabled={isToggling || isDefault}
+							onCheckedChange={() => {
+								if (!branchId || isDefault) {
+									return;
+								}
+								startToggle(async () => {
+									const result = await setDefaultBranch(branchId);
+									if (result.ok) {
+										setIsDefault(true);
+										toast.success("Filial marcada como padrão");
+										router.refresh();
+									} else {
+										toast.error(result.error);
+									}
+								});
+							}}
+						/>
+					</div>
+				</section>
+			)}
 
 			<div className="flex items-center gap-3">
 				<Button disabled={isPending} type="submit">
