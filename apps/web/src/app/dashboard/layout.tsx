@@ -3,14 +3,22 @@ import {
 	SidebarProvider,
 	SidebarTrigger,
 } from "@emach/ui/components/sidebar";
+import { redirect } from "next/navigation";
 
-import { requireCurrentSession } from "@/lib/session";
+import { getUserStatus, requireCurrentSession } from "@/lib/session";
 import { AppSidebar } from "./_components/app-sidebar";
 
 export default async function DashboardLayout({
 	children,
 }: Readonly<{ children: React.ReactNode }>) {
-	await requireCurrentSession();
+	const session = await requireCurrentSession();
+	const status = getUserStatus(session);
+	if (status === "pending") {
+		redirect("/pending");
+	}
+	if (status === "suspended") {
+		redirect("/suspended");
+	}
 
 	return (
 		<SidebarProvider>
