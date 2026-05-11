@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Table,
@@ -18,6 +19,7 @@ export interface BranchRow {
 	address: string | null;
 	createdAt: Date;
 	id: string;
+	isDefault: boolean;
 	name: string;
 }
 
@@ -50,7 +52,14 @@ export function BranchesTable({ branches, canMutate }: BranchesTableProps) {
 			<TableBody>
 				{branches.map((b) => (
 					<TableRow key={b.id}>
-						<TableCell className="font-medium">{b.name}</TableCell>
+						<TableCell className="font-medium">
+							{b.name}
+							{b.isDefault && (
+								<Badge className="ml-2 text-[10px]" variant="default">
+									Padrão ecommerce
+								</Badge>
+							)}
+						</TableCell>
 						<TableCell className="text-muted-foreground">
 							{b.address ?? "—"}
 						</TableCell>
