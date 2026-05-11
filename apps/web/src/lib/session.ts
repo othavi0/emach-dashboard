@@ -1,14 +1,22 @@
 import { authDashboard, type DashboardSession } from "@emach/auth/dashboard";
+import type { UserStatus } from "@emach/db/schema/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-export type UserRole = "admin" | "manager" | "user";
+export type { UserStatus };
 
-const ROLE_WEIGHT: Record<UserRole, number> = {
+export type UserRole = "super_admin" | "admin" | "manager" | "user";
+
+export const ROLE_WEIGHT: Record<UserRole, number> = {
+	super_admin: 4,
 	admin: 3,
 	manager: 2,
 	user: 1,
 };
+
+export function getUserStatus(session: DashboardSession): UserStatus {
+	return (session.user.status ?? "pending") as UserStatus;
+}
 
 export const getCurrentSession = async (): Promise<DashboardSession | null> =>
 	authDashboard.api.getSession({
