@@ -768,7 +768,7 @@ export async function getActivePromotions(
 				dv.sku AS variant_sku,
 				dv.voltage AS variant_voltage,
 				dv.price_amount::text AS variant_price,
-				ROUND(dv.price_amount * (1 - ${promo.discountPct} / 100), 2)::text AS discounted_amount,
+				ROUND(dv.price_amount * (1 - ${promo.discountPct}::numeric / 100), 2)::text AS discounted_amount,
 				${promo.id}::text AS active_promotion_id,
 				(SELECT COUNT(*) > 1 FROM tool_variant tv2 WHERE tv2.tool_id = t.id) AS has_other_variants,
 				(SELECT url FROM tool_image WHERE tool_id = t.id ORDER BY sort_order ASC LIMIT 1) AS primary_image_url,
