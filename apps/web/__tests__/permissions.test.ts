@@ -2,10 +2,9 @@ import { describe, expect, it } from "vitest";
 import { type Capability, can } from "@/lib/permissions";
 
 describe("can()", () => {
-	it("admin tem todas as capabilities", () => {
+	it("admin tem capabilities amplas (exceto exclusivas de super_admin)", () => {
 		const caps: Capability[] = [
 			"tools.delete",
-			"branches.manage",
 			"users.manage",
 			"customers.delete",
 			"orders.refund",
@@ -58,5 +57,46 @@ describe("can()", () => {
 		expect(can(undefined, "tools.read")).toBe(false);
 		// @ts-expect-error: role inválida
 		expect(can("hacker", "tools.read")).toBe(false);
+	});
+});
+
+describe("super_admin caps", () => {
+	it("super_admin tem todas as capabilities críticas", () => {
+		const caps: Capability[] = [
+			"branches.manage",
+			"branches.set_default",
+			"users.approve",
+			"users.delete",
+			"users.update_role",
+			"users.update_branches",
+			"users.suspend",
+			"users.reset_password",
+		];
+		for (const cap of caps) {
+			expect(can("super_admin", cap)).toBe(true);
+		}
+	});
+
+	it("admin NÃO tem users.delete nem branches.set_default nem branches.manage", () => {
+		expect(can("admin", "users.delete")).toBe(false);
+		expect(can("admin", "branches.set_default")).toBe(false);
+		expect(can("admin", "branches.manage")).toBe(false);
+	});
+
+	it("admin tem users.approve, users.suspend, users.update_role, users.update_branches", () => {
+		expect(can("admin", "users.approve")).toBe(true);
+		expect(can("admin", "users.suspend")).toBe(true);
+		expect(can("admin", "users.update_role")).toBe(true);
+		expect(can("admin", "users.update_branches")).toBe(true);
+	});
+
+	it("manager NÃO tem caps de users", () => {
+		expect(can("manager", "users.approve")).toBe(false);
+		expect(can("manager", "users.suspend")).toBe(false);
+		expect(can("manager", "users.delete")).toBe(false);
+	});
+
+	it("user NÃO tem caps de users", () => {
+		expect(can("user", "users.approve")).toBe(false);
 	});
 });
