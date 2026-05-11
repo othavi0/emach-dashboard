@@ -11,6 +11,7 @@ import Link from "next/link";
 
 import { listBranches } from "@/app/dashboard/branches/actions";
 import { PageHeader } from "@/components/page-header";
+import { getUserBranchScope } from "@/lib/branch-scope";
 import { requireCurrentSession } from "@/lib/session";
 import { BranchSearchInput } from "../_components/branch-search-input";
 import { BranchStockInfinite } from "../_components/branch-stock-infinite";
@@ -42,7 +43,12 @@ export default async function BranchesStockPage({
 	const session = await requireCurrentSession();
 	const canMutate = (session.user.role ?? "user") === "admin";
 	const params = await searchParams;
-	const branches = await listBranches();
+	const scope = await getUserBranchScope(session);
+	const allBranches = await listBranches();
+	const branches =
+		scope === null
+			? allBranches
+			: allBranches.filter((b) => scope.includes(b.id));
 
 	if (branches.length === 0) {
 		return (
