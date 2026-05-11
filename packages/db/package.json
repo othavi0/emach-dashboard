@@ -17,26 +17,19 @@
     "db:apply-triggers": "bun run scripts/apply-triggers.ts",
     "db:seed-categories": "bun run scripts/seed-categories.ts",
     "db:seed-attributes": "bun run scripts/seed-attributes.ts",
-    "db:fix-mock-tools": "bun run scripts/fix-mock-tools.ts",
     "db:anonymize-client": "bun run scripts/anonymize-client.ts",
-    "db:normalize-promotion-ids": "bun run scripts/normalize-promotion-ids.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:supabase:start": "supabase start --workdir .",
-    "test:supabase:stop": "supabase stop --workdir ."
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@emach/env": "workspace:*",
     "dotenv": "catalog:",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "^0.45.2",
     "pg": "^8.17.1"
   },
   "devDependencies": {
     "@emach/config": "workspace:*",
     "@types/pg": "^8.16.0",
     "drizzle-kit": "^0.31.8",
-    "execa": "^9.5.2",
-    "typescript": "^5",
-    "vitest": "^2.1.8"
+    "typescript": "^6.0.3"
   }
 }
