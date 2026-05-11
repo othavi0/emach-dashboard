@@ -59,16 +59,18 @@ export function BranchesCombobox({
 				<PopoverContent className="w-64 p-2">
 					<div className="flex flex-col gap-1">
 						{branches.map((b) => (
-							<label
-								className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-accent"
+							<button
+								className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-left hover:bg-accent"
 								key={b.id}
+								onClick={() => toggle(b.id)}
+								type="button"
 							>
 								<Checkbox
 									checked={value.includes(b.id)}
 									onCheckedChange={() => toggle(b.id)}
 								/>
 								<span className="text-sm">{b.name}</span>
-							</label>
+							</button>
 						))}
 					</div>
 				</PopoverContent>
