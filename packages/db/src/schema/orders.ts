@@ -180,9 +180,9 @@ export const orderNote = pgTable(
 		orderId: text("order_id")
 			.notNull()
 			.references(() => order.id, { onDelete: "cascade" }),
-		authorId: text("author_id")
-			.notNull()
-			.references(() => user.id),
+		authorId: text("author_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
 		body: text("body").notNull(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
