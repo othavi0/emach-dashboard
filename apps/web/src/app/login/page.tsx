@@ -1,12 +1,19 @@
 import { redirect } from "next/navigation";
 
 import AuthCard from "@/components/auth-card";
-import { getCurrentSession } from "@/lib/session";
+import { getCurrentSession, getUserStatus } from "@/lib/session";
 
 export default async function LoginPage() {
 	const session = await getCurrentSession();
 
 	if (session?.user) {
+		const status = getUserStatus(session);
+		if (status === "pending") {
+			redirect("/pending");
+		}
+		if (status === "suspended") {
+			redirect("/suspended");
+		}
 		redirect("/dashboard");
 	}
 

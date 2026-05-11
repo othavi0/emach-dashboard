@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+	boolean,
 	check,
 	index,
 	integer,
@@ -7,20 +8,31 @@ import {
 	primaryKey,
 	text,
 	timestamp,
+	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+import { user } from "./auth";
 import { toolVariant } from "./tools";
 
-export const branch = pgTable("branch", {
-	id: text("id").primaryKey(),
-	name: text("name").notNull(),
-	address: text("address"),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-	updatedAt: timestamp("updated_at")
-		.defaultNow()
-		.$onUpdate(() => /* @__PURE__ */ new Date())
-		.notNull(),
-});
+export const branch = pgTable(
+	"branch",
+	{
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		address: text("address"),
+		isDefault: boolean("is_default").notNull().default(false),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.notNull(),
+	},
+	(table) => [
+		uniqueIndex("branch_is_default_unique")
+			.on(table.isDefault)
+			.where(sql`${table.isDefault} = true`),
+	]
+);
 
 export const stockLevel = pgTable(
 	"stock_level",
@@ -52,6 +64,7 @@ export const stockLevel = pgTable(
 
 export const branchRelations = relations(branch, ({ many }) => ({
 	stockLevels: many(stockLevel),
+	userBranches: many(userBranch),
 }));
 
 export const stockLevelRelations = relations(stockLevel, ({ one }) => ({
@@ -65,7 +78,42 @@ export const stockLevelRelations = relations(stockLevel, ({ one }) => ({
 	}),
 }));
 
+export const userBranch = pgTable(
+	"user_branch",
+	{
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		branchId: text("branch_id")
+			.notNull()
+			.references(() => branch.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.userId, table.branchId] }),
+		index("user_branch_user_idx").on(table.userId),
+		index("user_branch_branch_idx").on(table.branchId),
+	]
+);
+
+export const userBranchesRelations = relations(user, ({ many }) => ({
+	branches: many(userBranch),
+}));
+
+export const userBranchRelations = relations(userBranch, ({ one }) => ({
+	user: one(user, {
+		fields: [userBranch.userId],
+		references: [user.id],
+	}),
+	branch: one(branch, {
+		fields: [userBranch.branchId],
+		references: [branch.id],
+	}),
+}));
+
 export type Branch = typeof branch.$inferSelect;
 export type NewBranch = typeof branch.$inferInsert;
 export type StockLevel = typeof stockLevel.$inferSelect;
 export type NewStockLevel = typeof stockLevel.$inferInsert;
+export type UserBranch = typeof userBranch.$inferSelect;
+export type NewUserBranch = typeof userBranch.$inferInsert;

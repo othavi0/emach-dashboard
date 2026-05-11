@@ -8,8 +8,20 @@ import {
 	timestamp,
 } from "drizzle-orm/pg-core";
 
-export const userRoleEnum = pgEnum("user_role", ["admin", "manager", "user"]);
+export const userRoleEnum = pgEnum("user_role", [
+	"super_admin",
+	"admin",
+	"manager",
+	"user",
+]);
 export type UserRole = (typeof userRoleEnum.enumValues)[number];
+
+export const userStatusEnum = pgEnum("user_status", [
+	"pending",
+	"active",
+	"suspended",
+]);
+export type UserStatus = (typeof userStatusEnum.enumValues)[number];
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
@@ -18,6 +30,7 @@ export const user = pgTable("user", {
 	emailVerified: boolean("email_verified").default(false).notNull(),
 	image: text("image"),
 	role: userRoleEnum("role").notNull().default("user"),
+	status: userStatusEnum("status").notNull().default("pending"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
