@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
-import { requireRole } from "@/lib/session";
+import { can } from "@/lib/permissions";
+import type { UserRole } from "@/lib/session";
+import { getCurrentSession, requireRole } from "@/lib/session";
 import { BranchForm } from "../../_components/branch-form";
 import { getBranch } from "../../actions";
 
@@ -12,10 +14,18 @@ export default async function EditBranchPage({ params }: EditBranchPageProps) {
 	await requireRole("admin");
 	const { id } = await params;
 
-	const branch = await getBranch(id);
+	const [branch, session] = await Promise.all([
+		getBranch(id),
+		getCurrentSession(),
+	]);
 	if (!branch) {
 		notFound();
 	}
+
+	const canSetDefault = can(
+		(session?.user.role ?? "user") as UserRole,
+		"branches.set_default"
+	);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -29,9 +39,11 @@ export default async function EditBranchPage({ params }: EditBranchPageProps) {
 
 			<BranchForm
 				branchId={branch.id}
+				canSetDefault={canSetDefault}
 				defaultValues={{
 					name: branch.name,
-					address: branch.address ?? undefined,
+					address: branch.address ?? "",
+					isDefault: branch.isDefault,
 				}}
 				mode="edit"
 			/>

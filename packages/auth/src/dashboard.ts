@@ -25,6 +25,12 @@ export const authDashboard = betterAuth({
 				defaultValue: "user",
 				input: false,
 			},
+			status: {
+				type: "string",
+				required: false,
+				defaultValue: "pending",
+				input: false,
+			},
 		},
 	},
 	secret: env.BETTER_AUTH_SECRET,

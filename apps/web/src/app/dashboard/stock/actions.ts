@@ -9,10 +9,12 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
+import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
 import { requireCapability } from "@/lib/permissions";
+import { requireCurrentSession } from "@/lib/session";
 import {
 	type StockAdjustmentInput,
 	stockAdjustmentSchema,
@@ -325,6 +327,13 @@ export async function fetchStockPage({
 	filters: StockFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<ToolCardData>> {
+	const session = await requireCurrentSession();
+	const scope = await getUserBranchScope(session);
+
+	if (scope !== null && scope.length === 0) {
+		return { items: [], nextCursor: null };
+	}
+
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const where = buildStockWhereClause(filters);
 	const cursorPred = buildStockCursorPredicate(decoded, filters.sort);
@@ -336,6 +345,21 @@ export async function fetchStockPage({
 		? sql`WHERE ${sql.join(where, sql` AND `)}`
 		: sql``;
 	const orderClause = buildStockOrderClause(filters.sort);
+
+	const branchFilter =
+		scope === null
+			? sql``
+			: sql`AND sl.branch_id = ANY(ARRAY[${sql.join(
+					scope.map((id) => sql`${id}`),
+					sql`, `
+				)}]::uuid[])`;
+	const branchFilter2 =
+		scope === null
+			? sql``
+			: sql`AND sl2.branch_id = ANY(ARRAY[${sql.join(
+					scope.map((id) => sql`${id}`),
+					sql`, `
+				)}]::uuid[])`;
 
 	const result = await db.execute<StockPageRow>(sql`
 		WITH base AS (
@@ -350,14 +374,14 @@ export async function fetchStockPage({
 				(SELECT c.name FROM tool_category tc JOIN category c ON c.id = tc.category_id
 					WHERE tc.tool_id = t.id AND tc.is_primary = true LIMIT 1) AS primary_category_name,
 				COALESCE((SELECT SUM(sl.quantity)::int FROM stock_level sl
-					JOIN tool_variant tv ON tv.id = sl.variant_id WHERE tv.tool_id = t.id), 0) AS total_stock,
+					JOIN tool_variant tv ON tv.id = sl.variant_id WHERE tv.tool_id = t.id ${branchFilter}), 0) AS total_stock,
 				COALESCE((SELECT COUNT(*)::int FROM stock_level sl
 					JOIN tool_variant tv ON tv.id = sl.variant_id
-					WHERE tv.tool_id = t.id AND sl.reorder_point > 0 AND sl.quantity <= sl.reorder_point), 0) AS reorder_count,
+					WHERE tv.tool_id = t.id AND sl.reorder_point > 0 AND sl.quantity <= sl.reorder_point ${branchFilter}), 0) AS reorder_count,
 				COALESCE((SELECT json_agg(json_build_object('branch_id', b.id, 'branch_name', b.name, 'quantity', branch_total) ORDER BY b.name ASC)
 					FROM (SELECT b2.id AS bid, SUM(sl2.quantity)::int AS branch_total
 						FROM stock_level sl2 JOIN tool_variant tv2 ON tv2.id = sl2.variant_id
-						JOIN branch b2 ON b2.id = sl2.branch_id WHERE tv2.tool_id = t.id GROUP BY b2.id) g
+						JOIN branch b2 ON b2.id = sl2.branch_id WHERE tv2.tool_id = t.id ${branchFilter2} GROUP BY b2.id) g
 					JOIN branch b ON b.id = g.bid), '[]'::json) AS branches_breakdown
 			FROM tool t
 		)

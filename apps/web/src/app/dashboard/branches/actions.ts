@@ -7,7 +7,10 @@ import { revalidatePath } from "next/cache";
 
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
-import { requireCapability } from "@/lib/permissions";
+import {
+	requireCapability,
+	requireCapabilityWithContext,
+} from "@/lib/permissions";
 import {
 	type BranchFormValues,
 	branchSchema,
@@ -157,6 +160,19 @@ export async function updateBranch(
 export async function deleteBranch(id: string): Promise<ActionResult> {
 	await requireCapability("branches.manage");
 
+	const [target] = await db
+		.select({ isDefault: branch.isDefault })
+		.from(branch)
+		.where(eq(branch.id, id))
+		.limit(1);
+
+	if (target?.isDefault) {
+		return {
+			ok: false,
+			error: "Marque outra filial como padrão antes de deletar esta",
+		};
+	}
+
 	try {
 		await db.delete(branch).where(eq(branch.id, id));
 	} catch (error) {
@@ -167,4 +183,29 @@ export async function deleteBranch(id: string): Promise<ActionResult> {
 	revalidatePath("/dashboard/stock");
 	revalidatePath("/dashboard/tools", "layout");
 	return { ok: true, data: undefined };
+}
+
+export async function setDefaultBranch(
+	branchId: string
+): Promise<ActionResult<{ id: string }>> {
+	await requireCapabilityWithContext("branches.set_default");
+
+	try {
+		await db.transaction(async (tx) => {
+			await tx
+				.update(branch)
+				.set({ isDefault: false })
+				.where(eq(branch.isDefault, true));
+			await tx
+				.update(branch)
+				.set({ isDefault: true })
+				.where(eq(branch.id, branchId));
+		});
+	} catch (error) {
+		return { ok: false, error: zodErrorMessage(error) };
+	}
+
+	revalidatePath(BRANCHES_PATH);
+	revalidatePath(`${BRANCHES_PATH}/${branchId}/edit`);
+	return { ok: true, data: { id: branchId } };
 }
