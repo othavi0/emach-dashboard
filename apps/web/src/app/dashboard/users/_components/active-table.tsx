@@ -5,6 +5,7 @@ import { Button } from "@emach/ui/components/button";
 import { useState } from "react";
 
 import { EditSheet } from "./edit-sheet";
+import { ROLE_LABELS } from "./role-labels";
 import type { BranchLite, UserRow } from "./types";
 
 const ROLE_BADGE: Record<UserRow["role"], "default" | "info" | "secondary"> = {
@@ -49,7 +50,9 @@ export function ActiveTable({ users, branches }: Props) {
 							<td className="py-2">{u.name}</td>
 							<td>{u.email}</td>
 							<td>
-								<Badge variant={ROLE_BADGE[u.role]}>{u.role}</Badge>
+								<Badge variant={ROLE_BADGE[u.role]}>
+									{ROLE_LABELS[u.role]}
+								</Badge>
 							</td>
 							<td className="text-xs">
 								{u.branchIds.length > 0
