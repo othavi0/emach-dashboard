@@ -4,6 +4,8 @@ export * from "./attributes";
 export * from "./auth";
 export * from "./categories";
 export * from "./client";
+export * from "./client-audit";
+export * from "./client-export";
 export * from "./consent-log";
 export * from "./inventory";
 export * from "./orders";

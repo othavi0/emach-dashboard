@@ -57,3 +57,46 @@ WHERE reason = 'saida_venda' AND order_item_id IS NOT NULL;
 
 -- Sequence para número do pedido (formato YYYY-000NNN)
 CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1;
+
+-- =============================================================
+-- client.last_seen_at: throttle 5min em update via client_session
+-- =============================================================
+CREATE OR REPLACE FUNCTION update_client_last_seen() RETURNS trigger AS $$
+DECLARE
+  current_last timestamp;
+BEGIN
+  SELECT last_seen_at INTO current_last FROM client WHERE id = NEW.user_id;
+  IF current_last IS NULL OR NEW.updated_at > current_last + INTERVAL '5 minutes' THEN
+    UPDATE client SET last_seen_at = NEW.updated_at WHERE id = NEW.user_id;
+  END IF;
+  RETURN NEW;
+END $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_update_client_last_seen ON client_session;
+CREATE TRIGGER trg_update_client_last_seen
+AFTER INSERT OR UPDATE OF updated_at ON client_session
+FOR EACH ROW EXECUTE FUNCTION update_client_last_seen();
+
+-- =============================================================
+-- client.client_type: deriva de document length se não setado manual
+-- LENGTH=11 → b2c (CPF), LENGTH=14 → b2b (CNPJ), NULL → null
+-- Override manual respeitado: só sobrescreve se NEW.client_type == OLD.client_type.
+-- =============================================================
+CREATE OR REPLACE FUNCTION derive_client_type() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'INSERT' OR (TG_OP = 'UPDATE' AND NEW.client_type IS NOT DISTINCT FROM OLD.client_type) THEN
+    IF NEW.document IS NULL THEN
+      NEW.client_type := NULL;
+    ELSIF LENGTH(NEW.document) = 11 THEN
+      NEW.client_type := 'b2c';
+    ELSIF LENGTH(NEW.document) = 14 THEN
+      NEW.client_type := 'b2b';
+    END IF;
+  END IF;
+  RETURN NEW;
+END $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_derive_client_type ON client;
+CREATE TRIGGER trg_derive_client_type
+BEFORE INSERT OR UPDATE OF document, client_type ON client
+FOR EACH ROW EXECUTE FUNCTION derive_client_type();

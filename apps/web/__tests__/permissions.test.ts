@@ -6,7 +6,7 @@ describe("can()", () => {
 		const caps: Capability[] = [
 			"tools.delete",
 			"users.manage",
-			"customers.delete",
+			"customers.export",
 			"orders.refund",
 			"site.update_settings",
 		];
@@ -20,10 +20,10 @@ describe("can()", () => {
 		expect(can("manager", "orders.refund")).toBe(true);
 	});
 
-	it("manager NÃO tem branches.manage / users.manage / customers.delete", () => {
+	it("manager NÃO tem branches.manage / users.manage / customers.export", () => {
 		expect(can("manager", "branches.manage")).toBe(false);
 		expect(can("manager", "users.manage")).toBe(false);
-		expect(can("manager", "customers.delete")).toBe(false);
+		expect(can("manager", "customers.export")).toBe(false);
 	});
 
 	it("user (estoquista) tem stock.adjust + orders.update_status + orders.add_note", () => {
@@ -32,10 +32,10 @@ describe("can()", () => {
 		expect(can("user", "orders.add_note")).toBe(true);
 	});
 
-	it("user NÃO tem orders.cancel / tools.create / customers.update_tags", () => {
+	it("user NÃO tem orders.cancel / tools.create / customers.update_status", () => {
 		expect(can("user", "orders.cancel")).toBe(false);
 		expect(can("user", "tools.create")).toBe(false);
-		expect(can("user", "customers.update_tags")).toBe(false);
+		expect(can("user", "customers.update_status")).toBe(false);
 	});
 
 	it("user tem todas as reads", () => {
@@ -50,6 +50,26 @@ describe("can()", () => {
 		for (const cap of reads) {
 			expect(can("user", cap)).toBe(true);
 		}
+	});
+
+	it("manager tem customers.update_status / manage_sessions / reset_password", () => {
+		expect(can("manager", "customers.update_status")).toBe(true);
+		expect(can("manager", "customers.manage_sessions")).toBe(true);
+		expect(can("manager", "customers.reset_password")).toBe(true);
+	});
+
+	it("admin tem customers.export; manager NÃO", () => {
+		expect(can("admin", "customers.export")).toBe(true);
+		expect(can("manager", "customers.export")).toBe(false);
+	});
+
+	it("caps mortas removidas (leads.*, customers.update_tags, customers.delete)", () => {
+		// @ts-expect-error: cap removida
+		expect(can("admin", "leads.read")).toBe(false);
+		// @ts-expect-error: cap removida
+		expect(can("admin", "customers.update_tags")).toBe(false);
+		// @ts-expect-error: cap removida
+		expect(can("admin", "customers.delete")).toBe(false);
 	});
 
 	it("retorna false para role null/undefined/desconhecida", () => {
