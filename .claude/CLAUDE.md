@@ -128,7 +128,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 
 **Invariantes (P0 — qualquer violação é bug crítico):**
 
-1. `apps/web` **nunca** importa `@emach/db/schema/client` nem `@emach/auth/ecommerce`. App ecomerce **nunca** importa `@emach/db/schema/auth`.
+1. `apps/web` **pode** importar `@emach/db/schema/client` (admin lê dados de cliente — features `customers/`, `reviews/`). `apps/web` **nunca** importa `@emach/auth/ecommerce` (auth dual segue isolada — sem session ecomerce no dashboard). App ecomerce **nunca** importa `@emach/db/schema/auth`.
 2. `DashboardSession` ≠ `EcommerceSession`. Não há tipo "Session" genérico.
 3. **Nunca** setar `advanced.cookies.<name>.attributes.domain = ".emach.com.br"`. Apps em subdomínios distintos isolam por host.
 4. CPF/CNPJ: validação é responsabilidade do app (zod refine + dígito verificador). Sempre normalizar (só dígitos) antes de persistir em `client.document`.
