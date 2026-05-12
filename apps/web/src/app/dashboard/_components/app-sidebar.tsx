@@ -55,6 +55,7 @@ const NAV_GROUPS: NavGroup[] = [
 		label: "Vendas",
 		items: [
 			{ label: "Pedidos", href: "/dashboard/orders" as Route },
+			{ label: "Clientes", href: "/dashboard/customers" as Route },
 			{ label: "Avaliações", href: "/dashboard/reviews" as Route },
 		],
 	},
@@ -97,14 +98,7 @@ const NAV_GROUPS: NavGroup[] = [
 	},
 	{
 		label: "Internos",
-		items: [
-			{ label: "Usuários", href: "/dashboard/users" as Route },
-			{
-				label: "Clientes",
-				href: "/dashboard/users/clients" as Route,
-				disabled: true,
-			},
-		],
+		items: [{ label: "Usuários", href: "/dashboard/users" as Route }],
 	},
 ];
 
