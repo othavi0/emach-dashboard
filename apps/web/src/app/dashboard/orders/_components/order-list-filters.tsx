@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@emach/ui/components/badge";
+import { DatePicker } from "@emach/ui/components/date-picker";
 import { Input } from "@emach/ui/components/input";
 import {
 	Select,
@@ -32,6 +33,24 @@ interface OrderListFiltersProps {
 const BASE = "/dashboard/orders";
 const TRACKED = ["tab", "q", "from", "to", "branchId", "page"] as const;
 const BRANCH_ALL = "__all__";
+
+function parseDateParam(value: string): Date | undefined {
+	if (!value) {
+		return;
+	}
+	const d = new Date(`${value}T00:00:00`);
+	return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function formatDateParam(date: Date | undefined): string {
+	if (!date) {
+		return "";
+	}
+	const y = date.getFullYear();
+	const m = String(date.getMonth() + 1).padStart(2, "0");
+	const d = String(date.getDate()).padStart(2, "0");
+	return `${y}-${m}-${d}`;
+}
 
 function buildTabHref(filters: OrderListFilterState, tabKey: string): string {
 	const params = new URLSearchParams();
@@ -127,11 +146,10 @@ export function OrderFiltersPanel({
 					>
 						De
 					</label>
-					<Input
+					<DatePicker
 						id="orders-from"
-						onChange={(e) => setFrom(e.target.value)}
-						type="date"
-						value={from}
+						onChange={(d) => setFrom(formatDateParam(d))}
+						value={parseDateParam(from)}
 					/>
 				</div>
 
@@ -139,11 +157,11 @@ export function OrderFiltersPanel({
 					<label className="text-muted-foreground text-xs" htmlFor="orders-to">
 						Até
 					</label>
-					<Input
+					<DatePicker
 						id="orders-to"
-						onChange={(e) => setTo(e.target.value)}
-						type="date"
-						value={to}
+						min={parseDateParam(from)}
+						onChange={(d) => setTo(formatDateParam(d))}
+						value={parseDateParam(to)}
 					/>
 				</div>
 

@@ -10,6 +10,7 @@ import {
 	CommandItem,
 	CommandList,
 } from "@emach/ui/components/command";
+import { DatePicker } from "@emach/ui/components/date-picker";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import {
@@ -82,26 +83,6 @@ type PromotionType = "promotion" | "promocode";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function formatDateForInput(date: Date | null | undefined): string {
-	if (!date) {
-		return "";
-	}
-	// Use local date parts to avoid timezone offset shifting the displayed date
-	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, "0");
-	const d = String(date.getDate()).padStart(2, "0");
-	return `${y}-${m}-${d}`;
-}
-
-function parseInputDate(value: string): Date | null {
-	if (!value) {
-		return null;
-	}
-	// Interpret as local midnight (not UTC) to avoid off-by-one timezone issues
-	const d = new Date(`${value}T00:00:00`);
-	return Number.isNaN(d.getTime()) ? null : d;
-}
 
 function typeLabel(type: PromotionType): string {
 	return type === "promotion" ? "Automática" : "Cupom";
@@ -261,11 +242,11 @@ export function PromotionForm({
 		defaultValues?.discountPct ?? undefined
 	);
 	const [active, setActive] = useState(defaultValues?.active ?? true);
-	const [startsAt, setStartsAt] = useState(
-		formatDateForInput(defaultValues?.startsAt)
+	const [startsAt, setStartsAt] = useState<Date | undefined>(
+		defaultValues?.startsAt ?? undefined
 	);
-	const [endsAt, setEndsAt] = useState(
-		formatDateForInput(defaultValues?.endsAt)
+	const [endsAt, setEndsAt] = useState<Date | undefined>(
+		defaultValues?.endsAt ?? undefined
 	);
 	const [code, setCode] = useState(defaultValues?.code ?? "");
 	const [toolIds, setToolIds] = useState<string[]>(
@@ -284,8 +265,8 @@ export function PromotionForm({
 			description: description.trim() === "" ? null : description.trim(),
 			discountPct: discountPct ?? 0,
 			active,
-			startsAt: parseInputDate(startsAt),
-			endsAt: parseInputDate(endsAt),
+			startsAt: startsAt ?? null,
+			endsAt: endsAt ?? null,
 			toolIds,
 		};
 
@@ -470,11 +451,10 @@ export function PromotionForm({
 				<div className="grid gap-4 sm:grid-cols-2">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="promo-starts-at">Início</Label>
-						<Input
+						<DatePicker
 							disabled={isPending}
 							id="promo-starts-at"
-							onChange={(e) => setStartsAt(e.target.value)}
-							type="date"
+							onChange={setStartsAt}
 							value={startsAt}
 						/>
 						{errors.startsAt && (
@@ -484,11 +464,11 @@ export function PromotionForm({
 
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="promo-ends-at">Fim</Label>
-						<Input
+						<DatePicker
 							disabled={isPending}
 							id="promo-ends-at"
-							onChange={(e) => setEndsAt(e.target.value)}
-							type="date"
+							min={startsAt}
+							onChange={setEndsAt}
 							value={endsAt}
 						/>
 						{errors.endsAt && (
