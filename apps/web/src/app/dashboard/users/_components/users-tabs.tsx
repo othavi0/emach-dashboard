@@ -23,8 +23,9 @@ export function UsersTabs({ users, branches }: Props) {
 	const suspended = users.filter((u) => u.status === "suspended");
 
 	return (
-		<Tabs defaultValue="pending">
+		<Tabs defaultValue="active">
 			<TabsList>
+				<TabsTrigger value="active">Ativos · {active.length}</TabsTrigger>
 				<TabsTrigger value="pending">
 					Pendentes
 					{pending.length > 0 && (
@@ -33,16 +34,15 @@ export function UsersTabs({ users, branches }: Props) {
 						</span>
 					)}
 				</TabsTrigger>
-				<TabsTrigger value="active">Ativos · {active.length}</TabsTrigger>
 				<TabsTrigger value="suspended">
 					Suspensos · {suspended.length}
 				</TabsTrigger>
 			</TabsList>
-			<TabsContent value="pending">
-				<PendingTable branches={branches} users={pending} />
-			</TabsContent>
 			<TabsContent value="active">
 				<ActiveTable branches={branches} users={active} />
+			</TabsContent>
+			<TabsContent value="pending">
+				<PendingTable branches={branches} users={pending} />
 			</TabsContent>
 			<TabsContent value="suspended">
 				<SuspendedTable branches={branches} users={suspended} />

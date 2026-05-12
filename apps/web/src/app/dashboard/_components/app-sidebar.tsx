@@ -96,9 +96,9 @@ const NAV_GROUPS: NavGroup[] = [
 		],
 	},
 	{
-		label: "Usuários",
+		label: "Internos",
 		items: [
-			{ label: "Dashboard", href: "/dashboard/users" as Route },
+			{ label: "Usuários", href: "/dashboard/users" as Route },
 			{
 				label: "Clientes",
 				href: "/dashboard/users/clients" as Route,

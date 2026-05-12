@@ -8,14 +8,7 @@ import {
 	SelectValue,
 } from "@emach/ui/components/select";
 
-const ROLE_LABELS = {
-	super_admin: "Super Admin",
-	admin: "Admin",
-	manager: "Manager",
-	user: "User",
-} as const;
-
-type Role = keyof typeof ROLE_LABELS;
+import { ROLE_LABELS, type Role } from "./role-labels";
 
 interface Props {
 	allowedRoles: Role[];
