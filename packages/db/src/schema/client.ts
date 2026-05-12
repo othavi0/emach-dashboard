@@ -1,20 +1,50 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	index,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 
-export const client = pgTable("client", {
-	id: text("id").primaryKey(),
-	name: text("name").notNull(),
-	email: text("email").notNull().unique(),
-	emailVerified: boolean("email_verified").default(false).notNull(),
-	image: text("image"),
-	phone: text("phone"),
-	document: text("document").unique(),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-	updatedAt: timestamp("updated_at")
-		.defaultNow()
-		.$onUpdate(() => /* @__PURE__ */ new Date())
-		.notNull(),
-});
+export const clientStatusEnum = pgEnum("client_status", [
+	"active",
+	"inactive",
+	"blocked",
+]);
+export type ClientStatus = (typeof clientStatusEnum.enumValues)[number];
+
+export const clientTypeEnum = pgEnum("client_type", ["b2c", "b2b"]);
+export type ClientType = (typeof clientTypeEnum.enumValues)[number];
+
+export const client = pgTable(
+	"client",
+	{
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		email: text("email").notNull().unique(),
+		emailVerified: boolean("email_verified").default(false).notNull(),
+		image: text("image"),
+		phone: text("phone"),
+		document: text("document").unique(),
+		status: clientStatusEnum("status").default("active").notNull(),
+		clientType: clientTypeEnum("client_type"),
+		internalNotes: text("internal_notes"),
+		lastSeenAt: timestamp("last_seen_at"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("client_status_idx").on(table.status),
+		index("client_type_idx").on(table.clientType),
+		index("client_created_idx").on(table.createdAt.desc(), table.id.desc()),
+		index("client_last_seen_idx").on(table.lastSeenAt.desc()),
+	]
+);
 
 export const clientSession = pgTable(
 	"client_session",

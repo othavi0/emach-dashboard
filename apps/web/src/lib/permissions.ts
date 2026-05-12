@@ -29,11 +29,10 @@ export type Capability =
 	| "orders.add_note"
 	| "orders.export"
 	| "customers.read"
-	| "customers.update_tags"
 	| "customers.update_status"
-	| "customers.delete"
-	| "leads.read"
-	| "leads.manage"
+	| "customers.export"
+	| "customers.manage_sessions"
+	| "customers.reset_password"
 	| "site.read"
 	| "site.update_banners"
 	| "site.update_settings"
@@ -77,11 +76,10 @@ const ALL_CAPS: readonly Capability[] = [
 	"orders.add_note",
 	"orders.export",
 	"customers.read",
-	"customers.update_tags",
 	"customers.update_status",
-	"customers.delete",
-	"leads.read",
-	"leads.manage",
+	"customers.export",
+	"customers.manage_sessions",
+	"customers.reset_password",
 	"site.read",
 	"site.update_banners",
 	"site.update_settings",
@@ -113,7 +111,6 @@ const USER_CAPS: readonly Capability[] = [
 	"promotions.read",
 	"orders.read",
 	"customers.read",
-	"leads.read",
 	"site.read",
 	"reviews.read",
 	"stock.adjust",
@@ -133,9 +130,9 @@ const MANAGER_CAPS: readonly Capability[] = [
 	"orders.cancel",
 	"orders.refund",
 	"orders.export",
-	"customers.update_tags",
 	"customers.update_status",
-	"leads.manage",
+	"customers.manage_sessions",
+	"customers.reset_password",
 	"site.update_banners",
 	"site.update_settings",
 	"site.publish_announcements",

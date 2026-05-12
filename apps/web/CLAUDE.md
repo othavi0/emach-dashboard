@@ -69,7 +69,8 @@ Renderização de imagens: `<Image>` do Next sempre que possível. Para thumbs v
 
 - `@/...` → `src/...` (configurado em `tsconfig.json`).
 - `@emach/db`, `@emach/auth/dashboard`, `@emach/ui`, `@emach/env`.
-- **Nunca** importar `@emach/db/schema/client` ou `@emach/auth/ecommerce` daqui (P0).
+- **Permitido** importar `@emach/db/schema/client` daqui (admin lê dados de cliente — features `customers/`, `reviews/`).
+- **Nunca** importar `@emach/auth/ecommerce` daqui (P0). Auth dual segue isolada — dashboard só usa `authDashboard`.
 
 ## Cache (Next 16)
 

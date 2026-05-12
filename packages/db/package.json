@@ -18,7 +18,6 @@
     "db:apply-triggers": "bun run scripts/apply-triggers.ts",
     "db:seed-categories": "bun run scripts/seed-categories.ts",
     "db:seed-attributes": "bun run scripts/seed-attributes.ts",
-    "db:anonymize-client": "bun run scripts/anonymize-client.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

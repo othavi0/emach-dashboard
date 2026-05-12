@@ -36,6 +36,11 @@ import {
 	clientSessionRelations,
 	clientVerification,
 } from "./schema/client";
+import { clientAuditLog, clientAuditLogRelations } from "./schema/client-audit";
+import {
+	clientExportLog,
+	clientExportLogRelations,
+} from "./schema/client-export";
 import { consentLog, consentLogRelations } from "./schema/consent-log";
 import {
 	branch,
@@ -94,6 +99,10 @@ const schema = {
 	clientRelations,
 	clientSession,
 	clientSessionRelations,
+	clientAuditLog,
+	clientAuditLogRelations,
+	clientExportLog,
+	clientExportLogRelations,
 	clientVerification,
 	consentLog,
 	consentLogRelations,

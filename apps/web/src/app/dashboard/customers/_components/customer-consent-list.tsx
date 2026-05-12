@@ -1,0 +1,87 @@
+import { Badge } from "@emach/ui/components/badge";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@emach/ui/components/card";
+
+import type { CustomerConsentByKind } from "../data";
+
+const KIND_LABELS: Record<string, string> = {
+	tos: "Termos de Uso",
+	privacy: "Privacidade",
+	marketing_email: "Email Marketing",
+	cookies: "Cookies",
+};
+
+const KIND_ORDER = ["tos", "privacy", "marketing_email", "cookies"] as const;
+
+const DATE_TIME = new Intl.DateTimeFormat("pt-BR", {
+	day: "2-digit",
+	month: "2-digit",
+	year: "numeric",
+	hour: "2-digit",
+	minute: "2-digit",
+});
+
+interface CustomerConsentListProps {
+	consentByKind: CustomerConsentByKind;
+}
+
+export function CustomerConsentList({
+	consentByKind,
+}: CustomerConsentListProps) {
+	return (
+		<div className="grid gap-4 md:grid-cols-2">
+			{KIND_ORDER.map((kind) => {
+				const entries = consentByKind[kind] ?? [];
+				return (
+					<Card key={kind}>
+						<CardHeader className="pb-2">
+							<CardTitle className="text-sm">
+								{KIND_LABELS[kind] ?? kind}
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							{entries.length === 0 ? (
+								<p className="text-muted-foreground text-xs">
+									Nenhum registro para este tipo.
+								</p>
+							) : (
+								<div className="flex flex-col gap-2">
+									{entries.map((entry) => (
+										<div
+											className="flex flex-col gap-0.5 border-border border-l-2 pl-3 text-xs"
+											key={entry.id}
+										>
+											<div className="flex items-center gap-2">
+												<Badge
+													className="text-[10px]"
+													variant={entry.granted ? "success" : "secondary"}
+												>
+													{entry.granted ? "Concedido" : "Revogado"}
+												</Badge>
+												<code className="font-mono text-muted-foreground">
+													v{entry.version}
+												</code>
+											</div>
+											<p className="text-muted-foreground">
+												{DATE_TIME.format(entry.grantedAt)}
+											</p>
+											{entry.revokedAt && (
+												<p className="text-muted-foreground">
+													Revogado em {DATE_TIME.format(entry.revokedAt)}
+												</p>
+											)}
+										</div>
+									))}
+								</div>
+							)}
+						</CardContent>
+					</Card>
+				);
+			})}
+		</div>
+	);
+}

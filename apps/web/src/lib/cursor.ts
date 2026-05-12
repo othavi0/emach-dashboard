@@ -30,12 +30,30 @@ export interface UrgencyCursor extends CursorBase {
 	totalStock: number;
 }
 
+export interface LtvCursor extends CursorBase {
+	ltv: number;
+	sort: "ltvDesc";
+}
+
+export interface LastOrderCursor extends CursorBase {
+	lastOrderAt: string | null;
+	sort: "lastOrderDesc";
+}
+
+export interface NameAscCursor extends CursorBase {
+	name: string;
+	sort: "nameAsc";
+}
+
 export type Cursor =
 	| NewestCursor
 	| NameCursor
 	| StockHighCursor
 	| StockLowCursor
-	| UrgencyCursor;
+	| UrgencyCursor
+	| LtvCursor
+	| LastOrderCursor
+	| NameAscCursor;
 
 export function encodeCursor(c: Cursor): string {
 	return Buffer.from(JSON.stringify(c)).toString("base64url");
