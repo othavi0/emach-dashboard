@@ -13,10 +13,12 @@ import { PageHeader } from "@/components/page-header";
 import { type PendingGroup, PendingList } from "@/components/pending-list";
 import { can, requireCapability } from "@/lib/permissions";
 import { ExportCsvLink } from "./_components/export-csv-link";
+import { OrderKpisRow } from "./_components/order-kpis";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrdersInfinite } from "./_components/orders-infinite";
 import {
 	fetchOrdersPage,
+	getOrderKpis,
 	getOrdersTabCounts,
 	getRecentOrderActivity,
 	listOrderBranches,
@@ -56,9 +58,10 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 		branchId: data.branchId,
 	};
 
-	const [branches, counts, recentActivity, result] = await Promise.all([
+	const [branches, counts, kpis, recentActivity, result] = await Promise.all([
 		listOrderBranches(),
 		getOrdersTabCounts(),
+		getOrderKpis(),
 		getRecentOrderActivity(),
 		fetchOrdersPage({ filters: pageFilters, cursor: null }),
 	]);
@@ -115,20 +118,12 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 	return (
 		<>
 			<PageHeader
-				action={
-					<div className="flex items-center gap-2">
-						{canExport && <ExportCsvLink filters={filters} />}
-						<Link
-							className={buttonVariants({ variant: "ghost" })}
-							href="/dashboard"
-						>
-							Voltar ao painel
-						</Link>
-					</div>
-				}
+				action={canExport ? <ExportCsvLink filters={filters} /> : null}
 				description="Listagem operacional com busca por número e cliente, filtros por data e filial e atalhos para fulfillment."
 				title="Pedidos"
 			/>
+
+			<OrderKpisRow kpis={kpis} />
 
 			<section className="grid gap-3 lg:grid-cols-2">
 				<PendingList
