@@ -664,3 +664,83 @@ export async function getCustomerPendingCounts(): Promise<CustomerPendingCounts>
 		unverifiedNew: Number(row?.unverified_new ?? 0),
 	};
 }
+
+export type RecentClientActivityKind = "new_client" | "login" | "first_order";
+
+export interface RecentClientActivity {
+	at: Date;
+	clientId: string;
+	clientName: string;
+	id: string;
+	kind: RecentClientActivityKind;
+}
+
+export async function getRecentCustomerActivity(
+	limit = 8
+): Promise<RecentClientActivity[]> {
+	const result = await db.execute<{
+		id: string;
+		kind: RecentClientActivityKind;
+		at: string;
+		client_id: string;
+		client_name: string;
+	}>(sql`
+		WITH new_clients AS (
+			SELECT
+				c.id AS id,
+				'new_client'::text AS kind,
+				c.created_at AS at,
+				c.id AS client_id,
+				c.name AS client_name
+			FROM client c
+			ORDER BY c.created_at DESC
+			LIMIT ${limit}
+		),
+		recent_logins AS (
+			SELECT
+				cs.id AS id,
+				'login'::text AS kind,
+				max_session.last_at AS at,
+				c.id AS client_id,
+				c.name AS client_name
+			FROM (
+				SELECT client_id, MAX(created_at) AS last_at
+				FROM client_session
+				GROUP BY client_id
+				ORDER BY last_at DESC
+				LIMIT ${limit}
+			) max_session
+			JOIN client c ON c.id = max_session.client_id
+			JOIN client_session cs ON cs.client_id = c.id AND cs.created_at = max_session.last_at
+		),
+		first_orders AS (
+			SELECT
+				o.id AS id,
+				'first_order'::text AS kind,
+				o.created_at AS at,
+				c.id AS client_id,
+				c.name AS client_name
+			FROM "order" o
+			JOIN client c ON c.id = o.client_id
+			WHERE o.created_at = (
+				SELECT MIN(o2.created_at) FROM "order" o2 WHERE o2.client_id = o.client_id
+			)
+			AND o.created_at > now() - INTERVAL '7 days'
+			ORDER BY o.created_at DESC
+			LIMIT ${limit}
+		)
+		SELECT * FROM new_clients
+		UNION ALL SELECT * FROM recent_logins
+		UNION ALL SELECT * FROM first_orders
+		ORDER BY at DESC
+		LIMIT ${limit}
+	`);
+
+	return result.rows.map((r) => ({
+		id: r.id,
+		kind: r.kind,
+		at: new Date(r.at),
+		clientId: r.client_id,
+		clientName: r.client_name,
+	}));
+}
