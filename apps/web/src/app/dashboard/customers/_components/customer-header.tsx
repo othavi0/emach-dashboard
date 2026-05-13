@@ -70,6 +70,19 @@ export function CustomerHeader({
 				<div className="flex flex-col gap-1.5">
 					<h1 className="font-medium text-xl leading-tight">{customer.name}</h1>
 					<p className="text-muted-foreground text-sm">{customer.email}</p>
+					<p className="text-muted-foreground text-xs">
+						Cadastrado em{" "}
+						{new Intl.DateTimeFormat("pt-BR", {
+							day: "2-digit",
+							month: "2-digit",
+							year: "numeric",
+						}).format(customer.createdAt)}{" "}
+						·{" "}
+						{Math.floor(
+							(Date.now() - customer.createdAt.getTime()) / 86_400_000
+						)}{" "}
+						dias como cliente
+					</p>
 
 					<div className="flex flex-wrap items-center gap-1.5">
 						{statusConfig && (
