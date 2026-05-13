@@ -34,6 +34,9 @@ export const customersListFiltersSchema = z
 		lastOrderTo: isoDate,
 		ltvMin: z.coerce.number().min(0).optional(),
 		ltvMax: z.coerce.number().min(0).optional(),
+		missingDoc: z.coerce.boolean().optional(),
+		openOrderInactive: z.coerce.boolean().optional(),
+		unverifiedNew: z.coerce.boolean().optional(),
 		sort: z.enum(SORT_OPTIONS).default("createdDesc"),
 	})
 	.superRefine((d, ctx) => {
