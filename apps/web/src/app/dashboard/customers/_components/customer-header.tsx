@@ -5,7 +5,7 @@ import {
 } from "@emach/ui/components/avatar";
 import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
-import { KeyRoundIcon, PencilIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
 import Link from "next/link";
 
 import type { CustomerDetail } from "../data";
@@ -95,17 +95,14 @@ export function CustomerHeader({
 				</div>
 			</div>
 
-			<div className="flex items-center gap-1">
+			<div className="flex items-center gap-2">
 				{canEdit && (
 					<Link
-						aria-label="Editar perfil"
-						className={buttonVariants({
-							size: "icon-sm",
-							variant: "secondary",
-						})}
+						className={buttonVariants({ variant: "default" })}
 						href={`/dashboard/customers/${customer.id}?tab=perfil&edit=1`}
 					>
-						<PencilIcon aria-hidden className="size-3.5" />
+						<PencilIcon aria-hidden className="mr-1.5 size-4" />
+						Editar
 					</Link>
 				)}
 
@@ -113,18 +110,7 @@ export function CustomerHeader({
 					<ResetPasswordDialog
 						clientId={customer.id}
 						clientName={customer.name}
-					>
-						<button
-							aria-label="Gerar link de reset de senha"
-							className={buttonVariants({
-								size: "icon-sm",
-								variant: "secondary",
-							})}
-							type="button"
-						>
-							<KeyRoundIcon aria-hidden className="size-3.5" />
-						</button>
-					</ResetPasswordDialog>
+					/>
 				)}
 			</div>
 		</div>
