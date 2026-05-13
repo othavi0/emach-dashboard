@@ -718,3 +718,53 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		})),
 	};
 }
+
+export interface OrderKpis {
+	averageTicket: number;
+	paidPercent: number;
+	revenueToday: number;
+	revenueYesterday: number;
+}
+
+export async function getOrderKpis(): Promise<OrderKpis> {
+	const result = await db.execute<{
+		revenue_today: string | null;
+		revenue_yesterday: string | null;
+		average_ticket: string | null;
+		paid_percent: string | null;
+	}>(sql`
+		SELECT
+			SUM(total_amount) FILTER (
+				WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+				AND created_at::date = CURRENT_DATE
+			) AS revenue_today,
+			SUM(total_amount) FILTER (
+				WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+				AND created_at::date = CURRENT_DATE - INTERVAL '1 day'
+			) AS revenue_yesterday,
+			AVG(total_amount) FILTER (
+				WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+				AND created_at > now() - INTERVAL '30 days'
+			) AS average_ticket,
+			CASE
+				WHEN COUNT(*) FILTER (WHERE created_at > now() - INTERVAL '30 days') = 0 THEN 0
+				ELSE (
+					COUNT(*) FILTER (
+						WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+						AND created_at > now() - INTERVAL '30 days'
+					)::numeric
+					/ COUNT(*) FILTER (WHERE created_at > now() - INTERVAL '30 days')::numeric
+					* 100
+				)
+			END AS paid_percent
+		FROM "order"
+	`);
+
+	const row = result.rows[0];
+	return {
+		revenueToday: Number(row?.revenue_today ?? 0),
+		revenueYesterday: Number(row?.revenue_yesterday ?? 0),
+		averageTicket: Number(row?.average_ticket ?? 0),
+		paidPercent: Number(row?.paid_percent ?? 0),
+	};
+}
