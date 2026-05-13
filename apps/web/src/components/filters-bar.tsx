@@ -13,17 +13,16 @@ export function FiltersBar({ children, hasActive, onClear }: FiltersBarProps) {
 	return (
 		<div className="flex flex-col gap-3 md:flex-row md:items-end">
 			{children}
-			{hasActive && onClear ? (
-				<Button
-					className="md:self-end"
-					onClick={onClear}
-					size="sm"
-					type="button"
-					variant="ghost"
-				>
-					Limpar filtros
-				</Button>
-			) : null}
+			<Button
+				className="md:self-end"
+				disabled={!hasActive}
+				onClick={onClear}
+				size="sm"
+				type="button"
+				variant="ghost"
+			>
+				Limpar filtros
+			</Button>
 		</div>
 	);
 }
