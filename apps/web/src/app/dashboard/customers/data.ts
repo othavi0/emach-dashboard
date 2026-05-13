@@ -216,6 +216,19 @@ export async function listCustomers({
 	if (filters.ltvMax !== undefined) {
 		conditions.push(sql`COALESCE(stats.ltv, 0) <= ${filters.ltvMax}`);
 	}
+	if (filters.missingDoc) {
+		conditions.push(sql`c.document IS NULL`);
+	}
+	if (filters.openOrderInactive) {
+		conditions.push(
+			sql`c.status = 'inactive' AND EXISTS (SELECT 1 FROM "order" o WHERE o.client_id = c.id AND o.status IN ('pending_payment', 'preparing', 'shipped'))`
+		);
+	}
+	if (filters.unverifiedNew) {
+		conditions.push(
+			sql`c.email_verified = false AND c.created_at > now() - INTERVAL '14 days'`
+		);
+	}
 
 	// Cursor where (sort-aware)
 	const sort = filters.sort;
