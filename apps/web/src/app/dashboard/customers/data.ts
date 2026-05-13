@@ -720,14 +720,14 @@ export async function getRecentCustomerActivity(
 				c.id AS client_id,
 				c.name AS client_name
 			FROM (
-				SELECT client_id, MAX(created_at) AS last_at
+				SELECT user_id, MAX(created_at) AS last_at
 				FROM client_session
-				GROUP BY client_id
+				GROUP BY user_id
 				ORDER BY last_at DESC
 				LIMIT ${limit}
 			) max_session
-			JOIN client c ON c.id = max_session.client_id
-			JOIN client_session cs ON cs.client_id = c.id AND cs.created_at = max_session.last_at
+			JOIN client c ON c.id = max_session.user_id
+			JOIN client_session cs ON cs.user_id = c.id AND cs.created_at = max_session.last_at
 		),
 		first_orders AS (
 			SELECT
