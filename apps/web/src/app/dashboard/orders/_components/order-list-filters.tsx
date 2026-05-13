@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from "@emach/ui/components/tabs";
 import Link from "next/link";
 
 import { FiltersBar } from "@/components/filters-bar";
+import { formatDateParam, parseDateParam } from "@/lib/date-params";
 import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
 
 import type {
@@ -33,24 +34,6 @@ interface OrderListFiltersProps {
 const BASE = "/dashboard/orders";
 const TRACKED = ["tab", "q", "from", "to", "branchId", "page"] as const;
 const BRANCH_ALL = "__all__";
-
-function parseDateParam(value: string): Date | undefined {
-	if (!value) {
-		return;
-	}
-	const d = new Date(`${value}T00:00:00`);
-	return Number.isNaN(d.getTime()) ? undefined : d;
-}
-
-function formatDateParam(date: Date | undefined): string {
-	if (!date) {
-		return "";
-	}
-	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, "0");
-	const d = String(date.getDate()).padStart(2, "0");
-	return `${y}-${m}-${d}`;
-}
 
 function buildTabHref(filters: OrderListFilterState, tabKey: string): string {
 	const params = new URLSearchParams();
