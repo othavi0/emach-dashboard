@@ -92,6 +92,7 @@ export function OrderFiltersPanel({
 				<TabsList scrollable>
 					{ORDER_TABS.map((tab) => {
 						const count = tabCount(counts, tab.key, tab.statuses);
+						const isActive = currentTab === tab.key;
 						return (
 							<TabsTrigger
 								key={tab.key}
@@ -100,7 +101,10 @@ export function OrderFiltersPanel({
 								value={tab.key}
 							>
 								<span>{tab.label}</span>
-								<Badge className="ml-1.5" variant="secondary">
+								<Badge
+									className="ml-2"
+									variant={isActive ? "default" : "secondary"}
+								>
 									{count}
 								</Badge>
 							</TabsTrigger>
