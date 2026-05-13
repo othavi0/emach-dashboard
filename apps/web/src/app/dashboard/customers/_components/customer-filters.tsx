@@ -36,6 +36,9 @@ const TRACKED = [
 	"ltvMin",
 	"ltvMax",
 	"sort",
+	"missingDoc",
+	"openOrderInactive",
+	"unverifiedNew",
 ] as const;
 
 const SORT_LABELS: Record<(typeof SORT_OPTIONS)[number], string> = {
