@@ -29,6 +29,7 @@ export interface CustomerListItem {
 	createdAt: Date;
 	document: string | null;
 	email: string;
+	emailVerified: boolean;
 	id: string;
 	image: string | null;
 	lastOrderAt: Date | null;
@@ -276,6 +277,7 @@ export async function listCustomers({
 		created_at: Date;
 		document: string | null;
 		email: string;
+		email_verified: boolean;
 		id: string;
 		image: string | null;
 		last_order_at: Date | null;
@@ -296,7 +298,7 @@ export async function listCustomers({
 			GROUP BY o.client_id
 		)
 		SELECT
-			c.id, c.name, c.email, c.image, c.document,
+			c.id, c.name, c.email, c.email_verified, c.image, c.document,
 			c.status, c.client_type, c.created_at,
 			stats.ltv, stats.orders_count, stats.last_order_at, stats.last_order_status
 		FROM client c
@@ -310,6 +312,7 @@ export async function listCustomers({
 		id: r.id,
 		name: r.name,
 		email: r.email,
+		emailVerified: r.email_verified,
 		image: r.image,
 		document: r.document,
 		status: r.status,
