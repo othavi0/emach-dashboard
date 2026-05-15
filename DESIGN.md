@@ -39,7 +39,7 @@ Tokens em `packages/ui/src/styles/globals.css`, escopados em `.dark`. Use Tailwi
 | **Secondary** | `--secondary` | `0.42 0.020 70` | `#5c554d` | `#faf9f5` | Ações neutras, badges sem destaque |
 | **Destructive (oxide red)** | `--destructive` | `0.55 0.20 25` | `#c25240` | `#fefefe` | Erro, cancelado, deletar, falha de validação |
 | **Warning (mustard)** | `--warning` | `0.78 0.15 85` | `#cfa845` | `#1d1b18` | Estoque mínimo, ação reversível precisa atenção, deadline próximo |
-| **Info (teal)** | `--info` | `0.65 0.10 200` | `#5da8ac` | `#fefefe` | Notificação neutra, link secundário, status "em processamento" |
+| **Info (teal)** | `--info` | `0.65 0.10 200` | `#5da8ac` | `#1d1b18` | Notificação neutra, link secundário, status "em processamento" |
 | **Success (jade)** | `--success` | `0.62 0.13 155` | `#3fa580` | `#fefefe` | Confirmação, status "entregue/pago", saldo positivo |
 
 **Distinção de hue:** primary 45 → destructive 25 → warning 85 → info 200 → success 155 → secondary 70. Mínimo 20° entre matizes vizinhas no círculo cromático. Diferente do sistema anterior onde primary e destructive fundiam (38 vs 22).
