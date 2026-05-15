@@ -1,24 +1,32 @@
+import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { CategoryForm } from "../_components/category-form";
 import { listCategories } from "../actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewCategoryPage() {
+interface NewCategoryPageProps {
+	searchParams: Promise<{ parent?: string }>;
+}
+
+export default async function NewCategoryPage({
+	searchParams,
+}: NewCategoryPageProps) {
 	await requireCapabilityOrRedirect("categories.manage");
+	const { parent } = await searchParams;
 	const categories = await listCategories();
+	const validParent =
+		parent && categories.some((c) => c.id === parent) ? parent : null;
 
 	return (
 		<div className="flex flex-col gap-6">
-			<div>
-				<h1 className="font-medium text-2xl tracking-tight">Nova categoria</h1>
-				<p className="text-muted-foreground text-sm">
-					Crie uma categoria raiz ou subcategoria para classificar ferramentas.
-				</p>
-			</div>
+			<PageHeader
+				description="Crie uma categoria raiz ou subcategoria para classificar ferramentas."
+				title="Nova categoria"
+			/>
 			<CategoryForm
 				categories={categories}
-				defaultValues={{ isActive: true, sortOrder: 0 }}
+				defaultValues={{ isActive: true, parentId: validParent }}
 				mode="create"
 			/>
 		</div>
