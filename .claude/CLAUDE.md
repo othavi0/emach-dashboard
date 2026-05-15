@@ -40,7 +40,7 @@ apps/
       login/              Pública
       dashboard/          Protegida via requireCurrentSession
         tools/            Ferramentas (catálogo) — variantes, specs dinâmicas, mídia
-        categories/       Árvore hierárquica + painel de atributos por categoria
+        categories/       Árvore hierárquica (drag-and-drop) + detalhe [id] + edição com painel de atributos
         suppliers/        Fornecedores
         branches/         Filiais
         stock/            Visão por ferramenta + por filial; movimentos por variante
