@@ -13,14 +13,7 @@ export const categorySchema = z.object({
 		.max(2000, "Descrição muito longa")
 		.nullable()
 		.optional(),
-	imageUrl: z
-		.string()
-		.url("URL inválida")
-		.nullable()
-		.optional()
-		.or(z.literal("")),
 	isActive: z.boolean().default(true),
-	sortOrder: z.coerce.number().int().min(0).default(0),
 });
 
 export type CategoryInput = z.infer<typeof categorySchema>;

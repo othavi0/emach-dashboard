@@ -1,6 +1,13 @@
 "use client";
 
 import { Button, buttonVariants } from "@emach/ui/components/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@emach/ui/components/card";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import {
@@ -27,23 +34,22 @@ import {
 } from "@/components/form-error-panel";
 
 import { slugifyLabel, validateSlugFormat } from "../_lib/attribute-schema";
-
-const FIELD_LABELS: Record<string, string> = {
-	name: "Nome",
-	slug: "Slug",
-	parentId: "Categoria pai",
-	description: "Descrição",
-	imageUrl: "URL da imagem",
-	isActive: "Ativa",
-	sortOrder: "Ordem",
-};
-
 import {
 	type CategoryListItem,
 	createCategory,
 	updateCategory,
 } from "../actions";
 import { type CategoryInput, categorySchema } from "../schema";
+
+const FIELD_LABELS: Record<string, string> = {
+	name: "Nome",
+	slug: "Slug",
+	parentId: "Categoria pai",
+	description: "Descrição",
+	isActive: "Ativa",
+};
+
+const NO_PARENT = "__none__";
 
 interface CategoryFormProps {
 	categories: CategoryListItem[];
@@ -82,8 +88,6 @@ function zodErrorsToFieldMap(
 	return map;
 }
 
-const NO_PARENT = "__none__";
-
 export function CategoryForm({
 	categories,
 	categoryId,
@@ -100,18 +104,12 @@ export function CategoryForm({
 	const [description, setDescription] = useState(
 		defaultValues.description ?? ""
 	);
-	const [imageUrl, setImageUrl] = useState(defaultValues.imageUrl ?? "");
 	const [isActive, setIsActive] = useState(defaultValues.isActive ?? true);
-	const [sortOrder, setSortOrder] = useState(
-		String(defaultValues.sortOrder ?? 0)
-	);
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof CategoryInput, string>>
 	>({});
 	const [formIssues, setFormIssues] = useState<FormIssue[]>([]);
 
-	// Filtra parents possíveis: exclui a própria categoria e descendentes (evita ciclo
-	// e mensagem feia do trigger). Em modo create, mostra todos.
 	const ownPath = defaultValues.path ?? "";
 	const parentOptions =
 		mode === "edit" && defaultValues.id
@@ -121,6 +119,11 @@ export function CategoryForm({
 						(ownPath === "" || !c.path.startsWith(`${ownPath}/`))
 				)
 			: categories;
+
+	const pathPreview =
+		parentId === NO_PARENT
+			? `/${slug || "…"}`
+			: `${categories.find((c) => c.id === parentId)?.path ?? ""}/${slug || "…"}`;
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -132,9 +135,7 @@ export function CategoryForm({
 			slug,
 			parentId: parentId === NO_PARENT ? null : parentId,
 			description: description.trim() === "" ? null : description,
-			imageUrl: imageUrl.trim() === "" ? null : imageUrl,
 			isActive,
-			sortOrder,
 		});
 
 		if (!parsed.success) {
@@ -148,11 +149,10 @@ export function CategoryForm({
 		}
 
 		startTransition(async () => {
-			const action =
+			const result =
 				mode === "create"
-					? createCategory(parsed.data)
-					: updateCategory(categoryId ?? "", parsed.data);
-			const result = await action;
+					? await createCategory(parsed.data)
+					: await updateCategory(categoryId ?? "", parsed.data);
 
 			if (result.ok) {
 				toast.success(
@@ -168,161 +168,157 @@ export function CategoryForm({
 
 	return (
 		<form
-			className="flex w-full max-w-2xl flex-col gap-6"
+			className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.95fr)]"
 			onSubmit={handleSubmit}
 		>
-			<FormErrorPanel issues={formIssues} />
-			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
-				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
-					Informações básicas
-				</h2>
+			<div className="flex flex-col gap-4">
+				<FormErrorPanel issues={formIssues} />
 
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-name">
-						Nome
-						<span className="text-destructive"> *</span>
-					</Label>
-					<Input
-						aria-invalid={errors.name ? true : undefined}
-						aria-required="true"
-						disabled={isPending}
-						id="category-name"
-						onChange={(event) => {
-							const next = event.target.value;
-							setName(next);
-							if (mode === "create") {
-								setSlug(slugifyLabel(next));
-							}
-						}}
-						placeholder="Ex: Furadeiras"
-						value={name}
-					/>
-					{errors.name && (
-						<p className="text-destructive text-sm">{errors.name}</p>
-					)}
-				</div>
+				<Card>
+					<CardHeader>
+						<CardTitle>Informações básicas</CardTitle>
+						<CardDescription>Nome, identificador e descrição.</CardDescription>
+					</CardHeader>
+					<CardContent className="flex flex-col gap-4">
+						<div className="flex flex-col gap-2">
+							<Label htmlFor="category-name">
+								Nome
+								<span className="text-destructive"> *</span>
+							</Label>
+							<Input
+								aria-invalid={errors.name ? true : undefined}
+								disabled={isPending}
+								id="category-name"
+								onChange={(event) => {
+									const next = event.target.value;
+									setName(next);
+									if (mode === "create") {
+										setSlug(slugifyLabel(next));
+									}
+								}}
+								placeholder="Ex: Furadeiras"
+								value={name}
+							/>
+							{errors.name && (
+								<p className="text-destructive text-sm">{errors.name}</p>
+							)}
+						</div>
 
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-slug">
-						Slug
-						<span className="text-destructive"> *</span>
-					</Label>
-					<Input
-						aria-invalid={errors.slug ? true : undefined}
-						aria-required="true"
-						disabled={isPending || mode === "create"}
-						id="category-slug"
-						onBlur={() => {
-							if (mode === "edit") {
-								const err = validateSlugFormat(slug);
-								setErrors((prev) => ({ ...prev, slug: err ?? undefined }));
-							}
-						}}
-						onChange={(event) => setSlug(event.target.value)}
-						placeholder="furadeiras"
-						value={slug}
-					/>
-					<p className="text-muted-foreground text-xs">
-						{mode === "create"
-							? "Gerado automaticamente a partir do nome."
-							: "Atenção: alterar o slug pode quebrar URLs salvas."}
-					</p>
-					{errors.slug && (
-						<p className="text-destructive text-sm">{errors.slug}</p>
-					)}
-				</div>
+						<div className="flex flex-col gap-2">
+							<Label htmlFor="category-slug">
+								Slug
+								<span className="text-destructive"> *</span>
+							</Label>
+							<Input
+								aria-invalid={errors.slug ? true : undefined}
+								disabled={isPending || mode === "create"}
+								id="category-slug"
+								onBlur={() => {
+									if (mode === "edit") {
+										const err = validateSlugFormat(slug);
+										setErrors((prev) => ({ ...prev, slug: err ?? undefined }));
+									}
+								}}
+								onChange={(event) => setSlug(event.target.value)}
+								placeholder="furadeiras"
+								value={slug}
+							/>
+							<p className="text-muted-foreground text-xs">
+								{mode === "create"
+									? "Gerado automaticamente a partir do nome."
+									: "Atenção: alterar o slug pode quebrar URLs salvas."}
+							</p>
+							{errors.slug && (
+								<p className="text-destructive text-sm">{errors.slug}</p>
+							)}
+						</div>
 
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-parent">Categoria pai</Label>
-					<Select
-						disabled={isPending}
-						onValueChange={(value) => setParentId(value ?? NO_PARENT)}
-						value={parentId}
-					>
-						<SelectTrigger id="category-parent">
-							<SelectValue placeholder="Nenhuma (raiz)" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								<SelectItem value={NO_PARENT}>Nenhuma (raiz)</SelectItem>
-								{parentOptions.map((c) => (
-									<SelectItem key={c.id} value={c.id}>
-										{"— ".repeat(c.depth)}
-										{c.name}
-									</SelectItem>
-								))}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
-				</div>
+						<div className="flex flex-col gap-2">
+							<Label htmlFor="category-description">Descrição (opcional)</Label>
+							<Textarea
+								disabled={isPending}
+								id="category-description"
+								onChange={(event) => setDescription(event.target.value)}
+								placeholder="Texto curto explicando a categoria"
+								rows={3}
+								value={description}
+							/>
+							{errors.description && (
+								<p className="text-destructive text-sm">{errors.description}</p>
+							)}
+						</div>
+					</CardContent>
+				</Card>
 
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-description">Descrição (opcional)</Label>
-					<Textarea
-						disabled={isPending}
-						id="category-description"
-						onChange={(event) => setDescription(event.target.value)}
-						placeholder="Texto curto explicando a categoria"
-						rows={3}
-						value={description}
-					/>
-					{errors.description && (
-						<p className="text-destructive text-sm">{errors.description}</p>
-					)}
-				</div>
+				<Card>
+					<CardHeader>
+						<CardTitle>Hierarquia e exibição</CardTitle>
+						<CardDescription>
+							Posição na árvore e visibilidade. A ordem entre categorias irmãs é
+							ajustada arrastando na lista.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="flex flex-col gap-4">
+						<div className="flex flex-col gap-2">
+							<Label htmlFor="category-parent">Categoria pai</Label>
+							<Select
+								disabled={isPending}
+								onValueChange={(value) => setParentId(value ?? NO_PARENT)}
+								value={parentId}
+							>
+								<SelectTrigger id="category-parent">
+									<SelectValue placeholder="Nenhuma (raiz)" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										<SelectItem value={NO_PARENT}>Nenhuma (raiz)</SelectItem>
+										{parentOptions.map((c) => (
+											<SelectItem key={c.id} value={c.id}>
+												{"— ".repeat(c.depth)}
+												{c.name}
+											</SelectItem>
+										))}
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+						</div>
 
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-image">Imagem (URL, opcional)</Label>
-					<Input
-						disabled={isPending}
-						id="category-image"
-						onChange={(event) => setImageUrl(event.target.value)}
-						placeholder="https://..."
-						type="url"
-						value={imageUrl}
-					/>
-					{errors.imageUrl && (
-						<p className="text-destructive text-sm">{errors.imageUrl}</p>
-					)}
-				</div>
+						<div className="flex items-center gap-3">
+							<Switch
+								checked={isActive}
+								disabled={isPending}
+								id="category-active"
+								onCheckedChange={setIsActive}
+							/>
+							<Label htmlFor="category-active">Ativa (visível no site)</Label>
+						</div>
+					</CardContent>
+				</Card>
+			</div>
 
-				<div className="flex items-center gap-3">
-					<Switch
-						checked={isActive}
-						disabled={isPending}
-						id="category-active"
-						onCheckedChange={setIsActive}
-					/>
-					<Label htmlFor="category-active">Ativa (visível no site)</Label>
-				</div>
-
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-sort">Ordem de exibição</Label>
-					<Input
-						disabled={isPending}
-						id="category-sort"
-						min={0}
-						onChange={(event) => setSortOrder(event.target.value)}
-						placeholder="0"
-						type="number"
-						value={sortOrder}
-					/>
-					{errors.sortOrder && (
-						<p className="text-destructive text-sm">{errors.sortOrder}</p>
-					)}
-				</div>
-			</section>
-
-			<div className="flex items-center gap-3">
-				<Button disabled={isPending} type="submit">
-					<SubmitLabel isPending={isPending} mode={mode} />
-				</Button>
-				<Link
-					className={buttonVariants({ variant: "ghost" })}
-					href="/dashboard/categories"
-				>
-					Cancelar
-				</Link>
+			<div className="flex flex-col gap-4">
+				<Card>
+					<CardHeader>
+						<CardTitle>
+							{mode === "create" ? "Criar categoria" : "Salvar alterações"}
+						</CardTitle>
+						<CardDescription>Pré-visualização do caminho</CardDescription>
+					</CardHeader>
+					<CardContent className="flex flex-col gap-3">
+						<code className="rounded-md border border-border bg-background px-2 py-1.5 text-xs">
+							{pathPreview}
+						</code>
+						<Button disabled={isPending} type="submit">
+							<SubmitLabel isPending={isPending} mode={mode} />
+						</Button>
+						<Link
+							className={buttonVariants({ variant: "ghost" })}
+							href="/dashboard/categories"
+						>
+							Cancelar
+						</Link>
+					</CardContent>
+				</Card>
 			</div>
 		</form>
 	);

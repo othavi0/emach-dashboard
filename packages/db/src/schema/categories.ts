@@ -26,7 +26,6 @@ export const category = pgTable(
 		sortOrder: integer("sort_order").notNull().default(0),
 		isActive: boolean("is_active").notNull().default(true),
 		description: text("description"),
-		imageUrl: text("image_url"),
 		path: text("path").notNull(),
 		depth: integer("depth").notNull().default(0),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
