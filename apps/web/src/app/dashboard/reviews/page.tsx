@@ -13,10 +13,12 @@ import { requireCapability } from "@/lib/permissions";
 import { getCurrentSession } from "@/lib/session";
 import { ReviewQueueTable } from "./_components/review-queue-table";
 import { ReviewsFilters } from "./_components/reviews-filters";
-import { listReviews, REVIEW_STATUS_LABELS } from "./data";
+import { getReviewsTabCounts, listReviews } from "./data";
+import { reviewsListFiltersSchema } from "./schema";
+import { REVIEW_TABS } from "./status-meta";
 
 interface ReviewsPageProps {
-	searchParams: Promise<{ status?: string }>;
+	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export const dynamic = "force-dynamic";
@@ -26,16 +28,33 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
 	const session = await getCurrentSession();
 	const role = session?.user.role ?? "user";
 	const canMutate = role === "admin" || role === "manager";
-	const params = await searchParams;
-	const status = params.status;
-	const reviews = await listReviews(status);
-	const currentStatus =
-		status === "approved" ||
-		status === "rejected" ||
-		status === "spam" ||
-		status === "pending"
-			? status
-			: "pending";
+
+	const raw = await searchParams;
+	const parsed = reviewsListFiltersSchema.safeParse(raw);
+	const filters = parsed.success
+		? parsed.data
+		: reviewsListFiltersSchema.parse({});
+
+	const currentTab =
+		REVIEW_TABS.find((tab) => tab.key === filters.tab) ?? REVIEW_TABS[0];
+	const hasFilters =
+		filters.tab !== "all" ||
+		filters.rating !== undefined ||
+		Boolean(filters.q) ||
+		Boolean(filters.from) ||
+		Boolean(filters.to);
+
+	const sharedFilters = {
+		rating: filters.rating,
+		q: filters.q,
+		from: filters.from,
+		to: filters.to,
+	};
+
+	const [counts, reviews] = await Promise.all([
+		getReviewsTabCounts(sharedFilters),
+		listReviews({ status: currentTab.status, ...sharedFilters }),
+	]);
 
 	return (
 		<>
@@ -50,30 +69,38 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
 						</Link>
 					) : null
 				}
-				description="Fila simples de moderação com foco em reviews pendentes do site."
+				description="Fila de moderação das avaliações publicadas no site, filtrável por status e nota."
 				title="Avaliações"
 			/>
 
-			<ReviewsFilters />
+			<ReviewsFilters
+				counts={counts}
+				filters={{
+					tab: filters.tab,
+					rating: filters.rating,
+					q: filters.q,
+					from: filters.from,
+					to: filters.to,
+				}}
+			/>
 
 			{reviews.length === 0 ? (
 				<Empty>
 					<EmptyHeader>
-						<EmptyTitle>
-							Nenhuma review em {REVIEW_STATUS_LABELS[currentStatus]}
-						</EmptyTitle>
+						<EmptyTitle>Nenhuma avaliação encontrada</EmptyTitle>
 						<EmptyDescription>
-							Quando clientes publicarem novas avaliações, elas aparecerão aqui.
+							{hasFilters
+								? "Ajuste os filtros para ampliar a busca."
+								: "Quando clientes publicarem novas avaliações, elas aparecerão aqui."}
 						</EmptyDescription>
 					</EmptyHeader>
-					<EmptyContent>
-						<Link
-							className="text-sm underline"
-							href="/dashboard/reviews?status=pending"
-						>
-							Ver pendentes
-						</Link>
-					</EmptyContent>
+					{hasFilters ? (
+						<EmptyContent>
+							<Link className="text-sm underline" href="/dashboard/reviews">
+								Limpar filtros
+							</Link>
+						</EmptyContent>
+					) : null}
 				</Empty>
 			) : (
 				<ReviewQueueTable reviews={reviews} />
