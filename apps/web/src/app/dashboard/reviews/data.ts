@@ -4,14 +4,7 @@ import { toDate } from "@emach/db/utils";
 export type { ReviewStatus } from "@emach/db/schema/reviews";
 
 import type { ReviewStatus } from "@emach/db/schema/reviews";
-import { sql } from "drizzle-orm";
-
-export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
-	pending: "Pendente",
-	approved: "Aprovada",
-	rejected: "Rejeitada",
-	spam: "Spam",
-};
+import { type SQL, sql } from "drizzle-orm";
 
 export interface ReviewListItem {
 	bodyPreview: string;
@@ -42,14 +35,53 @@ export interface ReviewDetail {
 	toolName: string;
 }
 
-export async function listReviews(status?: string): Promise<ReviewListItem[]> {
-	const normalizedStatus =
-		status === "approved" ||
-		status === "rejected" ||
-		status === "spam" ||
-		status === "pending"
-			? status
-			: "pending";
+/** Filtros compartilhados entre a listagem e a contagem das abas. */
+export interface ReviewFilters {
+	from?: string;
+	q?: string;
+	rating?: number;
+	to?: string;
+}
+
+export interface ListReviewsParams extends ReviewFilters {
+	status?: ReviewStatus | null;
+}
+
+/**
+ * Condições de WHERE comuns (nota, busca, período). O filtro de `status`
+ * fica de fora porque a contagem de abas agrupa justamente por status.
+ */
+function buildReviewConditions({ from, q, rating, to }: ReviewFilters): SQL[] {
+	const conditions: SQL[] = [];
+	if (rating) {
+		conditions.push(sql`r.rating = ${rating}`);
+	}
+	if (q) {
+		const like = `%${q}%`;
+		conditions.push(
+			sql`(c.name ILIKE ${like} OR t.name ILIKE ${like} OR r.title ILIKE ${like} OR r.body ILIKE ${like})`
+		);
+	}
+	if (from) {
+		conditions.push(sql`r.created_at >= ${from}::date`);
+	}
+	if (to) {
+		conditions.push(sql`r.created_at < (${to}::date + INTERVAL '1 day')`);
+	}
+	return conditions;
+}
+
+export async function listReviews({
+	status,
+	...filters
+}: ListReviewsParams = {}): Promise<ReviewListItem[]> {
+	const conditions = buildReviewConditions(filters);
+	if (status) {
+		conditions.push(sql`r.status = ${status}`);
+	}
+	const whereClause = conditions.length
+		? sql` WHERE ${sql.join(conditions, sql` AND `)}`
+		: sql``;
 
 	const rows = await db.execute<{
 		body: string;
@@ -78,8 +110,7 @@ export async function listReviews(status?: string): Promise<ReviewListItem[]> {
 			) AS image_url
 		FROM review r
 		JOIN client c ON c.id = r.client_id
-		JOIN tool t ON t.id = r.tool_id
-		WHERE ${status ? sql`r.status = ${normalizedStatus}` : sql`TRUE`}
+		JOIN tool t ON t.id = r.tool_id${whereClause}
 		ORDER BY r.created_at DESC
 	`);
 
@@ -94,6 +125,36 @@ export async function listReviews(status?: string): Promise<ReviewListItem[]> {
 		bodyPreview:
 			row.body.length > 80 ? `${row.body.slice(0, 77).trimEnd()}...` : row.body,
 	}));
+}
+
+/**
+ * Contagem de reviews por status, restrita pelos demais filtros ativos
+ * (nota, busca, período). Retorna sempre a chave `all` (total).
+ */
+export async function getReviewsTabCounts(
+	filters: ReviewFilters = {}
+): Promise<Record<string, number>> {
+	const conditions = buildReviewConditions(filters);
+	const whereClause = conditions.length
+		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+		: sql``;
+
+	const result = await db.execute<{ count: number; status: ReviewStatus }>(sql`
+		SELECT r.status, COUNT(*)::int AS count
+		FROM review r
+		JOIN client c ON c.id = r.client_id
+		JOIN tool t ON t.id = r.tool_id
+		${whereClause}
+		GROUP BY r.status
+	`);
+
+	const counts: Record<string, number> = { all: 0 };
+	for (const row of result.rows) {
+		const n = Number(row.count);
+		counts[row.status] = n;
+		counts.all += n;
+	}
+	return counts;
 }
 
 export async function getReviewDetail(

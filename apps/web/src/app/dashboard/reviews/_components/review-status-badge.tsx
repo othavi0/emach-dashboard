@@ -1,16 +1,16 @@
 import { Badge } from "@emach/ui/components/badge";
 import { BanIcon, CheckIcon, ClockIcon, XCircleIcon } from "lucide-react";
 
-import { REVIEW_STATUS_LABELS, type ReviewStatus } from "../data";
+import { REVIEW_STATUS_LABELS, type ReviewStatus } from "../status-meta";
 
 const STATUS_VARIANTS: Record<
 	ReviewStatus,
-	"destructive" | "success" | "warning"
+	"destructive" | "secondary" | "success" | "warning"
 > = {
 	pending: "warning",
 	approved: "success",
 	rejected: "destructive",
-	spam: "destructive",
+	spam: "secondary",
 };
 
 const STATUS_ICONS: Record<ReviewStatus, typeof ClockIcon> = {
