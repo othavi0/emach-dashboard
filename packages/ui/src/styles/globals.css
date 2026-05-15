@@ -49,9 +49,9 @@
 	--warning: oklch(0.78 0.15 85);
 	--warning-foreground: oklch(0.16 0.005 70);
 
-	/* Info — Teal (hue 200, único frio permitido) */
+	/* Info — Teal (hue 200, único frio permitido; dark fg per AAA contrast) */
 	--info: oklch(0.65 0.1 200);
-	--info-foreground: oklch(0.99 0 0);
+	--info-foreground: oklch(0.16 0.005 70);
 
 	/* Success — Jade (hue 155) */
 	--success: oklch(0.62 0.13 155);
