@@ -12,11 +12,8 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
-import {
-	CategoriesTable,
-	type CategoryRow,
-} from "./_components/categories-table";
-import { listCategories } from "./actions";
+import { CategoriesTree } from "./_components/categories-tree";
+import { listCategoriesForTree } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,16 +22,7 @@ export default async function CategoriesPage() {
 	const role = session.user.role as UserRole | undefined;
 	const canMutate = can(role, "categories.manage");
 
-	const rows = await listCategories();
-	const categories: CategoryRow[] = rows.map((c) => ({
-		id: c.id,
-		name: c.name,
-		slug: c.slug,
-		path: c.path,
-		depth: c.depth,
-		isActive: c.isActive,
-	}));
-
+	const categories = await listCategoriesForTree();
 	const isEmpty = categories.length === 0;
 
 	return (
@@ -50,7 +38,7 @@ export default async function CategoriesPage() {
 						</Link>
 					) : null
 				}
-				description="Hierarquia de categorias usada para classificar ferramentas no catálogo. Subcategorias herdam o caminho do pai."
+				description="Hierarquia de categorias do catálogo. Arraste para reordenar categorias irmãs; clique numa categoria para ver os detalhes."
 				title="Categorias"
 			/>
 
@@ -75,7 +63,7 @@ export default async function CategoriesPage() {
 					</EmptyContent>
 				</Empty>
 			) : (
-				<CategoriesTable canMutate={canMutate} categories={categories} />
+				<CategoriesTree canMutate={canMutate} categories={categories} />
 			)}
 		</>
 	);
