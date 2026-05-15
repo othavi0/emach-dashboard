@@ -109,6 +109,7 @@ export function OrderTable({
 						<TableHead>Cliente</TableHead>
 						<TableHead>Status</TableHead>
 						<TableHead>Filial</TableHead>
+						<TableHead className="w-16 text-right">Itens</TableHead>
 						<TableHead className="text-right">Total</TableHead>
 						<TableHead>Data</TableHead>
 						<TableHead className="w-28 text-right">Ação</TableHead>
@@ -124,6 +125,9 @@ export function OrderTable({
 							</TableCell>
 							<TableCell className="text-muted-foreground text-sm">
 								{item.branchName ?? "—"}
+							</TableCell>
+							<TableCell className="text-right font-mono text-sm tabular-nums">
+								{item.itemsCount}
 							</TableCell>
 							<TableCell className="text-right font-mono text-sm">
 								{formatCurrency(item.totalAmount)}

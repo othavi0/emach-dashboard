@@ -1,8 +1,14 @@
 import { Card, CardContent, CardHeader } from "@emach/ui/components/card";
-import { BoxIcon, type LucideIcon, PackageIcon, StarIcon } from "lucide-react";
+import {
+	BoxIcon,
+	type LucideIcon,
+	PackageIcon,
+	StarIcon,
+	UserIcon,
+} from "lucide-react";
 import Link from "next/link";
 
-export type ActivityKind = "order" | "review" | "stock";
+export type ActivityKind = "order" | "review" | "stock" | "customer";
 
 export interface ActivityEvent {
 	at: Date;
@@ -23,6 +29,7 @@ const KIND_META: Record<ActivityKind, { color: string; icon: LucideIcon }> = {
 	stock: { icon: BoxIcon, color: "text-info" },
 	order: { icon: PackageIcon, color: "text-warning" },
 	review: { icon: StarIcon, color: "text-success" },
+	customer: { icon: UserIcon, color: "text-primary" },
 };
 
 const TIME_FORMATTER = new Intl.DateTimeFormat("pt-BR", {

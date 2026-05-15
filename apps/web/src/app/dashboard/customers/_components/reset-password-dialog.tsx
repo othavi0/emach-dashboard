@@ -9,8 +9,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@emach/ui/components/dialog";
-import { CheckIcon, CopyIcon } from "lucide-react";
-import { type ReactElement, useEffect, useState, useTransition } from "react";
+import { CheckIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { generatePasswordResetLink } from "../actions";
@@ -24,14 +24,12 @@ const DATE_TIME = new Intl.DateTimeFormat("pt-BR", {
 });
 
 interface ResetPasswordDialogProps {
-	children: ReactElement;
 	clientId: string;
 	clientName: string;
 	disabled?: boolean;
 }
 
 export function ResetPasswordDialog({
-	children,
 	clientId,
 	clientName,
 	disabled,
@@ -81,8 +79,11 @@ export function ResetPasswordDialog({
 
 	return (
 		<Dialog onOpenChange={handleOpen} open={open}>
-			<DialogTrigger disabled={disabled} render={children} />
-			<DialogContent>
+			<DialogTrigger disabled={disabled} render={<Button variant="default" />}>
+				<KeyRoundIcon aria-hidden className="mr-1.5 size-4" />
+				Resetar senha
+			</DialogTrigger>
+			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
 					<DialogTitle>Reset de senha — {clientName}</DialogTitle>
 					<DialogDescription>
@@ -104,11 +105,12 @@ export function ResetPasswordDialog({
 							<label className="text-muted-foreground text-xs uppercase tracking-wide">
 								Link de reset
 							</label>
-							<div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2">
-								<code className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-xs">
+							<div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3">
+								<code className="min-w-0 flex-1 break-all font-mono text-xs leading-relaxed">
 									{result.url}
 								</code>
 								<Button
+									className="shrink-0"
 									onClick={handleCopy}
 									size="icon-sm"
 									type="button"

@@ -3,6 +3,7 @@ import { buttonVariants } from "@emach/ui/components/button";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PageHeader } from "@/components/page-header";
 import { can, requireCapability } from "@/lib/permissions";
 import { OrderActionsPanel } from "../_components/order-actions-panel";
 import { OrderDetailInfo } from "../_components/order-detail-info";
@@ -39,31 +40,18 @@ export default async function OrderDetailPage({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<div className="flex items-start justify-between gap-4">
-				<div>
-					<p className="text-muted-foreground text-sm">Pedido</p>
-					<h1 className="font-medium text-2xl tracking-tight">
-						{order.number}
-					</h1>
-					<p className="text-muted-foreground text-sm">
-						{order.clientName} • {order.clientEmail}
-					</p>
-				</div>
-				<div className="flex gap-2">
+			<PageHeader
+				action={
 					<Link
 						className={buttonVariants({ variant: "secondary" })}
 						href={`/dashboard/orders/${order.id}/print`}
 					>
 						Imprimir
 					</Link>
-					<Link
-						className={buttonVariants({ variant: "ghost" })}
-						href="/dashboard/orders"
-					>
-						Voltar
-					</Link>
-				</div>
-			</div>
+				}
+				description={`${order.clientName} • ${order.clientEmail}`}
+				title={`Pedido ${order.number}`}
+			/>
 
 			<div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.95fr)]">
 				<OrderDetailInfo order={order} />
