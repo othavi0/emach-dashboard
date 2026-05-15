@@ -8,6 +8,7 @@ import { category } from "@emach/db/schema/categories";
 import { count, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
+import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { requireCurrentSession, type UserRole } from "@/lib/session";
 import type { InheritedRow, OwnRow } from "../../_components/attributes-table";
@@ -118,14 +119,14 @@ export default async function EditCategoryPage({ params }: PageProps) {
 
 	return (
 		<div className="flex flex-col gap-6">
-			<div>
-				<h1 className="font-medium text-2xl tracking-tight">
-					Editar categoria
-				</h1>
-				<p className="text-muted-foreground text-sm">
-					Caminho atual: <code className="text-xs">{existing.path}</code>
-				</p>
-			</div>
+			<PageHeader
+				description={
+					<>
+						Caminho atual: <code className="text-xs">{existing.path}</code>
+					</>
+				}
+				title="Editar categoria"
+			/>
 			<CategoryForm
 				categories={categories}
 				categoryId={id}
@@ -135,9 +136,7 @@ export default async function EditCategoryPage({ params }: PageProps) {
 					slug: existing.slug,
 					parentId: existing.parentId,
 					description: existing.description,
-					imageUrl: existing.imageUrl,
 					isActive: existing.isActive,
-					sortOrder: existing.sortOrder,
 					path: existing.path,
 				}}
 				mode="edit"

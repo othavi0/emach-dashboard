@@ -23,11 +23,17 @@ import { deleteCategory } from "../actions";
 interface DeleteCategoryDialogProps {
 	categoryId: string;
 	categoryName: string;
+	/** Para onde navegar após excluir. Default: refresh na rota atual. */
+	redirectTo?: string;
+	/** "icon" = botão ícone (lista); "button" = botão com texto (detalhe). */
+	variant?: "button" | "icon";
 }
 
 export function DeleteCategoryDialog({
 	categoryId,
 	categoryName,
+	variant = "icon",
+	redirectTo,
 }: DeleteCategoryDialogProps) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
@@ -39,7 +45,11 @@ export function DeleteCategoryDialog({
 			if (result.ok) {
 				toast.success("Categoria removida");
 				setOpen(false);
-				router.refresh();
+				if (redirectTo) {
+					router.push(redirectTo);
+				} else {
+					router.refresh();
+				}
 			} else {
 				toast.error(result.error || "Não foi possível remover a categoria");
 			}
@@ -50,9 +60,21 @@ export function DeleteCategoryDialog({
 		<AlertDialog onOpenChange={setOpen} open={open}>
 			<AlertDialogTrigger
 				aria-label={`Remover categoria ${categoryName}`}
-				render={<Button size="icon-sm" variant="destructive" />}
+				render={
+					variant === "button" ? (
+						<Button className="w-full" variant="destructive" />
+					) : (
+						<Button size="icon-sm" variant="destructive" />
+					)
+				}
 			>
-				<Trash2 aria-hidden className="size-3.5" />
+				{variant === "button" ? (
+					<>
+						<Trash2 aria-hidden className="size-3.5" /> Excluir categoria
+					</>
+				) : (
+					<Trash2 aria-hidden className="size-3.5" />
+				)}
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>

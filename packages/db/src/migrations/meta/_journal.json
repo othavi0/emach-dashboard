@@ -29,6 +29,13 @@
       "when": 1778525635867,
       "tag": "0003_cheerful_the_renegades",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778865870141,
+      "tag": "0004_drop_category_image_url",
+      "breakpoints": true
     }
   ]
 }

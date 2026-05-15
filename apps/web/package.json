@@ -11,14 +11,17 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@emach/auth": "workspace:*",
     "@emach/db": "workspace:*",
     "@emach/env": "workspace:*",
     "@emach/ui": "workspace:*",
     "@supabase/supabase-js": "^2.105.1",
-    "drizzle-orm": "^0.45.2",
     "better-auth": "catalog:",
     "browser-image-compression": "^2",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "catalog:",
     "next": "^16.2.0",
     "react": "catalog:",

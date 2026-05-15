@@ -689,7 +689,7 @@ export async function getCategoryBySlug(
 ): Promise<CategoryDetail | null> {
 	const found = await db.execute<Category>(sql`
 		SELECT id, slug, name, parent_id AS "parentId", sort_order AS "sortOrder",
-		       is_active AS "isActive", description, image_url AS "imageUrl",
+		       is_active AS "isActive", description,
 		       path, depth, created_at AS "createdAt", updated_at AS "updatedAt"
 		FROM category
 		WHERE slug = ${slug} AND is_active = true
@@ -710,7 +710,7 @@ export async function getCategoryBySlug(
 	if (ancestorIds.length > 0) {
 		const ancestorsRes = await db.execute<Category>(sql`
 			SELECT id, slug, name, parent_id AS "parentId", sort_order AS "sortOrder",
-			       is_active AS "isActive", description, image_url AS "imageUrl",
+			       is_active AS "isActive", description,
 			       path, depth, created_at AS "createdAt", updated_at AS "updatedAt"
 			FROM category
 			WHERE id = ANY(${arrayLiteral(ancestorIds, "text[]")})
