@@ -29,6 +29,7 @@ export interface CustomerListItem {
 	createdAt: Date;
 	document: string | null;
 	email: string;
+	emailVerified: boolean;
 	id: string;
 	image: string | null;
 	lastOrderAt: Date | null;
@@ -216,6 +217,19 @@ export async function listCustomers({
 	if (filters.ltvMax !== undefined) {
 		conditions.push(sql`COALESCE(stats.ltv, 0) <= ${filters.ltvMax}`);
 	}
+	if (filters.missingDoc) {
+		conditions.push(sql`c.document IS NULL`);
+	}
+	if (filters.openOrderInactive) {
+		conditions.push(
+			sql`c.status = 'inactive' AND EXISTS (SELECT 1 FROM "order" o WHERE o.client_id = c.id AND o.status IN ('pending_payment', 'preparing', 'shipped'))`
+		);
+	}
+	if (filters.unverifiedNew) {
+		conditions.push(
+			sql`c.email_verified = false AND c.created_at > now() - INTERVAL '14 days'`
+		);
+	}
 
 	// Cursor where (sort-aware)
 	const sort = filters.sort;
@@ -263,6 +277,7 @@ export async function listCustomers({
 		created_at: Date;
 		document: string | null;
 		email: string;
+		email_verified: boolean;
 		id: string;
 		image: string | null;
 		last_order_at: Date | null;
@@ -283,7 +298,7 @@ export async function listCustomers({
 			GROUP BY o.client_id
 		)
 		SELECT
-			c.id, c.name, c.email, c.image, c.document,
+			c.id, c.name, c.email, c.email_verified, c.image, c.document,
 			c.status, c.client_type, c.created_at,
 			stats.ltv, stats.orders_count, stats.last_order_at, stats.last_order_status
 		FROM client c
@@ -297,6 +312,7 @@ export async function listCustomers({
 		id: r.id,
 		name: r.name,
 		email: r.email,
+		emailVerified: r.email_verified,
 		image: r.image,
 		document: r.document,
 		status: r.status,
@@ -623,3 +639,124 @@ export async function getCustomerAddresses(
 }
 
 export type { CustomersListFilters } from "./schema";
+
+export interface CustomerPendingCounts {
+	blocked: number;
+	inactiveWithOpenOrder: number;
+	noDoc: number;
+	unverifiedNew: number;
+}
+
+export async function getCustomerPendingCounts(): Promise<CustomerPendingCounts> {
+	const result = await db.execute<{
+		blocked: string;
+		no_doc: string;
+		inactive_with_open_order: string;
+		unverified_new: string;
+	}>(sql`
+		SELECT
+			COUNT(*) FILTER (WHERE c.status = 'blocked') AS blocked,
+			COUNT(*) FILTER (WHERE c.document IS NULL) AS no_doc,
+			COUNT(*) FILTER (
+				WHERE c.status = 'inactive'
+				AND EXISTS (
+					SELECT 1 FROM "order" o
+					WHERE o.client_id = c.id
+					AND o.status IN ('pending_payment', 'preparing', 'shipped')
+				)
+			) AS inactive_with_open_order,
+			COUNT(*) FILTER (
+				WHERE c.email_verified = false
+				AND c.created_at > now() - INTERVAL '14 days'
+			) AS unverified_new
+		FROM client c
+	`);
+
+	const row = result.rows[0];
+	return {
+		blocked: Number(row?.blocked ?? 0),
+		noDoc: Number(row?.no_doc ?? 0),
+		inactiveWithOpenOrder: Number(row?.inactive_with_open_order ?? 0),
+		unverifiedNew: Number(row?.unverified_new ?? 0),
+	};
+}
+
+export type RecentClientActivityKind = "new_client" | "login" | "first_order";
+
+export interface RecentClientActivity {
+	at: Date;
+	clientId: string;
+	clientName: string;
+	id: string;
+	kind: RecentClientActivityKind;
+}
+
+export async function getRecentCustomerActivity(
+	limit = 8
+): Promise<RecentClientActivity[]> {
+	const result = await db.execute<{
+		id: string;
+		kind: RecentClientActivityKind;
+		at: string;
+		client_id: string;
+		client_name: string;
+	}>(sql`
+		WITH new_clients AS (
+			SELECT
+				c.id AS id,
+				'new_client'::text AS kind,
+				c.created_at AS at,
+				c.id AS client_id,
+				c.name AS client_name
+			FROM client c
+			ORDER BY c.created_at DESC
+			LIMIT ${limit}
+		),
+		recent_logins AS (
+			SELECT
+				cs.id AS id,
+				'login'::text AS kind,
+				max_session.last_at AS at,
+				c.id AS client_id,
+				c.name AS client_name
+			FROM (
+				SELECT user_id, MAX(created_at) AS last_at
+				FROM client_session
+				GROUP BY user_id
+				ORDER BY last_at DESC
+				LIMIT ${limit}
+			) max_session
+			JOIN client c ON c.id = max_session.user_id
+			JOIN client_session cs ON cs.user_id = c.id AND cs.created_at = max_session.last_at
+		),
+		first_orders AS (
+			SELECT
+				o.id AS id,
+				'first_order'::text AS kind,
+				o.created_at AS at,
+				c.id AS client_id,
+				c.name AS client_name
+			FROM "order" o
+			JOIN client c ON c.id = o.client_id
+			WHERE o.created_at = (
+				SELECT MIN(o2.created_at) FROM "order" o2 WHERE o2.client_id = o.client_id
+			)
+			AND o.created_at > now() - INTERVAL '7 days'
+			ORDER BY o.created_at DESC
+			LIMIT ${limit}
+		)
+		SELECT * FROM new_clients
+		UNION ALL SELECT * FROM recent_logins
+		UNION ALL SELECT * FROM first_orders
+		ORDER BY at DESC
+		LIMIT ${limit}
+	`);
+
+	return result.rows.map((r) => ({
+		id: r.id,
+		kind: r.kind,
+		at: new Date(r.at),
+		clientId: r.client_id,
+		clientName: r.client_name,
+	}));
+}

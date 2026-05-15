@@ -35,6 +35,7 @@ export interface OrderListItem {
 	clientName: string;
 	createdAt: Date;
 	id: string;
+	itemsCount: number;
 	number: string;
 	status: OrderStatus;
 	totalAmount: number;
@@ -263,6 +264,7 @@ export async function fetchOrdersPage({
 		client_name: string;
 		created_at: Date;
 		id: string;
+		items_count: number;
 		number: string;
 		status: OrderStatus;
 		total_amount: string;
@@ -274,7 +276,8 @@ export async function fetchOrdersPage({
 			o.total_amount,
 			o.created_at,
 			c.name AS client_name,
-			b.name AS branch_name
+			b.name AS branch_name,
+			(SELECT COUNT(*) FROM order_item oi WHERE oi.order_id = o.id)::int AS items_count
 		FROM "order" o
 		JOIN client c ON c.id = o.client_id
 		LEFT JOIN branch b ON b.id = o.branch_id
@@ -288,6 +291,7 @@ export async function fetchOrdersPage({
 		number: row.number,
 		status: row.status,
 		totalAmount: Number(row.total_amount),
+		itemsCount: row.items_count,
 		createdAt: toDate(row.created_at),
 		clientName: row.client_name,
 		branchName: row.branch_name,
@@ -364,6 +368,7 @@ export async function listOrders(
 		client_name: string;
 		created_at: Date;
 		id: string;
+		items_count: number;
 		number: string;
 		status: OrderStatus;
 		total_amount: string;
@@ -377,6 +382,7 @@ export async function listOrders(
 			o.created_at,
 			c.name AS client_name,
 			b.name AS branch_name,
+			(SELECT COUNT(*) FROM order_item oi WHERE oi.order_id = o.id)::int AS items_count,
 			COUNT(*) OVER()::int AS total_count
 		FROM "order" o
 		JOIN client c ON c.id = o.client_id
@@ -396,6 +402,7 @@ export async function listOrders(
 			number: row.number,
 			status: row.status,
 			totalAmount: Number(row.total_amount),
+			itemsCount: row.items_count,
 			createdAt: toDate(row.created_at),
 			clientName: row.client_name,
 			branchName: row.branch_name,
@@ -716,5 +723,55 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			createdAt: note.createdAt,
 			authorName: note.authorName ?? "Usuário",
 		})),
+	};
+}
+
+export interface OrderKpis {
+	averageTicket: number;
+	paidPercent: number;
+	revenueToday: number;
+	revenueYesterday: number;
+}
+
+export async function getOrderKpis(): Promise<OrderKpis> {
+	const result = await db.execute<{
+		revenue_today: string | null;
+		revenue_yesterday: string | null;
+		average_ticket: string | null;
+		paid_percent: string | null;
+	}>(sql`
+		SELECT
+			SUM(total_amount) FILTER (
+				WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+				AND created_at::date = CURRENT_DATE
+			) AS revenue_today,
+			SUM(total_amount) FILTER (
+				WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+				AND created_at::date = CURRENT_DATE - INTERVAL '1 day'
+			) AS revenue_yesterday,
+			AVG(total_amount) FILTER (
+				WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+				AND created_at > now() - INTERVAL '30 days'
+			) AS average_ticket,
+			CASE
+				WHEN COUNT(*) FILTER (WHERE created_at > now() - INTERVAL '30 days') = 0 THEN 0
+				ELSE (
+					COUNT(*) FILTER (
+						WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+						AND created_at > now() - INTERVAL '30 days'
+					)::numeric
+					/ COUNT(*) FILTER (WHERE created_at > now() - INTERVAL '30 days')::numeric
+					* 100
+				)
+			END AS paid_percent
+		FROM "order"
+	`);
+
+	const row = result.rows[0];
+	return {
+		revenueToday: Number(row?.revenue_today ?? 0),
+		revenueYesterday: Number(row?.revenue_yesterday ?? 0),
+		averageTicket: Number(row?.average_ticket ?? 0),
+		paidPercent: Number(row?.paid_percent ?? 0),
 	};
 }

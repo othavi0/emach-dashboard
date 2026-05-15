@@ -34,7 +34,7 @@ interface CustomerKpisHeaderProps {
 
 export function CustomerKpisHeader({ kpis }: CustomerKpisHeaderProps) {
 	return (
-		<div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+		<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
 			<Card>
 				<CardHeader className="pb-1">
 					<CardTitle className="text-muted-foreground text-xs uppercase tracking-wide">
@@ -102,20 +102,6 @@ export function CustomerKpisHeader({ kpis }: CustomerKpisHeaderProps) {
 							<p className="text-muted-foreground text-xs">Sem pedidos</p>
 						</>
 					)}
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader className="pb-1">
-					<CardTitle className="text-muted-foreground text-xs uppercase tracking-wide">
-						Dias como Cliente
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<p className="font-medium text-2xl tracking-tight">
-						{COUNT.format(kpis.daysSinceCreated)}
-					</p>
-					<p className="text-muted-foreground text-xs">desde o cadastro</p>
 				</CardContent>
 			</Card>
 		</div>

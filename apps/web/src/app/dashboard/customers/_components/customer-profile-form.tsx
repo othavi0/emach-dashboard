@@ -137,17 +137,6 @@ export function CustomerProfileForm({
 						{customer.internalNotes ?? "—"}
 					</dd>
 				</div>
-
-				{canEdit && (
-					<div className="sm:col-span-2">
-						<Link
-							className="text-primary text-sm underline underline-offset-4"
-							href={`/dashboard/customers/${customer.id}?tab=perfil&edit=1`}
-						>
-							Editar perfil
-						</Link>
-					</div>
-				)}
 			</dl>
 		);
 	}

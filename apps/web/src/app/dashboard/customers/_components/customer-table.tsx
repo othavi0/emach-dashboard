@@ -20,7 +20,6 @@ import {
 } from "@emach/ui/components/tooltip";
 import { EyeIcon, PencilIcon } from "lucide-react";
 import Link from "next/link";
-import { formatDocument } from "@/lib/cpf-cnpj";
 import type { CustomerListItem } from "../data";
 
 const CURRENCY_FORMATTER = new Intl.NumberFormat("pt-BR", {
@@ -94,9 +93,9 @@ export function CustomerTable({ items }: CustomerTableProps) {
 			<TableHeader>
 				<TableRow>
 					<TableHead>Cliente</TableHead>
-					<TableHead>Documento</TableHead>
 					<TableHead>Status</TableHead>
 					<TableHead>Tipo</TableHead>
+					<TableHead>Verificado</TableHead>
 					<TableHead className="text-right">LTV</TableHead>
 					<TableHead className="text-right">Pedidos</TableHead>
 					<TableHead>Último pedido</TableHead>
@@ -130,9 +129,6 @@ export function CustomerTable({ items }: CustomerTableProps) {
 									</div>
 								</div>
 							</TableCell>
-							<TableCell className="font-mono text-muted-foreground text-xs">
-								{item.document ? formatDocument(item.document) : "—"}
-							</TableCell>
 							<TableCell>
 								{statusConfig ? (
 									<Badge variant={statusConfig.variant}>
@@ -148,6 +144,19 @@ export function CustomerTable({ items }: CustomerTableProps) {
 								) : (
 									<span className="text-muted-foreground text-sm">—</span>
 								)}
+							</TableCell>
+							<TableCell>
+								<div
+									aria-label={`Email ${item.emailVerified ? "verificado" : "não verificado"}, documento ${item.document ? "presente" : "pendente"}`}
+									className="flex items-center gap-1"
+								>
+									<Badge variant={item.emailVerified ? "success" : "secondary"}>
+										{item.emailVerified ? "✓" : "✗"} Email
+									</Badge>
+									<Badge variant={item.document ? "success" : "secondary"}>
+										{item.document ? "✓" : "—"} Doc
+									</Badge>
+								</div>
 							</TableCell>
 							<TableCell className="text-right font-mono text-sm">
 								{CURRENCY_FORMATTER.format(item.ltv)}

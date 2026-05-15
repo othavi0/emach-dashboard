@@ -1,5 +1,6 @@
 "use client";
 
+import { DatePicker } from "@emach/ui/components/date-picker";
 import { Input } from "@emach/ui/components/input";
 import {
 	Select,
@@ -14,6 +15,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
 import { FiltersBar } from "@/components/filters-bar";
+import { formatDateParam, parseDateParam } from "@/lib/date-params";
 import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
 import type { CustomersListFilters } from "../schema";
 import { SORT_OPTIONS } from "../schema";
@@ -34,6 +36,9 @@ const TRACKED = [
 	"ltvMin",
 	"ltvMax",
 	"sort",
+	"missingDoc",
+	"openOrderInactive",
+	"unverifiedNew",
 ] as const;
 
 const SORT_LABELS: Record<(typeof SORT_OPTIONS)[number], string> = {
@@ -161,33 +166,32 @@ export function CustomerFilters({ filters }: CustomerFiltersProps) {
 				</div>
 			</div>
 
-			<div className="flex flex-col gap-1 md:w-36">
+			<div className="flex flex-col gap-1 md:w-40">
 				<label
 					className="text-muted-foreground text-xs"
 					htmlFor="customers-created-from"
 				>
 					Cadastro de
 				</label>
-				<Input
-					defaultValue={filters.createdFrom ?? ""}
+				<DatePicker
 					id="customers-created-from"
-					onChange={(e) => setParam("createdFrom", e.target.value || null)}
-					type="date"
+					onChange={(d) => setParam("createdFrom", formatDateParam(d) || null)}
+					value={parseDateParam(filters.createdFrom ?? "")}
 				/>
 			</div>
 
-			<div className="flex flex-col gap-1 md:w-36">
+			<div className="flex flex-col gap-1 md:w-40">
 				<label
 					className="text-muted-foreground text-xs"
 					htmlFor="customers-created-to"
 				>
 					Cadastro até
 				</label>
-				<Input
-					defaultValue={filters.createdTo ?? ""}
+				<DatePicker
 					id="customers-created-to"
-					onChange={(e) => setParam("createdTo", e.target.value || null)}
-					type="date"
+					min={parseDateParam(filters.createdFrom ?? "")}
+					onChange={(d) => setParam("createdTo", formatDateParam(d) || null)}
+					value={parseDateParam(filters.createdTo ?? "")}
 				/>
 			</div>
 
