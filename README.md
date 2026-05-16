@@ -2,7 +2,7 @@
 
 Dashboard interno + base para futuro ecomerce BR. Monorepo Bun + Turborepo. Auth dual (Better Auth) sobre Supabase Postgres.
 
-> **Para agentes/IA:** o guia canônico de stack, regras, design e workflows é `.claude/CLAUDE.md` (espelhado em `AGENTS.md`). Sistema visual completo em `DESIGN.md`.
+> **Para agentes/IA:** o guia canônico de stack, regras, design e workflows é `CLAUDE.md` no root (espelhado em `AGENTS.md`). Sistema visual completo em `DESIGN.md`.
 
 ## Stack
 
@@ -93,7 +93,7 @@ emach-dashboard/
 ├── scripts/
 │   ├── clean.sh
 │   └── validate-bts.mjs
-├── .claude/CLAUDE.md                # Guia canônico para Claude Code (e Codex via AGENTS.md)
+├── CLAUDE.md                        # Guia canônico para Claude Code (e Codex via AGENTS.md)
 ├── DESIGN.md                        # Sistema visual industrial dark + copper
 ├── PRODUCT.md                       # Register product + personality + anti-references
 └── .mcp.json                        # MCP servers: context7, supabase, shadcn, ...

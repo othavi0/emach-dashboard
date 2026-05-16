@@ -290,3 +290,21 @@ Detalhe canônico em **`apps/web/CLAUDE.md`** (seção "Convenções de UX em fo
 - **Convenções apps/web:** `apps/web/CLAUDE.md`
 - **Ultracite rules detalhadas:** rodar skill `ultracite` ou consultar `node_modules/ultracite/dist`
 - **Tudo de UI:** `DESIGN.md`
+
+---
+
+## Agent skills
+
+Configuração consumida pelas engineering skills (`to-issues`, `triage`, `to-prd`, `qa`, `improve-codebase-architecture`, `diagnose`, `tdd`, `grill-with-docs`).
+
+### Issue tracker
+
+Issues e PRDs vivem no GitHub Issues de `othavioquiliao/emach-dashboard`, via `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Cinco labels canônicas com os nomes padrão (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Layout multi-context — `CONTEXT-MAP.md` na raiz aponta para um `CONTEXT.md` por workspace (`apps/web`, `packages/db`, `packages/auth`). See `docs/agents/domain.md`.

@@ -1,6 +1,6 @@
 # Agents — apps/web
 
-> **Fonte canônica:** `apps/web/CLAUDE.md` (convenções deste workspace) + `.claude/CLAUDE.md` no root (regras gerais do monorepo). Esse arquivo é o ponto de entrada para agentes que não auto-descobrem `CLAUDE.md`.
+> **Fonte canônica:** `apps/web/CLAUDE.md` (convenções deste workspace) + `CLAUDE.md` no root (regras gerais do monorepo). Esse arquivo é o ponto de entrada para agentes que não auto-descobrem `CLAUDE.md`.
 
 ## Quick reference
 
@@ -16,7 +16,7 @@ Dashboard Next 16 / React 19 em `port 3001`. Estrutura por feature em `src/app/d
 | Para...                                                       | Ler                                                |
 | ------------------------------------------------------------- | -------------------------------------------------- |
 | Convenções deste workspace (forms, capabilities, cache, UX)   | `apps/web/CLAUDE.md`                               |
-| Stack, auth, schema, anti-patterns, gotchas globais           | `.claude/CLAUDE.md`                                |
+| Stack, auth, schema, anti-patterns, gotchas globais           | `CLAUDE.md`                                |
 | Schema Drizzle (tabelas, FKs, triggers)                       | `packages/db/CLAUDE.md`                            |
 | Sistema visual                                                | `DESIGN.md`                                        |
 

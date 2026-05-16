@@ -1,6 +1,6 @@
 # Agents — packages/db
 
-> **Fonte canônica:** `packages/db/CLAUDE.md` (convenções de schema deste workspace) + `.claude/CLAUDE.md` no root (regras gerais do monorepo). Esse arquivo é o ponto de entrada para agentes que não auto-descobrem `CLAUDE.md`.
+> **Fonte canônica:** `packages/db/CLAUDE.md` (convenções de schema deste workspace) + `CLAUDE.md` no root (regras gerais do monorepo). Esse arquivo é o ponto de entrada para agentes que não auto-descobrem `CLAUDE.md`.
 
 ## Quick reference
 
@@ -11,7 +11,7 @@ Drizzle 0.45 + node-postgres + Supabase Postgres. Schemas em `src/schema/*.ts`, 
 | Para...                                                       | Ler                                       |
 | ------------------------------------------------------------- | ----------------------------------------- |
 | Convenções deste workspace (FKs, enums, money, JSONB, scripts)| `packages/db/CLAUDE.md`                   |
-| Stack, auth, anti-patterns, gotchas globais                   | `.claude/CLAUDE.md`                       |
+| Stack, auth, anti-patterns, gotchas globais                   | `CLAUDE.md`                       |
 | Contrato DB compartilhada com app ecomerce                    | `docs/integration/admin-ecommerce.md`     |
 
 ## Invariantes locais

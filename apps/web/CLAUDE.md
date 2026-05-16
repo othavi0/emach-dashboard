@@ -1,6 +1,6 @@
 # apps/web — Convenções
 
-Dashboard Next 16 / React 19. Para regras gerais (auth, schema, design), ver `.claude/CLAUDE.md` no root.
+Dashboard Next 16 / React 19. Para regras gerais (auth, schema, design), ver `CLAUDE.md` no root.
 
 ## Estrutura por feature
 
