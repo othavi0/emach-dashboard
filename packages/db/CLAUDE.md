@@ -17,11 +17,13 @@ Drizzle 0.45 + node-postgres + Supabase Postgres. Para regras gerais ver `.claud
 bun db:apply-triggers   # idempotente (CREATE OR REPLACE FUNCTION + DROP TRIGGER IF EXISTS)
 ```
 
+`src/migrations/_indexes.sql` segue a mesma lógica idempotente para índices que não vêm do schema Drizzle — aplicar com `bun db:apply-indexes` após push/migrate.
+
 ## Convenções de schema
 
 - ID: `text("id").primaryKey()` — preencher com `crypto.randomUUID()` no caller (server actions/scripts).
 - Timestamps: `timestamp("created_at").defaultNow().notNull()`. Soft delete: `deleted_at timestamp` quando aplicável.
-- Enums: criar com `pgEnum`, derivar tipo. Ex: `export const userRoleEnum = pgEnum("user_role", ["admin","manager","user"]); export type UserRole = (typeof userRoleEnum.enumValues)[number]`.
+- Enums: criar com `pgEnum`, derivar tipo. Ex: `export const userRoleEnum = pgEnum("user_role", ["super_admin","admin","manager","user"]); export type UserRole = (typeof userRoleEnum.enumValues)[number]`.
 - FK: explicitar `onDelete: "cascade" | "restrict" | "set null"`. Default = restrict para integridade.
 - `unique()` em colunas de busca natural (sku, barcode, slug, document).
 - Money: `numeric(10, 2)` para preço/custo de produto (`tool_variant.priceAmount`, `costAmount`); `numeric(12, 2)` em totais de pedido (`order.totalAmount`). Nunca `real`/`double`.
@@ -71,10 +73,12 @@ bun db:migrate             # aplica migrations pendentes
 bun db:studio              # UI inspetora
 
 bun db:apply-triggers      # aplica src/migrations/_triggers.sql
+bun db:apply-indexes       # aplica src/migrations/_indexes.sql (índices fora do schema Drizzle)
 bun db:seed-categories     # bootstrap 5 categorias raiz idempotente
 bun db:seed-attributes     # attribute_definitions iniciais (RPM, mandril, percussão, etc) por categoria raiz
-bun db:anonymize-client <id>  # LGPD direito ao esquecimento
 ```
+
+> ⚠️ **Gap conhecido — anonimização LGPD:** não há script nem server action de anonimização de cliente ("direito ao esquecimento"). Só o *export* de dados existe (`client_export_log` + rota `dashboard/customers/export/`). Implementar antes de produção.
 
 **Drop & recreate em dev** (quando renames ambíguos quebram drizzle-kit push em ambiente sem TTY):
 
@@ -88,7 +92,7 @@ await client.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL 
 
 ## Schema compartilhado com app ecomerce
 
-Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `lead`. Cópia versionada do schema sincronizada manualmente a cada migration. Ver `docs/integration/admin-ecommerce.md` para o contrato completo. Mudanças nessas tabelas exigem coordenação.
+Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `consentLog`. Cópia versionada do schema sincronizada manualmente a cada migration. Ver `docs/integration/admin-ecommerce.md` para o contrato completo. Mudanças nessas tabelas exigem coordenação.
 
 **Atenção pós-refactor de variants:** `stock_level`, `stock_movement` e `order_item` agora referenciam `tool_variant.id` (não mais `tool.id`). O app ecomerce precisa enviar `variantId` em pedidos e movimentos, não `toolId`. Ler `tool_variant` para obter SKU vendável; `tool` é o produto-pai (informações comuns).
 

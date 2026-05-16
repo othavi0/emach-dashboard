@@ -34,7 +34,7 @@ bun db:studio               # UI inspetora
 bun db:apply-triggers       # idempotente
 bun db:seed-categories      # bootstrap 5 raízes
 bun db:seed-attributes      # bootstrap attribute_definitions iniciais
-bun db:anonymize-client <id># LGPD
+bun db:apply-indexes        # aplica _indexes.sql
 ```
 
 ## `db` × `createDb()`
