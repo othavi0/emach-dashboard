@@ -153,14 +153,14 @@ export async function getCategoryDetail(
 		childCounts.map((r) => [r.categoryId, Number(r.c)])
 	);
 
-	const [{ value: productCount }] = await db
+	const [productCountRow] = await db
 		.select({ value: count() })
 		.from(toolCategory)
 		.where(
 			and(eq(toolCategory.categoryId, id), eq(toolCategory.isPrimary, true))
 		);
 
-	const [{ value: ownAttributeCount }] = await db
+	const [ownAttributeCountRow] = await db
 		.select({ value: count() })
 		.from(attributeDefinition)
 		.where(eq(attributeDefinition.categoryId, id));
@@ -173,8 +173,8 @@ export async function getCategoryDetail(
 			name: r.name,
 			productCount: childCountById.get(r.id) ?? 0,
 		})),
-		ownAttributeCount: Number(ownAttributeCount),
-		productCount: Number(productCount),
+		ownAttributeCount: Number(ownAttributeCountRow?.value ?? 0),
+		productCount: Number(productCountRow?.value ?? 0),
 	};
 }
 

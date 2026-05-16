@@ -70,6 +70,9 @@ export function CategoriesTree({ canMutate, categories }: CategoriesTreeProps) {
 		}
 		const reordered = [...ids];
 		const [moved] = reordered.splice(from, 1);
+		if (moved === undefined) {
+			return;
+		}
 		reordered.splice(to, 0, moved);
 
 		setOrder((prev) =>

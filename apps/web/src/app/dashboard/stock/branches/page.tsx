@@ -49,8 +49,10 @@ export default async function BranchesStockPage({
 		scope === null
 			? allBranches
 			: allBranches.filter((b) => scope.includes(b.id));
+	const selectedBranch =
+		branches.find((branch) => branch.id === params.branch) ?? branches[0];
 
-	if (branches.length === 0) {
+	if (!selectedBranch) {
 		return (
 			<>
 				<PageHeader
@@ -77,8 +79,6 @@ export default async function BranchesStockPage({
 		);
 	}
 
-	const selectedBranch =
-		branches.find((branch) => branch.id === params.branch) ?? branches[0];
 	const search = params.search?.trim() ?? "";
 	const filters: BranchStockFiltersInput = {
 		branchId: selectedBranch.id,

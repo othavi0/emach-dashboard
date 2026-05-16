@@ -148,12 +148,14 @@ export async function getReviewsTabCounts(
 		GROUP BY r.status
 	`);
 
-	const counts: Record<string, number> = { all: 0 };
+	const counts: Record<string, number> = {};
+	let all = 0;
 	for (const row of result.rows) {
 		const n = Number(row.count);
 		counts[row.status] = n;
-		counts.all += n;
+		all += n;
 	}
+	counts.all = all;
 	return counts;
 }
 

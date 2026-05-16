@@ -305,12 +305,9 @@ export function AttributeForm({
 									const label = e.target.value;
 									const next = [...values.options];
 									next[index] = {
-										...next[index],
+										...opt,
 										label,
-										value:
-											mode === "create"
-												? slugifyLabel(label)
-												: next[index].value,
+										value: mode === "create" ? slugifyLabel(label) : opt.value,
 									};
 									update("options", next);
 								}}
@@ -321,7 +318,7 @@ export function AttributeForm({
 								disabled={mode === "create"}
 								onChange={(e) => {
 									const next = [...values.options];
-									next[index] = { ...next[index], value: e.target.value };
+									next[index] = { ...opt, value: e.target.value };
 									update("options", next);
 								}}
 								placeholder="slug-da-opcao"
@@ -371,7 +368,7 @@ export function AttributeForm({
 							<Input
 								onChange={(e) => {
 									const next = [...values.swatches];
-									next[index] = { ...next[index], hex: e.target.value };
+									next[index] = { ...sw, hex: e.target.value };
 									update("swatches", next);
 								}}
 								placeholder="#1a1a1a"
@@ -382,12 +379,9 @@ export function AttributeForm({
 									const label = e.target.value;
 									const next = [...values.swatches];
 									next[index] = {
-										...next[index],
+										...sw,
 										label,
-										value:
-											mode === "create"
-												? slugifyLabel(label)
-												: next[index].value,
+										value: mode === "create" ? slugifyLabel(label) : sw.value,
 									};
 									update("swatches", next);
 								}}
@@ -398,7 +392,7 @@ export function AttributeForm({
 								disabled={mode === "create"}
 								onChange={(e) => {
 									const next = [...values.swatches];
-									next[index] = { ...next[index], value: e.target.value };
+									next[index] = { ...sw, value: e.target.value };
 									update("swatches", next);
 								}}
 								placeholder="slug-da-cor"
