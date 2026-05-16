@@ -307,4 +307,4 @@ Cinco labels canônicas com os nomes padrão (`needs-triage`, `needs-info`, `rea
 
 ### Domain docs
 
-Layout multi-context — `CONTEXT-MAP.md` na raiz aponta para um `CONTEXT.md` por workspace (`apps/web`, `packages/db`, `packages/auth`). See `docs/agents/domain.md`.
+Layout single-context — `CONTEXT.md` na raiz com o glossário de domínio do monorepo inteiro (linguagem ubíqua, bounded contexts, invariantes). See `docs/agents/domain.md`.
