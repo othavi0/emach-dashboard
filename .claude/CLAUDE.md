@@ -21,7 +21,7 @@ Monorepo Bun + Turborepo. Dashboard Next 16 / React 19 com auth dual (funcionár
 | UI primitives             | shadcn/ui + Tailwind 4.1 + Base UI React           | `packages/ui`                                  |
 | ORM                       | Drizzle 0.45 + node-postgres                       | `packages/db`                                  |
 | DB                        | Supabase Postgres + Storage (`tool-images` bucket) | env: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_*`  |
-| Auth                      | Better Auth 1.5.5 (dual instances)                 | `packages/auth`                                |
+| Auth                      | Better Auth 1.6 (dual instances)                   | `packages/auth`                                |
 | Markdown render           | `react-markdown` + `rehype-sanitize`               | `apps/web/src/components/tool-description.tsx` |
 | Env validation            | `@t3-oss/env-core` + Zod                           | `packages/env`                                 |
 | Linter / formatter        | Biome 2.4 + Ultracite 7.7                          | `biome.json`                                   |
