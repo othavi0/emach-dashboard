@@ -145,7 +145,13 @@ export function ToolImageGallery({
 			return;
 		}
 		const next = [...sorted];
-		[next[index - 1], next[index]] = [next[index], next[index - 1]];
+		const prev = next[index - 1];
+		const current = next[index];
+		if (!(prev && current)) {
+			return;
+		}
+		next[index - 1] = current;
+		next[index] = prev;
 		onChange(reindex(next));
 	}
 
@@ -154,7 +160,13 @@ export function ToolImageGallery({
 			return;
 		}
 		const next = [...sorted];
-		[next[index], next[index + 1]] = [next[index + 1], next[index]];
+		const current = next[index];
+		const following = next[index + 1];
+		if (!(current && following)) {
+			return;
+		}
+		next[index] = following;
+		next[index + 1] = current;
 		onChange(reindex(next));
 	}
 
@@ -164,12 +176,18 @@ export function ToolImageGallery({
 		}
 		const next = [...sorted];
 		const [item] = next.splice(index, 1);
+		if (item === undefined) {
+			return;
+		}
 		next.unshift(item);
 		onChange(reindex(next));
 	}
 
 	async function removeAt(index: number) {
 		const target = sorted[index];
+		if (!target) {
+			return;
+		}
 		const next = sorted.filter((_, i) => i !== index);
 		onChange(reindex(next));
 		try {

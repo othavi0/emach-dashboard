@@ -12,6 +12,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [

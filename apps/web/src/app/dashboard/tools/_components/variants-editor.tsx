@@ -79,8 +79,9 @@ export function VariantsEditor({
 		const next = value
 			.filter((_, i) => i !== index)
 			.map((v, i) => ({ ...v, sortOrder: i }));
-		if (next.length > 0 && !next.some((v) => v.isDefault)) {
-			next[0].isDefault = true;
+		const first = next[0];
+		if (first && !next.some((v) => v.isDefault)) {
+			first.isDefault = true;
 		}
 		onChange(next);
 	}

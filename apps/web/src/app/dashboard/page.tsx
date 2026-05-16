@@ -45,7 +45,11 @@ async function fetchPendingCounts(): Promise<PendingCounts> {
 			(SELECT COUNT(*)::int FROM "order" WHERE status = 'shipped') AS orders_shipped,
 			(SELECT COUNT(*)::int FROM review WHERE status = 'pending') AS reviews_pending
 	`);
-	return result.rows[0];
+	const row = result.rows[0];
+	if (!row) {
+		throw new Error("fetchPendingCounts: query agregada retornou 0 linhas");
+	}
+	return row;
 }
 
 async function fetchRecentActivity(): Promise<ActivityEvent[]> {

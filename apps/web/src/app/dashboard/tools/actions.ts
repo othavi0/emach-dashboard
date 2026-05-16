@@ -324,11 +324,11 @@ export async function updateTool(
 				.select({ id: toolVariant.id })
 				.from(toolVariant)
 				.where(eq(toolVariant.toolId, id));
-			for (let i = 0; i < stillThere.length; i++) {
+			for (const [i, variantRow] of stillThere.entries()) {
 				await tx
 					.update(toolVariant)
 					.set({ sortOrder: -(i + 1), isDefault: false })
-					.where(eq(toolVariant.id, stillThere[i].id));
+					.where(eq(toolVariant.id, variantRow.id));
 			}
 			for (const v of parsed.data.variants) {
 				const norm = normalizeVariantValues(v);
@@ -370,14 +370,13 @@ export async function updateTool(
 				.select({ id: toolImage.id })
 				.from(toolImage)
 				.where(eq(toolImage.toolId, id));
-			for (let i = 0; i < remaining.length; i++) {
+			for (const [i, imageRow] of remaining.entries()) {
 				await tx
 					.update(toolImage)
 					.set({ sortOrder: -(i + 1) })
-					.where(eq(toolImage.id, remaining[i].id));
+					.where(eq(toolImage.id, imageRow.id));
 			}
-			for (let i = 0; i < parsed.data.images.length; i++) {
-				const img = parsed.data.images[i];
+			for (const [i, img] of parsed.data.images.entries()) {
 				if (img.id) {
 					await tx
 						.update(toolImage)

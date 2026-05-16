@@ -194,6 +194,7 @@ export default async function ToolDetailPage({ params }: PageProps) {
 		.map((c) => c.categoryName)
 		.join(", ");
 	const defaultVariant = variants.find((v) => v.isDefault) ?? variants[0];
+	const firstImage = images[0];
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -226,13 +227,13 @@ export default async function ToolDetailPage({ params }: PageProps) {
 
 			<div className="grid gap-6 md:grid-cols-[240px_1fr]">
 				<div className="flex flex-col gap-2">
-					{images.length > 0 ? (
+					{firstImage ? (
 						// biome-ignore lint/performance/noImgElement: Supabase public URL
 						// biome-ignore lint/correctness/useImageSize: detail view fixed via Tailwind
 						<img
 							alt={row.name}
 							className="h-60 w-60 rounded border border-border object-cover"
-							src={images[0].url}
+							src={firstImage.url}
 						/>
 					) : (
 						<div className="flex h-60 w-60 items-center justify-center rounded border border-border border-dashed text-muted-foreground text-xs">
