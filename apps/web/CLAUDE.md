@@ -34,25 +34,29 @@ export async function updateX(input: unknown): Promise<ActionResult> {
 
 ## Capabilities & Permissions
 
-`src/lib/permissions.ts` define o sistema de capabilities granulares que substitui `requireRole("admin")` em server actions sensíveis.
+`src/lib/permissions.ts` define o sistema de capabilities granulares que substitui `requireRole` em server actions sensíveis.
 
-- `Capability` — union de strings (`tools.create`, `orders.cancel`, `categories.manage`, `attributes.create`, ...).
+- `Capability` — union de ~45 strings (`tools.create`, `orders.cancel`, `users.suspend`, `customers.export`, `attributes.create`, ...).
 - `can(role, cap)` — boolean síncrono. Retorna `false` para role `null/undefined/desconhecida`.
 - `requireCapability(cap)` — server actions sensíveis. Lança `Error("Forbidden: ...")` se não autorizado.
 - `requireCapabilityOrRedirect(cap, redirectTo?)` — Server Components / pages. Redireciona em vez de lançar.
+- `requireCapabilityWithContext(cap, { targetUserId?, targetBranchIds? })` — dois guards extras: (a) escopo de filial — non-`super_admin` só age sobre filiais em `user_branch`; (b) hierarquia de role via `ROLE_WEIGHT` — não gerencia usuário de role igual/superior, e `users.suspend`/`delete`/`update_role` não podem mirar a si mesmo.
 - `requireRole(role)` (em `lib/session.ts`) — gates grosseiros (layout do dashboard); use `requireCapability` em mutations.
 
-**Matriz de roles** (resumida; fonte canônica em `src/lib/permissions.ts`):
-- `user` (estoquista + expedição): reads + `stock.adjust` + `orders.update_status` + `orders.add_note` + `attributes.read`.
-- `manager` (gerente operacional/comercial/conteúdo): tudo do user + catálogo CRUD + categorias/promoções/suppliers/atributos + orders.cancel/refund + customers.update_tags/status + site CRUD + reviews.moderate.
-- `admin`: tudo, exclusivos: `branches.manage`, `users.manage`, `apikeys.manage`, `customers.delete` (LGPD).
+**Matriz de 4 roles** (fonte canônica: `ROLE_CAPS` em `src/lib/permissions.ts`):
+- `user` (estoquista + expedição): todos os `*.read` + `stock.adjust` + `orders.update_status` + `orders.add_note` + `attributes.read`.
+- `manager` (gerente operacional/comercial/conteúdo): tudo do `user` + catálogo CRUD (`tools.*`) + `categories`/`suppliers`/`promotions`/`attributes` manage + `orders.cancel`/`refund`/`export` + `customers.update_status`/`manage_sessions`/`reset_password` + `site.*` + `reviews.moderate` + `audit.read`.
+- `admin`: **tudo** menos os 4 exclusivos de `super_admin`.
+- `super_admin`: tudo. Exclusivos (`SUPER_ADMIN_EXCLUSIVE`): `branches.manage`, `branches.set_default`, `users.delete`, `audit.read`.
 
-⚠️ Better Auth cria usuários novos com role `user` por default. Promover via SQL: `UPDATE "user" SET role='admin' WHERE email='...'` (sem UI de gestão de usuários até Fase F).
+⚠️ **Quirk a confirmar:** `audit.read` está em `MANAGER_CAPS` **e** em `SUPER_ADMIN_EXCLUSIVE` — logo `manager` e `super_admin` têm, mas `admin` **não** tem. O comentário no código diz que `admin` teria auditoria escopada por outro mecanismo; validar se é intencional.
+
+⚠️ Better Auth cria usuário novo com `role='user'` + `status='pending'` (precisa aprovação via `users.approve`). Bootstrap do primeiro super admin via SQL: `UPDATE "user" SET role='super_admin', status='active' WHERE email='...'`. A UI de gestão de usuários **existe** em `dashboard/users/`.
 
 ## Helpers críticos
 
-- `src/lib/session.ts` — `getCurrentSession()`, `requireCurrentSession()`, `requireRole(role)`.
-- `src/lib/permissions.ts` — `can()`, `requireCapability()`, `requireCapabilityOrRedirect()`.
+- `src/lib/session.ts` — `getCurrentSession()`, `requireCurrentSession()`, `requireRole(role)`, `ROLE_WEIGHT`.
+- `src/lib/permissions.ts` — `can()`, `requireCapability()`, `requireCapabilityOrRedirect()`, `requireCapabilityWithContext()`.
 - `src/lib/consent.ts` — LGPD: `logConsent()`, `revokeConsent()`, `getActiveConsent()`.
 - `src/lib/supabase-server.ts` — service-role client (uploads).
 - `src/lib/logger.ts` — logger central (substitui `console.*`).
@@ -90,7 +94,7 @@ Adotar `cacheTag` por feature (`'orders'`, `'customers'`, `'site-banners'`...). 
 
 ## Auditoria de mutações em DB
 
-Ao inserir em `stockMovement` ou `orderStatusHistory`:
+Ao inserir em `stockMovement`, `orderStatusHistory` ou `clientAuditLog` (mutação de cliente pelo staff):
 - Quando origem é admin user: `actorType: "user"` + `actorId: session.user.id`.
 - Quando origem é apiKey externa (site ecomerce): `actorType: "apiKey"` + `apiKeyId: key.id`.
 - Quando origem é seed/script automático: `actorType: "system"` (default), sem actorId/apiKeyId.

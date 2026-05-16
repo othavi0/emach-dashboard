@@ -16,7 +16,7 @@ Monorepo Bun + Turborepo. Dashboard Next 16 / React 19 com auth dual (funcionár
 | Camada                    | Versão                                             | Onde                                           |
 | ------------------------- | -------------------------------------------------- | ---------------------------------------------- |
 | Runtime / package manager | Bun 1.3.11                                         | `package.json` (catalog)                       |
-| Build orquestrador        | Turborepo 2.9.6                                    | `turbo.json`                                   |
+| Build orquestrador        | Turborepo 2.9                                      | `turbo.json`                                   |
 | Frontend                  | Next 16.2 + React 19.2                             | `apps/web`                                     |
 | UI primitives             | shadcn/ui + Tailwind 4.1 + Base UI React           | `packages/ui`                                  |
 | ORM                       | Drizzle 0.45 + node-postgres                       | `packages/db`                                  |
@@ -24,7 +24,7 @@ Monorepo Bun + Turborepo. Dashboard Next 16 / React 19 com auth dual (funcionár
 | Auth                      | Better Auth 1.5.5 (dual instances)                 | `packages/auth`                                |
 | Markdown render           | `react-markdown` + `rehype-sanitize`               | `apps/web/src/components/tool-description.tsx` |
 | Env validation            | `@t3-oss/env-core` + Zod                           | `packages/env`                                 |
-| Linter / formatter        | Biome 2.4.13 + Ultracite 7.6                       | `biome.json`                                   |
+| Linter / formatter        | Biome 2.4 + Ultracite 7.7                          | `biome.json`                                   |
 | TypeScript                | 6.0 (strict, noUncheckedIndexedAccess)             | `packages/config/tsconfig.base.json`           |
 
 IDs em server actions/scripts: **`crypto.randomUUID()`** (sem nanoid).
@@ -46,7 +46,8 @@ apps/
         stock/            Visão por ferramenta + por filial; movimentos por variante
         promotions/       Promoções e cupons
         orders/           Pedidos (read + status update)
-        customers/        (planejado Fase C) clientes, leads, tags, exports
+        customers/        Clientes — lista, detalhe [id], export CSV + audit log LGPD
+        users/            Gestão de usuários internos (roles, filiais, aprovação, suspensão)
         site/             (planejado Fase D) banners, settings, anúncios
         reviews/          Moderação de avaliações
       api/auth/[...all]/  Better Auth catch-all (dashboard)
@@ -92,7 +93,7 @@ bun db:migrate                     # aplica migrations pendentes
 # DB scripts utilitários (em packages/db)
 bun --cwd packages/db db:seed-categories       # bootstrap 5 categorias raiz
 bun --cwd packages/db db:seed-attributes       # bootstrap attribute_definitions iniciais por categoria
-bun --cwd packages/db db:anonymize-client <id> # LGPD direito ao esquecimento
+bun --cwd packages/db db:apply-indexes         # aplica _indexes.sql (índices fora do schema Drizzle)
 
 bun clean                          # remove node_modules + caches Turbo/Next
 ```
@@ -113,7 +114,7 @@ Se o schema diverge muito e drizzle-kit não consegue resolver renames (TTY prom
 
 ### Testes
 
-Cobertura mínima: `apps/web/__tests__/permissions.test.ts` (vitest unit). Roadmap: ampliar unit + Playwright (E2E) na Fase F. Por ora validação = `bun check-types` + `bun fix` + smoke manual em `bun dev:web`.
+Cobertura mínima: `apps/web/__tests__/permissions.test.ts` (vitest unit) — rodar com `bun --cwd apps/web test` (ou `test:watch`). Roadmap: ampliar unit + Playwright (E2E) na Fase F. Por ora validação = `bun check-types` + `bun fix` + smoke manual em `bun dev:web`.
 
 ---
 
@@ -135,7 +136,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 5. Migrations em prod: `drizzle-kit generate` + migration versionada. `--force` só em dev/staging.
 6. **Integração com app ecomerce externo (DB compartilhada)**: ambos escrevem na mesma DB Supabase via Drizzle. Admin **não** chama o app ecomerce; o app ecomerce **não** chama o admin. Coordenação acontece pelo schema compartilhado. Contrato em `docs/integration/admin-ecommerce.md`.
 
-**Roles dashboard**: `user.role` é `pgEnum('user_role', ['admin','manager','user'])`. Verificação em **server actions sensíveis** via `requireCapability(cap)` em `apps/web/src/lib/permissions.ts` (capabilities granulares). Gates grosseiros ainda usam `requireRole("admin")` em layouts. `client` **não** tem `role`.
+**Roles dashboard**: `user.role` = `pgEnum('user_role', ['super_admin','admin','manager','user'])`; `user.status` = `pgEnum('user_status', ['pending','active','suspended'])`. Better Auth cria usuário novo com `role='user'` + `status='pending'` (precisa aprovação). Verificação em **server actions sensíveis** via `requireCapability(cap)` / `requireCapabilityWithContext(cap, ctx)` em `apps/web/src/lib/permissions.ts` (capabilities granulares + escopo de filial). Gates grosseiros ainda usam `requireRole` em layouts. `client` **não** tem `role`. Matriz completa em `apps/web/CLAUDE.md`.
 
 **Env compartilhado:** `DATABASE_URL`, `BETTER_AUTH_SECRET` (ok enquanto subdomínios). **Específicos:** dashboard precisa `BETTER_AUTH_URL` + `CORS_ORIGIN`; ecomerce precisa `BETTER_AUTH_URL_ECOMMERCE` + `ECOMMERCE_ORIGIN` (fallbacks aceitáveis no env central).
 
@@ -145,18 +146,21 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 
 | Arquivo              | Tabelas-chave                                                                     | Notas                                                                                                                                                                                                                                                                                                                          |
 | -------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `auth.ts`            | `user`, `session`, `account`, `verification`                                      | `user.role` = `pgEnum('user_role', [...])`.                                                                                                                                                                                                                                                                                    |
+| `auth.ts`            | `user`, `session`, `account`, `verification`                                      | `user.role` = `pgEnum('user_role', ['super_admin','admin','manager','user'])`; `user.status` = `pgEnum('user_status', ['pending','active','suspended'])`.                                                                                                                                                                       |
 | `client.ts`          | `client`, `clientSession`, `clientAccount`, `clientVerification`, `clientAddress` | Campos BR (`country` default `"BR"`, `phone`, `document` unique nullable).                                                                                                                                                                                                                                                     |
 | `tools.ts`           | `supplier`, `tool`, `toolVariant`, `toolImage`                                    | `tool` enxuto (sem sku/voltage/price); SKU + voltagem + preço/custo + barcode vivem em `tool_variant`. `voltage` é `pgEnum('voltage', ['127V','220V','Bivolt','380V'])`. **Toda ferramenta tem ≥1 `tool_variant`** (uma marcada `isDefault=true` via partial unique index).                                                    |
-| `attributes.ts`      | `attributeDefinition`, `toolAttributeValue`                                       | Catálogo de specs dinâmicas (Saleor-lite). `attribute_definition` define `inputType` (`text`/`number`/`select`/`boolean`/`numeric_range`/`color`), `unit`, `options jsonb`, e `categoryId` **NOT NULL**. `tool_attribute_value` armazena valor tipado por coluna (`valueText`, `valueNumeric`, `valueNumericMax`, `valueBool`). |
+| `attributes.ts`      | `attributeDefinition`, `toolAttributeValue`, `toolAttributeAssignment`            | Catálogo de specs dinâmicas (Saleor-lite). `attribute_definition` define `inputType` (`text`/`number`/`select`/`boolean`/`numeric_range`/`color`), `unit`, `options jsonb`, e `categoryId` **NOT NULL**. `tool_attribute_value` armazena valor tipado por coluna (`valueText`, `valueNumeric`, `valueNumericMax`, `valueBool`); `tool_attribute_assignment` define quais atributos a ferramenta exibe e a ordem (`sortOrder`). |
 | `categories.ts`      | `category`, `toolCategory`                                                        | Árvore com `parent_id` + `path`/`depth` materializados via trigger pl/pgSQL. Anti-ciclo + cascade de path. Depth máximo 5.                                                                                                                                                                                                     |
-| `inventory.ts`       | `branch`, `stockLevel`                                                            | PK `(variantId, branchId)`. `minQty` + `reorderPoint` + check `quantity >= 0` (oversell guard).                                                                                                                                                                                                                                |
+| `inventory.ts`       | `branch`, `stockLevel`, `userBranch`                                              | `stock_level` PK `(variantId, branchId)`, `minQty` + `reorderPoint` + check `quantity >= 0` (oversell guard). `user_branch` (PK `(userId, branchId)`) escopa staff × filial — base do branch-scoping em `requireCapabilityWithContext`.                                                                                          |
 | `promotions.ts`      | `promotion`, `promotionTool`                                                      | Cupons via `promotion.type='promocode'` (não há tabela `coupon`). Promoção continua por ferramenta-pai. `createdBy`/`updatedBy` FKs para auditoria.                                                                                                                                                                            |
 | `stock-movements.ts` | `stockMovement`                                                                   | Audit trail por **variante**; `actorType` (`user`/`apiKey`/`system`) + `actorId` + `apiKeyId`; partial unique index garante idempotência de débito de venda; check `delta != 0`.                                                                                                                                               |
 | `orders.ts`          | `order`, `orderItem`, `orderStatusHistory`, `orderNote`                           | `orderItem` carrega `toolId` + `variantId` + snapshots fiscais/dimensão.                                                                                                                                                                                                                                                       |
 | `reviews.ts`         | `review`                                                                          | Moderação por admin (`status` pgEnum). Unique `(clientId, toolId, orderId)`.                                                                                                                                                                                                                                                   |
 | `api-keys.ts`        | `apiKey`                                                                          | `scopes` + `allowedTags` (text[]) controlam escopo. GIN index em scopes.                                                                                                                                                                                                                                                       |
-| `consent-log.ts`     | `consentLog`                                                                      | LGPD: TOS/privacy/marketing/cookies por client/lead. Helper em `apps/web/src/lib/consent.ts`.                                                                                                                                                                                                                                  |
+| `consent-log.ts`     | `consentLog`                                                                      | LGPD: `consent_kind` (`tos`/`privacy`/`marketing_email`/`cookies`) por `client`/`lead`. Helper em `apps/web/src/lib/consent.ts`. `leadId` é coluna sem FK até a tabela `lead` existir (Fase C).                                                                                                                                  |
+| `client-audit.ts`    | `clientAuditLog`                                                                  | Audit trail de mutações de cliente pelo staff (`profile_updated`, `status_changed`, `exported`, ...). `actorType` + CHECK `client_audit_actor_coherence`.                                                                                                                                                                       |
+| `client-export.ts`   | `clientExportLog`                                                                 | Registro de exports CSV/LGPD de clientes (`filters`, `rowCount`, `bytesWritten`, `truncated`).                                                                                                                                                                                                                                  |
+| `shared-enums.ts`    | — (só enums)                                                                      | `actor_type` = `pgEnum('actor_type', ['user','apiKey','system'])`, compartilhado pelas tabelas de auditoria/movimento.                                                                                                                                                                                                          |
 
 **Especificações técnicas dinâmicas — herança:**
 
@@ -243,10 +247,7 @@ Quando usar cada um:
 
 ## Convenções de UX em forms (admin)
 
-- **Slug auto-gerado em modo `create`:** input fica `disabled`, valor deriva do label/nome via `slugifyLabel()` (em `apps/web/src/app/dashboard/categories/_lib/attribute-schema.ts`). Em `edit` fica editável com aviso "alterar pode quebrar URLs/referências".
-- **Painel de erros no topo do form:** quando Zod falha, listar todos os issues em `<ul>` vermelho com path traduzido (ver `attribute-form.tsx`). Toast complementa com contagem ("3 erros — veja detalhes acima"). Evita "Revise os campos" genérico.
-- **Variantes em `tool_variant`:** pelo menos 1; uma marcada `isDefault` (radio group). Form valida via `superRefine` que `defaults.length === 1` e SKUs únicos.
-- **Atributos dinâmicos:** form de tool busca `definitionsByCategory[primaryCategoryId]` (pré-computado server-side em `attribute-helpers.ts`). Inputs renderizados por `inputType` em `dynamic-specs-editor.tsx`.
+Detalhe canônico em **`apps/web/CLAUDE.md`** (seção "Convenções de UX em forms"). Resumo: forms validam com Zod `safeParse` e listam **todos** os issues num painel vermelho no topo (nunca `toast.error` genérico); slug deriva do label em modo `create` (input `disabled`) e fica editável em `edit`; tool exige ≥1 `tool_variant` (uma `isDefault`); specs dinâmicas vêm de `definitionsByCategory[primaryCategoryId]`.
 
 ---
 
@@ -257,6 +258,7 @@ Quando usar cada um:
 - `key={index}` em `.map()` — usar ID estável. Exceções (variantes/options sem id) ficam com biome-ignore explícito.
 - `<img>` puro — sempre `next/image` (exceto thumbs Supabase com biome-ignore documentado).
 - `React.forwardRef` — React 19 usa `ref` como prop normal.
+- `useMemo`/`useCallback` manuais — React Compiler está ativo (`next.config.ts: reactCompiler: true`); memoização manual é redundante. Exceção rara com `biome-ignore` + justificativa.
 - Barrel files (`index.ts` que só re-exporta) em `packages/ui/src`, `apps/web/src`, `packages/auth/src`. Em `packages/db/src/schema/index.ts` o barrel é **intencional** (marcado com `// biome-ignore lint/performance/noBarrelFile`).
 - `async function` em Client Component (`"use client"`) — usar Server Component pra fetching.
 - `.forEach()` em hot path — preferir `for...of`.
