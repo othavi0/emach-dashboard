@@ -1,6 +1,5 @@
 import { relations, sql } from "drizzle-orm";
 import {
-	boolean,
 	check,
 	index,
 	integer,
@@ -34,14 +33,15 @@ export const review = pgTable(
 		clientId: text("client_id")
 			.notNull()
 			.references(() => client.id, { onDelete: "restrict" }),
-		orderId: text("order_id").references(() => order.id, {
-			onDelete: "restrict",
-		}),
+		orderId: text("order_id")
+			.notNull()
+			.references(() => order.id, {
+				onDelete: "restrict",
+			}),
 		rating: integer("rating").notNull(),
 		title: text("title"),
 		body: text("body").notNull(),
 		status: reviewStatusEnum("status").notNull().default("pending"),
-		verifiedPurchase: boolean("verified_purchase").notNull().default(false),
 		moderatedBy: text("moderated_by").references(() => user.id, {
 			onDelete: "set null",
 		}),
