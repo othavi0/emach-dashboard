@@ -11,7 +11,7 @@ export const ORDER_TABS = [
 	{
 		key: "pending_payment",
 		label: "Aguardando pgto",
-		statuses: ["pending_payment"] as DbOrderStatus[],
+		statuses: ["pending_payment", "payment_failed"] as DbOrderStatus[],
 	},
 	{
 		key: "paid",
@@ -34,6 +34,11 @@ export const ORDER_TABS = [
 		statuses: ["delivered"] as DbOrderStatus[],
 	},
 	{
+		key: "returned",
+		label: "Devolvidos",
+		statuses: ["returned"] as DbOrderStatus[],
+	},
+	{
 		key: "canceled",
 		label: "Cancelados",
 		statuses: ["canceled", "refunded"] as DbOrderStatus[],
@@ -42,10 +47,12 @@ export const ORDER_TABS = [
 
 export const ORDER_STATUS_LABELS: Record<DbOrderStatus, string> = {
 	pending_payment: "Aguardando pgto",
+	payment_failed: "Pagamento falhou",
 	paid: "Pago",
 	preparing: "Em preparação",
 	shipped: "Enviado",
 	delivered: "Entregue",
+	returned: "Devolvido",
 	canceled: "Cancelado",
 	refunded: "Reembolsado",
 };

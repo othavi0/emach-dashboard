@@ -1,11 +1,13 @@
 import { Badge } from "@emach/ui/components/badge";
 import {
+	BanIcon,
 	CheckCheckIcon,
 	CheckIcon,
 	ClockIcon,
 	PackageIcon,
 	RotateCcwIcon,
 	TruckIcon,
+	Undo2Icon,
 	XCircleIcon,
 } from "lucide-react";
 
@@ -16,20 +18,24 @@ const STATUS_VARIANTS: Record<
 	"destructive" | "info" | "success" | "warning"
 > = {
 	pending_payment: "warning",
+	payment_failed: "destructive",
 	paid: "success",
 	preparing: "info",
 	shipped: "info",
 	delivered: "success",
+	returned: "warning",
 	canceled: "destructive",
 	refunded: "destructive",
 };
 
 const STATUS_ICONS: Record<OrderStatus, typeof ClockIcon> = {
 	pending_payment: ClockIcon,
+	payment_failed: BanIcon,
 	paid: CheckIcon,
 	preparing: PackageIcon,
 	shipped: TruckIcon,
 	delivered: CheckCheckIcon,
+	returned: Undo2Icon,
 	canceled: XCircleIcon,
 	refunded: RotateCcwIcon,
 };
