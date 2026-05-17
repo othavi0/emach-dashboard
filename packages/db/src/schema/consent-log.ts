@@ -1,7 +1,6 @@
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
 	boolean,
-	check,
 	index,
 	pgEnum,
 	pgTable,
@@ -19,18 +18,13 @@ export const consentKindEnum = pgEnum("consent_kind", [
 ]);
 export type ConsentKind = (typeof consentKindEnum.enumValues)[number];
 
-export const consentActorEnum = pgEnum("consent_actor", ["client", "lead"]);
-export type ConsentActor = (typeof consentActorEnum.enumValues)[number];
-
 export const consentLog = pgTable(
 	"consent_log",
 	{
 		id: text("id").primaryKey(),
-		actorType: consentActorEnum("actor_type").notNull(),
-		clientId: text("client_id").references(() => client.id, {
-			onDelete: "cascade",
-		}),
-		leadId: text("lead_id"), // FK na Fase C quando lead existir
+		clientId: text("client_id")
+			.notNull()
+			.references(() => client.id, { onDelete: "cascade" }),
 		kind: consentKindEnum("kind").notNull(),
 		granted: boolean("granted").notNull(),
 		version: text("version").notNull(),
@@ -40,18 +34,8 @@ export const consentLog = pgTable(
 		revokedAt: timestamp("revoked_at"),
 	},
 	(table) => [
-		check(
-			"consent_actor_coherence",
-			sql`(${table.actorType} = 'client' AND ${table.clientId} IS NOT NULL AND ${table.leadId} IS NULL)
-				OR (${table.actorType} = 'lead' AND ${table.leadId} IS NOT NULL AND ${table.clientId} IS NULL)`
-		),
 		index("consent_log_client_idx").on(
 			table.clientId,
-			table.kind,
-			table.grantedAt.desc()
-		),
-		index("consent_log_lead_idx").on(
-			table.leadId,
 			table.kind,
 			table.grantedAt.desc()
 		),
