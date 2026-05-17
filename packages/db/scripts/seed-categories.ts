@@ -7,7 +7,6 @@ const ROOTS = [
 	{ slug: "ferramentas-manuais", name: "Ferramentas Manuais" },
 	{ slug: "acessorios", name: "Acessórios" },
 	{ slug: "pecas", name: "Peças" },
-	{ slug: "sem-categoria", name: "Sem Categoria" },
 ];
 
 async function main() {
