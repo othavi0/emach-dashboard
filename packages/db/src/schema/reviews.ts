@@ -55,9 +55,14 @@ export const review = pgTable(
 	},
 	(table) => [
 		check("rating_range", sql`${table.rating} >= 1 AND ${table.rating} <= 5`),
-		unique("review_client_tool_order_unique")
-			.on(table.clientId, table.toolId, table.orderId)
-			.nullsNotDistinct(),
+		// Ordem das colunas alinhada à declaração da tabela (tool, client, order):
+		// drizzle-kit introspecta colunas de unique constraint em ordem de attnum;
+		// se o .on() divergir, `db:push` gera um diff fantasma eterno.
+		unique("review_client_tool_order_unique").on(
+			table.toolId,
+			table.clientId,
+			table.orderId
+		),
 		index("review_tool_id_idx").on(table.toolId),
 		index("review_status_created_idx").on(table.status, table.createdAt.desc()),
 	]

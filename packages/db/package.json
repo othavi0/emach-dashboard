@@ -11,9 +11,8 @@
   },
   "scripts": {
     "db:push": "drizzle-kit push",
-    "db:generate": "drizzle-kit generate",
+    "db:sync": "drizzle-kit push && bun run db:apply-triggers && bun run db:apply-indexes",
     "db:studio": "drizzle-kit studio",
-    "db:migrate": "drizzle-kit migrate",
     "db:apply-indexes": "bun run scripts/apply-indexes.ts",
     "db:apply-triggers": "bun run scripts/apply-triggers.ts",
     "db:seed-categories": "bun run scripts/seed-categories.ts",

@@ -9,7 +9,7 @@ Cada workspace tem o seu próprio `AGENTS.md` apontando para o `CLAUDE.md` local
 ## Quick reference
 
 - **Stack:** Bun 1.3 + Turborepo 2.9, Next 16 / React 19 (`apps/web`), Drizzle + Supabase Postgres, Better Auth dual (dashboard + ecomerce), Tailwind 4 + shadcn (`packages/ui`), `react-markdown` + `rehype-sanitize` para descrição de produto.
-- **Comandos:** `bun install`, `bun dev:web` (port 3001), `bun check`, `bun fix`, `bun check-types`, `bun db:push` (dev) / `bun db:generate` + `bun db:migrate` (prod), `bun --cwd packages/db db:seed-categories` + `db:seed-attributes`.
+- **Comandos:** `bun install`, `bun dev:web` (port 3001), `bun check`, `bun fix`, `bun check-types`, `bun db:sync` (push-only — ver ADR-0006), `bun --cwd packages/db db:seed-categories` + `db:seed-attributes`.
 - **Lint/format:** Ultracite (`bun fix`) — também roda como hook PostToolUse do Claude Code.
 - **Idioma:** comunicação **PT**; identificadores e termos técnicos **EN**.
 - **Commits:** Conventional Commits PT (`feat:`/`fix:`/`refactor:`/`test:`/`docs:`/`chore:`). **Nunca** commitar sem confirmação explícita do user.
@@ -32,7 +32,7 @@ Cada workspace tem o seu próprio `AGENTS.md` apontando para o `CLAUDE.md` local
 2. `DashboardSession` ≠ `EcommerceSession` — não há tipo "Session" genérico.
 3. **Nunca** setar `advanced.cookies.<name>.attributes.domain = ".emach.com.br"` — apps em subdomínios isolam por host.
 4. CPF/CNPJ: validação responsabilidade do app (zod refine + dígito verificador). Sempre normalizar (só dígitos) antes de persistir.
-5. Migrations em prod: `drizzle-kit generate` + migration versionada. `--force` só em dev/staging.
+5. Schema é push-only — `bun db:sync` após editar `packages/db/src/schema/*.ts`; sem migrations versionadas (ADR-0006).
 6. Design: industrial neutrals warm-dark + copper (`oklch(0.65 0.15 45)`). Dark-mode único. Nada de cool blue-grays, light mode, `font-serif` em chrome, ring 1px ou opacity multiplicada. Detalhes em `DESIGN.md`.
 7. IDs gerados via `crypto.randomUUID()` em server actions/scripts — sem nanoid.
 8. `stock_level`, `stock_movement` e `order_item` referenciam `tool_variant.id`, **não** `tool.id`. Toda ferramenta tem ≥1 `tool_variant` (uma marcada `isDefault=true` via partial unique index).

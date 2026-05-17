@@ -7,7 +7,7 @@ import { Client } from "pg";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
-	const sqlPath = resolve(scriptDir, "../src/migrations/_triggers.sql");
+	const sqlPath = resolve(scriptDir, "../src/sql/triggers.sql");
 	const sql = readFileSync(sqlPath, "utf8");
 
 	const client = new Client({ connectionString: env.DATABASE_URL });
