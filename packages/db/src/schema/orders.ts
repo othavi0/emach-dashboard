@@ -27,6 +27,8 @@ export const orderStatusEnum = pgEnum("order_status", [
 	"delivered",
 	"canceled",
 	"refunded",
+	"payment_failed",
+	"returned",
 ]);
 export type OrderStatus = (typeof orderStatusEnum.enumValues)[number];
 
