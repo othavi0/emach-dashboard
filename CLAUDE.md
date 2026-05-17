@@ -164,7 +164,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 
 **Especificações técnicas dinâmicas — herança:**
 
-- `attribute_definition.categoryId` é **NOT NULL** — não há atributo global. Categoria-raiz "Geral" recebeu os anteriormente globais durante a migration.
+- `attribute_definition.categoryId` é **NOT NULL** — não há atributo global. A categoria-raiz catch-all "Sem Categoria" (slug `sem-categoria`) recebeu os anteriormente globais durante a migration. Nota: essa raiz é um smell — ver ADR/CONTEXT.md, a associação Tool–Category deve virar obrigatória.
 - Ao montar form de uma ferramenta, server action carrega definitions cuja `categoryId` está em `category.path` da categoria primary do tool (recursão via CTE em `tools/actions.ts`).
 - Ao trocar a categoria primary de uma ferramenta, `updateTool` detecta valores órfãos (`tool_attribute_value` cuja `attribute_definition` não está mais no path da nova categoria) e devolve `actionResult.warning = "orphan_attributes"`. Form pede confirmação antes de deletar.
 

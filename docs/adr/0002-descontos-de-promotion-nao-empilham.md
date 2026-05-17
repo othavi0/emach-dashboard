@@ -1,0 +1,3 @@
+# Descontos de Promotion nunca empilham
+
+Uma Tool pode estar associada a várias Promotions ao mesmo tempo — a tabela `promotion_tool` é N:N — e um Promocode é uma Promotion como outra qualquer. Mesmo assim, decidimos que descontos **nunca empilham**: quando mais de uma Promotion cobre a mesma Tool, aplica-se apenas o maior `discountPct`, no máximo um desconto por Tool. Descartamos soma ou composição de descontos para manter o preço previsível e proteger a margem sem depender de um guard de desconto máximo. Como o schema sugere o oposto (o join N:N), essa regra precisa estar explícita para quem computa o preço no checkout do e-commerce.
