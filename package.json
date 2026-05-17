@@ -30,9 +30,8 @@
     "clean-dry": "bash scripts/clean.sh --dry-run",
     "dev:web": "turbo -F web dev",
     "db:push": "turbo -F @emach/db db:push",
+    "db:sync": "turbo -F @emach/db db:sync",
     "db:studio": "turbo -F @emach/db db:studio",
-    "db:generate": "turbo -F @emach/db db:generate",
-    "db:migrate": "turbo -F @emach/db db:migrate",
     "check": "ultracite check",
     "fix": "ultracite fix"
   },

@@ -2,22 +2,26 @@
 
 Drizzle 0.45 + node-postgres + Supabase Postgres. Para regras gerais ver `CLAUDE.md` no root.
 
-## Migrations
+## Schema workflow (push-only)
 
-- **Dev:** `bun db:push` (sincroniza schema → DB sem migration). Usar livremente em branch local. Use `--force` apenas em dev quando há conflitos de rename ambíguo.
-- **Staging/Prod:** `bun db:generate` (cria SQL versionado em `src/migrations/`) → revisar SQL → `bun db:migrate`.
-- **Nunca** usar `--force` fora de dev.
-- Migrations aditivas preferidas. Drops: criar PR explícito + comunicar ao app ecomerce (DB compartilhada — ver `docs/integration/admin-ecommerce.md`).
+Não há migrations versionadas — ver ADR-0006. O schema TS em `src/schema/` é a **única fonte de verdade**.
+
+- **Aplicar schema no banco:** `bun db:sync` (= `drizzle-kit push` + `db:apply-triggers` + `db:apply-indexes`). Rodar após editar `src/schema/*.ts` e após todo `git checkout` — o banco compartilhado espelha a branch em checkout.
+- `bun db:push` sozinho aplica só o schema Drizzle (sem triggers/indexes). Prefira `db:sync`.
+- `drizzle-kit push` pede confirmação TTY em mudanças destrutivas — falha em ambiente scripted/CI. Em dev, rodar interativo.
+- Convenção: em unique constraints compostas, declarar as colunas do `.on()` na **mesma ordem** em que aparecem na definição da tabela — o drizzle-kit introspecta colunas de constraint em ordem de attnum e gera diff fantasma se divergir. FKs cujo nome auto-gerado passa de 63 chars precisam de nome explícito via `foreignKey({ ..., name })`.
+- Drops: criar PR explícito + comunicar ao app ecomerce (DB compartilhada — ver `docs/integration/admin-ecommerce.md`).
+- Quando produção entrar no horizonte, gerar um baseline `0000` limpo a partir do schema atual e versionar a partir daí.
 
 ## Triggers PL/pgSQL
 
-`src/migrations/_triggers.sql` contém triggers que o Drizzle Kit **não consegue gerar** (anti-ciclo de categoria com path/depth materializados, idempotência de débito de venda em stock_movement). Após qualquer `bun db:push` em dev ou `bun db:migrate` em prod:
+`src/sql/triggers.sql` contém triggers que o Drizzle Kit **não consegue gerar** (anti-ciclo de categoria com path/depth materializados, idempotência de débito de venda em stock_movement). Incluídos automaticamente no `bun db:sync`; para aplicar isoladamente:
 
 ```bash
 bun db:apply-triggers   # idempotente (CREATE OR REPLACE FUNCTION + DROP TRIGGER IF EXISTS)
 ```
 
-`src/migrations/_indexes.sql` segue a mesma lógica idempotente para índices que não vêm do schema Drizzle — aplicar com `bun db:apply-indexes` após push/migrate.
+`src/sql/indexes.sql` segue a mesma lógica idempotente para índices que não vêm do schema Drizzle — aplicar com `bun db:apply-indexes` (também incluído em `db:sync`).
 
 ## Convenções de schema
 
@@ -67,13 +71,12 @@ Regras:
 ## Scripts
 
 ```bash
-bun db:push                # dev: sync schema → DB
-bun db:generate            # gera nova migration versionada
-bun db:migrate             # aplica migrations pendentes
+bun db:sync                # drizzle-kit push + apply-triggers + apply-indexes (usar após editar schema ou git checkout)
+bun db:push                # só o schema Drizzle (sem triggers/indexes)
 bun db:studio              # UI inspetora
 
-bun db:apply-triggers      # aplica src/migrations/_triggers.sql
-bun db:apply-indexes       # aplica src/migrations/_indexes.sql (índices fora do schema Drizzle)
+bun db:apply-triggers      # aplica src/sql/triggers.sql
+bun db:apply-indexes       # aplica src/sql/indexes.sql (índices fora do schema Drizzle)
 bun db:seed-categories     # bootstrap 4 categorias raiz idempotente
 bun db:seed-attributes     # attribute_definitions iniciais (RPM, mandril, percussão, etc) por categoria raiz
 ```
@@ -88,11 +91,13 @@ await client.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL 
 // depois: bunx drizzle-kit push && bun db:apply-triggers && bun db:seed-categories && bun db:seed-attributes
 ```
 
-⚠️ Só em dev. Em staging/prod sempre via migration versionada.
+⚠️ Só em dev.
 
 ## Schema compartilhado com app ecomerce
 
-Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `consentLog`. Cópia versionada do schema sincronizada manualmente a cada migration. Ver `docs/integration/admin-ecommerce.md` para o contrato completo. Mudanças nessas tabelas exigem coordenação.
+Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `consentLog`. Cópia do schema TS (`src/schema/`) sincronizada manualmente a cada mudança. Ver `docs/integration/admin-ecommerce.md` para o contrato completo. Mudanças nessas tabelas exigem coordenação.
+
+> Gap: docs/integration/admin-ecommerce.md ainda não foi escrito.
 
 **Atenção pós-refactor de variants:** `stock_level`, `stock_movement` e `order_item` agora referenciam `tool_variant.id` (não mais `tool.id`). O app ecomerce precisa enviar `variantId` em pedidos e movimentos, não `toolId`. Ler `tool_variant` para obter SKU vendável; `tool` é o produto-pai (informações comuns).
 

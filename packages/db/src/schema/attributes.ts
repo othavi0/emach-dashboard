@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
 	check,
+	foreignKey,
 	index,
 	integer,
 	jsonb,
@@ -139,15 +140,21 @@ export const toolAttributeAssignment = pgTable(
 		toolId: text("tool_id")
 			.notNull()
 			.references(() => tool.id, { onDelete: "cascade" }),
-		attributeId: text("attribute_id")
-			.notNull()
-			.references(() => attributeDefinition.id, { onDelete: "cascade" }),
+		attributeId: text("attribute_id").notNull(),
 		sortOrder: integer("sort_order").notNull().default(0),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
 	(table) => [
 		primaryKey({ columns: [table.toolId, table.attributeId] }),
 		index("tool_attribute_assignment_tool_idx").on(table.toolId),
+		// FK nomeada explicitamente: o nome auto-gerado pelo drizzle
+		// (tool_attribute_assignment_attribute_id_attribute_definition_id_fk)
+		// excede 63 chars, Postgres trunca, e db:push gera diff fantasma eterno.
+		foreignKey({
+			columns: [table.attributeId],
+			foreignColumns: [attributeDefinition.id],
+			name: "tool_attribute_assignment_attribute_id_fk",
+		}).onDelete("cascade"),
 	]
 );
 

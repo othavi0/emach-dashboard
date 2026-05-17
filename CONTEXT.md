@@ -87,7 +87,7 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 - **Consent (Consentimento)** — registro LGPD de aceite ou revogação de `tos` / `privacy` / `marketing_email` / `cookies` por um Client. Tabela `consentLog`, versionado (`version`).
 - **Client Audit Log** — trilha de toda mutação de dados de Client feita pelo staff (`profile_updated`, `status_changed`, `exported`, …).
 - **Client Export** — exportação CSV/LGPD de clientes; cada export é registrado em `clientExportLog` (filtros, contagem, bytes, truncamento).
-- **Right to be forgotten** — anonimização de um Client via `bun --cwd packages/db db:anonymize-client <id>`.
+- **Right to be forgotten** — direito do Client à anonimização dos seus dados pessoais sob a LGPD. Ainda **não implementado** — não há script nem server action (gap registrado em `packages/db/CLAUDE.md`).
 
 ---
 
@@ -133,5 +133,6 @@ Decisões arquiteturais ficam em `docs/adr/`:
 - **ADR-0003** — Lead não é um conceito do domínio.
 - **ADR-0004** — Integração com o e-commerce é só DB compartilhada (sem API).
 - **ADR-0005** — Order tem um eixo único de status.
+- **ADR-0006** — DB workflow é push-only até produção (sem migrations versionadas).
 
 Se um output contradiz um ADR existente, sinalize explicitamente em vez de sobrescrever em silêncio.
