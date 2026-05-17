@@ -142,7 +142,6 @@ export async function updateCustomerProfile(
 					action: "profile_updated",
 					actorType: "user",
 					actorUserId: session.user.id,
-					actorApiKeyId: null,
 					beforeJson: Object.fromEntries(
 						Object.entries(diff).map(([k, v]) => [k, v.before])
 					),
@@ -207,7 +206,6 @@ export async function updateCustomerStatus(
 				action: "status_changed",
 				actorType: "user",
 				actorUserId: session.user.id,
-				actorApiKeyId: null,
 				beforeJson: { status: current.status },
 				afterJson: { status: data.status },
 				reason: data.reason ?? null,
@@ -261,7 +259,6 @@ export async function updateCustomerType(
 				action: "type_changed",
 				actorType: "user",
 				actorUserId: session.user.id,
-				actorApiKeyId: null,
 				beforeJson: { clientType: current.clientType },
 				afterJson: { clientType: data.clientType },
 				reason: null,
@@ -312,7 +309,6 @@ export async function updateCustomerNotes(
 				action: "notes_updated",
 				actorType: "user",
 				actorUserId: session.user.id,
-				actorApiKeyId: null,
 				beforeJson: current.internalNotes
 					? { length: current.internalNotes.length }
 					: null,
@@ -368,7 +364,6 @@ export async function revokeClientSession(
 				action: "session_revoked",
 				actorType: "user",
 				actorUserId: session.user.id,
-				actorApiKeyId: null,
 				beforeJson: null,
 				afterJson: { sessionId: data.sessionId },
 				reason: null,
@@ -407,7 +402,6 @@ export async function revokeAllClientSessions(
 				action: "sessions_revoked_all",
 				actorType: "user",
 				actorUserId: session.user.id,
-				actorApiKeyId: null,
 				beforeJson: null,
 				afterJson: { count: deleted.length },
 				reason: null,
@@ -467,7 +461,6 @@ export async function generatePasswordResetLink(
 				action: "password_reset_link_generated",
 				actorType: "user",
 				actorUserId: session.user.id,
-				actorApiKeyId: null,
 				beforeJson: null,
 				afterJson: { expiresAt: expiresAt.toISOString() },
 				reason: null,
