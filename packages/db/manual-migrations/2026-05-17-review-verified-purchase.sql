@@ -13,3 +13,7 @@
 DELETE FROM "review" WHERE "order_id" IS NULL;
 ALTER TABLE "review" ALTER COLUMN "order_id" SET NOT NULL;
 ALTER TABLE "review" DROP COLUMN "verified_purchase";
+
+-- Validação pós-execução (rodar após aplicar o script acima):
+-- SELECT COUNT(*) FROM "review" WHERE "order_id" IS NULL;  -- deve retornar 0
+-- \d review  -- order_id deve constar NOT NULL e verified_purchase não deve existir
