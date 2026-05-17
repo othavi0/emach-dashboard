@@ -48,25 +48,3 @@ export const moderateReviewSchema = z
 	});
 
 export type ModerateReviewInput = z.infer<typeof moderateReviewSchema>;
-
-export const createEditorialReviewSchema = z.object({
-	toolId: z.string().min(1, "Selecione uma ferramenta"),
-	clientId: z.string().min(1, "Selecione um cliente"),
-	rating: z.number().int().min(1).max(5),
-	title: z
-		.string()
-		.trim()
-		.max(200)
-		.optional()
-		.transform((v) => (v && v.length > 0 ? v : undefined)),
-	body: z
-		.string()
-		.trim()
-		.min(10, "Corpo deve ter ao menos 10 caracteres")
-		.max(5000),
-	status: z.enum(["pending", "approved"]).default("approved"),
-});
-
-export type CreateEditorialReviewInput = z.infer<
-	typeof createEditorialReviewSchema
->;
