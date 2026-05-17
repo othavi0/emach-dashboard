@@ -119,7 +119,6 @@ export interface OrderDetail {
 	paidAt: Date | null;
 	paymentMethod: string | null;
 	paymentProviderRef: string | null;
-	paymentStatus: string;
 	shippedAt: Date | null;
 	shippingAddress: ShippingAddressSnapshot;
 	shippingAmount: number;
@@ -504,7 +503,7 @@ export async function getOrderReviewsOverview(
 		days_remaining: number | null;
 	}>(sql`
 		WITH order_meta AS (
-			SELECT id, payment_status, paid_at,
+			SELECT id, paid_at,
 				(paid_at + interval '90 days') AS review_deadline
 			FROM "order" WHERE id = ${orderId}
 		),
@@ -530,7 +529,7 @@ export async function getOrderReviewsOverview(
 			r.rating,
 			r.status AS review_status,
 			CASE
-				WHEN om.payment_status <> 'paid' OR om.paid_at IS NULL THEN 'order_not_paid'
+				WHEN om.paid_at IS NULL THEN 'order_not_paid'
 				WHEN r.id IS NOT NULL THEN 'has_review'
 				WHEN now() > om.review_deadline THEN 'no_review_expired'
 				ELSE 'no_review_open'
@@ -581,7 +580,6 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			paid_at: Date | null;
 			payment_method: string | null;
 			payment_provider_ref: string | null;
-			payment_status: string;
 			shipping_address: ShippingAddressSnapshot;
 			shipping_amount: string;
 			shipping_method: string | null;
@@ -595,7 +593,6 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				o.id,
 				o.number,
 				o.status,
-				o.payment_status,
 				o.payment_method,
 				o.payment_provider_ref,
 				o.subtotal_amount,
@@ -668,7 +665,6 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		clientPhone: row.client_phone,
 		branchId: row.branch_id,
 		branchName: row.branch_name,
-		paymentStatus: row.payment_status,
 		paymentMethod: row.payment_method,
 		paymentProviderRef: row.payment_provider_ref,
 		subtotalAmount: Number(row.subtotal_amount),
