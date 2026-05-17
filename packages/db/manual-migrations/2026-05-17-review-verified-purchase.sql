@@ -5,14 +5,15 @@
 -- drift pré-existente e hash mismatch — fora do escopo do #36).
 --
 -- A tabela `review` é compartilhada com o app ecomerce: sincronizar este
--- DDL com o repo ecomerce antes de aplicar em prod (docs/integration/admin-ecommerce.md).
+-- DDL com o repo ecomerce antes de aplicar em prod
+-- (docs/adr/0004-integracao-ecommerce-e-so-db-compartilhada.md).
 --
 -- O DELETE remove reviews editoriais órfãs (sem pedido); a feature editorial
 -- foi removida no mesmo PR.
 
 DELETE FROM "review" WHERE "order_id" IS NULL;
 ALTER TABLE "review" ALTER COLUMN "order_id" SET NOT NULL;
-ALTER TABLE "review" DROP COLUMN "verified_purchase";
+ALTER TABLE "review" DROP COLUMN IF EXISTS "verified_purchase";
 
 -- Validação pós-execução (rodar após aplicar o script acima):
 -- SELECT COUNT(*) FROM "review" WHERE "order_id" IS NULL;  -- deve retornar 0
