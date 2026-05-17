@@ -36,7 +36,6 @@ export async function canCreateReview(
 		.select({
 			id: order.id,
 			clientId: order.clientId,
-			paymentStatus: order.paymentStatus,
 			paidAt: order.paidAt,
 		})
 		.from(order)
@@ -49,7 +48,7 @@ export async function canCreateReview(
 	if (ord.clientId !== clientId) {
 		return { ok: false, reason: "order_not_owned_by_client" };
 	}
-	if (ord.paymentStatus !== "paid" || !ord.paidAt) {
+	if (!ord.paidAt) {
 		return { ok: false, reason: "not_paid" };
 	}
 

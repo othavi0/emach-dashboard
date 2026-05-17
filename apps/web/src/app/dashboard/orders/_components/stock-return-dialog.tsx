@@ -32,7 +32,7 @@ interface StockReturnDialogProps {
 	currentBranchId: string | null;
 	items: OrderDetailItem[];
 	orderId: string;
-	toStatus: Extract<OrderStatus, "canceled" | "refunded">;
+	toStatus: Extract<OrderStatus, "canceled" | "returned">;
 	triggerLabel: string;
 }
 
@@ -114,7 +114,7 @@ export function StockReturnDialog({
 				}
 
 				toast.success(
-					toStatus === "canceled" ? "Pedido cancelado" : "Pedido reembolsado"
+					toStatus === "canceled" ? "Pedido cancelado" : "Devolução registrada"
 				);
 				setOpen(false);
 				router.refresh();
