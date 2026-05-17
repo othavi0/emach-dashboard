@@ -26,6 +26,7 @@ import {
 	type AssignBranchInput,
 	addOrderNoteSchema,
 	assignBranchSchema,
+	capForStatus,
 	type UpdateOrderStatusInput,
 	type UpdateTrackingCodeInput,
 	updateOrderStatusSchema,
@@ -51,20 +52,7 @@ const STATUS_TIMESTAMP_MAP: Partial<Record<OrderStatus, string>> = {
 	shipped: "shippedAt",
 	delivered: "deliveredAt",
 	canceled: "canceledAt",
-	refunded: "canceledAt",
 };
-
-function capForStatus(
-	toStatus: OrderStatus
-): "orders.update_status" | "orders.cancel" | "orders.refund" {
-	if (toStatus === "canceled") {
-		return "orders.cancel";
-	}
-	if (toStatus === "refunded") {
-		return "orders.refund";
-	}
-	return "orders.update_status";
-}
 
 async function applyStockReturns(
 	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
@@ -122,7 +110,7 @@ async function applyStockReturns(
 			newQty,
 			delta: oi.quantity,
 			reason: "ajuste_inventario",
-			reasonNote: "Devolução ao estoque — pedido cancelado/reembolsado",
+			reasonNote: "Devolução ao estoque — pedido cancelado/devolvido",
 			orderId,
 			orderItemId: item.orderItemId,
 			actorType: "user",
@@ -189,7 +177,7 @@ export async function updateOrderStatus(
 			});
 
 			if (
-				(toStatus === "canceled" || toStatus === "refunded") &&
+				(toStatus === "canceled" || toStatus === "returned") &&
 				returnItems &&
 				returnItems.length > 0
 			) {

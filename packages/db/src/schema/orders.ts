@@ -19,6 +19,8 @@ import { tool, toolVariant } from "./tools";
 
 // --- Enums ---
 
+// A ordem reflete o DB, não o ciclo de vida lógico: Postgres ALTER TYPE
+// só faz ADD VALUE no fim. Não reordenar — quebraria o sync com o snapshot.
 export const orderStatusEnum = pgEnum("order_status", [
 	"pending_payment",
 	"paid",
@@ -27,17 +29,10 @@ export const orderStatusEnum = pgEnum("order_status", [
 	"delivered",
 	"canceled",
 	"refunded",
+	"payment_failed",
+	"returned",
 ]);
 export type OrderStatus = (typeof orderStatusEnum.enumValues)[number];
-
-export const paymentStatusEnum = pgEnum("payment_status", [
-	"pending",
-	"authorized",
-	"paid",
-	"failed",
-	"refunded",
-]);
-export type PaymentStatus = (typeof paymentStatusEnum.enumValues)[number];
 
 // --- Tables ---
 
@@ -53,9 +48,6 @@ export const order = pgTable(
 			onDelete: "set null",
 		}),
 		status: orderStatusEnum("status").notNull().default("pending_payment"),
-		paymentStatus: paymentStatusEnum("payment_status")
-			.notNull()
-			.default("pending"),
 		paymentMethod: text("payment_method"),
 		paymentProviderRef: text("payment_provider_ref"),
 		subtotalAmount: numeric("subtotal_amount", {
