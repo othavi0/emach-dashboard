@@ -74,7 +74,7 @@ bun db:studio              # UI inspetora
 
 bun db:apply-triggers      # aplica src/migrations/_triggers.sql
 bun db:apply-indexes       # aplica src/migrations/_indexes.sql (índices fora do schema Drizzle)
-bun db:seed-categories     # bootstrap 5 categorias raiz idempotente
+bun db:seed-categories     # bootstrap 4 categorias raiz idempotente
 bun db:seed-attributes     # attribute_definitions iniciais (RPM, mandril, percussão, etc) por categoria raiz
 ```
 
