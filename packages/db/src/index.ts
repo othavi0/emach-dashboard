@@ -1,7 +1,6 @@
 import { env } from "@emach/env/server";
 import { drizzle } from "drizzle-orm/node-postgres";
 
-import { apiKey, apiKeyRelations } from "./schema/api-keys";
 import {
 	attributeDefinition,
 	attributeDefinitionRelations,
@@ -83,8 +82,6 @@ import {
 const schema = {
 	account,
 	accountRelations,
-	apiKey,
-	apiKeyRelations,
 	attributeDefinition,
 	attributeDefinitionRelations,
 	branch,

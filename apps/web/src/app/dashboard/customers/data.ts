@@ -1,5 +1,4 @@
 import { db } from "@emach/db";
-import { apiKey } from "@emach/db/schema/api-keys";
 import { user } from "@emach/db/schema/auth";
 import {
 	type ClientStatus,
@@ -147,15 +146,11 @@ const ESCAPED_LIKE = (raw: string) =>
 	`%${raw.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
 
 function formatActorLabel(entry: {
-	actorApiKeyName: string | null;
-	actorType: "apiKey" | "system" | "user";
+	actorType: "system" | "user";
 	actorUserName: string | null;
 }) {
 	if (entry.actorType === "system") {
 		return "Sistema";
-	}
-	if (entry.actorType === "apiKey") {
-		return entry.actorApiKeyName ?? "API key";
 	}
 	return entry.actorUserName ?? "Usuário";
 }
@@ -584,7 +579,6 @@ export async function getCustomerAudit(
 			action: clientAuditLog.action,
 			actorType: clientAuditLog.actorType,
 			actorUserName: user.name,
-			actorApiKeyName: apiKey.name,
 			beforeJson: clientAuditLog.beforeJson,
 			afterJson: clientAuditLog.afterJson,
 			reason: clientAuditLog.reason,
@@ -592,7 +586,6 @@ export async function getCustomerAudit(
 		})
 		.from(clientAuditLog)
 		.leftJoin(user, eq(user.id, clientAuditLog.actorUserId))
-		.leftJoin(apiKey, eq(apiKey.id, clientAuditLog.actorApiKeyId))
 		.where(and(...conditions))
 		.orderBy(desc(clientAuditLog.createdAt));
 
@@ -602,7 +595,6 @@ export async function getCustomerAudit(
 		actorLabel: formatActorLabel({
 			actorType: r.actorType,
 			actorUserName: r.actorUserName,
-			actorApiKeyName: r.actorApiKeyName,
 		}),
 		beforeJson: r.beforeJson,
 		afterJson: r.afterJson,
