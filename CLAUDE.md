@@ -81,19 +81,16 @@ bun check                          # ultracite check (lint+format dry-run)
 bun fix                            # ultracite fix (auto-format) — também roda como hook PostToolUse
 bun check-types                    # tsc --noEmit em todos os workspaces
 
-# DB (em desenvolvimento)
-bun db:push                        # drizzle-kit push (schema → DB sem migration)
+# DB (push-only — ver ADR-0006)
+bun db:sync                        # drizzle-kit push + apply-triggers + apply-indexes (rodar após editar schema e após git checkout)
+bun db:push                        # só o schema Drizzle (sem triggers/indexes)
 bun db:studio                      # UI inspetora de tabelas
-bun --cwd packages/db db:apply-triggers    # aplica src/migrations/_triggers.sql (anti-ciclo + idempotência)
-
-# DB (produção/staging)
-bun db:generate                    # cria SQL de migration versionada
-bun db:migrate                     # aplica migrations pendentes
 
 # DB scripts utilitários (em packages/db)
 bun --cwd packages/db db:seed-categories       # bootstrap 4 categorias raiz
 bun --cwd packages/db db:seed-attributes       # bootstrap attribute_definitions iniciais por categoria
-bun --cwd packages/db db:apply-indexes         # aplica _indexes.sql (índices fora do schema Drizzle)
+bun --cwd packages/db db:apply-triggers        # aplica src/sql/triggers.sql (anti-ciclo + idempotência)
+bun --cwd packages/db db:apply-indexes         # aplica src/sql/indexes.sql (índices fora do schema Drizzle)
 
 bun clean                          # remove node_modules + caches Turbo/Next
 ```
@@ -107,10 +104,11 @@ Se o schema diverge muito e drizzle-kit não consegue resolver renames (TTY prom
 ```bash
 # DROP SCHEMA public CASCADE; CREATE SCHEMA public;  via pg client
 # depois: bunx drizzle-kit push
-# depois: bun --cwd packages/db db:apply-triggers && bun --cwd packages/db db:seed-categories && bun --cwd packages/db db:seed-attributes
+# depois: bun --cwd packages/db db:apply-triggers && bun --cwd packages/db db:apply-indexes && bun --cwd packages/db db:seed-categories && bun --cwd packages/db db:seed-attributes
+# (ou simplesmente: bun db:sync && bun --cwd packages/db db:seed-categories && bun --cwd packages/db db:seed-attributes)
 ```
 
-⚠️ Só rodar em DB de dev. **Nunca** em staging/prod.
+⚠️ Só rodar em DB de dev.
 
 ### Testes
 
@@ -133,7 +131,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 2. `DashboardSession` ≠ `EcommerceSession`. Não há tipo "Session" genérico.
 3. **Nunca** setar `advanced.cookies.<name>.attributes.domain = ".emach.com.br"`. Apps em subdomínios distintos isolam por host.
 4. CPF/CNPJ: validação é responsabilidade do app (zod refine + dígito verificador). Sempre normalizar (só dígitos) antes de persistir em `client.document`.
-5. Migrations em prod: `drizzle-kit generate` + migration versionada. `--force` só em dev/staging.
+5. Schema é push-only — `bun db:sync` após editar `packages/db/src/schema/*.ts`; sem migrations versionadas (ver ADR-0006).
 6. **Integração com app ecomerce externo (DB compartilhada)**: ambos escrevem na mesma DB Supabase via Drizzle. Admin **não** chama o app ecomerce; o app ecomerce **não** chama o admin. Coordenação acontece pelo schema compartilhado. Contrato em `docs/integration/admin-ecommerce.md`.
 
 **Roles dashboard**: `user.role` = `pgEnum('user_role', ['super_admin','admin','manager','user'])`; `user.status` = `pgEnum('user_status', ['pending','active','suspended'])`. Better Auth cria usuário novo com `role='user'` + `status='pending'` (precisa aprovação). Verificação em **server actions sensíveis** via `requireCapability(cap)` / `requireCapabilityWithContext(cap, ctx)` em `apps/web/src/lib/permissions.ts` (capabilities granulares + escopo de filial). Gates grosseiros ainda usam `requireRole` em layouts. `client` **não** tem `role`. Matriz completa em `apps/web/CLAUDE.md`.
@@ -167,7 +165,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 - Ao montar form de uma ferramenta, server action carrega definitions cuja `categoryId` está em `category.path` da categoria primary do tool (recursão via CTE em `tools/actions.ts`).
 - Ao trocar a categoria primary de uma ferramenta, `updateTool` detecta valores órfãos (`tool_attribute_value` cuja `attribute_definition` não está mais no path da nova categoria) e devolve `actionResult.warning = "orphan_attributes"`. Form pede confirmação antes de deletar.
 
-**Triggers PL/pgSQL** em `packages/db/src/migrations/_triggers.sql` (Drizzle Kit não gera triggers — aplicar via `bun --cwd packages/db db:apply-triggers`).
+**Triggers PL/pgSQL** em `packages/db/src/sql/triggers.sql` (Drizzle Kit não gera triggers — incluídos em `bun db:sync`; ou aplicar isoladamente via `bun --cwd packages/db db:apply-triggers`).
 
 `packages/db/src/index.ts` exporta `createDb()` (factory, usada em `@emach/auth/*`) e `db` (singleton, usado em server actions). Manter o factory para auth (evita ciclo de import com env). Em código novo do app, prefira `import { db } from "@emach/db"`.
 
@@ -234,7 +232,7 @@ Quando usar cada um:
 ## Workflow de mudança
 
 1. **Antes de tocar UI:** abrir `DESIGN.md` na seção relevante; invocar `web-design-guidelines` se for review.
-2. **Antes de tocar schema:** editar `packages/db/src/schema/*.ts` → em dev `bun db:push`; em prod `bun db:generate` + commit da migration + `bun db:migrate`.
+2. **Antes de tocar schema:** editar `packages/db/src/schema/*.ts` → `bun db:sync` (push-only — ADR-0006).
 3. **Server actions:** sempre `"use server"` no topo, `await requireCapability(cap)` ou `requireCurrentSession()` no início, validar input com Zod, normalizar antes de persistir.
 4. **Imagens em forms:** upload via `uploadToolImage(formData)` (`apps/web/src/app/dashboard/tools/_components/image-actions.ts`), URL pública vai pro form; deletar via `deleteToolImage(url)`.
 5. **Validação targeted first:** `bun check-types` no workspace alterado, `bun fix` no escopo. Suite inteira só se necessário.

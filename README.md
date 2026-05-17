@@ -29,11 +29,10 @@ PostgreSQL + Drizzle ORM via Supabase.
 
 1. Provisionar Postgres (Supabase ou local).
 2. Popular `apps/web/.env` a partir de `apps/web/.env.example` (inclui `DATABASE_URL` + `NEXT_PUBLIC_SUPABASE_*`).
-3. Aplicar schema:
+3. Aplicar schema (push-only — ver ADR-0006):
 
 ```bash
-bun db:push                                  # dev: schema → DB sem migration
-bun --cwd packages/db db:apply-triggers      # triggers PL/pgSQL (anti-ciclo + idempotência)
+bun db:sync                                  # drizzle-kit push + triggers + indexes
 bun --cwd packages/db db:seed-categories     # bootstrap 4 categorias raiz
 bun --cwd packages/db db:seed-attributes     # attribute_definitions iniciais
 ```
@@ -109,11 +108,10 @@ emach-dashboard/
 | `bun check-types`                                   | `tsc --noEmit` em todos os workspaces                                     |
 | `bun check`                                         | Ultracite check (lint/format dry-run; falha se issue)                     |
 | `bun fix`                                           | Ultracite fix (aplica auto-format)                                        |
-| `bun db:push`                                       | dev: sincroniza schema → DB sem migration                                 |
-| `bun db:generate`                                   | Gera SQL de migration versionada (`packages/db/src/migrations/*.sql`)     |
-| `bun db:migrate`                                    | Aplica migrations pendentes (prod/staging)                                |
+| `bun db:sync`                                       | drizzle-kit push + triggers + indexes (push-only — ADR-0006)              |
+| `bun db:push`                                       | Só o schema Drizzle (sem triggers/indexes)                                |
 | `bun db:studio`                                     | UI inspetora de tabelas (drizzle-kit)                                     |
-| `bun --cwd packages/db db:apply-triggers`           | Aplica `src/migrations/_triggers.sql` (anti-ciclo + idempotência)         |
+| `bun --cwd packages/db db:apply-triggers`           | Aplica `src/sql/triggers.sql` (anti-ciclo + idempotência)                 |
 | `bun --cwd packages/db db:seed-categories`          | Bootstrap 4 categorias raiz                                               |
 | `bun --cwd packages/db db:seed-attributes`          | Bootstrap `attribute_definitions` iniciais por categoria                  |
 | `bun --cwd packages/db db:anonymize-client <id>`    | LGPD direito ao esquecimento                                              |

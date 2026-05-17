@@ -21,20 +21,19 @@ Drizzle 0.45 + node-postgres + Supabase Postgres. Schemas em `src/schema/*.ts`, 
 3. FKs sempre com `onDelete` explícito (`cascade` / `restrict` / `set null`).
 4. Enums via `pgEnum`, derivar tipo: `(typeof enumName.enumValues)[number]`.
 5. Auditoria: tabelas de movimento incluem `actorType` (`user`/`system`) + `actorId` (FK user) + CHECK `actor_coherence`.
-6. Triggers PL/pgSQL ficam em `src/migrations/_triggers.sql` (Drizzle-kit não gera). Aplicar com `bun db:apply-triggers` após qualquer push/migrate.
+6. Triggers PL/pgSQL ficam em `src/sql/triggers.sql` (Drizzle-kit não gera). Aplicar com `bun db:apply-triggers` após qualquer `db:push`/`db:sync` (incluído automaticamente em `db:sync`).
 7. `stock_level`, `stock_movement`, `order_item` referenciam `tool_variant.id` — **não** `tool.id`. Mudanças nessas FKs exigem coordenação com app ecomerce.
 
 ## Comandos
 
 ```bash
-bun db:push                 # dev: sync schema → DB
-bun db:generate             # gera migration versionada (staging/prod)
-bun db:migrate              # aplica migrations pendentes
+bun db:sync                 # drizzle-kit push + apply-triggers + apply-indexes (push-only — ADR-0006)
+bun db:push                 # só o schema Drizzle (sem triggers/indexes)
 bun db:studio               # UI inspetora
-bun db:apply-triggers       # idempotente
+bun db:apply-triggers       # aplica src/sql/triggers.sql (idempotente)
 bun db:seed-categories      # bootstrap 5 raízes
 bun db:seed-attributes      # bootstrap attribute_definitions iniciais
-bun db:apply-indexes        # aplica _indexes.sql
+bun db:apply-indexes        # aplica src/sql/indexes.sql
 ```
 
 ## `db` × `createDb()`
