@@ -8,7 +8,6 @@ import {
 	timestamp,
 } from "drizzle-orm/pg-core";
 
-import { apiKey } from "./api-keys";
 import { user } from "./auth";
 import { branch } from "./inventory";
 import { order, orderItem } from "./orders";
@@ -48,9 +47,6 @@ export const stockMovement = pgTable(
 		actorId: text("actor_id").references(() => user.id, {
 			onDelete: "set null",
 		}),
-		apiKeyId: text("api_key_id").references(() => apiKey.id, {
-			onDelete: "set null",
-		}),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
 	(table) => [
@@ -59,18 +55,13 @@ export const stockMovement = pgTable(
 			table.createdAt.desc()
 		),
 		index("stock_movement_order_idx").on(table.orderId),
-		index("stock_movement_actor_idx").on(
-			table.actorType,
-			table.actorId,
-			table.apiKeyId
-		),
+		index("stock_movement_actor_idx").on(table.actorType, table.actorId),
 		check("delta_non_zero", sql`${table.delta} <> 0`),
 		check(
 			"actor_coherence",
 			sql`(
-				(${table.actorType} = 'user'   AND ${table.actorId}   IS NOT NULL AND ${table.apiKeyId} IS NULL)
-				OR (${table.actorType} = 'apiKey' AND ${table.apiKeyId} IS NOT NULL AND ${table.actorId} IS NULL)
-				OR (${table.actorType} = 'system' AND ${table.actorId} IS NULL  AND ${table.apiKeyId} IS NULL)
+				(${table.actorType} = 'user'   AND ${table.actorId} IS NOT NULL)
+				OR (${table.actorType} = 'system' AND ${table.actorId} IS NULL)
 			)`
 		),
 	]
@@ -88,10 +79,6 @@ export const stockMovementRelations = relations(stockMovement, ({ one }) => ({
 	actor: one(user, {
 		fields: [stockMovement.actorId],
 		references: [user.id],
-	}),
-	apiKey: one(apiKey, {
-		fields: [stockMovement.apiKeyId],
-		references: [apiKey.id],
 	}),
 	order: one(order, {
 		fields: [stockMovement.orderId],

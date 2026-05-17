@@ -9,7 +9,6 @@ import {
 	timestamp,
 } from "drizzle-orm/pg-core";
 
-import { apiKey } from "./api-keys";
 import { user } from "./auth";
 import { client } from "./client";
 import { actorTypeEnum } from "./shared-enums";
@@ -38,9 +37,6 @@ export const clientAuditLog = pgTable(
 		actorUserId: text("actor_user_id").references(() => user.id, {
 			onDelete: "set null",
 		}),
-		actorApiKeyId: text("actor_api_key_id").references(() => apiKey.id, {
-			onDelete: "set null",
-		}),
 		action: clientAuditActionEnum("action").notNull(),
 		beforeJson: jsonb("before_json"),
 		afterJson: jsonb("after_json"),
@@ -59,9 +55,8 @@ export const clientAuditLog = pgTable(
 		check(
 			"client_audit_actor_coherence",
 			sql`(
-				(${table.actorType} = 'user'   AND ${table.actorUserId}   IS NOT NULL AND ${table.actorApiKeyId} IS NULL)
-				OR (${table.actorType} = 'apiKey' AND ${table.actorApiKeyId} IS NOT NULL AND ${table.actorUserId} IS NULL)
-				OR (${table.actorType} = 'system' AND ${table.actorUserId} IS NULL  AND ${table.actorApiKeyId} IS NULL)
+				(${table.actorType} = 'user'   AND ${table.actorUserId} IS NOT NULL)
+				OR (${table.actorType} = 'system' AND ${table.actorUserId} IS NULL)
 			)`
 		),
 	]
@@ -75,10 +70,6 @@ export const clientAuditLogRelations = relations(clientAuditLog, ({ one }) => ({
 	actorUser: one(user, {
 		fields: [clientAuditLog.actorUserId],
 		references: [user.id],
-	}),
-	actorApiKey: one(apiKey, {
-		fields: [clientAuditLog.actorApiKeyId],
-		references: [apiKey.id],
 	}),
 }));
 
