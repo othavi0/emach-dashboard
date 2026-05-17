@@ -41,6 +41,233 @@ const PRIMARY_TRANSITION: Partial<Record<OrderStatus, OrderStatus>> = {
 	shipped: "delivered",
 };
 
+type Refresh = () => void;
+
+async function runAssignBranch(
+	orderId: string,
+	branchId: string,
+	refresh: Refresh
+) {
+	const result = await assignBranch({ orderId, branchId });
+	if (!result.ok) {
+		toast.error(result.error);
+		return;
+	}
+	toast.success("Filial atribuída");
+	refresh();
+}
+
+async function runTrackingUpdate(
+	orderId: string,
+	trackingCode: string,
+	refresh: Refresh
+) {
+	const result = await updateTrackingCode({ orderId, trackingCode });
+	if (!result.ok) {
+		toast.error(result.error);
+		return;
+	}
+	toast.success("Rastreio atualizado");
+	refresh();
+}
+
+async function runAddNote(
+	orderId: string,
+	body: string,
+	setNoteBody: (v: string) => void,
+	refresh: Refresh
+) {
+	const result = await addOrderNote({ orderId, body });
+	if (!result.ok) {
+		toast.error(result.error);
+		return;
+	}
+	setNoteBody("");
+	toast.success("Nota adicionada");
+	refresh();
+}
+
+async function runPrimaryStatusUpdate(
+	orderId: string,
+	nextStatus: OrderStatus,
+	reason: string,
+	trackingCode: string,
+	branchId: string,
+	setStatusReason: (v: string) => void,
+	refresh: Refresh
+) {
+	const transitionTracking =
+		nextStatus === "shipped" ? trackingCode || undefined : undefined;
+	const transitionBranch =
+		nextStatus === "preparing" ? branchId || undefined : undefined;
+	const result = await updateOrderStatus({
+		orderId,
+		toStatus: nextStatus,
+		reason: reason || undefined,
+		trackingCode: transitionTracking,
+		branchId: transitionBranch,
+	});
+	if (!result.ok) {
+		toast.error(result.error);
+		return;
+	}
+	setStatusReason("");
+	toast.success(`Pedido movido para ${ORDER_STATUS_LABELS[nextStatus]}`);
+	refresh();
+}
+
+interface PrimaryActionContentProps {
+	branches: BranchOption[];
+	branchId: string;
+	canDoPrimaryTransition: boolean;
+	isPending: boolean;
+	isTerminal: boolean;
+	nextStatus: OrderStatus | undefined;
+	onAssignBranch: () => void;
+	onPrimaryStatusUpdate: () => void;
+	onTrackingUpdate: () => void;
+	order: OrderDetail;
+	setBranchId: (v: string) => void;
+	setStatusReason: (v: string) => void;
+	setTrackingCode: (v: string) => void;
+	statusReason: string;
+	trackingCode: string;
+}
+
+function PrimaryActionContent({
+	branches,
+	branchId,
+	canDoPrimaryTransition,
+	isPending,
+	isTerminal,
+	nextStatus,
+	order,
+	onAssignBranch,
+	onPrimaryStatusUpdate,
+	onTrackingUpdate,
+	setBranchId,
+	setStatusReason,
+	setTrackingCode,
+	statusReason,
+	trackingCode,
+}: PrimaryActionContentProps) {
+	if (!nextStatus) {
+		return (
+			<p className="text-muted-foreground text-sm">
+				{isTerminal
+					? "Este pedido já está em estado final."
+					: "Sem ação primária — use o painel de exceções abaixo."}
+			</p>
+		);
+	}
+
+	return (
+		<>
+			<div className="space-y-1">
+				<label
+					className="text-muted-foreground text-xs"
+					htmlFor="status-reason"
+				>
+					Observação da transição
+				</label>
+				<Textarea
+					id="status-reason"
+					onChange={(event) => setStatusReason(event.target.value)}
+					placeholder="Opcional. Motivo operacional visível na timeline."
+					value={statusReason}
+				/>
+			</div>
+
+			{order.status === "paid" && (
+				<div className="space-y-1">
+					<label
+						className="text-muted-foreground text-xs"
+						htmlFor="branch-assign"
+					>
+						Filial responsável
+					</label>
+					<div className="flex gap-2">
+						<Select
+							onValueChange={(v) =>
+								setBranchId(!v || v === "__none__" ? "" : v)
+							}
+							value={branchId || "__none__"}
+						>
+							<SelectTrigger id="branch-assign">
+								<SelectValue>
+									{(v: string) =>
+										v === "__none__"
+											? "Selecionar filial"
+											: (branches.find((b) => b.id === v)?.name ??
+												"Selecionar filial")
+									}
+								</SelectValue>
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									<SelectItem value="__none__">Selecionar filial</SelectItem>
+									{branches.map((branch) => (
+										<SelectItem key={branch.id} value={branch.id}>
+											{branch.name}
+										</SelectItem>
+									))}
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+						<Button
+							disabled={isPending || !branchId}
+							onClick={onAssignBranch}
+							variant="outline"
+						>
+							Salvar
+						</Button>
+					</div>
+				</div>
+			)}
+
+			{order.status === "preparing" && (
+				<div className="space-y-1">
+					<label
+						className="text-muted-foreground text-xs"
+						htmlFor="tracking-code"
+					>
+						Código de rastreio
+					</label>
+					<div className="flex gap-2">
+						<Input
+							id="tracking-code"
+							onChange={(event) => setTrackingCode(event.target.value)}
+							placeholder="Ex: BR123456789"
+							value={trackingCode}
+						/>
+						<Button
+							disabled={isPending || !trackingCode.trim()}
+							onClick={onTrackingUpdate}
+							variant="outline"
+						>
+							Salvar
+						</Button>
+					</div>
+				</div>
+			)}
+
+			<Button
+				disabled={isPending || !canDoPrimaryTransition}
+				onClick={onPrimaryStatusUpdate}
+				variant="default"
+			>
+				{isPending ? (
+					<>
+						<Spinner /> Salvando…
+					</>
+				) : (
+					`Marcar como ${ORDER_STATUS_LABELS[nextStatus]}`
+				)}
+			</Button>
+		</>
+	);
+}
+
 interface OrderActionsPanelProps {
 	branches: BranchOption[];
 	canAddNote: boolean;
@@ -70,22 +297,23 @@ export function OrderActionsPanel({
 	const isTerminal = order.status === "canceled" || order.status === "refunded";
 	const canDoPrimaryTransition =
 		nextStatus === "canceled" ? canCancel : canUpdateStatus;
+	const showCancelException =
+		canCancel &&
+		(order.status === "pending_payment" || order.status === "payment_failed");
+	const showReturnException = canUpdateStatus && order.status === "delivered";
+	const showRefundException =
+		canRefund &&
+		(order.status === "paid" ||
+			order.status === "preparing" ||
+			order.status === "shipped" ||
+			order.status === "returned");
 
 	function handleAssignBranch() {
 		if (!branchId) {
 			toast.error("Selecione uma filial");
 			return;
 		}
-
-		startTransition(async () => {
-			const result = await assignBranch({ orderId: order.id, branchId });
-			if (!result.ok) {
-				toast.error(result.error);
-				return;
-			}
-			toast.success("Filial atribuída");
-			router.refresh();
-		});
+		startTransition(() => runAssignBranch(order.id, branchId, router.refresh));
 	}
 
 	function handleTrackingUpdate() {
@@ -93,19 +321,9 @@ export function OrderActionsPanel({
 			toast.error("Informe um código de rastreio");
 			return;
 		}
-
-		startTransition(async () => {
-			const result = await updateTrackingCode({
-				orderId: order.id,
-				trackingCode: trackingCode.trim(),
-			});
-			if (!result.ok) {
-				toast.error(result.error);
-				return;
-			}
-			toast.success("Rastreio atualizado");
-			router.refresh();
-		});
+		startTransition(() =>
+			runTrackingUpdate(order.id, trackingCode.trim(), router.refresh)
+		);
 	}
 
 	function handleAddNote() {
@@ -113,47 +331,26 @@ export function OrderActionsPanel({
 			toast.error("Escreva uma nota");
 			return;
 		}
-
-		startTransition(async () => {
-			const result = await addOrderNote({
-				orderId: order.id,
-				body: noteBody.trim(),
-			});
-			if (!result.ok) {
-				toast.error(result.error);
-				return;
-			}
-			setNoteBody("");
-			toast.success("Nota adicionada");
-			router.refresh();
-		});
+		startTransition(() =>
+			runAddNote(order.id, noteBody.trim(), setNoteBody, router.refresh)
+		);
 	}
 
 	function handlePrimaryStatusUpdate() {
 		if (!nextStatus) {
 			return;
 		}
-
-		startTransition(async () => {
-			const result = await updateOrderStatus({
-				orderId: order.id,
-				toStatus: nextStatus,
-				reason: statusReason.trim() || undefined,
-				trackingCode:
-					nextStatus === "shipped"
-						? trackingCode.trim() || undefined
-						: undefined,
-				branchId:
-					nextStatus === "preparing" ? branchId || undefined : undefined,
-			});
-			if (!result.ok) {
-				toast.error(result.error);
-				return;
-			}
-			setStatusReason("");
-			toast.success(`Pedido movido para ${ORDER_STATUS_LABELS[nextStatus]}`);
-			router.refresh();
-		});
+		startTransition(() =>
+			runPrimaryStatusUpdate(
+				order.id,
+				nextStatus,
+				statusReason.trim(),
+				trackingCode.trim(),
+				branchId,
+				setStatusReason,
+				router.refresh
+			)
+		);
 	}
 
 	return (
@@ -166,119 +363,23 @@ export function OrderActionsPanel({
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-3">
-					{nextStatus ? (
-						<>
-							<div className="space-y-1">
-								<label
-									className="text-muted-foreground text-xs"
-									htmlFor="status-reason"
-								>
-									Observação da transição
-								</label>
-								<Textarea
-									id="status-reason"
-									onChange={(event) => setStatusReason(event.target.value)}
-									placeholder="Opcional. Motivo operacional visível na timeline."
-									value={statusReason}
-								/>
-							</div>
-
-							{order.status === "paid" && (
-								<div className="space-y-1">
-									<label
-										className="text-muted-foreground text-xs"
-										htmlFor="branch-assign"
-									>
-										Filial responsável
-									</label>
-									<div className="flex gap-2">
-										<Select
-											onValueChange={(v) =>
-												setBranchId(!v || v === "__none__" ? "" : v)
-											}
-											value={branchId || "__none__"}
-										>
-											<SelectTrigger id="branch-assign">
-												<SelectValue>
-													{(v: string) =>
-														v === "__none__"
-															? "Selecionar filial"
-															: (branches.find((b) => b.id === v)?.name ??
-																"Selecionar filial")
-													}
-												</SelectValue>
-											</SelectTrigger>
-											<SelectContent>
-												<SelectGroup>
-													<SelectItem value="__none__">
-														Selecionar filial
-													</SelectItem>
-													{branches.map((branch) => (
-														<SelectItem key={branch.id} value={branch.id}>
-															{branch.name}
-														</SelectItem>
-													))}
-												</SelectGroup>
-											</SelectContent>
-										</Select>
-										<Button
-											disabled={isPending || !branchId}
-											onClick={handleAssignBranch}
-											variant="outline"
-										>
-											Salvar
-										</Button>
-									</div>
-								</div>
-							)}
-
-							{order.status === "preparing" && (
-								<div className="space-y-1">
-									<label
-										className="text-muted-foreground text-xs"
-										htmlFor="tracking-code"
-									>
-										Código de rastreio
-									</label>
-									<div className="flex gap-2">
-										<Input
-											id="tracking-code"
-											onChange={(event) => setTrackingCode(event.target.value)}
-											placeholder="Ex: BR123456789"
-											value={trackingCode}
-										/>
-										<Button
-											disabled={isPending || !trackingCode.trim()}
-											onClick={handleTrackingUpdate}
-											variant="outline"
-										>
-											Salvar
-										</Button>
-									</div>
-								</div>
-							)}
-
-							<Button
-								disabled={isPending || !canDoPrimaryTransition}
-								onClick={handlePrimaryStatusUpdate}
-								variant="default"
-							>
-								{isPending ? (
-									<>
-										<Spinner /> Salvando…
-									</>
-								) : (
-									`Marcar como ${ORDER_STATUS_LABELS[nextStatus]}`
-								)}
-							</Button>
-						</>
-					) : (
-						<p className="text-muted-foreground text-sm">
-							{isTerminal
-								? "Este pedido já está em estado final."
-								: "Sem ação primária — use o painel de exceções abaixo."}
-						</p>
-					)}
+					<PrimaryActionContent
+						branches={branches}
+						branchId={branchId}
+						canDoPrimaryTransition={canDoPrimaryTransition}
+						isPending={isPending}
+						isTerminal={isTerminal}
+						nextStatus={nextStatus}
+						onAssignBranch={handleAssignBranch}
+						onPrimaryStatusUpdate={handlePrimaryStatusUpdate}
+						onTrackingUpdate={handleTrackingUpdate}
+						order={order}
+						setBranchId={setBranchId}
+						setStatusReason={setStatusReason}
+						setTrackingCode={setTrackingCode}
+						statusReason={statusReason}
+						trackingCode={trackingCode}
+					/>
 				</CardContent>
 			</Card>
 
@@ -291,19 +392,17 @@ export function OrderActionsPanel({
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-wrap gap-2">
-					{canCancel &&
-						(order.status === "pending_payment" ||
-							order.status === "payment_failed") && (
-							<StockReturnDialog
-								branches={branches}
-								currentBranchId={order.branchId}
-								items={order.items}
-								orderId={order.id}
-								toStatus="canceled"
-								triggerLabel="Cancelar pedido"
-							/>
-						)}
-					{canUpdateStatus && order.status === "delivered" && (
+					{showCancelException && (
+						<StockReturnDialog
+							branches={branches}
+							currentBranchId={order.branchId}
+							items={order.items}
+							orderId={order.id}
+							toStatus="canceled"
+							triggerLabel="Cancelar pedido"
+						/>
+					)}
+					{showReturnException && (
 						<StockReturnDialog
 							branches={branches}
 							currentBranchId={order.branchId}
@@ -313,13 +412,7 @@ export function OrderActionsPanel({
 							triggerLabel="Registrar devolução"
 						/>
 					)}
-					{canRefund &&
-						(order.status === "paid" ||
-							order.status === "preparing" ||
-							order.status === "shipped" ||
-							order.status === "returned") && (
-							<RefundDialog orderId={order.id} />
-						)}
+					{showRefundException && <RefundDialog orderId={order.id} />}
 				</CardContent>
 			</Card>
 
