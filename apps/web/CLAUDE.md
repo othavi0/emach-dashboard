@@ -96,8 +96,7 @@ Adotar `cacheTag` por feature (`'orders'`, `'customers'`, `'site-banners'`...). 
 
 Ao inserir em `stockMovement`, `orderStatusHistory` ou `clientAuditLog` (mutação de cliente pelo staff):
 - Quando origem é admin user: `actorType: "user"` + `actorId: session.user.id`.
-- Quando origem é apiKey externa (site ecomerce): `actorType: "apiKey"` + `apiKeyId: key.id`.
-- Quando origem é seed/script automático: `actorType: "system"` (default), sem actorId/apiKeyId.
+- Quando origem é seed/script/mutação automática (inclui escritas do app e-commerce): `actorType: "system"` (default), sem actorId.
 
 CHECK `actor_coherence` no DB rejeita combinações inválidas.
 
