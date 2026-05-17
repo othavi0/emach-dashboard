@@ -4,11 +4,9 @@ import { type ConsentKind, consentLog } from "@emach/db/schema/consent-log";
 import { and, desc, eq, isNull } from "drizzle-orm";
 
 interface ConsentInput {
-	actorType: "client" | "lead";
-	clientId?: string;
+	clientId: string;
 	granted: boolean;
 	kind: ConsentKind;
-	leadId?: string;
 	request: Request;
 	version: string;
 }
@@ -20,9 +18,7 @@ export async function logConsent(input: ConsentInput): Promise<void> {
 
 	await db.insert(consentLog).values({
 		id: crypto.randomUUID(),
-		actorType: input.actorType,
 		clientId: input.clientId,
-		leadId: input.leadId,
 		kind: input.kind,
 		granted: input.granted,
 		version: input.version,
