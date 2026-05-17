@@ -1,5 +1,5 @@
 import type { OrderStatus } from "@emach/db/schema/orders";
-import { orderStatusEnum, paymentStatusEnum } from "@emach/db/schema/orders";
+import { orderStatusEnum } from "@emach/db/schema/orders";
 import { z } from "zod";
 
 const isoDate = z
@@ -14,7 +14,6 @@ export const ordersListFiltersSchema = z
 		from: isoDate,
 		to: isoDate,
 		branchId: z.string().uuid().optional(),
-		paymentStatus: z.enum(paymentStatusEnum.enumValues).optional(),
 		page: z.coerce.number().int().min(1).default(1),
 		pageSize: z.coerce.number().int().min(1).max(100).default(20),
 	})
@@ -32,32 +31,40 @@ export type OrdersListFiltersInput = z.input<typeof ordersListFiltersSchema>;
 export type OrdersListFiltersParsed = z.infer<typeof ordersListFiltersSchema>;
 
 export const ALL_ORDER_STATUSES = orderStatusEnum.enumValues;
-export const ALL_PAYMENT_STATUSES = paymentStatusEnum.enumValues;
 
 const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-	pending_payment: ["canceled"],
-	paid: ["preparing", "canceled", "refunded"],
-	preparing: ["shipped", "canceled"],
-	shipped: ["delivered", "canceled"],
-	delivered: [],
+	pending_payment: ["paid", "payment_failed", "canceled"],
+	payment_failed: ["pending_payment", "canceled"],
+	paid: ["preparing", "refunded"],
+	preparing: ["shipped", "refunded"],
+	shipped: ["delivered", "refunded"],
+	delivered: ["returned"],
+	returned: ["refunded"],
 	canceled: [],
 	refunded: [],
 };
 
 export { VALID_TRANSITIONS };
 
+export type OrderStatusCapability =
+	| "orders.cancel"
+	| "orders.refund"
+	| "orders.update_status";
+
+export function capForStatus(toStatus: OrderStatus): OrderStatusCapability {
+	if (toStatus === "canceled") {
+		return "orders.cancel";
+	}
+	if (toStatus === "refunded") {
+		return "orders.refund";
+	}
+	return "orders.update_status";
+}
+
 export const updateOrderStatusSchema = z
 	.object({
 		orderId: z.string().uuid(),
-		toStatus: z.enum([
-			"pending_payment",
-			"paid",
-			"preparing",
-			"shipped",
-			"delivered",
-			"canceled",
-			"refunded",
-		]),
+		toStatus: z.enum(orderStatusEnum.enumValues),
 		reason: z.string().max(500).optional(),
 		trackingCode: z.string().trim().min(1).max(200).optional(),
 		branchId: z.string().uuid().optional(),
