@@ -34,7 +34,7 @@ PostgreSQL + Drizzle ORM via Supabase.
 ```bash
 bun db:push                                  # dev: schema → DB sem migration
 bun --cwd packages/db db:apply-triggers      # triggers PL/pgSQL (anti-ciclo + idempotência)
-bun --cwd packages/db db:seed-categories     # bootstrap 5 categorias raiz
+bun --cwd packages/db db:seed-categories     # bootstrap 4 categorias raiz
 bun --cwd packages/db db:seed-attributes     # attribute_definitions iniciais
 ```
 
@@ -114,7 +114,7 @@ emach-dashboard/
 | `bun db:migrate`                                    | Aplica migrations pendentes (prod/staging)                                |
 | `bun db:studio`                                     | UI inspetora de tabelas (drizzle-kit)                                     |
 | `bun --cwd packages/db db:apply-triggers`           | Aplica `src/migrations/_triggers.sql` (anti-ciclo + idempotência)         |
-| `bun --cwd packages/db db:seed-categories`          | Bootstrap 5 categorias raiz                                               |
+| `bun --cwd packages/db db:seed-categories`          | Bootstrap 4 categorias raiz                                               |
 | `bun --cwd packages/db db:seed-attributes`          | Bootstrap `attribute_definitions` iniciais por categoria                  |
 | `bun --cwd packages/db db:anonymize-client <id>`    | LGPD direito ao esquecimento                                              |
 | `bun clean`                                         | Remove `node_modules` + caches Turbo/Next                                 |

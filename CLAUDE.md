@@ -91,7 +91,7 @@ bun db:generate                    # cria SQL de migration versionada
 bun db:migrate                     # aplica migrations pendentes
 
 # DB scripts utilitários (em packages/db)
-bun --cwd packages/db db:seed-categories       # bootstrap 5 categorias raiz
+bun --cwd packages/db db:seed-categories       # bootstrap 4 categorias raiz
 bun --cwd packages/db db:seed-attributes       # bootstrap attribute_definitions iniciais por categoria
 bun --cwd packages/db db:apply-indexes         # aplica _indexes.sql (índices fora do schema Drizzle)
 
