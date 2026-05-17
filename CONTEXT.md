@@ -118,7 +118,7 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 
 ## Ambiguidades resolvidas
 
-- **Review sem Order** — o schema de `review` permite `orderId` nulo e traz o flag `verifiedPurchase`, sugerindo Reviews não-verificadas. Resolvido: toda Review exige compra verificada; `orderId` é sempre preenchido e `verifiedPurchase` é sempre `true`. Os dois pontos são flexibilidade morta do schema — `verifiedPurchase` é candidato a remoção.
+- **Review sem Order** — resolvido (issue #36): `review.order_id` é NOT NULL e a coluna `verified_purchase` foi removida. `canCreateReview` é o único caminho de criação; a feature de avaliação editorial (review sem pedido) foi eliminada.
 - **`out_of_stock` × estoque real** — `Tool.status` tem o valor `out_of_stock`, mas estoque é calculado por variante × filial. Resolvido: `out_of_stock` é um rótulo manual e intencional, desacoplado do Stock Level — não é um status derivado.
 - **Lead** — o schema de `consent_log` antecipa um ator `lead` (enum `consent_actor`, coluna `leadId`). Resolvido: Lead não é um conceito do domínio — todo contato é um Client registrado. Esses artefatos de schema são código morto a remover. Ver ADR-0003.
 - **API Key** — o schema traz a tabela `api_key`, o valor `apiKey` no enum `actor_type` e colunas `actorApiKeyId` / `apiKeyId`. Resolvido: não há API entre os apps — admin e e-commerce só compartilham o banco. API Keys são legado a remover; `actor_type` colapsa em `user` / `system`. Ver ADR-0004.
