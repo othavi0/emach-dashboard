@@ -91,7 +91,7 @@ bun db:generate                    # cria SQL de migration versionada
 bun db:migrate                     # aplica migrations pendentes
 
 # DB scripts utilitários (em packages/db)
-bun --cwd packages/db db:seed-categories       # bootstrap 5 categorias raiz
+bun --cwd packages/db db:seed-categories       # bootstrap 4 categorias raiz
 bun --cwd packages/db db:seed-attributes       # bootstrap attribute_definitions iniciais por categoria
 bun --cwd packages/db db:apply-indexes         # aplica _indexes.sql (índices fora do schema Drizzle)
 
@@ -163,7 +163,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 
 **Especificações técnicas dinâmicas — herança:**
 
-- `attribute_definition.categoryId` é **NOT NULL** — não há atributo global. A categoria-raiz catch-all "Sem Categoria" (slug `sem-categoria`) recebeu os anteriormente globais durante a migration. Nota: essa raiz é um smell — ver ADR/CONTEXT.md, a associação Tool–Category deve virar obrigatória.
+- `attribute_definition.categoryId` é **NOT NULL** — não há atributo global; toda `attribute_definition` pertence a uma categoria real. Toda Tool tem ≥1 Category real (uma primary) — não existe categoria-raiz catch-all (issue #41).
 - Ao montar form de uma ferramenta, server action carrega definitions cuja `categoryId` está em `category.path` da categoria primary do tool (recursão via CTE em `tools/actions.ts`).
 - Ao trocar a categoria primary de uma ferramenta, `updateTool` detecta valores órfãos (`tool_attribute_value` cuja `attribute_definition` não está mais no path da nova categoria) e devolve `actionResult.warning = "orphan_attributes"`. Form pede confirmação antes de deletar.
 
