@@ -154,9 +154,6 @@ export function OrderDetailInfo({ order }: { order: OrderDetail }) {
 					</CardHeader>
 					<CardContent className="space-y-2 text-sm">
 						<p>
-							<strong>Status:</strong> {order.paymentStatus}
-						</p>
-						<p>
 							<strong>Método:</strong> {order.paymentMethod ?? "—"}
 						</p>
 						<p>
