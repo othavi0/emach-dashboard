@@ -15,7 +15,6 @@ const COLUMNS = [
 	"number",
 	"created_at",
 	"status",
-	"payment_status",
 	"client_name",
 	"client_email",
 	"client_document",
@@ -98,9 +97,6 @@ export async function GET(req: Request) {
 			sql`o.created_at < (${filters.to}::date + INTERVAL '1 day')`
 		);
 	}
-	if (filters.paymentStatus) {
-		conditions.push(sql`o.payment_status = ${filters.paymentStatus}`);
-	}
 	const where = conditions.length
 		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
 		: sql``;
@@ -131,7 +127,6 @@ export async function GET(req: Request) {
 					number: string;
 					created_at: Date;
 					status: string;
-					payment_status: string;
 					client_name: string;
 					client_email: string;
 					client_document: string | null;
@@ -146,7 +141,6 @@ export async function GET(req: Request) {
 						o.number,
 						o.created_at,
 						o.status,
-						o.payment_status,
 						c.name AS client_name,
 						c.email AS client_email,
 						c.document AS client_document,
@@ -174,7 +168,6 @@ export async function GET(req: Request) {
 							r.number,
 							toDate(r.created_at),
 							r.status,
-							r.payment_status,
 							r.client_name,
 							r.client_email,
 							r.client_document,
