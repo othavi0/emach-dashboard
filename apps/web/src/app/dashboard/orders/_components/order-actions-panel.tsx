@@ -30,10 +30,12 @@ import {
 } from "../actions";
 import type { BranchOption, OrderDetail, OrderStatus } from "../data";
 import { ORDER_STATUS_LABELS } from "../status-meta";
+import { RefundDialog } from "./refund-dialog";
 import { StockReturnDialog } from "./stock-return-dialog";
 
 const PRIMARY_TRANSITION: Partial<Record<OrderStatus, OrderStatus>> = {
 	pending_payment: "canceled",
+	payment_failed: "canceled",
 	paid: "preparing",
 	preparing: "shipped",
 	shipped: "delivered",
@@ -65,6 +67,7 @@ export function OrderActionsPanel({
 	const [statusReason, setStatusReason] = useState("");
 	const [isPending, startTransition] = useTransition();
 	const nextStatus = PRIMARY_TRANSITION[order.status];
+	const isTerminal = order.status === "canceled" || order.status === "refunded";
 	const canDoPrimaryTransition =
 		nextStatus === "canceled" ? canCancel : canUpdateStatus;
 
@@ -271,7 +274,9 @@ export function OrderActionsPanel({
 						</>
 					) : (
 						<p className="text-muted-foreground text-sm">
-							Este pedido já está em estado final.
+							{isTerminal
+								? "Este pedido já está em estado final."
+								: "Sem ação primária — use o painel de exceções abaixo."}
 						</p>
 					)}
 				</CardContent>
@@ -281,13 +286,14 @@ export function OrderActionsPanel({
 				<CardHeader>
 					<CardTitle>Exceções</CardTitle>
 					<CardDescription>
-						Cancelamento ou reembolso com devolução semi-manual ao estoque.
+						Cancelamento, devolução ao estoque e reembolso fora do fluxo
+						principal.
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-wrap gap-2">
 					{canCancel &&
-						order.status !== "canceled" &&
-						order.status !== "refunded" && (
+						(order.status === "pending_payment" ||
+							order.status === "payment_failed") && (
 							<StockReturnDialog
 								branches={branches}
 								currentBranchId={order.branchId}
@@ -297,17 +303,22 @@ export function OrderActionsPanel({
 								triggerLabel="Cancelar pedido"
 							/>
 						)}
+					{canUpdateStatus && order.status === "delivered" && (
+						<StockReturnDialog
+							branches={branches}
+							currentBranchId={order.branchId}
+							items={order.items}
+							orderId={order.id}
+							toStatus="returned"
+							triggerLabel="Registrar devolução"
+						/>
+					)}
 					{canRefund &&
-						order.status !== "refunded" &&
-						order.status !== "delivered" && (
-							<StockReturnDialog
-								branches={branches}
-								currentBranchId={order.branchId}
-								items={order.items}
-								orderId={order.id}
-								toStatus="refunded"
-								triggerLabel="Marcar como reembolsado"
-							/>
+						(order.status === "paid" ||
+							order.status === "preparing" ||
+							order.status === "shipped" ||
+							order.status === "returned") && (
+							<RefundDialog orderId={order.id} />
 						)}
 				</CardContent>
 			</Card>
