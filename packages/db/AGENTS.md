@@ -20,7 +20,7 @@ Drizzle 0.45 + node-postgres + Supabase Postgres. Schemas em `src/schema/*.ts`, 
 2. Money produto: `numeric(10, 2)`. Money totais de pedido: `numeric(12, 2)`. Nunca `real`/`double`.
 3. FKs sempre com `onDelete` explícito (`cascade` / `restrict` / `set null`).
 4. Enums via `pgEnum`, derivar tipo: `(typeof enumName.enumValues)[number]`.
-5. Auditoria: tabelas de movimento incluem `actorType` + `actorId` + `apiKeyId` + CHECK `actor_coherence`.
+5. Auditoria: tabelas de movimento incluem `actorType` (`user`/`system`) + `actorId` (FK user) + CHECK `actor_coherence`.
 6. Triggers PL/pgSQL ficam em `src/migrations/_triggers.sql` (Drizzle-kit não gera). Aplicar com `bun db:apply-triggers` após qualquer push/migrate.
 7. `stock_level`, `stock_movement`, `order_item` referenciam `tool_variant.id` — **não** `tool.id`. Mudanças nessas FKs exigem coordenação com app ecomerce.
 

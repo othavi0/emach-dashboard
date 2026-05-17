@@ -29,7 +29,7 @@ bun db:apply-triggers   # idempotente (CREATE OR REPLACE FUNCTION + DROP TRIGGER
 - Money: `numeric(10, 2)` para preço/custo de produto (`tool_variant.priceAmount`, `costAmount`); `numeric(12, 2)` em totais de pedido (`order.totalAmount`). Nunca `real`/`double`.
 - Listas pequenas: `text[]` (Postgres array, GIN-friendly) ou tabela própria se for ≥ entidade.
 - JSONB com schema livre: `jsonb("col").$type<MyShape>()` + parser cuidadoso ao ler. Ex: `attribute_definition.options`.
-- Auditoria: tabelas de movimento incluem `actorType pgEnum('actor_type', ['user','apiKey','system'])` + `actorId` (FK user) + `apiKeyId` (FK apiKey). CHECK garante coerência (`actor_coherence`).
+- Auditoria: tabelas de movimento incluem `actorType pgEnum('actor_type', ['user','system'])` + `actorId` (FK user). CHECK garante coerência (`actor_coherence`).
 - Partial unique index para "no máximo 1 marcado": ex `tool_variant.isDefault` usa `uniqueIndex(...).on(toolId).where(sql\`${isDefault} = true\`)` para garantir 1 default por tool.
 
 ## Exports

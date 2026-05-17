@@ -36,6 +36,13 @@
       "when": 1778865870141,
       "tag": "0004_drop_category_image_url",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779050484185,
+      "tag": "0005_magenta_microchip",
+      "breakpoints": true
     }
   ]
 }

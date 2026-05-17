@@ -1,5 +1,4 @@
 import { db } from "@emach/db";
-import { apiKey } from "@emach/db/schema/api-keys";
 import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
 import { toDate } from "@emach/db/utils";
@@ -151,15 +150,11 @@ function resolveTab(tab?: string) {
 }
 
 function formatActorLabel(entry: {
-	actorApiKeyName: string | null;
-	actorType: "apiKey" | "system" | "user";
+	actorType: "system" | "user";
 	actorUserName: string | null;
 }) {
 	if (entry.actorType === "system") {
 		return "Sistema";
-	}
-	if (entry.actorType === "apiKey") {
-		return entry.actorApiKeyName ?? "API key";
 	}
 	return entry.actorUserName ?? "Usuário";
 }
@@ -633,7 +628,6 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			.orderBy(asc(orderItem.name)),
 		db
 			.select({
-				actorApiKeyName: apiKey.name,
 				actorType: orderStatusHistory.actorType,
 				actorUserName: user.name,
 				createdAt: orderStatusHistory.createdAt,
@@ -644,7 +638,6 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			})
 			.from(orderStatusHistory)
 			.leftJoin(user, eq(orderStatusHistory.actorUserId, user.id))
-			.leftJoin(apiKey, eq(orderStatusHistory.actorApiKeyId, apiKey.id))
 			.where(eq(orderStatusHistory.orderId, id))
 			.orderBy(desc(orderStatusHistory.createdAt)),
 		db
