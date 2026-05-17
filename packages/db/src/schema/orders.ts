@@ -19,6 +19,8 @@ import { tool, toolVariant } from "./tools";
 
 // --- Enums ---
 
+// A ordem reflete o DB, não o ciclo de vida lógico: Postgres ALTER TYPE
+// só faz ADD VALUE no fim. Não reordenar — quebraria o sync com o snapshot.
 export const orderStatusEnum = pgEnum("order_status", [
 	"pending_payment",
 	"paid",
