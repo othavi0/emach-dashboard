@@ -6,6 +6,7 @@ import {
 	pgTable,
 	text,
 	timestamp,
+	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -56,6 +57,9 @@ export const stockMovement = pgTable(
 		),
 		index("stock_movement_order_idx").on(table.orderId),
 		index("stock_movement_actor_idx").on(table.actorType, table.actorId),
+		uniqueIndex("stock_movement_sale_idempotency")
+			.on(table.orderItemId)
+			.where(sql`reason = 'saida_venda' AND order_item_id IS NOT NULL`),
 		check("delta_non_zero", sql`${table.delta} <> 0`),
 		check(
 			"actor_coherence",

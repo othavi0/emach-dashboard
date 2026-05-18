@@ -1,5 +1,6 @@
 -- Trigger: prevent_category_cycle (anti-ciclo + path/depth materializados)
-CREATE OR REPLACE FUNCTION prevent_category_cycle() RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION prevent_category_cycle() RETURNS trigger
+LANGUAGE plpgsql SET search_path = '' AS $$
 DECLARE
   cycle_found boolean;
   parent_path text;
@@ -12,10 +13,10 @@ BEGIN
   END IF;
 
   WITH RECURSIVE ancestors AS (
-    SELECT id, parent_id, 1 AS hops FROM category WHERE id = NEW.parent_id
+    SELECT id, parent_id, 1 AS hops FROM public.category WHERE id = NEW.parent_id
     UNION ALL
     SELECT c.id, c.parent_id, a.hops + 1
-    FROM category c JOIN ancestors a ON c.id = a.parent_id
+    FROM public.category c JOIN ancestors a ON c.id = a.parent_id
     WHERE a.hops < 10
   )
   SELECT EXISTS(SELECT 1 FROM ancestors WHERE id = NEW.id) INTO cycle_found;
@@ -24,12 +25,12 @@ BEGIN
     RAISE EXCEPTION 'category cycle detected for id %', NEW.id USING ERRCODE = 'P0001';
   END IF;
 
-  SELECT path, depth INTO parent_path, parent_depth FROM category WHERE id = NEW.parent_id;
+  SELECT path, depth INTO parent_path, parent_depth FROM public.category WHERE id = NEW.parent_id;
   NEW.path := parent_path || '/' || NEW.slug;
   NEW.depth := parent_depth + 1;
 
   RETURN NEW;
-END $$ LANGUAGE plpgsql;
+END $$;
 
 DROP TRIGGER IF EXISTS trg_prevent_category_cycle ON category;
 CREATE TRIGGER trg_prevent_category_cycle
@@ -37,23 +38,19 @@ BEFORE INSERT OR UPDATE OF parent_id, slug ON category
 FOR EACH ROW EXECUTE FUNCTION prevent_category_cycle();
 
 -- Trigger AFTER: propaga path/depth para descendentes via re-trigger BEFORE no-op.
-CREATE OR REPLACE FUNCTION cascade_category_path() RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION cascade_category_path() RETURNS trigger
+LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
   IF NEW.path IS DISTINCT FROM OLD.path THEN
-    UPDATE category SET parent_id = parent_id WHERE parent_id = NEW.id;
+    UPDATE public.category SET parent_id = parent_id WHERE parent_id = NEW.id;
   END IF;
   RETURN NEW;
-END $$ LANGUAGE plpgsql;
+END $$;
 
 DROP TRIGGER IF EXISTS trg_cascade_category_path ON category;
 CREATE TRIGGER trg_cascade_category_path
 AFTER UPDATE OF path ON category
 FOR EACH ROW EXECUTE FUNCTION cascade_category_path();
-
--- Idempotência de débito de venda
-CREATE UNIQUE INDEX IF NOT EXISTS stock_movement_sale_idempotency
-ON stock_movement (order_item_id)
-WHERE reason = 'saida_venda' AND order_item_id IS NOT NULL;
 
 -- Sequence para número do pedido (formato YYYY-000NNN)
 CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1;
@@ -61,16 +58,17 @@ CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1;
 -- =============================================================
 -- client.last_seen_at: throttle 5min em update via client_session
 -- =============================================================
-CREATE OR REPLACE FUNCTION update_client_last_seen() RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION update_client_last_seen() RETURNS trigger
+LANGUAGE plpgsql SET search_path = '' AS $$
 DECLARE
   current_last timestamp;
 BEGIN
-  SELECT last_seen_at INTO current_last FROM client WHERE id = NEW.user_id;
+  SELECT last_seen_at INTO current_last FROM public.client WHERE id = NEW.user_id;
   IF current_last IS NULL OR NEW.updated_at > current_last + INTERVAL '5 minutes' THEN
-    UPDATE client SET last_seen_at = NEW.updated_at WHERE id = NEW.user_id;
+    UPDATE public.client SET last_seen_at = NEW.updated_at WHERE id = NEW.user_id;
   END IF;
   RETURN NEW;
-END $$ LANGUAGE plpgsql;
+END $$;
 
 DROP TRIGGER IF EXISTS trg_update_client_last_seen ON client_session;
 CREATE TRIGGER trg_update_client_last_seen
@@ -82,7 +80,8 @@ FOR EACH ROW EXECUTE FUNCTION update_client_last_seen();
 -- LENGTH=11 → b2c (CPF), LENGTH=14 → b2b (CNPJ), NULL → null
 -- Override manual respeitado: só sobrescreve se NEW.client_type == OLD.client_type.
 -- =============================================================
-CREATE OR REPLACE FUNCTION derive_client_type() RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION derive_client_type() RETURNS trigger
+LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
   IF TG_OP = 'INSERT' OR (TG_OP = 'UPDATE' AND NEW.client_type IS NOT DISTINCT FROM OLD.client_type) THEN
     IF NEW.document IS NULL THEN
@@ -94,7 +93,7 @@ BEGIN
     END IF;
   END IF;
   RETURN NEW;
-END $$ LANGUAGE plpgsql;
+END $$;
 
 DROP TRIGGER IF EXISTS trg_derive_client_type ON client;
 CREATE TRIGGER trg_derive_client_type
