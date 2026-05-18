@@ -2,6 +2,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "../src/index";
 import { seedCatalog } from "./seed/catalog";
+import { seedClients } from "./seed/clients";
 import { emptyContext } from "./seed/context";
 import { seedCore } from "./seed/core";
 import { seedInventory } from "./seed/inventory";
@@ -23,7 +24,8 @@ async function main() {
 		await seedCore(tx, ctx);
 		await seedCatalog(tx, ctx);
 		await seedInventory(tx, ctx);
-		// módulos adicionados nas Tasks 5-8
+		await seedClients(tx, ctx);
+		// módulos adicionados nas Tasks 6-8
 		void ctx;
 	});
 	console.log("[seed-demo] OK");
