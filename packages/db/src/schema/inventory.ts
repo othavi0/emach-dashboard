@@ -28,6 +28,7 @@ export const branch = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("branch_created_idx").on(table.createdAt.desc(), table.id.desc()),
 		uniqueIndex("branch_is_default_unique")
 			.on(table.isDefault)
 			.where(sql`${table.isDefault} = true`),
