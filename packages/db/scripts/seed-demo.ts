@@ -4,6 +4,7 @@ import { db } from "../src/index";
 import { seedCatalog } from "./seed/catalog";
 import { emptyContext } from "./seed/context";
 import { seedCore } from "./seed/core";
+import { seedInventory } from "./seed/inventory";
 import { truncateDemo } from "./seed/truncate";
 
 async function main() {
@@ -21,7 +22,8 @@ async function main() {
 		await truncateDemo(tx);
 		await seedCore(tx, ctx);
 		await seedCatalog(tx, ctx);
-		// módulos adicionados nas Tasks 4-8
+		await seedInventory(tx, ctx);
+		// módulos adicionados nas Tasks 5-8
 		void ctx;
 	});
 	console.log("[seed-demo] OK");
