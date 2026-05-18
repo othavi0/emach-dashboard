@@ -23,18 +23,24 @@ export const voltageEnum = pgEnum("voltage", [
 ]);
 export type Voltage = (typeof voltageEnum.enumValues)[number];
 
-export const supplier = pgTable("supplier", {
-	id: text("id").primaryKey(),
-	name: text("name").notNull(),
-	contactEmail: text("contact_email"),
-	phone: text("phone"),
-	notes: text("notes"),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-	updatedAt: timestamp("updated_at")
-		.defaultNow()
-		.$onUpdate(() => /* @__PURE__ */ new Date())
-		.notNull(),
-});
+export const supplier = pgTable(
+	"supplier",
+	{
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		contactEmail: text("contact_email"),
+		phone: text("phone"),
+		notes: text("notes"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("supplier_created_idx").on(table.createdAt.desc(), table.id.desc()),
+	]
+);
 
 export const tool = pgTable(
 	"tool",
@@ -66,6 +72,7 @@ export const tool = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("tool_created_idx").on(table.createdAt.desc(), table.id.desc()),
 		index("tool_supplier_id_idx").on(table.supplierId),
 		index("tool_model_idx").on(table.model),
 		index("tool_invoice_model_idx").on(table.invoiceModel),
