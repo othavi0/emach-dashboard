@@ -13,12 +13,14 @@ import {
 	orderStatusHistory,
 } from "@emach/db/schema/orders";
 import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import type { ActivityEvent } from "@/components/activity-feed";
+import type { PendingRow } from "@/components/pending-panel";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 import { createSignedUrl, ORDER_DOCUMENTS_BUCKET } from "@/lib/storage";
-import { ORDER_TABS } from "./status-meta";
+import { ORDER_STATUS_LABELS, ORDER_TABS } from "./status-meta";
 
 export const ORDERS_PAGE_SIZE = 20;
 
@@ -835,4 +837,139 @@ export async function getOrderKpis(): Promise<OrderKpis> {
 		averageTicket: Number(row?.average_ticket ?? 0),
 		paidPercent: Number(row?.paid_percent ?? 0),
 	};
+}
+
+const PENDING_ORDER_BADGE: Record<string, NonNullable<PendingRow["badge"]>> = {
+	pending_payment: { label: "Aguardando pgto", role: "warning" },
+	paid: { label: "Pago", role: "warning" },
+	preparing: { label: "Preparando", role: "info" },
+	shipped: { label: "Enviado", role: "info" },
+};
+
+export async function fetchPendingOrdersPage({
+	statuses,
+	cursor,
+}: {
+	statuses: OrderStatus[];
+	cursor: string | null;
+}): Promise<InfiniteResult<PendingRow>> {
+	const session = await requireCurrentSession();
+	const scope = await getUserBranchScope(session);
+	if (scope !== null && scope.length === 0) {
+		return { items: [], nextCursor: null };
+	}
+	const conditions = [
+		sql`o.status IN (${sql.join(
+			statuses.map((s) => sql`${s}`),
+			sql`, `
+		)})`,
+	];
+	if (scope !== null) {
+		conditions.push(
+			sql`o.branch_id IN (${sql.join(
+				scope.map((id) => sql`${id}`),
+				sql`, `
+			)})`
+		);
+	}
+	if (cursor) {
+		const c = decodeCursor(cursor);
+		if (c.sort !== "newest") {
+			throw new Error("Cursor incompatível: esperado newest");
+		}
+		conditions.push(
+			sql`(o.created_at, o.id) < (${c.createdAt}::timestamptz, ${c.id})`
+		);
+	}
+	const rows = await db.execute<{
+		client_name: string;
+		created_at: Date;
+		id: string;
+		number: string;
+		status: OrderStatus;
+	}>(sql`
+		SELECT o.id, o.number, o.status, o.created_at, c.name AS client_name
+		FROM "order" o
+		JOIN client c ON c.id = o.client_id
+		WHERE ${sql.join(conditions, sql` AND `)}
+		ORDER BY o.created_at DESC, o.id DESC
+		LIMIT ${BATCH_SIZE + 1}
+	`);
+	const mapped = rows.rows.map(
+		(r): PendingRow => ({
+			id: r.id,
+			href: `/dashboard/orders/${r.id}`,
+			primary: `#${r.number} · ${r.client_name}`,
+			badge: PENDING_ORDER_BADGE[r.status] ?? {
+				label: r.status,
+				role: "info",
+			},
+		})
+	);
+	const hasMore = mapped.length > BATCH_SIZE;
+	const items = hasMore ? mapped.slice(0, BATCH_SIZE) : mapped;
+	const lastRaw = hasMore ? rows.rows[BATCH_SIZE - 1] : undefined;
+	const nextCursor =
+		hasMore && lastRaw
+			? encodeCursor({
+					v: 1,
+					sort: "newest",
+					createdAt: toDate(lastRaw.created_at).toISOString(),
+					id: lastRaw.id,
+				})
+			: null;
+	return { items, nextCursor };
+}
+
+export async function fetchOrderActivityPage(
+	cursor: string | null
+): Promise<InfiniteResult<ActivityEvent>> {
+	await requireCurrentSession();
+	const conditions = [sql`TRUE`];
+	if (cursor) {
+		const c = decodeCursor(cursor);
+		if (c.sort !== "newest") {
+			throw new Error("Cursor incompatível: esperado newest");
+		}
+		conditions.push(
+			sql`(osh.created_at, osh.id) < (${c.createdAt}::timestamptz, ${c.id})`
+		);
+	}
+	const rows = await db.execute<{
+		created_at: Date;
+		id: string;
+		order_id: string;
+		order_number: string;
+		to_status: OrderStatus;
+	}>(sql`
+		SELECT osh.id, osh.order_id, o.number AS order_number,
+			osh.to_status, osh.created_at
+		FROM order_status_history osh
+		JOIN "order" o ON o.id = osh.order_id
+		WHERE ${sql.join(conditions, sql` AND `)}
+		ORDER BY osh.created_at DESC, osh.id DESC
+		LIMIT ${BATCH_SIZE + 1}
+	`);
+	const mapped = rows.rows.map(
+		(r): ActivityEvent => ({
+			id: r.id,
+			kind: "order" as const,
+			at: toDate(r.created_at),
+			primary: `#${r.order_number} → ${ORDER_STATUS_LABELS[r.to_status]}`,
+			href: `/dashboard/orders/${r.order_id}`,
+		})
+	);
+	const hasMore = mapped.length > BATCH_SIZE;
+	const items = hasMore ? mapped.slice(0, BATCH_SIZE) : mapped;
+	const lastRaw = hasMore ? rows.rows[BATCH_SIZE - 1] : undefined;
+	const nextCursor =
+		hasMore && lastRaw
+			? encodeCursor({
+					v: 1,
+					sort: "newest",
+					createdAt: toDate(lastRaw.created_at).toISOString(),
+					id: lastRaw.id,
+				})
+			: null;
+	return { items, nextCursor };
 }
