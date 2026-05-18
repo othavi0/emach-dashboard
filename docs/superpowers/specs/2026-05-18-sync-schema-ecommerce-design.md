@@ -84,4 +84,4 @@ Ao implementar, atualizar:
 - `docs/adr/0007-sync-schema-via-ci.md` — criado junto com esta spec (registro da decisão).
 - `packages/db/CLAUDE.md` (dashboard **e** ecommerce) — a seção de sync passa de "cópia manual" para "PR automático via CI".
 - `docs/integration/admin-ecommerce.md` — citado na `CLAUDE.md` raiz mas ainda não existe; criar com o contrato da DB compartilhada + este mecanismo.
-- O ADR-0007 e a seção atualizada de `packages/db/CLAUDE.md` devem ser espelhados no repo `emach-ecommerce`.
+- O ADR-0009 e a seção atualizada de `packages/db/CLAUDE.md` devem ser espelhados no repo `emach-ecommerce`.

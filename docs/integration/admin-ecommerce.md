@@ -203,13 +203,13 @@ O e-commerce preenche `order.notes` no INSERT do pedido e não deve escrever em 
 
 ## Regra de sincronização do schema TS
 
-As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **manual e byte-a-byte** — não há pacote publicado nem import remoto.
+As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **automatizada por CI** — o workflow `sync-db-schema.yml` espelha `packages/db/src/{schema,queries,sql/triggers.sql}` para o repo `emach-ecommerce` via Pull Request automático sempre que esses arquivos mudam na `main`. Direção unidirecional: dashboard → ecommerce. Ver ADR-0009.
 
 Quando qualquer arquivo em `packages/db/src/schema/` for alterado:
 
-1. Identificar quais tabelas compartilhadas foram afetadas (ver tabela de ownership acima).
-2. Replicar a alteração no repositório do e-commerce antes de fazer merge no dashboard.
+1. Editar o schema no dashboard e fazer merge na `main` — o workflow dispara sozinho e abre um PR no `emach-ecommerce`.
+2. Revisar e mergear o PR de sync no e-commerce; o CI dele roda no PR e pega quebra de código local contra o schema novo.
 3. Rodar `bun db:sync` em ambos os repositórios (o banco é o mesmo — mas os dois precisam estar em sync com o schema em memória).
 4. Para drops ou renames de colunas: coordenar o deploy — um app pode gravar em coluna que o outro ainda não viu ou já não vê.
 
-A fonte de verdade é sempre o dashboard (este repositório). O e-commerce **nunca altera o schema** de forma unilateral — mudanças começam aqui e propagam. Ver ADR-0006.
+A fonte de verdade é sempre o dashboard (este repositório). O e-commerce **nunca altera o schema** de forma unilateral — mudanças começam aqui e propagam. Ver ADR-0006 e ADR-0009.

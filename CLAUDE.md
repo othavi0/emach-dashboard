@@ -6,7 +6,7 @@ Monorepo Bun + Turborepo. Dashboard Next 16 / React 19 com auth dual (funcionár
 >
 > - `DESIGN.md` — sistema visual completo (industrial neutrals warm-dark + copper `oklch(0.65 0.15 45)` + Inter sans + 6 roles cromáticos). Toda mudança de UI deve seguir.
 > - `docs/integration/admin-ecommerce.md` — contrato DB compartilhada (admin ↔ site ecomerce) + tabelas owned-by-dashboard.
-> - `docs/storage-buckets.md` — Supabase Storage `tool-images` bucket (criação + URL pattern + cleanup).
+> - `docs/storage-buckets.md` — Supabase Storage: bucket público `tool-images` e bucket privado `order-documents` (criação + URL/signed-URL pattern + cleanup).
 > - `PRODUCT.md` — register product, personality (confiante/técnico/denso), anti-references.
 
 ---
@@ -45,7 +45,7 @@ apps/
         branches/         Filiais
         stock/            Visão por ferramenta + por filial; movimentos por variante
         promotions/       Promoções e cupons
-        orders/           Pedidos (read + status update)
+        orders/           Pedidos (read + ciclo de vida): stepper de status, documentos (NF-e/Asaas read-only + anexos do staff)
         customers/        Clientes — lista, detalhe [id], export CSV + audit log LGPD
         users/            Gestão de usuários internos (roles, filiais, aprovação, suspensão)
         site/             (planejado Fase D) banners, settings, anúncios
@@ -60,6 +60,7 @@ apps/
       consent.ts          LGPD: logConsent / revokeConsent / getActiveConsent
       logger.ts           Logger central
       supabase-server.ts  Service-role client (uploads)
+      storage.ts          Upload + signed URL genérico (buckets público/privado)
 
 packages/
   auth/   src/dashboard.ts, src/ecommerce.ts (instâncias isoladas)
@@ -150,7 +151,7 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 | `inventory.ts`       | `branch`, `stockLevel`, `userBranch`                                              | `stock_level` PK `(variantId, branchId)`, `minQty` + `reorderPoint` + check `quantity >= 0` (oversell guard). `user_branch` (PK `(userId, branchId)`) escopa staff × filial — base do branch-scoping em `requireCapabilityWithContext`.                                                                                          |
 | `promotions.ts`      | `promotion`, `promotionTool`                                                      | Cupons via `promotion.type='promocode'` (não há tabela `coupon`). Promoção continua por ferramenta-pai. `createdBy`/`updatedBy` FKs para auditoria.                                                                                                                                                                            |
 | `stock-movements.ts` | `stockMovement`                                                                   | Audit trail por **variante**; `actorType` (`user`/`system`) + `actorId`; partial unique index garante idempotência de débito de venda; check `delta != 0`.                                                                                                                                               |
-| `orders.ts`          | `order`, `orderItem`, `orderStatusHistory`, `orderNote`                           | `orderItem` carrega `toolId` + `variantId` + snapshots fiscais/dimensão.                                                                                                                                                                                                                                                       |
+| `orders.ts`          | `order`, `orderItem`, `orderStatusHistory`, `orderNote`, `orderAttachment`         | `orderItem` carrega `toolId` + `variantId` + snapshots fiscais/dimensão. `order` carrega timestamps de transição (`preparingAt`/`shippedAt`/`returnedAt`/`refundedAt`) + colunas de doc Asaas/NF-e. `orderAttachment` = upload manual do staff (bucket privado `order-documents`).                                                                                                                                                                                                                                                       |
 | `reviews.ts`         | `review`                                                                          | Moderação por admin (`status` pgEnum). Unique `(clientId, toolId, orderId)`.                                                                                                                                                                                                                                                   |
 | `consent-log.ts`     | `consentLog`                                                                      | LGPD: `consent_kind` (`tos`/`privacy`/`marketing_email`/`cookies`) sempre por `client` (ator `lead` removido — ADR-0003). Helper em `apps/web/src/lib/consent.ts`.                                                                                                                                  |
 | `client-audit.ts`    | `clientAuditLog`                                                                  | Audit trail de mutações de cliente pelo staff (`profile_updated`, `status_changed`, `exported`, ...). `actorType` + CHECK `client_audit_actor_coherence`.                                                                                                                                                                       |

@@ -94,7 +94,7 @@ await client.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL 
 
 ## Schema compartilhado com app ecomerce
 
-Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `consentLog`. Cópia do schema TS (`src/schema/`) sincronizada manualmente a cada mudança. Ver `docs/integration/admin-ecommerce.md` para o contrato completo. Mudanças nessas tabelas exigem coordenação.
+Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `consentLog`. A cópia do schema TS (`src/schema/`) no repo `emach-ecommerce` é sincronizada **automaticamente por CI**: o workflow `sync-db-schema.yml` abre um PR no ecommerce sempre que `packages/db/src/{schema,queries,sql/triggers.sql}` muda na `main` (direção unidirecional dashboard → ecommerce — ADR-0009). Ver `docs/integration/admin-ecommerce.md` para o contrato completo. Mudanças nessas tabelas exigem coordenação de deploy.
 
 
 **Atenção pós-refactor de variants:** `stock_level`, `stock_movement` e `order_item` agora referenciam `tool_variant.id` (não mais `tool.id`). O app ecomerce precisa enviar `variantId` em pedidos e movimentos, não `toolId`. Ler `tool_variant` para obter SKU vendável; `tool` é o produto-pai (informações comuns).
@@ -112,7 +112,7 @@ Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `revi
 
 `packages/db/src/queries/*.ts` é **owned-by-dashboard**: ferramentas de leitura/regra de negócio que o storefront precisa consumir. Lista atual: `reviews.ts` (`canCreateReview`), `catalog.ts` (10 funções de catálogo: `getTools`, `getToolBySlug`, `getCategoryTree`, `getCategoryBySlug`, `getActivePromotions`, `getRecentTools`, `searchTools`, `getReviews`, `getReviewStats`, `getAllToolSlugs`/`getAllCategorySlugs`).
 
-**Regra de sync:** dashboard é fonte de verdade. Ecommerce sincroniza byte-a-byte (cópia manual a cada mudança). **Não editar em isolamento no ecommerce** — mudanças de regra de negócio começam aqui e propagam.
+**Regra de sync:** dashboard é fonte de verdade. O ecommerce recebe um PR automático via workflow `sync-db-schema.yml` a cada mudança (ADR-0009). **Não editar em isolamento no ecommerce** — mudanças de regra de negócio começam aqui e propagam.
 
 Padrão de assinatura para novas queries: `db: NodePgDatabase<Record<string, unknown>>` parametrizado (não usar singleton `db` exportado), tipos exportados via `export type`, sem `select *` nas projeções (esconder `costAmount` em endpoints públicos).
 
