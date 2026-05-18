@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent, CardHeader } from "@emach/ui/components/card";
 import {
 	BoxIcon,
@@ -7,6 +9,11 @@ import {
 	UserIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useRef } from "react";
+
+import { InfiniteSentinel } from "@/components/infinite-sentinel";
+import type { InfiniteResult } from "@/lib/infinite";
+import { useInfiniteList } from "@/lib/use-infinite-list";
 
 export type ActivityKind = "order" | "review" | "stock" | "customer";
 
@@ -21,7 +28,9 @@ export interface ActivityEvent {
 
 interface ActivityFeedProps {
 	emptyMessage?: string;
-	events: ActivityEvent[];
+	fetchPage: (cursor: string) => Promise<InfiniteResult<ActivityEvent>>;
+	initialCursor: string | null;
+	initialEvents: ActivityEvent[];
 	title?: string;
 }
 
@@ -52,10 +61,19 @@ function formatWhen(date: Date): string {
 }
 
 export function ActivityFeed({
-	events,
+	initialEvents,
+	initialCursor,
+	fetchPage,
 	title = "Atividade",
 	emptyMessage = "Sem atividade recente.",
 }: ActivityFeedProps) {
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
+		initialItems: initialEvents,
+		initialCursor,
+		fetchPage,
+	});
+
 	return (
 		<Card>
 			<CardHeader className="flex flex-row items-baseline justify-between gap-3 pb-3">
@@ -63,53 +81,66 @@ export function ActivityFeed({
 					{title}
 				</span>
 				<span className="font-mono text-muted-foreground text-xs tabular-nums">
-					{events.length} evento{events.length === 1 ? "" : "s"}
+					{items.length} evento{items.length === 1 ? "" : "s"}
 				</span>
 			</CardHeader>
 			<CardContent className="flex flex-col">
-				{events.length === 0 ? (
+				{items.length === 0 ? (
 					<p className="text-muted-foreground text-sm">{emptyMessage}</p>
 				) : (
-					<ul className="flex flex-col">
-						{events.map((event) => {
-							const meta = KIND_META[event.kind];
-							const Icon = meta.icon;
-							const rowClassName =
-								"-mx-2 flex items-start gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted";
-							const inner = (
-								<>
-									<span className="w-12 shrink-0 pt-0.5 text-right font-mono text-muted-foreground text-xs tabular-nums">
-										{formatWhen(event.at)}
-									</span>
-									<Icon
-										aria-hidden="true"
-										className={`mt-0.5 size-3.5 shrink-0 ${meta.color}`}
-									/>
-									<div className="flex min-w-0 flex-col">
-										<span className="truncate text-foreground">
-											{event.primary}
+					<div
+						aria-live="polite"
+						className="max-h-[28rem] min-h-72 overflow-y-auto"
+						ref={scrollRef}
+					>
+						<ul className="flex flex-col">
+							{items.map((event) => {
+								const meta = KIND_META[event.kind];
+								const Icon = meta.icon;
+								const rowClassName =
+									"-mx-2 flex items-start gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted";
+								const inner = (
+									<>
+										<span className="w-12 shrink-0 pt-0.5 text-right font-mono text-muted-foreground text-xs tabular-nums">
+											{formatWhen(event.at)}
 										</span>
-										{event.secondary && (
-											<span className="truncate text-muted-foreground text-xs">
-												{event.secondary}
+										<Icon
+											aria-hidden="true"
+											className={`mt-0.5 size-3.5 shrink-0 ${meta.color}`}
+										/>
+										<div className="flex min-w-0 flex-col">
+											<span className="truncate text-foreground">
+												{event.primary}
 											</span>
+											{event.secondary && (
+												<span className="truncate text-muted-foreground text-xs">
+													{event.secondary}
+												</span>
+											)}
+										</div>
+									</>
+								);
+								return (
+									<li key={event.id}>
+										{event.href ? (
+											<Link className={rowClassName} href={event.href}>
+												{inner}
+											</Link>
+										) : (
+											<div className={rowClassName}>{inner}</div>
 										)}
-									</div>
-								</>
-							);
-							return (
-								<li key={event.id}>
-									{event.href ? (
-										<Link className={rowClassName} href={event.href}>
-											{inner}
-										</Link>
-									) : (
-										<div className={rowClassName}>{inner}</div>
-									)}
-								</li>
-							);
-						})}
-					</ul>
+									</li>
+								);
+							})}
+						</ul>
+						<InfiniteSentinel
+							error={error}
+							hasMore={hasMore}
+							onLoadMore={loadMore}
+							pending={pending}
+							root={scrollRef}
+						/>
+					</div>
 				)}
 			</CardContent>
 		</Card>
