@@ -31,8 +31,8 @@ bun db:sync                 # drizzle-kit push + apply-triggers + apply-indexes 
 bun db:push                 # só o schema Drizzle (sem triggers/indexes)
 bun db:studio               # UI inspetora
 bun db:apply-triggers       # aplica src/sql/triggers.sql (idempotente)
-bun db:seed-categories      # bootstrap 5 raízes
-bun db:seed-attributes      # bootstrap attribute_definitions iniciais
+bun db:seed-demo            # reconstrói DB de dev inteira (trunca tudo exceto auth + popula fixture + verifica invariantes)
+bun db:reset-demo           # só trunca as tabelas demo (estado limpo, sem repopular)
 bun db:apply-indexes        # aplica src/sql/indexes.sql
 ```
 
