@@ -22,8 +22,8 @@ const CHECKS: { name: string; query: string }[] = [
 			JOIN category attr_cat ON attr_cat.id = ad.category_id
 			JOIN tool_category tc ON tc.tool_id = tav.tool_id AND tc.is_primary = true
 			JOIN category primary_cat ON primary_cat.id = tc.category_id
-			WHERE primary_cat.path NOT LIKE ('%/' || attr_cat.slug || '%')
-			  AND primary_cat.path NOT LIKE (attr_cat.slug || '%')
+			WHERE primary_cat.path <> attr_cat.path
+			  AND primary_cat.path NOT LIKE (attr_cat.path || '/%')
 		`,
 	},
 	{
@@ -114,6 +114,21 @@ const CHECKS: { name: string; query: string }[] = [
 				WHERE (actor_type = 'user' AND actor_user_id IS NULL)
 				   OR (actor_type = 'system' AND actor_user_id IS NOT NULL)
 			) incoerentes
+		`,
+	},
+	{
+		name: "order_item pago sem saida_venda",
+		query: `
+			SELECT count(*) AS n
+			FROM order_item oi
+			JOIN "order" o ON o.id = oi.order_id
+			WHERE o.status IN ('paid', 'preparing', 'shipped', 'delivered', 'returned', 'refunded')
+			  AND NOT EXISTS (
+				SELECT 1 FROM stock_movement sm
+				WHERE sm.order_id = oi.order_id
+				  AND sm.order_item_id = oi.id
+				  AND sm.reason = 'saida_venda'
+			  )
 		`,
 	},
 ];

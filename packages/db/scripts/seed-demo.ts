@@ -36,8 +36,8 @@ async function main() {
 }
 
 main()
+	.then(() => process.exit(0))
 	.catch((err) => {
 		console.error("[seed-demo] FAIL", err);
 		process.exit(1);
-	})
-	.then(() => process.exit(0));
+	});

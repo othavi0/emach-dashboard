@@ -9,28 +9,11 @@ import { review } from "@emach/db/schema/reviews";
 import { stockMovement } from "@emach/db/schema/stock-movements";
 import { sql } from "drizzle-orm";
 import type { SeedContext, Tx } from "./context";
+import { pick, pickN, randInt } from "./random";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function randInt(min: number, max: number): number {
-	return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function pick<T>(arr: T[]): T {
-	const idx = Math.floor(Math.random() * arr.length);
-	const item = arr[idx];
-	if (item === undefined) {
-		throw new Error("pick() chamado em array vazio");
-	}
-	return item;
-}
-
-function pickN<T>(arr: T[], n: number): T[] {
-	const shuffled = [...arr].sort(() => Math.random() - 0.5);
-	return shuffled.slice(0, Math.min(n, shuffled.length));
-}
 
 // Gera timestamps passados progressivos
 function daysAgo(days: number, offsetHours = 0): Date {
@@ -238,6 +221,17 @@ const REVIEW_ELIGIBLE_STATUSES = new Set<OrderStatus>([
 ]);
 
 // ---------------------------------------------------------------------------
+// Tipos internos com itemId explícito (I3: sem cast frouxo)
+// ---------------------------------------------------------------------------
+
+interface ItemDef {
+	itemId?: string;
+	quantity: number;
+	toolId: string;
+	variantId: string;
+}
+
+// ---------------------------------------------------------------------------
 // seedSales
 // ---------------------------------------------------------------------------
 
@@ -248,28 +242,21 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 	}
 
 	// --- 1. Consultar stock_levels disponíveis ---
-	// Para orders pagos, só podemos usar (variantId, branchId) com stock_level.
+	// Com inventory.ts garantindo stock em todas as filiais, todo par
+	// (variantId, branchId) tem stock_level — o mapa é usado apenas para
+	// rastrear a quantidade disponível em memória (evitar negativo em DB).
 	const stockRows = await tx.execute<{
 		variant_id: string;
 		branch_id: string;
 		quantity: number;
 	}>(sql`SELECT variant_id, branch_id, quantity FROM stock_level`);
 
-	// Mapa: `${variantId}:${branchId}` → quantity atual (será decrementado na memória)
+	// Mapa: `${variantId}:${branchId}` → quantity atual (decrementado na memória)
 	const stockMap = new Map<string, number>();
 	for (const row of stockRows.rows) {
 		stockMap.set(`${row.variant_id}:${row.branch_id}`, row.quantity);
 	}
 
-	// Para cada branchId, quais variantIds têm stock_level?
-	const variantsByBranch = new Map<string, string[]>();
-	for (const row of stockRows.rows) {
-		const list = variantsByBranch.get(row.branch_id) ?? [];
-		list.push(row.variant_id);
-		variantsByBranch.set(row.branch_id, list);
-	}
-
-	// Todos os toolIds que têm ao menos um variantId com stock_level em alguma filial
 	// Mapa: variantId → toolId (para lookup reverso)
 	const toolByVariant = new Map<string, string>();
 	for (const [toolId, variantIds] of Object.entries(ctx.variantIdsByTool)) {
@@ -278,37 +265,13 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 		}
 	}
 
-	// Normalizar branchIndex para os branchIds reais disponíveis
 	const branchIds = ctx.branchIds;
-
-	// Mapa de toolId → variantId[] com stock_level em qualquer filial
-	const variantsWithStockByTool = new Map<string, string[]>();
-	for (const [toolId, variantIds] of Object.entries(ctx.variantIdsByTool)) {
-		const withStock = variantIds.filter((vId) => {
-			for (const branchId of branchIds) {
-				if (stockMap.has(`${vId}:${branchId}`)) {
-					return true;
-				}
-			}
-			return false;
-		});
-		if (withStock.length > 0) {
-			variantsWithStockByTool.set(toolId, withStock);
-		}
-	}
-
-	// toolIds com ao menos 1 variante com stock
-	const toolsWithStock = [...variantsWithStockByTool.keys()];
-	// toolIds sem restrição (para orders não pagos)
 	const allToolIds = ctx.toolIds;
 
 	// --- 2. Inserir orders ---
 
 	// Estrutura para armazenar itens de cada order (para reviews + estoque)
-	const orderItemsByOrderId = new Map<
-		string,
-		{ toolId: string; variantId: string; quantity: number }[]
-	>();
+	const orderItemsByOrderId = new Map<string, ItemDef[]>();
 	const orderStatusByOrderId = new Map<string, OrderStatus>();
 	const orderBranchByOrderId = new Map<string, string>();
 
@@ -323,23 +286,12 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 			continue;
 		}
 
-		// Escolher filial: para orders pagos, precisamos de uma filial com stock
-		let branchId: string;
 		const isPaid = PAID_STATUSES.has(scenario.targetStatus);
 
-		if (isPaid && branchIds.length > 0) {
-			// Tentar achar filial com stock disponível
-			const branchesWithStock = branchIds.filter(
-				(bId) => (variantsByBranch.get(bId) ?? []).length > 0
-			);
-			branchId =
-				branchesWithStock.length > 0
-					? pick(branchesWithStock)
-					: pick(branchIds);
-		} else {
-			branchId =
-				branchIds[scenario.branchIndex % branchIds.length] ?? pick(branchIds);
-		}
+		// Escolher filial: determinístico pelo branchIndex para não-pagos;
+		// para pagos, qualquer filial serve (todas têm stock garantido por C1).
+		const branchId =
+			branchIds[scenario.branchIndex % branchIds.length] ?? pick(branchIds);
 
 		// Número do pedido
 		const orderNumber = `EM-2026-${String(i + 1).padStart(4, "0")}`;
@@ -350,79 +302,54 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 
 		// Escolher itens do pedido
 		const itemCount = randInt(1, 4);
-		const itemDefs: {
-			toolId: string;
-			variantId: string;
-			quantity: number;
-		}[] = [];
+		const itemDefs: ItemDef[] = [];
 
 		if (isPaid) {
-			// Para orders pagos: somente variantes com stock na filial escolhida
-			const variantsInBranch = variantsByBranch.get(branchId) ?? [];
-			// Agrupar por toolId para evitar o mesmo tool duas vezes
-			const eligibleTools = [
-				...new Set(
-					variantsInBranch.map((vId) => toolByVariant.get(vId)).filter(Boolean)
-				),
-			] as string[];
-
-			const selectedTools =
-				eligibleTools.length > 0
-					? pickN(eligibleTools, itemCount)
-					: pickN(
-							toolsWithStock.length > 0 ? toolsWithStock : allToolIds,
-							itemCount
-						);
+			// Para orders pagos: escolher ferramentas com stock disponível na filial.
+			// Como inventory.ts cria stock em todas as filiais, toda variante
+			// está disponível — filtramos apenas pelo saldo em memória (> 0).
+			const selectedTools = pickN(allToolIds, itemCount);
 
 			for (const toolId of selectedTools) {
-				// Pegar variante desse tool que tenha stock na filial
-				const variantsForToolInBranch = (
-					variantsByBranch.get(branchId) ?? []
-				).filter((vId) => toolByVariant.get(vId) === toolId);
-
-				if (variantsForToolInBranch.length === 0) {
-					// Fallback: qualquer variante do tool com stock em qualquer filial
-					const withStock = variantsWithStockByTool.get(toolId) ?? [];
-					if (withStock.length === 0) {
-						continue;
-					}
-					const variantId = pick(withStock);
-					const qty = randInt(1, 5);
-					itemDefs.push({ toolId, variantId, quantity: qty });
+				const variantIds = ctx.variantIdsByTool[toolId] ?? [];
+				// Escolher variante com saldo positivo na filial
+				const available = variantIds.filter(
+					(vId) => (stockMap.get(`${vId}:${branchId}`) ?? 0) > 0
+				);
+				if (available.length === 0) {
 					continue;
 				}
-
-				const variantId = pick(variantsForToolInBranch);
+				const variantId = pick(available);
 				const stockKey = `${variantId}:${branchId}`;
-				const available = stockMap.get(stockKey) ?? 0;
-				if (available <= 0) {
-					continue;
-				}
-
-				const qty = Math.min(randInt(1, 5), available);
+				const currentQty = stockMap.get(stockKey) ?? 0;
+				const qty = Math.min(randInt(1, 5), currentQty);
 				if (qty <= 0) {
 					continue;
 				}
-
-				// Reservar na memória para não ultrapassar o estoque
-				stockMap.set(stockKey, available - qty);
+				stockMap.set(stockKey, currentQty - qty);
 				itemDefs.push({ toolId, variantId, quantity: qty });
 			}
 
-			// Se ficou sem itens (estoque insuficiente), degradar para não-pago
+			// Garantia: se todos os saldos estavam zerados (improvável com 80–250
+			// de abertura para ~17 orders), adicionar ao menos 1 item com qty=1 e
+			// reabastecer só em memória — o DB nunca ficará negativo pois a abertura
+			// foi generosa; se chegar aqui, o seed está subutilizando o estoque.
 			if (itemDefs.length === 0) {
-				const fallbackTools = pickN(allToolIds, itemCount);
-				for (const toolId of fallbackTools) {
-					const variantIds = ctx.variantIdsByTool[toolId] ?? [];
-					if (variantIds.length === 0) {
-						continue;
+				const toolId = pick(allToolIds);
+				const variantIds = ctx.variantIdsByTool[toolId] ?? [];
+				if (variantIds.length > 0) {
+					const variantId = variantIds[0] as string;
+					const stockKey = `${variantId}:${branchId}`;
+					// Garantir que há saldo (mesmo que mínimo)
+					const currentQty = stockMap.get(stockKey) ?? 0;
+					if (currentQty > 0) {
+						stockMap.set(stockKey, currentQty - 1);
+						itemDefs.push({ toolId, variantId, quantity: 1 });
 					}
-					const variantId = pick(variantIds);
-					itemDefs.push({ toolId, variantId, quantity: randInt(1, 2) });
 				}
 			}
 		} else {
-			// Orders não pagos: qualquer variante
+			// Orders não pagos: qualquer variante (sem débito de estoque)
 			const selectedTools = pickN(allToolIds, itemCount);
 			for (const toolId of selectedTools) {
 				const variantIds = ctx.variantIdsByTool[toolId] ?? [];
@@ -435,7 +362,7 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 		}
 
 		if (itemDefs.length === 0) {
-			// Garantia mínima: ao menos 1 item com qualquer variante
+			// Garantia mínima absoluta: ao menos 1 item com qualquer variante
 			const toolId = pick(allToolIds);
 			const variantIds = ctx.variantIdsByTool[toolId] ?? [];
 			const variantId = variantIds[0];
@@ -544,8 +471,8 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 				widthCm: null,
 				heightCm: null,
 			});
-			// Salvar itemId no itemDef para o movimento de estoque
-			(itemDef as typeof itemDef & { itemId: string }).itemId = itemId;
+			// I3: itemId é campo do tipo, sem cast frouxo
+			itemDef.itemId = itemId;
 		}
 
 		// Inserir order_status_history
@@ -553,8 +480,6 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 
 		if (path.length === 1) {
 			// Pedido recém-criado em pending_payment sem nenhuma transição ainda.
-			// Inserir entrada de criação (from = to = pending_payment) para garantir
-			// que todo order tenha ao menos uma linha de histórico.
 			await tx.insert(orderStatusHistory).values({
 				id: crypto.randomUUID(),
 				orderId,
@@ -566,8 +491,7 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 				createdAt: hoursAfter(createdAt, 0),
 			});
 		} else {
-			// Inserir linha de criação (from = to = pending_payment) antes das transições,
-			// garantindo que todo order tenha ao menos uma linha com to_status='pending_payment'.
+			// Entrada de criação (from = to = pending_payment) antes das transições.
 			await tx.insert(orderStatusHistory).values({
 				id: crypto.randomUUID(),
 				orderId,
@@ -579,7 +503,6 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 				createdAt: hoursAfter(createdAt, 0),
 			});
 
-			// O path tem os estados; as transições são de path[i] → path[i+1]
 			for (let t = 0; t < path.length - 1; t++) {
 				const fromStatus = path[t] as OrderStatus;
 				const toStatus = path[t + 1] as OrderStatus;
@@ -602,7 +525,10 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 		}
 	}
 
-	// --- 3. Débito de estoque para orders pagos ---
+	// --- 3. Débito de estoque para orders pagos (C1: sem fallback que pule) ---
+	// inventory.ts garante stock_level para todo (variantId, branchId).
+	// Todo order_item de order pago DEVE gerar saida_venda — sem continue por
+	// ausência de stock_level.
 	for (const orderId of ctx.orderIds) {
 		const targetStatus = orderStatusByOrderId.get(orderId);
 		if (!(targetStatus && PAID_STATUSES.has(targetStatus))) {
@@ -617,12 +543,9 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 		const items = orderItemsByOrderId.get(orderId) ?? [];
 
 		for (const itemDef of items) {
-			const itemId = (itemDef as typeof itemDef & { itemId?: string }).itemId;
+			// I3: itemId lido diretamente do campo tipado (sem cast)
+			const itemId = itemDef.itemId;
 
-			// Verificar se existe stock_level para este par
-			const stockKey = `${itemDef.variantId}:${branchId}`;
-			// O stock_level foi consultado antes; se não existe, pular
-			// (itemDef para orders pagos só foi adicionado se havia stock na filial)
 			const currentQtyRow = await tx.execute<{
 				quantity: number;
 			}>(
@@ -630,8 +553,10 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 			);
 
 			if (!currentQtyRow.rows[0]) {
-				// Sem stock_level: pular débito (não viola coerência pois não há linha)
-				continue;
+				// Não deveria acontecer: inventory.ts garante stock em todas as filiais.
+				throw new Error(
+					`[seed] stock_level ausente para variant=${itemDef.variantId} branch=${branchId} — invariante C1 violada.`
+				);
 			}
 
 			const currentQty = currentQtyRow.rows[0].quantity;
@@ -639,11 +564,13 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 			const newQty = currentQty + delta;
 
 			if (newQty < 0) {
-				// Proteção: não deixar negativo (não deveria acontecer por causa da reserva acima)
-				continue;
+				// Não deveria acontecer: abertura generosa (80–250) cobre as vendas.
+				throw new Error(
+					`[seed] stock negativo detectado: variant=${itemDef.variantId} branch=${branchId} currentQty=${currentQty} delta=${delta}`
+				);
 			}
 
-			// Inserir stock_movement
+			// Inserir stock_movement saida_venda
 			await tx.insert(stockMovement).values({
 				id: crypto.randomUUID(),
 				variantId: itemDef.variantId,
@@ -665,7 +592,7 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 			);
 
 			// Atualizar memória local (para ordens subsequentes)
-			stockMap.set(stockKey, newQty);
+			stockMap.set(`${itemDef.variantId}:${branchId}`, newQty);
 		}
 	}
 
@@ -696,11 +623,11 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 	}
 
 	// --- 5. Reviews (~9) ---
-	// Somente para orders delivered/returned/refunded que contêm aquela toolId
+	// Somente para orders delivered/returned/refunded
 	const reviewCandidates: {
+		clientId: string;
 		orderId: string;
 		toolId: string;
-		clientId: string;
 	}[] = [];
 
 	for (const orderId of ctx.orderIds) {
@@ -709,7 +636,6 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 			continue;
 		}
 
-		// Achar clientId deste order — buscamos no DB
 		const orderRow = await tx.execute<{ client_id: string }>(
 			sql`SELECT client_id FROM "order" WHERE id = ${orderId}`
 		);

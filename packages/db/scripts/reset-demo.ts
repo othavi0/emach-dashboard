@@ -12,8 +12,8 @@ async function main() {
 }
 
 main()
+	.then(() => process.exit(0))
 	.catch((err) => {
 		console.error("[reset-demo] FAIL", err);
 		process.exit(1);
-	})
-	.then(() => process.exit(0));
+	});
