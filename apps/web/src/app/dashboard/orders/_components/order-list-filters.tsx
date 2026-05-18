@@ -87,7 +87,7 @@ export function OrderFiltersPanel({
 	const currentBranch = searchParams.get("branchId") ?? BRANCH_ALL;
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="flex flex-col gap-3">
 			<Tabs value={currentTab}>
 				<TabsList scrollable>
 					{ORDER_TABS.map((tab) => {
@@ -101,12 +101,14 @@ export function OrderFiltersPanel({
 								value={tab.key}
 							>
 								<span>{tab.label}</span>
-								<Badge
-									className="ml-2"
-									variant={isActive ? "default" : "secondary"}
-								>
-									{count}
-								</Badge>
+								{(isActive || count > 0) && (
+									<Badge
+										className="ml-1.5 tabular-nums"
+										variant={isActive ? "default" : "outline"}
+									>
+										{count}
+									</Badge>
+								)}
 							</TabsTrigger>
 						);
 					})}
@@ -114,21 +116,24 @@ export function OrderFiltersPanel({
 			</Tabs>
 
 			<FiltersBar hasActive={hasActive} onClear={clearAll}>
-				<div className="flex flex-1 flex-col gap-1">
-					<label className="text-muted-foreground text-xs" htmlFor="orders-q">
+				<div className="flex flex-1 flex-col gap-1.5">
+					<label
+						className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest"
+						htmlFor="orders-q"
+					>
 						Buscar pedido ou cliente
 					</label>
 					<Input
 						id="orders-q"
 						onChange={(e) => setQ(e.target.value)}
-						placeholder="Ex: 2026-000123 ou Cliente"
+						placeholder="Nº do pedido ou nome do cliente"
 						value={q}
 					/>
 				</div>
 
-				<div className="flex flex-col gap-1 md:w-40">
+				<div className="flex flex-col gap-1.5 md:w-40">
 					<label
-						className="text-muted-foreground text-xs"
+						className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest"
 						htmlFor="orders-from"
 					>
 						De
@@ -140,8 +145,11 @@ export function OrderFiltersPanel({
 					/>
 				</div>
 
-				<div className="flex flex-col gap-1 md:w-40">
-					<label className="text-muted-foreground text-xs" htmlFor="orders-to">
+				<div className="flex flex-col gap-1.5 md:w-40">
+					<label
+						className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest"
+						htmlFor="orders-to"
+					>
 						Até
 					</label>
 					<DatePicker
@@ -152,16 +160,16 @@ export function OrderFiltersPanel({
 					/>
 				</div>
 
-				<div className="flex flex-col gap-1 md:w-52">
+				<div className="flex flex-col gap-1.5 md:w-52">
 					<label
-						className="text-muted-foreground text-xs"
+						className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest"
 						htmlFor="orders-branch"
 					>
 						Filial
 					</label>
 					<Select
 						onValueChange={(v) =>
-							setParam("branchId", v === BRANCH_ALL ? null : (v as string))
+							setParam("branchId", v === BRANCH_ALL ? null : v)
 						}
 						value={currentBranch}
 					>
@@ -169,14 +177,15 @@ export function OrderFiltersPanel({
 							<SelectValue>
 								{(v: string) =>
 									v === BRANCH_ALL
-										? "Todas"
-										: (branches.find((b) => b.id === v)?.name ?? "Todas")
+										? "Todas as filiais"
+										: (branches.find((b) => b.id === v)?.name ??
+											"Todas as filiais")
 								}
 							</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
 							<SelectGroup>
-								<SelectItem value={BRANCH_ALL}>Todas</SelectItem>
+								<SelectItem value={BRANCH_ALL}>Todas as filiais</SelectItem>
 								{branches.map((branch) => (
 									<SelectItem key={branch.id} value={branch.id}>
 										{branch.name}

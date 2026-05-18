@@ -7,6 +7,7 @@ export type { OrderStatus } from "@emach/db/schema/orders";
 
 import {
 	type OrderStatus,
+	orderAttachment,
 	orderItem,
 	orderNote,
 	orderStatusHistory,
@@ -16,6 +17,7 @@ import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
+import { createSignedUrl, ORDER_DOCUMENTS_BUCKET } from "@/lib/storage";
 import { ORDER_TABS } from "./status-meta";
 
 export const ORDERS_PAGE_SIZE = 20;
@@ -53,6 +55,7 @@ export interface BranchOption {
 }
 
 export interface OrderDetailItem {
+	cest: string | null;
 	cost: number | null;
 	discountAmount: number;
 	heightCm: number | null;
@@ -89,6 +92,18 @@ export interface OrderNoteItem {
 	id: string;
 }
 
+export interface OrderAttachmentItem {
+	createdAt: Date;
+	fileName: string;
+	fileSize: number | null;
+	id: string;
+	label: string | null;
+	mimeType: string | null;
+	uploaderName: string;
+	/** Signed URL (1-hour TTL). Null if signing failed — treat as temporarily unavailable. */
+	url: string | null;
+}
+
 export interface ShippingAddressSnapshot {
 	city?: string;
 	complement?: string;
@@ -102,6 +117,7 @@ export interface ShippingAddressSnapshot {
 }
 
 export interface OrderDetail {
+	attachments: OrderAttachmentItem[];
 	branchId: string | null;
 	branchName: string | null;
 	canceledAt: Date | null;
@@ -114,11 +130,21 @@ export interface OrderDetail {
 	history: OrderHistoryItem[];
 	id: string;
 	items: OrderDetailItem[];
+	/** NF-e number emitted by the e-commerce app. Read-only in admin. */
+	nfeNumber: string | null;
+	/** NF-e status (e.g. "authorized", "canceled"). Read-only in admin. */
+	nfeStatus: string | null;
+	/** NF-e PDF/DANFE URL. Read-only in admin. */
+	nfeUrl: string | null;
+	/** NF-e XML URL. Read-only in admin. */
+	nfeXmlUrl: string | null;
 	notes: OrderNoteItem[];
 	number: string;
 	paidAt: Date | null;
 	paymentMethod: string | null;
 	paymentProviderRef: string | null;
+	/** Asaas payment receipt URL. Read-only in admin. */
+	paymentReceiptUrl: string | null;
 	shippedAt: Date | null;
 	shippingAddress: ShippingAddressSnapshot;
 	shippingAmount: number;
@@ -564,7 +590,7 @@ export async function getOrderReviewsOverview(
 }
 
 export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
-	const [base, items, history, notes] = await Promise.all([
+	const [base, items, history, notes, attachmentRows] = await Promise.all([
 		db.execute<{
 			branch_id: string | null;
 			branch_name: string | null;
@@ -576,10 +602,15 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			created_at: Date;
 			delivered_at: Date | null;
 			id: string;
+			nfe_number: string | null;
+			nfe_status: string | null;
+			nfe_url: string | null;
+			nfe_xml_url: string | null;
 			number: string;
 			paid_at: Date | null;
 			payment_method: string | null;
 			payment_provider_ref: string | null;
+			payment_receipt_url: string | null;
 			shipping_address: ShippingAddressSnapshot;
 			shipping_amount: string;
 			shipping_method: string | null;
@@ -607,6 +638,11 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				o.delivered_at,
 				o.canceled_at,
 				o.branch_id,
+				o.payment_receipt_url,
+				o.nfe_number,
+				o.nfe_url,
+				o.nfe_xml_url,
+				o.nfe_status,
 				c.id AS client_id,
 				c.name AS client_name,
 				c.email AS client_email,
@@ -645,9 +681,24 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				id: orderNote.id,
 			})
 			.from(orderNote)
-			.innerJoin(user, eq(orderNote.authorId, user.id))
+			.leftJoin(user, eq(orderNote.authorId, user.id))
 			.where(eq(orderNote.orderId, id))
 			.orderBy(desc(orderNote.createdAt)),
+		db
+			.select({
+				id: orderAttachment.id,
+				fileUrl: orderAttachment.fileUrl,
+				fileName: orderAttachment.fileName,
+				fileSize: orderAttachment.fileSize,
+				mimeType: orderAttachment.mimeType,
+				label: orderAttachment.label,
+				createdAt: orderAttachment.createdAt,
+				uploaderName: user.name,
+			})
+			.from(orderAttachment)
+			.leftJoin(user, eq(orderAttachment.uploadedBy, user.id))
+			.where(eq(orderAttachment.orderId, id))
+			.orderBy(desc(orderAttachment.createdAt)),
 	]);
 
 	const row = base.rows[0];
@@ -655,7 +706,22 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		return null;
 	}
 
+	// Private bucket: persist storage paths, sign on read (1-hour TTL).
+	const attachments: OrderAttachmentItem[] = await Promise.all(
+		attachmentRows.map(async (att) => ({
+			id: att.id,
+			fileName: att.fileName,
+			fileSize: att.fileSize,
+			mimeType: att.mimeType,
+			label: att.label,
+			createdAt: att.createdAt,
+			uploaderName: att.uploaderName ?? "Sistema",
+			url: await createSignedUrl(ORDER_DOCUMENTS_BUCKET, att.fileUrl),
+		}))
+	);
+
 	return {
+		attachments,
 		id: row.id,
 		number: row.number,
 		status: row.status,
@@ -667,6 +733,11 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		branchName: row.branch_name,
 		paymentMethod: row.payment_method,
 		paymentProviderRef: row.payment_provider_ref,
+		paymentReceiptUrl: row.payment_receipt_url,
+		nfeNumber: row.nfe_number,
+		nfeUrl: row.nfe_url,
+		nfeXmlUrl: row.nfe_xml_url,
+		nfeStatus: row.nfe_status,
 		subtotalAmount: Number(row.subtotal_amount),
 		shippingAmount: Number(row.shipping_amount),
 		totalAmount: Number(row.total_amount),
@@ -692,6 +763,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			discountAmount: Number(item.discountAmount),
 			cost: parseNumber(item.cost),
 			ncm: item.ncm,
+			cest: item.cest,
 			manufacturerName: item.manufacturerName,
 			weightKg: parseNumber(item.weightKg),
 			lengthCm: parseNumber(item.lengthCm),
@@ -710,7 +782,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			id: note.id,
 			body: note.body,
 			createdAt: note.createdAt,
-			authorName: note.authorName ?? "Usuário",
+			authorName: note.authorName ?? "Sistema",
 		})),
 	};
 }

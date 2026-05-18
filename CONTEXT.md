@@ -23,7 +23,7 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 | Identity & Access   | Autenticação dual e autorização                | `user`, `session`, `client`, `clientSession`                    |
 | Catalog             | O que se vende e como se descreve              | `tool`, `toolVariant`, `toolImage`, `category`, `attributeDefinition`, `supplier` |
 | Inventory           | Quanto existe e onde                           | `branch`, `stockLevel`, `stockMovement`, `userBranch`           |
-| Sales               | Pedidos e seu ciclo de vida                    | `order`, `orderItem`, `orderStatusHistory`, `orderNote`         |
+| Sales               | Pedidos e seu ciclo de vida                    | `order`, `orderItem`, `orderStatusHistory`, `orderNote`, `orderAttachment` |
 | Marketing           | Descontos                                      | `promotion`, `promotionTool`                                    |
 | Voice of customer   | Avaliações de produto                          | `review`                                                        |
 | Compliance (LGPD)   | Consentimento e auditoria de dados pessoais    | `consentLog`, `clientAuditLog`, `clientExportLog`               |
@@ -69,9 +69,14 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 ### Vendas
 
 - **Order (Pedido)** — compra feita por um Client. **Nasce sempre no site e-commerce** — o admin nunca cria um Order, apenas progride seu ciclo de vida (status, rastreio, notas, filial de fulfillment). Tem `number` único e legível, snapshots de valores e endereço de entrega. Ver ADR-0001.
-- **Order status** — **eixo único** de estado do Order, do pagamento à entrega: `pending_payment` → `payment_failed` / `paid` → `preparing` → `shipped` → `delivered` → `returned` → `refunded`; terminais `canceled` (encerrado sem pagamento) e `refunded` (encerrado com estorno). `canceled` só é alcançável de estados não pagos; encerrar um pedido pago é sempre `refunded`. Não há campo `paymentStatus`. O e-commerce dirige o Order até `paid`; o admin assume daí em diante. Ver ADR-0005.
+- **Order status** — **eixo único** de estado do Order, do pagamento à entrega: `pending_payment` → `payment_failed` / `paid` → `preparing` → `shipped` → `delivered` → `returned` → `refunded`; terminais `canceled` (encerrado sem pagamento) e `refunded` (encerrado com estorno). `canceled` só é alcançável de estados não pagos; encerrar um pedido pago é sempre `refunded`. Não há campo `paymentStatus`. O e-commerce dirige o Order até `paid`; o admin assume daí em diante. Arestas completas: `shipped → returned` (falha de entrega) e `delivered → returned` (devolução pelo cliente). Ver ADR-0005.
 - **Order Item** — linha do pedido. Referencia `toolId` **e** `variantId`, mais **snapshots** fiscais e de dimensão (`ncm`, `cest`, `weightKg`, …) congelados no momento da compra — imunes a mudanças posteriores na Tool.
-- **Order Status History / Order Note** — trilha de transições de status e anotações internas do staff sobre o pedido.
+- **Order Status History** — trilha imutável de transições de status do pedido, com `actorType` + `reason` descritivo.
+- **Order Note** — anotação interna do staff sobre um pedido. **Distinto de `order.notes`** (observação do cliente no checkout). Tabela `order_note`; apenas o admin escreve; nunca exposta ao cliente.
+- **`order.notes`** — campo `text` na tabela `order`, preenchido pelo **cliente** durante o checkout (ex.: "deixar com o porteiro"). Imutável após a criação do pedido. Completamente distinto de Order Note (tabela de anotações do staff).
+- **Order Attachment** — arquivo anexado ao pedido pelo staff (ex.: documento de despacho, autorização de devolução). Tabela `order_attachment`. Nunca criado pelo e-commerce; visível apenas no dashboard.
+- **Comprovante de pagamento** — URL do comprovante emitido pelo gateway Asaas (`order.payment_receipt_url`). Preenchido pelo e-commerce após confirmação de pagamento; o dashboard apenas exibe. O dashboard nunca chama o Asaas diretamente. Ver ADR-0008.
+- **returned** — status que cobre **dois cenários**: (a) devolução pelo cliente após entrega (`delivered → returned`); (b) falha de entrega pela transportadora, com o pedido retornando ao centro de distribuição (`shipped → returned`). Não há status separado para falha de entrega. O campo `reason` em `order_status_history` distingue os dois casos. Ver ADR-0005.
 
 ### Marketing
 
@@ -97,8 +102,9 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 2. **A variante é a unidade de venda e de estoque.** SKU, preço, voltagem, Stock Level, Stock Movement e Order Item referenciam a **Tool Variant** — nunca a Tool. Toda Tool tem ≥1 variante, uma default.
 3. **Todo atributo dinâmico pertence a uma categoria.** Não existe Attribute Definition global.
 4. **Toda mutação auditável tem um Actor.** É um membro do staff (`user`) ou automação (`system`) — ver Actor no glossário.
-5. **O Order tem um eixo único de status.** Pagamento e fulfillment vivem no mesmo campo `status` — não há `paymentStatus`. Refund e return são sempre do pedido inteiro. Ver ADR-0005.
-6. **A coordenação com o e-commerce é só pelo schema.** Admin não chama o site; o site não chama o admin.
+5. **O Order tem um eixo único de status.** Pagamento e fulfillment vivem no mesmo campo `status` — não há `paymentStatus`. Refund e return são sempre do pedido inteiro. `returned` cobre devolução pelo cliente **e** falha de entrega. Ver ADR-0005.
+6. **A coordenação com o e-commerce é só pelo schema.** Admin não chama o site; o site não chama o admin. O dashboard nunca chama APIs de terceiros (ex.: Asaas) — recebe dados pelo banco. Ver ADR-0004, ADR-0008.
+7. **Débito de estoque ocorre em `paid`.** `pending_payment` não reserva estoque. Cancelar um pedido não pago não gera `stock_movement`. Ver ADR-0007.
 
 ---
 
@@ -132,7 +138,9 @@ Decisões arquiteturais ficam em `docs/adr/`:
 - **ADR-0002** — Descontos de Promotion nunca empilham.
 - **ADR-0003** — Lead não é um conceito do domínio.
 - **ADR-0004** — Integração com o e-commerce é só DB compartilhada (sem API).
-- **ADR-0005** — Order tem um eixo único de status.
+- **ADR-0005** — Order tem um eixo único de status (inclui aresta `shipped → returned` para falha de entrega).
 - **ADR-0006** — DB workflow é push-only até produção (sem migrations versionadas).
+- **ADR-0007** — Débito de estoque ocorre na transição para `paid`, não na criação do pedido.
+- **ADR-0008** — Documentos do Asaas chegam ao dashboard pelo banco de dados; o dashboard nunca chama a API do Asaas.
 
 Se um output contradiz um ADR existente, sinalize explicitamente em vez de sobrescrever em silêncio.
