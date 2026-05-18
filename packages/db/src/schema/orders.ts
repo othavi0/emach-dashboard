@@ -79,6 +79,14 @@ export const order = pgTable(
 		shippedAt: timestamp("shipped_at"),
 		deliveredAt: timestamp("delivered_at"),
 		canceledAt: timestamp("canceled_at"),
+		preparingAt: timestamp("preparing_at"),
+		returnedAt: timestamp("returned_at"),
+		refundedAt: timestamp("refunded_at"),
+		paymentReceiptUrl: text("payment_receipt_url"),
+		nfeNumber: text("nfe_number"),
+		nfeUrl: text("nfe_url"),
+		nfeXmlUrl: text("nfe_xml_url"),
+		nfeStatus: text("nfe_status"),
 	},
 	(table) => [
 		index("order_client_id_idx").on(table.clientId),
@@ -178,6 +186,31 @@ export const orderNote = pgTable(
 	]
 );
 
+export const orderAttachment = pgTable(
+	"order_attachment",
+	{
+		id: text("id").primaryKey(),
+		orderId: text("order_id")
+			.notNull()
+			.references(() => order.id, { onDelete: "cascade" }),
+		fileUrl: text("file_url").notNull(),
+		fileName: text("file_name").notNull(),
+		fileSize: integer("file_size"),
+		mimeType: text("mime_type"),
+		label: text("label"),
+		uploadedBy: text("uploaded_by").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(table) => [
+		index("order_attachment_order_created_idx").on(
+			table.orderId,
+			table.createdAt.desc()
+		),
+	]
+);
+
 // --- Relations ---
 
 export const orderRelations = relations(order, ({ one, many }) => ({
@@ -186,6 +219,7 @@ export const orderRelations = relations(order, ({ one, many }) => ({
 	items: many(orderItem),
 	statusHistory: many(orderStatusHistory),
 	notes: many(orderNote),
+	attachments: many(orderAttachment),
 }));
 
 export const orderItemRelations = relations(orderItem, ({ one }) => ({
@@ -222,6 +256,20 @@ export const orderNoteRelations = relations(orderNote, ({ one }) => ({
 	}),
 }));
 
+export const orderAttachmentRelations = relations(
+	orderAttachment,
+	({ one }) => ({
+		order: one(order, {
+			fields: [orderAttachment.orderId],
+			references: [order.id],
+		}),
+		uploadedByUser: one(user, {
+			fields: [orderAttachment.uploadedBy],
+			references: [user.id],
+		}),
+	})
+);
+
 // --- Types ---
 
 export type Order = typeof order.$inferSelect;
@@ -232,3 +280,5 @@ export type OrderStatusHistory = typeof orderStatusHistory.$inferSelect;
 export type NewOrderStatusHistory = typeof orderStatusHistory.$inferInsert;
 export type OrderNote = typeof orderNote.$inferSelect;
 export type NewOrderNote = typeof orderNote.$inferInsert;
+export type OrderAttachment = typeof orderAttachment.$inferSelect;
+export type NewOrderAttachment = typeof orderAttachment.$inferInsert;

@@ -18,7 +18,7 @@ import {
 } from "@emach/ui/components/table";
 import { EyeIcon } from "lucide-react";
 import Link from "next/link";
-
+import { ORDER_STATUS_LABELS } from "../../orders/status-meta";
 import type { CustomerOrdersResult } from "../data";
 
 const CURRENCY = new Intl.NumberFormat("pt-BR", {
@@ -31,16 +31,6 @@ const DATE = new Intl.DateTimeFormat("pt-BR", {
 	month: "2-digit",
 	year: "numeric",
 });
-
-const ORDER_STATUS_LABELS: Record<string, string> = {
-	pending_payment: "Aguardando pagamento",
-	paid: "Pago",
-	preparing: "Preparando",
-	shipped: "Enviado",
-	delivered: "Entregue",
-	canceled: "Cancelado",
-	refunded: "Reembolsado",
-};
 
 const ORDER_STATUS_VARIANTS: Record<
 	string,

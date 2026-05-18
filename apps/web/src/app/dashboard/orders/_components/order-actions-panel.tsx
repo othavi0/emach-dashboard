@@ -300,7 +300,10 @@ export function OrderActionsPanel({
 	const showCancelException =
 		canCancel &&
 		(order.status === "pending_payment" || order.status === "payment_failed");
-	const showReturnException = canUpdateStatus && order.status === "delivered";
+	// returned cobre devolução do cliente (delivered) e falha de entrega (shipped).
+	const showReturnException =
+		canUpdateStatus &&
+		(order.status === "delivered" || order.status === "shipped");
 	const showRefundException =
 		canRefund &&
 		(order.status === "paid" ||
@@ -353,98 +356,112 @@ export function OrderActionsPanel({
 		);
 	}
 
+	const hasExceptions =
+		showCancelException || showReturnException || showRefundException;
+
 	return (
-		<div className="flex flex-col gap-4">
-			<Card>
-				<CardHeader>
-					<CardTitle>Próxima ação</CardTitle>
-					<CardDescription>
-						Fluxo operacional principal do pedido.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-3">
-					<PrimaryActionContent
-						branches={branches}
-						branchId={branchId}
-						canDoPrimaryTransition={canDoPrimaryTransition}
-						isPending={isPending}
-						isTerminal={isTerminal}
-						nextStatus={nextStatus}
-						onAssignBranch={handleAssignBranch}
-						onPrimaryStatusUpdate={handlePrimaryStatusUpdate}
-						onTrackingUpdate={handleTrackingUpdate}
-						order={order}
-						setBranchId={setBranchId}
-						setStatusReason={setStatusReason}
-						setTrackingCode={setTrackingCode}
-						statusReason={statusReason}
-						trackingCode={trackingCode}
-					/>
-				</CardContent>
-			</Card>
+		<Card>
+			{/* ── Próxima ação ── */}
+			<CardHeader>
+				<CardTitle>Ações</CardTitle>
+				<CardDescription>
+					Fluxo principal, exceções e notas internas do pedido.
+				</CardDescription>
+			</CardHeader>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Exceções</CardTitle>
-					<CardDescription>
-						Cancelamento, devolução ao estoque e reembolso fora do fluxo
-						principal.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="flex flex-wrap gap-2">
-					{showCancelException && (
-						<StockReturnDialog
-							branches={branches}
-							currentBranchId={order.branchId}
-							items={order.items}
-							orderId={order.id}
-							toStatus="canceled"
-							triggerLabel="Cancelar pedido"
-						/>
-					)}
-					{showReturnException && (
-						<StockReturnDialog
-							branches={branches}
-							currentBranchId={order.branchId}
-							items={order.items}
-							orderId={order.id}
-							toStatus="returned"
-							triggerLabel="Registrar devolução"
-						/>
-					)}
-					{showRefundException && <RefundDialog orderId={order.id} />}
-				</CardContent>
-			</Card>
+			<CardContent className="space-y-3">
+				<p className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
+					Próxima ação
+				</p>
+				<PrimaryActionContent
+					branches={branches}
+					branchId={branchId}
+					canDoPrimaryTransition={canDoPrimaryTransition}
+					isPending={isPending}
+					isTerminal={isTerminal}
+					nextStatus={nextStatus}
+					onAssignBranch={handleAssignBranch}
+					onPrimaryStatusUpdate={handlePrimaryStatusUpdate}
+					onTrackingUpdate={handleTrackingUpdate}
+					order={order}
+					setBranchId={setBranchId}
+					setStatusReason={setStatusReason}
+					setTrackingCode={setTrackingCode}
+					statusReason={statusReason}
+					trackingCode={trackingCode}
+				/>
+			</CardContent>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Nota interna</CardTitle>
-					<CardDescription>
-						Registro operacional visível apenas no admin.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-3">
-					<Textarea
-						disabled={!canAddNote}
-						onChange={(event) => setNoteBody(event.target.value)}
-						placeholder="Ex: aguardar coleta da transportadora"
-						value={noteBody}
-					/>
-					<Button
-						disabled={isPending || !canAddNote || !noteBody.trim()}
-						onClick={handleAddNote}
-						variant="secondary"
-					>
-						{isPending ? (
-							<>
-								<Spinner /> Salvando…
-							</>
-						) : (
-							"Adicionar nota"
-						)}
-					</Button>
-				</CardContent>
-			</Card>
-		</div>
+			{/* ── Exceções ── */}
+			{hasExceptions && (
+				<>
+					<div className="mx-6 border-border border-t" />
+					<CardContent className="space-y-3 pt-4">
+						<p className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
+							Exceções
+						</p>
+						<p className="text-muted-foreground text-xs">
+							Cancelamento, devolução e reembolso fora do fluxo principal.
+						</p>
+						<div className="flex flex-wrap gap-2">
+							{showCancelException && (
+								<StockReturnDialog
+									branches={branches}
+									currentBranchId={order.branchId}
+									items={order.items}
+									orderId={order.id}
+									toStatus="canceled"
+									triggerLabel="Cancelar pedido"
+									triggerVariant="destructive"
+								/>
+							)}
+							{showReturnException && (
+								<StockReturnDialog
+									branches={branches}
+									currentBranchId={order.branchId}
+									items={order.items}
+									orderId={order.id}
+									toStatus="returned"
+									triggerLabel="Registrar devolução"
+									triggerVariant="warning"
+								/>
+							)}
+							{showRefundException && <RefundDialog orderId={order.id} />}
+						</div>
+					</CardContent>
+				</>
+			)}
+
+			{/* ── Nota interna ── */}
+			{canAddNote && (
+				<>
+					<div className="mx-6 border-border border-t" />
+					<CardContent className="space-y-3 pt-4">
+						<p className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
+							Nota interna
+						</p>
+						<Textarea
+							onChange={(event) => setNoteBody(event.target.value)}
+							placeholder="Ex: aguardar coleta da transportadora"
+							value={noteBody}
+						/>
+						<Button
+							disabled={isPending || !noteBody.trim()}
+							onClick={handleAddNote}
+							size="sm"
+							variant="secondary"
+						>
+							{isPending ? (
+								<>
+									<Spinner /> Salvando…
+								</>
+							) : (
+								"Adicionar nota"
+							)}
+						</Button>
+					</CardContent>
+				</>
+			)}
+		</Card>
 	);
 }

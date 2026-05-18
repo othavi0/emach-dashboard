@@ -14,7 +14,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
-import { Eye } from "lucide-react";
+import { CalendarIcon, Eye } from "lucide-react";
 import Link from "next/link";
 
 import type { OrderListFilters, OrderListItem } from "../data";
@@ -29,6 +29,8 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
 	day: "2-digit",
 	month: "2-digit",
 	year: "numeric",
+	hour: "2-digit",
+	minute: "2-digit",
 });
 
 const RELATIVE_FORMATTER = new Intl.RelativeTimeFormat("pt-BR", {
@@ -94,6 +96,9 @@ interface OrderTableProps {
 	totalPages: number;
 }
 
+const LABEL_CLASS =
+	"text-[11px] uppercase tracking-widest font-medium text-muted-foreground";
+
 export function OrderTable({
 	filters,
 	items,
@@ -104,36 +109,58 @@ export function OrderTable({
 		<div className="flex flex-col gap-4">
 			<Table>
 				<TableHeader>
-					<TableRow>
-						<TableHead>Número</TableHead>
-						<TableHead>Cliente</TableHead>
-						<TableHead>Status</TableHead>
-						<TableHead>Filial</TableHead>
-						<TableHead className="w-16 text-right">Itens</TableHead>
-						<TableHead className="text-right">Total</TableHead>
-						<TableHead>Data</TableHead>
-						<TableHead className="w-28 text-right">Ação</TableHead>
+					<TableRow className="hover:bg-transparent">
+						<TableHead className={`w-36 ${LABEL_CLASS}`}>Pedido</TableHead>
+						<TableHead className={LABEL_CLASS}>Cliente</TableHead>
+						<TableHead className={`w-40 ${LABEL_CLASS}`}>Status</TableHead>
+						<TableHead className={`w-36 ${LABEL_CLASS}`}>Filial</TableHead>
+						<TableHead className={`w-14 text-right ${LABEL_CLASS}`}>
+							Itens
+						</TableHead>
+						<TableHead className={`w-32 text-right ${LABEL_CLASS}`}>
+							Total
+						</TableHead>
+						<TableHead className={`w-32 ${LABEL_CLASS}`}>Data</TableHead>
+						<TableHead aria-label="Ações" className={`w-10 ${LABEL_CLASS}`} />
 					</TableRow>
 				</TableHeader>
 				<TableBody>
 					{items.map((item) => (
 						<TableRow key={item.id}>
-							<TableCell className="font-medium">{item.number}</TableCell>
-							<TableCell>{item.clientName}</TableCell>
+							<TableCell>
+								<span className="font-medium font-mono text-foreground text-sm tracking-tight">
+									{item.number}
+								</span>
+							</TableCell>
+							<TableCell>
+								<span className="text-foreground text-sm">
+									{item.clientName}
+								</span>
+							</TableCell>
 							<TableCell>
 								<OrderStatusBadge status={item.status} />
 							</TableCell>
-							<TableCell className="text-muted-foreground text-sm">
-								{item.branchName ?? "—"}
+							<TableCell>
+								<span className="block max-w-32 truncate text-muted-foreground text-xs">
+									{item.branchName ?? "—"}
+								</span>
 							</TableCell>
-							<TableCell className="text-right font-mono text-sm tabular-nums">
-								{item.itemsCount}
+							<TableCell className="text-right">
+								<span className="font-mono text-muted-foreground text-sm tabular-nums">
+									{item.itemsCount}
+								</span>
 							</TableCell>
-							<TableCell className="text-right font-mono text-sm">
-								{formatCurrency(item.totalAmount)}
+							<TableCell className="text-right">
+								<span className="font-medium font-mono text-foreground text-sm tabular-nums">
+									{formatCurrency(item.totalAmount)}
+								</span>
 							</TableCell>
-							<TableCell className="text-muted-foreground text-sm">
-								<span title={formatAbsoluteDate(item.createdAt)}>
+							<TableCell>
+								<span
+									className="inline-flex items-center gap-1 text-muted-foreground text-xs"
+									title={formatAbsoluteDate(item.createdAt)}
+								>
+									<CalendarIcon aria-hidden className="size-3 shrink-0" />
 									{formatRelativeDate(item.createdAt)}
 								</span>
 							</TableCell>

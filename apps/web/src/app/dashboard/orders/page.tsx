@@ -123,7 +123,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 				title="Pedidos"
 			/>
 
-			<OrderKpisRow kpis={kpis} />
+			<OrderKpisRow counts={counts} kpis={kpis} />
 
 			<section className="grid gap-3 lg:grid-cols-2">
 				<PendingList

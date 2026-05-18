@@ -1,7 +1,8 @@
 "use server";
 
+import type { DashboardSession } from "@emach/auth/dashboard";
 import { db } from "@emach/db";
-import { stockLevel } from "@emach/db/schema/inventory";
+import { branch, stockLevel } from "@emach/db/schema/inventory";
 import {
 	type OrderStatus,
 	order,
@@ -15,7 +16,11 @@ import { revalidatePath } from "next/cache";
 
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
-import { requireCapability } from "@/lib/permissions";
+import {
+	type Capability,
+	requireCapability,
+	requireCapabilityWithContext,
+} from "@/lib/permissions";
 import {
 	fetchOrdersPage as fetchOrdersPageImpl,
 	type OrderListItem,
@@ -49,10 +54,63 @@ export async function fetchOrdersPage(args: {
 
 const STATUS_TIMESTAMP_MAP: Partial<Record<OrderStatus, string>> = {
 	paid: "paidAt",
+	preparing: "preparingAt",
 	shipped: "shippedAt",
 	delivered: "deliveredAt",
 	canceled: "canceledAt",
+	returned: "returnedAt",
+	refunded: "refundedAt",
 };
+
+type OrderTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Capability guards throw `Error("Forbidden: ...")` — detect those here. */
+function isCapabilityError(error: unknown): boolean {
+	return error instanceof Error && error.message.startsWith("Forbidden:");
+}
+
+interface LockedOrderAuth {
+	branchId: string | null;
+	session: DashboardSession;
+	status: string;
+}
+
+/**
+ * Locks the order row (`FOR UPDATE`) and runs the branch-scoped capability
+ * check against the *locked* branchId — the authoritative enforcement point.
+ * Keeping the lock held across the check (and the caller's mutation) closes
+ * the fail-open window where a concurrent reassignment could move the order
+ * to a branch outside the actor's scope between a non-locking pre-read and
+ * the mutation. Returns the locked row, or null if the order doesn't exist.
+ */
+export async function lockOrderAndAuthorize(
+	tx: OrderTx,
+	cap: Capability,
+	orderId: string
+): Promise<LockedOrderAuth | null> {
+	const [locked] = await tx
+		.select({ status: order.status, branchId: order.branchId })
+		.from(order)
+		.where(eq(order.id, orderId))
+		.for("update")
+		.limit(1);
+
+	if (!locked) {
+		return null;
+	}
+
+	// The capability check runs its own read-only queries on the global `db`
+	// pool (a separate connection), not on `tx` — it touches `user`/`userBranch`,
+	// never the locked `order` row, so there is no deadlock with the held lock.
+	const session =
+		locked.branchId === null
+			? await requireCapability(cap)
+			: await requireCapabilityWithContext(cap, {
+					targetBranchIds: [locked.branchId],
+				});
+
+	return { status: locked.status, branchId: locked.branchId, session };
+}
 
 async function applyStockReturns(
 	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
@@ -110,7 +168,7 @@ async function applyStockReturns(
 			newQty,
 			delta: oi.quantity,
 			reason: "ajuste_inventario",
-			reasonNote: "Devolução ao estoque — pedido cancelado/devolvido",
+			reasonNote: "Devolução ao estoque — pedido devolvido",
 			orderId,
 			orderItemId: item.orderItemId,
 			actorType: "user",
@@ -132,24 +190,32 @@ export async function updateOrderStatus(
 
 	const { orderId, toStatus, reason, trackingCode, branchId, returnItems } =
 		parsed.data;
-	const session = await requireCapability(capForStatus(toStatus));
+	const cap = capForStatus(toStatus);
 
 	try {
 		await db.transaction(async (tx) => {
-			const [locked] = await tx
-				.select({ status: order.status })
-				.from(order)
-				.where(eq(order.id, orderId))
-				.for("update");
+			// Lock the order row, then authorize against the *locked* branchId —
+			// the single, authoritative branch-scope check. Reuses this one lock
+			// for the mutation below; no separate non-locking pre-read is needed.
+			const locked = await lockOrderAndAuthorize(tx, cap, orderId);
 
 			if (!locked) {
 				throw new Error("Pedido não encontrado");
 			}
 
+			const { session } = locked;
 			const currentStatus = locked.status as OrderStatus;
 			const allowed = VALID_TRANSITIONS[currentStatus];
 			if (!allowed?.includes(toStatus)) {
 				throw new Error(`Transição inválida: ${currentStatus} → ${toStatus}`);
+			}
+
+			// branchId is mandatory when entering "preparing"
+			const resolvedBranchId = branchId ?? locked.branchId;
+			if (toStatus === "preparing" && !resolvedBranchId) {
+				throw new Error(
+					"Filial obrigatória para iniciar a preparação do pedido"
+				);
 			}
 
 			const updates: Record<string, unknown> = { status: toStatus };
@@ -176,11 +242,10 @@ export async function updateOrderStatus(
 				reason: reason ?? null,
 			});
 
-			if (
-				(toStatus === "canceled" || toStatus === "returned") &&
-				returnItems &&
-				returnItems.length > 0
-			) {
+			// Stock returns: only for "returned" status.
+			// Canceled orders (especially unpaid ones) never debited stock, so we
+			// must NOT credit stock back on cancellation.
+			if (toStatus === "returned" && returnItems && returnItems.length > 0) {
 				await applyStockReturns(tx, orderId, returnItems, session.user.id);
 			}
 		});
@@ -190,6 +255,11 @@ export async function updateOrderStatus(
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateOrderStatus", error);
+		// Capability failures throw "Forbidden: ..." — never leak that internal
+		// prefix to the UI; surface a clean Portuguese message instead.
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para alterar este pedido." };
+		}
 		return {
 			ok: false,
 			error: error instanceof Error ? error.message : "Erro interno",
@@ -208,21 +278,40 @@ export async function addOrderNote(
 		};
 	}
 
-	const session = await requireCapability("orders.add_note");
 	const { orderId, body } = parsed.data;
 
 	try {
-		await db.insert(orderNote).values({
-			id: crypto.randomUUID(),
-			orderId,
-			authorId: session.user.id,
-			body,
+		await db.transaction(async (tx) => {
+			// Lock the order row, then authorize against the locked branchId —
+			// the lock is held across the check and the insert below.
+			const locked = await lockOrderAndAuthorize(
+				tx,
+				"orders.add_note",
+				orderId
+			);
+
+			if (!locked) {
+				throw new Error("Pedido não encontrado");
+			}
+
+			await tx.insert(orderNote).values({
+				id: crypto.randomUUID(),
+				orderId,
+				authorId: locked.session.user.id,
+				body,
+			});
 		});
 
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("addOrderNote", error);
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para alterar este pedido." };
+		}
+		if (error instanceof Error && error.message === "Pedido não encontrado") {
+			return { ok: false, error: "Pedido não encontrado" };
+		}
 		return { ok: false, error: "Erro ao adicionar nota" };
 	}
 }
@@ -238,11 +327,30 @@ export async function assignBranch(
 		};
 	}
 
-	await requireCapability("orders.update_status");
 	const { orderId, branchId } = parsed.data;
 
+	// Branch-scoping: actor must have access to the branch being assigned.
+	await requireCapabilityWithContext("orders.update_status", {
+		targetBranchIds: [branchId],
+	});
+
 	try {
-		await db.update(order).set({ branchId }).where(eq(order.id, orderId));
+		await db.transaction(async (tx) => {
+			await tx.update(order).set({ branchId }).where(eq(order.id, orderId));
+
+			const [branchRow] = await tx
+				.select({ name: branch.name })
+				.from(branch)
+				.where(eq(branch.id, branchId))
+				.limit(1);
+
+			await tx.insert(orderNote).values({
+				id: crypto.randomUUID(),
+				orderId,
+				authorId: null,
+				body: `Filial reatribuída para: ${branchRow?.name ?? branchId}`,
+			});
+		});
 
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
 		return { ok: true, data: undefined };
@@ -263,19 +371,45 @@ export async function updateTrackingCode(
 		};
 	}
 
-	await requireCapability("orders.update_status");
 	const { orderId, trackingCode } = parsed.data;
 
 	try {
-		await db
-			.update(order)
-			.set({ shippingTrackingCode: trackingCode })
-			.where(eq(order.id, orderId));
+		await db.transaction(async (tx) => {
+			// Lock the order row, then authorize against the locked branchId —
+			// the lock is held across the check and the mutation below.
+			const locked = await lockOrderAndAuthorize(
+				tx,
+				"orders.update_status",
+				orderId
+			);
+
+			if (!locked) {
+				throw new Error("Pedido não encontrado");
+			}
+
+			await tx
+				.update(order)
+				.set({ shippingTrackingCode: trackingCode })
+				.where(eq(order.id, orderId));
+
+			await tx.insert(orderNote).values({
+				id: crypto.randomUUID(),
+				orderId,
+				authorId: null,
+				body: `Código de rastreio atualizado: ${trackingCode}`,
+			});
+		});
 
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateTrackingCode", error);
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para alterar este pedido." };
+		}
+		if (error instanceof Error && error.message === "Pedido não encontrado") {
+			return { ok: false, error: "Pedido não encontrado" };
+		}
 		return { ok: false, error: "Erro ao atualizar rastreio" };
 	}
 }

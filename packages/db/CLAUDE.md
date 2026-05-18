@@ -96,7 +96,6 @@ await client.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL 
 
 Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `consentLog`. Cópia do schema TS (`src/schema/`) sincronizada manualmente a cada mudança. Ver `docs/integration/admin-ecommerce.md` para o contrato completo. Mudanças nessas tabelas exigem coordenação.
 
-> Gap: docs/integration/admin-ecommerce.md ainda não foi escrito.
 
 **Atenção pós-refactor de variants:** `stock_level`, `stock_movement` e `order_item` agora referenciam `tool_variant.id` (não mais `tool.id`). O app ecomerce precisa enviar `variantId` em pedidos e movimentos, não `toolId`. Ler `tool_variant` para obter SKU vendável; `tool` é o produto-pai (informações comuns).
 
