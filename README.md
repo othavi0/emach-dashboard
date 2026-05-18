@@ -33,8 +33,7 @@ PostgreSQL + Drizzle ORM via Supabase.
 
 ```bash
 bun db:sync                                  # drizzle-kit push + triggers + indexes
-bun --cwd packages/db db:seed-categories     # bootstrap 4 categorias raiz
-bun --cwd packages/db db:seed-attributes     # attribute_definitions iniciais
+bun --cwd packages/db db:seed-demo           # fixture completo de dev (trunca + popula + verifica invariantes)
 ```
 
 Servidor de desenvolvimento:
@@ -112,7 +111,7 @@ emach-dashboard/
 | `bun db:push`                                       | Só o schema Drizzle (sem triggers/indexes)                                |
 | `bun db:studio`                                     | UI inspetora de tabelas (drizzle-kit)                                     |
 | `bun --cwd packages/db db:apply-triggers`           | Aplica `src/sql/triggers.sql` (anti-ciclo + idempotência)                 |
-| `bun --cwd packages/db db:seed-categories`          | Bootstrap 4 categorias raiz                                               |
-| `bun --cwd packages/db db:seed-attributes`          | Bootstrap `attribute_definitions` iniciais por categoria                  |
+| `bun --cwd packages/db db:seed-demo`                | Fixture completo de dev (trunca + popula + verifica invariantes)          |
+| `bun --cwd packages/db db:reset-demo`               | Só trunca as tabelas demo (estado limpo, sem repopular)                   |
 | `bun --cwd packages/db db:anonymize-client <id>`    | LGPD direito ao esquecimento                                              |
 | `bun clean`                                         | Remove `node_modules` + caches Turbo/Next                                 |

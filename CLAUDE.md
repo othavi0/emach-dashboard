@@ -87,8 +87,8 @@ bun db:push                        # só o schema Drizzle (sem triggers/indexes)
 bun db:studio                      # UI inspetora de tabelas
 
 # DB scripts utilitários (em packages/db)
-bun --cwd packages/db db:seed-categories       # bootstrap 4 categorias raiz
-bun --cwd packages/db db:seed-attributes       # bootstrap attribute_definitions iniciais por categoria
+bun --cwd packages/db db:seed-demo             # reconstrói DB de dev inteira (trunca tudo exceto auth + popula fixture + verifica invariantes)
+bun --cwd packages/db db:reset-demo            # só trunca as tabelas demo (estado limpo, sem repopular)
 bun --cwd packages/db db:apply-triggers        # aplica src/sql/triggers.sql (anti-ciclo + idempotência)
 bun --cwd packages/db db:apply-indexes         # aplica src/sql/indexes.sql (índices fora do schema Drizzle)
 
@@ -104,8 +104,7 @@ Se o schema diverge muito e drizzle-kit não consegue resolver renames (TTY prom
 ```bash
 # DROP SCHEMA public CASCADE; CREATE SCHEMA public;  via pg client
 # depois: bunx drizzle-kit push
-# depois: bun --cwd packages/db db:apply-triggers && bun --cwd packages/db db:apply-indexes && bun --cwd packages/db db:seed-categories && bun --cwd packages/db db:seed-attributes
-# (ou simplesmente: bun db:sync && bun --cwd packages/db db:seed-categories && bun --cwd packages/db db:seed-attributes)
+# depois: bun --cwd packages/db db:apply-triggers && bun --cwd packages/db db:apply-indexes && bun --cwd packages/db db:seed-demo
 ```
 
 ⚠️ Só rodar em DB de dev.

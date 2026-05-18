@@ -77,8 +77,8 @@ bun db:studio              # UI inspetora
 
 bun db:apply-triggers      # aplica src/sql/triggers.sql
 bun db:apply-indexes       # aplica src/sql/indexes.sql (índices fora do schema Drizzle)
-bun db:seed-categories     # bootstrap 4 categorias raiz idempotente
-bun db:seed-attributes     # attribute_definitions iniciais (RPM, mandril, percussão, etc) por categoria raiz
+bun db:seed-demo           # reconstrói DB de dev inteira (trunca tudo exceto auth + popula fixture + verifica invariantes)
+bun db:reset-demo          # só trunca as tabelas demo (estado limpo, sem repopular)
 ```
 
 > ⚠️ **Gap conhecido — anonimização LGPD:** não há script nem server action de anonimização de cliente ("direito ao esquecimento"). Só o *export* de dados existe (`client_export_log` + rota `dashboard/customers/export/`). Implementar antes de produção.
@@ -88,7 +88,7 @@ bun db:seed-attributes     # attribute_definitions iniciais (RPM, mandril, percu
 ```ts
 // snippet via pg client direto
 await client.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres, public;");
-// depois: bunx drizzle-kit push && bun db:apply-triggers && bun db:seed-categories && bun db:seed-attributes
+// depois: bunx drizzle-kit push && bun db:apply-triggers && bun db:seed-demo
 ```
 
 ⚠️ Só em dev.
