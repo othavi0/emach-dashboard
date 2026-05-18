@@ -14,6 +14,8 @@ import { stockMovement } from "@emach/db/schema/stock-movements";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+import type { ActivityEvent } from "@/components/activity-feed";
+import type { PendingRow } from "@/components/pending-panel";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import {
@@ -22,7 +24,9 @@ import {
 	requireCapabilityWithContext,
 } from "@/lib/permissions";
 import {
+	fetchOrderActivityPage as fetchOrderActivityPageImpl,
 	fetchOrdersPage as fetchOrdersPageImpl,
+	fetchPendingOrdersPage as fetchPendingOrdersPageImpl,
 	type OrderListItem,
 	type OrdersPageFiltersInput,
 } from "./data";
@@ -50,6 +54,19 @@ export async function fetchOrdersPage(args: {
 	cursor: string | null;
 }): Promise<InfiniteResult<OrderListItem>> {
 	return fetchOrdersPageImpl(args);
+}
+
+export async function fetchPendingOrdersPage(args: {
+	statuses: OrderStatus[];
+	cursor: string | null;
+}): Promise<InfiniteResult<PendingRow>> {
+	return fetchPendingOrdersPageImpl(args);
+}
+
+export async function fetchOrderActivityPage(
+	cursor: string | null
+): Promise<InfiniteResult<ActivityEvent>> {
+	return fetchOrderActivityPageImpl(cursor);
 }
 
 const STATUS_TIMESTAMP_MAP: Partial<Record<OrderStatus, string>> = {
