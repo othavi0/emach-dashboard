@@ -987,19 +987,14 @@ const QUICK_ACTIONS = [
 ] as const;
 ```
 
-- [ ] **Step 2: Deletar `pending-list.tsx`**
+> **Nota (ajuste durante a execução):** `pending-list.tsx` **NÃO** é deletado nesta task — `customers/page.tsx` ainda o consome. A deleção foi movida para a Task 11, após a migração de customers. Não rode `git rm` aqui.
 
-Run: `grep -rn "pending-list" apps/web/src`
-Expected: nenhuma referência além da própria `pending-list.tsx`. Se houver outra, atualizar para `pending-panel` antes de deletar.
-
-Run: `git rm apps/web/src/components/pending-list.tsx`
-
-- [ ] **Step 3: Verificar tipos**
+- [ ] **Step 2: Verificar tipos**
 
 Run: `bun check-types`
-Expected: PASS para o dashboard (`orders/page.tsx` ainda falha até a Task 8).
+Expected: PASS para o dashboard (`orders/page.tsx` e `customers/page.tsx` ainda falham até as Tasks 8 e 11).
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add apps/web/src/app/dashboard/page.tsx
@@ -1391,3 +1386,294 @@ git commit -m "fix: ajustes do smoke dos cards de pendencias e atividade"
 **Placeholders:** nenhum "TBD"/"TODO"/código inválido remanescente — todo bloco de código é o conteúdo final a escrever.
 
 **Type consistency:** `PendingRow`, `PendingTab`, `PendingRole` definidos na Task 3 e usados consistentemente nas Tasks 5–8. `ActivityEvent` mantém a assinatura original (Task 4) e é produzido por `fetchDashboardActivity` (Task 5) e `fetchOrderActivityPage` (Task 7). Cursor `newest` reusado; `pendingStock` adicionado na Task 2 e consumido só em `fetchPendingStock`.
+
+---
+
+## Addendum (decisão de escopo durante a execução)
+
+Descobriu-se na Task 4 que `apps/web/src/app/dashboard/customers/page.tsx` consome o mesmo par `PendingList` + `ActivityFeed`. Como a nova API de `ActivityFeed` quebra essa página e a Task 6 deletaria `pending-list.tsx`, o usuário decidiu **migrar `/dashboard/customers` também**. Tasks 10 e 11 adicionadas. A deleção de `pending-list.tsx` foi movida da Task 6 para a Task 11 (último consumidor).
+
+---
+
+## Task 10: Server actions de pendências e atividade de customers
+
+**Files:**
+- Modify: `apps/web/src/app/dashboard/customers/data.ts`
+- Modify: `apps/web/src/app/dashboard/customers/actions.ts`
+
+Padrão idêntico ao das Tasks 5/7: impl cursor-paginada em `data.ts`, re-export como server action em `actions.ts` (`actions.ts` já tem `"use server"` e já re-exporta `listCustomers`).
+
+- [ ] **Step 1: Adicionar `fetchPendingCustomersPage` e `fetchCustomerActivityPage` ao fim de `customers/data.ts`**
+
+Imports de tipo no topo do arquivo (junto aos demais):
+
+```ts
+import type { ActivityEvent } from "@/components/activity-feed";
+import type { PendingRow } from "@/components/pending-panel";
+import { decodeCursor, encodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE } from "@/lib/infinite";
+```
+
+> Conferir se `InfiniteResult` já é importado em `data.ts` (sim, é usado por `listCustomers`). Não duplicar. `decodeCursor`/`encodeCursor`/`BATCH_SIZE` provavelmente ainda não — adicionar.
+
+Tipo do "kind" de pendência de cliente:
+
+```ts
+export type CustomerPendingKind =
+	| "blocked"
+	| "no_doc"
+	| "inactive_open_order"
+	| "unverified_new";
+```
+
+`fetchPendingCustomersPage` — uma lista de clientes por `kind`. Cada `kind` tem um predicado SQL distinto (os mesmos do `getCustomerPendingCounts`):
+- `blocked` → `c.status = 'blocked'`
+- `no_doc` → `c.document IS NULL`
+- `inactive_open_order` → `c.status = 'inactive' AND EXISTS (SELECT 1 FROM "order" o WHERE o.client_id = c.id AND o.status IN ('pending_payment','preparing','shipped'))`
+- `unverified_new` → `c.email_verified = false AND c.created_at > now() - INTERVAL '14 days'`
+
+Implementar:
+
+```ts
+const CUSTOMER_PENDING_PREDICATE: Record<CustomerPendingKind, ReturnType<typeof sql>> = {
+	blocked: sql`c.status = 'blocked'`,
+	no_doc: sql`c.document IS NULL`,
+	inactive_open_order: sql`c.status = 'inactive' AND EXISTS (SELECT 1 FROM "order" o WHERE o.client_id = c.id AND o.status IN ('pending_payment', 'preparing', 'shipped'))`,
+	unverified_new: sql`c.email_verified = false AND c.created_at > now() - INTERVAL '14 days'`,
+};
+
+const CUSTOMER_PENDING_BADGE: Record<CustomerPendingKind, NonNullable<PendingRow["badge"]>> = {
+	blocked: { label: "Bloqueado", role: "warning" },
+	no_doc: { label: "Sem documento", role: "warning" },
+	inactive_open_order: { label: "Pedido aberto", role: "info" },
+	unverified_new: { label: "Sem verificação", role: "info" },
+};
+
+export async function fetchPendingCustomersPage({
+	kind,
+	cursor,
+}: {
+	kind: CustomerPendingKind;
+	cursor: string | null;
+}): Promise<InfiniteResult<PendingRow>> {
+	const conditions = [CUSTOMER_PENDING_PREDICATE[kind]];
+	if (cursor) {
+		const c = decodeCursor(cursor);
+		if (c.sort !== "newest") {
+			throw new Error("Cursor incompatível: esperado newest");
+		}
+		conditions.push(
+			sql`(c.created_at, c.id) < (${c.createdAt}::timestamptz, ${c.id})`
+		);
+	}
+	const rows = await db.execute<{
+		created_at: Date;
+		document: string | null;
+		email: string;
+		id: string;
+		name: string;
+	}>(sql`
+		SELECT c.id, c.name, c.email, c.document, c.created_at
+		FROM client c
+		WHERE ${sql.join(conditions, sql` AND `)}
+		ORDER BY c.created_at DESC, c.id DESC
+		LIMIT ${BATCH_SIZE + 1}
+	`);
+	const mapped = rows.rows.map(
+		(r): PendingRow => ({
+			id: r.id,
+			href: `/dashboard/customers/${r.id}`,
+			primary: r.name,
+			secondary: r.email,
+			badge: CUSTOMER_PENDING_BADGE[kind],
+		})
+	);
+	const hasMore = mapped.length > BATCH_SIZE;
+	const items = hasMore ? mapped.slice(0, BATCH_SIZE) : mapped;
+	const lastRaw = hasMore ? rows.rows[BATCH_SIZE - 1] : undefined;
+	const nextCursor =
+		hasMore && lastRaw
+			? encodeCursor({
+					v: 1,
+					sort: "newest",
+					createdAt: toDate(lastRaw.created_at).toISOString(),
+					id: lastRaw.id,
+				})
+			: null;
+	return { items, nextCursor };
+}
+```
+
+> `toDate` de `@emach/db/utils` já é importado em `data.ts` (usado por outras funções) — conferir; se não, adicionar.
+
+`fetchCustomerActivityPage` — versão paginada de `getRecentCustomerActivity`. Reaproveitar a query existente (UNION de `new_clients` / `recent_logins` / `first_orders`), com estas mudanças:
+- Trocar `LIMIT ${limit}` por `LIMIT ${BATCH_SIZE + 1}` em cada CTE e no `SELECT` externo.
+- Quando houver `cursor` (decodificado como `newest`, campo `createdAt`), adicionar a cada CTE um filtro `at < ${cursorCreatedAt}::timestamptz` (comparação estrita só por timestamp — para `recent_logins`, aplicar via `HAVING MAX(cs.created_at) < ...` no subquery `max_session`). Tolerância: empate exato de timestamp entre fontes pode raramente pular um evento na fronteira de página — aceitável para um feed de atividade.
+- Prefixar o `id` por tipo para garantir chave React única e estável: `'new_client-' || ...`, `'login-' || ...`, `'first_order-' || ...`.
+- Mapear cada linha para `ActivityEvent`: `kind: "customer"`, `at: toDate(row.at)`, `primary: \`${ACTIVITY_LABELS[row.kind]} · ${row.client_name}\``, `href: \`/dashboard/customers/${row.client_id}\``. Mover o mapa `ACTIVITY_LABELS` (hoje inline em `customers/page.tsx`) para `data.ts` como const de módulo.
+- `nextCursor`: `encodeCursor({ v: 1, sort: "newest", createdAt: last.at.toISOString(), id: last.id })` quando `hasMore`.
+
+Assinatura: `export async function fetchCustomerActivityPage(cursor: string | null): Promise<InfiniteResult<ActivityEvent>>`.
+
+- [ ] **Step 2: Re-exportar como server actions em `customers/actions.ts`**
+
+`actions.ts` já tem `"use server"`. Adicionar imports e os dois wrappers:
+
+```ts
+import type { ActivityEvent } from "@/components/activity-feed";
+import type { PendingRow } from "@/components/pending-panel";
+```
+
+No import de `./data`, acrescentar `fetchPendingCustomersPage`, `fetchCustomerActivityPage` e o tipo `CustomerPendingKind`.
+
+```ts
+export async function fetchPendingCustomersPage(args: {
+	kind: CustomerPendingKind;
+	cursor: string | null;
+}): Promise<InfiniteResult<PendingRow>> {
+	return fetchPendingCustomersPageImpl(args);
+}
+
+export async function fetchCustomerActivityPage(
+	cursor: string | null
+): Promise<InfiniteResult<ActivityEvent>> {
+	return fetchCustomerActivityPageImpl(cursor);
+}
+```
+
+Usar alias `as ...Impl` no import de `./data` (mesmo padrão de `fetchOrdersPageImpl` em `orders/actions.ts`).
+
+- [ ] **Step 3: Verificar tipos**
+
+Run: `bun check-types`
+Expected: PASS para `customers/data.ts` e `customers/actions.ts` (`customers/page.tsx` ainda falha até a Task 11).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add apps/web/src/app/dashboard/customers/data.ts apps/web/src/app/dashboard/customers/actions.ts
+git commit -m "feat: paginacao cursor de pendencias e atividade de clientes"
+```
+
+---
+
+## Task 11: Wiring de `/dashboard/customers/page.tsx` + remoção de `pending-list.tsx`
+
+**Files:**
+- Modify: `apps/web/src/app/dashboard/customers/page.tsx`
+- Delete: `apps/web/src/components/pending-list.tsx`
+
+- [ ] **Step 1: Atualizar `customers/page.tsx`**
+
+Imports:
+- Trocar `import { type ActivityEvent, ActivityFeed } from "@/components/activity-feed";` por `import { ActivityFeed } from "@/components/activity-feed";`
+- Trocar `import { type PendingGroup, PendingList } from "@/components/pending-list";` por `import { PendingPanel, type PendingTab } from "@/components/pending-panel";`
+- No import de `./data`, remover `getCustomerPendingCounts` e `getRecentCustomerActivity` **somente se deixarem de ser usados** — `getCustomerPendingCounts` continua sendo usado (alimenta os badges das abas); `getRecentCustomerActivity` deixa de ser usado (removê-lo do import).
+- Adicionar `import { fetchCustomerActivityPage, fetchPendingCustomersPage } from "./actions";`
+
+No `Promise.all`, trocar `getRecentCustomerActivity()` pelas buscas das 4 abas + atividade:
+
+```tsx
+	const [counts, pendingBlocked, pendingNoDoc, pendingInactive, pendingUnverified, activity, result] =
+		await Promise.all([
+			getCustomerPendingCounts(),
+			fetchPendingCustomersPage({ kind: "blocked", cursor: null }),
+			fetchPendingCustomersPage({ kind: "no_doc", cursor: null }),
+			fetchPendingCustomersPage({ kind: "inactive_open_order", cursor: null }),
+			fetchPendingCustomersPage({ kind: "unverified_new", cursor: null }),
+			fetchCustomerActivityPage(null),
+			listCustomers({ filters, cursor: null }),
+		]);
+```
+
+Remover o bloco `const ACTIVITY_LABELS = {...}` (movido para `data.ts` na Task 10), o bloco `const pendingGroups: PendingGroup[] = [...]` inteiro e o bloco `const activityEvents: ActivityEvent[] = recentActivity.map(...)` inteiro. No lugar dos `pendingGroups`, montar as abas:
+
+```tsx
+	const pendingTabs: PendingTab[] = [
+		{
+			id: "blocked",
+			label: "Bloqueados",
+			count: counts.blocked,
+			role: "warning",
+			initial: pendingBlocked.items,
+			initialCursor: pendingBlocked.nextCursor,
+			fetchPage: (cursor) =>
+				fetchPendingCustomersPage({ kind: "blocked", cursor }),
+		},
+		{
+			id: "no_doc",
+			label: "Sem documento",
+			count: counts.noDoc,
+			role: "warning",
+			initial: pendingNoDoc.items,
+			initialCursor: pendingNoDoc.nextCursor,
+			fetchPage: (cursor) =>
+				fetchPendingCustomersPage({ kind: "no_doc", cursor }),
+		},
+		{
+			id: "inactive_open_order",
+			label: "Inativos c/ pedido",
+			count: counts.inactiveWithOpenOrder,
+			role: "info",
+			initial: pendingInactive.items,
+			initialCursor: pendingInactive.nextCursor,
+			fetchPage: (cursor) =>
+				fetchPendingCustomersPage({ kind: "inactive_open_order", cursor }),
+		},
+		{
+			id: "unverified_new",
+			label: "Novos s/ verificação",
+			count: counts.unverifiedNew,
+			role: "info",
+			initial: pendingUnverified.items,
+			initialCursor: pendingUnverified.nextCursor,
+			fetchPage: (cursor) =>
+				fetchPendingCustomersPage({ kind: "unverified_new", cursor }),
+		},
+	];
+```
+
+Substituir a `<section className="grid gap-3 lg:grid-cols-2">...</section>` por:
+
+```tsx
+			<section className="grid gap-3 lg:grid-cols-2">
+				<PendingPanel
+					emptyMessage="Nenhum cliente aguardando ação."
+					tabs={pendingTabs}
+					title="Atenção em clientes"
+				/>
+				<ActivityFeed
+					emptyMessage="Sem atividade recente."
+					fetchPage={fetchCustomerActivityPage}
+					initialCursor={activity.nextCursor}
+					initialEvents={activity.items}
+					title="Atividade recente"
+				/>
+			</section>
+```
+
+- [ ] **Step 2: Deletar `pending-list.tsx`**
+
+Run: `grep -rn "pending-list" apps/web/src`
+Expected: nenhuma referência além do próprio arquivo `pending-list.tsx`. Se aparecer outra, migrar antes de deletar.
+
+Run: `git rm apps/web/src/components/pending-list.tsx`
+
+- [ ] **Step 3: Verificar tipos**
+
+Run: `bun check-types`
+Expected: PASS — projeto inteiro sem erros.
+
+- [ ] **Step 4: Rodar formatter**
+
+Run: `bun fix`
+Expected: sem erros de lint.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add apps/web/src/app/dashboard/customers/page.tsx
+git commit -m "feat: pagina de clientes usa PendingPanel e ActivityFeed lazy-loaded"
+```
+
+> A Task 9 (smoke) passa a cobrir também `/dashboard/customers`: abas das pendências, scroll interno e lazy loading nos dois cards.
