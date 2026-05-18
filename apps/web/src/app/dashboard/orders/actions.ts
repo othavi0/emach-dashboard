@@ -53,20 +53,20 @@ export async function fetchOrdersPage(args: {
 	filters: OrdersPageFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<OrderListItem>> {
-	return fetchOrdersPageImpl(args);
+	return await fetchOrdersPageImpl(args);
 }
 
 export async function fetchPendingOrdersPage(args: {
 	statuses: OrderStatus[];
 	cursor: string | null;
 }): Promise<InfiniteResult<PendingRow>> {
-	return fetchPendingOrdersPageImpl(args);
+	return await fetchPendingOrdersPageImpl(args);
 }
 
 export async function fetchOrderActivityPage(
 	cursor: string | null
 ): Promise<InfiniteResult<ActivityEvent>> {
-	return fetchOrderActivityPageImpl(cursor);
+	return await fetchOrderActivityPageImpl(cursor);
 }
 
 const STATUS_TIMESTAMP_MAP: Partial<Record<OrderStatus, string>> = {
