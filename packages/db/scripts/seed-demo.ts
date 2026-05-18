@@ -6,6 +6,7 @@ import { seedClients } from "./seed/clients";
 import { emptyContext } from "./seed/context";
 import { seedCore } from "./seed/core";
 import { seedInventory } from "./seed/inventory";
+import { seedSales } from "./seed/sales";
 import { truncateDemo } from "./seed/truncate";
 
 async function main() {
@@ -25,8 +26,7 @@ async function main() {
 		await seedCatalog(tx, ctx);
 		await seedInventory(tx, ctx);
 		await seedClients(tx, ctx);
-		// módulos adicionados nas Tasks 6-8
-		void ctx;
+		await seedSales(tx, ctx);
 	});
 	console.log("[seed-demo] OK");
 }
