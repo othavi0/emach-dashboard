@@ -45,6 +45,11 @@ export interface NameAscCursor extends CursorBase {
 	sort: "nameAsc";
 }
 
+export interface PendingStockCursor extends CursorBase {
+	quantity: number;
+	sort: "pendingStock";
+}
+
 export type Cursor =
 	| NewestCursor
 	| NameCursor
@@ -53,7 +58,8 @@ export type Cursor =
 	| UrgencyCursor
 	| LtvCursor
 	| LastOrderCursor
-	| NameAscCursor;
+	| NameAscCursor
+	| PendingStockCursor;
 
 export function encodeCursor(c: Cursor): string {
 	return Buffer.from(JSON.stringify(c)).toString("base64url");
