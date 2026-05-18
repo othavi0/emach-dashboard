@@ -11,12 +11,19 @@ import { clientAuditLog } from "@emach/db/schema/client-audit";
 import { env } from "@emach/env/server";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
+import type { ActivityEvent } from "@/components/activity-feed";
+import type { PendingRow } from "@/components/pending-panel";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 
-import { type CustomerListItem, listCustomers } from "./data";
+import {
+	type CustomerListItem,
+	type CustomerPendingKind,
+	fetchCustomerActivityPage as fetchCustomerActivityPageImpl,
+	fetchPendingCustomersPage as fetchPendingCustomersPageImpl,
+	listCustomers,
+} from "./data";
 import {
 	type CustomersListFilters,
 	customersListFiltersSchema,
@@ -480,4 +487,27 @@ export async function generatePasswordResetLink(
 		const msg = error instanceof Error ? error.message : "Erro interno";
 		return { ok: false, error: msg };
 	}
+}
+
+// ============================================================================
+// Pending customers — wrapper para useInfiniteList
+// ============================================================================
+
+export async function fetchPendingCustomersPage(args: {
+	cursor: string | null;
+	kind: CustomerPendingKind;
+}): Promise<InfiniteResult<PendingRow>> {
+	await requireCapability("customers.read");
+	return fetchPendingCustomersPageImpl(args);
+}
+
+// ============================================================================
+// Customer activity — wrapper para useInfiniteList
+// ============================================================================
+
+export async function fetchCustomerActivityPage(
+	cursor: string | null
+): Promise<InfiniteResult<ActivityEvent>> {
+	await requireCapability("customers.read");
+	return fetchCustomerActivityPageImpl(cursor);
 }
