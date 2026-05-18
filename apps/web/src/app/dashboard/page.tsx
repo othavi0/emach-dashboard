@@ -76,11 +76,15 @@ export default async function DashboardPage() {
 
 			<section className="grid gap-4 lg:grid-cols-2">
 				<PendingPanel tabs={tabs} />
-				<ActivityFeed
-					fetchPage={fetchDashboardActivity}
-					initialCursor={activity.nextCursor}
-					initialEvents={activity.items}
-				/>
+				<div className="relative min-h-[24rem]">
+					<div className="absolute inset-0">
+						<ActivityFeed
+							fetchPage={fetchDashboardActivity}
+							initialCursor={activity.nextCursor}
+							initialEvents={activity.items}
+						/>
+					</div>
+				</div>
 			</section>
 
 			<section>

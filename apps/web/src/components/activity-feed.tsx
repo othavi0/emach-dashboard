@@ -75,7 +75,7 @@ export function ActivityFeed({
 	});
 
 	return (
-		<Card>
+		<Card className="flex h-full flex-col">
 			<CardHeader className="flex flex-row items-baseline justify-between gap-3 pb-3">
 				<span className="font-semibold text-sm uppercase tracking-wider">
 					{title}
@@ -84,13 +84,13 @@ export function ActivityFeed({
 					{items.length} evento{items.length === 1 ? "" : "s"}
 				</span>
 			</CardHeader>
-			<CardContent className="flex flex-col">
+			<CardContent className="flex min-h-0 flex-1 flex-col">
 				{items.length === 0 ? (
 					<p className="text-muted-foreground text-sm">{emptyMessage}</p>
 				) : (
 					<div
 						aria-live="polite"
-						className="max-h-[28rem] min-h-72 overflow-y-auto"
+						className="min-h-0 flex-1 overflow-y-auto"
 						ref={scrollRef}
 					>
 						<ul className="flex flex-col">
