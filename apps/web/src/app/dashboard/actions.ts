@@ -207,7 +207,7 @@ export async function fetchDashboardActivity(
 			LEFT JOIN tool_variant tv ON tv.id = sm.variant_id
 			LEFT JOIN branch b ON b.id = sm.branch_id
 			${keyset("sm.created_at", "'stock-' || sm.id")}
-			ORDER BY sm.created_at DESC LIMIT ${BATCH_SIZE + 1}
+			ORDER BY sm.created_at DESC, 'stock-' || sm.id DESC LIMIT ${BATCH_SIZE + 1}
 		)
 		UNION ALL
 		(
@@ -217,7 +217,7 @@ export async function fetchDashboardActivity(
 			FROM order_status_history osh
 			JOIN "order" o ON o.id = osh.order_id
 			${keyset("osh.created_at", "'order-' || osh.id")}
-			ORDER BY osh.created_at DESC LIMIT ${BATCH_SIZE + 1}
+			ORDER BY osh.created_at DESC, 'order-' || osh.id DESC LIMIT ${BATCH_SIZE + 1}
 		)
 		UNION ALL
 		(
@@ -227,7 +227,7 @@ export async function fetchDashboardActivity(
 			FROM review r
 			LEFT JOIN tool t ON t.id = r.tool_id
 			${keyset("r.created_at", "'review-' || r.id")}
-			ORDER BY r.created_at DESC LIMIT ${BATCH_SIZE + 1}
+			ORDER BY r.created_at DESC, 'review-' || r.id DESC LIMIT ${BATCH_SIZE + 1}
 		)
 		ORDER BY created_at DESC, id DESC
 		LIMIT ${BATCH_SIZE + 1}

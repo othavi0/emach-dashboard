@@ -18,6 +18,8 @@ import { tool } from "@emach/db/schema/tools";
 import { toDate } from "@emach/db/utils";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 
+import type { ActivityEvent } from "@/components/activity-feed";
+import type { PendingRow } from "@/components/pending-panel";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
@@ -672,9 +674,6 @@ export async function getCustomerPendingCounts(): Promise<CustomerPendingCounts>
 		unverifiedNew: Number(row?.unverified_new ?? 0),
 	};
 }
-
-import type { ActivityEvent } from "@/components/activity-feed";
-import type { PendingRow } from "@/components/pending-panel";
 
 export type RecentClientActivityKind = "new_client" | "login" | "first_order";
 
