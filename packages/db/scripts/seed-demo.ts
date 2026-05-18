@@ -2,6 +2,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "../src/index";
 import { emptyContext } from "./seed/context";
+import { seedCore } from "./seed/core";
 import { truncateDemo } from "./seed/truncate";
 
 async function main() {
@@ -17,7 +18,8 @@ async function main() {
 	await db.transaction(async (tx) => {
 		const ctx = emptyContext(staffUserIds);
 		await truncateDemo(tx);
-		// módulos adicionados nas Tasks 2-8
+		await seedCore(tx, ctx);
+		// módulos adicionados nas Tasks 3-8
 		void ctx;
 	});
 	console.log("[seed-demo] OK");
