@@ -9,18 +9,18 @@ import {
 } from "@emach/ui/components/empty";
 import Link from "next/link";
 
-import { type ActivityEvent, ActivityFeed } from "@/components/activity-feed";
+import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
-import { type PendingGroup, PendingList } from "@/components/pending-list";
+import { PendingPanel, type PendingTab } from "@/components/pending-panel";
 import { can, requireCapability } from "@/lib/permissions";
 import { CustomerFilters } from "./_components/customer-filters";
 import { CustomersInfinite } from "./_components/customers-infinite";
 import { ExportCsvLink } from "./_components/export-csv-link";
 import {
-	getCustomerPendingCounts,
-	getRecentCustomerActivity,
-	listCustomers,
-} from "./data";
+	fetchCustomerActivityPage,
+	fetchPendingCustomersPage,
+} from "./actions";
+import { getCustomerPendingCounts, listCustomers } from "./data";
 import { customersListFiltersSchema } from "./schema";
 
 interface PageProps {
@@ -41,9 +41,21 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 		? parsed.data
 		: customersListFiltersSchema.parse({});
 
-	const [counts, recentActivity, result] = await Promise.all([
+	const [
+		counts,
+		pendingBlocked,
+		pendingNoDoc,
+		pendingInactive,
+		pendingUnverified,
+		activity,
+		result,
+	] = await Promise.all([
 		getCustomerPendingCounts(),
-		getRecentCustomerActivity(),
+		fetchPendingCustomersPage({ kind: "blocked", cursor: null }),
+		fetchPendingCustomersPage({ kind: "no_doc", cursor: null }),
+		fetchPendingCustomersPage({ kind: "inactive_open_order", cursor: null }),
+		fetchPendingCustomersPage({ kind: "unverified_new", cursor: null }),
+		fetchCustomerActivityPage(null),
 		listCustomers({ filters, cursor: null }),
 	]);
 
@@ -62,59 +74,48 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 			filters.unverifiedNew
 	);
 
-	const pendingGroups: PendingGroup[] = [
+	const pendingTabs: PendingTab[] = [
 		{
-			title: "Aguardando ação",
-			items: [
-				{
-					label: "Bloqueados",
-					count: counts.blocked,
-					href: "/dashboard/customers?status=blocked",
-					role: "warning",
-				},
-				{
-					label: "Sem documento (CPF/CNPJ)",
-					count: counts.noDoc,
-					href: "/dashboard/customers?missingDoc=1",
-					role: "warning",
-				},
-			],
+			id: "blocked",
+			label: "Bloqueados",
+			count: counts.blocked,
+			role: "warning",
+			initial: pendingBlocked.items,
+			initialCursor: pendingBlocked.nextCursor,
+			fetchPage: (cursor) =>
+				fetchPendingCustomersPage({ kind: "blocked", cursor }),
 		},
 		{
-			title: "Pendências",
-			items: [
-				{
-					label: "Inativos c/ pedido em aberto",
-					count: counts.inactiveWithOpenOrder,
-					href: "/dashboard/customers?openOrderInactive=1",
-					role: "info",
-				},
-				{
-					label: "Novos sem email verificado",
-					count: counts.unverifiedNew,
-					href: "/dashboard/customers?unverifiedNew=1",
-					role: "info",
-				},
-			],
+			id: "no_doc",
+			label: "Sem documento",
+			count: counts.noDoc,
+			role: "warning",
+			initial: pendingNoDoc.items,
+			initialCursor: pendingNoDoc.nextCursor,
+			fetchPage: (cursor) =>
+				fetchPendingCustomersPage({ kind: "no_doc", cursor }),
+		},
+		{
+			id: "inactive_open_order",
+			label: "Inativos c/ pedido",
+			count: counts.inactiveWithOpenOrder,
+			role: "info",
+			initial: pendingInactive.items,
+			initialCursor: pendingInactive.nextCursor,
+			fetchPage: (cursor) =>
+				fetchPendingCustomersPage({ kind: "inactive_open_order", cursor }),
+		},
+		{
+			id: "unverified_new",
+			label: "Novos s/ verificação",
+			count: counts.unverifiedNew,
+			role: "info",
+			initial: pendingUnverified.items,
+			initialCursor: pendingUnverified.nextCursor,
+			fetchPage: (cursor) =>
+				fetchPendingCustomersPage({ kind: "unverified_new", cursor }),
 		},
 	];
-
-	const ACTIVITY_LABELS: Record<
-		"new_client" | "login" | "first_order",
-		string
-	> = {
-		new_client: "Novo cadastro",
-		login: "Login",
-		first_order: "1ª compra",
-	};
-
-	const activityEvents: ActivityEvent[] = recentActivity.map((row) => ({
-		id: row.id,
-		kind: "customer" as const,
-		at: row.at,
-		primary: `${ACTIVITY_LABELS[row.kind]} · ${row.clientName}`,
-		href: `/dashboard/customers/${row.clientId}`,
-	}));
 
 	return (
 		<>
@@ -129,14 +130,16 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 			/>
 
 			<section className="grid gap-3 lg:grid-cols-2">
-				<PendingList
+				<PendingPanel
 					emptyMessage="Nenhum cliente aguardando ação."
-					groups={pendingGroups}
+					tabs={pendingTabs}
 					title="Atenção em clientes"
 				/>
 				<ActivityFeed
 					emptyMessage="Sem atividade recente."
-					events={activityEvents}
+					fetchPage={fetchCustomerActivityPage}
+					initialCursor={activity.nextCursor}
+					initialEvents={activity.items}
 					title="Atividade recente"
 				/>
 			</section>
