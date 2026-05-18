@@ -6,6 +6,7 @@ import {
 	ToggleGroup,
 	ToggleGroupItem,
 } from "@emach/ui/components/toggle-group";
+import { cn } from "@emach/ui/lib/utils";
 import Link from "next/link";
 import { useRef, useState } from "react";
 
@@ -54,7 +55,7 @@ const BADGE_COLORS: Record<PendingRole, string> = {
 	warning: "text-warning",
 };
 
-function PendingTabList({ tab }: { tab: PendingTab }) {
+function PendingTabContent({ tab }: { tab: PendingTab }) {
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: tab.initial,
@@ -93,7 +94,10 @@ function PendingTabList({ tab }: { tab: PendingTab }) {
 							</div>
 							{row.badge && (
 								<span
-									className={`shrink-0 font-mono text-xs ${BADGE_COLORS[row.badge.role]}`}
+									className={cn(
+										"shrink-0 font-mono text-xs",
+										BADGE_COLORS[row.badge.role]
+									)}
 								>
 									{row.badge.label}
 								</span>
@@ -147,7 +151,7 @@ export function PendingPanel({
 						<ToggleGroupItem key={tab.id} value={tab.id}>
 							{tab.label}
 							<Badge
-								className={`ml-1.5 ${BADGE_COLORS[tab.role ?? "default"]}`}
+								className={cn("ml-1.5", BADGE_COLORS[tab.role ?? "default"])}
 								variant="outline"
 							>
 								{tab.count}
@@ -162,7 +166,7 @@ export function PendingPanel({
 						{emptyMessage}
 					</p>
 				) : (
-					<PendingTabList key={activeTab.id} tab={activeTab} />
+					<PendingTabContent key={activeTab.id} tab={activeTab} />
 				)}
 			</CardContent>
 		</Card>
