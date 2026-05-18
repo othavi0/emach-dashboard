@@ -175,7 +175,7 @@ jobs:
             PR automático do workflow `sync-db-schema` (repo dashboard).
 
             Espelha `packages/db/src/{schema,queries,sql/triggers.sql}` do dashboard,
-            que é a fonte de verdade do schema (ADR-0007). Não editar estes arquivos
+            que é a fonte de verdade do schema (ADR-0009). Não editar estes arquivos
             diretamente neste repo — mudanças nascem no dashboard.
 
             Commit de origem: ${{ github.sha }}
@@ -253,7 +253,7 @@ Expected: um PR aberto na branch `chore/sync-db-schema`.
 
 - [ ] **Step 4: Revisar o diff do primeiro PR**
 
-O primeiro sync é grande (catch-up: 8 arquivos de `schema/` divergentes + `client-audit.ts`/`client-export.ts`, que o ecommerce ainda não tinha). Confirmar que o diff toca **apenas** `packages/db/src/{schema,queries,sql/triggers.sql}`. Onde dashboard e ecommerce divergiam, o dashboard vence (ADR-0007).
+O primeiro sync é grande (catch-up: 8 arquivos de `schema/` divergentes + `client-audit.ts`/`client-export.ts`, que o ecommerce ainda não tinha). Confirmar que o diff toca **apenas** `packages/db/src/{schema,queries,sql/triggers.sql}`. Onde dashboard e ecommerce divergiam, o dashboard vence (ADR-0009).
 
 Run: `! gh pr diff <PR_NUMBER> --repo othavioquiliao/emach-ecommerce`
 
@@ -325,6 +325,6 @@ git commit -m "ci: adiciona detector de drift de schema"
 
 Não é uma task de código, mas faz parte do "pronto":
 
-- `packages/db/CLAUDE.md` (dashboard **e** ecommerce) — a seção de sync passa de "cópia byte-a-byte manual" para "PR automático via workflow `sync-db-schema` (ADR-0007)".
+- `packages/db/CLAUDE.md` (dashboard **e** ecommerce) — a seção de sync passa de "cópia byte-a-byte manual" para "PR automático via workflow `sync-db-schema` (ADR-0009)".
 - `docs/integration/admin-ecommerce.md` — citado na `CLAUDE.md` raiz mas ainda não existe; criar com o contrato da DB compartilhada + este mecanismo.
 - Espelhar `docs/adr/0007-sync-schema-via-ci.md` e a seção atualizada de `packages/db/CLAUDE.md` no repo `emach-ecommerce`.

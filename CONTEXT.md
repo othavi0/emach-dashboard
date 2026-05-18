@@ -142,5 +142,6 @@ Decisões arquiteturais ficam em `docs/adr/`:
 - **ADR-0006** — DB workflow é push-only até produção (sem migrations versionadas).
 - **ADR-0007** — Débito de estoque ocorre na transição para `paid`, não na criação do pedido.
 - **ADR-0008** — Documentos do Asaas chegam ao dashboard pelo banco de dados; o dashboard nunca chama a API do Asaas.
+- **ADR-0009** — O schema do e-commerce sincroniza do dashboard via CI (PR automático); o dashboard é a fonte de verdade.
 
 Se um output contradiz um ADR existente, sinalize explicitamente em vez de sobrescrever em silêncio.

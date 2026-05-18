@@ -59,11 +59,12 @@ export async function updateX(input: unknown): Promise<ActionResult> {
 - `src/lib/permissions.ts` — `can()`, `requireCapability()`, `requireCapabilityOrRedirect()`, `requireCapabilityWithContext()`.
 - `src/lib/consent.ts` — LGPD: `logConsent()`, `revokeConsent()`, `getActiveConsent()`.
 - `src/lib/supabase-server.ts` — service-role client (uploads).
+- `src/lib/storage.ts` — helper genérico de Storage: upload + delete + `createSignedUrl()` para buckets público (`tool-images`) e privado (`order-documents`).
 - `src/lib/logger.ts` — logger central (substitui `console.*`).
 
 ## Imagens
 
-Upload em forms vai por `uploadToolImage(formData)` (em `src/app/dashboard/tools/_components/image-actions.ts`). Quando generalizar para banners/categorias, extrair para `lib/storage.ts` aceitando `{ bucket, prefix, formData }`.
+Upload de imagem de ferramenta vai por `uploadToolImage(formData)` (em `src/app/dashboard/tools/_components/image-actions.ts`). O helper genérico de Storage **já existe** em `src/lib/storage.ts` (upload/delete/signed URL para bucket público ou privado) — usado pelos anexos de pedido (`orders/_components/attachment-actions.ts`); reaproveitar para banners/categorias quando surgir.
 
 Renderização de imagens: `<Image>` do Next sempre que possível. Para thumbs vindos do Supabase Storage (URL pública dinâmica), `<img>` puro com `// biome-ignore lint/performance/noImgElement: Supabase public URL` documentado.
 
@@ -101,6 +102,10 @@ Ao inserir em `stockMovement`, `orderStatusHistory` ou `clientAuditLog` (mutaç�
 CHECK `actor_coherence` no DB rejeita combinações inválidas.
 
 `stockMovement.variantId` (não mais `toolId`) — toda movimentação é por variante específica. Para revalidar paths de UI relacionados ao tool-pai após adjustStock, fazer `SELECT toolId FROM tool_variant WHERE id = $variantId` antes de chamar `revalidatePath`.
+
+## Orders — branch-scoping fail-safe
+
+Mutações de pedido (status, anexos) passam por `lockOrderAndAuthorize(tx, cap, orderId)` em `dashboard/orders/actions.ts`: faz `SELECT ... FOR UPDATE` do pedido **e** o capability check no mesmo lock — non-`super_admin` só age sobre pedidos da sua filial (`user_branch`). Toda transição de status escreve em `orderStatusHistory`; `canceled`/`refunded`/`returned` exigem `reason`, `preparing` exige `branchId`. Anexos do staff (`attachment-actions.ts`) usam o mesmo guard com capability `orders.update_status`.
 
 ## Smoke run-time depois de refactor
 
