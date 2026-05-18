@@ -6,6 +6,7 @@ import { seedClients } from "./seed/clients";
 import { emptyContext } from "./seed/context";
 import { seedCore } from "./seed/core";
 import { seedInventory } from "./seed/inventory";
+import { seedMarketing } from "./seed/marketing";
 import { seedSales } from "./seed/sales";
 import { truncateDemo } from "./seed/truncate";
 
@@ -27,6 +28,7 @@ async function main() {
 		await seedInventory(tx, ctx);
 		await seedClients(tx, ctx);
 		await seedSales(tx, ctx);
+		await seedMarketing(tx, ctx);
 	});
 	console.log("[seed-demo] OK");
 }
