@@ -1,4 +1,5 @@
 import { buttonVariants } from "@emach/ui/components/button";
+import { DownloadIcon } from "lucide-react";
 
 import type { OrderListFilters } from "../data";
 
@@ -32,6 +33,7 @@ export function ExportCsvLink({ filters }: ExportCsvLinkProps) {
 			download
 			href={href}
 		>
+			<DownloadIcon aria-hidden className="size-3.5" />
 			Exportar CSV
 		</a>
 	);

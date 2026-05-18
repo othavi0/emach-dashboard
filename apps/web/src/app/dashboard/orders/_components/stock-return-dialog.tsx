@@ -22,7 +22,7 @@ import {
 import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateOrderStatus } from "../actions";
 import type { BranchOption, OrderDetailItem, OrderStatus } from "../data";
@@ -34,6 +34,7 @@ interface StockReturnDialogProps {
 	orderId: string;
 	toStatus: Extract<OrderStatus, "canceled" | "returned">;
 	triggerLabel: string;
+	triggerVariant?: "destructive" | "warning" | "outline";
 }
 
 export function StockReturnDialog({
@@ -43,10 +44,13 @@ export function StockReturnDialog({
 	orderId,
 	toStatus,
 	triggerLabel,
+	triggerVariant = "outline",
 }: StockReturnDialogProps) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [reason, setReason] = useState("");
+
+	// Item picker state — only used when toStatus === "returned"
 	const [selected, setSelected] = useState<
 		Record<string, { branchId: string; checked: boolean }>
 	>(() =>
@@ -62,13 +66,17 @@ export function StockReturnDialog({
 	);
 	const [isPending, startTransition] = useTransition();
 
-	const canSubmit = useMemo(
-		() =>
+	const showItemPicker = toStatus === "returned";
+
+	// Reason is mandatory for both flows. For "returned" additionally every
+	// checked item must have a branchId selected.
+	const hasReason = reason.trim().length > 0;
+	const canSubmit = showItemPicker
+		? hasReason &&
 			Object.values(selected).every(
 				(entry) => !entry.checked || Boolean(entry.branchId)
-			),
-		[selected]
-	);
+			)
+		: hasReason;
 
 	function toggleItem(itemId: string, checked: boolean) {
 		setSelected((current) => ({
@@ -92,13 +100,16 @@ export function StockReturnDialog({
 
 	function handleConfirm() {
 		startTransition(async () => {
-			const returnItems = items
-				.filter((item) => selected[item.id]?.checked)
-				.map((item) => ({
-					orderItemId: item.id,
-					branchId: selected[item.id]?.branchId ?? "",
-				}))
-				.filter((item) => item.branchId);
+			// Build returnItems only for the "returned" flow
+			const returnItems = showItemPicker
+				? items
+						.filter((item) => selected[item.id]?.checked)
+						.map((item) => ({
+							orderItemId: item.id,
+							branchId: selected[item.id]?.branchId ?? "",
+						}))
+						.filter((item) => item.branchId)
+				: undefined;
 
 			try {
 				const result = await updateOrderStatus({
@@ -124,86 +135,95 @@ export function StockReturnDialog({
 		});
 	}
 
+	const dialogDescription = showItemPicker
+		? "Escolha quais itens voltam ao estoque e em qual filial a devolução deve ser creditada. O motivo é obrigatório."
+		: "O cancelamento não devolve itens ao estoque. Informe o motivo interno para o registro.";
+
 	return (
 		<Dialog onOpenChange={setOpen} open={open}>
-			<DialogTrigger render={<Button variant="outline" />}>
+			<DialogTrigger render={<Button variant={triggerVariant} />}>
 				{triggerLabel}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl">
+			<DialogContent
+				className={showItemPicker ? "sm:max-w-2xl" : "sm:max-w-md"}
+			>
 				<DialogHeader>
 					<DialogTitle>{triggerLabel}</DialogTitle>
-					<DialogDescription>
-						Escolha quais itens voltam ao estoque e em qual filial a devolução
-						deve ser creditada.
-					</DialogDescription>
+					<DialogDescription>{dialogDescription}</DialogDescription>
 				</DialogHeader>
 
-				<div className="space-y-3">
-					{items.map((item) => {
-						const state = selected[item.id];
-						const checkboxId = `return-item-${item.id}`;
-						const branchSelectId = `return-branch-${item.id}`;
-						return (
-							<div
-								className="grid gap-3 border border-border p-3 sm:grid-cols-[minmax(0,1fr)_10rem]"
-								key={item.id}
-							>
-								<label className="flex items-start gap-3" htmlFor={checkboxId}>
-									<Checkbox
-										checked={state?.checked ?? false}
-										id={checkboxId}
-										onCheckedChange={(value) =>
-											toggleItem(item.id, value === true)
-										}
-									/>
-									<span className="flex flex-col gap-1">
-										<span className="font-medium text-sm">{item.name}</span>
-										<span className="text-muted-foreground text-xs">
-											{item.sku ?? "Sem SKU"} • qtd {item.quantity}
-										</span>
-									</span>
-								</label>
-
-								<div className="flex flex-col gap-1">
+				{/* Item picker — only for "returned" */}
+				{showItemPicker && (
+					<div className="space-y-3">
+						{items.map((item) => {
+							const state = selected[item.id];
+							const checkboxId = `return-item-${item.id}`;
+							const branchSelectId = `return-branch-${item.id}`;
+							return (
+								<div
+									className="grid gap-3 rounded-md border border-border p-3 sm:grid-cols-[minmax(0,1fr)_10rem]"
+									key={item.id}
+								>
 									<label
-										className="text-muted-foreground text-xs"
-										htmlFor={branchSelectId}
+										className="flex items-start gap-3"
+										htmlFor={checkboxId}
 									>
-										Filial de retorno
+										<Checkbox
+											checked={state?.checked ?? false}
+											id={checkboxId}
+											onCheckedChange={(value) =>
+												toggleItem(item.id, value === true)
+											}
+										/>
+										<span className="flex flex-col gap-1">
+											<span className="font-medium text-sm">{item.name}</span>
+											<span className="text-muted-foreground text-xs">
+												{item.sku ?? "Sem SKU"} • qtd {item.quantity}
+											</span>
+										</span>
 									</label>
-									<Select
-										disabled={!state?.checked}
-										onValueChange={(v) =>
-											updateBranch(item.id, !v || v === "__none__" ? "" : v)
-										}
-										value={state?.branchId || "__none__"}
-									>
-										<SelectTrigger id={branchSelectId}>
-											<SelectValue>
-												{(v: string) =>
-													v === "__none__"
-														? "Selecionar"
-														: (branches.find((b) => b.id === v)?.name ??
-															"Selecionar")
-												}
-											</SelectValue>
-										</SelectTrigger>
-										<SelectContent>
-											<SelectGroup>
-												<SelectItem value="__none__">Selecionar</SelectItem>
-												{branches.map((branch) => (
-													<SelectItem key={branch.id} value={branch.id}>
-														{branch.name}
-													</SelectItem>
-												))}
-											</SelectGroup>
-										</SelectContent>
-									</Select>
+
+									<div className="flex flex-col gap-1">
+										<label
+											className="text-muted-foreground text-xs"
+											htmlFor={branchSelectId}
+										>
+											Filial de retorno
+										</label>
+										<Select
+											disabled={!state?.checked}
+											onValueChange={(v) =>
+												updateBranch(item.id, !v || v === "__none__" ? "" : v)
+											}
+											value={state?.branchId || "__none__"}
+										>
+											<SelectTrigger id={branchSelectId}>
+												<SelectValue>
+													{(v: string) =>
+														v === "__none__"
+															? "Selecionar"
+															: (branches.find((b) => b.id === v)?.name ??
+																"Selecionar")
+													}
+												</SelectValue>
+											</SelectTrigger>
+											<SelectContent>
+												<SelectGroup>
+													<SelectItem value="__none__">Selecionar</SelectItem>
+													{branches.map((branch) => (
+														<SelectItem key={branch.id} value={branch.id}>
+															{branch.name}
+														</SelectItem>
+													))}
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+									</div>
 								</div>
-							</div>
-						);
-					})}
-				</div>
+							);
+						})}
+					</div>
+				)}
 
 				<div className="space-y-1">
 					<label
@@ -215,7 +235,11 @@ export function StockReturnDialog({
 					<Textarea
 						id="return-reason"
 						onChange={(event) => setReason(event.target.value)}
-						placeholder="Ex: embalagem danificada, cliente desistiu..."
+						placeholder={
+							toStatus === "canceled"
+								? "Ex: cliente desistiu, pagamento não confirmado..."
+								: "Ex: embalagem danificada, produto com defeito..."
+						}
 						value={reason}
 					/>
 				</div>
@@ -226,12 +250,12 @@ export function StockReturnDialog({
 						onClick={() => setOpen(false)}
 						variant="ghost"
 					>
-						Cancelar
+						Fechar
 					</Button>
 					<Button
 						disabled={isPending || !canSubmit}
 						onClick={handleConfirm}
-						variant="default"
+						variant={toStatus === "canceled" ? "destructive" : "warning"}
 					>
 						{isPending ? (
 							<>

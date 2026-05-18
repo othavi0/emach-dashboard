@@ -37,7 +37,7 @@ const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 	payment_failed: ["pending_payment", "canceled"],
 	paid: ["preparing", "refunded"],
 	preparing: ["shipped", "refunded"],
-	shipped: ["delivered", "refunded"],
+	shipped: ["delivered", "refunded", "returned"],
 	delivered: ["returned"],
 	returned: ["refunded"],
 	canceled: [],
@@ -83,6 +83,21 @@ export const updateOrderStatusSchema = z
 				code: z.ZodIssueCode.custom,
 				message: "Código de rastreio obrigatório ao marcar como enviado",
 				path: ["trackingCode"],
+			});
+		}
+		const requiresReason: (typeof data.toStatus)[] = [
+			"canceled",
+			"refunded",
+			"returned",
+		];
+		if (
+			requiresReason.includes(data.toStatus) &&
+			(!data.reason || data.reason.trim().length === 0)
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Motivo obrigatório para cancelamento, reembolso ou devolução",
+				path: ["reason"],
 			});
 		}
 	});

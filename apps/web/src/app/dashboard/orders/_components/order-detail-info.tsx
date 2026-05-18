@@ -15,6 +15,8 @@ import {
 } from "@emach/ui/components/table";
 
 import type { OrderDetail } from "../data";
+import { OrderDocumentsSection } from "./order-documents-section";
+import { OrderLifecycleStepper } from "./order-lifecycle-stepper";
 import { OrderStatusBadge } from "./order-status-badge";
 
 const CURRENCY_FORMATTER = new Intl.NumberFormat("pt-BR", {
@@ -72,6 +74,8 @@ export function OrderDetailInfo({ order }: { order: OrderDetail }) {
 					</CardDescription>
 				</CardHeader>
 			</Card>
+
+			<OrderLifecycleStepper status={order.status} />
 
 			<Card>
 				<CardHeader>
@@ -168,6 +172,8 @@ export function OrderDetailInfo({ order }: { order: OrderDetail }) {
 					</CardContent>
 				</Card>
 			</div>
+
+			<OrderDocumentsSection order={order} />
 		</div>
 	);
 }
