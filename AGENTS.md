@@ -9,7 +9,7 @@ Cada workspace tem o seu próprio `AGENTS.md` apontando para o `CLAUDE.md` local
 ## Quick reference
 
 - **Stack:** Bun 1.3 + Turborepo 2.9, Next 16 / React 19 (`apps/web`), Drizzle + Supabase Postgres, Better Auth dual (dashboard + ecomerce), Tailwind 4 + shadcn (`packages/ui`), `react-markdown` + `rehype-sanitize` para descrição de produto.
-- **Comandos:** `bun install`, `bun dev:web` (port 3001), `bun check`, `bun fix`, `bun check-types`, `bun db:sync` (push-only — ver ADR-0006), `bun --cwd packages/db db:seed-categories` + `db:seed-attributes`.
+- **Comandos:** `bun install`, `bun dev:web` (port 3001), `bun check`, `bun fix`, `bun check-types`, `bun db:sync` (push-only — ver ADR-0006), `bun --cwd packages/db db:seed-demo` (fixture completo) | `db:reset-demo` (só trunca).
 - **Lint/format:** Ultracite (`bun fix`) — também roda como hook PostToolUse do Claude Code.
 - **Idioma:** comunicação **PT**; identificadores e termos técnicos **EN**.
 - **Commits:** Conventional Commits PT (`feat:`/`fix:`/`refactor:`/`test:`/`docs:`/`chore:`). **Nunca** commitar sem confirmação explícita do user.
