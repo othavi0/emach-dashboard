@@ -11,12 +11,11 @@
   },
   "scripts": {
     "db:push": "drizzle-kit push",
-    "db:sync": "drizzle-kit push && bun run db:apply-triggers && bun run db:apply-indexes",
+    "db:sync": "drizzle-kit push && bun run db:apply-triggers",
     "db:studio": "drizzle-kit studio",
-    "db:apply-indexes": "bun run scripts/apply-indexes.ts",
     "db:apply-triggers": "bun run scripts/apply-triggers.ts",
-    "db:seed-categories": "bun run scripts/seed-categories.ts",
-    "db:seed-attributes": "bun run scripts/seed-attributes.ts",
+    "db:seed-demo": "bun run scripts/seed-demo.ts",
+    "db:reset-demo": "bun run scripts/reset-demo.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

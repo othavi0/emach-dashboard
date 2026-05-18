@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
 	check,
+	index,
 	numeric,
 	pgTable,
 	primaryKey,
@@ -40,6 +41,7 @@ export const promotion = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(table) => [
+		index("promotion_created_idx").on(table.createdAt.desc(), table.id.desc()),
 		check(
 			"valid_promotion_type",
 			sql`${table.type} IN ('promotion', 'promocode')`
