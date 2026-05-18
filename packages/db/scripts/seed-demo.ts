@@ -1,6 +1,7 @@
 // packages/db/scripts/seed-demo.ts
 import { sql } from "drizzle-orm";
 import { db } from "../src/index";
+import { seedCatalog } from "./seed/catalog";
 import { emptyContext } from "./seed/context";
 import { seedCore } from "./seed/core";
 import { truncateDemo } from "./seed/truncate";
@@ -19,7 +20,8 @@ async function main() {
 		const ctx = emptyContext(staffUserIds);
 		await truncateDemo(tx);
 		await seedCore(tx, ctx);
-		// módulos adicionados nas Tasks 3-8
+		await seedCatalog(tx, ctx);
+		// módulos adicionados nas Tasks 4-8
 		void ctx;
 	});
 	console.log("[seed-demo] OK");
