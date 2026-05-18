@@ -1,13 +1,14 @@
 "use client";
 
 import { Button } from "@emach/ui/components/button";
-import { useEffect, useRef } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
 interface InfiniteSentinelProps {
 	error: string | null;
 	hasMore: boolean;
 	onLoadMore: () => void;
 	pending: boolean;
+	root?: RefObject<HTMLElement | null>;
 }
 
 export function InfiniteSentinel({
@@ -15,6 +16,7 @@ export function InfiniteSentinel({
 	pending,
 	error,
 	onLoadMore,
+	root,
 }: InfiniteSentinelProps) {
 	const ref = useRef<HTMLDivElement>(null);
 
@@ -32,11 +34,11 @@ export function InfiniteSentinel({
 					onLoadMore();
 				}
 			},
-			{ rootMargin: "200px" }
+			{ root: root?.current ?? null, rootMargin: "200px" }
 		);
 		observer.observe(el);
 		return () => observer.disconnect();
-	}, [hasMore, pending, error, onLoadMore]);
+	}, [hasMore, pending, error, onLoadMore, root]);
 
 	if (!hasMore) {
 		return (
