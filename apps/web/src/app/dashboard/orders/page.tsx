@@ -8,25 +8,24 @@ import {
 	EmptyTitle,
 } from "@emach/ui/components/empty";
 import Link from "next/link";
-import { type ActivityEvent, ActivityFeed } from "@/components/activity-feed";
+import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
-import { type PendingGroup, PendingList } from "@/components/pending-list";
+import { PendingPanel, type PendingTab } from "@/components/pending-panel";
 import { can, requireCapability } from "@/lib/permissions";
 import { ExportCsvLink } from "./_components/export-csv-link";
 import { OrderKpisRow } from "./_components/order-kpis";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrdersInfinite } from "./_components/orders-infinite";
+import { fetchOrderActivityPage, fetchPendingOrdersPage } from "./actions";
 import {
 	fetchOrdersPage,
 	getOrderKpis,
 	getOrdersTabCounts,
-	getRecentOrderActivity,
 	listOrderBranches,
 	type OrderListFilters,
 	type OrdersPageFiltersInput,
 } from "./data";
 import { ordersListFiltersSchema } from "./schema";
-import { ORDER_STATUS_LABELS } from "./status-meta";
 
 interface PageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -58,11 +57,27 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 		branchId: data.branchId,
 	};
 
-	const [branches, counts, kpis, recentActivity, result] = await Promise.all([
+	const [
+		branches,
+		counts,
+		kpis,
+		pendingAwaiting,
+		pendingFlow,
+		activity,
+		result,
+	] = await Promise.all([
 		listOrderBranches(),
 		getOrdersTabCounts(),
 		getOrderKpis(),
-		getRecentOrderActivity(),
+		fetchPendingOrdersPage({
+			statuses: ["paid", "pending_payment"],
+			cursor: null,
+		}),
+		fetchPendingOrdersPage({
+			statuses: ["preparing", "shipped"],
+			cursor: null,
+		}),
+		fetchOrderActivityPage(null),
 		fetchOrdersPage({ filters: pageFilters, cursor: null }),
 	]);
 
@@ -70,50 +85,37 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 		filters.tab || filters.q || filters.from || filters.to || filters.branchId
 	);
 
-	const pendingGroups: PendingGroup[] = [
+	const awaitingCount = (counts.paid ?? 0) + (counts.pending_payment ?? 0);
+	const flowCount = (counts.preparing ?? 0) + (counts.shipped ?? 0);
+
+	const pendingTabs: PendingTab[] = [
 		{
-			title: "Aguardando ação",
-			items: [
-				{
-					label: "Pagos · iniciar preparação",
-					count: counts.paid ?? 0,
-					href: "/dashboard/orders?tab=paid",
-					role: "warning",
-				},
-				{
-					label: "Pagamento pendente",
-					count: counts.pending_payment ?? 0,
-					href: "/dashboard/orders?tab=pending_payment",
-					role: "info",
-				},
-			],
+			id: "awaiting",
+			label: "Aguardando ação",
+			count: awaitingCount,
+			role: "warning",
+			initial: pendingAwaiting.items,
+			initialCursor: pendingAwaiting.nextCursor,
+			fetchPage: (cursor) =>
+				fetchPendingOrdersPage({
+					statuses: ["paid", "pending_payment"],
+					cursor,
+				}),
 		},
 		{
-			title: "Em fluxo",
-			items: [
-				{
-					label: "Em preparação",
-					count: counts.preparing ?? 0,
-					href: "/dashboard/orders?tab=preparing",
-					role: "info",
-				},
-				{
-					label: "Em transporte",
-					count: counts.shipped ?? 0,
-					href: "/dashboard/orders?tab=shipped",
-					role: "info",
-				},
-			],
+			id: "flow",
+			label: "Em fluxo",
+			count: flowCount,
+			role: "info",
+			initial: pendingFlow.items,
+			initialCursor: pendingFlow.nextCursor,
+			fetchPage: (cursor) =>
+				fetchPendingOrdersPage({
+					statuses: ["preparing", "shipped"],
+					cursor,
+				}),
 		},
 	];
-
-	const activityEvents: ActivityEvent[] = recentActivity.map((row) => ({
-		id: row.id,
-		kind: "order" as const,
-		at: row.createdAt,
-		primary: `#${row.orderNumber} → ${ORDER_STATUS_LABELS[row.toStatus]}`,
-		href: `/dashboard/orders/${row.orderId}`,
-	}));
 
 	return (
 		<>
@@ -126,14 +128,16 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 			<OrderKpisRow counts={counts} kpis={kpis} />
 
 			<section className="grid gap-3 lg:grid-cols-2">
-				<PendingList
+				<PendingPanel
 					emptyMessage="Nenhum pedido aguardando ação."
-					groups={pendingGroups}
+					tabs={pendingTabs}
 					title="Pendências de pedidos"
 				/>
 				<ActivityFeed
 					emptyMessage="Sem mudanças de status recentes."
-					events={activityEvents}
+					fetchPage={fetchOrderActivityPage}
+					initialCursor={activity.nextCursor}
+					initialEvents={activity.items}
 					title="Histórico recente"
 				/>
 			</section>
