@@ -566,6 +566,19 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 				createdAt: hoursAfter(createdAt, 0),
 			});
 		} else {
+			// Inserir linha de criação (from = to = pending_payment) antes das transições,
+			// garantindo que todo order tenha ao menos uma linha com to_status='pending_payment'.
+			await tx.insert(orderStatusHistory).values({
+				id: crypto.randomUUID(),
+				orderId,
+				fromStatus: "pending_payment",
+				toStatus: "pending_payment",
+				actorType: "system",
+				actorUserId: null,
+				reason: "criado",
+				createdAt: hoursAfter(createdAt, 0),
+			});
+
 			// O path tem os estados; as transições são de path[i] → path[i+1]
 			for (let t = 0; t < path.length - 1; t++) {
 				const fromStatus = path[t] as OrderStatus;

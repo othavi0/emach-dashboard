@@ -9,6 +9,7 @@ import { seedInventory } from "./seed/inventory";
 import { seedMarketing } from "./seed/marketing";
 import { seedSales } from "./seed/sales";
 import { truncateDemo } from "./seed/truncate";
+import { verifySeed } from "./seed/verify";
 
 async function main() {
 	// Lê os staff existentes (o seed nunca cria/trunca user).
@@ -29,6 +30,7 @@ async function main() {
 		await seedClients(tx, ctx);
 		await seedSales(tx, ctx);
 		await seedMarketing(tx, ctx);
+		await verifySeed(tx);
 	});
 	console.log("[seed-demo] OK");
 }
