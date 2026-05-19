@@ -74,9 +74,9 @@ export default async function DashboardPage() {
 				</p>
 			</section>
 
-			<section className="grid gap-4 lg:grid-cols-2">
+			<section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<PendingPanel tabs={tabs} />
-				<div className="relative min-h-[24rem]">
+				<div className="relative min-h-[24rem] min-w-0">
 					<div className="absolute inset-0">
 						<ActivityFeed
 							fetchPage={fetchDashboardActivity}

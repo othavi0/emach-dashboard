@@ -74,14 +74,14 @@ function PendingTabContent({ tab }: { tab: PendingTab }) {
 	return (
 		<div
 			aria-live="polite"
-			className="max-h-[28rem] min-h-72 overflow-y-auto"
+			className="max-h-[28rem] min-h-72 min-w-0 max-w-full overflow-y-auto"
 			ref={scrollRef}
 		>
 			<ul className="flex flex-col">
 				{items.map((row) => (
 					<li key={row.id}>
 						<Link
-							className="-mx-2 flex items-center gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted"
+							className="-mx-2 flex w-full min-w-0 items-center gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted"
 							href={row.href}
 						>
 							<div className="flex min-w-0 flex-1 flex-col">
@@ -95,7 +95,7 @@ function PendingTabContent({ tab }: { tab: PendingTab }) {
 							{row.badge && (
 								<span
 									className={cn(
-										"shrink-0 font-mono text-xs",
+										"max-w-[45%] shrink-0 truncate font-mono text-xs",
 										BADGE_COLORS[row.badge.role]
 									)}
 								>
@@ -127,9 +127,9 @@ export function PendingPanel({
 	const activeTab = tabs.find((t) => t.id === activeId) ?? tabs[0];
 
 	return (
-		<Card>
+		<Card className="min-w-0">
 			<CardHeader className="flex flex-col gap-3 pb-3">
-				<div className="flex flex-row items-baseline justify-between gap-3">
+				<div className="flex min-w-0 flex-row items-baseline justify-between gap-3">
 					<span className="font-semibold text-sm uppercase tracking-wider">
 						{title}
 					</span>
@@ -138,7 +138,7 @@ export function PendingPanel({
 					</span>
 				</div>
 				<ToggleGroup
-					className="flex-wrap justify-start"
+					className="min-w-0 max-w-full flex-wrap justify-start"
 					onValueChange={(v) => {
 						const next = v[0];
 						if (next) {
@@ -160,7 +160,7 @@ export function PendingPanel({
 					))}
 				</ToggleGroup>
 			</CardHeader>
-			<CardContent className="flex flex-col">
+			<CardContent className="flex min-w-0 flex-col">
 				{total === 0 || !activeTab ? (
 					<p className="px-2 py-8 text-muted-foreground text-sm">
 						{emptyMessage}

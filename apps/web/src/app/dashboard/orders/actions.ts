@@ -65,6 +65,24 @@ export async function fetchPendingOrdersPage(args: {
 	return await fetchPendingOrdersPageImpl(args);
 }
 
+export async function fetchPendingAwaitingOrdersPage(
+	cursor: string | null
+): Promise<InfiniteResult<PendingRow>> {
+	return await fetchPendingOrdersPageImpl({
+		statuses: ["paid", "pending_payment"],
+		cursor,
+	});
+}
+
+export async function fetchPendingFlowOrdersPage(
+	cursor: string | null
+): Promise<InfiniteResult<PendingRow>> {
+	return await fetchPendingOrdersPageImpl({
+		statuses: ["preparing", "shipped"],
+		cursor,
+	});
+}
+
 export async function fetchOrderActivityPage(
 	cursor: string | null
 ): Promise<InfiniteResult<ActivityEvent>> {

@@ -499,6 +499,34 @@ export async function fetchPendingCustomersPage(args: {
 	return fetchPendingCustomersPageImpl(args);
 }
 
+export async function fetchPendingBlockedCustomersPage(
+	cursor: string | null
+): Promise<InfiniteResult<PendingRow>> {
+	await requireCapability("customers.read");
+	return fetchPendingCustomersPageImpl({ kind: "blocked", cursor });
+}
+
+export async function fetchPendingNoDocumentCustomersPage(
+	cursor: string | null
+): Promise<InfiniteResult<PendingRow>> {
+	await requireCapability("customers.read");
+	return fetchPendingCustomersPageImpl({ kind: "no_doc", cursor });
+}
+
+export async function fetchPendingInactiveOrderCustomersPage(
+	cursor: string | null
+): Promise<InfiniteResult<PendingRow>> {
+	await requireCapability("customers.read");
+	return fetchPendingCustomersPageImpl({ kind: "inactive_open_order", cursor });
+}
+
+export async function fetchPendingUnverifiedCustomersPage(
+	cursor: string | null
+): Promise<InfiniteResult<PendingRow>> {
+	await requireCapability("customers.read");
+	return fetchPendingCustomersPageImpl({ kind: "unverified_new", cursor });
+}
+
 // ============================================================================
 // Customer activity — wrapper para useInfiniteList
 // ============================================================================
