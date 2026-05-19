@@ -72,3 +72,18 @@ export function decodeCursor(raw: string): Cursor {
 	}
 	return parsed;
 }
+
+/**
+ * Decodifica um cursor e valida seu discriminante `sort`, estreitando o tipo.
+ * Lança se o `sort` do cursor não for o esperado.
+ */
+export function decodeCursorAs<S extends Cursor["sort"]>(
+	raw: string,
+	sort: S
+): Extract<Cursor, { sort: S }> {
+	const parsed = decodeCursor(raw);
+	if (parsed.sort !== sort) {
+		throw new Error(`Cursor incompatível: esperado ${sort}`);
+	}
+	return parsed as Extract<Cursor, { sort: S }>;
+}
