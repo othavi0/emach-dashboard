@@ -75,8 +75,8 @@ export function ActivityFeed({
 	});
 
 	return (
-		<Card className="flex h-full flex-col">
-			<CardHeader className="flex flex-row items-baseline justify-between gap-3 pb-3">
+		<Card className="flex h-full min-w-0 flex-col">
+			<CardHeader className="flex min-w-0 flex-row items-baseline justify-between gap-3 pb-3">
 				<span className="font-semibold text-sm uppercase tracking-wider">
 					{title}
 				</span>
@@ -84,13 +84,13 @@ export function ActivityFeed({
 					{items.length} evento{items.length === 1 ? "" : "s"}
 				</span>
 			</CardHeader>
-			<CardContent className="flex min-h-0 flex-1 flex-col">
+			<CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">
 				{items.length === 0 ? (
 					<p className="text-muted-foreground text-sm">{emptyMessage}</p>
 				) : (
 					<div
 						aria-live="polite"
-						className="min-h-0 flex-1 overflow-y-auto"
+						className="min-h-0 min-w-0 flex-1 overflow-y-auto"
 						ref={scrollRef}
 					>
 						<ul className="flex flex-col">
@@ -98,7 +98,7 @@ export function ActivityFeed({
 								const meta = KIND_META[event.kind];
 								const Icon = meta.icon;
 								const rowClassName =
-									"-mx-2 flex items-start gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted";
+									"-mx-2 flex w-full min-w-0 items-start gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted";
 								const inner = (
 									<>
 										<span className="w-12 shrink-0 pt-0.5 text-right font-mono text-muted-foreground text-xs tabular-nums">
@@ -108,7 +108,7 @@ export function ActivityFeed({
 											aria-hidden="true"
 											className={`mt-0.5 size-3.5 shrink-0 ${meta.color}`}
 										/>
-										<div className="flex min-w-0 flex-col">
+										<div className="flex min-w-0 flex-1 flex-col">
 											<span className="truncate text-foreground">
 												{event.primary}
 											</span>

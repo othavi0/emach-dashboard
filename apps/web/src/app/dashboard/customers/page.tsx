@@ -18,7 +18,11 @@ import { CustomersInfinite } from "./_components/customers-infinite";
 import { ExportCsvLink } from "./_components/export-csv-link";
 import {
 	fetchCustomerActivityPage,
+	fetchPendingBlockedCustomersPage,
 	fetchPendingCustomersPage,
+	fetchPendingInactiveOrderCustomersPage,
+	fetchPendingNoDocumentCustomersPage,
+	fetchPendingUnverifiedCustomersPage,
 } from "./actions";
 import { getCustomerPendingCounts, listCustomers } from "./data";
 import { customersListFiltersSchema } from "./schema";
@@ -82,8 +86,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 			role: "warning",
 			initial: pendingBlocked.items,
 			initialCursor: pendingBlocked.nextCursor,
-			fetchPage: (cursor) =>
-				fetchPendingCustomersPage({ kind: "blocked", cursor }),
+			fetchPage: fetchPendingBlockedCustomersPage,
 		},
 		{
 			id: "no_doc",
@@ -92,8 +95,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 			role: "warning",
 			initial: pendingNoDoc.items,
 			initialCursor: pendingNoDoc.nextCursor,
-			fetchPage: (cursor) =>
-				fetchPendingCustomersPage({ kind: "no_doc", cursor }),
+			fetchPage: fetchPendingNoDocumentCustomersPage,
 		},
 		{
 			id: "inactive_open_order",
@@ -102,8 +104,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 			role: "info",
 			initial: pendingInactive.items,
 			initialCursor: pendingInactive.nextCursor,
-			fetchPage: (cursor) =>
-				fetchPendingCustomersPage({ kind: "inactive_open_order", cursor }),
+			fetchPage: fetchPendingInactiveOrderCustomersPage,
 		},
 		{
 			id: "unverified_new",
@@ -112,8 +113,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 			role: "info",
 			initial: pendingUnverified.items,
 			initialCursor: pendingUnverified.nextCursor,
-			fetchPage: (cursor) =>
-				fetchPendingCustomersPage({ kind: "unverified_new", cursor }),
+			fetchPage: fetchPendingUnverifiedCustomersPage,
 		},
 	];
 
@@ -129,7 +129,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 				title="Clientes"
 			/>
 
-			<section className="grid gap-3 lg:grid-cols-2">
+			<section className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<PendingPanel
 					emptyMessage="Nenhum cliente aguardando ação."
 					tabs={pendingTabs}

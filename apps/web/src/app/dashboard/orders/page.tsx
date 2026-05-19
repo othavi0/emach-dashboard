@@ -16,7 +16,12 @@ import { ExportCsvLink } from "./_components/export-csv-link";
 import { OrderKpisRow } from "./_components/order-kpis";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrdersInfinite } from "./_components/orders-infinite";
-import { fetchOrderActivityPage, fetchPendingOrdersPage } from "./actions";
+import {
+	fetchOrderActivityPage,
+	fetchPendingAwaitingOrdersPage,
+	fetchPendingFlowOrdersPage,
+	fetchPendingOrdersPage,
+} from "./actions";
 import {
 	fetchOrdersPage,
 	getOrderKpis,
@@ -96,11 +101,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 			role: "warning",
 			initial: pendingAwaiting.items,
 			initialCursor: pendingAwaiting.nextCursor,
-			fetchPage: (cursor) =>
-				fetchPendingOrdersPage({
-					statuses: ["paid", "pending_payment"],
-					cursor,
-				}),
+			fetchPage: fetchPendingAwaitingOrdersPage,
 		},
 		{
 			id: "flow",
@@ -109,11 +110,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 			role: "info",
 			initial: pendingFlow.items,
 			initialCursor: pendingFlow.nextCursor,
-			fetchPage: (cursor) =>
-				fetchPendingOrdersPage({
-					statuses: ["preparing", "shipped"],
-					cursor,
-				}),
+			fetchPage: fetchPendingFlowOrdersPage,
 		},
 	];
 
@@ -127,7 +124,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 
 			<OrderKpisRow counts={counts} kpis={kpis} />
 
-			<section className="grid gap-3 lg:grid-cols-2">
+			<section className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<PendingPanel
 					emptyMessage="Nenhum pedido aguardando ação."
 					tabs={pendingTabs}
