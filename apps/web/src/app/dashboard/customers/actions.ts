@@ -16,14 +16,12 @@ import type { PendingRow } from "@/components/pending-panel";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
-
+import { type CustomerListItem, listCustomers } from "./data";
 import {
-	type CustomerListItem,
 	type CustomerPendingKind,
 	fetchCustomerActivityPage as fetchCustomerActivityPageImpl,
 	fetchPendingCustomersPage as fetchPendingCustomersPageImpl,
-	listCustomers,
-} from "./data";
+} from "./pending-data";
 import {
 	type CustomersListFilters,
 	customersListFiltersSchema,
