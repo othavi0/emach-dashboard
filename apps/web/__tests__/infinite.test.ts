@@ -56,4 +56,12 @@ describe("paginate", () => {
 		const result = paginate(makeRows(3), mapRow, makeCursor);
 		expect(result.items).toEqual([{ value: 0 }, { value: 10 }, { value: 20 }]);
 	});
+
+	it("trata lista vazia sem chamar makeCursor", () => {
+		const spy = vi.fn(makeCursor);
+		const result = paginate(makeRows(0), mapRow, spy);
+		expect(result.items).toEqual([]);
+		expect(result.nextCursor).toBeNull();
+		expect(spy).not.toHaveBeenCalled();
+	});
 });
