@@ -24,12 +24,14 @@ import {
 	requireCapabilityWithContext,
 } from "@/lib/permissions";
 import {
-	fetchOrderActivityPage as fetchOrderActivityPageImpl,
 	fetchOrdersPage as fetchOrdersPageImpl,
-	fetchPendingOrdersPage as fetchPendingOrdersPageImpl,
 	type OrderListItem,
 	type OrdersPageFiltersInput,
 } from "./data";
+import {
+	fetchOrderActivityPage as fetchOrderActivityPageImpl,
+	fetchPendingOrdersPage as fetchPendingOrdersPageImpl,
+} from "./pending-data";
 import {
 	type AddOrderNoteInput,
 	type AssignBranchInput,
