@@ -13,3 +13,4 @@ export * from "./reviews";
 export * from "./shared-enums";
 export * from "./stock-movements";
 export * from "./tools";
+export * from "./user-activity";
