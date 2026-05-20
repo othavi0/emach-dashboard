@@ -7,7 +7,6 @@ import {
 	pgTable,
 	text,
 	timestamp,
-	uuid,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -26,7 +25,7 @@ export type SupplierAuditAction =
 export const supplierAuditLog = pgTable(
 	"supplier_audit_log",
 	{
-		id: uuid("id").primaryKey().defaultRandom(),
+		id: text("id").primaryKey(),
 		supplierId: text("supplier_id")
 			.notNull()
 			.references(() => supplier.id, { onDelete: "cascade" }),
@@ -66,12 +65,12 @@ export const supplierAuditLogRelations = relations(
 			fields: [supplierAuditLog.supplierId],
 			references: [supplier.id],
 		}),
-		actor: one(user, {
+		actorUser: one(user, {
 			fields: [supplierAuditLog.actorUserId],
 			references: [user.id],
 		}),
 	})
 );
 
-export type SupplierAuditLogRow = typeof supplierAuditLog.$inferSelect;
-export type SupplierAuditLogInsert = typeof supplierAuditLog.$inferInsert;
+export type SupplierAuditLog = typeof supplierAuditLog.$inferSelect;
+export type NewSupplierAuditLog = typeof supplierAuditLog.$inferInsert;

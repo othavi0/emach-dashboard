@@ -1,19 +1,12 @@
 import { relations } from "drizzle-orm";
-import {
-	index,
-	jsonb,
-	pgTable,
-	text,
-	timestamp,
-	uuid,
-} from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
 
 export const userActivityLog = pgTable(
 	"user_activity_log",
 	{
-		id: uuid("id").primaryKey().defaultRandom(),
+		id: text("id").primaryKey(),
 		actorUserId: text("actor_user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
@@ -39,12 +32,12 @@ export const userActivityLog = pgTable(
 export const userActivityLogRelations = relations(
 	userActivityLog,
 	({ one }) => ({
-		actor: one(user, {
+		actorUser: one(user, {
 			fields: [userActivityLog.actorUserId],
 			references: [user.id],
 		}),
 	})
 );
 
-export type UserActivityLogRow = typeof userActivityLog.$inferSelect;
-export type UserActivityLogInsert = typeof userActivityLog.$inferInsert;
+export type UserActivityLog = typeof userActivityLog.$inferSelect;
+export type NewUserActivityLog = typeof userActivityLog.$inferInsert;
