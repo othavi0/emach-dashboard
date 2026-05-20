@@ -16,6 +16,7 @@ import {
 	type BranchFormValues,
 	branchSchema,
 } from "./_components/branch-schema";
+import type { BranchTableRow } from "./data";
 
 const BRANCHES_PATH = "/dashboard/branches";
 
@@ -239,6 +240,40 @@ export async function deleteBranch(id: string): Promise<ActionResult> {
 	revalidatePath("/dashboard/stock");
 	revalidatePath("/dashboard/tools", "layout");
 	return { ok: true, data: undefined };
+}
+
+export async function fetchBranchesTablePage({
+	filters,
+	cursor,
+}: {
+	filters: BranchesFiltersInput;
+	cursor: string | null;
+}): Promise<InfiniteResult<BranchTableRow>> {
+	const page = await fetchBranchesPage({ filters, cursor });
+	if (page.items.length === 0) {
+		return { items: [], nextCursor: null };
+	}
+	const ids = page.items.map((b) => b.id);
+	const { getBranchTableAggregates } = await import("./data");
+	const aggregates = await getBranchTableAggregates(ids);
+	const items: BranchTableRow[] = page.items.map((b) => {
+		const agg = aggregates.get(b.id) ?? {
+			teamCount: 0,
+			activeSkus: 0,
+			lowStock: 0,
+		};
+		return {
+			id: b.id,
+			name: b.name,
+			address: b.address,
+			isDefault: b.isDefault,
+			createdAt: b.createdAt,
+			teamCount: agg.teamCount,
+			activeSkus: agg.activeSkus,
+			lowStock: agg.lowStock,
+		};
+	});
+	return { items, nextCursor: page.nextCursor };
 }
 
 export async function setDefaultBranch(
