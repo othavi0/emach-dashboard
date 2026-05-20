@@ -2,7 +2,6 @@
 
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
-import { Switch } from "@emach/ui/components/switch";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -13,7 +12,7 @@ import {
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
 import { branchSchema } from "../../_components/branch-schema";
-import { setDefaultBranch, updateBranch } from "../../actions";
+import { updateBranch } from "../../actions";
 import type { BranchDetail } from "../../data";
 
 interface Props {
@@ -32,7 +31,6 @@ export function BranchEditSheet({ branch }: Props) {
 	const [responsibleUserId, setResponsibleUserId] = useState(
 		branch.responsibleUserId ?? ""
 	);
-	const [isDefault, setIsDefault] = useState(branch.isDefault);
 	const [issues, setIssues] = useState<FormIssue[]>([]);
 	const [submitting, startTransition] = useTransition();
 
@@ -42,7 +40,6 @@ export function BranchEditSheet({ branch }: Props) {
 			setAddress(branch.address ?? "");
 			setPhone(branch.phone ?? "");
 			setResponsibleUserId(branch.responsibleUserId ?? "");
-			setIsDefault(branch.isDefault);
 			setIssues([]);
 		}
 	}, [open, branch]);
@@ -52,22 +49,6 @@ export function BranchEditSheet({ branch }: Props) {
 		sp.delete("edit");
 		const qs = sp.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-	};
-
-	const handleDefaultToggle = (checked: boolean) => {
-		if (!checked || branch.isDefault) {
-			return;
-		}
-		setIsDefault(true);
-		startTransition(async () => {
-			const res = await setDefaultBranch(branch.id);
-			if (res.ok) {
-				toast.success("Filial padrão atualizada");
-			} else {
-				setIsDefault(false);
-				toast.error(res.error);
-			}
-		});
 	};
 
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -144,21 +125,6 @@ export function BranchEditSheet({ branch }: Props) {
 						onChange={(e) => setResponsibleUserId(e.target.value)}
 						placeholder="UUID do usuário responsável"
 						value={responsibleUserId}
-					/>
-				</div>
-				<div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
-					<div className="flex flex-col gap-0.5">
-						<span className="font-medium text-sm">Filial padrão</span>
-						<span className="text-muted-foreground text-xs">
-							{branch.isDefault
-								? "Esta já é a filial padrão"
-								: "Tornar esta filial a padrão do sistema"}
-						</span>
-					</div>
-					<Switch
-						checked={isDefault}
-						disabled={branch.isDefault || submitting}
-						onCheckedChange={handleDefaultToggle}
 					/>
 				</div>
 			</div>

@@ -31,7 +31,6 @@ import { useInfiniteList } from "@/lib/use-infinite-list";
 
 import { type BranchesFiltersInput, fetchBranchesTablePage } from "../actions";
 import type { BranchTableRow } from "../data";
-import { BranchDefaultBadge } from "./branch-default-badge";
 import { DeleteBranchDialog } from "./delete-branch-dialog";
 
 interface BranchesTableProps {
@@ -86,12 +85,7 @@ export function BranchesTable({
 				<TableBody>
 					{items.map((b) => (
 						<TableRow key={b.id}>
-							<TableCell className="font-medium">
-								<span className="flex flex-wrap items-center gap-2">
-									{b.name}
-									{b.isDefault && <BranchDefaultBadge />}
-								</span>
-							</TableCell>
+							<TableCell className="font-medium">{b.name}</TableCell>
 							<TableCell className="text-muted-foreground">
 								{b.address ?? "—"}
 							</TableCell>

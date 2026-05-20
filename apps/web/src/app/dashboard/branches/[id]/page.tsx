@@ -1,6 +1,5 @@
 import { Building2, Package, ShoppingCart, Users } from "lucide-react";
 import { notFound } from "next/navigation";
-import { BranchDefaultBadge } from "@/app/dashboard/branches/_components/branch-default-badge";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -76,10 +75,7 @@ export default async function BranchDetailPage({
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
-			<BranchIdentity
-				badges={detail.isDefault ? <BranchDefaultBadge /> : undefined}
-				detail={detail}
-			/>
+			<BranchIdentity detail={detail} />
 			<EntityTabs defaultValue="overview" tabs={tabs} />
 			{edit === "1" ? <BranchEditSheet branch={detail} /> : null}
 		</div>
