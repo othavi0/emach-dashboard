@@ -64,6 +64,8 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
 import {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCaption,
 	TableCell,
@@ -78,7 +80,14 @@ import {
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
 import { Textarea } from "@emach/ui/components/textarea";
-import { AlertCircleIcon, BoxIcon, MailIcon } from "lucide-react";
+import {
+	AlertCircleIcon,
+	BoxIcon,
+	Eye,
+	MailIcon,
+	Pencil,
+	Trash2,
+} from "lucide-react";
 import {
 	AccordionShowcase,
 	DialogShowcase,
@@ -102,7 +111,8 @@ const tableOfContents: { id: string; title: string }[] = [
 	{ id: "alert", title: "Alert" },
 	{ id: "overlays", title: "Overlays" },
 	{ id: "menu", title: "Dropdown Menu" },
-	{ id: "tabs", title: "Tabs & Accordion" },
+	{ id: "tabs", title: "Tabs" },
+	{ id: "accordion", title: "Accordion" },
 	{ id: "table", title: "Table" },
 	{ id: "nav", title: "Navegação" },
 	{ id: "feedback", title: "Feedback" },
@@ -226,13 +236,13 @@ export default function DesignPage() {
 					<div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
 						<Swatch
 							className="bg-primary"
-							hex="#c2724a"
-							name="primary · copper · 45°"
+							hex="#cc785c"
+							name="primary · coral · 38°"
 						/>
 						<Swatch
 							className="bg-destructive"
-							hex="#c25240"
-							name="destructive · oxide · 25°"
+							hex="#c24a40"
+							name="destructive · red · 15°"
 						/>
 						<Swatch
 							className="bg-warning"
@@ -258,7 +268,7 @@ export default function DesignPage() {
 				</Section>
 
 				<Section
-					description="9 variants × 6 tamanhos. CTA primário = default (copper). Cada role saturada (destructive/warning/info/success) traz focus ring na própria cor."
+					description="9 variants × 6 tamanhos. CTA primário = default (coral). Cada role saturada (destructive/warning/info/success) traz focus ring na própria cor."
 					id="buttons"
 					title="Buttons"
 				>
@@ -577,8 +587,12 @@ export default function DesignPage() {
 					</Showcase>
 				</Section>
 
-				<Section id="tabs" title="Tabs & Accordion">
-					<Showcase label="tabs (default)">
+				<Section
+					description='2 variants × 2 orientations × scrollable opcional. variant="default" = pill group em bg-accent; variant="line" = underline minimal. Use default em filtros e segmentação primária; line em sub-navegação dentro de página de detalhe. Contagem inline ("Ativos · 12") preferida a Badge — Badge só quando contagem é alerta (pendentes > 0).'
+					id="tabs"
+					title="Tabs"
+				>
+					<Showcase label='variant="default" (pill group, padrão)'>
 						<Tabs className="w-full" defaultValue="resumo">
 							<TabsList>
 								<TabsTrigger value="resumo">Resumo</TabsTrigger>
@@ -602,13 +616,96 @@ export default function DesignPage() {
 							</TabsContent>
 						</Tabs>
 					</Showcase>
+
+					<Showcase label='variant="line" (underline, sub-navegação)'>
+						<Tabs className="w-full" defaultValue="perfil">
+							<TabsList variant="line">
+								<TabsTrigger value="perfil">Perfil</TabsTrigger>
+								<TabsTrigger value="enderecos">Endereços</TabsTrigger>
+								<TabsTrigger value="pedidos">Pedidos</TabsTrigger>
+								<TabsTrigger value="reviews">Reviews</TabsTrigger>
+							</TabsList>
+							<TabsContent value="perfil">
+								<p className="pt-3 text-muted-foreground text-xs/relaxed">
+									Dados pessoais e contato.
+								</p>
+							</TabsContent>
+						</Tabs>
+					</Showcase>
+
+					<Showcase label="contagem inline (preferida)">
+						<Tabs className="w-full" defaultValue="active">
+							<TabsList>
+								<TabsTrigger value="active">Ativos · 24</TabsTrigger>
+								<TabsTrigger value="pending">Pendentes · 3</TabsTrigger>
+								<TabsTrigger value="suspended">Suspensos · 1</TabsTrigger>
+							</TabsList>
+						</Tabs>
+					</Showcase>
+
+					<Showcase label="badge de alerta (só quando contagem > 0 importa)">
+						<Tabs className="w-full" defaultValue="todos">
+							<TabsList>
+								<TabsTrigger value="todos">Todos</TabsTrigger>
+								<TabsTrigger value="pendentes">
+									Pendentes
+									<Badge className="ml-1.5" variant="warning">
+										5
+									</Badge>
+								</TabsTrigger>
+								<TabsTrigger value="aprovados">Aprovados</TabsTrigger>
+							</TabsList>
+						</Tabs>
+					</Showcase>
+
+					<Showcase label="scrollable (muitas abas, overflow horizontal com fade)">
+						<Tabs className="w-full max-w-md" defaultValue="overview">
+							<TabsList scrollable>
+								<TabsTrigger value="overview">Overview</TabsTrigger>
+								<TabsTrigger value="profile">Perfil</TabsTrigger>
+								<TabsTrigger value="addresses">Endereços</TabsTrigger>
+								<TabsTrigger value="orders">Pedidos</TabsTrigger>
+								<TabsTrigger value="payments">Pagamentos</TabsTrigger>
+								<TabsTrigger value="reviews">Reviews</TabsTrigger>
+								<TabsTrigger value="lgpd">LGPD</TabsTrigger>
+								<TabsTrigger value="audit">Auditoria</TabsTrigger>
+							</TabsList>
+						</Tabs>
+					</Showcase>
+
+					<Showcase label="orientation vertical">
+						<Tabs
+							className="w-full max-w-md"
+							defaultValue="geral"
+							orientation="vertical"
+						>
+							<TabsList>
+								<TabsTrigger value="geral">Geral</TabsTrigger>
+								<TabsTrigger value="filiais">Filiais</TabsTrigger>
+								<TabsTrigger value="notificacoes">Notificações</TabsTrigger>
+								<TabsTrigger value="acesso">Acesso e API</TabsTrigger>
+							</TabsList>
+							<TabsContent value="geral">
+								<p className="pt-3 pl-3 text-muted-foreground text-xs/relaxed">
+									Configurações de conta e workspace.
+								</p>
+							</TabsContent>
+						</Tabs>
+					</Showcase>
+				</Section>
+
+				<Section id="accordion" title="Accordion">
 					<Showcase label="accordion (default open)">
 						<AccordionShowcase />
 					</Showcase>
 				</Section>
 
-				<Section id="table" title="Table">
-					<div className="bg-card p-4 ring-1 ring-foreground/10">
+				<Section
+					description="Listagem padrão. Última coluna sempre = ações inline (Ver / Editar / Remover) usando TableActionsHead + TableActionsCell — helpers que cuidam de width (w-full empurra ações para a direita), alinhamento (text-right) e gap entre ícones (gap-1). Botões usam size=icon-sm + variant apropriado por semântica (outline=ver, secondary=editar, destructive=remover). Sempre aria-label descritivo. Conta/valor numérico permanece com texto. Para texto livre potencialmente longo (nomes, emails, descrições) use `max-w-[NNpx] truncate` na TableCell — sem max-width o `truncate` não tem efeito porque a célula expande para caber o conteúdo."
+					id="table"
+					title="Table"
+				>
+					<div className="rounded-lg bg-card p-4 ring-1 ring-foreground/10">
 						<Table>
 							<TableCaption>Pedidos recentes</TableCaption>
 							<TableHeader>
@@ -617,6 +714,7 @@ export default function DesignPage() {
 									<TableHead>Cliente</TableHead>
 									<TableHead>Status</TableHead>
 									<TableHead className="text-right">Total</TableHead>
+									<TableActionsHead />
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -624,25 +722,114 @@ export default function DesignPage() {
 									<TableCell className="font-mono">#10421</TableCell>
 									<TableCell>Maria Silva</TableCell>
 									<TableCell>
-										<Badge variant="secondary">pago</Badge>
+										<Badge variant="success">Pago</Badge>
 									</TableCell>
-									<TableCell className="text-right">R$ 1.249,00</TableCell>
+									<TableCell className="text-right tabular-nums">
+										R$ 1.249,00
+									</TableCell>
+									<TableActionsCell>
+										<Button
+											aria-label="Ver pedido #10421"
+											size="icon-sm"
+											variant="outline"
+										>
+											<Eye aria-hidden className="size-3.5" />
+										</Button>
+										<Button
+											aria-label="Editar pedido #10421"
+											size="icon-sm"
+											variant="secondary"
+										>
+											<Pencil aria-hidden className="size-3.5" />
+										</Button>
+										<Button
+											aria-label="Remover pedido #10421"
+											size="icon-sm"
+											variant="destructive"
+										>
+											<Trash2 aria-hidden className="size-3.5" />
+										</Button>
+									</TableActionsCell>
 								</TableRow>
 								<TableRow>
 									<TableCell className="font-mono">#10422</TableCell>
 									<TableCell>João Pereira</TableCell>
 									<TableCell>
-										<Badge>novo</Badge>
+										<Badge variant="info">Em separação</Badge>
 									</TableCell>
-									<TableCell className="text-right">R$ 489,90</TableCell>
+									<TableCell className="text-right tabular-nums">
+										R$ 489,90
+									</TableCell>
+									<TableActionsCell>
+										<Button
+											aria-label="Ver pedido #10422"
+											size="icon-sm"
+											variant="outline"
+										>
+											<Eye aria-hidden className="size-3.5" />
+										</Button>
+										<Button
+											aria-label="Editar pedido #10422"
+											size="icon-sm"
+											variant="secondary"
+										>
+											<Pencil aria-hidden className="size-3.5" />
+										</Button>
+										<Button
+											aria-label="Remover pedido #10422"
+											size="icon-sm"
+											variant="destructive"
+										>
+											<Trash2 aria-hidden className="size-3.5" />
+										</Button>
+									</TableActionsCell>
 								</TableRow>
 								<TableRow>
 									<TableCell className="font-mono">#10423</TableCell>
 									<TableCell>Ana Costa</TableCell>
 									<TableCell>
-										<Badge variant="destructive">cancelado</Badge>
+										<Badge variant="destructive">Cancelado</Badge>
 									</TableCell>
-									<TableCell className="text-right">R$ 289,00</TableCell>
+									<TableCell className="text-right tabular-nums">
+										R$ 289,00
+									</TableCell>
+									<TableActionsCell>
+										<Button
+											aria-label="Ver pedido #10423"
+											size="icon-sm"
+											variant="outline"
+										>
+											<Eye aria-hidden className="size-3.5" />
+										</Button>
+									</TableActionsCell>
+								</TableRow>
+								<TableRow>
+									<TableCell className="font-mono">#10424</TableCell>
+									<TableCell className="max-w-[200px] truncate">
+										Construtora Aliança e Empreendimentos Brasil Ltda
+									</TableCell>
+									<TableCell>
+										<Badge variant="warning">Aguardando NF-e</Badge>
+									</TableCell>
+									<TableCell className="text-right tabular-nums">
+										R$ 12.480,00
+									</TableCell>
+									<TableActionsCell>
+										<Button
+											aria-label="Ver pedido #10424"
+											size="icon-sm"
+											variant="outline"
+										>
+											<Eye aria-hidden className="size-3.5" />
+										</Button>
+										<Button
+											aria-label="Editar pedido #10424"
+											size="icon-sm"
+											variant="secondary"
+										>
+											<Pencil aria-hidden className="size-3.5" />
+										</Button>
+									</TableActionsCell>
 								</TableRow>
 							</TableBody>
 						</Table>

@@ -62,10 +62,10 @@ export default async function DashboardPage() {
 	];
 
 	return (
-		<main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8">
-			<section className="flex flex-col gap-2">
+		<main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 py-8">
+			<section className="flex flex-col gap-2 pb-10">
 				<p className="text-muted-foreground text-sm">Painel</p>
-				<h1 className="font-medium text-2xl tracking-tight">
+				<h1 className="font-medium font-serif text-4xl tracking-tight">
 					Olá, {session.user.name?.split(" ")[0] ?? "admin"}
 				</h1>
 				<p className="max-w-3xl text-muted-foreground text-sm">
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
 				</p>
 			</section>
 
-			<section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+			<section className="-mx-6 grid min-w-0 gap-4 border-border border-y bg-muted/50 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<PendingPanel tabs={tabs} />
 				<div className="relative min-h-[24rem] min-w-0">
 					<div className="absolute inset-0">
@@ -87,7 +87,7 @@ export default async function DashboardPage() {
 				</div>
 			</section>
 
-			<section>
+			<section className="pt-10">
 				<Card>
 					<CardHeader>
 						<CardTitle>Atalhos operacionais</CardTitle>

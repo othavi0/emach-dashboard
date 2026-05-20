@@ -31,7 +31,7 @@ const SHARED_TOKENS: Record<string, string> = {
 	"--popover-foreground": "oklch(0.97 0.008 85)",
 	"--border": "oklch(0.36 0.008 70)",
 	"--input": "oklch(0.42 0.010 70)",
-	"--destructive": "oklch(0.55 0.20 25)",
+	"--destructive": "oklch(0.55 0.20 15)",
 	"--destructive-foreground": "oklch(0.99 0 0)",
 };
 
@@ -51,7 +51,8 @@ const PALETTES: Palette[] = [
 	{
 		id: "copper",
 		name: "Copper / Burnt",
-		tagline: "primary hue 45 — cobre oxidado, mais quente e vermelho que coral",
+		tagline:
+			"primary hue 45 — cobre oxidado, iteração anterior (substituído por coral)",
 		hex: "#c2724a",
 		tokens: {
 			...SHARED_TOKENS,
@@ -70,6 +71,18 @@ const PALETTES: Palette[] = [
 			"--primary": "oklch(0.72 0.14 85)",
 			"--primary-foreground": "oklch(0.14 0.005 70)",
 			"--ring": "oklch(0.72 0.14 85 / 0.55)",
+		},
+	},
+	{
+		id: "coral",
+		name: "Coral / Anthropic",
+		tagline: "primary hue 38 — coral Anthropic literal #cc785c, voz editorial",
+		hex: "#cc785c",
+		tokens: {
+			...SHARED_TOKENS,
+			"--primary": "oklch(0.65 0.13 38)",
+			"--primary-foreground": "oklch(0.99 0 0)",
+			"--ring": "oklch(0.65 0.13 38 / 0.55)",
 		},
 	},
 ];
@@ -112,7 +125,7 @@ function PaletteColumn({ palette }: { palette: Palette }) {
 						<h2 className="font-medium text-lg tracking-tight">
 							{palette.name}
 						</h2>
-						{palette.id === "copper" ? (
+						{palette.id === "coral" ? (
 							<span
 								className="inline-flex h-5 items-center rounded-md px-2 font-medium text-[10px] uppercase tracking-wider"
 								style={{
@@ -121,6 +134,17 @@ function PaletteColumn({ palette }: { palette: Palette }) {
 								}}
 							>
 								Vencedor
+							</span>
+						) : null}
+						{palette.id === "copper" ? (
+							<span
+								className="inline-flex h-5 items-center rounded-md border px-2 font-medium text-[10px] uppercase tracking-wider"
+								style={{
+									borderColor: "var(--border)",
+									color: "var(--muted-foreground)",
+								}}
+							>
+								Iteração anterior
 							</span>
 						) : null}
 					</div>
@@ -304,14 +328,15 @@ export default function DesignPreviewPage() {
 				<span className="font-medium font-mono text-[11px] text-muted-foreground uppercase tracking-widest">
 					/design/preview · histórico
 				</span>
-				<h1 className="font-medium text-3xl tracking-tight">
-					Histórico: 3 variantes de primary testadas
+				<h1 className="font-normal font-serif text-3xl tracking-tight">
+					Histórico: 4 variantes de primary testadas
 				</h1>
 				<p className="max-w-3xl text-muted-foreground text-sm leading-relaxed">
 					Comparação preservada da decisão de paleta. Mesmo canvas warm-dark e
-					mesmas cores semânticas (oxide red, mustard, teal, jade) — diferença
-					só no <strong>primary</strong>. <strong>Copper venceu</strong> (hue
-					45) e foi aplicado em{" "}
+					mesmas cores semânticas (pure red, mustard, teal, jade) — diferença só
+					no <strong>primary</strong>. <strong>Coral venceu</strong> (hue 38,
+					Anthropic literal) na iteração 2026-05-20, substituindo o copper (hue
+					45) da iteração anterior. Aplicado em{" "}
 					<code className="font-mono text-xs">
 						packages/ui/src/styles/globals.css
 					</code>
@@ -319,7 +344,7 @@ export default function DesignPreviewPage() {
 				</p>
 			</header>
 
-			<div className="grid gap-6 lg:grid-cols-3">
+			<div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
 				{PALETTES.map((p) => (
 					<PaletteColumn key={p.id} palette={p} />
 				))}
@@ -327,10 +352,12 @@ export default function DesignPreviewPage() {
 
 			<footer className="mt-12 border-border border-t pt-6 text-muted-foreground text-xs leading-relaxed">
 				<p className="mb-2">
-					<strong className="text-foreground">Razão da escolha:</strong> copper
-					(hue 45) ficou no meio termo entre amber (65, mais amarelo) e brass
-					(85, mais frio). Distância de 20° em relação ao destructive (hue 25)
-					garante leitura à distância — coral antigo (hue 38) fundia.
+					<strong className="text-foreground">Razão da escolha (atual):</strong>{" "}
+					coral hue 38 (Anthropic literal #cc785c) traz voz editorial mantendo
+					dark-only e voz workshop. Destructive movido para hue 15 (pure red,
+					era oxide 25) preservando 23° de separação. Copper hue 45 ficou
+					documentado como iteração anterior — boa cor, mas menos personalidade
+					vs. a referência Anthropic.
 				</p>
 				<p>
 					Resultado vivo em{" "}

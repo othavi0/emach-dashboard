@@ -5,6 +5,8 @@ import { Badge } from "@emach/ui/components/badge";
 import { Button, buttonVariants } from "@emach/ui/components/button";
 import {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCell,
 	TableHead,
@@ -58,7 +60,7 @@ export function OwnAttributesTable({
 					<TableHead>Tipo</TableHead>
 					<TableHead>Unidade</TableHead>
 					<TableHead>Obrigatório</TableHead>
-					<TableHead className="w-32 text-right">Ações</TableHead>
+					<TableActionsHead />
 				</TableRow>
 			</TableHeader>
 			<TableBody>
@@ -79,29 +81,27 @@ export function OwnAttributesTable({
 								<span className="text-muted-foreground">—</span>
 							)}
 						</TableCell>
-						<TableCell className="text-right">
-							<div className="flex justify-end gap-1">
-								{canUpdate && (
-									<Button
-										aria-label={`Editar atributo ${def.label}`}
-										onClick={() => onEdit(def)}
-										size="icon-sm"
-										type="button"
-										variant="secondary"
-									>
-										<Pencil aria-hidden className="size-3.5" />
-									</Button>
-								)}
-								{canDelete && (
-									<DeleteAttributeDialog
-										attributeId={def.id}
-										attributeLabel={def.label}
-										categoryId={categoryId}
-										usageCount={usageCount}
-									/>
-								)}
-							</div>
-						</TableCell>
+						<TableActionsCell>
+							{canUpdate && (
+								<Button
+									aria-label={`Editar atributo ${def.label}`}
+									onClick={() => onEdit(def)}
+									size="icon-sm"
+									type="button"
+									variant="secondary"
+								>
+									<Pencil aria-hidden className="size-3.5" />
+								</Button>
+							)}
+							{canDelete && (
+								<DeleteAttributeDialog
+									attributeId={def.id}
+									attributeLabel={def.label}
+									categoryId={categoryId}
+									usageCount={usageCount}
+								/>
+							)}
+						</TableActionsCell>
 					</TableRow>
 				))}
 			</TableBody>
@@ -121,7 +121,7 @@ export function InheritedAttributesTable({ rows }: InheritedTableProps) {
 					<TableHead>Rótulo</TableHead>
 					<TableHead>Tipo</TableHead>
 					<TableHead>Origem</TableHead>
-					<TableHead className="w-32 text-right">Ação</TableHead>
+					<TableActionsHead>Ação</TableActionsHead>
 				</TableRow>
 			</TableHeader>
 			<TableBody>
@@ -137,7 +137,7 @@ export function InheritedAttributesTable({ rows }: InheritedTableProps) {
 						<TableCell>
 							<Badge variant="secondary">{ownerCategoryName}</Badge>
 						</TableCell>
-						<TableCell className="text-right">
+						<TableActionsCell>
 							<Link
 								aria-label={`Abrir categoria ${ownerCategoryName}`}
 								className={buttonVariants({
@@ -148,7 +148,7 @@ export function InheritedAttributesTable({ rows }: InheritedTableProps) {
 							>
 								<ArrowUpRight aria-hidden className="size-3.5" />
 							</Link>
-						</TableCell>
+						</TableActionsCell>
 					</TableRow>
 				))}
 			</TableBody>

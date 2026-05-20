@@ -189,7 +189,7 @@ export default async function EditToolPage({ params }: PageProps) {
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-medium text-2xl tracking-tight">
+				<h1 className="font-medium font-serif text-4xl tracking-tight">
 					Editar: {row.name}
 				</h1>
 				<p className="text-muted-foreground text-sm">

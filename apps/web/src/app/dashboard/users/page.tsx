@@ -91,7 +91,6 @@ export default async function UsersPage({ searchParams }: PageProps) {
 				description="Equipe interna do Emach — aprovação, cargos e filiais."
 				title="Usuários"
 			/>
-
 			<EntityKpisRow
 				items={[
 					{ label: "Ativos", value: kpis.active, icon: CheckCircle2 },
@@ -115,7 +114,6 @@ export default async function UsersPage({ searchParams }: PageProps) {
 					},
 				]}
 			/>
-
 			<section className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<UsersPendingCard
 					count={kpis.pending}
@@ -130,9 +128,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
 					title="Atividade recente"
 				/>
 			</section>
-
 			<UsersFilters branches={branches} />
-
 			<Tabs value={status}>
 				<TabsList scrollable>
 					<TabsTrigger
@@ -176,7 +172,6 @@ export default async function UsersPage({ searchParams }: PageProps) {
 					</TabsTrigger>
 				</TabsList>
 			</Tabs>
-
 			<UsersCardGrid
 				filters={filters}
 				initialCursor={page.nextCursor}

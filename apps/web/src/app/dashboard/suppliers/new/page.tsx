@@ -7,7 +7,9 @@ export default async function NewSupplierPage() {
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-medium text-2xl tracking-tight">Novo fornecedor</h1>
+				<h1 className="font-medium font-serif text-4xl tracking-tight">
+					Novo fornecedor
+				</h1>
 				<p className="text-muted-foreground text-sm">
 					Cadastre um fornecedor para vinculá-lo às ferramentas do catálogo.
 				</p>
