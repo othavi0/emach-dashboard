@@ -1,0 +1,89 @@
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@emach/ui/components/card";
+import { cn } from "@emach/ui/lib/utils";
+import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
+import type { ReactNode } from "react";
+
+export type KpiTone = "default" | "warning" | "danger" | "success";
+
+export interface KpiItem {
+	hint?: ReactNode;
+	href?: string;
+	icon?: LucideIcon;
+	label: string;
+	tone?: KpiTone;
+	value: ReactNode;
+}
+
+interface Props {
+	items: KpiItem[];
+}
+
+const TONE_VALUE: Record<KpiTone, string> = {
+	default: "text-foreground",
+	warning: "text-warning",
+	danger: "text-destructive",
+	success: "text-success",
+};
+
+const TONE_ICON: Record<KpiTone, string> = {
+	default: "text-muted-foreground",
+	warning: "text-warning",
+	danger: "text-destructive",
+	success: "text-success",
+};
+
+export function EntityKpisRow({ items }: Props) {
+	return (
+		<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+			{items.map((item) => {
+				const tone = item.tone ?? "default";
+				const Icon = item.icon;
+				const inner = (
+					<Card className="h-full">
+						<CardHeader className="flex flex-row items-center justify-between gap-2 pb-1">
+							<CardTitle className="text-muted-foreground text-xs uppercase tracking-wide">
+								{item.label}
+							</CardTitle>
+							{Icon ? (
+								<Icon aria-hidden className={cn("size-4", TONE_ICON[tone])} />
+							) : null}
+						</CardHeader>
+						<CardContent>
+							<p
+								className={cn(
+									"font-medium text-2xl tabular-nums tracking-tight",
+									TONE_VALUE[tone]
+								)}
+							>
+								{item.value}
+							</p>
+							{item.hint ? (
+								<p className="text-muted-foreground text-xs">{item.hint}</p>
+							) : null}
+						</CardContent>
+					</Card>
+				);
+				return (
+					<div key={item.label}>
+						{item.href ? (
+							<Link
+								className="block transition-opacity hover:opacity-80"
+								href={item.href}
+							>
+								{inner}
+							</Link>
+						) : (
+							inner
+						)}
+					</div>
+				);
+			})}
+		</div>
+	);
+}
