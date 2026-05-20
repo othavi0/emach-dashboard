@@ -15,7 +15,8 @@
   "dependencies": {
     "@emach/db": "workspace:*",
     "@emach/env": "workspace:*",
-    "better-auth": "catalog:"
+    "better-auth": "catalog:",
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@emach/config": "workspace:*",
