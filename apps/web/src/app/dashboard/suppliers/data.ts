@@ -5,7 +5,7 @@ import { user as userTable } from "@emach/db/schema/auth";
 import { toolCategory } from "@emach/db/schema/categories";
 import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
 import { supplier, tool } from "@emach/db/schema/tools";
-import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
 export interface SupplierKpis {
 	empty: number;
@@ -215,7 +215,7 @@ export async function getSupplierTableAggregates(
 			active: sql<number>`count(*) filter (where ${tool.status} = 'active')::int`,
 		})
 		.from(tool)
-		.where(sql`${tool.supplierId} = any(${supplierIds})`)
+		.where(inArray(tool.supplierId, supplierIds))
 		.groupBy(tool.supplierId);
 	const map = new Map<string, { toolsTotal: number; toolsActive: number }>();
 	for (const id of supplierIds) {
