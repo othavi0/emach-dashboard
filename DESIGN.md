@@ -120,20 +120,54 @@ Sizes: `xs / sm / default / lg / icon / icon-xs / icon-sm / icon-lg`.
 
 ### Listing row actions
 
-Tabelas de listagem (`/dashboard/<recurso>` com tabela de itens) usam **botões-ícone** uniformes para ações inline em cada linha. `size="icon-sm"`, `aria-label` descritivo no trigger, `aria-hidden` no SVG, ícone `size-3.5`.
+Toda tabela de listagem (`/dashboard/<recurso>` com itens enumeráveis) **deve** ter última coluna de ações inline. Use os helpers do Table:
+
+- **`<TableActionsHead />`** — coluna de cabeçalho. `w-px` + `text-right` + label "Ações" default (override passando children).
+- **`<TableActionsCell>...</TableActionsCell>`** — célula. Wraps automaticamente os filhos num `<div className="flex justify-end gap-1">`. Não use `<TableCell>` manualmente para ações.
+
+```tsx
+<TableHeader>
+  <TableRow>
+    {/* ...colunas... */}
+    <TableActionsHead />
+  </TableRow>
+</TableHeader>
+<TableBody>
+  <TableRow>
+    {/* ...células... */}
+    <TableActionsCell>
+      <Button aria-label="Ver pedido #X" size="icon-sm" variant="outline">
+        <Eye aria-hidden className="size-3.5" />
+      </Button>
+      <Button aria-label="Editar pedido #X" size="icon-sm" variant="secondary">
+        <Pencil aria-hidden className="size-3.5" />
+      </Button>
+      <Button aria-label="Remover pedido #X" size="icon-sm" variant="destructive">
+        <Trash2 aria-hidden className="size-3.5" />
+      </Button>
+    </TableActionsCell>
+  </TableRow>
+</TableBody>
+```
+
+**Botões-ícone uniformes:** `size="icon-sm"` (28px), `aria-label` descritivo (inclui identificador da linha — "Editar pedido #10421"), `aria-hidden` no SVG, ícone `size-3.5`.
 
 | Ação semântica | Trigger | Variant | Icon (lucide-react) |
 |---|---|---|---|
+| Abrir / Ver detalhe | `<Link>` | `outline` | `Eye` |
 | Editar | `<Link>` ou `<Button>` | `secondary` | `Pencil` |
 | Remover | `<AlertDialogTrigger>` + `<Button>` | `destructive` | `Trash2` |
-| Abrir / Ver detalhe | `<Link>` | `outline` | `Eye` |
 | Gerenciar estoque | `<Link>` | `secondary` | `Boxes` |
 | Ajustar (modal) | `<DialogTrigger>` + `<Button>` | `outline` | `Sliders` |
 | Navegar p/ recurso de outro contexto | `<Link>` | `ghost` | `ArrowUpRight` |
 
+**Ordem recomendada:** Ver → Editar → Remover (read → write → destroy, alinhado com risco crescente da esquerda pra direita). Destructive vem por último.
+
+**Permissão:** quando ação depende de capability, renderize condicionalmente — não desabilite. Se a row inteira não tem ações disponíveis para esse user, omita `<TableActionsCell>` (a coluna fica vazia mas a column header continua presente — mantém grid consistente).
+
 **Manter texto** em ações onde o número/contagem é a informação principal (`Ver 3 filiais`) ou em mutações críticas inline (`Salvar` em threshold dirty). Ícone esconde valor que o usuário precisa ler à distância.
 
-Implementação canônica: `apps/web/src/app/dashboard/promotions/_components/promotions-table.tsx` + `delete-promotion-dialog.tsx`.
+Implementação canônica: `apps/web/src/app/dashboard/suppliers/_components/suppliers-table.tsx` (Editar + Remover) e showcase em `/design#table`.
 
 ### Badges
 

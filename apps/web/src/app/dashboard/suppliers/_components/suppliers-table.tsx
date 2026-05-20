@@ -3,6 +3,8 @@
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCell,
 	TableHead,
@@ -39,9 +41,7 @@ export function SuppliersTable({ suppliers, canMutate }: SuppliersTableProps) {
 					<TableHead>Contato</TableHead>
 					<TableHead className="text-right">Ferramentas</TableHead>
 					<TableHead className="w-32">Criado em</TableHead>
-					{canMutate && (
-						<TableHead className="w-40 text-right">Ações</TableHead>
-					)}
+					{canMutate && <TableActionsHead />}
 				</TableRow>
 			</TableHeader>
 			<TableBody>
@@ -65,24 +65,22 @@ export function SuppliersTable({ suppliers, canMutate }: SuppliersTableProps) {
 							{formatDate(supplier.createdAt)}
 						</TableCell>
 						{canMutate && (
-							<TableCell className="text-right">
-								<div className="flex justify-end gap-2">
-									<Link
-										aria-label={`Editar fornecedor ${supplier.name}`}
-										className={buttonVariants({
-											size: "icon-sm",
-											variant: "secondary",
-										})}
-										href={`/dashboard/suppliers/${supplier.id}/edit`}
-									>
-										<Pencil aria-hidden className="size-3.5" />
-									</Link>
-									<DeleteSupplierDialog
-										supplierId={supplier.id}
-										supplierName={supplier.name}
-									/>
-								</div>
-							</TableCell>
+							<TableActionsCell>
+								<Link
+									aria-label={`Editar fornecedor ${supplier.name}`}
+									className={buttonVariants({
+										size: "icon-sm",
+										variant: "secondary",
+									})}
+									href={`/dashboard/suppliers/${supplier.id}/edit`}
+								>
+									<Pencil aria-hidden className="size-3.5" />
+								</Link>
+								<DeleteSupplierDialog
+									supplierId={supplier.id}
+									supplierName={supplier.name}
+								/>
+							</TableActionsCell>
 						)}
 					</TableRow>
 				))}

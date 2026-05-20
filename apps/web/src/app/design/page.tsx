@@ -64,6 +64,8 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
 import {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCaption,
 	TableCell,
@@ -78,7 +80,14 @@ import {
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
 import { Textarea } from "@emach/ui/components/textarea";
-import { AlertCircleIcon, BoxIcon, MailIcon } from "lucide-react";
+import {
+	AlertCircleIcon,
+	BoxIcon,
+	Eye,
+	MailIcon,
+	Pencil,
+	Trash2,
+} from "lucide-react";
 import {
 	AccordionShowcase,
 	DialogShowcase,
@@ -691,8 +700,12 @@ export default function DesignPage() {
 					</Showcase>
 				</Section>
 
-				<Section id="table" title="Table">
-					<div className="bg-card p-4 ring-1 ring-foreground/10">
+				<Section
+					description="Listagem padrão. Última coluna sempre = ações inline (Ver / Editar / Remover) usando TableActionsHead + TableActionsCell — helpers que cuidam de width (w-px shrink), alinhamento (text-right) e gap entre ícones (gap-1). Botões usam size=icon-sm + variant apropriado por semântica (outline=ver, secondary=editar, destructive=remover). Sempre aria-label descritivo. Conta/valor numérico permanece com texto."
+					id="table"
+					title="Table"
+				>
+					<div className="rounded-lg bg-card p-4 ring-1 ring-foreground/10">
 						<Table>
 							<TableCaption>Pedidos recentes</TableCaption>
 							<TableHeader>
@@ -701,6 +714,7 @@ export default function DesignPage() {
 									<TableHead>Cliente</TableHead>
 									<TableHead>Status</TableHead>
 									<TableHead className="text-right">Total</TableHead>
+									<TableActionsHead />
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -708,25 +722,86 @@ export default function DesignPage() {
 									<TableCell className="font-mono">#10421</TableCell>
 									<TableCell>Maria Silva</TableCell>
 									<TableCell>
-										<Badge variant="secondary">pago</Badge>
+										<Badge variant="success">Pago</Badge>
 									</TableCell>
-									<TableCell className="text-right">R$ 1.249,00</TableCell>
+									<TableCell className="text-right tabular-nums">
+										R$ 1.249,00
+									</TableCell>
+									<TableActionsCell>
+										<Button
+											aria-label="Ver pedido #10421"
+											size="icon-sm"
+											variant="outline"
+										>
+											<Eye aria-hidden className="size-3.5" />
+										</Button>
+										<Button
+											aria-label="Editar pedido #10421"
+											size="icon-sm"
+											variant="secondary"
+										>
+											<Pencil aria-hidden className="size-3.5" />
+										</Button>
+										<Button
+											aria-label="Remover pedido #10421"
+											size="icon-sm"
+											variant="destructive"
+										>
+											<Trash2 aria-hidden className="size-3.5" />
+										</Button>
+									</TableActionsCell>
 								</TableRow>
 								<TableRow>
 									<TableCell className="font-mono">#10422</TableCell>
 									<TableCell>João Pereira</TableCell>
 									<TableCell>
-										<Badge>novo</Badge>
+										<Badge variant="info">Em separação</Badge>
 									</TableCell>
-									<TableCell className="text-right">R$ 489,90</TableCell>
+									<TableCell className="text-right tabular-nums">
+										R$ 489,90
+									</TableCell>
+									<TableActionsCell>
+										<Button
+											aria-label="Ver pedido #10422"
+											size="icon-sm"
+											variant="outline"
+										>
+											<Eye aria-hidden className="size-3.5" />
+										</Button>
+										<Button
+											aria-label="Editar pedido #10422"
+											size="icon-sm"
+											variant="secondary"
+										>
+											<Pencil aria-hidden className="size-3.5" />
+										</Button>
+										<Button
+											aria-label="Remover pedido #10422"
+											size="icon-sm"
+											variant="destructive"
+										>
+											<Trash2 aria-hidden className="size-3.5" />
+										</Button>
+									</TableActionsCell>
 								</TableRow>
 								<TableRow>
 									<TableCell className="font-mono">#10423</TableCell>
 									<TableCell>Ana Costa</TableCell>
 									<TableCell>
-										<Badge variant="destructive">cancelado</Badge>
+										<Badge variant="destructive">Cancelado</Badge>
 									</TableCell>
-									<TableCell className="text-right">R$ 289,00</TableCell>
+									<TableCell className="text-right tabular-nums">
+										R$ 289,00
+									</TableCell>
+									<TableActionsCell>
+										<Button
+											aria-label="Ver pedido #10423"
+											size="icon-sm"
+											variant="outline"
+										>
+											<Eye aria-hidden className="size-3.5" />
+										</Button>
+									</TableActionsCell>
 								</TableRow>
 							</TableBody>
 						</Table>

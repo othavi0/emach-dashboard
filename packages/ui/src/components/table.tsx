@@ -103,8 +103,42 @@ function TableCaption({
 	);
 }
 
+function TableActionsHead({
+	className,
+	children,
+	...props
+}: React.ComponentProps<"th">) {
+	return (
+		<TableHead
+			className={cn("w-px whitespace-nowrap text-right", className)}
+			data-slot="table-actions-head"
+			{...props}
+		>
+			{children ?? "Ações"}
+		</TableHead>
+	);
+}
+
+function TableActionsCell({
+	className,
+	children,
+	...props
+}: React.ComponentProps<"td">) {
+	return (
+		<TableCell
+			className={cn("w-px text-right", className)}
+			data-slot="table-actions-cell"
+			{...props}
+		>
+			<div className="flex items-center justify-end gap-1">{children}</div>
+		</TableCell>
+	);
+}
+
 export {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCaption,
 	TableCell,
