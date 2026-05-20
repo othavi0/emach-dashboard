@@ -45,13 +45,13 @@ export default async function BranchDetailPage({
 		{
 			value: "overview",
 			label: "Visão geral",
-			icon: Building2,
+			icon: <Building2 aria-hidden className="size-3.5" />,
 			content: <OverviewTab detail={detail} kpis={kpis} />,
 		},
 		{
 			value: "team",
 			label: "Equipe",
-			icon: Users,
+			icon: <Users aria-hidden className="size-3.5" />,
 			badge: (
 				<span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 font-medium text-muted-foreground text-xs tabular-nums">
 					{team.length}
@@ -62,13 +62,13 @@ export default async function BranchDetailPage({
 		{
 			value: "orders",
 			label: "Pedidos",
-			icon: ShoppingCart,
+			icon: <ShoppingCart aria-hidden className="size-3.5" />,
 			content: <OrdersTab orders={recentOrders} />,
 		},
 		{
 			value: "stock",
 			label: "Estoque",
-			icon: Package,
+			icon: <Package aria-hidden className="size-3.5" />,
 			content: <StockTab branchId={id} branchName={detail.name} />,
 		},
 	];

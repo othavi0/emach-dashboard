@@ -46,13 +46,13 @@ export default async function SupplierDetailPage({
 		{
 			value: "overview",
 			label: "Visão geral",
-			icon: Factory,
+			icon: <Factory aria-hidden className="size-3.5" />,
 			content: <OverviewTab detail={detail} kpis={kpis} />,
 		},
 		{
 			value: "tools",
 			label: "Ferramentas",
-			icon: Wrench,
+			icon: <Wrench aria-hidden className="size-3.5" />,
 			badge: (
 				<span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 font-medium text-muted-foreground text-xs tabular-nums">
 					{detail.toolsTotal}
@@ -65,7 +65,7 @@ export default async function SupplierDetailPage({
 		{
 			value: "history",
 			label: "Histórico",
-			icon: History,
+			icon: <History aria-hidden className="size-3.5" />,
 			content: <HistoryTab rows={audit} />,
 		},
 	];

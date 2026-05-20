@@ -103,6 +103,7 @@ export function UsersCardGrid({ initialItems, initialCursor, filters }: Props) {
 											: "Nunca logou"}
 									</span>
 									<Button
+										nativeButton={false}
 										render={<Link href={`/dashboard/users/${user.id}`} />}
 										size="sm"
 										variant="outline"

@@ -1,3 +1,4 @@
+import { toDate } from "@emach/db/utils";
 import {
 	Card,
 	CardContent,
@@ -28,9 +29,8 @@ interface Props {
 }
 
 export function OverviewTab({ detail, kpis }: Props) {
-	const lastAddedLabel = kpis.lastToolAddedAt
-		? DATE_FORMAT.format(kpis.lastToolAddedAt)
-		: "—";
+	const lastAddedAt = toDate(kpis.lastToolAddedAt);
+	const lastAddedLabel = lastAddedAt ? DATE_FORMAT.format(lastAddedAt) : "—";
 
 	return (
 		<div className="flex flex-col gap-6">
