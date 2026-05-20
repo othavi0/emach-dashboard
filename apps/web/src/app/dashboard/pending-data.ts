@@ -68,11 +68,11 @@ export async function fetchPendingOrders(
 	await requireCurrentSession();
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
 	const keyset = decoded
-		? sql`AND (o.created_at, o.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
+		? sql`AND (o.created_at, o.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`
 		: sql``;
 	const result = await db.execute<{
 		client_name: string;
-		created_at: Date;
+		created_at: string;
 		id: string;
 		number: string;
 		status: string;
@@ -105,7 +105,7 @@ export async function fetchPendingOrders(
 		(last) => ({
 			v: 1,
 			sort: "newest",
-			createdAt: toDate(last.created_at).toISOString(),
+			createdAt: last.created_at,
 			id: last.id,
 		})
 	);
@@ -117,10 +117,10 @@ export async function fetchPendingReviews(
 	await requireCurrentSession();
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
 	const keyset = decoded
-		? sql`AND (r.created_at, r.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
+		? sql`AND (r.created_at, r.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`
 		: sql``;
 	const result = await db.execute<{
-		created_at: Date;
+		created_at: string;
 		id: string;
 		rating: number;
 		tool_name: string | null;
@@ -145,7 +145,7 @@ export async function fetchPendingReviews(
 		(last) => ({
 			v: 1,
 			sort: "newest",
-			createdAt: toDate(last.created_at).toISOString(),
+			createdAt: last.created_at,
 			id: last.id,
 		})
 	);
@@ -158,10 +158,10 @@ export async function fetchDashboardActivity(
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
 	const keyset = (col: string, idExpr: string) =>
 		decoded
-			? sql`WHERE (${sql.raw(col)}, ${sql.raw(idExpr)}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
+			? sql`WHERE (${sql.raw(col)}, ${sql.raw(idExpr)}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
 			: sql``;
 	const result = await db.execute<{
-		created_at: Date;
+		created_at: string;
 		href: string | null;
 		id: string;
 		kind: "order" | "review" | "stock";
@@ -215,7 +215,7 @@ export async function fetchDashboardActivity(
 		(last) => ({
 			v: 1,
 			sort: "newest",
-			createdAt: toDate(last.created_at).toISOString(),
+			createdAt: last.created_at,
 			id: last.id,
 		})
 	);
