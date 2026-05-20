@@ -26,8 +26,8 @@ import { toast } from "sonner";
 
 import {
 	deleteUser,
-	resetUserPassword,
 	suspendUser,
+	triggerPasswordReset,
 	updateUser,
 } from "../actions";
 import { BranchesCombobox } from "./branches-combobox";
@@ -52,14 +52,12 @@ export function EditSheet({
 	const [branchIds, setBranchIds] = useState<string[]>([]);
 	const [submitting, setSubmitting] = useState(false);
 	const [, startTransition] = useTransition();
-	const [resetToken, setResetToken] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (user) {
 			setName(user.name);
 			setRole(user.role);
 			setBranchIds(user.branchIds);
-			setResetToken(null);
 		}
 	}, [user]);
 
@@ -108,10 +106,10 @@ export function EditSheet({
 		}
 		setSubmitting(true);
 		startTransition(async () => {
-			const result = await resetUserPassword({ userId: user.id });
+			const result = await triggerPasswordReset({ userId: user.id });
 			setSubmitting(false);
 			if (result.ok) {
-				setResetToken(result.data.token);
+				toast.success("E-mail de reset enviado");
 			} else {
 				toast.error(result.error);
 			}
@@ -133,15 +131,6 @@ export function EditSheet({
 				toast.error(result.error);
 			}
 		});
-	}
-
-	function copyResetLink() {
-		if (!resetToken) {
-			return;
-		}
-		const link = `${window.location.origin}/reset-password?token=${resetToken}`;
-		navigator.clipboard.writeText(link);
-		toast.success("Link copiado");
 	}
 
 	return (
@@ -244,21 +233,6 @@ export function EditSheet({
 							disabled={submitting}
 							render={<Button variant="ghost">Fechar</Button>}
 						/>
-
-						{resetToken && (
-							<div className="rounded-md border border-warning bg-warning/10 p-3">
-								<p className="font-medium text-sm">Token de reset gerado</p>
-								<p className="break-all font-mono text-xs">{resetToken}</p>
-								<Button
-									className="mt-2"
-									onClick={copyResetLink}
-									size="sm"
-									variant="outline"
-								>
-									Copiar link
-								</Button>
-							</div>
-						)}
 					</>
 				)}
 			</SheetContent>

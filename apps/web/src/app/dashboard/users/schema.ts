@@ -26,3 +26,10 @@ export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 
 export const userIdSchema = z.object({ userId: z.string().min(1) });
 export type UserIdInput = z.infer<typeof userIdSchema>;
+
+export const triggerPasswordResetSchema = z.object({
+	userId: z.string().min(1),
+});
+export type TriggerPasswordResetInput = z.infer<
+	typeof triggerPasswordResetSchema
+>;
