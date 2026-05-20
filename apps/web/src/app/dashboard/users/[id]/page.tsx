@@ -7,6 +7,7 @@ import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 
+import { UserEditSheet } from "../_components/user-edit-sheet";
 import { getUserDetail } from "../data";
 import { ActivityTab } from "./_components/activity-tab";
 import { BranchesTab } from "./_components/branches-tab";
@@ -75,6 +76,15 @@ export default async function UserDetailPage({ params }: PageProps) {
 		<div className="flex flex-col gap-6 p-6">
 			<UserIdentity user={user} />
 			<EntityTabs defaultValue="profile" tabs={tabs} />
+			<UserEditSheet
+				branches={availableBranches}
+				user={{
+					id: user.id,
+					name: user.name,
+					role: user.role,
+					branchIds: user.branchIds,
+				}}
+			/>
 		</div>
 	);
 }
