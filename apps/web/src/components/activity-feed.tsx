@@ -6,6 +6,7 @@ import {
 	type LucideIcon,
 	PackageIcon,
 	StarIcon,
+	UserCogIcon,
 	UserIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -15,7 +16,7 @@ import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import type { InfiniteResult } from "@/lib/infinite";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
-export type ActivityKind = "order" | "review" | "stock" | "customer";
+export type ActivityKind = "order" | "review" | "stock" | "customer" | "user";
 
 export interface ActivityEvent {
 	at: Date;
@@ -39,6 +40,7 @@ const KIND_META: Record<ActivityKind, { color: string; icon: LucideIcon }> = {
 	order: { icon: PackageIcon, color: "text-warning" },
 	review: { icon: StarIcon, color: "text-success" },
 	customer: { icon: UserIcon, color: "text-primary" },
+	user: { icon: UserCogIcon, color: "text-info" },
 };
 
 const TIME_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
