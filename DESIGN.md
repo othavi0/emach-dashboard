@@ -169,19 +169,19 @@ Toda tabela de listagem (`/dashboard/<recurso>` com itens enumeráveis) **deve**
 
 Implementação canônica: `apps/web/src/app/dashboard/suppliers/_components/suppliers-table.tsx` (Editar + Remover) e showcase em `/design#table`.
 
-**Layout de larguras (cluster à direita):** dentro de uma listagem com Total/contagem + Status + Actions, marque a coluna de **identificação** (Cliente, Nome, Descrição — a "stretch column") com `w-full` e as colunas auxiliares (Status, Total, contagens, datas curtas, Actions) sem largura (encolhem ao próprio conteúdo). Resultado: identificação absorve sobra horizontal, status/totais/actions ficam clusterizados à direita sem espaço fantasma entre eles.
+**Layout de larguras (dados à esquerda, ações à direita):** `TableActionsHead` e `TableActionsCell` já carregam `w-full` internamente — a coluna de ações absorve toda sobra horizontal e mantém os botões alinhados à direita (`text-right` + `flex justify-end`). Resultado: todas as colunas de dado (ID, Cliente, Status, Total, etc) encolhem ao próprio conteúdo e ficam clusterizadas naturalmente à esquerda. Não use `w-full` em nenhuma coluna de dado — quebra o pattern.
 
 ```tsx
 <TableRow>
   <TableHead>ID</TableHead>
-  <TableHead className="w-full">Cliente</TableHead>   {/* eats remaining space */}
+  <TableHead>Cliente</TableHead>
   <TableHead>Status</TableHead>
-  <TableHead className="w-px text-right">Total</TableHead>
-  <TableActionsHead />
+  <TableHead className="text-right">Total</TableHead>
+  <TableActionsHead />   {/* w-full embutido; absorve sobra horizontal */}
 </TableRow>
 ```
 
-Sem `w-full` na coluna de identificação, todas as colunas dividem o espaço por igual e o Total (text-right) fica visualmente longe do Status, encostado nas ações.
+Se quiser destacar uma coluna específica como "principal" (Cliente expandindo até a borda das ações), aí sim adicione `className="w-full"` nela — vira a stretch column e empurra Status/Total pro lado das ações. Pattern alternativo, não default.
 
 ### Badges
 
