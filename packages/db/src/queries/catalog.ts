@@ -744,9 +744,10 @@ export async function getActivePromotions(
 		       created_at AS "createdAt",
 		       updated_at AS "updatedAt"
 		FROM promotion
-		WHERE active = true
+		WHERE type = 'promotion'
+		  AND active = true
 		  AND (starts_at IS NULL OR starts_at <= now())
-		  AND (ends_at IS NULL OR ends_at >= now())
+		  AND (ends_at IS NULL OR ends_at > now())
 		ORDER BY created_at DESC
 		LIMIT ${limit}
 	`);
