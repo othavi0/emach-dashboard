@@ -12,7 +12,7 @@ import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { UsersCardGrid } from "./_components/users-card-grid";
 import { UsersFilters } from "./_components/users-filters";
 import { UsersPendingCard } from "./_components/users-pending-card";
-import { fetchPendingUsersAction, fetchUserActivityFeedPage } from "./actions";
+import { fetchUserActivityFeedPage } from "./actions";
 import {
 	fetchPendingUsersPage,
 	fetchUsersPage,

@@ -516,7 +516,7 @@ export async function fetchPendingUsersAction(
 }
 
 export async function fetchUserActivityFeedPage(
-	cursor: string
+	_cursor: string
 ): Promise<
 	import("@/lib/infinite").InfiniteResult<
 		import("@/components/activity-feed").ActivityEvent

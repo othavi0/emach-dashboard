@@ -7,7 +7,7 @@ import {
 } from "@emach/db/schema/auth";
 import { branch, userBranch } from "@emach/db/schema/inventory";
 import { userActivityLog } from "@emach/db/schema/user-activity";
-import { and, desc, eq, gt, ilike, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, ilike, lte, or, type SQL, sql } from "drizzle-orm";
 
 import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
@@ -76,7 +76,7 @@ export async function fetchUsersPage(
 		? decodeCursorAs(filters.cursor, "newest")
 		: null;
 
-	const whereParts = [];
+	const whereParts: SQL[] = [];
 	if (filters.status) {
 		whereParts.push(eq(userTable.status, filters.status));
 	}
@@ -84,12 +84,13 @@ export async function fetchUsersPage(
 		whereParts.push(eq(userTable.role, filters.role));
 	}
 	if (filters.search) {
-		whereParts.push(
-			or(
-				ilike(userTable.name, `%${filters.search}%`),
-				ilike(userTable.email, `%${filters.search}%`)
-			)
+		const searchClause = or(
+			ilike(userTable.name, `%${filters.search}%`),
+			ilike(userTable.email, `%${filters.search}%`)
 		);
+		if (searchClause) {
+			whereParts.push(searchClause);
+		}
 	}
 	if (filters.branchId) {
 		whereParts.push(
