@@ -1,0 +1,81 @@
+import { Building2, Package, ShoppingCart, Users } from "lucide-react";
+import { notFound } from "next/navigation";
+import { BranchDefaultBadge } from "@/app/dashboard/branches/_components/branch-default-badge";
+import type { EntityTab } from "@/components/entity/entity-tabs";
+import { EntityTabs } from "@/components/entity/entity-tabs";
+import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import {
+	getBranchDetail,
+	getBranchDetailKpis,
+	getBranchRecentOrders,
+	getBranchTeam,
+} from "../data";
+import { BranchIdentity } from "./_components/branch-identity";
+import { OrdersTab } from "./_components/orders-tab";
+import { OverviewTab } from "./_components/overview-tab";
+import { StockTab } from "./_components/stock-tab";
+import { TeamTab } from "./_components/team-tab";
+
+interface PageProps {
+	params: Promise<{ id: string }>;
+}
+
+export default async function BranchDetailPage({ params }: PageProps) {
+	await requireCapabilityOrRedirect("branches.manage");
+
+	const { id } = await params;
+
+	const [detail, kpis, team, recentOrders] = await Promise.all([
+		getBranchDetail(id),
+		getBranchDetailKpis(id),
+		getBranchTeam(id),
+		getBranchRecentOrders(id),
+	]);
+
+	if (!detail) {
+		notFound();
+	}
+
+	const tabs: EntityTab[] = [
+		{
+			value: "overview",
+			label: "Visão geral",
+			icon: Building2,
+			content: <OverviewTab detail={detail} kpis={kpis} />,
+		},
+		{
+			value: "team",
+			label: "Equipe",
+			icon: Users,
+			badge: (
+				<span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 font-medium text-muted-foreground text-xs tabular-nums">
+					{team.length}
+				</span>
+			),
+			content: <TeamTab branchId={id} team={team} />,
+		},
+		{
+			value: "orders",
+			label: "Pedidos",
+			icon: ShoppingCart,
+			content: <OrdersTab orders={recentOrders} />,
+		},
+		{
+			value: "stock",
+			label: "Estoque",
+			icon: Package,
+			content: <StockTab branchId={id} />,
+		},
+	];
+
+	return (
+		<div className="flex flex-col gap-6 p-6">
+			<BranchIdentity
+				badges={detail.isDefault ? <BranchDefaultBadge /> : undefined}
+				detail={detail}
+			/>
+			<EntityTabs defaultValue="overview" tabs={tabs} />
+			{/* TODO Task 10: BranchEditSheet */}
+		</div>
+	);
+}

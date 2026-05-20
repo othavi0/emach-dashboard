@@ -276,6 +276,22 @@ export async function fetchBranchesTablePage({
 	return { items, nextCursor: page.nextCursor };
 }
 
+export async function linkUserToBranchAction(input: {
+	branchId: string;
+	userId: string;
+}): Promise<ActionResult> {
+	const { linkUserToBranch } = await import("../users/actions");
+	return linkUserToBranch(input);
+}
+
+export async function unlinkUserFromBranchAction(input: {
+	branchId: string;
+	userId: string;
+}): Promise<ActionResult> {
+	const { unlinkUserFromBranch } = await import("../users/actions");
+	return unlinkUserFromBranch(input);
+}
+
 export async function setDefaultBranch(
 	branchId: string
 ): Promise<ActionResult<{ id: string }>> {
