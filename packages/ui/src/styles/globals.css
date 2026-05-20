@@ -28,6 +28,10 @@
 	--accent: oklch(0.2 0.005 70);
 	--accent-foreground: oklch(0.97 0.008 85);
 
+	/* Deep surface (code/log/terminal viewers, featured callout wells) */
+	--surface-deep: oklch(0.11 0.005 70);
+	--surface-deep-foreground: oklch(0.97 0.008 85);
+
 	/* Borders & inputs (1 step apart) */
 	--border: oklch(0.36 0.008 70);
 	--input: oklch(0.42 0.01 70);
@@ -37,12 +41,12 @@
 	--secondary-foreground: oklch(0.97 0.008 85);
 
 	/* === Brand & semantic roles === */
-	/* Primary — Copper / Burnt (hue 45, oxidized, distinct from coral) */
-	--primary: oklch(0.65 0.15 45);
+	/* Primary — Anthropic coral (hue 38, literal #cc785c) */
+	--primary: oklch(0.65 0.13 38);
 	--primary-foreground: oklch(0.99 0 0);
 
-	/* Destructive — Oxide red (hue 25, distinct from primary copper) */
-	--destructive: oklch(0.55 0.2 25);
+	/* Destructive — Pure red (hue 15, 23° from primary coral) */
+	--destructive: oklch(0.55 0.2 15);
 	--destructive-foreground: oklch(0.99 0 0);
 
 	/* Warning — Mustard (hue 85, dark fg per AAA contrast) */
@@ -58,24 +62,24 @@
 	--success-foreground: oklch(0.99 0 0);
 
 	/* Ring — primary 55% alpha; ring-2 sólido */
-	--ring: oklch(0.65 0.15 45 / 0.55);
+	--ring: oklch(0.65 0.13 38 / 0.55);
 
-	/* === Charts (5 séries, anchored on copper) === */
-	--chart-1: oklch(0.65 0.15 45); /* Copper primary */
+	/* === Charts (5 séries, anchored on coral) === */
+	--chart-1: oklch(0.65 0.13 38); /* Coral primary */
 	--chart-2: oklch(0.78 0.15 85); /* Warning mustard */
 	--chart-3: oklch(0.65 0.1 200); /* Info teal */
 	--chart-4: oklch(0.62 0.13 155); /* Success jade */
-	--chart-5: oklch(0.55 0.2 25); /* Destructive oxide */
+	--chart-5: oklch(0.55 0.2 15); /* Destructive pure red */
 
 	/* === Sidebar === */
 	--sidebar: oklch(0.13 0.004 70);
 	--sidebar-foreground: oklch(0.97 0.008 85);
-	--sidebar-primary: oklch(0.65 0.15 45);
+	--sidebar-primary: oklch(0.65 0.13 38);
 	--sidebar-primary-foreground: oklch(0.99 0 0);
 	--sidebar-accent: oklch(0.2 0.005 70);
 	--sidebar-accent-foreground: oklch(0.97 0.008 85);
 	--sidebar-border: oklch(0.36 0.008 70);
-	--sidebar-ring: oklch(0.65 0.15 45 / 0.55);
+	--sidebar-ring: oklch(0.65 0.13 38 / 0.55);
 }
 
 @theme inline {
@@ -107,6 +111,8 @@
 	--color-success-foreground: var(--success-foreground);
 	--color-accent-foreground: var(--accent-foreground);
 	--color-accent: var(--accent);
+	--color-surface-deep: var(--surface-deep);
+	--color-surface-deep-foreground: var(--surface-deep-foreground);
 	--color-muted-foreground: var(--muted-foreground);
 	--color-muted: var(--muted);
 	--color-secondary-foreground: var(--secondary-foreground);

@@ -226,13 +226,13 @@ export default function DesignPage() {
 					<div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
 						<Swatch
 							className="bg-primary"
-							hex="#c2724a"
-							name="primary · copper · 45°"
+							hex="#cc785c"
+							name="primary · coral · 38°"
 						/>
 						<Swatch
 							className="bg-destructive"
-							hex="#c25240"
-							name="destructive · oxide · 25°"
+							hex="#c24a40"
+							name="destructive · red · 15°"
 						/>
 						<Swatch
 							className="bg-warning"
@@ -258,7 +258,7 @@ export default function DesignPage() {
 				</Section>
 
 				<Section
-					description="9 variants × 6 tamanhos. CTA primário = default (copper). Cada role saturada (destructive/warning/info/success) traz focus ring na própria cor."
+					description="9 variants × 6 tamanhos. CTA primário = default (coral). Cada role saturada (destructive/warning/info/success) traz focus ring na própria cor."
 					id="buttons"
 					title="Buttons"
 				>

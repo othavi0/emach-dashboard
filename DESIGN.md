@@ -1,31 +1,32 @@
-# Design System — emach dashboard (Industrial neutrals + role-based color)
+# Design System — emach dashboard (Editorial workshop, dark-only, coral + serif)
 
-> Dashboard interno emach. Dark-mode único, AAA, voz de engenheiro. Substitui a iteração anterior "Anthropic Claude inspired" — coral terracotta saiu, copper entra como brand, sistema de 6 roles distintos (primary / secondary / destructive / warning / info / success) substitui o "tudo é coral" anterior.
+> Dashboard interno emach. Dark-mode único, AAA, voz híbrida editorial-meets-workshop. Re-aproxima a paleta Anthropic (coral + Cormorant em h1/h2 + ritmo de surfaces) sem perder o dark-only nem a voz industrial. Substitui a iteração "industrial neutrals + copper" — copper hue 45 sai, coral hue 38 entra; serif ganha espaço sistêmico em h1/h2 (não mais restrito a login).
 
 ## 1. Visão & Atmosfera
 
-Dashboard emach é ferramenta de oficina, não revista editorial. Painel de controle warm-dark, tipografia funcional, cor-como-sistema — cada role tem matiz própria reconhecível à distância. Não imita Anthropic, Linear, Stripe nem Shopify. Densidade alta porque equipe interna lê tudo.
+Dashboard emach é ferramenta de oficina **com voz editorial discreta**. Painel de controle warm-dark, headlines em serif (Cormorant Garamond), corpo e UI chrome em humanist sans (Inter), cor-como-sistema — cada role tem matiz própria reconhecível à distância. A inspiração de paleta vem da Anthropic (coral + ritmo de surfaces); a inspiração de densidade e voz vem do workshop industrial.
 
 Assinatura visual:
 
-1. **Canvas warm-dark** com 5 níveis de elevação distintos (background → muted → card → border → secondary). Toda neutra tem chroma warm (oklch hue ~70).
-2. **Primary copper** `oklch(0.65 0.15 45)` — cobre oxidado, hue 45 (mais quente/vermelho que coral, distinto de qualquer terracotta de marketing). Aparece em CTA primário, focus ring, brand stamp.
-3. **6 roles cromáticos** com matizes separadas por ≥20° de hue circle: copper / mustard / oxide red / teal / jade / warm graphite. Usuário lê estado pelo rabo do olho.
-4. **Tipografia funcional.** Sans-only no UI chrome. Serif preservada para 1–2 momentos editoriais (página de login, header de relatório), nunca como assinatura sistêmica.
+1. **Canvas warm-dark** com **6 níveis de elevação** distintos (surface-deep → background → muted → card → border → input/secondary). Toda neutra tem chroma warm (oklch hue ~70).
+2. **Primary coral** `oklch(0.65 0.13 38)` ≈ `#cc785c` — coral Anthropic literal, hue 38, levemente rosado, distinto de copper queimado. Aparece em CTA primário, focus ring, brand stamp.
+3. **6 roles cromáticos** com matizes separadas por ≥20° de hue circle: coral / mustard / pure red / teal / jade / warm graphite. Estado se lê pelo rabo do olho.
+4. **Tipografia editorial-funcional.** Serif (Cormorant Garamond weight 400, tracking-tight) em h1 + h2 de todas as páginas — é a voz do dashboard, não mais exceção. Sans (Inter) em h3, body, UI chrome, sidebar.
 5. **AAA + reduced motion** não-negociável. Contraste 7:1 em body, focus ring sólido 2px, animações respeitam `prefers-reduced-motion`.
-6. **Depth via surface contrast**, não shadow. Hairline borders + ring sutil + bg-shift fazem o trabalho de elevação.
+6. **Depth via surface contrast**, não shadow. Hairline borders + ring sutil + bg-shift fazem o trabalho de elevação. Surface-deep (`0.11`) cria "wells" para code/log/featured no meio de surfaces normais.
 
 ## 2. Paleta
 
-Tokens em `packages/ui/src/styles/globals.css`, escopados em `.dark`. Use Tailwind tokens (`bg-card`, `text-foreground`, `bg-warning`, etc.) — **nunca** hardcode hex.
+Tokens em `packages/ui/src/styles/globals.css`, escopados em `.dark`. Use Tailwind tokens (`bg-card`, `text-foreground`, `bg-warning`, `bg-surface-deep`, etc.) — **nunca** hardcode hex.
 
 ### Surfaces (escuro → claro)
 
 | Token | OKLCH | Hex aprox | Uso |
 |---|---|---|---|
+| `--surface-deep` | `0.11 0.005 70` | `#141210` | "Well" para code blocks, terminal/log viewers, hero de empty state, featured-card-dark |
 | `--sidebar` | `0.13 0.004 70` | `#171612` | Sidebar — mais escuro que background |
 | `--background` | `0.16 0.005 70` | `#1d1b18` | Page floor |
-| `--muted` | `0.18 0.004 70` | `#221f1c` | Inset: tracks slider, skeletons, code, tab list bg |
+| `--muted` | `0.18 0.004 70` | `#221f1c` | Inset: tracks slider, skeletons, code inline, tab list bg |
 | `--card` / `--popover` / `--accent` | `0.20 0.005 70` | `#262320` | Cards, popovers, dialogs — surface elevated |
 | `--border` | `0.36 0.008 70` | `#4a4641` | Hairline visível sobre background e card — degrau elevação |
 | `--input` | `0.42 0.010 70` | `#57524c` | Borda inputs/selects/textareas — 1 degrau acima do border (affordance) |
@@ -35,14 +36,14 @@ Tokens em `packages/ui/src/styles/globals.css`, escopados em `.dark`. Use Tailwi
 
 | Role | Token | OKLCH | Hex | FG | Uso |
 |---|---|---|---|---|---|
-| **Primary (copper)** | `--primary` | `0.65 0.15 45` | `#c2724a` | `#fefefe` | CTA primário, focus ring, brand stamp, chart-1 |
+| **Primary (coral)** | `--primary` | `0.65 0.13 38` | `#cc785c` | `#fefefe` | CTA primário, focus ring, brand stamp, chart-1, callout-card-coral |
 | **Secondary** | `--secondary` | `0.42 0.020 70` | `#5c554d` | `#faf9f5` | Ações neutras, badges sem destaque |
-| **Destructive (oxide red)** | `--destructive` | `0.55 0.20 25` | `#c25240` | `#fefefe` | Erro, cancelado, deletar, falha de validação |
+| **Destructive (pure red)** | `--destructive` | `0.55 0.20 15` | `#c24a40` | `#fefefe` | Erro, cancelado, deletar, falha de validação |
 | **Warning (mustard)** | `--warning` | `0.78 0.15 85` | `#cfa845` | `#1d1b18` | Estoque mínimo, ação reversível precisa atenção, deadline próximo |
 | **Info (teal)** | `--info` | `0.65 0.10 200` | `#5da8ac` | `#1d1b18` | Notificação neutra, link secundário, status "em processamento" |
 | **Success (jade)** | `--success` | `0.62 0.13 155` | `#3fa580` | `#fefefe` | Confirmação, status "entregue/pago", saldo positivo |
 
-**Distinção de hue:** primary 45 → destructive 25 → warning 85 → info 200 → success 155 → secondary 70. Mínimo 20° entre matizes vizinhas no círculo cromático. Diferente do sistema anterior onde primary e destructive fundiam (38 vs 22).
+**Distinção de hue:** primary 38 → destructive 15 → warning 85 → info 200 → success 155 → secondary 70. Mínimo 20° entre matizes vizinhas no círculo cromático. Coral (38) vs destructive (15) tem 23° — preservado mesmo com hue do primary descendo.
 
 ### Foreground
 
@@ -53,7 +54,7 @@ Tokens em `packages/ui/src/styles/globals.css`, escopados em `.dark`. Use Tailwi
 
 ### Charts (5 séries)
 
-`--chart-1` copper · `--chart-2` mustard · `--chart-3` teal · `--chart-4` jade · `--chart-5` oxide red. Cada série tem matiz própria — distintas mesmo em escala de cinza (luminância separada por ≥0.06).
+`--chart-1` coral · `--chart-2` mustard · `--chart-3` teal · `--chart-4` jade · `--chart-5` pure red. Cada série tem matiz própria — distintas mesmo em escala de cinza (luminância separada por ≥0.06).
 
 ### Ring
 
@@ -63,21 +64,21 @@ Tokens em `packages/ui/src/styles/globals.css`, escopados em `.dark`. Use Tailwi
 
 Carregada via `next/font/google` em `apps/web/src/app/layout.tsx`:
 
-- **Sans (UI chrome, headlines, body):** Inter variable. Token `font-sans`, var `--font-sans-loaded`.
-- **Serif (uso restrito, momentos editoriais):** Cormorant Garamond. Token `font-serif`, var `--font-serif-loaded`. **NÃO é mais a personalidade do dashboard** — sai de h1/h2 default. Usar só em login hero, capa de relatório impresso, página de design system. Nunca no chrome do dashboard.
+- **Sans (body, UI chrome, h3+, sidebar):** Inter variable. Token `font-sans`, var `--font-sans-loaded`.
+- **Serif (h1 + h2 de todas as páginas, login hero, capa de relatório):** Cormorant Garamond. Token `font-serif`, var `--font-serif-loaded`. **É a voz do dashboard** — não mais momento isolado. Substituto open-source do Copernicus/Tiempos Headline da Anthropic.
 - **Mono (código):** stack do sistema. Token `font-mono`.
 
 ### Hierarquia funcional
 
-Contraste por **peso e case**, não família. Sans-only no chrome.
+Display e h1/h2 em **serif weight 400** com `tracking-tight` (-0.025em). Sans 400/500 em tudo abaixo. A divisão display/body é editorial:
 
 | Função | Classes Tailwind | Notas |
 |---|---|---|
-| Display (raro) | `font-sans text-3xl font-medium tracking-tight` | 30px, peso médio. Páginas de overview. |
-| h1 página | `font-sans text-2xl font-medium tracking-tight` | 24px / weight 500. Antes era serif weight 400 — sai. |
-| h2 seção | `font-sans text-lg font-medium tracking-tight` | 18px |
-| h3 sub-seção | `font-sans text-sm font-semibold uppercase tracking-wider` | 14px caps — section marker |
-| Title prominent | `font-sans text-base font-medium` | 16px — card titles em listas |
+| Display (overview, hero) | `font-serif text-4xl font-normal tracking-tight` | 36px, peso normal. Páginas de overview, login hero. |
+| h1 página | `font-serif text-3xl font-normal tracking-tight` | 30px / weight 400. Cormorant em **todas** as páginas. |
+| h2 seção | `font-serif text-xl font-normal tracking-tight` | 20px / weight 400. Cormorant em headers de seção. |
+| h3 sub-seção | `font-sans text-sm font-semibold uppercase tracking-wider` | 14px caps — section marker (sans, não serif) |
+| Title prominent | `font-sans text-base font-medium` | 16px — card titles em listas, dentro de tabelas |
 | Body padrão | `font-sans text-sm leading-relaxed` | **14px / 1.625** — UI chrome, baseline do dashboard |
 | Body alternativo | `font-sans text-base leading-relaxed` | 16px — páginas de leitura intensa (descrição de ferramenta) |
 | Caption | `font-sans text-xs text-muted-foreground` | 12px — metadata, helpers, footers de tabela |
@@ -86,10 +87,10 @@ Contraste por **peso e case**, não família. Sans-only no chrome.
 
 ### Princípios
 
-- **Contraste vem de peso e case, não de família.** `font-medium` (500) é o piso pra title/h1/h2. `uppercase tracking-wider` faz section markers.
+- **Serif = voz editorial em h1/h2.** Weight 400 + tracking-tight é o piso; nunca bold (700+). Cormorant 700 lê como bombástico — Anthropic mantém em 400.
+- **Sans em todo o resto.** Body, h3, controls, sidebar, tabelas, forms, cards: Inter 400/500. Contraste por peso (`font-medium` 500 em titles).
 - **Body em 14px (`text-sm`)** baseline. AAA exige 7:1 — `--foreground` sobre `--background` cumpre.
 - **Line-height generosa** (`leading-relaxed` 1.625). Sessão longa, equipe lê muito.
-- **Serif só onde voz editorial faz sentido** (login, capa relatório). Não em chrome.
 - **Nunca text-xs em body principal** — fica denso demais mesmo pra equipe interna.
 
 ## 4. Componentes
@@ -102,7 +103,7 @@ Contraste por **peso e case**, não família. Sans-only no chrome.
 
 | Variant | Uso |
 |---|---|
-| `default` | CTA primário (copper) — máximo 1 por surface |
+| `default` | CTA primário (coral) — máximo 1 por surface |
 | `secondary` | Ação neutra, opção paralela |
 | `outline` | Ação terciária com borda visível |
 | `ghost` | Ação inline, baixa hierarquia |
@@ -137,7 +138,7 @@ Implementação canônica: `apps/web/src/app/dashboard/promotions/_components/pr
 
 `packages/ui/src/components/badge.tsx`. Mesmo conjunto de variants do Button — `default / secondary / destructive / warning / info / success / outline / ghost / link`. Use a role apropriada ao estado:
 
-- `default` (copper) — destaque positivo / "Novo" / brand stamp
+- `default` (coral) — destaque positivo / "Novo" / brand stamp
 - `secondary` — status neutro / contagem / "Rascunho"
 - `destructive` — "Cancelado" / "Erro de cadastro"
 - `warning` — "Estoque baixo" / "Vence em 3d"
@@ -153,9 +154,9 @@ Implementação canônica: `apps/web/src/app/dashboard/promotions/_components/pr
 
 - `Input` / `Textarea` / `Select` / `Combobox` / `Field`:
   - **Default:** `bg-transparent` + `border-input` (`#57524c`) — hairline forte sobre card e background.
-  - **Focus:** border flipa pra `border-ring` + `ring-2 ring-ring` (copper 55%). 2px sólido.
+  - **Focus:** border flipa pra `border-ring` + `ring-2 ring-ring` (coral 55%). 2px sólido.
   - **Invalid:** `border-destructive` + `ring-1 ring-destructive/20`.
-- `Checkbox` / `RadioGroup` / `Switch`: bg copper quando checked.
+- `Checkbox` / `RadioGroup` / `Switch`: bg coral quando checked.
 
 ### Cards & Containers
 
@@ -163,15 +164,59 @@ Implementação canônica: `apps/web/src/app/dashboard/promotions/_components/pr
 - `Dialog` / `Popover`: mesma elevação que Card, portal `z-50`.
 - Sidebar: `bg-sidebar` (#171612) — mais escuro que background.
 
+### Callout coral (`callout-card-coral`)
+
+Full-bleed coral card para CTA grande, empty state de módulo vazio (ex: "Nenhuma ferramenta cadastrada"), ou banner de onboarding crítico. Pattern portado do "callout-card-coral" da Anthropic.
+
+```tsx
+<div className="rounded-lg bg-primary p-12 text-primary-foreground">
+  <h2 className="font-serif text-3xl font-normal tracking-tight">Comece criando sua primeira ferramenta</h2>
+  <p className="mt-3 text-base">…</p>
+  <Button asChild className="mt-6 bg-card text-foreground hover:bg-card/80">
+    <Link href="/dashboard/tools/new">Nova ferramenta</Link>
+  </Button>
+</div>
+```
+
+Regras:
+- **Máximo 1 por página.** Coral é voltagem — não pode virar ruído.
+- **Nunca em listagem densa.** Empty state, onboarding, banner crítico — só.
+- CTA interna inverte para `bg-card text-foreground` (botão claro sobre coral).
+
+### Featured card (`featured-card-dark`)
+
+Para destacar item recomendado em grid/lista (template de pedido sugerido, ferramenta featured, plano recomendado em comparação). Bg `bg-surface-deep` + `ring-2 ring-primary` cria inversão visual no meio de cards `bg-card` regulares.
+
+```tsx
+<div className="rounded-lg bg-surface-deep ring-2 ring-primary p-8">
+  <h3 className="font-sans text-base font-medium">Recomendado</h3>
+  …
+</div>
+```
+
+### Code block / log viewer
+
+Container de código, JSON debug, log de webhook, terminal output:
+
+```tsx
+<pre className="rounded-md bg-surface-deep p-4 font-mono text-xs leading-relaxed overflow-x-auto">
+  {payload}
+</pre>
+```
+
+Surface-deep cria o "well" — sem necessidade de border adicional. Scroll horizontal preservado (sem wrap).
+
 ### Não use
 
 - `<img>` nu — sempre `next/image` (CLAUDE.md P1).
 - Cool blue-grays no chrome. Teal só em info-role e charts.
 - `text-xs` no body principal.
 - Drop shadows pesados. Depth = surface contrast + ring.
-- `font-serif` em chrome do dashboard — só momentos editoriais discretos.
-- Bold weight (700+) onde `font-medium` (500) já contrasta — vira ruído.
+- `font-serif` em h3, body, controls, sidebar — restrito a h1/h2.
+- Bold weight (700+) em serif — Cormorant 700 fica bombástico. Weight 400 é o piso e o teto.
 - Emojis decorativos.
+- `bg-surface-deep` como surface padrão de card. Só code/log/featured.
+- `callout-card-coral` em mais de 1 por página ou em listagem densa.
 
 ## 5. Layout
 
@@ -200,8 +245,8 @@ Densidade > respiro. Não use `py-24+` em dashboard — esse espaçamento é mar
 | Token | Px | Componentes |
 |---|---|---|
 | `rounded-sm` | 6 | Checkbox, Kbd, Skeleton |
-| `rounded-md` | 8 | Button, Input, Textarea, Select, Tooltip, Item, Badge, DropdownMenu items, Tabs, Toggle, Combobox, Field, InputGroup, InputOTP, Sidebar items, form sections |
-| `rounded-lg` | 12 | Card, Dialog, AlertDialog, Alert, Popover, HoverCard, Command, Drawer, Empty |
+| `rounded-md` | 8 | Button, Input, Textarea, Select, Tooltip, Item, Badge, DropdownMenu items, Tabs, Toggle, Combobox, Field, InputGroup, InputOTP, Sidebar items, form sections, code blocks |
+| `rounded-lg` | 12 | Card, Dialog, AlertDialog, Alert, Popover, HoverCard, Command, Drawer, Empty, callout-card-coral, featured-card-dark |
 | `rounded-xl` | 16 | Hero containers (raro) |
 | `rounded-full` | ∞ | Slider track/thumb, Progress, ScrollArea, avatares, pill badges |
 
@@ -211,13 +256,14 @@ Exceção: `Calendar` mantém `rounded-none` em `range_middle` — semântica de
 
 | Nível | Tratamento | Uso |
 |---|---|---|
+| Deep | `bg-surface-deep` (`0.11`) | Code/log/terminal containers, featured-card-dark |
 | Flat | sem shadow, sem border | Sections, page floor, top nav |
 | Hairline | `border-border` (1px) | Inputs, divisores, table rows |
 | Ring | `ring-1 ring-foreground/10` | Cards, popovers, dialogs |
 | Surface | `bg-card` sobre `bg-background` | Cards, panels |
 | Drop shadow | `shadow-md` | Apenas overlays portados (Dropdown, Tooltip, Select content) |
 
-Filosofia: depth via contraste de surface, não shadow. Flat-first. Sombras só em overlays, sutis.
+Filosofia: depth via contraste de surface, não shadow. Flat-first com surface-deep como "well" pontual. Sombras só em overlays, sutis.
 
 ## 7. Acessibilidade
 
@@ -228,6 +274,7 @@ WCAG **AAA** target. Não-negociável para equipe interna em sessão longa.
 - Body text sobre background: 7:1 (AAA normal text). `--foreground` (`oklch 0.97 ...`) sobre `--background` (`0.16 ...`) cumpre.
 - Texto sobre roles saturadas (button primary etc): 4.5:1 (AAA large text). `--*-foreground` calibrados em OKLCH para garantir contraste.
 - UI controls (border de input, ícones): 3:1 (AAA non-text). `--input` (`0.42`) sobre `--card` (`0.20`) cumpre.
+- Texto sobre surface-deep (`0.11`): contraste ainda maior que sobre background — AAA preservado.
 
 ### Focus
 
@@ -251,27 +298,34 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 - **Vocabulário do domínio.** Variante, voltagem, filial, SKU, atributo, movimento de estoque. Sempre exato.
 - **Sem soft language AI.** Não "talvez", "parece", "você poderia". Use imperativo ou afirmação.
 - **pt-BR técnico.** Concorda com PRODUCT.md: equipe é engenheiro, não cliente.
+- **Headlines podem ter peso editorial.** Cormorant em h1/h2 permite frases mais consideradas — "Catálogo de ferramentas" lê bem; "Suas ferramentas" lê melhor. Editorial não significa floreio.
 
 ## 9. Do's & Don'ts
 
 ### Do
 
-- Use tokens (`bg-card`, `text-foreground`, `bg-warning`) — nunca hex literal.
-- Copper (`bg-primary`) só em CTAs primários, focus rings, brand stamp, chart-1. Reservado.
+- Use tokens (`bg-card`, `text-foreground`, `bg-warning`, `bg-surface-deep`) — nunca hex literal.
+- Coral (`bg-primary`) em CTAs primários, focus rings, brand stamp, chart-1, **e** callout-card-coral. Reservado pra esses usos.
 - Cada role com matiz própria. Status reconhecível à distância.
 - Body sans `text-sm leading-relaxed` (14px / 1.625) por padrão.
-- `font-medium` (500) como peso de h1/h2/title. Contraste por peso, não família.
+- **Cormorant em h1 + h2 de todas as páginas.** Weight 400 + tracking-tight. É a voz.
+- `font-medium` (500) como peso de titles/h3/labels. Contraste por peso, não família, abaixo de h2.
 - Inputs em `border-input` (`#57524c`) — borda mais forte que `border-border`.
 - Focus ring 2px sólido na cor da role da ação.
+- Surface-deep (`bg-surface-deep`) em code blocks, log viewers, featured cards.
 - Respeite `prefers-reduced-motion`.
 - Status sempre = ícone + label + cor (color blindness safe).
 
 ### Don't
 
 - Não introduza cool blue-grays. Toda neutra tem chroma warm (oklch hue 70).
-- Não use coral terracotta — saiu junto com o sistema anterior.
-- Não use serif Cormorant em h1/h2 do chrome do dashboard.
-- Não pinte coisas de copper aleatoriamente. Restrinja a CTA + focus + brand.
+- Não use copper hue 45 — saiu junto com a iteração industrial.
+- Não use `font-serif` em h3, body, controls, sidebar, dentro de tabelas — só h1/h2.
+- Não use serif weight 700 — Cormorant é 400 fim. Sans aceita 500 e raramente 600.
+- Não pinte coisas de coral aleatoriamente. Restrinja a CTA + focus + brand + callout-card.
+- Não use mais de 1 callout-card-coral por página.
+- Não use callout-card-coral em listagem densa.
+- Não use `bg-surface-deep` como bg de card regular — só code/log/featured.
 - Não fundamente status só em cor — sempre ícone + label.
 - Não use `--border` e `--input` como sinônimos — input é 1 degrau mais forte.
 - Não escreva copy "AI assistente prestativo". Equipe quer ferramenta.
@@ -282,26 +336,25 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 
 ## 10. Histórico de migrações
 
-Mudanças sistêmicas consolidadas:
+Mudanças sistêmicas consolidadas, mais recente primeiro:
 
-- **Saída do Anthropic Claude inspired** (iteração anterior): coral terracotta + Cormorant editorial gigante + tom helpful AI. Substituído por industrial neutrals + copper + tipografia funcional.
+- **Re-aproximação Anthropic (2026-05-20)** — coral hue 38 (de copper 45), chroma 0.13 (de 0.15) — agora `oklch(0.65 0.13 38)` ≈ `#cc785c` literal Anthropic. Destructive hue 15 (de 25) — `oklch(0.55 0.20 15)` para preservar 23° de separação do novo primary. **Cormorant Garamond liberada para h1 + h2 de todas as páginas** (era restrita a login + capa de relatório). Adicionado token `--surface-deep` (`oklch(0.11 0.005 70)`) para code/log/featured wells. Documentados componentes `callout-card-coral` e `featured-card-dark`. Mantém dark-only e voz workshop.
+- **Saída do Anthropic Claude inspired** (iteração intermediária, revertida parcialmente acima): coral terracotta + Cormorant editorial gigante + tom helpful AI saíram em favor de industrial neutrals + copper + tipografia funcional. Esta iteração revertia em excesso e foi parcialmente desfeita acima.
 - **6 roles cromáticos distintos** (`primary / secondary / destructive / warning / info / success`), cada com `--*` + `--*-foreground` em globals.css, mapeados em `@theme inline` como `--color-*` tailwind tokens. Adicionados `warning / info / success` em `Button`, `Badge`, `Alert` variants.
-- **Primary copper** `oklch(0.65 0.15 45)` substitui `oklch(0.62 0.12 38)` (coral). Hue 45 distinto de qualquer terracotta de marketing.
-- **Destructive oxide red** `oklch(0.55 0.20 25)` (era `0.56 0.17 22` — coral colision). Distinção 20° de hue do primary garantida.
-- **Surfaces afastadas:** `--background` `0.16` / `--muted` `0.18` / `--card` `0.20` / `--border` `0.36` / `--input` `0.42` / `--secondary` `0.42`. 5 níveis distintos com diff ≥0.02 luminância.
-- **Tokens `--border` e `--input` separados** (`0.36` vs `0.42`) — mantido do sistema anterior.
+- **Surfaces afastadas:** `--surface-deep` `0.11` (novo) / `--background` `0.16` / `--muted` `0.18` / `--card` `0.20` / `--border` `0.36` / `--input` `0.42` / `--secondary` `0.42`. 6 níveis distintos com diff ≥0.02 luminância.
+- **Tokens `--border` e `--input` separados** (`0.36` vs `0.42`) — mantido.
 - **Ring 2px sólido em primary 55%** (era 40%) — focus tem peso visual real em dark mode.
 - **`prefers-reduced-motion: reduce`** zera animations/transitions globalmente — AAA requirement.
-- **Cantos arredondados** mantidos do sistema anterior (rounded-md interactive, rounded-lg surfaces, etc).
+- **Cantos arredondados** mantidos (rounded-md interactive, rounded-lg surfaces, etc).
 - **Body type** `text-sm` (14px) baseline — mantido.
 
 ## 11. Referência rápida
 
 | Pergunta | Resposta |
 |---|---|
-| Qual a cor de marca? | Copper `oklch(0.65 0.15 45)` (`--primary`) |
-| Qual a fonte default? | Inter sans. Serif só em momentos editoriais (login, relatório). |
-| Como faço destaque sem copper? | `bg-secondary` ou `bg-card` + `border-border` |
+| Qual a cor de marca? | Coral `oklch(0.65 0.13 38)` ≈ `#cc785c` (`--primary`) |
+| Qual a fonte default? | Inter sans em body/UI. Cormorant Garamond serif em h1 + h2 de **todas** as páginas. |
+| Como faço destaque sem coral? | `bg-secondary` ou `bg-card` + `border-border` |
 | Como sinalizo "estoque mínimo"? | `bg-warning` + ícone + label "Estoque mínimo" |
 | Como sinalizo "pedido entregue"? | `bg-success` + ícone check + label |
 | Como sinalizo "em processamento"? | `bg-info` + ícone clock + label |
@@ -310,10 +363,14 @@ Mudanças sistêmicas consolidadas:
 | Como faço focus state? | `focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring` |
 | Qual radius pra card novo? | `rounded-lg` (12px). Botões/inputs `rounded-md` (8px). |
 | Qual o contraste mínimo? | AAA: 7:1 body, 4.5:1 large text, 3:1 non-text UI. |
+| Onde uso `bg-surface-deep`? | Code blocks, log/terminal viewers, featured-card-dark. **Não** em card normal. |
+| Quando uso `callout-card-coral`? | Empty state de módulo vazio, onboarding, banner crítico. Máx 1 por página. |
+| Cormorant em h3? | **Não.** Só h1 + h2. Resto é sans. |
 
 ## 12. Origem
 
-- Filosofia visual e tokens: este documento (industrial neutrals, role-based color, AAA dark).
+- Filosofia visual e tokens: este documento (editorial-workshop dark, coral + serif h1/h2, AAA).
+- Inspiração de paleta + tipografia: anthropic.com (canvas cream + coral + serif), adaptada para dark-only.
 - Implementação canônica: `packages/ui/src/styles/globals.css` + componentes em `packages/ui/src/components/*`.
 - Showcase: `apps/web/src/app/design/page.tsx` (sistema completo) + `/design/preview` (comparação histórica de paletas).
 - Strategic context: `PRODUCT.md` (register product / personality confiante-técnico-denso / anti-references).
