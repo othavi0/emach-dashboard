@@ -167,8 +167,10 @@ Implementação canônica: `apps/web/src/app/dashboard/promotions/_components/pr
 
 | Variant | Aparência | Uso |
 |---|---|---|
-| `default` (padrão) | Pill group em `bg-accent`, indicador é a aba ativa em `bg-background` | Filtros primários, segmentação principal (ex: "Ativos / Pendentes / Suspensos") |
-| `line` | Underline `after:bg-foreground` na aba ativa, sem fundo | Sub-navegação dentro de página de detalhe (ex: tabs em customer-tabs perfil/endereços/pedidos) |
+| `default` (padrão) | Pill group em `bg-muted` com `ring-1 ring-border/60` (track visível mesmo dentro de card). Aba ativa em `bg-primary` coral sólido com `text-primary-foreground` | Filtros primários, segmentação principal (ex: "Ativos / Pendentes / Suspensos") |
+| `line` | `border-b border-border` na lista (a linha base). Aba ativa em `text-primary` coral com underline `after:bg-primary` 2px | Sub-navegação dentro de página de detalhe (ex: tabs em customer-tabs perfil/endereços/pedidos) |
+
+Aba ativa sempre carrega coral (primary). Estado inativo em `text-muted-foreground`, hover sobe pra `text-foreground` (mantém neutro até o user comprometer com a aba).
 
 **Orientations:** `horizontal` (default) e `vertical` (passe `orientation="vertical"` no `<Tabs>`).
 
