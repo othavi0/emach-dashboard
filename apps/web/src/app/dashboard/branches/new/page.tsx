@@ -7,7 +7,9 @@ export default async function NewBranchPage() {
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-medium text-2xl tracking-tight">Nova filial</h1>
+				<h1 className="font-normal font-serif text-3xl tracking-tight">
+					Nova filial
+				</h1>
 				<p className="text-muted-foreground text-sm">
 					Cadastre uma filial para permitir ajustes de estoque por localização.
 				</p>

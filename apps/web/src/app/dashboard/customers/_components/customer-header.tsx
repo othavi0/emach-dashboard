@@ -68,7 +68,9 @@ export function CustomerHeader({
 				</Avatar>
 
 				<div className="flex flex-col gap-1.5">
-					<h1 className="font-medium text-xl leading-tight">{customer.name}</h1>
+					<h1 className="font-normal font-serif text-2xl leading-tight tracking-tight">
+						{customer.name}
+					</h1>
 					<p className="text-muted-foreground text-sm">{customer.email}</p>
 					<p className="text-muted-foreground text-xs">
 						Cadastrado em{" "}
