@@ -1,6 +1,8 @@
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCell,
 	TableHead,
@@ -31,7 +33,7 @@ export function ReviewQueueTable({ reviews }: { reviews: ReviewListItem[] }) {
 					<TableHead>Avaliação</TableHead>
 					<TableHead>Status</TableHead>
 					<TableHead>Data</TableHead>
-					<TableHead className="w-28 text-right">Ação</TableHead>
+					<TableActionsHead>Ação</TableActionsHead>
 				</TableRow>
 			</TableHeader>
 			<TableBody>
@@ -73,7 +75,7 @@ export function ReviewQueueTable({ reviews }: { reviews: ReviewListItem[] }) {
 						<TableCell className="text-muted-foreground text-sm">
 							{DATE_FORMATTER.format(review.createdAt)}
 						</TableCell>
-						<TableCell className="text-right">
+						<TableActionsCell>
 							<Link
 								aria-label={`Revisar avaliação de ${review.toolName}`}
 								className={buttonVariants({
@@ -84,7 +86,7 @@ export function ReviewQueueTable({ reviews }: { reviews: ReviewListItem[] }) {
 							>
 								<Eye aria-hidden className="size-3.5" />
 							</Link>
-						</TableCell>
+						</TableActionsCell>
 					</TableRow>
 				))}
 			</TableBody>

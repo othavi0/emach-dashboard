@@ -4,6 +4,8 @@ import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCell,
 	TableHead,
@@ -46,7 +48,7 @@ export function BranchesTable({ branches, canMutate }: BranchesTableProps) {
 					<TableHead>Nome</TableHead>
 					<TableHead>Endereço</TableHead>
 					<TableHead className="w-32">Criado em</TableHead>
-					<TableHead className="w-56 text-right">Ações</TableHead>
+					<TableActionsHead />
 				</TableRow>
 			</TableHeader>
 			<TableBody>
@@ -66,35 +68,33 @@ export function BranchesTable({ branches, canMutate }: BranchesTableProps) {
 						<TableCell className="text-muted-foreground text-sm">
 							{formatDate(b.createdAt)}
 						</TableCell>
-						<TableCell className="text-right">
-							<div className="flex justify-end gap-2">
-								<Link
-									aria-label={`Gerenciar estoque de ${b.name}`}
-									className={buttonVariants({
-										size: "icon-sm",
-										variant: "secondary",
-									})}
-									href={`/dashboard/branches/${b.id}/stock`}
-								>
-									<Boxes aria-hidden className="size-3.5" />
-								</Link>
-								{canMutate && (
-									<>
-										<Link
-											aria-label={`Editar filial ${b.name}`}
-											className={buttonVariants({
-												size: "icon-sm",
-												variant: "secondary",
-											})}
-											href={`/dashboard/branches/${b.id}/edit`}
-										>
-											<Pencil aria-hidden className="size-3.5" />
-										</Link>
-										<DeleteBranchDialog branchId={b.id} branchName={b.name} />
-									</>
-								)}
-							</div>
-						</TableCell>
+						<TableActionsCell>
+							<Link
+								aria-label={`Gerenciar estoque de ${b.name}`}
+								className={buttonVariants({
+									size: "icon-sm",
+									variant: "secondary",
+								})}
+								href={`/dashboard/branches/${b.id}/stock`}
+							>
+								<Boxes aria-hidden className="size-3.5" />
+							</Link>
+							{canMutate && (
+								<>
+									<Link
+										aria-label={`Editar filial ${b.name}`}
+										className={buttonVariants({
+											size: "icon-sm",
+											variant: "secondary",
+										})}
+										href={`/dashboard/branches/${b.id}/edit`}
+									>
+										<Pencil aria-hidden className="size-3.5" />
+									</Link>
+									<DeleteBranchDialog branchId={b.id} branchName={b.name} />
+								</>
+							)}
+						</TableActionsCell>
 					</TableRow>
 				))}
 			</TableBody>

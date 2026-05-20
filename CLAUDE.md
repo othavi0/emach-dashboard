@@ -172,23 +172,24 @@ Duas instâncias **completamente isoladas** Better Auth, mesmo banco Supabase, e
 
 ## Design system — `DESIGN.md`
 
-Sistema **Industrial neutrals + role-based color** — dark-mode único, AAA. Toda decisão de UI passa pelo doc canônico.
+Sistema **Editorial workshop — coral + serif + dark-only** — dark-mode único, AAA. Toda decisão de UI passa pelo doc canônico.
 
 **Paleta crítica (memorize ou consulte sempre):**
 
-- Brand CTA (primary copper): `oklch(0.65 0.15 45)` ≈ `#c2724a`
+- Brand CTA (primary coral, Anthropic literal): `oklch(0.65 0.13 38)` ≈ `#cc785c`
 - Page background: `oklch(0.16 0.005 70)` ≈ `#1d1b18` (warm-dark)
 - Card surface: `oklch(0.20 0.005 70)` ≈ `#262320`
+- Surface deep (code/log/featured): `oklch(0.11 0.005 70)` ≈ `#141210`
 - Sidebar: `oklch(0.13 0.004 70)` ≈ `#171612` (mais escuro que background)
 - Foreground primário: `oklch(0.97 0.008 85)` (texto claro on-dark)
 - Border hairline: `oklch(0.36 0.008 70)` ≈ `#4a4641`
 - Input border (1 degrau acima): `oklch(0.42 0.010 70)` ≈ `#57524c`
 
-**Roles cromáticas (6 distintas, separação ≥20° de hue):** primary copper (45), destructive oxide red (25), warning mustard (85), info teal (200), success jade (155), secondary warm graphite (70).
+**Roles cromáticas (6 distintas, separação ≥20° de hue):** primary coral (38), destructive pure red (15), warning mustard (85), info teal (200), success jade (155), secondary warm graphite (70).
 
-**Não:** cool blue-grays, light mode, `font-serif` em chrome do dashboard, ring 1px ou opacity multiplicada, drop shadows pesados, `<img>` puro, sharp corners <6px, status baseado só em cor (sempre ícone + label + cor), bold weight (700+) onde `font-medium` (500) já contrasta.
+**Não:** cool blue-grays, light mode, copper hue 45, `font-serif` em h3/body/controls/sidebar, focus ring sem offset (`ring-1` puro), drop shadows pesados, `<img>` puro, sharp corners <6px, status baseado só em cor (sempre ícone + label + cor), bold weight (600+) em serif, `bg-surface-deep` como surface padrão de card.
 
-**Sim:** Inter sans em chrome (peso 500 default para h1/h2/title), Cormorant Garamond restrito a login hero + capa de relatório, ring 2px sólido na cor da role da ação, depth via surface contrast (não shadow), `<Image>` do Next, `prefers-reduced-motion: reduce` respeitado.
+**Sim:** Cormorant Garamond serif (weight **500**, tracking-tight) em **h1 + h2 de todas as páginas** (display text-5xl / h1 text-4xl / h2 text-2xl), Inter sans no resto (body, h3, controls, sidebar, tabelas), focus = `ring-1 ring-ring ring-offset-1 ring-offset-transparent` (hairline single line com halo herdando surface de baixo, sem border flip), depth via surface contrast (não shadow), `bg-surface-deep` em code/log/featured cards, section bands (`bg-muted/50` border-y) em data zones, `<Image>` do Next, `prefers-reduced-motion: reduce` respeitado.
 
 Toda revisão de componente UI: **rodar a skill `web-design-guidelines` antes de aprovar**.
 
