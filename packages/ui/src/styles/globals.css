@@ -148,7 +148,7 @@
 	}
 	:focus-visible {
 		outline: 1px solid var(--primary);
-		outline-offset: 2px;
+		outline-offset: 1px;
 	}
 
 	/* Reduced motion — kill transitions/animations quando user pediu. */

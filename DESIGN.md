@@ -58,7 +58,7 @@ Tokens em `packages/ui/src/styles/globals.css`, escopados em `.dark`. Use Tailwi
 
 ### Ring
 
-`--ring` = primary 75% alpha. Componentes aplicam **`ring-1 ring-ring ring-offset-2 ring-offset-transparent`** — hairline coral 1px afastado 2px do elemento. Single line, sem border flip (border flip + ring criava efeito duplo feio). Para AAA estrito (WCAG 2.2 SC 2.4.13), o halo de 2px transparente + ring 1px ocupa área equivalente a 2px perimeter colorido com separação do bg. SC 2.4.7 (foco visível) atendido confortavelmente.
+`--ring` = primary 75% alpha. Componentes aplicam **`ring-1 ring-ring ring-offset-1 ring-offset-transparent`** — hairline coral 1px afastado 1px do elemento. Single line, sem border flip (border flip + ring criava efeito duplo feio). Para AAA estrito (WCAG 2.2 SC 2.4.13), o halo de 2px transparente + ring 1px ocupa área equivalente a 2px perimeter colorido com separação do bg. SC 2.4.7 (foco visível) atendido confortavelmente.
 
 ## 3. Tipografia
 
@@ -302,7 +302,7 @@ WCAG **AAA** target. Não-negociável para equipe interna em sessão longa.
 
 ### Focus
 
-- **`ring-1 ring-ring ring-offset-2 ring-offset-transparent`** — hairline coral 1px com halo transparente 2px. **Sem `border-ring`** — border flip + ring criava efeito duplo (duas linhas paralelas).
+- **`ring-1 ring-ring ring-offset-1 ring-offset-transparent`** — hairline coral 1px com halo transparente 1px. **Sem `border-ring`** — border flip + ring criava efeito duplo (duas linhas paralelas).
 - Cor da ring acompanha role da ação (destructive ring em button destructive, etc) via `focus-visible:ring-destructive/40` etc.
 - `--ring` em 75% alpha pra hairline ter presença visual real.
 - `outline` fallback no `:focus-visible` global (1px sólido + offset 2px) garante visibilidade mesmo se classe Tailwind falhar.
@@ -356,14 +356,14 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 - Não escreva copy "AI assistente prestativo". Equipe quer ferramenta.
 - Não use `text-xs` em body principal.
 - Não desligue `prefers-reduced-motion` em qualquer animação.
-- Não use focus ring sem offset (`ring-1` puro lê como decoração, não como focus). Sempre `ring-offset-2 ring-offset-transparent`.
+- Não use focus ring sem offset (`ring-1` puro lê como decoração, não como focus). Sempre `ring-offset-1 ring-offset-transparent`.
 - Não use `rounded-none` em componente novo (exceto exceção semântica documentada).
 
 ## 10. Histórico de migrações
 
 Mudanças sistêmicas consolidadas, mais recente primeiro:
 
-- **Refinement /impeccable (2026-05-20)** — ring vira hairline (`ring-1 + ring-offset-2`), `--ring` alpha sobe 0.55→0.75. Tipografia: h1 sobe text-3xl→text-4xl, h2 sobe text-xl→text-2xl, weight de serif vira 500 (era 400) pra compensar thinness do Cormorant em dark; display sobe text-4xl→text-5xl. Section bands (`bg-muted/50` com border-y) documentadas pra ritmo vertical em páginas com data zone, aplicado primeiro em `dashboard/page.tsx`.
+- **Refinement /impeccable (2026-05-20)** — ring vira hairline (`ring-1 + ring-offset-1`), `--ring` alpha sobe 0.55→0.75. Tipografia: h1 sobe text-3xl→text-4xl, h2 sobe text-xl→text-2xl, weight de serif vira 500 (era 400) pra compensar thinness do Cormorant em dark; display sobe text-4xl→text-5xl. Section bands (`bg-muted/50` com border-y) documentadas pra ritmo vertical em páginas com data zone, aplicado primeiro em `dashboard/page.tsx`.
 - **Re-aproximação Anthropic (2026-05-20)** — coral hue 38 (de copper 45), chroma 0.13 (de 0.15) — agora `oklch(0.65 0.13 38)` ≈ `#cc785c` literal Anthropic. Destructive hue 15 (de 25) — `oklch(0.55 0.20 15)` para preservar 23° de separação do novo primary. **Cormorant Garamond liberada para h1 + h2 de todas as páginas** (era restrita a login + capa de relatório). Adicionado token `--surface-deep` (`oklch(0.11 0.005 70)`) para code/log/featured wells. Documentados componentes `callout-card-coral` e `featured-card-dark`. Mantém dark-only e voz workshop.
 - **Saída do Anthropic Claude inspired** (iteração intermediária, revertida parcialmente acima): coral terracotta + Cormorant editorial gigante + tom helpful AI saíram em favor de industrial neutrals + copper + tipografia funcional. Esta iteração revertia em excesso e foi parcialmente desfeita acima.
 - **6 roles cromáticos distintos** (`primary / secondary / destructive / warning / info / success`), cada com `--*` + `--*-foreground` em globals.css, mapeados em `@theme inline` como `--color-*` tailwind tokens. Adicionados `warning / info / success` em `Button`, `Badge`, `Alert` variants.
@@ -386,7 +386,7 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 | Como sinalizo "em processamento"? | `bg-info` + ícone clock + label |
 | Posso usar cool gray? | Apenas em `--info` (teal) e chart-3. Em chrome geral, não. |
 | Qual a linha base de body? | `text-sm leading-relaxed` (14px / 1.625) |
-| Como faço focus state? | `focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-transparent` (sem border flip — single hairline com halo) |
+| Como faço focus state? | `focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-transparent` (sem border flip — single hairline com halo) |
 | Qual radius pra card novo? | `rounded-lg` (12px). Botões/inputs `rounded-md` (8px). |
 | Qual o contraste mínimo? | AAA: 7:1 body, 4.5:1 large text, 3:1 non-text UI. |
 | Onde uso `bg-surface-deep`? | Code blocks, log/terminal viewers, featured-card-dark. **Não** em card normal. |
