@@ -7,14 +7,13 @@ import {
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
 import { cn } from "@emach/ui/lib/utils";
-import type { LucideIcon } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
 export interface EntityTab {
 	badge?: ReactNode;
 	content: ReactNode;
-	icon?: LucideIcon;
+	icon?: ReactNode;
 	label: ReactNode;
 	value: string;
 }
@@ -55,20 +54,17 @@ export function EntityTabs({
 			value={current}
 		>
 			<TabsList className="w-full justify-start overflow-x-auto">
-				{tabs.map((tab) => {
-					const Icon = tab.icon;
-					return (
-						<TabsTrigger
-							className="flex items-center gap-1.5"
-							key={tab.value}
-							value={tab.value}
-						>
-							{Icon ? <Icon aria-hidden className="size-3.5" /> : null}
-							{tab.label}
-							{tab.badge}
-						</TabsTrigger>
-					);
-				})}
+				{tabs.map((tab) => (
+					<TabsTrigger
+						className="flex items-center gap-1.5"
+						key={tab.value}
+						value={tab.value}
+					>
+						{tab.icon}
+						{tab.label}
+						{tab.badge}
+					</TabsTrigger>
+				))}
 			</TabsList>
 			{tabs.map((tab) => (
 				<TabsContent

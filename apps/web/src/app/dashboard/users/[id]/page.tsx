@@ -41,13 +41,13 @@ export default async function UserDetailPage({ params }: PageProps) {
 		{
 			value: "profile",
 			label: "Perfil",
-			icon: User,
+			icon: <User aria-hidden className="size-3.5" />,
 			content: <ProfileTab user={user} />,
 		},
 		{
 			value: "branches",
 			label: "Filiais",
-			icon: Briefcase,
+			icon: <Briefcase aria-hidden className="size-3.5" />,
 			content: (
 				<BranchesTab availableBranches={availableBranches} user={user} />
 			),
@@ -55,19 +55,19 @@ export default async function UserDetailPage({ params }: PageProps) {
 		{
 			value: "activity",
 			label: "Atividade",
-			icon: Activity,
+			icon: <Activity aria-hidden className="size-3.5" />,
 			content: <ActivityTab userId={user.id} />,
 		},
 		{
 			value: "sessions",
 			label: "Sessões",
-			icon: Monitor,
+			icon: <Monitor aria-hidden className="size-3.5" />,
 			content: <SessionsTab userId={user.id} />,
 		},
 		{
 			value: "security",
 			label: "Segurança",
-			icon: Lock,
+			icon: <Lock aria-hidden className="size-3.5" />,
 			content: <SecurityTab user={user} />,
 		},
 	];

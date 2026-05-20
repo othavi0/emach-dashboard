@@ -146,24 +146,47 @@ export async function updateUser(
 	}
 
 	let session = await requireCurrentSession();
-	if (parsed.data.role) {
-		session = await requireCapabilityWithContext("users.update_role", {
-			targetUserId: parsed.data.userId,
-		});
-	}
-	if (parsed.data.branchIds) {
-		session = await requireCapabilityWithContext("users.update_branches", {
-			targetUserId: parsed.data.userId,
-			targetBranchIds: parsed.data.branchIds,
-		});
-	}
-	if (parsed.data.name) {
-		session = await requireCapabilityWithContext("users.update_role", {
-			targetUserId: parsed.data.userId,
-		});
-	}
 
 	try {
+		const [current] = await db
+			.select({ role: userTable.role })
+			.from(userTable)
+			.where(eq(userTable.id, parsed.data.userId));
+		if (!current) {
+			return { ok: false, error: "Usuário não encontrado" };
+		}
+		const currentBranchIds = (
+			await db
+				.select({ branchId: userBranch.branchId })
+				.from(userBranch)
+				.where(eq(userBranch.userId, parsed.data.userId))
+		).map((r) => r.branchId);
+
+		const roleChanged =
+			parsed.data.role !== undefined && parsed.data.role !== current.role;
+		const branchesChanged =
+			parsed.data.branchIds !== undefined &&
+			(parsed.data.branchIds.length !== currentBranchIds.length ||
+				parsed.data.branchIds.some((id) => !currentBranchIds.includes(id)));
+		const nameChanged = parsed.data.name !== undefined;
+
+		if (roleChanged) {
+			session = await requireCapabilityWithContext("users.update_role", {
+				targetUserId: parsed.data.userId,
+			});
+		}
+		if (branchesChanged) {
+			session = await requireCapabilityWithContext("users.update_branches", {
+				targetUserId: parsed.data.userId,
+				targetBranchIds: parsed.data.branchIds,
+			});
+		}
+		if (nameChanged) {
+			session = await requireCapabilityWithContext("users.manage", {
+				targetUserId: parsed.data.userId,
+			});
+		}
+
 		await db.transaction(async (tx) => {
 			const update: { name?: string; role?: ApproveUserInput["role"] } = {};
 			if (parsed.data.name) {
@@ -194,7 +217,9 @@ export async function updateUser(
 		});
 	} catch (error) {
 		logger.error("updateUser falhou", error);
-		return { ok: false, error: "Não foi possível atualizar" };
+		const message =
+			error instanceof Error ? error.message : "Não foi possível atualizar";
+		return { ok: false, error: message };
 	}
 
 	const changes: Record<string, unknown> = {};
