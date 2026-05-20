@@ -21,6 +21,7 @@ import { requireCurrentSession } from "@/lib/session";
 import {
 	type ApproveUserInput,
 	approveUserSchema,
+	branchLinkSchema,
 	revokeSessionSchema,
 	triggerPasswordResetSchema,
 	type UpdateUserInput,
@@ -462,4 +463,62 @@ export async function forceLogoutAllSessions(
 	});
 	revalidatePath(`/dashboard/users/${parsed.data.userId}`);
 	return { ok: true, data: { count: deleted.length } };
+}
+
+export async function linkUserToBranch(input: unknown): Promise<ActionResult> {
+	await requireCapabilityWithContext("users.update_branches", {});
+	const actor = await requireCurrentSession();
+	const parsed = branchLinkSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: "validação" };
+	}
+
+	await db
+		.insert(userBranch)
+		.values({
+			userId: parsed.data.userId,
+			branchId: parsed.data.branchId,
+		})
+		.onConflictDoNothing();
+
+	await logUserActivity({
+		actorUserId: actor.user.id,
+		action: "user.branch_linked",
+		targetType: "user",
+		targetId: parsed.data.userId,
+		metadata: { branchId: parsed.data.branchId },
+	});
+	revalidatePath(`/dashboard/users/${parsed.data.userId}`);
+	return { ok: true, data: undefined };
+}
+
+export async function unlinkUserFromBranch(
+	input: unknown
+): Promise<ActionResult> {
+	await requireCapabilityWithContext("users.update_branches", {});
+	const actor = await requireCurrentSession();
+	const parsed = branchLinkSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: "validação" };
+	}
+
+	// TODO: guard "último admin" — não implementado intencionalmente (simétrico ao gap em updateUser)
+	await db
+		.delete(userBranch)
+		.where(
+			and(
+				eq(userBranch.userId, parsed.data.userId),
+				eq(userBranch.branchId, parsed.data.branchId)
+			)
+		);
+
+	await logUserActivity({
+		actorUserId: actor.user.id,
+		action: "user.branch_unlinked",
+		targetType: "user",
+		targetId: parsed.data.userId,
+		metadata: { branchId: parsed.data.branchId },
+	});
+	revalidatePath(`/dashboard/users/${parsed.data.userId}`);
+	return { ok: true, data: undefined };
 }

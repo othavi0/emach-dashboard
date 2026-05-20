@@ -38,3 +38,9 @@ export const revokeSessionSchema = z.object({
 	sessionId: z.string().min(1),
 });
 export type RevokeSessionInput = z.infer<typeof revokeSessionSchema>;
+
+export const branchLinkSchema = z.object({
+	userId: z.string().min(1),
+	branchId: z.string().min(1),
+});
+export type BranchLinkInput = z.infer<typeof branchLinkSchema>;
