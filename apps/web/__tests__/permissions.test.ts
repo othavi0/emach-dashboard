@@ -120,3 +120,18 @@ describe("super_admin caps", () => {
 		expect(can("user", "users.approve")).toBe(false);
 	});
 });
+
+describe("users.revoke_sessions", () => {
+	it("admin pode revogar sessões", () => {
+		expect(can("admin", "users.revoke_sessions")).toBe(true);
+	});
+	it("super_admin pode revogar sessões", () => {
+		expect(can("super_admin", "users.revoke_sessions")).toBe(true);
+	});
+	it("manager NÃO pode revogar sessões", () => {
+		expect(can("manager", "users.revoke_sessions")).toBe(false);
+	});
+	it("user NÃO pode revogar sessões", () => {
+		expect(can("user", "users.revoke_sessions")).toBe(false);
+	});
+});
