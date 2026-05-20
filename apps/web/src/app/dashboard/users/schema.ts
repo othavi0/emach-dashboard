@@ -33,3 +33,8 @@ export const triggerPasswordResetSchema = z.object({
 export type TriggerPasswordResetInput = z.infer<
 	typeof triggerPasswordResetSchema
 >;
+
+export const revokeSessionSchema = z.object({
+	sessionId: z.string().min(1),
+});
+export type RevokeSessionInput = z.infer<typeof revokeSessionSchema>;

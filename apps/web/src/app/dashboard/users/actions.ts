@@ -21,6 +21,7 @@ import { requireCurrentSession } from "@/lib/session";
 import {
 	type ApproveUserInput,
 	approveUserSchema,
+	revokeSessionSchema,
 	triggerPasswordResetSchema,
 	type UpdateUserInput,
 	updateUserSchema,
@@ -406,4 +407,59 @@ export async function deleteUser(input: {
 	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
+}
+
+export async function revokeUserSession(input: unknown): Promise<ActionResult> {
+	await requireCapabilityWithContext("users.revoke_sessions", {});
+	const actor = await requireCurrentSession();
+	const parsed = revokeSessionSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: "validação" };
+	}
+
+	const target = await db.query.session.findFirst({
+		where: eq(sessionTable.id, parsed.data.sessionId),
+	});
+	if (!target) {
+		return { ok: false, error: "Sessão não encontrada" };
+	}
+
+	await db
+		.delete(sessionTable)
+		.where(eq(sessionTable.id, parsed.data.sessionId));
+	await logUserActivity({
+		actorUserId: actor.user.id,
+		action: "user.session_revoked",
+		targetType: "user",
+		targetId: target.userId,
+		metadata: { sessionId: target.id },
+	});
+	revalidatePath(`/dashboard/users/${target.userId}`);
+	return { ok: true, data: undefined };
+}
+
+export async function forceLogoutAllSessions(
+	input: unknown
+): Promise<ActionResult<{ count: number }>> {
+	await requireCapabilityWithContext("users.revoke_sessions", {});
+	const actor = await requireCurrentSession();
+	const parsed = userIdSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: "validação" };
+	}
+
+	const deleted = await db
+		.delete(sessionTable)
+		.where(eq(sessionTable.userId, parsed.data.userId))
+		.returning({ id: sessionTable.id });
+
+	await logUserActivity({
+		actorUserId: actor.user.id,
+		action: "user.all_sessions_revoked",
+		targetType: "user",
+		targetId: parsed.data.userId,
+		metadata: { count: deleted.length },
+	});
+	revalidatePath(`/dashboard/users/${parsed.data.userId}`);
+	return { ok: true, data: { count: deleted.length } };
 }
