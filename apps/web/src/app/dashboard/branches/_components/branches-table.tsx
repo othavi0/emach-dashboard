@@ -23,7 +23,6 @@ import {
 	TriangleAlert,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
 
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { useInfiniteList } from "@/lib/use-infinite-list";
@@ -48,11 +47,8 @@ export function BranchesTable({
 }: BranchesTableProps) {
 	const router = useRouter();
 	const resetKey = JSON.stringify(filters);
-	const fetchPage = useCallback(
-		(cursor: string) => fetchBranchesTablePage({ filters, cursor }),
-		// biome-ignore lint/correctness/useExhaustiveDependencies: resetKey encapsula filters
-		[resetKey]
-	);
+	const fetchPage = (cursor: string) =>
+		fetchBranchesTablePage({ filters, cursor });
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
