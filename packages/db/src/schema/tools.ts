@@ -31,6 +31,8 @@ export const supplier = pgTable(
 		contactEmail: text("contact_email"),
 		phone: text("phone"),
 		notes: text("notes"),
+		website: text("website"),
+		cnpj: text("cnpj"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()
@@ -39,6 +41,9 @@ export const supplier = pgTable(
 	},
 	(table) => [
 		index("supplier_created_idx").on(table.createdAt.desc(), table.id.desc()),
+		uniqueIndex("supplier_cnpj_unique_when_present")
+			.on(table.cnpj)
+			.where(sql`${table.cnpj} IS NOT NULL`),
 	]
 );
 
