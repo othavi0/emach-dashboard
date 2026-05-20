@@ -36,6 +36,7 @@ export const user = pgTable("user", {
 		.defaultNow()
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
+	lastLoginAt: timestamp("last_login_at"),
 });
 
 export const session = pgTable(

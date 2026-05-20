@@ -21,6 +21,10 @@ export const branch = pgTable(
 		name: text("name").notNull(),
 		address: text("address"),
 		isDefault: boolean("is_default").notNull().default(false),
+		phone: text("phone"),
+		responsibleUserId: text("responsible_user_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()
