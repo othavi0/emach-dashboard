@@ -44,7 +44,7 @@ export async function approveUser(
 		};
 	}
 
-	await requireCapabilityWithContext("users.approve", {
+	const session = await requireCapabilityWithContext("users.approve", {
 		targetUserId: parsed.data.userId,
 		targetBranchIds: parsed.data.branchIds,
 	});
@@ -78,19 +78,27 @@ export async function approveUser(
 		return { ok: false, error: "Não foi possível aprovar" };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "user.approved",
+		targetType: "user",
+		targetId: parsed.data.userId,
+		metadata: { role: parsed.data.role, branchIds: parsed.data.branchIds },
+	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
 }
 
 export async function rejectUser(input: {
 	userId: string;
+	reason?: string;
 }): Promise<ActionResult> {
 	const parsed = userIdSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
 
-	await requireCapabilityWithContext("users.approve", {
+	const session = await requireCapabilityWithContext("users.approve", {
 		targetUserId: parsed.data.userId,
 	});
 
@@ -114,6 +122,15 @@ export async function rejectUser(input: {
 		return { ok: false, error: "Não foi possível rejeitar" };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "user.rejected",
+		targetType: "user",
+		targetId: parsed.data.userId,
+		metadata: (input as { reason?: string }).reason
+			? { reason: (input as { reason?: string }).reason }
+			: undefined,
+	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
 }
@@ -126,19 +143,20 @@ export async function updateUser(
 		return { ok: false, error: "validação" };
 	}
 
+	let session = await requireCurrentSession();
 	if (parsed.data.role) {
-		await requireCapabilityWithContext("users.update_role", {
+		session = await requireCapabilityWithContext("users.update_role", {
 			targetUserId: parsed.data.userId,
 		});
 	}
 	if (parsed.data.branchIds) {
-		await requireCapabilityWithContext("users.update_branches", {
+		session = await requireCapabilityWithContext("users.update_branches", {
 			targetUserId: parsed.data.userId,
 			targetBranchIds: parsed.data.branchIds,
 		});
 	}
 	if (parsed.data.name) {
-		await requireCapabilityWithContext("users.update_role", {
+		session = await requireCapabilityWithContext("users.update_role", {
 			targetUserId: parsed.data.userId,
 		});
 	}
@@ -177,19 +195,38 @@ export async function updateUser(
 		return { ok: false, error: "Não foi possível atualizar" };
 	}
 
+	const changes: Record<string, unknown> = {};
+	if (parsed.data.name !== undefined) {
+		changes.name = parsed.data.name;
+	}
+	if (parsed.data.role !== undefined) {
+		changes.role = parsed.data.role;
+	}
+	if (parsed.data.branchIds !== undefined) {
+		changes.branchIds = parsed.data.branchIds;
+	}
+
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "user.updated",
+		targetType: "user",
+		targetId: parsed.data.userId,
+		metadata: { changes },
+	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
 }
 
 export async function suspendUser(input: {
 	userId: string;
+	reason?: string;
 }): Promise<ActionResult> {
 	const parsed = userIdSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
 
-	await requireCapabilityWithContext("users.suspend", {
+	const session = await requireCapabilityWithContext("users.suspend", {
 		targetUserId: parsed.data.userId,
 	});
 
@@ -208,6 +245,15 @@ export async function suspendUser(input: {
 		return { ok: false, error: "Não foi possível suspender" };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "user.suspended",
+		targetType: "user",
+		targetId: parsed.data.userId,
+		metadata: (input as { reason?: string }).reason
+			? { reason: (input as { reason?: string }).reason }
+			: undefined,
+	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
 }
@@ -220,7 +266,7 @@ export async function reactivateUser(input: {
 		return { ok: false, error: "validação" };
 	}
 
-	await requireCapabilityWithContext("users.suspend", {
+	const session = await requireCapabilityWithContext("users.suspend", {
 		targetUserId: parsed.data.userId,
 	});
 
@@ -234,6 +280,12 @@ export async function reactivateUser(input: {
 		return { ok: false, error: "Não foi possível reativar" };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "user.reactivated",
+		targetType: "user",
+		targetId: parsed.data.userId,
+	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
 }
@@ -287,7 +339,7 @@ export async function deleteUser(input: {
 		return { ok: false, error: "validação" };
 	}
 
-	await requireCapabilityWithContext("users.delete", {
+	const session = await requireCapabilityWithContext("users.delete", {
 		targetUserId: parsed.data.userId,
 	});
 
@@ -346,6 +398,12 @@ export async function deleteUser(input: {
 		return { ok: false, error: "Não foi possível deletar" };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "user.deleted",
+		targetType: "user",
+		targetId: parsed.data.userId,
+	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
 }
