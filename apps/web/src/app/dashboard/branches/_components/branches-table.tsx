@@ -9,6 +9,8 @@ import {
 } from "@emach/ui/components/dropdown-menu";
 import {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCell,
 	TableHead,
@@ -78,7 +80,7 @@ export function BranchesTable({
 						<TableHead className="w-28 text-right">Equipe</TableHead>
 						<TableHead className="w-32 text-right">SKUs ativos</TableHead>
 						<TableHead className="w-36 text-right">Abaixo do mín.</TableHead>
-						<TableHead className="w-12" />
+						<TableActionsHead />
 					</TableRow>
 				</TableHeader>
 				<TableBody>
@@ -109,44 +111,42 @@ export function BranchesTable({
 									b.lowStock
 								)}
 							</TableCell>
-							<TableCell>
-								<div className="flex items-center justify-end gap-1">
-									<DropdownMenu>
-										<DropdownMenuTrigger
-											aria-label={`Ações para ${b.name}`}
-											className={buttonVariants({
-												size: "icon-sm",
-												variant: "ghost",
-											})}
+							<TableActionsCell>
+								<DropdownMenu>
+									<DropdownMenuTrigger
+										aria-label={`Ações para ${b.name}`}
+										className={buttonVariants({
+											size: "icon-sm",
+											variant: "ghost",
+										})}
+									>
+										<MoreHorizontal aria-hidden className="size-4" />
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end">
+										<DropdownMenuItem
+											onClick={() =>
+												router.push(`/dashboard/branches/${b.id}/stock`)
+											}
 										>
-											<MoreHorizontal aria-hidden className="size-4" />
-										</DropdownMenuTrigger>
-										<DropdownMenuContent align="end">
+											<Boxes aria-hidden className="size-4" />
+											Estoque
+										</DropdownMenuItem>
+										{canMutate && (
 											<DropdownMenuItem
 												onClick={() =>
-													router.push(`/dashboard/branches/${b.id}/stock`)
+													router.push(`/dashboard/branches/${b.id}?edit=1`)
 												}
 											>
-												<Boxes aria-hidden className="size-4" />
-												Estoque
+												<Pencil aria-hidden className="size-4" />
+												Editar
 											</DropdownMenuItem>
-											{canMutate && (
-												<DropdownMenuItem
-													onClick={() =>
-														router.push(`/dashboard/branches/${b.id}?edit=1`)
-													}
-												>
-													<Pencil aria-hidden className="size-4" />
-													Editar
-												</DropdownMenuItem>
-											)}
-										</DropdownMenuContent>
-									</DropdownMenu>
-									{canMutate && (
-										<DeleteBranchDialog branchId={b.id} branchName={b.name} />
-									)}
-								</div>
-							</TableCell>
+										)}
+									</DropdownMenuContent>
+								</DropdownMenu>
+								{canMutate && (
+									<DeleteBranchDialog branchId={b.id} branchName={b.name} />
+								)}
+							</TableActionsCell>
 						</TableRow>
 					))}
 				</TableBody>

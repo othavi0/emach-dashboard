@@ -9,6 +9,8 @@ import {
 } from "@emach/ui/components/dropdown-menu";
 import {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCell,
 	TableHead,
@@ -83,7 +85,7 @@ export function SuppliersTable({
 						<TableHead>Telefone</TableHead>
 						<TableHead className="w-32 text-right">Ferramentas</TableHead>
 						<TableHead className="w-36">Adicionado em</TableHead>
-						<TableHead className="w-12" />
+						<TableActionsHead />
 					</TableRow>
 				</TableHeader>
 				<TableBody>
@@ -106,7 +108,7 @@ export function SuppliersTable({
 							<TableCell className="text-muted-foreground text-sm">
 								{formatDate(s.createdAt)}
 							</TableCell>
-							<TableCell>
+							<TableActionsCell>
 								<DropdownMenu>
 									<DropdownMenuTrigger
 										aria-label={`Ações para ${s.name}`}
@@ -138,7 +140,7 @@ export function SuppliersTable({
 										)}
 									</DropdownMenuContent>
 								</DropdownMenu>
-							</TableCell>
+							</TableActionsCell>
 						</TableRow>
 					))}
 				</TableBody>
