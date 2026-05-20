@@ -4,7 +4,7 @@ import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
+import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import {
@@ -113,7 +113,7 @@ export async function getBranch(id: string): Promise<BranchListItem | null> {
 export async function createBranch(
 	input: BranchFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireCapability("branches.manage");
+	const session = await requireCapability("branches.manage");
 
 	const parsed = branchSchema.safeParse(input);
 	if (!parsed.success) {
@@ -129,6 +129,13 @@ export async function createBranch(
 		return { ok: false, error: zodErrorMessage(error) };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "branch.created",
+		targetId: id,
+		targetType: "branch",
+		metadata: { name: payload.name },
+	});
 	revalidatePath(BRANCHES_PATH);
 	return { ok: true, data: { id } };
 }
@@ -137,7 +144,7 @@ export async function updateBranch(
 	id: string,
 	input: BranchFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireCapability("branches.manage");
+	const session = await requireCapability("branches.manage");
 
 	const parsed = branchSchema.safeParse(input);
 	if (!parsed.success) {
@@ -152,16 +159,23 @@ export async function updateBranch(
 		return { ok: false, error: zodErrorMessage(error) };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "branch.updated",
+		targetId: id,
+		targetType: "branch",
+		metadata: { name: payload.name },
+	});
 	revalidatePath(BRANCHES_PATH);
 	revalidatePath(`${BRANCHES_PATH}/${id}/edit`);
 	return { ok: true, data: { id } };
 }
 
 export async function deleteBranch(id: string): Promise<ActionResult> {
-	await requireCapability("branches.manage");
+	const session = await requireCapability("branches.manage");
 
 	const [target] = await db
-		.select({ isDefault: branch.isDefault })
+		.select({ isDefault: branch.isDefault, name: branch.name })
 		.from(branch)
 		.where(eq(branch.id, id))
 		.limit(1);
@@ -179,6 +193,13 @@ export async function deleteBranch(id: string): Promise<ActionResult> {
 		return { ok: false, error: zodErrorMessage(error) };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "branch.deleted",
+		targetId: id,
+		targetType: "branch",
+		metadata: { name: target?.name },
+	});
 	revalidatePath(BRANCHES_PATH);
 	revalidatePath("/dashboard/stock");
 	revalidatePath("/dashboard/tools", "layout");
@@ -188,7 +209,7 @@ export async function deleteBranch(id: string): Promise<ActionResult> {
 export async function setDefaultBranch(
 	branchId: string
 ): Promise<ActionResult<{ id: string }>> {
-	await requireCapabilityWithContext("branches.set_default");
+	const session = await requireCapabilityWithContext("branches.set_default");
 
 	try {
 		await db.transaction(async (tx) => {
@@ -205,6 +226,12 @@ export async function setDefaultBranch(
 		return { ok: false, error: zodErrorMessage(error) };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "branch.set_default",
+		targetId: branchId,
+		targetType: "branch",
+	});
 	revalidatePath(BRANCHES_PATH);
 	revalidatePath(`${BRANCHES_PATH}/${branchId}/edit`);
 	return { ok: true, data: { id: branchId } };
