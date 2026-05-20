@@ -1,143 +1,79 @@
-import { Badge } from "@emach/ui/components/badge";
-import { buttonVariants } from "@emach/ui/components/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@emach/ui/components/card";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@emach/ui/components/table";
-import Link from "next/link";
+import { Factory, History, Wrench } from "lucide-react";
 import { notFound } from "next/navigation";
 
-import { requireCurrentSession } from "@/lib/session";
-import { DeleteSupplierDialog } from "../_components/delete-supplier-dialog";
-import { getSupplier } from "../actions";
+import type { EntityTab } from "@/components/entity/entity-tabs";
+import { EntityTabs } from "@/components/entity/entity-tabs";
+import { requireCapabilityOrRedirect } from "@/lib/permissions";
 
-interface SupplierDetailPageProps {
+import {
+	getSupplierAuditLog,
+	getSupplierDetail,
+	getSupplierDetailKpis,
+	getSupplierTools,
+} from "../data";
+import { HistoryTab } from "./_components/history-tab";
+import { OverviewTab } from "./_components/overview-tab";
+import { SupplierIdentity } from "./_components/supplier-identity";
+import { ToolsTab } from "./_components/tools-tab";
+
+interface PageProps {
 	params: Promise<{ id: string }>;
+	searchParams: Promise<{ edit?: string; q?: string; tab?: string }>;
 }
 
 export default async function SupplierDetailPage({
 	params,
-}: SupplierDetailPageProps) {
-	const session = await requireCurrentSession();
-	const canMutate = (session.user.role ?? "user") === "admin";
-	const { id } = await params;
-	const supplier = await getSupplier(id);
+	searchParams,
+}: PageProps) {
+	await requireCapabilityOrRedirect("suppliers.read");
 
-	if (!supplier) {
+	const { id } = await params;
+	const sp = await searchParams;
+
+	const [detail, kpis, tools, audit] = await Promise.all([
+		getSupplierDetail(id),
+		getSupplierDetailKpis(id),
+		getSupplierTools(id, sp.q ?? ""),
+		getSupplierAuditLog(id),
+	]);
+
+	if (!detail) {
 		notFound();
 	}
 
+	const tabs: EntityTab[] = [
+		{
+			value: "overview",
+			label: "Visão geral",
+			icon: Factory,
+			content: <OverviewTab detail={detail} kpis={kpis} />,
+		},
+		{
+			value: "tools",
+			label: "Ferramentas",
+			icon: Wrench,
+			badge: (
+				<span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 font-medium text-muted-foreground text-xs tabular-nums">
+					{detail.toolsTotal}
+				</span>
+			),
+			content: (
+				<ToolsTab initialSearch={sp.q ?? ""} supplierId={id} tools={tools} />
+			),
+		},
+		{
+			value: "history",
+			label: "Histórico",
+			icon: History,
+			content: <HistoryTab rows={audit} />,
+		},
+	];
+
 	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex items-start justify-between gap-4">
-				<div>
-					<h1 className="font-medium text-2xl tracking-tight">
-						{supplier.name}
-					</h1>
-					<p className="text-muted-foreground text-sm">
-						{supplier.tools.length} ferramenta
-						{supplier.tools.length === 1 ? "" : "s"} vinculada
-						{supplier.tools.length === 1 ? "" : "s"}
-					</p>
-				</div>
-				{canMutate && (
-					<div className="flex gap-2">
-						<Link
-							className={buttonVariants({ variant: "secondary" })}
-							href={`/dashboard/suppliers/${supplier.id}/edit`}
-						>
-							Editar
-						</Link>
-						<DeleteSupplierDialog
-							supplierId={supplier.id}
-							supplierName={supplier.name}
-						/>
-					</div>
-				)}
-			</div>
-
-			<Card>
-				<CardHeader>
-					<CardTitle>Contato</CardTitle>
-					<CardDescription>
-						Dados comerciais e observações internas.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="grid gap-2 text-sm">
-					<p>
-						<strong>E-mail:</strong> {supplier.contactEmail ?? "—"}
-					</p>
-					<p>
-						<strong>Telefone:</strong> {supplier.phone ?? "—"}
-					</p>
-					{supplier.notes && (
-						<p>
-							<strong>Observações:</strong> {supplier.notes}
-						</p>
-					)}
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader>
-					<CardTitle>Ferramentas vinculadas</CardTitle>
-					<CardDescription>
-						Ferramentas do catálogo associadas a este fornecedor.
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{supplier.tools.length === 0 ? (
-						<p className="text-muted-foreground text-sm">
-							Nenhuma ferramenta vinculada a este fornecedor.
-						</p>
-					) : (
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Ferramenta</TableHead>
-									<TableHead>SKU</TableHead>
-									<TableHead className="text-right">Visibilidade</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{supplier.tools.map((tool) => (
-									<TableRow key={tool.id}>
-										<TableCell>
-											<Link
-												className="font-medium hover:underline"
-												href={`/dashboard/tools/${tool.id}`}
-											>
-												{tool.name}
-											</Link>
-										</TableCell>
-										<TableCell className="text-muted-foreground">
-											{tool.sku ?? "—"}
-										</TableCell>
-										<TableCell className="text-right">
-											<Badge
-												variant={tool.visibleOnSite ? "default" : "outline"}
-											>
-												{tool.visibleOnSite ? "Visível" : "Oculto"}
-											</Badge>
-										</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					)}
-				</CardContent>
-			</Card>
+		<div className="flex flex-col gap-6 p-6">
+			<SupplierIdentity detail={detail} />
+			<EntityTabs defaultValue="overview" tabs={tabs} />
+			{/* TODO Task 8: SupplierEditSheet — leitor de ?edit=1 */}
 		</div>
 	);
 }
