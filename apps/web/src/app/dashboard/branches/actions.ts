@@ -26,9 +26,13 @@ export type ActionResult<T = undefined> =
 
 function normalizePayload(input: BranchFormValues) {
 	const address = input.address?.trim();
+	const phone = input.phone?.trim();
+	const responsibleUserId = input.responsibleUserId?.trim();
 	return {
 		name: input.name,
 		address: address ? address : null,
+		phone: phone ? phone : null,
+		responsibleUserId: responsibleUserId ? responsibleUserId : null,
 	};
 }
 
