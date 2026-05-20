@@ -10,7 +10,11 @@ import {
 	TableRow,
 } from "@emach/ui/components/table";
 import { cn } from "@emach/ui/lib/utils";
-import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
+import {
+	ChevronDownIcon,
+	ChevronRightIcon,
+	ScrollTextIcon,
+} from "lucide-react";
 import { Fragment, useState } from "react";
 
 export interface AuditEntry {
@@ -52,9 +56,16 @@ export function EntityAuditLogTable({
 
 	if (entries.length === 0) {
 		return (
-			<p className="py-8 text-center text-muted-foreground text-sm">
-				{emptyMessage}
-			</p>
+			<div className="flex flex-col items-center gap-2 py-12 text-center">
+				<ScrollTextIcon
+					aria-hidden
+					className="size-12 text-muted-foreground opacity-40"
+				/>
+				<p className="font-medium text-sm">{emptyMessage}</p>
+				<p className="text-muted-foreground text-xs">
+					As mutações registradas aparecerão aqui.
+				</p>
+			</div>
 		);
 	}
 
