@@ -4,10 +4,10 @@ import { db } from "@emach/db";
 import { supplier, tool, toolVariant } from "@emach/db/schema/tools";
 import { and, asc, eq, ilike, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
 import { logUserActivity } from "@/lib/activity";
 import { requireCapability } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
+import { normalizeCnpj } from "@/lib/validation/cnpj";
 import {
 	type SupplierFormValues,
 	supplierSchema,
@@ -50,12 +50,16 @@ export type ActionResult<T = undefined> =
 function normalizePayload(input: SupplierFormValues) {
 	const contactEmail = input.contactEmail?.trim();
 	const phone = input.phone?.trim();
+	const website = input.website?.trim();
+	const cnpjDigits = input.cnpj ? normalizeCnpj(input.cnpj) : "";
 	const notes = input.notes?.trim();
 
 	return {
 		name: input.name,
 		contactEmail: contactEmail ? contactEmail : null,
 		phone: phone ? phone : null,
+		website: website ? website : null,
+		cnpj: cnpjDigits ? cnpjDigits : null,
 		notes: notes ? notes : null,
 	};
 }

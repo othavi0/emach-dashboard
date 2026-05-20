@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import { isValidCnpj } from "@/lib/validation/cnpj";
+
+const URL_RE = /^https?:\/\/.+/i;
+
 export const supplierSchema = z.object({
 	name: z
 		.string()
@@ -16,6 +20,22 @@ export const supplierSchema = z.object({
 		.string()
 		.trim()
 		.max(40, "Telefone muito longo")
+		.optional()
+		.or(z.literal("")),
+	website: z
+		.string()
+		.trim()
+		.max(255, "URL muito longa")
+		.refine(
+			(v) => !v || URL_RE.test(v),
+			"URL deve começar com http:// ou https://"
+		)
+		.optional()
+		.or(z.literal("")),
+	cnpj: z
+		.string()
+		.trim()
+		.refine((v) => !v || isValidCnpj(v), "CNPJ inválido")
 		.optional()
 		.or(z.literal("")),
 	notes: z
