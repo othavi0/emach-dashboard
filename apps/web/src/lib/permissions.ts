@@ -45,6 +45,7 @@ export type Capability =
 	| "users.update_branches"
 	| "users.suspend"
 	| "users.reset_password"
+	| "users.revoke_sessions"
 	| "users.delete"
 	| "audit.read"
 	| "attributes.read"
@@ -91,6 +92,7 @@ const ALL_CAPS: readonly Capability[] = [
 	"users.update_branches",
 	"users.suspend",
 	"users.reset_password",
+	"users.revoke_sessions",
 	"users.delete",
 	"audit.read",
 	"attributes.read",

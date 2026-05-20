@@ -5,6 +5,7 @@ import { supplier, tool, toolVariant } from "@emach/db/schema/tools";
 import { and, asc, eq, ilike, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+import { logUserActivity } from "@/lib/activity";
 import { requireCapability } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import {
@@ -144,7 +145,7 @@ export async function getSupplier(id: string): Promise<SupplierDetail | null> {
 export async function createSupplier(
 	input: SupplierFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireCapability("suppliers.manage");
+	const session = await requireCapability("suppliers.manage");
 
 	const parsed = supplierSchema.safeParse(input);
 	if (!parsed.success) {
@@ -160,6 +161,13 @@ export async function createSupplier(
 		return { ok: false, error: errorMessage(error) };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "supplier.created",
+		targetId: id,
+		targetType: "supplier",
+		metadata: { name: payload.name },
+	});
 	revalidatePath(SUPPLIERS_PATH);
 	revalidatePath(TOOLS_PATH);
 	return { ok: true, data: { id } };
@@ -169,7 +177,7 @@ export async function updateSupplier(
 	id: string,
 	input: SupplierFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireCapability("suppliers.manage");
+	const session = await requireCapability("suppliers.manage");
 
 	const parsed = supplierSchema.safeParse(input);
 	if (!parsed.success) {
@@ -184,6 +192,13 @@ export async function updateSupplier(
 		return { ok: false, error: errorMessage(error) };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "supplier.updated",
+		targetId: id,
+		targetType: "supplier",
+		metadata: { name: payload.name },
+	});
 	revalidatePath(SUPPLIERS_PATH);
 	revalidatePath(`${SUPPLIERS_PATH}/${id}`);
 	revalidatePath(`${SUPPLIERS_PATH}/${id}/edit`);
@@ -192,7 +207,13 @@ export async function updateSupplier(
 }
 
 export async function deleteSupplier(id: string): Promise<ActionResult> {
-	await requireCapability("suppliers.manage");
+	const session = await requireCapability("suppliers.manage");
+
+	const [supplierRow] = await db
+		.select({ name: supplier.name })
+		.from(supplier)
+		.where(eq(supplier.id, id))
+		.limit(1);
 
 	try {
 		await db.transaction(async (tx) => {
@@ -206,6 +227,13 @@ export async function deleteSupplier(id: string): Promise<ActionResult> {
 		return { ok: false, error: errorMessage(error) };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "supplier.deleted",
+		targetId: id,
+		targetType: "supplier",
+		metadata: { name: supplierRow?.name },
+	});
 	revalidatePath(SUPPLIERS_PATH);
 	revalidatePath(TOOLS_PATH);
 	return { ok: true, data: undefined };
