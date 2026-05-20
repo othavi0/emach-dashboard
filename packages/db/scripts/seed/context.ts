@@ -10,7 +10,6 @@ export interface SeedContext {
 	branchIds: string[];
 	categoryIdBySlug: Record<string, string>;
 	clientIds: string[];
-	defaultBranchId: string;
 	defaultVariantByTool: Record<string, string>;
 	orderIds: string[];
 	primaryCategoryByTool: Record<string, string>;
@@ -24,7 +23,6 @@ export function emptyContext(staffUserIds: string[]): SeedContext {
 	return {
 		staffUserIds,
 		branchIds: [],
-		defaultBranchId: "",
 		supplierIds: [],
 		categoryIdBySlug: {},
 		attributeIdBySlug: {},

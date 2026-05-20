@@ -8,10 +8,7 @@ import { revalidatePath } from "next/cache";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
-import {
-	requireCapability,
-	requireCapabilityWithContext,
-} from "@/lib/permissions";
+import { requireCapability } from "@/lib/permissions";
 import {
 	type BranchFormValues,
 	branchSchema,
@@ -181,20 +178,13 @@ export async function deleteBranch(id: string): Promise<ActionResult> {
 	const session = await requireCapability("branches.manage");
 
 	const [target] = await db
-		.select({ isDefault: branch.isDefault, name: branch.name })
+		.select({ name: branch.name })
 		.from(branch)
 		.where(eq(branch.id, id))
 		.limit(1);
 
 	if (!target) {
 		return { ok: false, error: "Filial não encontrada" };
-	}
-
-	if (target.isDefault) {
-		return {
-			ok: false,
-			error: "Marque outra filial como padrão antes de deletar esta",
-		};
 	}
 
 	const [stockCheck] = await db
@@ -266,7 +256,6 @@ export async function fetchBranchesTablePage({
 			id: b.id,
 			name: b.name,
 			address: b.address,
-			isDefault: b.isDefault,
 			createdAt: b.createdAt,
 			teamCount: agg.teamCount,
 			activeSkus: agg.activeSkus,
@@ -299,35 +288,4 @@ export async function unlinkUserFromBranchAction(input: {
 }): Promise<ActionResult> {
 	const { unlinkUserFromBranch } = await import("../users/actions");
 	return unlinkUserFromBranch(input);
-}
-
-export async function setDefaultBranch(
-	branchId: string
-): Promise<ActionResult<{ id: string }>> {
-	const session = await requireCapabilityWithContext("branches.set_default");
-
-	try {
-		await db.transaction(async (tx) => {
-			await tx
-				.update(branch)
-				.set({ isDefault: false })
-				.where(eq(branch.isDefault, true));
-			await tx
-				.update(branch)
-				.set({ isDefault: true })
-				.where(eq(branch.id, branchId));
-		});
-	} catch (error) {
-		return { ok: false, error: zodErrorMessage(error) };
-	}
-
-	await logUserActivity({
-		actorUserId: session.user.id,
-		action: "branch.set_default",
-		targetId: branchId,
-		targetType: "branch",
-	});
-	revalidatePath(BRANCHES_PATH);
-	revalidatePath(`${BRANCHES_PATH}/${branchId}/edit`);
-	return { ok: true, data: { id: branchId } };
 }

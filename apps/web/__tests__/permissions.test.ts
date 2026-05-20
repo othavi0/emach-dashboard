@@ -84,7 +84,6 @@ describe("super_admin caps", () => {
 	it("super_admin tem todas as capabilities críticas", () => {
 		const caps: Capability[] = [
 			"branches.manage",
-			"branches.set_default",
 			"users.approve",
 			"users.delete",
 			"users.update_role",
@@ -97,9 +96,8 @@ describe("super_admin caps", () => {
 		}
 	});
 
-	it("admin NÃO tem users.delete nem branches.set_default nem branches.manage", () => {
+	it("admin NÃO tem users.delete nem branches.manage", () => {
 		expect(can("admin", "users.delete")).toBe(false);
-		expect(can("admin", "branches.set_default")).toBe(false);
 		expect(can("admin", "branches.manage")).toBe(false);
 	});
 

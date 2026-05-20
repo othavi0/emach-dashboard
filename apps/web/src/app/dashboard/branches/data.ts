@@ -5,7 +5,7 @@ import { user as userTable } from "@emach/db/schema/auth";
 import { branch, stockLevel, userBranch } from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
 import { toolVariant } from "@emach/db/schema/tools";
-import { and, desc, eq, gt, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 
 export interface EligibleUserOption {
 	email: string;
@@ -78,7 +78,6 @@ export interface BranchDetail {
 	address: string | null;
 	createdAt: Date;
 	id: string;
-	isDefault: boolean;
 	name: string;
 	phone: string | null;
 	responsibleName: string | null;
@@ -97,7 +96,6 @@ export async function getBranchDetail(
 			phone: branch.phone,
 			responsibleUserId: branch.responsibleUserId,
 			responsibleName: userTable.name,
-			isDefault: branch.isDefault,
 			createdAt: branch.createdAt,
 			updatedAt: branch.updatedAt,
 		})
@@ -207,7 +205,6 @@ export interface BranchTableRow {
 	address: string | null;
 	createdAt: Date;
 	id: string;
-	isDefault: boolean;
 	lowStock: number;
 	name: string;
 	teamCount: number;
@@ -227,7 +224,7 @@ export async function getBranchTableAggregates(
 			n: sql<number>`count(*)::int`,
 		})
 		.from(userBranch)
-		.where(sql`${userBranch.branchId} = any(${branchIds})`)
+		.where(inArray(userBranch.branchId, branchIds))
 		.groupBy(userBranch.branchId);
 	const stockRows = await db
 		.select({
@@ -236,7 +233,7 @@ export async function getBranchTableAggregates(
 			low: sql<number>`count(*) filter (where ${stockLevel.quantity} <= coalesce(${stockLevel.minQty}, 0) and coalesce(${stockLevel.minQty}, 0) > 0)::int`,
 		})
 		.from(stockLevel)
-		.where(sql`${stockLevel.branchId} = any(${branchIds})`)
+		.where(inArray(stockLevel.branchId, branchIds))
 		.groupBy(stockLevel.branchId);
 	const map = new Map<
 		string,

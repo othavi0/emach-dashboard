@@ -51,8 +51,7 @@ export type Capability =
 	| "attributes.read"
 	| "attributes.create"
 	| "attributes.update"
-	| "attributes.delete"
-	| "branches.set_default";
+	| "attributes.delete";
 
 const ALL_CAPS: readonly Capability[] = [
 	"tools.read",
@@ -99,7 +98,6 @@ const ALL_CAPS: readonly Capability[] = [
 	"attributes.create",
 	"attributes.update",
 	"attributes.delete",
-	"branches.set_default",
 ];
 
 const USER_CAPS: readonly Capability[] = [
@@ -145,7 +143,6 @@ const MANAGER_CAPS: readonly Capability[] = [
 
 const SUPER_ADMIN_EXCLUSIVE: readonly Capability[] = [
 	"branches.manage",
-	"branches.set_default",
 	"users.delete",
 	"audit.read", // global (admin tem escopado, mas a cap "audit.read" simples fica exclusiva)
 ];
