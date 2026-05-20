@@ -68,7 +68,7 @@ export function CustomerHeader({
 				</Avatar>
 
 				<div className="flex flex-col gap-1.5">
-					<h1 className="font-normal font-serif text-2xl leading-tight tracking-tight">
+					<h1 className="font-medium font-serif text-3xl leading-tight tracking-tight">
 						{customer.name}
 					</h1>
 					<p className="text-muted-foreground text-sm">{customer.email}</p>

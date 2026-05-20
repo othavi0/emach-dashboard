@@ -61,8 +61,8 @@
 	--success: oklch(0.62 0.13 155);
 	--success-foreground: oklch(0.99 0 0);
 
-	/* Ring — primary 55% alpha; ring-2 sólido */
-	--ring: oklch(0.65 0.13 38 / 0.55);
+	/* Ring — primary 75% alpha; ring-1 + offset-2 (hairline com halo) */
+	--ring: oklch(0.65 0.13 38 / 0.75);
 
 	/* === Charts (5 séries, anchored on coral) === */
 	--chart-1: oklch(0.65 0.13 38); /* Coral primary */
@@ -79,7 +79,7 @@
 	--sidebar-accent: oklch(0.2 0.005 70);
 	--sidebar-accent-foreground: oklch(0.97 0.008 85);
 	--sidebar-border: oklch(0.36 0.008 70);
-	--sidebar-ring: oklch(0.65 0.13 38 / 0.55);
+	--sidebar-ring: oklch(0.65 0.13 38 / 0.75);
 }
 
 @theme inline {
@@ -148,7 +148,7 @@
 	}
 	:focus-visible {
 		outline: 1px solid var(--primary);
-		outline-offset: 1px;
+		outline-offset: 2px;
 	}
 
 	/* Reduced motion — kill transitions/animations quando user pediu. */

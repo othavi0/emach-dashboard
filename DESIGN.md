@@ -58,7 +58,7 @@ Tokens em `packages/ui/src/styles/globals.css`, escopados em `.dark`. Use Tailwi
 
 ### Ring
 
-`--ring` = primary 55% alpha. Componentes aplicam `ring-2 ring-ring`. Sem opacidade multiplicada. Sem 1px. Focus tem peso real.
+`--ring` = primary 75% alpha. Componentes aplicam **`ring-1 ring-ring ring-offset-2 ring-offset-background`** — hairline coral 1px + halo transparente 2px. Combinado com `border-ring` (que flipa a border do componente pra coral), o focus signal é: border 1px sólida coral + 2px transparent + 1px ring coral. Total ~4px de área visual mas só 2px coloridos. AAA preserva via border + ring coral somando ≥2px perimeter (WCAG 2.2 SC 2.4.13).
 
 ## 3. Tipografia
 
@@ -74,9 +74,9 @@ Display e h1/h2 em **serif weight 400** com `tracking-tight` (-0.025em). Sans 40
 
 | Função | Classes Tailwind | Notas |
 |---|---|---|
-| Display (overview, hero) | `font-serif text-4xl font-normal tracking-tight` | 36px, peso normal. Páginas de overview, login hero. |
-| h1 página | `font-serif text-3xl font-normal tracking-tight` | 30px / weight 400. Cormorant em **todas** as páginas. |
-| h2 seção | `font-serif text-xl font-normal tracking-tight` | 20px / weight 400. Cormorant em headers de seção. |
+| Display (overview, hero) | `font-serif text-5xl font-medium tracking-tight` | 48px / weight 500. Páginas de overview, login hero, capa de relatório. |
+| h1 página | `font-serif text-4xl font-medium tracking-tight` | 36px / weight 500. Cormorant em **todas** as páginas. Weight 500 compensa thinness do Cormorant em dark. |
+| h2 seção | `font-serif text-2xl font-medium tracking-tight` | 24px / weight 500. Cormorant em headers de seção. |
 | h3 sub-seção | `font-sans text-sm font-semibold uppercase tracking-wider` | 14px caps — section marker (sans, não serif) |
 | Title prominent | `font-sans text-base font-medium` | 16px — card titles em listas, dentro de tabelas |
 | Body padrão | `font-sans text-sm leading-relaxed` | **14px / 1.625** — UI chrome, baseline do dashboard |
@@ -87,8 +87,9 @@ Display e h1/h2 em **serif weight 400** com `tracking-tight` (-0.025em). Sans 40
 
 ### Princípios
 
-- **Serif = voz editorial em h1/h2.** Weight 400 + tracking-tight é o piso; nunca bold (700+). Cormorant 700 lê como bombástico — Anthropic mantém em 400.
+- **Serif = voz editorial em h1/h2.** Weight **500** + tracking-tight é o piso em dark mode (Cormorant 400 fica fino em dark; 500 compensa sem virar bombástico). Nunca 600+. Anthropic light pode usar 400, mas dark exige peso.
 - **Sans em todo o resto.** Body, h3, controls, sidebar, tabelas, forms, cards: Inter 400/500. Contraste por peso (`font-medium` 500 em titles).
+- **Escala mantém ratio ≥1.25:** display 48 → h1 36 (1.33) → h2 24 (1.5) → h3 14 (1.71) → body 14. Hierarquia clara.
 - **Body em 14px (`text-sm`)** baseline. AAA exige 7:1 — `--foreground` sobre `--background` cumpre.
 - **Line-height generosa** (`leading-relaxed` 1.625). Sessão longa, equipe lê muito.
 - **Nunca text-xs em body principal** — fica denso demais mesmo pra equipe interna.
@@ -240,6 +241,29 @@ Densidade > respiro. Não use `py-24+` em dashboard — esse espaçamento é mar
 - Forms / leitura: `max-w-3xl` ou `max-w-5xl`.
 - Sidebar: 16rem fixo.
 
+### Section bands (ritmo vertical)
+
+Páginas com múltiplas seções alternam surface entre `bg-background` (flat) e `bg-muted/50` (data zone) para criar ritmo. Pattern Anthropic cream↔cream-card portado para dark.
+
+Implementação: a `<section>` que carrega dado denso (tabelas, painéis pendentes, charts, listas longas) ganha `-mx-6 border-y border-border bg-muted/50 px-6 py-10`. O negative margin extende a band até o limite do container; o `border-y` marca a transição. Hero, atalhos, callouts ficam em surface plana.
+
+```tsx
+<main className="mx-auto max-w-6xl px-6 py-8">
+  <section className="pb-10">{/* hero, flat */}</section>
+  <section className="-mx-6 border-y border-border bg-muted/50 px-6 py-10">
+    {/* data zone, banded */}
+  </section>
+  <section className="pt-10">{/* shortcuts, flat */}</section>
+</main>
+```
+
+Regras:
+- **Máx 1 band por página.** Mais que isso vira listras, não ritmo.
+- **Bands só pra data zone.** Não pra hero, não pra CTAs.
+- **Padding interno generoso** (`py-10`+) — band sem respiro lê como erro.
+
+Implementação canônica: `apps/web/src/app/dashboard/page.tsx`.
+
 ### Border Radius
 
 | Token | Px | Componentes |
@@ -278,9 +302,10 @@ WCAG **AAA** target. Não-negociável para equipe interna em sessão longa.
 
 ### Focus
 
-- Sempre `ring-2` sólido. Nunca opacity multiplicada (`ring-1 ring-ring/50`), nunca 1px.
+- **`ring-1 ring-ring ring-offset-2 ring-offset-background`** — hairline coral 1px com halo transparente 2px. Combinado com `border-ring` (border do componente flipa pra coral), perímetro colorido soma ≥2px (AAA WCAG 2.2 SC 2.4.13).
 - Cor da ring acompanha role da ação (destructive ring em button destructive, etc).
-- `outline` fallback no `:focus-visible` global garante visibilidade mesmo se classe Tailwind falhar.
+- `--ring` em 75% alpha pra hairline ter presença visual real.
+- `outline` fallback no `:focus-visible` global (1px sólido + offset 2px) garante visibilidade mesmo se classe Tailwind falhar.
 
 ### Reduced motion
 
@@ -311,7 +336,7 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 - **Cormorant em h1 + h2 de todas as páginas.** Weight 400 + tracking-tight. É a voz.
 - `font-medium` (500) como peso de titles/h3/labels. Contraste por peso, não família, abaixo de h2.
 - Inputs em `border-input` (`#57524c`) — borda mais forte que `border-border`.
-- Focus ring 2px sólido na cor da role da ação.
+- Focus ring 1px + offset 2px na cor da role da ação (hairline com halo).
 - Surface-deep (`bg-surface-deep`) em code blocks, log viewers, featured cards.
 - Respeite `prefers-reduced-motion`.
 - Status sempre = ícone + label + cor (color blindness safe).
@@ -331,19 +356,20 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 - Não escreva copy "AI assistente prestativo". Equipe quer ferramenta.
 - Não use `text-xs` em body principal.
 - Não desligue `prefers-reduced-motion` em qualquer animação.
-- Não use focus ring 1px ou opacity multiplicada (`ring-1 ring-ring/50`).
+- Não use focus ring sem offset (`ring-1` puro lê como decoração, não como focus). Sempre `ring-offset-2 ring-offset-background`.
 - Não use `rounded-none` em componente novo (exceto exceção semântica documentada).
 
 ## 10. Histórico de migrações
 
 Mudanças sistêmicas consolidadas, mais recente primeiro:
 
+- **Refinement /impeccable (2026-05-20)** — ring vira hairline (`ring-1 + ring-offset-2`), `--ring` alpha sobe 0.55→0.75. Tipografia: h1 sobe text-3xl→text-4xl, h2 sobe text-xl→text-2xl, weight de serif vira 500 (era 400) pra compensar thinness do Cormorant em dark; display sobe text-4xl→text-5xl. Section bands (`bg-muted/50` com border-y) documentadas pra ritmo vertical em páginas com data zone, aplicado primeiro em `dashboard/page.tsx`.
 - **Re-aproximação Anthropic (2026-05-20)** — coral hue 38 (de copper 45), chroma 0.13 (de 0.15) — agora `oklch(0.65 0.13 38)` ≈ `#cc785c` literal Anthropic. Destructive hue 15 (de 25) — `oklch(0.55 0.20 15)` para preservar 23° de separação do novo primary. **Cormorant Garamond liberada para h1 + h2 de todas as páginas** (era restrita a login + capa de relatório). Adicionado token `--surface-deep` (`oklch(0.11 0.005 70)`) para code/log/featured wells. Documentados componentes `callout-card-coral` e `featured-card-dark`. Mantém dark-only e voz workshop.
 - **Saída do Anthropic Claude inspired** (iteração intermediária, revertida parcialmente acima): coral terracotta + Cormorant editorial gigante + tom helpful AI saíram em favor de industrial neutrals + copper + tipografia funcional. Esta iteração revertia em excesso e foi parcialmente desfeita acima.
 - **6 roles cromáticos distintos** (`primary / secondary / destructive / warning / info / success`), cada com `--*` + `--*-foreground` em globals.css, mapeados em `@theme inline` como `--color-*` tailwind tokens. Adicionados `warning / info / success` em `Button`, `Badge`, `Alert` variants.
 - **Surfaces afastadas:** `--surface-deep` `0.11` (novo) / `--background` `0.16` / `--muted` `0.18` / `--card` `0.20` / `--border` `0.36` / `--input` `0.42` / `--secondary` `0.42`. 6 níveis distintos com diff ≥0.02 luminância.
 - **Tokens `--border` e `--input` separados** (`0.36` vs `0.42`) — mantido.
-- **Ring 2px sólido em primary 55%** (era 40%) — focus tem peso visual real em dark mode.
+- **Ring 1px + offset 2px em primary 75%** — refinement 2026-05-20: hairline com halo substitui ring-2 sólido. Combinado com border-ring atende AAA WCAG 2.2 SC 2.4.13.
 - **`prefers-reduced-motion: reduce`** zera animations/transitions globalmente — AAA requirement.
 - **Cantos arredondados** mantidos (rounded-md interactive, rounded-lg surfaces, etc).
 - **Body type** `text-sm` (14px) baseline — mantido.
@@ -360,7 +386,7 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 | Como sinalizo "em processamento"? | `bg-info` + ícone clock + label |
 | Posso usar cool gray? | Apenas em `--info` (teal) e chart-3. Em chrome geral, não. |
 | Qual a linha base de body? | `text-sm leading-relaxed` (14px / 1.625) |
-| Como faço focus state? | `focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring` |
+| Como faço focus state? | `focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background` |
 | Qual radius pra card novo? | `rounded-lg` (12px). Botões/inputs `rounded-md` (8px). |
 | Qual o contraste mínimo? | AAA: 7:1 body, 4.5:1 large text, 3:1 non-text UI. |
 | Onde uso `bg-surface-deep`? | Code blocks, log/terminal viewers, featured-card-dark. **Não** em card normal. |

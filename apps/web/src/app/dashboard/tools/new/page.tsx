@@ -40,7 +40,7 @@ export default async function NewToolPage() {
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-normal font-serif text-3xl tracking-tight">
+				<h1 className="font-medium font-serif text-4xl tracking-tight">
 					Nova ferramenta
 				</h1>
 				<p className="text-muted-foreground text-sm">
