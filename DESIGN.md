@@ -169,6 +169,20 @@ Toda tabela de listagem (`/dashboard/<recurso>` com itens enumeráveis) **deve**
 
 Implementação canônica: `apps/web/src/app/dashboard/suppliers/_components/suppliers-table.tsx` (Editar + Remover) e showcase em `/design#table`.
 
+**Layout de larguras (cluster à direita):** dentro de uma listagem com Total/contagem + Status + Actions, marque a coluna de **identificação** (Cliente, Nome, Descrição — a "stretch column") com `w-full` e as colunas auxiliares (Status, Total, contagens, datas curtas, Actions) sem largura (encolhem ao próprio conteúdo). Resultado: identificação absorve sobra horizontal, status/totais/actions ficam clusterizados à direita sem espaço fantasma entre eles.
+
+```tsx
+<TableRow>
+  <TableHead>ID</TableHead>
+  <TableHead className="w-full">Cliente</TableHead>   {/* eats remaining space */}
+  <TableHead>Status</TableHead>
+  <TableHead className="w-px text-right">Total</TableHead>
+  <TableActionsHead />
+</TableRow>
+```
+
+Sem `w-full` na coluna de identificação, todas as colunas dividem o espaço por igual e o Total (text-right) fica visualmente longe do Status, encostado nas ações.
+
 ### Badges
 
 `packages/ui/src/components/badge.tsx`. Mesmo conjunto de variants do Button — `default / secondary / destructive / warning / info / success / outline / ghost / link`. Variants saturadas carregam `border-background/40` (hairline escuro 40% alpha) que cria separação quando a badge sita em surfaces coloridas (ex: badge warning dentro de tab ativa coral). Use a role apropriada ao estado:

@@ -711,9 +711,9 @@ export default function DesignPage() {
 							<TableHeader>
 								<TableRow>
 									<TableHead>ID</TableHead>
-									<TableHead>Cliente</TableHead>
+									<TableHead className="w-full">Cliente</TableHead>
 									<TableHead>Status</TableHead>
-									<TableHead className="text-right">Total</TableHead>
+									<TableHead className="w-px text-right">Total</TableHead>
 									<TableActionsHead />
 								</TableRow>
 							</TableHeader>
@@ -724,7 +724,7 @@ export default function DesignPage() {
 									<TableCell>
 										<Badge variant="success">Pago</Badge>
 									</TableCell>
-									<TableCell className="text-right tabular-nums">
+									<TableCell className="w-px text-right tabular-nums">
 										R$ 1.249,00
 									</TableCell>
 									<TableActionsCell>
@@ -757,7 +757,7 @@ export default function DesignPage() {
 									<TableCell>
 										<Badge variant="info">Em separação</Badge>
 									</TableCell>
-									<TableCell className="text-right tabular-nums">
+									<TableCell className="w-px text-right tabular-nums">
 										R$ 489,90
 									</TableCell>
 									<TableActionsCell>
@@ -790,7 +790,7 @@ export default function DesignPage() {
 									<TableCell>
 										<Badge variant="destructive">Cancelado</Badge>
 									</TableCell>
-									<TableCell className="text-right tabular-nums">
+									<TableCell className="w-px text-right tabular-nums">
 										R$ 289,00
 									</TableCell>
 									<TableActionsCell>
