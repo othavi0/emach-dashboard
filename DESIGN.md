@@ -183,6 +183,18 @@ Implementação canônica: `apps/web/src/app/dashboard/suppliers/_components/sup
 
 Se quiser destacar uma coluna específica como "principal" (Cliente expandindo até a borda das ações), aí sim adicione `className="w-full"` nela — vira a stretch column e empurra Status/Total pro lado das ações. Pattern alternativo, não default.
 
+**Spacing canônico:** `TableHead` (`h-10 px-3`) e `TableCell` (`px-3 py-2.5`) já vêm padronizados em `packages/ui/src/components/table.tsx` — não sobrescreva por linha. Densidade alvo: 40px header / ~36px row. Se precisar de uma table mais compacta (drawer/dialog), aplique no `<Table>` wrapper via `[&_td]:py-1.5 [&_th]:h-8`.
+
+**Truncate para texto livre:** colunas de nome, email, descrição podem receber strings longas que estouram o layout (especialmente em conjunto com coluna de ações que absorve sobra). Use `className="max-w-[NNpx] truncate"` na `TableCell` — `truncate` sozinho **não funciona** porque a célula expande para caber o conteúdo. Largura típica: 200px para nome, 240px para email, 320px para descrição curta. Exemplo:
+
+```tsx
+<TableCell className="max-w-[200px] truncate">
+  Construtora Aliança e Empreendimentos Brasil Ltda
+</TableCell>
+```
+
+Quando o conteúdo é crítico (usuário precisa ler o nome inteiro), prefira `<Tooltip>` em volta ou empilhe nome + subtitle (`<div className="flex flex-col"><span className="truncate">...</span><span className="text-muted-foreground text-xs">...</span></div>`) em vez de truncar sem affordance.
+
 ### Badges
 
 `packages/ui/src/components/badge.tsx`. Mesmo conjunto de variants do Button — `default / secondary / destructive / warning / info / success / outline / ghost / link`. Variants saturadas carregam `border-background/40` (hairline escuro 40% alpha) que cria separação quando a badge sita em surfaces coloridas (ex: badge warning dentro de tab ativa coral). Use a role apropriada ao estado:

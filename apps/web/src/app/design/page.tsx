@@ -701,7 +701,7 @@ export default function DesignPage() {
 				</Section>
 
 				<Section
-					description="Listagem padrão. Última coluna sempre = ações inline (Ver / Editar / Remover) usando TableActionsHead + TableActionsCell — helpers que cuidam de width (w-px shrink), alinhamento (text-right) e gap entre ícones (gap-1). Botões usam size=icon-sm + variant apropriado por semântica (outline=ver, secondary=editar, destructive=remover). Sempre aria-label descritivo. Conta/valor numérico permanece com texto."
+					description="Listagem padrão. Última coluna sempre = ações inline (Ver / Editar / Remover) usando TableActionsHead + TableActionsCell — helpers que cuidam de width (w-full empurra ações para a direita), alinhamento (text-right) e gap entre ícones (gap-1). Botões usam size=icon-sm + variant apropriado por semântica (outline=ver, secondary=editar, destructive=remover). Sempre aria-label descritivo. Conta/valor numérico permanece com texto. Para texto livre potencialmente longo (nomes, emails, descrições) use `max-w-[NNpx] truncate` na TableCell — sem max-width o `truncate` não tem efeito porque a célula expande para caber o conteúdo."
 					id="table"
 					title="Table"
 				>
@@ -800,6 +800,34 @@ export default function DesignPage() {
 											variant="outline"
 										>
 											<Eye aria-hidden className="size-3.5" />
+										</Button>
+									</TableActionsCell>
+								</TableRow>
+								<TableRow>
+									<TableCell className="font-mono">#10424</TableCell>
+									<TableCell className="max-w-[200px] truncate">
+										Construtora Aliança e Empreendimentos Brasil Ltda
+									</TableCell>
+									<TableCell>
+										<Badge variant="warning">Aguardando NF-e</Badge>
+									</TableCell>
+									<TableCell className="text-right tabular-nums">
+										R$ 12.480,00
+									</TableCell>
+									<TableActionsCell>
+										<Button
+											aria-label="Ver pedido #10424"
+											size="icon-sm"
+											variant="outline"
+										>
+											<Eye aria-hidden className="size-3.5" />
+										</Button>
+										<Button
+											aria-label="Editar pedido #10424"
+											size="icon-sm"
+											variant="secondary"
+										>
+											<Pencil aria-hidden className="size-3.5" />
 										</Button>
 									</TableActionsCell>
 								</TableRow>
