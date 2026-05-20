@@ -12,6 +12,7 @@ import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
+import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
@@ -182,7 +183,7 @@ function attributeValueRow(
 export async function createTool(
 	input: ToolFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireCapability("tools.create");
+	const session = await requireCapability("tools.create");
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: errorMessage(parsed.error) };
@@ -271,6 +272,13 @@ export async function createTool(
 		return { ok: false, error: errorMessage(error) };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "tool.created",
+		targetId: id,
+		targetType: "tool",
+		metadata: { name: parsed.data.name, slug },
+	});
 	revalidatePath(TOOLS_PATH);
 	return { ok: true, data: { id } };
 }
@@ -279,7 +287,7 @@ export async function updateTool(
 	id: string,
 	input: ToolFormValues
 ): Promise<ActionResult<{ id: string }>> {
-	await requireCapability("tools.update");
+	const session = await requireCapability("tools.update");
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: errorMessage(parsed.error) };
@@ -458,13 +466,26 @@ export async function updateTool(
 		await Promise.allSettled(toDelete.map((row) => deleteToolImage(row.url)));
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "tool.updated",
+		targetId: id,
+		targetType: "tool",
+		metadata: { name: parsed.data.name },
+	});
 	revalidatePath(TOOLS_PATH);
 	revalidatePath(`${TOOLS_PATH}/${id}`);
 	return { ok: true, data: { id } };
 }
 
 export async function deleteTool(id: string): Promise<ActionResult> {
-	await requireCapability("tools.delete");
+	const session = await requireCapability("tools.delete");
+
+	const [toolRow] = await db
+		.select({ name: tool.name })
+		.from(tool)
+		.where(eq(tool.id, id))
+		.limit(1);
 
 	const urls = await db
 		.select({ url: toolImage.url })
@@ -481,6 +502,13 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 		await Promise.allSettled(urls.map((row) => deleteToolImage(row.url)));
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "tool.deleted",
+		targetId: id,
+		targetType: "tool",
+		metadata: { name: toolRow?.name },
+	});
 	revalidatePath(TOOLS_PATH);
 	revalidatePath(`${TOOLS_PATH}/${id}`);
 	return { ok: true, data: undefined };
