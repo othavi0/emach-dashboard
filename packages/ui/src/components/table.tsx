@@ -68,7 +68,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
 	return (
 		<th
 			className={cn(
-				"h-10 whitespace-nowrap px-2 text-left align-middle font-medium text-foreground [&:has([role=checkbox])]:pr-0",
+				"h-10 whitespace-nowrap px-3 text-left align-middle font-medium text-foreground [&:has([role=checkbox])]:pr-0",
 				className
 			)}
 			data-slot="table-head"
@@ -81,7 +81,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
 	return (
 		<td
 			className={cn(
-				"whitespace-nowrap p-2 align-middle [&:has([role=checkbox])]:pr-0",
+				"whitespace-nowrap px-3 py-2.5 align-middle [&:has([role=checkbox])]:pr-0",
 				className
 			)}
 			data-slot="table-cell"
@@ -103,8 +103,42 @@ function TableCaption({
 	);
 }
 
+function TableActionsHead({
+	className,
+	children,
+	...props
+}: React.ComponentProps<"th">) {
+	return (
+		<TableHead
+			className={cn("w-full whitespace-nowrap pl-6 text-right", className)}
+			data-slot="table-actions-head"
+			{...props}
+		>
+			{children ?? "Ações"}
+		</TableHead>
+	);
+}
+
+function TableActionsCell({
+	className,
+	children,
+	...props
+}: React.ComponentProps<"td">) {
+	return (
+		<TableCell
+			className={cn("w-full pl-6 text-right", className)}
+			data-slot="table-actions-cell"
+			{...props}
+		>
+			<div className="flex items-center justify-end gap-1">{children}</div>
+		</TableCell>
+	);
+}
+
 export {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCaption,
 	TableCell,

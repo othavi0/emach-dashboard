@@ -30,7 +30,9 @@ export default async function EditBranchPage({ params }: EditBranchPageProps) {
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-medium text-2xl tracking-tight">Editar filial</h1>
+				<h1 className="font-medium font-serif text-4xl tracking-tight">
+					Editar filial
+				</h1>
 				<p className="text-muted-foreground text-sm">
 					Atualize os dados da filial{" "}
 					<span className="font-medium text-foreground">{branch.name}</span>.

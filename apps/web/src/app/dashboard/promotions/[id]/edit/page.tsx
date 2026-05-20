@@ -41,7 +41,7 @@ export default async function EditPromotionPage({
 					<ArrowLeft className="size-3.5" />
 					Voltar para promoções
 				</Link>
-				<h1 className="font-medium text-2xl tracking-tight">
+				<h1 className="font-medium font-serif text-4xl tracking-tight">
 					Editar: {promotion.title}
 				</h1>
 				<p className="text-muted-foreground text-sm">
