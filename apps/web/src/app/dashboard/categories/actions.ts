@@ -8,6 +8,7 @@ import { and, asc, count, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { type CategoryInput, categorySchema } from "./schema";
@@ -211,7 +212,7 @@ export async function getCategoryProducts(
 export async function createCategory(
 	input: CategoryInput
 ): Promise<ActionResult<{ id: string }>> {
-	await requireCapability("categories.manage");
+	const session = await requireCapability("categories.manage");
 
 	const parsed = categorySchema.safeParse(input);
 	if (!parsed.success) {
@@ -235,6 +236,13 @@ export async function createCategory(
 		return { ok: false, error: mapWriteError(e) };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "category.created",
+		targetId: id,
+		targetType: "category",
+		metadata: { name: parsed.data.name, slug: parsed.data.slug },
+	});
 	revalidateCategoryTrees();
 	return { ok: true, data: { id } };
 }
@@ -243,7 +251,7 @@ export async function updateCategory(
 	id: string,
 	input: CategoryInput
 ): Promise<ActionResult> {
-	await requireCapability("categories.manage");
+	const session = await requireCapability("categories.manage");
 
 	const parsed = categorySchema.safeParse(input);
 	if (!parsed.success) {
@@ -265,6 +273,13 @@ export async function updateCategory(
 		return { ok: false, error: mapWriteError(e) };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "category.updated",
+		targetId: id,
+		targetType: "category",
+		metadata: { name: parsed.data.name },
+	});
 	revalidateCategoryTrees();
 	revalidatePath(`${CATEGORIES_PATH}/${id}`);
 	revalidatePath(`${CATEGORIES_PATH}/${id}/edit`);
@@ -275,7 +290,7 @@ export async function toggleCategoryActive(
 	id: string,
 	isActive: boolean
 ): Promise<ActionResult> {
-	await requireCapability("categories.manage");
+	const session = await requireCapability("categories.manage");
 
 	try {
 		await db.update(category).set({ isActive }).where(eq(category.id, id));
@@ -284,6 +299,13 @@ export async function toggleCategoryActive(
 		return { ok: false, error: "Não foi possível atualizar o status" };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "category.updated",
+		targetId: id,
+		targetType: "category",
+		metadata: { isActive },
+	});
 	revalidateCategoryTrees();
 	revalidatePath(`${CATEGORIES_PATH}/${id}`);
 	return { ok: true, data: undefined };
@@ -295,7 +317,7 @@ const reorderSchema = z.object({
 });
 
 export async function reorderCategories(input: unknown): Promise<ActionResult> {
-	await requireCapability("categories.manage");
+	const session = await requireCapability("categories.manage");
 
 	const parsed = reorderSchema.safeParse(input);
 	if (!parsed.success) {
@@ -316,12 +338,27 @@ export async function reorderCategories(input: unknown): Promise<ActionResult> {
 		return { ok: false, error: "Não foi possível salvar a nova ordem" };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "category.reordered",
+		targetType: "category",
+		metadata: {
+			parentId: parsed.data.parentId,
+			count: parsed.data.orderedIds.length,
+		},
+	});
 	revalidateCategoryTrees();
 	return { ok: true, data: undefined };
 }
 
 export async function deleteCategory(id: string): Promise<ActionResult> {
-	await requireCapability("categories.manage");
+	const session = await requireCapability("categories.manage");
+
+	const [categoryRow] = await db
+		.select({ name: category.name })
+		.from(category)
+		.where(eq(category.id, id))
+		.limit(1);
 
 	try {
 		await db.delete(category).where(eq(category.id, id));
@@ -335,6 +372,13 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
 		return { ok: false, error: zodErrorMessage(e) };
 	}
 
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "category.deleted",
+		targetId: id,
+		targetType: "category",
+		metadata: { name: categoryRow?.name },
+	});
 	revalidateCategoryTrees();
 	return { ok: true, data: undefined };
 }
