@@ -64,7 +64,7 @@ export default async function BranchDetailPage({ params }: PageProps) {
 			value: "stock",
 			label: "Estoque",
 			icon: Package,
-			content: <StockTab branchId={id} />,
+			content: <StockTab branchId={id} branchName={detail.name} />,
 		},
 	];
 
