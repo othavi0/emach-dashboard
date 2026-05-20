@@ -19,7 +19,10 @@ import { logUserActivity } from "@/lib/activity";
 
 describe("logUserActivity", () => {
 	beforeEach(() => {
-		insertMock.mockClear();
+		insertMock.mockReset();
+		insertMock.mockReturnValue({
+			values: vi.fn().mockResolvedValue(undefined),
+		});
 	});
 
 	it("insere row com actorUserId + action + metadata", async () => {
@@ -49,6 +52,7 @@ describe("logUserActivity", () => {
 			actorUserId: "user-1",
 			action: "system.healthcheck",
 		});
+		expect(insertMock).toHaveBeenCalledOnce();
 		const values = insertMock.mock.results[0]?.value.values;
 		expect(values).toHaveBeenCalledWith(
 			expect.objectContaining({
