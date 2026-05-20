@@ -1,38 +1,46 @@
 import { buttonVariants } from "@emach/ui/components/button";
-import {
-	Empty,
-	EmptyContent,
-	EmptyDescription,
-	EmptyHeader,
-	EmptyTitle,
-} from "@emach/ui/components/empty";
+import { AlertCircle, CheckCircle2, Factory, Plus } from "lucide-react";
 import Link from "next/link";
 
+import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
 import { PageHeader } from "@/components/page-header";
+import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
-import { SuppliersFilter } from "./_components/suppliers-filter";
+import { SuppliersFilters } from "./_components/suppliers-filter";
 import { SuppliersTable } from "./_components/suppliers-table";
-import { listSuppliers } from "./actions";
+import { fetchSuppliersTablePage, type SuppliersFiltersInput } from "./actions";
+import { getSupplierKpis } from "./data";
+
+export const dynamic = "force-dynamic";
 
 interface PageProps {
 	searchParams: Promise<{
 		search?: string;
+		sort?: string;
 	}>;
 }
 
-export const dynamic = "force-dynamic";
-
 export default async function SuppliersPage({ searchParams }: PageProps) {
+	await requireCapabilityOrRedirect("suppliers.read");
 	const session = await requireCurrentSession();
-	const canMutate = (session.user.role ?? "user") === "admin";
-	const params = await searchParams;
-	const search = params.search ?? "";
-	const suppliers = await listSuppliers({ search: search || undefined });
-	const hasFilters = Boolean(search);
-	const isEmpty = suppliers.length === 0;
+	const role = session.user.role ?? "user";
+	const canMutate =
+		role === "admin" || role === "super_admin" || role === "manager";
+
+	const sp = await searchParams;
+
+	const filters: SuppliersFiltersInput = {
+		search: sp.search,
+		sort: sp.sort === "name" ? "name" : "newest",
+	};
+
+	const [kpis, first] = await Promise.all([
+		getSupplierKpis(),
+		fetchSuppliersTablePage({ filters, cursor: null }),
+	]);
 
 	return (
-		<>
+		<div className="flex flex-col gap-6">
 			<PageHeader
 				action={
 					canMutate ? (
@@ -48,45 +56,41 @@ export default async function SuppliersPage({ searchParams }: PageProps) {
 				title="Fornecedores"
 			/>
 
-			<SuppliersFilter initialSearch={search} />
+			<EntityKpisRow
+				items={[
+					{
+						label: "Total",
+						value: kpis.total,
+						icon: Factory,
+					},
+					{
+						label: "Com ferramentas ativas",
+						value: kpis.withActive,
+						icon: CheckCircle2,
+					},
+					{
+						label: "Sem ferramentas",
+						value: kpis.empty,
+						tone: kpis.empty > 0 ? "warning" : "default",
+						icon: AlertCircle,
+					},
+					{
+						label: "Adicionados em 30 dias",
+						value: kpis.recent30d,
+						icon: Plus,
+					},
+				]}
+			/>
 
-			{isEmpty ? (
-				<Empty>
-					<EmptyHeader>
-						<EmptyTitle>
-							{hasFilters
-								? "Nenhum fornecedor encontrado"
-								: "Nenhum fornecedor cadastrado"}
-						</EmptyTitle>
-						<EmptyDescription>
-							{hasFilters
-								? "Tente ajustar a busca para encontrar o fornecedor."
-								: "Comece cadastrando fornecedores para associá-los às ferramentas."}
-						</EmptyDescription>
-					</EmptyHeader>
-					<EmptyContent>
-						{hasFilters ? (
-							<Link
-								className={buttonVariants({ variant: "ghost" })}
-								href="/dashboard/suppliers"
-							>
-								Limpar busca
-							</Link>
-						) : (
-							canMutate && (
-								<Link
-									className={buttonVariants({ variant: "default" })}
-									href="/dashboard/suppliers/new"
-								>
-									Novo fornecedor
-								</Link>
-							)
-						)}
-					</EmptyContent>
-				</Empty>
-			) : (
-				<SuppliersTable canMutate={canMutate} suppliers={suppliers} />
-			)}
-		</>
+			<SuppliersFilters />
+
+			<SuppliersTable
+				canMutate={canMutate}
+				filters={filters}
+				initial={first.items}
+				initialCursor={first.nextCursor}
+				key={JSON.stringify(filters)}
+			/>
+		</div>
 	);
 }
