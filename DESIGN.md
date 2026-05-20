@@ -159,6 +159,41 @@ Implementação canônica: `apps/web/src/app/dashboard/promotions/_components/pr
   - **Invalid:** `border-destructive` + `ring-1 ring-destructive/20`.
 - `Checkbox` / `RadioGroup` / `Switch`: bg coral quando checked.
 
+### Tabs
+
+`packages/ui/src/components/tabs.tsx`. Sobre `@base-ui/react`. 2 variants × 2 orientations × scrollable opcional.
+
+**Variants:**
+
+| Variant | Aparência | Uso |
+|---|---|---|
+| `default` (padrão) | Pill group em `bg-accent`, indicador é a aba ativa em `bg-background` | Filtros primários, segmentação principal (ex: "Ativos / Pendentes / Suspensos") |
+| `line` | Underline `after:bg-foreground` na aba ativa, sem fundo | Sub-navegação dentro de página de detalhe (ex: tabs em customer-tabs perfil/endereços/pedidos) |
+
+**Orientations:** `horizontal` (default) e `vertical` (passe `orientation="vertical"` no `<Tabs>`).
+
+**Scrollable:** `<TabsList scrollable>` — adiciona overflow-x-auto + fade gradient à direita quando há mais abas que cabem. Use quando muitas categorias possíveis (customer-tabs com perfil/endereços/pedidos/pagamentos/reviews/LGPD/auditoria).
+
+**Padrões de contagem (ordem de preferência):**
+
+1. **Contagem inline** — `<TabsTrigger value="active">Ativos · 24</TabsTrigger>`. Preferida. Sutil, lê como continuação do label.
+2. **Badge de alerta** — só quando contagem > 0 é informação acionável (não decorativa):
+   ```tsx
+   <TabsTrigger value="pending">
+     Pendentes
+     {count > 0 && <Badge className="ml-1.5" variant="warning">{count}</Badge>}
+   </TabsTrigger>
+   ```
+   Use `warning` ou `destructive` na badge — coral default vira ruído.
+
+**Regras:**
+- Use `default` em filtros e segmentação de listagem; `line` em sub-navegação de detalhe.
+- Não use mais de 7 abas horizontais sem `scrollable` — dá overflow silencioso.
+- Não use 2 níveis de tabs aninhadas — vira labirinto. Use sidebar/sub-rota.
+- Body de `<TabsContent>` em `text-xs/relaxed` por padrão (component baseline).
+
+Implementação canônica: `apps/web/src/app/dashboard/users/_components/users-tabs.tsx` (default + contagem inline + badge condicional) e `apps/web/src/app/dashboard/customers/_components/customer-tabs.tsx` (scrollable, ~7 abas).
+
 ### Cards & Containers
 
 - `Card`: `bg-card` (#262320), ring `ring-1 ring-foreground/10` (substitui border tradicional), padding interno 16–32px.

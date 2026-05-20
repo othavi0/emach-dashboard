@@ -102,7 +102,8 @@ const tableOfContents: { id: string; title: string }[] = [
 	{ id: "alert", title: "Alert" },
 	{ id: "overlays", title: "Overlays" },
 	{ id: "menu", title: "Dropdown Menu" },
-	{ id: "tabs", title: "Tabs & Accordion" },
+	{ id: "tabs", title: "Tabs" },
+	{ id: "accordion", title: "Accordion" },
 	{ id: "table", title: "Table" },
 	{ id: "nav", title: "Navegação" },
 	{ id: "feedback", title: "Feedback" },
@@ -577,8 +578,12 @@ export default function DesignPage() {
 					</Showcase>
 				</Section>
 
-				<Section id="tabs" title="Tabs & Accordion">
-					<Showcase label="tabs (default)">
+				<Section
+					description='2 variants × 2 orientations × scrollable opcional. variant="default" = pill group em bg-accent; variant="line" = underline minimal. Use default em filtros e segmentação primária; line em sub-navegação dentro de página de detalhe. Contagem inline ("Ativos · 12") preferida a Badge — Badge só quando contagem é alerta (pendentes > 0).'
+					id="tabs"
+					title="Tabs"
+				>
+					<Showcase label='variant="default" (pill group, padrão)'>
 						<Tabs className="w-full" defaultValue="resumo">
 							<TabsList>
 								<TabsTrigger value="resumo">Resumo</TabsTrigger>
@@ -602,6 +607,85 @@ export default function DesignPage() {
 							</TabsContent>
 						</Tabs>
 					</Showcase>
+
+					<Showcase label='variant="line" (underline, sub-navegação)'>
+						<Tabs className="w-full" defaultValue="perfil">
+							<TabsList variant="line">
+								<TabsTrigger value="perfil">Perfil</TabsTrigger>
+								<TabsTrigger value="enderecos">Endereços</TabsTrigger>
+								<TabsTrigger value="pedidos">Pedidos</TabsTrigger>
+								<TabsTrigger value="reviews">Reviews</TabsTrigger>
+							</TabsList>
+							<TabsContent value="perfil">
+								<p className="pt-3 text-muted-foreground text-xs/relaxed">
+									Dados pessoais e contato.
+								</p>
+							</TabsContent>
+						</Tabs>
+					</Showcase>
+
+					<Showcase label="contagem inline (preferida)">
+						<Tabs className="w-full" defaultValue="active">
+							<TabsList>
+								<TabsTrigger value="active">Ativos · 24</TabsTrigger>
+								<TabsTrigger value="pending">Pendentes · 3</TabsTrigger>
+								<TabsTrigger value="suspended">Suspensos · 1</TabsTrigger>
+							</TabsList>
+						</Tabs>
+					</Showcase>
+
+					<Showcase label="badge de alerta (só quando contagem > 0 importa)">
+						<Tabs className="w-full" defaultValue="todos">
+							<TabsList>
+								<TabsTrigger value="todos">Todos</TabsTrigger>
+								<TabsTrigger value="pendentes">
+									Pendentes
+									<Badge className="ml-1.5" variant="warning">
+										5
+									</Badge>
+								</TabsTrigger>
+								<TabsTrigger value="aprovados">Aprovados</TabsTrigger>
+							</TabsList>
+						</Tabs>
+					</Showcase>
+
+					<Showcase label="scrollable (muitas abas, overflow horizontal com fade)">
+						<Tabs className="w-full max-w-md" defaultValue="overview">
+							<TabsList scrollable>
+								<TabsTrigger value="overview">Overview</TabsTrigger>
+								<TabsTrigger value="profile">Perfil</TabsTrigger>
+								<TabsTrigger value="addresses">Endereços</TabsTrigger>
+								<TabsTrigger value="orders">Pedidos</TabsTrigger>
+								<TabsTrigger value="payments">Pagamentos</TabsTrigger>
+								<TabsTrigger value="reviews">Reviews</TabsTrigger>
+								<TabsTrigger value="lgpd">LGPD</TabsTrigger>
+								<TabsTrigger value="audit">Auditoria</TabsTrigger>
+							</TabsList>
+						</Tabs>
+					</Showcase>
+
+					<Showcase label="orientation vertical">
+						<Tabs
+							className="w-full max-w-md"
+							defaultValue="geral"
+							orientation="vertical"
+						>
+							<TabsList>
+								<TabsTrigger value="geral">Geral</TabsTrigger>
+								<TabsTrigger value="filiais">Filiais</TabsTrigger>
+								<TabsTrigger value="notificacoes">Notificações</TabsTrigger>
+								<TabsTrigger value="acesso">Acesso e API</TabsTrigger>
+							</TabsList>
+							<TabsContent value="geral">
+								<p className="pt-3 pl-3 text-muted-foreground text-xs/relaxed">
+									Configurações de conta e workspace.
+								</p>
+							</TabsContent>
+						</Tabs>
+					</Showcase>
+				</Section>
+
+				<Section id="accordion" title="Accordion">
 					<Showcase label="accordion (default open)">
 						<AccordionShowcase />
 					</Showcase>
