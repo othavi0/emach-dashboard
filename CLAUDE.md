@@ -189,7 +189,7 @@ Sistema **Editorial workshop — coral + serif + dark-only** — dark-mode únic
 
 **Não:** cool blue-grays, light mode, copper hue 45, `font-serif` em h3/body/controls/sidebar, focus ring sem offset (`ring-1` puro), drop shadows pesados, `<img>` puro, sharp corners <6px, status baseado só em cor (sempre ícone + label + cor), bold weight (600+) em serif, `bg-surface-deep` como surface padrão de card.
 
-**Sim:** Cormorant Garamond serif (weight **500**, tracking-tight) em **h1 + h2 de todas as páginas** (display text-5xl / h1 text-4xl / h2 text-2xl), Inter sans no resto (body, h3, controls, sidebar, tabelas), focus = `ring-1 ring-ring ring-offset-2 ring-offset-background` + border-ring (hairline com halo, AAA), depth via surface contrast (não shadow), `bg-surface-deep` em code/log/featured cards, section bands (`bg-muted/50` border-y) em data zones, `<Image>` do Next, `prefers-reduced-motion: reduce` respeitado.
+**Sim:** Cormorant Garamond serif (weight **500**, tracking-tight) em **h1 + h2 de todas as páginas** (display text-5xl / h1 text-4xl / h2 text-2xl), Inter sans no resto (body, h3, controls, sidebar, tabelas), focus = `ring-1 ring-ring ring-offset-2 ring-offset-background` (hairline single line com halo, sem border flip), depth via surface contrast (não shadow), `bg-surface-deep` em code/log/featured cards, section bands (`bg-muted/50` border-y) em data zones, `<Image>` do Next, `prefers-reduced-motion: reduce` respeitado.
 
 Toda revisão de componente UI: **rodar a skill `web-design-guidelines` antes de aprovar**.
 

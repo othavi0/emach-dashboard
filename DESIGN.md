@@ -58,7 +58,7 @@ Tokens em `packages/ui/src/styles/globals.css`, escopados em `.dark`. Use Tailwi
 
 ### Ring
 
-`--ring` = primary 75% alpha. Componentes aplicam **`ring-1 ring-ring ring-offset-2 ring-offset-background`** — hairline coral 1px + halo transparente 2px. Combinado com `border-ring` (que flipa a border do componente pra coral), o focus signal é: border 1px sólida coral + 2px transparent + 1px ring coral. Total ~4px de área visual mas só 2px coloridos. AAA preserva via border + ring coral somando ≥2px perimeter (WCAG 2.2 SC 2.4.13).
+`--ring` = primary 75% alpha. Componentes aplicam **`ring-1 ring-ring ring-offset-2 ring-offset-background`** — hairline coral 1px afastado 2px do elemento. Single line, sem border flip (border flip + ring criava efeito duplo feio). Para AAA estrito (WCAG 2.2 SC 2.4.13), o halo de 2px transparente + ring 1px ocupa área equivalente a 2px perimeter colorido com separação do bg. SC 2.4.7 (foco visível) atendido confortavelmente.
 
 ## 3. Tipografia
 
@@ -302,8 +302,8 @@ WCAG **AAA** target. Não-negociável para equipe interna em sessão longa.
 
 ### Focus
 
-- **`ring-1 ring-ring ring-offset-2 ring-offset-background`** — hairline coral 1px com halo transparente 2px. Combinado com `border-ring` (border do componente flipa pra coral), perímetro colorido soma ≥2px (AAA WCAG 2.2 SC 2.4.13).
-- Cor da ring acompanha role da ação (destructive ring em button destructive, etc).
+- **`ring-1 ring-ring ring-offset-2 ring-offset-background`** — hairline coral 1px com halo transparente 2px. **Sem `border-ring`** — border flip + ring criava efeito duplo (duas linhas paralelas).
+- Cor da ring acompanha role da ação (destructive ring em button destructive, etc) via `focus-visible:ring-destructive/40` etc.
 - `--ring` em 75% alpha pra hairline ter presença visual real.
 - `outline` fallback no `:focus-visible` global (1px sólido + offset 2px) garante visibilidade mesmo se classe Tailwind falhar.
 
@@ -369,7 +369,7 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 - **6 roles cromáticos distintos** (`primary / secondary / destructive / warning / info / success`), cada com `--*` + `--*-foreground` em globals.css, mapeados em `@theme inline` como `--color-*` tailwind tokens. Adicionados `warning / info / success` em `Button`, `Badge`, `Alert` variants.
 - **Surfaces afastadas:** `--surface-deep` `0.11` (novo) / `--background` `0.16` / `--muted` `0.18` / `--card` `0.20` / `--border` `0.36` / `--input` `0.42` / `--secondary` `0.42`. 6 níveis distintos com diff ≥0.02 luminância.
 - **Tokens `--border` e `--input` separados** (`0.36` vs `0.42`) — mantido.
-- **Ring 1px + offset 2px em primary 75%** — refinement 2026-05-20: hairline com halo substitui ring-2 sólido. Combinado com border-ring atende AAA WCAG 2.2 SC 2.4.13.
+- **Ring 1px + offset 2px em primary 75%** — refinement 2026-05-20: hairline com halo substitui ring-2 sólido. **Sem border flip** (combo border-ring + ring criava efeito duplo, refatorado pra single line).
 - **`prefers-reduced-motion: reduce`** zera animations/transitions globalmente — AAA requirement.
 - **Cantos arredondados** mantidos (rounded-md interactive, rounded-lg surfaces, etc).
 - **Body type** `text-sm` (14px) baseline — mantido.
@@ -386,7 +386,7 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 | Como sinalizo "em processamento"? | `bg-info` + ícone clock + label |
 | Posso usar cool gray? | Apenas em `--info` (teal) e chart-3. Em chrome geral, não. |
 | Qual a linha base de body? | `text-sm leading-relaxed` (14px / 1.625) |
-| Como faço focus state? | `focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background` |
+| Como faço focus state? | `focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background` (sem border flip — single hairline com halo) |
 | Qual radius pra card novo? | `rounded-lg` (12px). Botões/inputs `rounded-md` (8px). |
 | Qual o contraste mínimo? | AAA: 7:1 body, 4.5:1 large text, 3:1 non-text UI. |
 | Onde uso `bg-surface-deep`? | Code blocks, log/terminal viewers, featured-card-dark. **Não** em card normal. |
