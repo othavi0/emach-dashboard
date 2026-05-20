@@ -137,7 +137,7 @@ Implementação canônica: `apps/web/src/app/dashboard/promotions/_components/pr
 
 ### Badges
 
-`packages/ui/src/components/badge.tsx`. Mesmo conjunto de variants do Button — `default / secondary / destructive / warning / info / success / outline / ghost / link`. Use a role apropriada ao estado:
+`packages/ui/src/components/badge.tsx`. Mesmo conjunto de variants do Button — `default / secondary / destructive / warning / info / success / outline / ghost / link`. Variants saturadas carregam `border-background/40` (hairline escuro 40% alpha) que cria separação quando a badge sita em surfaces coloridas (ex: badge warning dentro de tab ativa coral). Use a role apropriada ao estado:
 
 - `default` (coral) — destaque positivo / "Novo" / brand stamp
 - `secondary` — status neutro / contagem / "Rascunho"
