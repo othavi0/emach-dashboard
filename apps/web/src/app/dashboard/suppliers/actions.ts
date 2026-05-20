@@ -1,10 +1,13 @@
 "use server";
 
 import { db } from "@emach/db";
+import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
 import { supplier, tool, toolVariant } from "@emach/db/schema/tools";
-import { and, asc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { logUserActivity } from "@/lib/activity";
+import { decodeCursor, encodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { normalizeCnpj } from "@/lib/validation/cnpj";
@@ -33,6 +36,7 @@ export interface LinkedTool {
 }
 
 export interface SupplierDetail {
+	cnpj: string | null;
 	contactEmail: string | null;
 	createdAt: Date;
 	id: string;
@@ -41,11 +45,19 @@ export interface SupplierDetail {
 	phone: string | null;
 	tools: LinkedTool[];
 	updatedAt: Date;
+	website: string | null;
 }
 
 export type ActionResult<T = undefined> =
 	| { ok: true; data: T }
 	| { ok: false; error: string };
+
+export type SuppliersSort = "newest" | "name";
+
+export interface SuppliersFiltersInput {
+	search?: string;
+	sort: SuppliersSort;
+}
 
 function normalizePayload(input: SupplierFormValues) {
 	const contactEmail = input.contactEmail?.trim();
@@ -112,6 +124,98 @@ export async function listSuppliers(params?: {
 	}));
 }
 
+type SupplierBaseRow = typeof supplier.$inferSelect;
+
+export async function fetchSuppliersPage({
+	filters,
+	cursor,
+}: {
+	filters: SuppliersFiltersInput;
+	cursor: string | null;
+}): Promise<InfiniteResult<SupplierBaseRow>> {
+	const decoded = cursor ? decodeCursor(cursor) : null;
+	const conditions: ReturnType<typeof sql>[] = [];
+
+	if (filters.search) {
+		const pattern = `%${filters.search}%`;
+		conditions.push(
+			sql`(${supplier.name} ILIKE ${pattern} OR ${supplier.contactEmail} ILIKE ${pattern} OR ${supplier.phone} ILIKE ${pattern})`
+		);
+	}
+
+	if (decoded) {
+		if (filters.sort === "newest" && decoded.sort === "newest") {
+			conditions.push(
+				sql`(${supplier.createdAt}, ${supplier.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+			);
+		} else if (filters.sort === "name" && decoded.sort === "name") {
+			conditions.push(
+				sql`(${supplier.name}, ${supplier.id}) > (${decoded.name}, ${decoded.id})`
+			);
+		}
+	}
+
+	const whereExpr =
+		conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
+	const orderExprs =
+		filters.sort === "name"
+			? [asc(supplier.name), asc(supplier.id)]
+			: [desc(supplier.createdAt), desc(supplier.id)];
+
+	const rows = await db
+		.select()
+		.from(supplier)
+		.where(whereExpr)
+		.orderBy(...orderExprs)
+		.limit(BATCH_SIZE + 1);
+
+	const hasMore = rows.length > BATCH_SIZE;
+	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
+	const last = items.at(-1);
+	let nextCursor: string | null = null;
+	if (hasMore && last) {
+		nextCursor =
+			filters.sort === "name"
+				? encodeCursor({ v: 1, sort: "name", name: last.name, id: last.id })
+				: encodeCursor({
+						v: 1,
+						sort: "newest",
+						createdAt: last.createdAt.toISOString(),
+						id: last.id,
+					});
+	}
+	return { items, nextCursor };
+}
+
+export async function fetchSuppliersTablePage({
+	filters,
+	cursor,
+}: {
+	filters: SuppliersFiltersInput;
+	cursor: string | null;
+}) {
+	const { getSupplierTableAggregates } = await import("./data");
+	const page = await fetchSuppliersPage({ filters, cursor });
+	if (page.items.length === 0) {
+		return { items: [], nextCursor: null };
+	}
+	const ids = page.items.map((s) => s.id);
+	const aggregates = await getSupplierTableAggregates(ids);
+	const items = page.items.map((s) => {
+		const agg = aggregates.get(s.id) ?? { toolsTotal: 0, toolsActive: 0 };
+		return {
+			id: s.id,
+			name: s.name,
+			contactEmail: s.contactEmail,
+			phone: s.phone,
+			createdAt: s.createdAt,
+			toolsTotal: agg.toolsTotal,
+			toolsActive: agg.toolsActive,
+		};
+	});
+	return { items, nextCursor: page.nextCursor };
+}
+
 export async function getSupplier(id: string): Promise<SupplierDetail | null> {
 	await requireCurrentSession();
 
@@ -165,6 +269,15 @@ export async function createSupplier(
 		return { ok: false, error: errorMessage(error) };
 	}
 
+	await db.insert(supplierAuditLog).values({
+		id: crypto.randomUUID(),
+		supplierId: id,
+		actorType: "user",
+		actorUserId: session.user.id,
+		action: "created",
+		afterJson: payload,
+	});
+
 	await logUserActivity({
 		actorUserId: session.user.id,
 		action: "supplier.created",
@@ -190,11 +303,38 @@ export async function updateSupplier(
 
 	const payload = normalizePayload(parsed.data);
 
+	const [before] = await db
+		.select({
+			name: supplier.name,
+			contactEmail: supplier.contactEmail,
+			phone: supplier.phone,
+			website: supplier.website,
+			cnpj: supplier.cnpj,
+			notes: supplier.notes,
+		})
+		.from(supplier)
+		.where(eq(supplier.id, id))
+		.limit(1);
+
+	if (!before) {
+		return { ok: false, error: "Fornecedor não encontrado" };
+	}
+
 	try {
 		await db.update(supplier).set(payload).where(eq(supplier.id, id));
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}
+
+	await db.insert(supplierAuditLog).values({
+		id: crypto.randomUUID(),
+		supplierId: id,
+		actorType: "user",
+		actorUserId: session.user.id,
+		action: "profile_updated",
+		beforeJson: before,
+		afterJson: payload,
+	});
 
 	await logUserActivity({
 		actorUserId: session.user.id,
@@ -205,7 +345,6 @@ export async function updateSupplier(
 	});
 	revalidatePath(SUPPLIERS_PATH);
 	revalidatePath(`${SUPPLIERS_PATH}/${id}`);
-	revalidatePath(`${SUPPLIERS_PATH}/${id}/edit`);
 	revalidatePath(TOOLS_PATH);
 	return { ok: true, data: { id } };
 }
@@ -213,30 +352,56 @@ export async function updateSupplier(
 export async function deleteSupplier(id: string): Promise<ActionResult> {
 	const session = await requireCapability("suppliers.manage");
 
-	const [supplierRow] = await db
-		.select({ name: supplier.name })
+	const [counts] = await db
+		.select({ n: sql<number>`count(*)::int` })
+		.from(tool)
+		.where(eq(tool.supplierId, id));
+
+	if ((counts?.n ?? 0) > 0) {
+		return {
+			ok: false,
+			error: `Fornecedor tem ${counts?.n} ferramenta(s) vinculada(s). Mova ou exclua antes.`,
+		};
+	}
+
+	const [snapshot] = await db
+		.select({
+			name: supplier.name,
+			contactEmail: supplier.contactEmail,
+			phone: supplier.phone,
+			website: supplier.website,
+			cnpj: supplier.cnpj,
+			notes: supplier.notes,
+		})
 		.from(supplier)
 		.where(eq(supplier.id, id))
 		.limit(1);
 
+	if (!snapshot) {
+		return { ok: false, error: "Fornecedor não encontrado" };
+	}
+
 	try {
-		await db.transaction(async (tx) => {
-			await tx
-				.update(tool)
-				.set({ supplierId: null })
-				.where(eq(tool.supplierId, id));
-			await tx.delete(supplier).where(eq(supplier.id, id));
-		});
+		await db.delete(supplier).where(eq(supplier.id, id));
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}
+
+	await db.insert(supplierAuditLog).values({
+		id: crypto.randomUUID(),
+		supplierId: id,
+		actorType: "user",
+		actorUserId: session.user.id,
+		action: "deleted",
+		beforeJson: snapshot,
+	});
 
 	await logUserActivity({
 		actorUserId: session.user.id,
 		action: "supplier.deleted",
 		targetId: id,
 		targetType: "supplier",
-		metadata: { name: supplierRow?.name },
+		metadata: { name: snapshot.name },
 	});
 	revalidatePath(SUPPLIERS_PATH);
 	revalidatePath(TOOLS_PATH);
