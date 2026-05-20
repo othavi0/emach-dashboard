@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const phoneRegex = /^[\d\s()+-]+$/;
+
 export const branchSchema = z.object({
 	name: z
 		.string()
@@ -13,6 +15,14 @@ export const branchSchema = z.object({
 		.max(500, "Endereço muito longo")
 		.optional()
 		.or(z.literal("")),
+	phone: z
+		.string()
+		.trim()
+		.max(40, "Telefone muito longo")
+		.regex(phoneRegex, "Telefone inválido")
+		.optional()
+		.or(z.literal("")),
+	responsibleUserId: z.string().trim().optional().or(z.literal("")),
 });
 
 export type BranchFormValues = z.infer<typeof branchSchema>;

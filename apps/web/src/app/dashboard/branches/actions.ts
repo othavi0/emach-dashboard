@@ -1,8 +1,9 @@
 "use server";
 
 import { db } from "@emach/db";
-import { branch } from "@emach/db/schema/inventory";
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { branch, stockLevel } from "@emach/db/schema/inventory";
+import { order } from "@emach/db/schema/orders";
+import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
@@ -15,6 +16,7 @@ import {
 	type BranchFormValues,
 	branchSchema,
 } from "./_components/branch-schema";
+import type { BranchTableRow } from "./data";
 
 const BRANCHES_PATH = "/dashboard/branches";
 
@@ -26,9 +28,13 @@ export type ActionResult<T = undefined> =
 
 function normalizePayload(input: BranchFormValues) {
 	const address = input.address?.trim();
+	const phone = input.phone?.trim();
+	const responsibleUserId = input.responsibleUserId?.trim();
 	return {
 		name: input.name,
 		address: address ? address : null,
+		phone: phone ? phone : null,
+		responsibleUserId: responsibleUserId ? responsibleUserId : null,
 	};
 }
 
@@ -180,10 +186,40 @@ export async function deleteBranch(id: string): Promise<ActionResult> {
 		.where(eq(branch.id, id))
 		.limit(1);
 
-	if (target?.isDefault) {
+	if (!target) {
+		return { ok: false, error: "Filial não encontrada" };
+	}
+
+	if (target.isDefault) {
 		return {
 			ok: false,
 			error: "Marque outra filial como padrão antes de deletar esta",
+		};
+	}
+
+	const [stockCheck] = await db
+		.select({ n: sql<number>`count(*)::int` })
+		.from(stockLevel)
+		.where(and(eq(stockLevel.branchId, id), gt(stockLevel.quantity, 0)));
+
+	if ((stockCheck?.n ?? 0) > 0) {
+		return {
+			ok: false,
+			error: `Filial tem ${stockCheck?.n} variante(s) com estoque positivo. Transfira ou zere antes de deletar.`,
+		};
+	}
+
+	const [openOrders] = await db
+		.select({ n: sql<number>`count(*)::int` })
+		.from(order)
+		.where(
+			sql`${order.branchId} = ${id} and ${order.status} in ('pending_payment','paid','preparing','shipped')`
+		);
+
+	if ((openOrders?.n ?? 0) > 0) {
+		return {
+			ok: false,
+			error: `Filial tem ${openOrders?.n} pedido(s) em andamento. Conclua ou cancele antes de deletar.`,
 		};
 	}
 
@@ -198,12 +234,71 @@ export async function deleteBranch(id: string): Promise<ActionResult> {
 		action: "branch.deleted",
 		targetId: id,
 		targetType: "branch",
-		metadata: { name: target?.name },
+		metadata: { name: target.name },
 	});
 	revalidatePath(BRANCHES_PATH);
 	revalidatePath("/dashboard/stock");
 	revalidatePath("/dashboard/tools", "layout");
 	return { ok: true, data: undefined };
+}
+
+export async function fetchBranchesTablePage({
+	filters,
+	cursor,
+}: {
+	filters: BranchesFiltersInput;
+	cursor: string | null;
+}): Promise<InfiniteResult<BranchTableRow>> {
+	const page = await fetchBranchesPage({ filters, cursor });
+	if (page.items.length === 0) {
+		return { items: [], nextCursor: null };
+	}
+	const ids = page.items.map((b) => b.id);
+	const { getBranchTableAggregates } = await import("./data");
+	const aggregates = await getBranchTableAggregates(ids);
+	const items: BranchTableRow[] = page.items.map((b) => {
+		const agg = aggregates.get(b.id) ?? {
+			teamCount: 0,
+			activeSkus: 0,
+			lowStock: 0,
+		};
+		return {
+			id: b.id,
+			name: b.name,
+			address: b.address,
+			isDefault: b.isDefault,
+			createdAt: b.createdAt,
+			teamCount: agg.teamCount,
+			activeSkus: agg.activeSkus,
+			lowStock: agg.lowStock,
+		};
+	});
+	return { items, nextCursor: page.nextCursor };
+}
+
+export async function searchEligibleUsers(
+	branchId: string,
+	search: string
+): Promise<{ id: string; name: string; email: string }[]> {
+	await requireCapability("users.update_branches");
+	const { getEligibleUsersForBranch } = await import("./data");
+	return getEligibleUsersForBranch(branchId, search);
+}
+
+export async function linkUserToBranchAction(input: {
+	branchId: string;
+	userId: string;
+}): Promise<ActionResult> {
+	const { linkUserToBranch } = await import("../users/actions");
+	return linkUserToBranch(input);
+}
+
+export async function unlinkUserFromBranchAction(input: {
+	branchId: string;
+	userId: string;
+}): Promise<ActionResult> {
+	const { unlinkUserFromBranch } = await import("../users/actions");
+	return unlinkUserFromBranch(input);
 }
 
 export async function setDefaultBranch(
