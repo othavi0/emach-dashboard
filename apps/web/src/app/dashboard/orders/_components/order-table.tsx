@@ -8,6 +8,8 @@ import {
 } from "@emach/ui/components/pagination";
 import {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCell,
 	TableHead,
@@ -121,7 +123,7 @@ export function OrderTable({
 							Total
 						</TableHead>
 						<TableHead className={`w-32 ${LABEL_CLASS}`}>Data</TableHead>
-						<TableHead aria-label="Ações" className={`w-10 ${LABEL_CLASS}`} />
+						<TableActionsHead className={LABEL_CLASS} />
 					</TableRow>
 				</TableHeader>
 				<TableBody>
@@ -164,7 +166,7 @@ export function OrderTable({
 									{formatRelativeDate(item.createdAt)}
 								</span>
 							</TableCell>
-							<TableCell className="text-right">
+							<TableActionsCell>
 								<Link
 									aria-label={`Abrir pedido ${item.number}`}
 									className={buttonVariants({
@@ -175,7 +177,7 @@ export function OrderTable({
 								>
 									<Eye aria-hidden className="size-3.5" />
 								</Link>
-							</TableCell>
+							</TableActionsCell>
 						</TableRow>
 					))}
 				</TableBody>

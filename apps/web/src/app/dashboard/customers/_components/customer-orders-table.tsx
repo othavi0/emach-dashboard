@@ -10,6 +10,8 @@ import {
 } from "@emach/ui/components/pagination";
 import {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCell,
 	TableHead,
@@ -84,7 +86,7 @@ export function CustomerOrdersTable({
 						<TableHead className="text-right">Itens</TableHead>
 						<TableHead className="text-right">Total</TableHead>
 						<TableHead>Data</TableHead>
-						<TableHead className="w-16 text-right">Ação</TableHead>
+						<TableActionsHead>Ação</TableActionsHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody>
@@ -108,18 +110,18 @@ export function CustomerOrdersTable({
 								<TableCell className="text-muted-foreground text-sm">
 									{DATE.format(order.createdAt)}
 								</TableCell>
-								<TableCell className="text-right">
+								<TableActionsCell>
 									<Link
 										aria-label={`Abrir pedido ${order.number}`}
 										className={buttonVariants({
 											size: "icon-sm",
-											variant: "secondary",
+											variant: "outline",
 										})}
 										href={`/dashboard/orders/${order.id}`}
 									>
 										<EyeIcon aria-hidden className="size-3.5" />
 									</Link>
-								</TableCell>
+								</TableActionsCell>
 							</TableRow>
 						);
 					})}

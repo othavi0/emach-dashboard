@@ -7,6 +7,8 @@ import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Table,
+	TableActionsCell,
+	TableActionsHead,
 	TableBody,
 	TableCell,
 	TableHead,
@@ -99,7 +101,7 @@ export function CustomerTable({ items }: CustomerTableProps) {
 					<TableHead className="text-right">LTV</TableHead>
 					<TableHead className="text-right">Pedidos</TableHead>
 					<TableHead>Último pedido</TableHead>
-					<TableHead className="w-20 text-right">Ações</TableHead>
+					<TableActionsHead />
 				</TableRow>
 			</TableHeader>
 			<TableBody>
@@ -180,30 +182,28 @@ export function CustomerTable({ items }: CustomerTableProps) {
 									"—"
 								)}
 							</TableCell>
-							<TableCell>
-								<div className="flex items-center justify-end gap-1">
-									<Link
-										aria-label={`Ver cliente ${item.name}`}
-										className={buttonVariants({
-											size: "icon-sm",
-											variant: "secondary",
-										})}
-										href={`/dashboard/customers/${item.id}`}
-									>
-										<EyeIcon aria-hidden className="size-3.5" />
-									</Link>
-									<Link
-										aria-label={`Editar cliente ${item.name}`}
-										className={buttonVariants({
-											size: "icon-sm",
-											variant: "secondary",
-										})}
-										href={`/dashboard/customers/${item.id}?edit=1`}
-									>
-										<PencilIcon aria-hidden className="size-3.5" />
-									</Link>
-								</div>
-							</TableCell>
+							<TableActionsCell>
+								<Link
+									aria-label={`Ver cliente ${item.name}`}
+									className={buttonVariants({
+										size: "icon-sm",
+										variant: "outline",
+									})}
+									href={`/dashboard/customers/${item.id}`}
+								>
+									<EyeIcon aria-hidden className="size-3.5" />
+								</Link>
+								<Link
+									aria-label={`Editar cliente ${item.name}`}
+									className={buttonVariants({
+										size: "icon-sm",
+										variant: "secondary",
+									})}
+									href={`/dashboard/customers/${item.id}?edit=1`}
+								>
+									<PencilIcon aria-hidden className="size-3.5" />
+								</Link>
+							</TableActionsCell>
 						</TableRow>
 					);
 				})}
