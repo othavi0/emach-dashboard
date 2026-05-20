@@ -4,10 +4,19 @@ import { Badge } from "@emach/ui/components/badge";
 import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
-import { Ban, Building2, CheckCircle2, Clock, Factory } from "lucide-react";
+import {
+	Ban,
+	Building2,
+	CheckCircle2,
+	Clock,
+	Eye,
+	Factory,
+	MoreHorizontal,
+} from "lucide-react";
 import { useState } from "react";
 
 import { EntityAuditLogTable } from "@/components/entity/entity-audit-log-table";
+import { EntityCard, EntityCardGrid } from "@/components/entity/entity-card";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
 import { EntityIdentityHeader } from "@/components/entity/entity-identity-header";
 import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
@@ -88,6 +97,110 @@ export default function EntityPreview() {
 					subtitle="contato@joaquim.com.br"
 					title="Joaquim Industrial Ltda"
 				/>
+			</section>
+
+			<section className="space-y-3">
+				<h2 className="font-semibold text-lg">EntityCardGrid (lista)</h2>
+				<EntityCardGrid>
+					<EntityCard
+						avatarFallback="JM"
+						badges={
+							<>
+								<Badge>Admin</Badge>
+								<Badge variant="outline">
+									<CheckCircle2 className="mr-1 size-3" /> Ativo
+								</Badge>
+							</>
+						}
+						footer={
+							<>
+								<span className="text-muted-foreground text-xs">
+									Último login há 2h
+								</span>
+								<Button size="sm" variant="outline">
+									<Eye aria-hidden className="size-3.5" /> Ver
+								</Button>
+							</>
+						}
+						href="#"
+						meta="Matriz SP · Filial RJ"
+						subtitle="joao@emach.com.br"
+						title="João Mendes"
+					/>
+					<EntityCard
+						avatarFallback="AS"
+						badges={
+							<>
+								<Badge variant="secondary">Manager</Badge>
+								<Badge variant="outline">
+									<CheckCircle2 className="mr-1 size-3" /> Ativo
+								</Badge>
+							</>
+						}
+						footer={
+							<>
+								<span className="text-muted-foreground text-xs">
+									Último login há 1d
+								</span>
+								<Button size="sm" variant="outline">
+									<Eye aria-hidden className="size-3.5" /> Ver
+								</Button>
+							</>
+						}
+						href="#"
+						meta="Filial RJ"
+						subtitle="ana@emach.com.br"
+						title="Ana Silva"
+					/>
+					<EntityCard
+						avatarFallback="CO"
+						badges={
+							<>
+								<Badge variant="outline">Estoquista</Badge>
+								<Badge variant="warning">
+									<Clock className="mr-1 size-3" /> Pendente
+								</Badge>
+							</>
+						}
+						footer={
+							<>
+								<span className="text-muted-foreground text-xs">
+									Aguardando aprovação
+								</span>
+								<Button size="sm">Aprovar</Button>
+							</>
+						}
+						href="#"
+						meta="Sem filial vinculada"
+						subtitle="carlos@emach.com.br"
+						title="Carlos Oliveira"
+					/>
+					<EntityCard
+						avatarFallback="MR"
+						badges={
+							<>
+								<Badge variant="outline">Estoquista</Badge>
+								<Badge variant="destructive">
+									<Ban className="mr-1 size-3" /> Suspenso
+								</Badge>
+							</>
+						}
+						footer={
+							<>
+								<span className="text-muted-foreground text-xs">
+									Suspenso há 5d
+								</span>
+								<Button size="sm" variant="outline">
+									<MoreHorizontal aria-hidden className="size-3.5" />
+								</Button>
+							</>
+						}
+						href="#"
+						meta="Matriz SP"
+						subtitle="mariana@emach.com.br"
+						title="Mariana Rocha"
+					/>
+				</EntityCardGrid>
 			</section>
 
 			<section className="space-y-3">
