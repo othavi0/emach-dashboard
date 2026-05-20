@@ -39,6 +39,94 @@ const DATETIME = new Intl.DateTimeFormat("pt-BR", {
 	timeStyle: "short",
 });
 
+function ExpandIcon({
+	expandable,
+	isOpen,
+}: {
+	expandable: boolean;
+	isOpen: boolean;
+}) {
+	if (!expandable) {
+		return null;
+	}
+	const Icon = isOpen ? ChevronDownIcon : ChevronRightIcon;
+	return <Icon className="size-4 text-muted-foreground" />;
+}
+
+function DiffPanel({ label, value }: { label: string; value: unknown }) {
+	return (
+		<div>
+			<p className="mb-1 text-muted-foreground text-xs uppercase">{label}</p>
+			<pre className="rounded bg-background p-2 text-xs">
+				{JSON.stringify(value, null, 2)}
+			</pre>
+		</div>
+	);
+}
+
+function AuditRow({
+	entry,
+	expandable,
+	isOpen,
+	onToggle,
+	actionLabel,
+}: {
+	entry: AuditEntry;
+	expandable: boolean;
+	isOpen: boolean;
+	onToggle: () => void;
+	actionLabel: string;
+}) {
+	return (
+		<TableRow
+			className={cn(expandable && "cursor-pointer")}
+			onClick={expandable ? onToggle : undefined}
+		>
+			<TableCell>
+				<ExpandIcon expandable={expandable} isOpen={isOpen} />
+			</TableCell>
+			<TableCell className="text-sm tabular-nums">
+				{DATETIME.format(entry.at)}
+			</TableCell>
+			<TableCell className="text-sm">
+				{entry.actor.name}
+				{entry.actor.type === "system" ? (
+					<Badge className="ml-1.5" variant="outline">
+						sistema
+					</Badge>
+				) : null}
+			</TableCell>
+			<TableCell>
+				<Badge variant="secondary">{actionLabel}</Badge>
+			</TableCell>
+			<TableCell className="text-sm">{entry.target?.label ?? "—"}</TableCell>
+		</TableRow>
+	);
+}
+
+function DetailRow({ entry }: { entry: AuditEntry }) {
+	return (
+		<TableRow>
+			<TableCell />
+			<TableCell className="bg-muted/30" colSpan={4}>
+				{entry.reason ? (
+					<p className="mb-2 text-sm">
+						<span className="font-medium">Motivo:</span> {entry.reason}
+					</p>
+				) : null}
+				<div className="grid gap-3 sm:grid-cols-2">
+					{entry.before ? (
+						<DiffPanel label="Antes" value={entry.before} />
+					) : null}
+					{entry.after ? (
+						<DiffPanel label="Depois" value={entry.after} />
+					) : null}
+				</div>
+			</TableCell>
+		</TableRow>
+	);
+}
+
 function hasDiff(entry: AuditEntry): boolean {
 	return Boolean(
 		(entry.before && Object.keys(entry.before).length > 0) ||
@@ -96,76 +184,17 @@ export function EntityAuditLogTable({
 				{entries.map((entry) => {
 					const isOpen = expanded.has(entry.id);
 					const expandable = hasDiff(entry);
+					const actionLabel = actionLabels[entry.action] ?? entry.action;
 					return (
 						<Fragment key={entry.id}>
-							<TableRow
-								className={cn(expandable && "cursor-pointer")}
-								onClick={() => expandable && toggle(entry.id)}
-							>
-								<TableCell>
-									{expandable ? (
-										isOpen ? (
-											<ChevronDownIcon className="size-4 text-muted-foreground" />
-										) : (
-											<ChevronRightIcon className="size-4 text-muted-foreground" />
-										)
-									) : null}
-								</TableCell>
-								<TableCell className="text-sm tabular-nums">
-									{DATETIME.format(entry.at)}
-								</TableCell>
-								<TableCell className="text-sm">
-									{entry.actor.name}
-									{entry.actor.type === "system" ? (
-										<Badge className="ml-1.5" variant="outline">
-											sistema
-										</Badge>
-									) : null}
-								</TableCell>
-								<TableCell>
-									<Badge variant="secondary">
-										{actionLabels[entry.action] ?? entry.action}
-									</Badge>
-								</TableCell>
-								<TableCell className="text-sm">
-									{entry.target?.label ?? "—"}
-								</TableCell>
-							</TableRow>
-							{isOpen && expandable ? (
-								<TableRow>
-									<TableCell />
-									<TableCell className="bg-muted/30" colSpan={4}>
-										{entry.reason ? (
-											<p className="mb-2 text-sm">
-												<span className="font-medium">Motivo:</span>{" "}
-												{entry.reason}
-											</p>
-										) : null}
-										<div className="grid gap-3 sm:grid-cols-2">
-											{entry.before ? (
-												<div>
-													<p className="mb-1 text-muted-foreground text-xs uppercase">
-														Antes
-													</p>
-													<pre className="rounded bg-background p-2 text-xs">
-														{JSON.stringify(entry.before, null, 2)}
-													</pre>
-												</div>
-											) : null}
-											{entry.after ? (
-												<div>
-													<p className="mb-1 text-muted-foreground text-xs uppercase">
-														Depois
-													</p>
-													<pre className="rounded bg-background p-2 text-xs">
-														{JSON.stringify(entry.after, null, 2)}
-													</pre>
-												</div>
-											) : null}
-										</div>
-									</TableCell>
-								</TableRow>
-							) : null}
+							<AuditRow
+								actionLabel={actionLabel}
+								entry={entry}
+								expandable={expandable}
+								isOpen={isOpen}
+								onToggle={() => toggle(entry.id)}
+							/>
+							{isOpen && expandable ? <DetailRow entry={entry} /> : null}
 						</Fragment>
 					);
 				})}

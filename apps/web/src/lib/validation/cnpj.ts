@@ -1,8 +1,10 @@
 const FIRST_WEIGHTS = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 const SECOND_WEIGHTS = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+const NON_DIGIT_RE = /\D/g;
+const REPEATED_DIGITS_RE = /^(\d)\1{13}$/;
 
 export function normalizeCnpj(input: string): string {
-	return input.replace(/\D/g, "");
+	return input.replace(NON_DIGIT_RE, "");
 }
 
 function calcCheckDigit(digits: string, weights: number[]): number {
@@ -19,7 +21,7 @@ export function isValidCnpj(input: string): boolean {
 	if (cnpj.length !== 14) {
 		return false;
 	}
-	if (/^(\d)\1{13}$/.test(cnpj)) {
+	if (REPEATED_DIGITS_RE.test(cnpj)) {
 		return false;
 	}
 	const d1 = calcCheckDigit(cnpj.slice(0, 12), FIRST_WEIGHTS);
