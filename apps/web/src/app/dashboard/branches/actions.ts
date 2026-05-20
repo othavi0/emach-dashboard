@@ -1,8 +1,9 @@
 "use server";
 
 import { db } from "@emach/db";
-import { branch } from "@emach/db/schema/inventory";
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { branch, stockLevel } from "@emach/db/schema/inventory";
+import { order } from "@emach/db/schema/orders";
+import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
@@ -184,10 +185,40 @@ export async function deleteBranch(id: string): Promise<ActionResult> {
 		.where(eq(branch.id, id))
 		.limit(1);
 
-	if (target?.isDefault) {
+	if (!target) {
+		return { ok: false, error: "Filial não encontrada" };
+	}
+
+	if (target.isDefault) {
 		return {
 			ok: false,
 			error: "Marque outra filial como padrão antes de deletar esta",
+		};
+	}
+
+	const [stockCheck] = await db
+		.select({ n: sql<number>`count(*)::int` })
+		.from(stockLevel)
+		.where(and(eq(stockLevel.branchId, id), gt(stockLevel.quantity, 0)));
+
+	if ((stockCheck?.n ?? 0) > 0) {
+		return {
+			ok: false,
+			error: `Filial tem ${stockCheck?.n} variante(s) com estoque positivo. Transfira ou zere antes de deletar.`,
+		};
+	}
+
+	const [openOrders] = await db
+		.select({ n: sql<number>`count(*)::int` })
+		.from(order)
+		.where(
+			sql`${order.branchId} = ${id} and ${order.status} in ('pending_payment','paid','preparing','shipped')`
+		);
+
+	if ((openOrders?.n ?? 0) > 0) {
+		return {
+			ok: false,
+			error: `Filial tem ${openOrders?.n} pedido(s) em andamento. Conclua ou cancele antes de deletar.`,
 		};
 	}
 
@@ -202,7 +233,7 @@ export async function deleteBranch(id: string): Promise<ActionResult> {
 		action: "branch.deleted",
 		targetId: id,
 		targetType: "branch",
-		metadata: { name: target?.name },
+		metadata: { name: target.name },
 	});
 	revalidatePath(BRANCHES_PATH);
 	revalidatePath("/dashboard/stock");
