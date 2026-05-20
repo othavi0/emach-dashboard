@@ -13,6 +13,7 @@ import {
 } from "../data";
 import { HistoryTab } from "./_components/history-tab";
 import { OverviewTab } from "./_components/overview-tab";
+import { SupplierEditSheet } from "./_components/supplier-edit-sheet";
 import { SupplierIdentity } from "./_components/supplier-identity";
 import { ToolsTab } from "./_components/tools-tab";
 
@@ -73,7 +74,7 @@ export default async function SupplierDetailPage({
 		<div className="flex flex-col gap-6 p-6">
 			<SupplierIdentity detail={detail} />
 			<EntityTabs defaultValue="overview" tabs={tabs} />
-			{/* TODO Task 8: SupplierEditSheet — leitor de ?edit=1 */}
+			{sp.edit === "1" ? <SupplierEditSheet supplier={detail} /> : null}
 		</div>
 	);
 }
