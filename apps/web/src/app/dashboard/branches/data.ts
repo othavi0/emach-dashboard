@@ -7,6 +7,36 @@ import { order } from "@emach/db/schema/orders";
 import { toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq, gt, sql } from "drizzle-orm";
 
+export interface EligibleUserOption {
+	email: string;
+	id: string;
+	name: string;
+}
+
+export async function getEligibleUsersForBranch(
+	branchId: string,
+	search: string
+): Promise<EligibleUserOption[]> {
+	const linkedSub = db
+		.select({ uid: userBranch.userId })
+		.from(userBranch)
+		.where(eq(userBranch.branchId, branchId));
+	const pattern = `%${search}%`;
+	return await db
+		.select({
+			id: userTable.id,
+			name: userTable.name,
+			email: userTable.email,
+		})
+		.from(userTable)
+		.where(
+			sql`${userTable.status} = 'active'
+			    and ${userTable.id} not in ${linkedSub}
+			    and (${userTable.name} ilike ${pattern} or ${userTable.email} ilike ${pattern})`
+		)
+		.limit(20);
+}
+
 export interface BranchKpis {
 	lowStockCount: number;
 	openOrders: number;

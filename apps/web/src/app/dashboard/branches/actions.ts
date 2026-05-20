@@ -276,6 +276,15 @@ export async function fetchBranchesTablePage({
 	return { items, nextCursor: page.nextCursor };
 }
 
+export async function searchEligibleUsers(
+	branchId: string,
+	search: string
+): Promise<{ id: string; name: string; email: string }[]> {
+	await requireCapability("users.update_branches");
+	const { getEligibleUsersForBranch } = await import("./data");
+	return getEligibleUsersForBranch(branchId, search);
+}
+
 export async function linkUserToBranchAction(input: {
 	branchId: string;
 	userId: string;

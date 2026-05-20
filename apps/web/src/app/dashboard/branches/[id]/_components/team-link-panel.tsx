@@ -1,146 +1,135 @@
 "use client";
 
-import { Alert, AlertDescription } from "@emach/ui/components/alert";
 import { Button } from "@emach/ui/components/button";
 import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@emach/ui/components/card";
-import { Input } from "@emach/ui/components/input";
-import { Label } from "@emach/ui/components/label";
-import { Info, Loader2, UserPlus } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+	Command,
+	CommandEmpty,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@emach/ui/components/command";
 import {
-	linkUserToBranchAction,
-	unlinkUserFromBranchAction,
-} from "../../actions";
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@emach/ui/components/popover";
+import { Loader2, UserPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { linkUserToBranchAction, searchEligibleUsers } from "../../actions";
 
 interface Props {
 	branchId: string;
 }
 
+interface UserOption {
+	email: string;
+	id: string;
+	name: string;
+}
+
 export function TeamLinkPanel({ branchId }: Props) {
 	const router = useRouter();
-	const [userId, setUserId] = useState("");
-	const [pending, setPending] = useState(false);
-	const [feedback, setFeedback] = useState<{
-		ok: boolean;
-		message: string;
-	} | null>(null);
+	const [open, setOpen] = useState(false);
+	const [query, setQuery] = useState("");
+	const [results, setResults] = useState<UserOption[]>([]);
+	const [searching, setSearching] = useState(false);
+	const [linking, setLinking] = useState(false);
 
-	async function handleLink() {
-		const trimmed = userId.trim();
-		if (!trimmed) {
-			return;
-		}
-		setPending(true);
-		setFeedback(null);
+	useEffect(() => {
+		const timer = setTimeout(async () => {
+			setSearching(true);
+			try {
+				const data = await searchEligibleUsers(branchId, query);
+				setResults(data);
+			} catch {
+				setResults([]);
+			} finally {
+				setSearching(false);
+			}
+		}, 250);
+		return () => clearTimeout(timer);
+	}, [query, branchId]);
+
+	async function handleSelect(user: UserOption) {
+		setLinking(true);
 		try {
 			const result = await linkUserToBranchAction({
-				userId: trimmed,
+				userId: user.id,
 				branchId,
 			});
 			if (result.ok) {
-				setFeedback({ ok: true, message: "Usuário vinculado com sucesso." });
-				setUserId("");
+				toast.success(`${user.name} vinculado à filial.`);
+				setOpen(false);
+				setQuery("");
+				setResults([]);
 				router.refresh();
 			} else {
-				setFeedback({ ok: false, message: result.error });
+				toast.error(result.error);
 			}
 		} finally {
-			setPending(false);
-		}
-	}
-
-	async function handleUnlink() {
-		const trimmed = userId.trim();
-		if (!trimmed) {
-			return;
-		}
-		setPending(true);
-		setFeedback(null);
-		try {
-			const result = await unlinkUserFromBranchAction({
-				userId: trimmed,
-				branchId,
-			});
-			if (result.ok) {
-				setFeedback({ ok: true, message: "Usuário desvinculado." });
-				setUserId("");
-				router.refresh();
-			} else {
-				setFeedback({ ok: false, message: result.error });
-			}
-		} finally {
-			setPending(false);
+			setLinking(false);
 		}
 	}
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle className="flex items-center gap-2 text-sm">
-					<UserPlus aria-hidden className="size-4" />
-					Vincular / desvincular usuário
-				</CardTitle>
-			</CardHeader>
-			<CardContent className="flex flex-col gap-4">
-				<Alert variant="default">
-					<Info aria-hidden className="size-4" />
-					<AlertDescription className="text-xs">
-						{/* TODO Task 11: substituir por combobox com busca de usuários */}
-						Informe o ID do usuário. Combobox com busca virá em iteração futura.
-					</AlertDescription>
-				</Alert>
-
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="team-link-user-id">ID do usuário</Label>
-					<Input
-						disabled={pending}
-						id="team-link-user-id"
-						onChange={(e) => setUserId(e.target.value)}
-						placeholder="uuid do usuário"
-						value={userId}
-					/>
-				</div>
-
-				{feedback ? (
-					<p
-						className={
-							feedback.ok ? "text-success text-xs" : "text-destructive text-xs"
-						}
-					>
-						{feedback.message}
-					</p>
-				) : null}
-
-				<div className="flex gap-2">
-					<Button
-						className="flex-1"
-						disabled={pending || !userId.trim()}
-						onClick={handleLink}
-						size="sm"
-					>
-						{pending ? (
+		<Popover onOpenChange={setOpen} open={open}>
+			<PopoverTrigger
+				disabled={linking}
+				render={
+					<Button size="sm" variant="outline">
+						{linking ? (
 							<Loader2 aria-hidden className="mr-1.5 size-3.5 animate-spin" />
 						) : (
 							<UserPlus aria-hidden className="mr-1.5 size-3.5" />
 						)}
-						Vincular
+						Vincular usuário
 					</Button>
-					<Button
-						disabled={pending || !userId.trim()}
-						onClick={handleUnlink}
-						size="sm"
-						variant="outline"
-					>
-						Desvincular
-					</Button>
-				</div>
-			</CardContent>
-		</Card>
+				}
+			/>
+			<PopoverContent align="start" className="w-80 p-0">
+				<Command shouldFilter={false}>
+					<CommandInput
+						onValueChange={setQuery}
+						placeholder="Buscar por nome ou email..."
+						value={query}
+					/>
+					<CommandList>
+						{searching && (
+							<div className="flex items-center justify-center py-6">
+								<Loader2
+									aria-hidden
+									className="size-4 animate-spin text-muted-foreground"
+								/>
+							</div>
+						)}
+						{!searching && results.length === 0 && (
+							<CommandEmpty>
+								{query.length === 0
+									? "Digite para buscar usuários."
+									: "Nenhum usuário encontrado."}
+							</CommandEmpty>
+						)}
+						{!searching &&
+							results.length > 0 &&
+							results.map((user) => (
+								<CommandItem
+									key={user.id}
+									onSelect={() => handleSelect(user)}
+									value={user.id}
+								>
+									<div className="flex min-w-0 flex-col">
+										<span className="truncate font-medium">{user.name}</span>
+										<span className="truncate text-muted-foreground text-xs">
+											{user.email}
+										</span>
+									</div>
+								</CommandItem>
+							))}
+					</CommandList>
+				</Command>
+			</PopoverContent>
+		</Popover>
 	);
 }
