@@ -133,7 +133,7 @@ export function BranchesTable({
 											{canMutate && (
 												<DropdownMenuItem
 													onClick={() =>
-														router.push(`/dashboard/branches/${b.id}/edit`)
+														router.push(`/dashboard/branches/${b.id}?edit=1`)
 													}
 												>
 													<Pencil aria-hidden className="size-4" />

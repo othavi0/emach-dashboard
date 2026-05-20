@@ -10,6 +10,7 @@ import {
 	getBranchRecentOrders,
 	getBranchTeam,
 } from "../data";
+import { BranchEditSheet } from "./_components/branch-edit-sheet";
 import { BranchIdentity } from "./_components/branch-identity";
 import { OrdersTab } from "./_components/orders-tab";
 import { OverviewTab } from "./_components/overview-tab";
@@ -18,12 +19,17 @@ import { TeamTab } from "./_components/team-tab";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
+	searchParams: Promise<{ edit?: string; tab?: string }>;
 }
 
-export default async function BranchDetailPage({ params }: PageProps) {
+export default async function BranchDetailPage({
+	params,
+	searchParams,
+}: PageProps) {
 	await requireCapabilityOrRedirect("branches.manage");
 
 	const { id } = await params;
+	const { edit } = await searchParams;
 
 	const [detail, kpis, team, recentOrders] = await Promise.all([
 		getBranchDetail(id),
@@ -75,7 +81,7 @@ export default async function BranchDetailPage({ params }: PageProps) {
 				detail={detail}
 			/>
 			<EntityTabs defaultValue="overview" tabs={tabs} />
-			{/* TODO Task 10: BranchEditSheet */}
+			{edit === "1" ? <BranchEditSheet branch={detail} /> : null}
 		</div>
 	);
 }
