@@ -110,7 +110,7 @@ function TableActionsHead({
 }: React.ComponentProps<"th">) {
 	return (
 		<TableHead
-			className={cn("w-px whitespace-nowrap text-right", className)}
+			className={cn("w-px whitespace-nowrap pl-6 text-right", className)}
 			data-slot="table-actions-head"
 			{...props}
 		>
@@ -126,7 +126,7 @@ function TableActionsCell({
 }: React.ComponentProps<"td">) {
 	return (
 		<TableCell
-			className={cn("w-px text-right", className)}
+			className={cn("w-px pl-6 text-right", className)}
 			data-slot="table-actions-cell"
 			{...props}
 		>
