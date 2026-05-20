@@ -359,9 +359,10 @@ export async function getTools(
 			FROM promotion p
 			INNER JOIN promotion_tool pt ON pt.promotion_id = p.id
 			WHERE pt.tool_id = t.id
+			  AND p.type = 'promotion'
 			  AND p.active = true
 			  AND (p.starts_at IS NULL OR p.starts_at <= now())
-			  AND (p.ends_at IS NULL OR p.ends_at >= now())
+			  AND (p.ends_at IS NULL OR p.ends_at > now())
 			ORDER BY p.discount_pct DESC, p.created_at DESC
 			LIMIT 1
 		) active_promo ON true
@@ -387,9 +388,10 @@ export async function getTools(
 			FROM promotion p
 			INNER JOIN promotion_tool pt ON pt.promotion_id = p.id
 			WHERE pt.tool_id = t.id
+			  AND p.type = 'promotion'
 			  AND p.active = true
 			  AND (p.starts_at IS NULL OR p.starts_at <= now())
-			  AND (p.ends_at IS NULL OR p.ends_at >= now())
+			  AND (p.ends_at IS NULL OR p.ends_at > now())
 			ORDER BY p.discount_pct DESC, p.created_at DESC
 			LIMIT 1
 		) active_promo ON true
@@ -540,9 +542,10 @@ export async function getToolBySlug(
 			FROM promotion p
 			INNER JOIN promotion_tool pt ON pt.promotion_id = p.id
 			WHERE pt.tool_id = ${toolId}
+			  AND p.type = 'promotion'
 			  AND p.active = true
 			  AND (p.starts_at IS NULL OR p.starts_at <= now())
-			  AND (p.ends_at IS NULL OR p.ends_at >= now())
+			  AND (p.ends_at IS NULL OR p.ends_at > now())
 			ORDER BY p.discount_pct DESC, p.created_at DESC
 			LIMIT 1
 		`),
@@ -741,9 +744,10 @@ export async function getActivePromotions(
 		       created_at AS "createdAt",
 		       updated_at AS "updatedAt"
 		FROM promotion
-		WHERE active = true
+		WHERE type = 'promotion'
+		  AND active = true
 		  AND (starts_at IS NULL OR starts_at <= now())
-		  AND (ends_at IS NULL OR ends_at >= now())
+		  AND (ends_at IS NULL OR ends_at > now())
 		ORDER BY created_at DESC
 		LIMIT ${limit}
 	`);

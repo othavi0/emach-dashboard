@@ -1,0 +1,76 @@
+"use client";
+
+import { Button } from "@emach/ui/components/button";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetFooter,
+	SheetHeader,
+	SheetTitle,
+} from "@emach/ui/components/sheet";
+import type { FormEvent, ReactNode } from "react";
+
+import { FormErrorPanel, type FormIssue } from "@/components/form-error-panel";
+
+interface Props {
+	cancelLabel?: string;
+	children: ReactNode;
+	description?: ReactNode;
+	issues?: FormIssue[];
+	onOpenChange: (open: boolean) => void;
+	onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+	open: boolean;
+	submitLabel?: string;
+	submitting?: boolean;
+	title: ReactNode;
+}
+
+export function EntityEditSheet({
+	open,
+	onOpenChange,
+	title,
+	description,
+	issues,
+	submitting = false,
+	submitLabel = "Salvar",
+	cancelLabel = "Cancelar",
+	onSubmit,
+	children,
+}: Props) {
+	return (
+		<Sheet onOpenChange={onOpenChange} open={open}>
+			<SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
+				<SheetHeader className="border-border border-b">
+					<SheetTitle>{title}</SheetTitle>
+					{description ? (
+						<SheetDescription>{description}</SheetDescription>
+					) : null}
+				</SheetHeader>
+				<form className="flex min-h-0 flex-1 flex-col" onSubmit={onSubmit}>
+					<div className="flex-1 overflow-y-auto p-6">
+						{issues && issues.length > 0 ? (
+							<div className="mb-4">
+								<FormErrorPanel issues={issues} />
+							</div>
+						) : null}
+						{children}
+					</div>
+					<SheetFooter className="border-border border-t">
+						<Button
+							disabled={submitting}
+							onClick={() => onOpenChange(false)}
+							type="button"
+							variant="outline"
+						>
+							{cancelLabel}
+						</Button>
+						<Button disabled={submitting} type="submit">
+							{submitting ? "Salvando…" : submitLabel}
+						</Button>
+					</SheetFooter>
+				</form>
+			</SheetContent>
+		</Sheet>
+	);
+}
