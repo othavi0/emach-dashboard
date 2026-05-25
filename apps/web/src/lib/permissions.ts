@@ -158,14 +158,11 @@ const ROLE_CAPS: Record<UserRole, readonly Capability[]> = {
 	user: USER_CAPS,
 };
 
-export function can(
-	role: UserRole | null | undefined,
-	cap: Capability
-): boolean {
+export function can(role: string | null | undefined, cap: Capability): boolean {
 	if (!(role && role in ROLE_CAPS)) {
 		return false;
 	}
-	return ROLE_CAPS[role].includes(cap);
+	return ROLE_CAPS[role as UserRole].includes(cap);
 }
 
 export async function requireCapability(
