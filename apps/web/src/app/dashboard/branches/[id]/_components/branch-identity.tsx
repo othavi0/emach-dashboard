@@ -5,6 +5,7 @@ import { Building2, Pencil } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { EntityIdentityHeader } from "@/components/entity/entity-identity-header";
+import { formatBranchAddress } from "@/lib/format/branch";
 import type { BranchDetail } from "../../data";
 
 export function BranchIdentity({
@@ -34,7 +35,7 @@ export function BranchIdentity({
 			}
 			avatarFallback={<Building2 aria-hidden className="size-5" />}
 			badges={badges}
-			subtitle={detail.address ?? detail.phone ?? undefined}
+			subtitle={formatBranchAddress(detail) ?? detail.phone ?? undefined}
 			title={detail.name}
 		/>
 	);

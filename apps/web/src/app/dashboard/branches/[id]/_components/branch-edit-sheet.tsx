@@ -1,7 +1,5 @@
 "use client";
 
-import { Input } from "@emach/ui/components/input";
-import { Label } from "@emach/ui/components/label";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -11,12 +9,46 @@ import {
 	type FormIssue,
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
-import { branchSchema } from "../../_components/branch-schema";
+import { BranchFormFields } from "../../_components/branch-form-fields";
+import {
+	type BranchFormValues,
+	branchSchema,
+} from "../../_components/branch-schema";
 import { updateBranch } from "../../actions";
 import type { BranchDetail } from "../../data";
 
 interface Props {
 	branch: BranchDetail;
+}
+
+const FIELD_LABELS: Record<string, string> = {
+	name: "Nome",
+	status: "Status",
+	phone: "Telefone",
+	cep: "CEP",
+	street: "Rua",
+	streetNumber: "Número",
+	complement: "Complemento",
+	neighborhood: "Bairro",
+	city: "Cidade",
+	state: "UF",
+	responsibleUserId: "Responsável",
+};
+
+function toFormValues(b: BranchDetail): BranchFormValues {
+	return {
+		name: b.name,
+		status: b.status,
+		phone: b.phone ?? undefined,
+		cep: b.cep ?? undefined,
+		street: b.street ?? undefined,
+		streetNumber: b.streetNumber ?? undefined,
+		complement: b.complement ?? undefined,
+		neighborhood: b.neighborhood ?? undefined,
+		city: b.city ?? undefined,
+		state: b.state ?? undefined,
+		responsibleUserId: b.responsibleUserId ?? undefined,
+	};
 }
 
 export function BranchEditSheet({ branch }: Props) {
@@ -25,21 +57,15 @@ export function BranchEditSheet({ branch }: Props) {
 	const params = useSearchParams();
 	const open = params.get("edit") === "1";
 
-	const [name, setName] = useState(branch.name);
-	const [address, setAddress] = useState(branch.address ?? "");
-	const [phone, setPhone] = useState(branch.phone ?? "");
-	const [responsibleUserId, setResponsibleUserId] = useState(
-		branch.responsibleUserId ?? ""
+	const [values, setValues] = useState<BranchFormValues>(() =>
+		toFormValues(branch)
 	);
 	const [issues, setIssues] = useState<FormIssue[]>([]);
 	const [submitting, startTransition] = useTransition();
 
 	useEffect(() => {
 		if (open) {
-			setName(branch.name);
-			setAddress(branch.address ?? "");
-			setPhone(branch.phone ?? "");
-			setResponsibleUserId(branch.responsibleUserId ?? "");
+			setValues(toFormValues(branch));
 			setIssues([]);
 		}
 	}, [open, branch]);
@@ -53,21 +79,9 @@ export function BranchEditSheet({ branch }: Props) {
 
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
-		const parsed = branchSchema.safeParse({
-			name,
-			address,
-			phone,
-			responsibleUserId,
-		});
+		const parsed = branchSchema.safeParse(values);
 		if (!parsed.success) {
-			setIssues(
-				zodIssuesToFormIssues(parsed.error, {
-					name: "Nome",
-					address: "Endereço",
-					phone: "Telefone",
-					responsibleUserId: "Responsável",
-				})
-			);
+			setIssues(zodIssuesToFormIssues(parsed.error, FIELD_LABELS));
 			return;
 		}
 		startTransition(async () => {
@@ -75,6 +89,7 @@ export function BranchEditSheet({ branch }: Props) {
 			if (res.ok) {
 				toast.success("Filial atualizada");
 				close();
+				router.refresh();
 			} else {
 				toast.error(res.error);
 			}
@@ -91,43 +106,13 @@ export function BranchEditSheet({ branch }: Props) {
 			submitting={submitting}
 			title={`Editar ${branch.name}`}
 		>
-			<div className="flex flex-col gap-4">
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="branch-name">Nome</Label>
-					<Input
-						id="branch-name"
-						onChange={(e) => setName(e.target.value)}
-						value={name}
-					/>
-				</div>
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="branch-address">Endereço</Label>
-					<Input
-						id="branch-address"
-						onChange={(e) => setAddress(e.target.value)}
-						placeholder="Rua, número, cidade…"
-						value={address}
-					/>
-				</div>
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="branch-phone">Telefone</Label>
-					<Input
-						id="branch-phone"
-						onChange={(e) => setPhone(e.target.value)}
-						placeholder="(00) 00000-0000"
-						value={phone}
-					/>
-				</div>
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="branch-responsible">ID do responsável</Label>
-					<Input
-						id="branch-responsible"
-						onChange={(e) => setResponsibleUserId(e.target.value)}
-						placeholder="UUID do usuário responsável"
-						value={responsibleUserId}
-					/>
-				</div>
-			</div>
+			<BranchFormFields
+				branchId={branch.id}
+				disabled={submitting}
+				onPatch={(p) => setValues((prev) => ({ ...prev, ...p }))}
+				showTeamSection
+				values={values}
+			/>
 		</EntityEditSheet>
 	);
 }
