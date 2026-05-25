@@ -1,112 +1,66 @@
 # apps/web — Convenções
 
-Dashboard Next 16 / React 19. Para regras gerais (auth, schema, design), ver `CLAUDE.md` no root.
+Dashboard Next 16 / React 19. Regras gerais (auth invariantes, anti-patterns, gotchas) na raiz.
 
-## Estrutura por feature
+## Server actions
 
-Cada feature em `src/app/dashboard/<feature>/` segue:
-- `page.tsx` — Server Component, busca dados via `db` direto.
-- `actions.ts` — `"use server"`. Padrão `ActionResult<T>` (`{ ok: true; data } | { ok: false; error }`).
-- `schema.ts` — Zod schemas de input.
-- `_components/*.tsx` — colocated; nomear o arquivo `kebab-case`, componente `PascalCase`.
-- `[id]/`, `new/`, `[id]/edit/` quando aplicável.
+- Sempre `"use server"` no topo + `await requireCapability(cap)` (ou `requireCurrentSession()`) no início.
+- Padrão de retorno: `ActionResult<T>` = `{ ok: true; data } | { ok: false; error }`.
+- Validação com Zod `safeParse`. Em catch: `logger.error({ err })` + retornar `{ ok: false, error: "mensagem" }`. Não logar com `console`.
+- `revalidatePath` ou `revalidateTag` após mutações.
 
-## Padrão de server action
+## Capabilities (`src/lib/permissions.ts`)
 
-```ts
-"use server";
-import { requireCapability } from "@/lib/permissions";
+Capabilities granulares substituem `requireRole` em mutations sensíveis. `requireRole` ainda usado em gates grosseiros de layout.
 
-export async function updateX(input: unknown): Promise<ActionResult> {
-  await requireCapability("x.manage");
-  const parsed = schema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "validação" };
-  try {
-    await db.transaction(async (tx) => { /* ... */ });
-    revalidatePath("/dashboard/x");
-    return { ok: true, data: undefined };
-  } catch (e) {
-    logger.error({ err: e }, "updateX falhou");
-    return { ok: false, error: "erro interno" };
-  }
-}
-```
+- `requireCapability(cap)` — server actions sensíveis (lança Error).
+- `requireCapabilityOrRedirect(cap, redirectTo?)` — Server Components / pages.
+- `requireCapabilityWithContext(cap, { targetUserId?, targetBranchIds? })` — adiciona (a) escopo de filial (non-`super_admin` só age sobre filiais em `user_branch`) e (b) hierarquia de role (não gerencia igual/superior; `users.suspend/delete/update_role` não miram a si mesmo).
 
-## Capabilities & Permissions
+Matriz canônica em `ROLE_CAPS`. `super_admin` tem `SUPER_ADMIN_EXCLUSIVE` (`branches.manage`, `branches.set_default`, `users.delete`, `audit.read`).
 
-`src/lib/permissions.ts` define o sistema de capabilities granulares que substitui `requireRole` em server actions sensíveis.
+⚠️ **Quirk a confirmar:** `audit.read` está em `MANAGER_CAPS` **e** em `SUPER_ADMIN_EXCLUSIVE` — logo `manager` e `super_admin` têm, mas `admin` **não** tem. Comentário no código diz que `admin` teria auditoria escopada por outro mecanismo. Validar se intencional.
 
-- `Capability` — union de ~45 strings (`tools.create`, `orders.cancel`, `users.suspend`, `customers.export`, `attributes.create`, ...).
-- `can(role, cap)` — boolean síncrono. Retorna `false` para role `null/undefined/desconhecida`.
-- `requireCapability(cap)` — server actions sensíveis. Lança `Error("Forbidden: ...")` se não autorizado.
-- `requireCapabilityOrRedirect(cap, redirectTo?)` — Server Components / pages. Redireciona em vez de lançar.
-- `requireCapabilityWithContext(cap, { targetUserId?, targetBranchIds? })` — dois guards extras: (a) escopo de filial — non-`super_admin` só age sobre filiais em `user_branch`; (b) hierarquia de role via `ROLE_WEIGHT` — não gerencia usuário de role igual/superior, e `users.suspend`/`delete`/`update_role` não podem mirar a si mesmo.
-- `requireRole(role)` (em `lib/session.ts`) — gates grosseiros (layout do dashboard); use `requireCapability` em mutations.
-
-**Matriz de 4 roles** (fonte canônica: `ROLE_CAPS` em `src/lib/permissions.ts`):
-- `user` (estoquista + expedição): todos os `*.read` + `stock.adjust` + `orders.update_status` + `orders.add_note` + `attributes.read`.
-- `manager` (gerente operacional/comercial/conteúdo): tudo do `user` + catálogo CRUD (`tools.*`) + `categories`/`suppliers`/`promotions`/`attributes` manage + `orders.cancel`/`refund`/`export` + `customers.update_status`/`manage_sessions`/`reset_password` + `site.*` + `reviews.moderate` + `audit.read`.
-- `admin`: **tudo** menos os 4 exclusivos de `super_admin`.
-- `super_admin`: tudo. Exclusivos (`SUPER_ADMIN_EXCLUSIVE`): `branches.manage`, `branches.set_default`, `users.delete`, `audit.read`.
-
-⚠️ **Quirk a confirmar:** `audit.read` está em `MANAGER_CAPS` **e** em `SUPER_ADMIN_EXCLUSIVE` — logo `manager` e `super_admin` têm, mas `admin` **não** tem. O comentário no código diz que `admin` teria auditoria escopada por outro mecanismo; validar se é intencional.
-
-⚠️ Better Auth cria usuário novo com `role='user'` + `status='pending'` (precisa aprovação via `users.approve`). Bootstrap do primeiro super admin via SQL: `UPDATE "user" SET role='super_admin', status='active' WHERE email='...'`. A UI de gestão de usuários **existe** em `dashboard/users/`.
-
-## Helpers críticos
-
-- `src/lib/session.ts` — `getCurrentSession()`, `requireCurrentSession()`, `requireRole(role)`, `ROLE_WEIGHT`.
-- `src/lib/permissions.ts` — `can()`, `requireCapability()`, `requireCapabilityOrRedirect()`, `requireCapabilityWithContext()`.
-- `src/lib/consent.ts` — LGPD: `logConsent()`, `revokeConsent()`, `getActiveConsent()`.
-- `src/lib/supabase-server.ts` — service-role client (uploads).
-- `src/lib/storage.ts` — helper genérico de Storage: upload + delete + `createSignedUrl()` para buckets público (`tool-images`) e privado (`order-documents`).
-- `src/lib/logger.ts` — logger central (substitui `console.*`).
-
-## Imagens
-
-Upload de imagem de ferramenta vai por `uploadToolImage(formData)` (em `src/app/dashboard/tools/_components/image-actions.ts`). O helper genérico de Storage **já existe** em `src/lib/storage.ts` (upload/delete/signed URL para bucket público ou privado) — usado pelos anexos de pedido (`orders/_components/attachment-actions.ts`); reaproveitar para banners/categorias quando surgir.
-
-Renderização de imagens: `<Image>` do Next sempre que possível. Para thumbs vindos do Supabase Storage (URL pública dinâmica), `<img>` puro com `// biome-ignore lint/performance/noImgElement: Supabase public URL` documentado.
-
-**Server actions com upload (payload base64 inline):** o limite Next 16 default é 1MB. Configuração ativa em `next.config.ts`: `experimental.serverActions.bodySizeLimit = "5mb"`. Se erro `Body exceeded N MB limit` aparecer, ajuste lá (não no código de form).
+Bootstrap do primeiro `super_admin` via SQL: `UPDATE "user" SET role='super_admin', status='active' WHERE email='...'`.
 
 ## Imports
 
-- `@/...` → `src/...` (configurado em `tsconfig.json`).
-- `@emach/db`, `@emach/auth/dashboard`, `@emach/ui`, `@emach/env`.
-- **Permitido** importar `@emach/db/schema/client` daqui (admin lê dados de cliente — features `customers/`, `reviews/`).
-- **Nunca** importar `@emach/auth/ecommerce` daqui (P0). Auth dual segue isolada — dashboard só usa `authDashboard`.
-
-## Cache (Next 16)
-
-Adotar `cacheTag` por feature (`'orders'`, `'customers'`, `'site-banners'`...). `revalidateTag` em mutations. Ver skill `next-cache-components`.
+- `@/...` → `src/...`.
+- **Permitido:** `@emach/db/schema/client` (admin lê dados de cliente — features `customers/`, `reviews/`).
+- **Proibido P0:** `@emach/auth/ecommerce` daqui.
 
 ## Convenções de UX em forms
 
-- **Slug auto-gerado em modo `create`:** `<Input disabled />` com valor derivado do label/nome via `slugifyLabel()` em `dashboard/categories/_lib/attribute-schema.ts`. Em `edit` fica editável com hint "alterar pode quebrar URLs/referências".
-- **Painel de erros no topo do form:** quando `safeParse` falha, listar todos os issues como `<ul>` em caixa vermelha, com path traduzido pra rótulo humano. Toast complementa com contagem ("3 erros — veja detalhes acima"). Não usar `toast.error("Revise os campos")` genérico.
-- **Variantes:** form de tool exige ≥1 `tool_variant`; uma marcada `isDefault` (radio group). Sub-componente em `tools/_components/variants-editor.tsx`.
-- **Specs dinâmicas:** form busca `definitionsByCategory[primaryCategoryId]` (server-side via `tools/_components/attribute-helpers.ts`). Inputs renderizados por `inputType` em `tools/_components/dynamic-specs-editor.tsx`. `buildDefinitionsByCategory` resolve a cadeia ancestral da categoria primary e une todas as `attribute_definition` aplicáveis (próprias + herdadas). Trocar categoria com specs preenchidas → `updateTool` devolve `actionResult.warning = "orphan_attributes"`; form pede confirmação antes de deletar.
-- **Categorias — rotas e UX:** `/dashboard/categories` é uma árvore expansível (`categories-tree.tsx`) com reorder de irmãos por drag-and-drop (`@dnd-kit`, persiste `sort_order` via `reorderCategories`). `/dashboard/categories/[id]` é a página de detalhe em leitura (grid `1.45fr/0.95fr` estilo orders): cards Sobre, Atributos técnicos (read-only), Produtos + sidebar Ações/Resumo/Hierarquia. `/dashboard/categories/[id]/edit` e `/new` usam `category-form.tsx` em cards. O CRUD de definição de atributo continua só no `edit`, via Sheet lateral (`attribute-sheet.tsx`) — "Atributos próprios" + "Atributos herdados" (read-only com link para a categoria-dona). Categoria **não tem imagem** — é só estrutura de catálogo. A ordem (`sort_order`) **não** é campo de formulário; só muda pelo drag-and-drop.
-- **Markdown na descrição:** `tool.description` é texto Markdown puro. Renderizado via `<ToolDescription>` (`src/components/tool-description.tsx`) com `react-markdown` + `rehype-sanitize` (preset `defaultSchema`). Form usa `<Textarea>` simples — admin escreve markdown direto.
-- **Filtros de período:** sempre usar `<DatePicker>` de `@emach/ui/components/date-picker`. Nunca `<Input type="date">` nativo — quebra o design system (cor, fonte, hover) e não respeita o locale.
-- **Helpers de data em querystring:** `parseDateParam` / `formatDateParam` em `apps/web/src/lib/date-params.ts`. Strings sempre `YYYY-MM-DD`, parseadas no fuso local (concatena `T00:00:00`).
-- **`<FiltersBar>`:** sempre renderiza o botão "Limpar filtros". Quando `hasActive=false`, vem com `disabled` (`opacity-50`, `pointer-events-none`) — sinaliza a ação sem causar layout jump.
+- **Slug auto-gerado em `create`:** `<Input disabled />` com valor de `slugifyLabel()` em `dashboard/categories/_lib/attribute-schema.ts`. Em `edit` fica editável com hint "alterar pode quebrar URLs/referências".
+- **Painel de erros no topo:** quando `safeParse` falha, listar todos os issues como `<ul>` em caixa vermelha com path → rótulo humano. Toast só com contagem ("3 erros — veja detalhes acima"). NUNCA `toast.error("Revise os campos")` genérico.
+- **Variantes (tools):** form exige ≥1 `tool_variant`, uma `isDefault` (radio group). Editor em `tools/_components/variants-editor.tsx`.
+- **Specs dinâmicas:** `definitionsByCategory[primaryCategoryId]` (resolve cadeia ancestral). Trocar categoria primary com specs preenchidas → `updateTool` devolve `actionResult.warning = "orphan_attributes"`; form pede confirmação antes de deletar.
+- **Markdown na descrição de tool:** `tool.description` é Markdown puro. Render via `<ToolDescription>` (`react-markdown` + `rehype-sanitize` preset `defaultSchema`).
 
-## Auditoria de mutações em DB
+## Imagens
 
-Ao inserir em `stockMovement`, `orderStatusHistory` ou `clientAuditLog` (mutação de cliente pelo staff):
-- Quando origem é admin user: `actorType: "user"` + `actorId: session.user.id`.
-- Quando origem é seed/script/mutação automática (inclui escritas do app e-commerce): `actorType: "system"` (default), sem actorId.
+Helper genérico Storage em `src/lib/storage.ts` (upload/delete/signedUrl para bucket público e privado). Upload de imagem de tool: `uploadToolImage()` em `tools/_components/image-actions.ts`. Anexos de pedido (bucket privado): `orders/_components/attachment-actions.ts` — reaproveitar pattern.
+
+Thumbs Supabase: `<img>` puro **com `// biome-ignore lint/performance/noImgElement: Supabase public URL` documentado**. Demais: `<Image>` do Next.
+
+## Auditoria de mutações DB
+
+Ao inserir em `stockMovement`, `orderStatusHistory`, `clientAuditLog`:
+- Admin user → `actorType: "user"` + `actorId: session.user.id`.
+- Seed/script/mutação automática (inclui escritas do app e-commerce) → `actorType: "system"` (default), sem actorId.
 
 CHECK `actor_coherence` no DB rejeita combinações inválidas.
 
-`stockMovement.variantId` (não mais `toolId`) — toda movimentação é por variante específica. Para revalidar paths de UI relacionados ao tool-pai após adjustStock, fazer `SELECT toolId FROM tool_variant WHERE id = $variantId` antes de chamar `revalidatePath`.
+`stockMovement.variantId` (não mais `toolId`) — toda movimentação por variante. Pra revalidar paths do tool-pai após `adjustStock`: `SELECT toolId FROM tool_variant WHERE id = $variantId` antes de `revalidatePath`.
 
 ## Orders — branch-scoping fail-safe
 
-Mutações de pedido (status, anexos) passam por `lockOrderAndAuthorize(tx, cap, orderId)` em `dashboard/orders/actions.ts`: faz `SELECT ... FOR UPDATE` do pedido **e** o capability check no mesmo lock — non-`super_admin` só age sobre pedidos da sua filial (`user_branch`). Toda transição de status escreve em `orderStatusHistory`; `canceled`/`refunded`/`returned` exigem `reason`, `preparing` exige `branchId`. Anexos do staff (`attachment-actions.ts`) usam o mesmo guard com capability `orders.update_status`.
+Mutações de pedido (status, anexos) passam por `lockOrderAndAuthorize(tx, cap, orderId)` em `dashboard/orders/actions.ts`: `SELECT ... FOR UPDATE` **e** capability check no mesmo lock — non-`super_admin` só age sobre pedidos da própria filial. Toda transição escreve em `orderStatusHistory`; `canceled`/`refunded`/`returned` exigem `reason`, `preparing` exige `branchId`.
 
-## Smoke run-time depois de refactor
+## Cache (Next 16)
 
-`tsc` valida tipos mas **não** detecta SQL inválido em template strings nem queries que referenciam colunas removidas. Sempre que mexer em schema ou em queries SSR, rodar `bun dev:web` e visitar as rotas afetadas. Stack trace mais rápido vem via `nextjs_call <port> get_errors` (MCP `next-devtools`).
+`cacheTag` por feature (`'orders'`, `'customers'`, `'site-banners'`...). `revalidateTag` em mutations. Ver skill `next-cache-components`.
+
+## Smoke run-time
+
+`tsc` não detecta SQL inválido em template strings nem queries com colunas removidas. Após mexer em schema ou queries SSR: `bun dev:web` + visitar rotas afetadas. Stack trace via `nextjs_call <port> get_errors` (MCP `next-devtools`).
