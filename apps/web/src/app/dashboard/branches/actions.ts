@@ -25,14 +25,18 @@ export type ActionResult<T = undefined> =
 	| { ok: false; error: string };
 
 function normalizePayload(input: BranchFormValues) {
-	const address = input.address?.trim();
-	const phone = input.phone?.trim();
-	const responsibleUserId = input.responsibleUserId?.trim();
 	return {
 		name: input.name,
-		address: address ? address : null,
-		phone: phone ? phone : null,
-		responsibleUserId: responsibleUserId ? responsibleUserId : null,
+		status: input.status,
+		phone: input.phone ?? null,
+		cep: input.cep ?? null, // já vem em dígitos via Zod transform
+		street: input.street ?? null,
+		streetNumber: input.streetNumber ?? null,
+		complement: input.complement ?? null,
+		neighborhood: input.neighborhood ?? null,
+		city: input.city ?? null,
+		state: input.state ?? null,
+		responsibleUserId: input.responsibleUserId ?? null,
 	};
 }
 
@@ -151,7 +155,7 @@ export async function createBranch(
 	}
 
 	const id = crypto.randomUUID();
-	const payload = normalizePayload(parsed.data);
+	const payload = { ...normalizePayload(parsed.data), responsibleUserId: null };
 
 	try {
 		await db.insert(branch).values({ id, ...payload });
@@ -182,6 +186,25 @@ export async function updateBranch(
 	}
 
 	const payload = normalizePayload(parsed.data);
+
+	if (payload.responsibleUserId) {
+		const [linked] = await db
+			.select({ uid: userBranch.userId })
+			.from(userBranch)
+			.where(
+				and(
+					eq(userBranch.branchId, id),
+					eq(userBranch.userId, payload.responsibleUserId)
+				)
+			)
+			.limit(1);
+		if (!linked) {
+			return {
+				ok: false,
+				error: "Responsável precisa estar vinculado à filial",
+			};
+		}
+	}
 
 	try {
 		await db.update(branch).set(payload).where(eq(branch.id, id));
