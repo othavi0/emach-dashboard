@@ -181,7 +181,7 @@ export async function requireCapabilityOrRedirect(
 	redirectTo = "/dashboard"
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
-	if (!can(session.user.role as UserRole, cap)) {
+	if (!can(session.user.role, cap)) {
 		redirect(redirectTo);
 	}
 	return session;
