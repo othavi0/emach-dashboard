@@ -6,7 +6,7 @@ import { can } from "@/lib/permissions";
 import type { UserRole } from "@/lib/session";
 import { requireCurrentSession } from "@/lib/session";
 
-import { EstoqueLegacyTab } from "./_components/estoque-tab-legacy";
+import { EstoqueTab } from "./_components/estoque-tab";
 import { OverviewTab } from "./_components/overview-tab";
 import { PlaceholderTab } from "./_components/placeholder-tab";
 import { ToolDetailHeader } from "./_components/tool-detail-header";
@@ -72,10 +72,11 @@ export default async function ToolDetailPage({ params }: PageProps) {
 					</span>
 				) : undefined,
 			content: (
-				<EstoqueLegacyTab
+				<EstoqueTab
 					canMutate={canMutate}
 					stockRows={detail.stockRows}
 					toolId={detail.tool.id}
+					variants={detail.variants}
 				/>
 			),
 		},
