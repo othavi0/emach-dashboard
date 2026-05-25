@@ -83,7 +83,7 @@ export default async function BranchesStockPage({
 	const filters: BranchStockFiltersInput = {
 		branchId: selectedBranch.id,
 		search: search || undefined,
-		sort: "newest",
+		sort: "urgency",
 	};
 	const first = await fetchBranchStockPage({ filters, cursor: null });
 	const rows = first.items;

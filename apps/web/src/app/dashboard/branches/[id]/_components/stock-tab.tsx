@@ -18,7 +18,7 @@ export async function StockTab({ branchId, branchName }: StockTabProps) {
 
 	const filters: BranchStockFiltersInput = {
 		branchId,
-		sort: "newest",
+		sort: "urgency",
 	};
 	const first = await fetchBranchStockPage({ filters, cursor: null });
 	const rows = first.items;
