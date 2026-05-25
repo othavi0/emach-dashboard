@@ -75,7 +75,6 @@ describe("can()", () => {
 	it("retorna false para role null/undefined/desconhecida", () => {
 		expect(can(null, "tools.read")).toBe(false);
 		expect(can(undefined, "tools.read")).toBe(false);
-		// @ts-expect-error: role inválida
 		expect(can("hacker", "tools.read")).toBe(false);
 	});
 });

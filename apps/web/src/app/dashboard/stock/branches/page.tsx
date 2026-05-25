@@ -1,3 +1,5 @@
+import { db } from "@emach/db";
+import { category } from "@emach/db/schema/categories";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Empty,
@@ -6,17 +8,21 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
-import { Tabs, TabsList, TabsTrigger } from "@emach/ui/components/tabs";
+import { asc, eq } from "drizzle-orm";
 import Link from "next/link";
-
 import { listBranches } from "@/app/dashboard/branches/actions";
 import { PageHeader } from "@/components/page-header";
 import { getUserBranchScope } from "@/lib/branch-scope";
+
+import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
-import { BranchSearchInput } from "../_components/branch-search-input";
+
+import { BranchStockFilters } from "../_components/branch-stock-filters";
 import { BranchStockInfinite } from "../_components/branch-stock-infinite";
 import {
 	type BranchStockFiltersInput,
+	type BranchStockSort,
+	type BranchStockStatus,
 	fetchBranchStockPage,
 } from "../branch-stock-data";
 
@@ -25,14 +31,46 @@ export const dynamic = "force-dynamic";
 interface BranchesStockPageProps {
 	searchParams: Promise<{
 		branch?: string;
+		categoryId?: string;
 		search?: string;
+		sort?: string;
+		status?: string;
 	}>;
 }
 
-function branchHref(branchId: string, search?: string): string {
+const SORT_MAP: Record<string, BranchStockSort> = {
+	name: "name",
+	"stock-low": "stockLow",
+	"stock-high": "stockHigh",
+};
+
+const STATUS_MAP: Record<string, BranchStockStatus> = {
+	critical: "critical",
+	reorder: "reorder",
+	ok: "ok",
+};
+
+function branchHref(
+	branchId: string,
+	sp: {
+		categoryId?: string;
+		search?: string;
+		sort?: string;
+		status?: string;
+	}
+): string {
 	const params = new URLSearchParams({ branch: branchId });
-	if (search) {
-		params.set("search", search);
+	if (sp.search) {
+		params.set("search", sp.search);
+	}
+	if (sp.status) {
+		params.set("status", sp.status);
+	}
+	if (sp.sort) {
+		params.set("sort", sp.sort);
+	}
+	if (sp.categoryId) {
+		params.set("categoryId", sp.categoryId);
 	}
 	return `/dashboard/stock/branches?${params.toString()}`;
 }
@@ -41,16 +79,26 @@ export default async function BranchesStockPage({
 	searchParams,
 }: BranchesStockPageProps) {
 	const session = await requireCurrentSession();
-	const canMutate = (session.user.role ?? "user") === "admin";
-	const params = await searchParams;
+	const canMutate = can(session.user.role, "stock.adjust");
+	const sp = await searchParams;
+
 	const scope = await getUserBranchScope(session);
-	const allBranches = await listBranches();
+	const [allBranches, categories] = await Promise.all([
+		listBranches(),
+		db
+			.select({ depth: category.depth, id: category.id, name: category.name })
+			.from(category)
+			.where(eq(category.isActive, true))
+			.orderBy(asc(category.path)),
+	]);
+
 	const branches =
 		scope === null
 			? allBranches
 			: allBranches.filter((b) => scope.includes(b.id));
+
 	const selectedBranch =
-		branches.find((branch) => branch.id === params.branch) ?? branches[0];
+		branches.find((b) => b.id === sp.branch) ?? branches[0];
 
 	if (!selectedBranch) {
 		return (
@@ -79,14 +127,15 @@ export default async function BranchesStockPage({
 		);
 	}
 
-	const search = params.search?.trim() ?? "";
 	const filters: BranchStockFiltersInput = {
 		branchId: selectedBranch.id,
-		search: search || undefined,
-		sort: "newest",
+		categoryId: sp.categoryId || undefined,
+		search: sp.search?.trim() || undefined,
+		sort: SORT_MAP[sp.sort ?? ""] ?? "urgency",
+		status: STATUS_MAP[sp.status ?? ""] ?? undefined,
 	};
+
 	const first = await fetchBranchStockPage({ filters, cursor: null });
-	const rows = first.items;
 
 	return (
 		<>
@@ -95,55 +144,39 @@ export default async function BranchesStockPage({
 				title="Estoque por Filiais"
 			/>
 
-			<Tabs value={selectedBranch.id}>
-				<TabsList scrollable>
-					{branches.map((branch) => (
-						<TabsTrigger
-							key={branch.id}
-							nativeButton={false}
-							render={
-								<Link href={branchHref(branch.id, search)}>{branch.name}</Link>
-							}
-							value={branch.id}
-						/>
-					))}
-				</TabsList>
-			</Tabs>
-
-			<BranchSearchInput />
-
-			<div className="flex items-center justify-between gap-4">
-				<div>
-					<h2 className="font-medium text-lg tracking-tight">
-						{selectedBranch.name}
-					</h2>
-					<p className="text-muted-foreground text-sm">
-						{rows.length} ferramenta{rows.length === 1 ? "" : "s"} listada
-						{rows.length === 1 ? "" : "s"} nesta filial.
-					</p>
-				</div>
-				<Link
-					className={buttonVariants({ variant: "ghost" })}
-					href={`/dashboard/branches/${selectedBranch.id}/stock`}
-				>
-					Abrir rota da filial
-				</Link>
+			{/* Chips de filial */}
+			<div className="flex gap-1.5 overflow-x-auto pb-0.5">
+				{branches.map((b) => (
+					<Link
+						className={`flex-shrink-0 whitespace-nowrap rounded-[7px] border px-3.5 py-1.5 font-medium text-sm transition-colors ${
+							b.id === selectedBranch.id
+								? "border-border bg-card text-foreground"
+								: "border-transparent text-muted-foreground hover:text-foreground"
+						}`}
+						href={branchHref(b.id, sp)}
+						key={b.id}
+					>
+						{b.name}
+					</Link>
+				))}
 			</div>
 
-			{rows.length === 0 ? (
+			<BranchStockFilters categories={categories} />
+
+			{first.items.length === 0 ? (
 				<Empty>
 					<EmptyHeader>
 						<EmptyTitle>Nenhuma ferramenta encontrada</EmptyTitle>
 						<EmptyDescription>
-							Tente ajustar a busca ou limpe o filtro aplicado.
+							Tente ajustar os filtros ou limpe a busca.
 						</EmptyDescription>
 					</EmptyHeader>
 					<EmptyContent>
 						<Link
 							className={buttonVariants({ variant: "ghost" })}
-							href={branchHref(selectedBranch.id)}
+							href={branchHref(selectedBranch.id, {})}
 						>
-							Limpar busca
+							Limpar filtros
 						</Link>
 					</EmptyContent>
 				</Empty>
@@ -152,7 +185,7 @@ export default async function BranchesStockPage({
 					branchName={selectedBranch.name}
 					canMutate={canMutate}
 					filters={filters}
-					initial={rows}
+					initial={first.items}
 					initialCursor={first.nextCursor}
 				/>
 			)}
