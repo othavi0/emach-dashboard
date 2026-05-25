@@ -47,7 +47,16 @@ function zodErrorMessage(error: unknown): string {
 	return "Erro de validação";
 }
 
-export async function listBranches(): Promise<BranchListItem[]> {
+export async function listBranches(opts?: {
+	activeOnly?: boolean;
+}): Promise<BranchListItem[]> {
+	if (opts?.activeOnly) {
+		return await db
+			.select()
+			.from(branch)
+			.where(eq(branch.status, "active"))
+			.orderBy(asc(branch.name));
+	}
 	return await db.select().from(branch).orderBy(asc(branch.name));
 }
 
