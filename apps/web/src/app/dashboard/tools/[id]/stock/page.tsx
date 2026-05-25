@@ -110,7 +110,7 @@ export default async function ToolStockPage({ params }: PageProps) {
 			.from(toolVariant)
 			.where(eq(toolVariant.toolId, id))
 			.orderBy(asc(toolVariant.sortOrder)),
-		listBranches(),
+		listBranches({ activeOnly: true }),
 		db
 			.select({
 				variantId: stockLevel.variantId,
