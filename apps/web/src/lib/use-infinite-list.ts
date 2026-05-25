@@ -22,28 +22,36 @@ export function useInfiniteList<T>({
 	const [error, setError] = useState<string | null>(null);
 	const [pending, startTransition] = useTransition();
 	const lastResetKey = useRef(resetKey);
+	const inflightRef = useRef(false);
+	const cursorRef = useRef(initialCursor);
 
 	if (resetKey !== lastResetKey.current) {
 		lastResetKey.current = resetKey;
 		setItems(initialItems);
 		setCursor(initialCursor);
+		cursorRef.current = initialCursor;
 		setError(null);
 	}
 
 	const loadMore = useCallback(() => {
-		if (!cursor || pending) {
+		if (!cursorRef.current || inflightRef.current) {
 			return;
 		}
+		const currentCursor = cursorRef.current;
+		inflightRef.current = true;
 		startTransition(async () => {
 			try {
-				const next = await fetchPage(cursor);
+				const next = await fetchPage(currentCursor);
 				setItems((prev) => [...prev, ...next.items]);
+				cursorRef.current = next.nextCursor;
 				setCursor(next.nextCursor);
 			} catch {
 				setError("Falha ao carregar mais. Tente novamente.");
+			} finally {
+				inflightRef.current = false;
 			}
 		});
-	}, [cursor, pending, fetchPage]);
+	}, [fetchPage]);
 
 	return {
 		items,
