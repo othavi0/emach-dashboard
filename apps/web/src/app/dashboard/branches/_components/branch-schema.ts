@@ -58,7 +58,7 @@ export const branchSchema = z
 			.or(z.literal(""))
 			.transform((v) => (v ? v : undefined))
 			.refine((v) => !v || ufRegex.test(v), "UF inválido (use 2 letras)"),
-		responsibleUserId: optionalTrimmed.pipe(z.string().uuid().optional()),
+		responsibleUserId: optionalTrimmed.pipe(z.string().min(1).optional()),
 	})
 	.refine(
 		(data) => {
