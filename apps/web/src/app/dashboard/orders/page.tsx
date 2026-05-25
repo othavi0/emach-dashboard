@@ -1,4 +1,3 @@
-import type { UserRole } from "@emach/db/schema/auth";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Empty,
@@ -11,9 +10,7 @@ import Link from "next/link";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
 import { PendingPanel, type PendingTab } from "@/components/pending-panel";
-import { can, requireCapability } from "@/lib/permissions";
-import { ExportCsvLink } from "./_components/export-csv-link";
-import { OrderKpisRow } from "./_components/order-kpis";
+import { requireCapability } from "@/lib/permissions";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrdersInfinite } from "./_components/orders-infinite";
 import {
@@ -24,7 +21,6 @@ import {
 } from "./actions";
 import {
 	fetchOrdersPage,
-	getOrderKpis,
 	getOrdersTabCounts,
 	listOrderBranches,
 	type OrderListFilters,
@@ -39,8 +35,7 @@ interface PageProps {
 export const dynamic = "force-dynamic";
 
 export default async function OrdersPage({ searchParams }: PageProps) {
-	const session = await requireCapability("orders.read");
-	const canExport = can(session.user.role as UserRole, "orders.export");
+	await requireCapability("orders.read");
 	const raw = await searchParams;
 	const parsed = ordersListFiltersSchema.safeParse(raw);
 	const data = parsed.success ? parsed.data : ordersListFiltersSchema.parse({});
@@ -62,29 +57,21 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 		branchId: data.branchId,
 	};
 
-	const [
-		branches,
-		counts,
-		kpis,
-		pendingAwaiting,
-		pendingFlow,
-		activity,
-		result,
-	] = await Promise.all([
-		listOrderBranches(),
-		getOrdersTabCounts(),
-		getOrderKpis(),
-		fetchPendingOrdersPage({
-			statuses: ["paid", "pending_payment"],
-			cursor: null,
-		}),
-		fetchPendingOrdersPage({
-			statuses: ["preparing", "shipped"],
-			cursor: null,
-		}),
-		fetchOrderActivityPage(null),
-		fetchOrdersPage({ filters: pageFilters, cursor: null }),
-	]);
+	const [branches, counts, pendingAwaiting, pendingFlow, activity, result] =
+		await Promise.all([
+			listOrderBranches(),
+			getOrdersTabCounts(),
+			fetchPendingOrdersPage({
+				statuses: ["paid", "pending_payment"],
+				cursor: null,
+			}),
+			fetchPendingOrdersPage({
+				statuses: ["preparing", "shipped"],
+				cursor: null,
+			}),
+			fetchOrderActivityPage(null),
+			fetchOrdersPage({ filters: pageFilters, cursor: null }),
+		]);
 
 	const hasFilters = Boolean(
 		filters.tab || filters.q || filters.from || filters.to || filters.branchId
@@ -117,12 +104,9 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 	return (
 		<>
 			<PageHeader
-				action={canExport ? <ExportCsvLink filters={filters} /> : null}
 				description="Listagem operacional com busca por número e cliente, filtros por data e filial e atalhos para fulfillment."
 				title="Pedidos"
 			/>
-
-			<OrderKpisRow counts={counts} kpis={kpis} />
 
 			<section className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<PendingPanel
@@ -130,13 +114,17 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 					tabs={pendingTabs}
 					title="Pendências de pedidos"
 				/>
-				<ActivityFeed
-					emptyMessage="Sem mudanças de status recentes."
-					fetchPage={fetchOrderActivityPage}
-					initialCursor={activity.nextCursor}
-					initialEvents={activity.items}
-					title="Histórico recente"
-				/>
+				<div className="relative min-h-[28rem] min-w-0">
+					<div className="absolute inset-0">
+						<ActivityFeed
+							emptyMessage="Sem mudanças de status recentes."
+							fetchPage={fetchOrderActivityPage}
+							initialCursor={activity.nextCursor}
+							initialEvents={activity.items}
+							title="Histórico recente"
+						/>
+					</div>
+				</div>
 			</section>
 
 			<OrderFiltersPanel
