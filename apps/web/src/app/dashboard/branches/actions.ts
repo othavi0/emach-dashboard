@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@emach/db";
-import { branch, stockLevel } from "@emach/db/schema/inventory";
+import { user } from "@emach/db/schema/auth";
+import { branch, stockLevel, userBranch } from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
 import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -44,6 +45,32 @@ function zodErrorMessage(error: unknown): string {
 
 export async function listBranches(): Promise<BranchListItem[]> {
 	return await db.select().from(branch).orderBy(asc(branch.name));
+}
+
+export interface ResponsibleCandidate {
+	email: string;
+	id: string;
+	image: string | null;
+	name: string;
+	role: "super_admin" | "admin" | "manager" | "user";
+}
+
+export async function listResponsibleCandidates(
+	branchId: string
+): Promise<ResponsibleCandidate[]> {
+	await requireCapability("branches.manage");
+	return await db
+		.select({
+			id: user.id,
+			name: user.name,
+			email: user.email,
+			role: user.role,
+			image: user.image,
+		})
+		.from(userBranch)
+		.innerJoin(user, eq(userBranch.userId, user.id))
+		.where(and(eq(userBranch.branchId, branchId), eq(user.status, "active")))
+		.orderBy(asc(user.name));
 }
 
 export type BranchSort = "newest" | "name";
