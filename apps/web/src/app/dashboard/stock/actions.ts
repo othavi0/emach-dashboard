@@ -132,6 +132,7 @@ export async function adjustStock(
 		if (toolId) {
 			revalidatePath(`/dashboard/tools/${toolId}/stock`);
 		}
+		revalidatePath("/dashboard", "layout");
 
 		return {
 			ok: true,
@@ -203,6 +204,7 @@ export async function updateStockThresholds(
 		if (toolId) {
 			revalidatePath(`/dashboard/tools/${toolId}/stock`);
 		}
+		revalidatePath("/dashboard", "layout");
 
 		return { ok: true, data: undefined };
 	} catch (error) {
