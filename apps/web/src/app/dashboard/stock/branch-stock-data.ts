@@ -18,12 +18,15 @@ export interface BranchStockRow {
 	voltage: string | null;
 }
 
-export type BranchStockSort = "newest" | "name";
+export type BranchStockSort = "urgency" | "name" | "stockLow" | "stockHigh";
+export type BranchStockStatus = "all" | "critical" | "reorder" | "ok";
 
 export interface BranchStockFiltersInput {
 	branchId: string;
+	categoryId?: string;
 	search?: string;
 	sort: BranchStockSort;
+	status?: BranchStockStatus;
 }
 
 interface BranchStockDbRow extends Record<string, unknown> {
@@ -32,7 +35,6 @@ interface BranchStockDbRow extends Record<string, unknown> {
 	quantity: number;
 	reorder_point: number;
 	sku: string;
-	tool_created_at: string;
 	tool_id: string;
 	tool_name: string;
 	variant_id: string;
@@ -46,11 +48,58 @@ function buildBranchCursorPredicate(
 	if (!decoded) {
 		return null;
 	}
-	if (sort === "newest" && decoded.sort === "newest") {
-		return sql`(t.created_at, tv.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`;
-	}
 	if (sort === "name" && decoded.sort === "name") {
 		return sql`(t.name, tv.id) > (${decoded.name}, ${decoded.id})`;
+	}
+	if (sort === "stockLow" && decoded.sort === "stockLow") {
+		return sql`(COALESCE(sl.quantity, 0), tv.id) > (${decoded.totalStock}, ${decoded.id})`;
+	}
+	if (sort === "stockHigh" && decoded.sort === "stockHigh") {
+		return sql`(COALESCE(sl.quantity, 0), tv.id) < (${decoded.totalStock}, ${decoded.id})`;
+	}
+	// "urgency": sem cursor persistido
+	return null;
+}
+
+function buildBranchOrderClause(sort: BranchStockSort) {
+	if (sort === "name") {
+		return sql`ORDER BY t.name ASC, tv.id ASC`;
+	}
+	if (sort === "stockLow") {
+		return sql`ORDER BY COALESCE(sl.quantity, 0) ASC, tv.id ASC`;
+	}
+	if (sort === "stockHigh") {
+		return sql`ORDER BY COALESCE(sl.quantity, 0) DESC, tv.id DESC`;
+	}
+	// "urgency" (default): crítico → repor → ok; dentro de cada grupo, quantidade ASC
+	return sql`ORDER BY
+		CASE
+			WHEN COALESCE(sl.quantity, 0) <= COALESCE(sl.min_qty, 0) AND COALESCE(sl.min_qty, 0) > 0 THEN 1
+			WHEN COALESCE(sl.quantity, 0) > COALESCE(sl.min_qty, 0)
+				AND COALESCE(sl.quantity, 0) <= COALESCE(sl.reorder_point, 0)
+				AND COALESCE(sl.reorder_point, 0) > 0 THEN 2
+			ELSE 3
+		END ASC,
+		COALESCE(sl.quantity, 0) ASC,
+		tv.id ASC`;
+}
+
+function buildBranchStatusPredicate(status: BranchStockStatus | undefined) {
+	if (status === "critical") {
+		return sql`(COALESCE(sl.quantity, 0) <= COALESCE(sl.min_qty, 0) AND COALESCE(sl.min_qty, 0) > 0)`;
+	}
+	if (status === "reorder") {
+		return sql`(
+			COALESCE(sl.quantity, 0) > COALESCE(sl.min_qty, 0)
+			AND COALESCE(sl.quantity, 0) <= COALESCE(sl.reorder_point, 0)
+			AND COALESCE(sl.reorder_point, 0) > 0
+		)`;
+	}
+	if (status === "ok") {
+		return sql`(
+			COALESCE(sl.quantity, 0) > COALESCE(sl.reorder_point, 0)
+			OR (COALESCE(sl.min_qty, 0) = 0 AND COALESCE(sl.reorder_point, 0) = 0)
+		)`;
 	}
 	return null;
 }
@@ -66,11 +115,27 @@ export async function fetchBranchStockPage({
 	const trimmedSearch = filters.search?.trim();
 
 	const whereParts: ReturnType<typeof sql>[] = [];
+
 	if (trimmedSearch) {
 		whereParts.push(
 			sql`(t.name ILIKE ${`%${trimmedSearch}%`} OR tv.sku ILIKE ${`%${trimmedSearch}%`})`
 		);
 	}
+
+	if (filters.categoryId) {
+		whereParts.push(
+			sql`EXISTS (
+				SELECT 1 FROM tool_category tc
+				WHERE tc.tool_id = t.id AND tc.category_id = ${filters.categoryId}
+			)`
+		);
+	}
+
+	const statusPred = buildBranchStatusPredicate(filters.status);
+	if (statusPred) {
+		whereParts.push(statusPred);
+	}
+
 	const cursorPred = buildBranchCursorPredicate(decoded, filters.sort);
 	if (cursorPred) {
 		whereParts.push(cursorPred);
@@ -80,20 +145,24 @@ export async function fetchBranchStockPage({
 		? sql`WHERE ${sql.join(whereParts, sql` AND `)}`
 		: sql``;
 
-	const orderClause =
-		filters.sort === "name"
-			? sql`ORDER BY t.name ASC, tv.id ASC`
-			: sql`ORDER BY t.created_at DESC, tv.id DESC`;
+	const orderClause = buildBranchOrderClause(filters.sort);
 
 	const result = await db.execute<BranchStockDbRow>(sql`
 		SELECT
-			t.id AS tool_id, t.name AS tool_name,
-			tv.id AS variant_id, tv.sku, tv.voltage::text AS voltage,
-			(SELECT ti.url FROM tool_image ti WHERE ti.tool_id = t.id ORDER BY ti.sort_order ASC LIMIT 1) AS image_url,
+			t.id AS tool_id,
+			t.name AS tool_name,
+			tv.id AS variant_id,
+			tv.sku,
+			tv.voltage::text AS voltage,
+			(
+				SELECT ti.url FROM tool_image ti
+				WHERE ti.tool_id = t.id
+				ORDER BY ti.sort_order ASC
+				LIMIT 1
+			) AS image_url,
 			COALESCE(sl.quantity, 0)::int AS quantity,
 			COALESCE(sl.min_qty, 0)::int AS min_qty,
-			COALESCE(sl.reorder_point, 0)::int AS reorder_point,
-			t.created_at::text AS tool_created_at
+			COALESCE(sl.reorder_point, 0)::int AS reorder_point
 		FROM tool t
 		JOIN tool_variant tv ON tv.tool_id = t.id
 		LEFT JOIN stock_level sl ON sl.variant_id = tv.id AND sl.branch_id = ${filters.branchId}
@@ -112,33 +181,38 @@ export async function fetchBranchStockPage({
 		quantity: Number(row.quantity ?? 0),
 		minQty: Number(row.min_qty ?? 0),
 		reorderPoint: Number(row.reorder_point ?? 0),
-		__createdAt: row.tool_created_at,
 	}));
 
 	const hasMore = all.length > BATCH_SIZE;
 	const items = hasMore ? all.slice(0, BATCH_SIZE) : all;
 	const last = items.at(-1);
 	let nextCursor: string | null = null;
+
 	if (hasMore && last) {
-		nextCursor =
-			filters.sort === "name"
-				? encodeCursor({
-						v: 1,
-						sort: "name",
-						name: last.toolName,
-						id: last.variantId,
-					})
-				: encodeCursor({
-						v: 1,
-						sort: "newest",
-						createdAt: last.__createdAt,
-						id: last.variantId,
-					});
+		if (filters.sort === "name") {
+			nextCursor = encodeCursor({
+				v: 1,
+				sort: "name",
+				name: last.toolName,
+				id: last.variantId,
+			});
+		} else if (filters.sort === "stockLow") {
+			nextCursor = encodeCursor({
+				v: 1,
+				sort: "stockLow",
+				totalStock: last.quantity,
+				id: last.variantId,
+			});
+		} else if (filters.sort === "stockHigh") {
+			nextCursor = encodeCursor({
+				v: 1,
+				sort: "stockHigh",
+				totalStock: last.quantity,
+				id: last.variantId,
+			});
+		}
+		// "urgency": nextCursor permanece null
 	}
 
-	const cleanItems: BranchStockRow[] = items.map(
-		({ __createdAt: _c, ...rest }) => rest
-	);
-
-	return { items: cleanItems, nextCursor };
+	return { items, nextCursor };
 }
