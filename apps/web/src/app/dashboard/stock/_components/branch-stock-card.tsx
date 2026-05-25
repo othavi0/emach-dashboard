@@ -1,20 +1,15 @@
 "use client";
 
 import { Badge } from "@emach/ui/components/badge";
-import { useRouter } from "next/navigation";
 
 import type { BranchStockRow } from "../branch-stock-data";
-import { BranchStockThresholdInputs } from "./branch-stock-threshold-inputs";
-import { StockAdjustButton } from "./stock-adjust-button";
 
 interface BranchStockCardProps {
-	branchId: string;
-	branchName: string;
-	canMutate: boolean;
+	onSelect: (row: BranchStockRow) => void;
 	row: BranchStockRow;
 }
 
-type StockStatus = "critical" | "reorder" | "ok" | "none";
+type StockStatus = "critical" | "none" | "ok" | "reorder";
 
 function stockStatus(row: BranchStockRow): StockStatus {
 	if (row.minQty > 0 && row.quantity <= row.minQty) {
@@ -33,30 +28,23 @@ function stockStatus(row: BranchStockRow): StockStatus {
 	return "ok";
 }
 
-export function BranchStockCard({
-	branchId,
-	branchName,
-	canMutate,
-	row,
-}: BranchStockCardProps) {
-	const router = useRouter();
+export function BranchStockCard({ onSelect, row }: BranchStockCardProps) {
 	const status = stockStatus(row);
-	const hasThresholds = row.minQty > 0 || row.reorderPoint > 0;
 
 	return (
 		<div
-			className="group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm"
-			onClick={() => router.push(`/dashboard/tools/${row.toolId}`)}
+			className="group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			onClick={() => onSelect(row)}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();
-					router.push(`/dashboard/tools/${row.toolId}`);
+					onSelect(row);
 				}
 			}}
 			role="button"
 			tabIndex={0}
 		>
-			{/* Imagem com badge de status sobreposto */}
+			{/* Imagem com badge de status */}
 			<div className="relative overflow-hidden">
 				{row.imageUrl ? (
 					// biome-ignore lint/performance/noImgElement: Supabase public URL
@@ -110,7 +98,6 @@ export function BranchStockCard({
 
 				<hr className="border-border" />
 
-				{/* Rodapé */}
 				<div className="flex items-center justify-between gap-3">
 					<div className="flex items-baseline gap-1">
 						<span className="text-muted-foreground text-xs">Qtd:</span>
@@ -122,37 +109,12 @@ export function BranchStockCard({
 							{row.quantity}
 						</span>
 					</div>
-					{canMutate && (
-						<div
-							className="flex shrink-0 items-center gap-1.5"
-							onClick={(e) => e.stopPropagation()}
-						>
-							<StockAdjustButton
-								branchId={branchId}
-								branchName={branchName}
-								currentQty={row.quantity}
-								variantId={row.variantId}
-							/>
-						</div>
+					{(row.minQty > 0 || row.reorderPoint > 0) && (
+						<span className="text-[10px] text-muted-foreground/60 tabular-nums">
+							Mín {row.minQty} · Rep {row.reorderPoint}
+						</span>
 					)}
 				</div>
-
-				{/* Thresholds */}
-				{canMutate && hasThresholds && (
-					<div onClick={(e) => e.stopPropagation()}>
-						<BranchStockThresholdInputs
-							branchId={branchId}
-							initialMinQty={row.minQty}
-							initialReorderPoint={row.reorderPoint}
-							variantId={row.variantId}
-						/>
-					</div>
-				)}
-				{!canMutate && hasThresholds && (
-					<p className="text-[11px] text-muted-foreground/60">
-						Mín: {row.minQty} · Reposição: {row.reorderPoint}
-					</p>
-				)}
 			</div>
 		</div>
 	);

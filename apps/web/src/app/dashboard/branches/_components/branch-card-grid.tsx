@@ -10,14 +10,14 @@ import type { BranchTableRow } from "../data";
 import { BranchCard } from "./branch-card";
 
 interface BranchCardGridProps {
-	canMutate: boolean;
+	canManage: boolean;
 	filters: BranchesFiltersInput;
 	initial: BranchTableRow[];
 	initialCursor: string | null;
 }
 
 export function BranchCardGrid({
-	canMutate,
+	canManage,
 	filters,
 	initial,
 	initialCursor,
@@ -46,7 +46,7 @@ export function BranchCardGrid({
 		<div aria-live="polite">
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{items.map((b) => (
-					<BranchCard branch={b} canMutate={canMutate} key={b.id} />
+					<BranchCard branch={b} canManage={canManage} key={b.id} />
 				))}
 			</div>
 			<InfiniteSentinel

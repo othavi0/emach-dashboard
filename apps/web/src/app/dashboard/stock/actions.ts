@@ -501,3 +501,39 @@ export async function getStockMovements(
 		.orderBy(desc(stockMovement.createdAt))
 		.limit(limit);
 }
+
+/**
+ * Lista movimentos de estoque de uma variante específica em uma filial.
+ */
+export async function getStockMovementsByVariantBranch(
+	variantId: string,
+	branchId: string,
+	limit = 5
+): Promise<StockMovementRow[]> {
+	await requireCurrentSession();
+	return await db
+		.select({
+			id: stockMovement.id,
+			createdAt: stockMovement.createdAt,
+			branchId: stockMovement.branchId,
+			branchName: branch.name,
+			previousQty: stockMovement.previousQty,
+			newQty: stockMovement.newQty,
+			delta: stockMovement.delta,
+			reason: stockMovement.reason,
+			reasonNote: stockMovement.reasonNote,
+			actorId: stockMovement.actorId,
+			actorName: user.name,
+		})
+		.from(stockMovement)
+		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
+		.leftJoin(user, eq(stockMovement.actorId, user.id))
+		.where(
+			and(
+				eq(stockMovement.variantId, variantId),
+				eq(stockMovement.branchId, branchId)
+			)
+		)
+		.orderBy(desc(stockMovement.createdAt))
+		.limit(limit);
+}

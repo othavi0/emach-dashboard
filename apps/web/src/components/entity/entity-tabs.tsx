@@ -12,7 +12,8 @@ import type { ReactNode } from "react";
 
 export interface EntityTab {
 	badge?: ReactNode;
-	content: ReactNode;
+	content?: ReactNode;
+	href?: string;
 	icon?: ReactNode;
 	label: ReactNode;
 	value: string;
@@ -37,6 +38,11 @@ export function EntityTabs({
 	const current = params.get(paramName) ?? defaultValue;
 
 	const handleChange = (next: string) => {
+		const tab = tabs.find((t) => t.value === next);
+		if (tab?.href) {
+			router.push(tab.href);
+			return;
+		}
 		const sp = new URLSearchParams(params);
 		if (next === defaultValue) {
 			sp.delete(paramName);

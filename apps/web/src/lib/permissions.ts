@@ -198,6 +198,18 @@ const SELF_RESTRICTED: readonly Capability[] = [
 	"users.update_role",
 ];
 
+export async function requireCapabilityWithContextOrRedirect(
+	cap: Capability,
+	ctx: CapabilityContext = {},
+	redirectTo = "/dashboard"
+): Promise<DashboardSession> {
+	try {
+		return await requireCapabilityWithContext(cap, ctx);
+	} catch {
+		redirect(redirectTo);
+	}
+}
+
 export async function requireCapabilityWithContext(
 	cap: Capability,
 	ctx: CapabilityContext = {}

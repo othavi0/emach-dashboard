@@ -8,6 +8,7 @@ import {
 	DropdownMenuTrigger,
 } from "@emach/ui/components/dropdown-menu";
 import { Boxes, MoreHorizontal, Pencil } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import type { BranchTableRow } from "../data";
@@ -15,7 +16,7 @@ import { DeleteBranchDialog } from "./delete-branch-dialog";
 
 interface BranchCardProps {
 	branch: BranchTableRow;
-	canMutate: boolean;
+	canManage: boolean;
 }
 
 function monogramColor(lowStock: number): { bg: string; text: string } {
@@ -34,18 +35,20 @@ function initials(name: string): string {
 		.join("");
 }
 
-export function BranchCard({ branch, canMutate }: BranchCardProps) {
+export function BranchCard({ branch, canManage }: BranchCardProps) {
 	const router = useRouter();
 	const { bg, text } = monogramColor(branch.lowStock);
+	const detailHref = `/dashboard/branches/${branch.id}`;
+	const stockHref = `/dashboard/branches/${branch.id}/stock`;
 
 	return (
 		<div
-			className="group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm"
-			onClick={() => router.push(`/dashboard/branches/${branch.id}`)}
+			className="group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			onClick={() => router.push(canManage ? detailHref : stockHref)}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();
-					router.push(`/dashboard/branches/${branch.id}`);
+					router.push(canManage ? detailHref : stockHref);
 				}
 			}}
 			role="button"
@@ -87,7 +90,7 @@ export function BranchCard({ branch, canMutate }: BranchCardProps) {
 						)}
 					</div>
 				</div>
-				{canMutate && (
+				{canManage && (
 					<div
 						className="flex shrink-0 items-center gap-1"
 						onClick={(e) => e.stopPropagation()}
@@ -104,18 +107,12 @@ export function BranchCard({ branch, canMutate }: BranchCardProps) {
 								<MoreHorizontal aria-hidden className="size-4" />
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end">
-								<DropdownMenuItem
-									onClick={() =>
-										router.push(`/dashboard/branches/${branch.id}/stock`)
-									}
-								>
+								<DropdownMenuItem onClick={() => router.push(detailHref)}>
 									<Boxes aria-hidden className="size-4" />
-									Estoque
+									Detalhes
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									onClick={() =>
-										router.push(`/dashboard/branches/${branch.id}?edit=1`)
-									}
+									onClick={() => router.push(`${detailHref}?edit=1`)}
 								>
 									<Pencil aria-hidden className="size-4" />
 									Editar
@@ -157,6 +154,21 @@ export function BranchCard({ branch, canMutate }: BranchCardProps) {
 						Abaixo mín.
 					</span>
 				</div>
+			</div>
+
+			{/* Link de estoque — sempre visível */}
+			<div
+				className="border-border border-t"
+				onClick={(e) => e.stopPropagation()}
+				onKeyDown={(e) => e.stopPropagation()}
+			>
+				<Link
+					className="flex items-center gap-1.5 px-4 py-2.5 text-muted-foreground text-xs transition-colors hover:text-foreground"
+					href={stockHref}
+				>
+					<Boxes aria-hidden className="size-3.5" />
+					Ver estoque
+				</Link>
 			</div>
 		</div>
 	);

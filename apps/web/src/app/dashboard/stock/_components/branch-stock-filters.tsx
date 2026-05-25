@@ -20,6 +20,7 @@ interface CategoryOption {
 }
 
 interface BranchStockFiltersProps {
+	basePath: string;
 	categories: CategoryOption[];
 }
 
@@ -62,16 +63,18 @@ function statusClass(value: StatusValue, active: boolean): string {
 }
 
 const ALL = "__all__";
-const BASE = "/dashboard/stock/branches";
 const TRACKED = ["search", "status", "sort", "categoryId"] as const;
 
-export function BranchStockFilters({ categories }: BranchStockFiltersProps) {
+export function BranchStockFilters({
+	basePath,
+	categories,
+}: BranchStockFiltersProps) {
 	const { searchParams, setParam, clearAll, hasActive } = useFilterState({
-		basePath: BASE,
+		basePath,
 		trackedKeys: TRACKED,
 	});
 	const [search, setSearch] = useDebouncedParam({
-		basePath: BASE,
+		basePath,
 		key: "search",
 	});
 	const currentStatus = (searchParams.get("status") ?? "all") as StatusValue;
