@@ -5,8 +5,8 @@ import Link from "next/link";
 import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { BranchCardGrid } from "./_components/branch-card-grid";
 import { BranchesFilters } from "./_components/branches-filters";
-import { BranchesTable } from "./_components/branches-table";
 import { type BranchesFiltersInput, fetchBranchesTablePage } from "./actions";
 import { getBranchKpis } from "./data";
 
@@ -84,7 +84,7 @@ export default async function BranchesPage({ searchParams }: PageProps) {
 
 			<BranchesFilters />
 
-			<BranchesTable
+			<BranchCardGrid
 				canMutate
 				filters={filters}
 				initial={firstPage.items}
