@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@emach/db";
-import { branch, stockLevel } from "@emach/db/schema/inventory";
+import { user } from "@emach/db/schema/auth";
+import { branch, stockLevel, userBranch } from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
 import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -24,14 +25,18 @@ export type ActionResult<T = undefined> =
 	| { ok: false; error: string };
 
 function normalizePayload(input: BranchFormValues) {
-	const address = input.address?.trim();
-	const phone = input.phone?.trim();
-	const responsibleUserId = input.responsibleUserId?.trim();
 	return {
 		name: input.name,
-		address: address ? address : null,
-		phone: phone ? phone : null,
-		responsibleUserId: responsibleUserId ? responsibleUserId : null,
+		status: input.status,
+		phone: input.phone ?? null,
+		cep: input.cep ?? null, // já vem em dígitos via Zod transform
+		street: input.street ?? null,
+		streetNumber: input.streetNumber ?? null,
+		complement: input.complement ?? null,
+		neighborhood: input.neighborhood ?? null,
+		city: input.city ?? null,
+		state: input.state ?? null,
+		responsibleUserId: input.responsibleUserId ?? null,
 	};
 }
 
@@ -42,13 +47,49 @@ function zodErrorMessage(error: unknown): string {
 	return "Erro de validação";
 }
 
-export async function listBranches(): Promise<BranchListItem[]> {
+export async function listBranches(opts?: {
+	activeOnly?: boolean;
+}): Promise<BranchListItem[]> {
+	if (opts?.activeOnly) {
+		return await db
+			.select()
+			.from(branch)
+			.where(eq(branch.status, "active"))
+			.orderBy(asc(branch.name));
+	}
 	return await db.select().from(branch).orderBy(asc(branch.name));
+}
+
+export interface ResponsibleCandidate {
+	email: string;
+	id: string;
+	image: string | null;
+	name: string;
+	role: "super_admin" | "admin" | "manager" | "user";
+}
+
+export async function listResponsibleCandidates(
+	branchId: string
+): Promise<ResponsibleCandidate[]> {
+	await requireCapability("branches.manage");
+	return await db
+		.select({
+			id: user.id,
+			name: user.name,
+			email: user.email,
+			role: user.role,
+			image: user.image,
+		})
+		.from(userBranch)
+		.innerJoin(user, eq(userBranch.userId, user.id))
+		.where(and(eq(userBranch.branchId, branchId), eq(user.status, "active")))
+		.orderBy(asc(user.name));
 }
 
 export type BranchSort = "newest" | "name";
 
 export interface BranchesFiltersInput {
+	includeInactive?: boolean;
 	search?: string;
 	sort: BranchSort;
 }
@@ -62,6 +103,9 @@ export async function fetchBranchesPage({
 }): Promise<InfiniteResult<BranchListItem>> {
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const conditions: ReturnType<typeof sql>[] = [];
+	if (!filters.includeInactive) {
+		conditions.push(eq(branch.status, "active"));
+	}
 	if (filters.search) {
 		conditions.push(sql`${branch.name} ILIKE ${`%${filters.search}%`}`);
 	}
@@ -124,7 +168,7 @@ export async function createBranch(
 	}
 
 	const id = crypto.randomUUID();
-	const payload = normalizePayload(parsed.data);
+	const payload = { ...normalizePayload(parsed.data), responsibleUserId: null };
 
 	try {
 		await db.insert(branch).values({ id, ...payload });
@@ -155,6 +199,25 @@ export async function updateBranch(
 	}
 
 	const payload = normalizePayload(parsed.data);
+
+	if (payload.responsibleUserId) {
+		const [linked] = await db
+			.select({ uid: userBranch.userId })
+			.from(userBranch)
+			.where(
+				and(
+					eq(userBranch.branchId, id),
+					eq(userBranch.userId, payload.responsibleUserId)
+				)
+			)
+			.limit(1);
+		if (!linked) {
+			return {
+				ok: false,
+				error: "Responsável precisa estar vinculado à filial",
+			};
+		}
+	}
 
 	try {
 		await db.update(branch).set(payload).where(eq(branch.id, id));
@@ -255,7 +318,12 @@ export async function fetchBranchesTablePage({
 		return {
 			id: b.id,
 			name: b.name,
-			address: b.address,
+			street: b.street,
+			streetNumber: b.streetNumber,
+			neighborhood: b.neighborhood,
+			city: b.city,
+			state: b.state,
+			status: b.status,
 			createdAt: b.createdAt,
 			teamCount: agg.teamCount,
 			activeSkus: agg.activeSkus,

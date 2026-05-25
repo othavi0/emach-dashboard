@@ -6,6 +6,7 @@ import {
 } from "@emach/ui/components/card";
 import { Building2, Package, ShoppingCart, Users } from "lucide-react";
 import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
+import { formatBranchAddress, formatCep } from "@/lib/format/branch";
 import type { BranchDetail, BranchDetailKpis } from "../../data";
 
 const BRL = new Intl.NumberFormat("pt-BR", {
@@ -66,14 +67,35 @@ export function OverviewTab({ detail, kpis }: Props) {
 							</dt>
 							<dd className="mt-1 font-medium text-sm">{detail.name}</dd>
 						</div>
-						{detail.address ? (
-							<div>
-								<dt className="text-muted-foreground text-xs uppercase tracking-wide">
-									Endereço
-								</dt>
-								<dd className="mt-1 text-sm">{detail.address}</dd>
-							</div>
-						) : null}
+						<div>
+							<dt className="text-muted-foreground text-xs uppercase tracking-wider">
+								Endereço
+							</dt>
+							<dd className="mt-1 text-sm">
+								{(() => {
+									const line = formatBranchAddress(detail);
+									const cep = formatCep(detail.cep);
+									if (!(line || cep)) {
+										return "—";
+									}
+									return (
+										<div className="flex flex-col gap-0.5">
+											{line && <span>{line}</span>}
+											{cep && (
+												<span className="text-muted-foreground text-xs">
+													CEP {cep}
+												</span>
+											)}
+											{detail.complement && (
+												<span className="text-muted-foreground text-xs">
+													Compl.: {detail.complement}
+												</span>
+											)}
+										</div>
+									);
+								})()}
+							</dd>
+						</div>
 						{detail.phone ? (
 							<div>
 								<dt className="text-muted-foreground text-xs uppercase tracking-wide">

@@ -7,6 +7,7 @@ import {
 	primaryKey,
 	text,
 	timestamp,
+	varchar,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -17,8 +18,18 @@ export const branch = pgTable(
 	{
 		id: text("id").primaryKey(),
 		name: text("name").notNull(),
-		address: text("address"),
 		phone: text("phone"),
+		// Endereço estruturado (substitui address legacy)
+		cep: text("cep"),
+		street: text("street"),
+		streetNumber: text("street_number"),
+		complement: text("complement"),
+		neighborhood: text("neighborhood"),
+		city: text("city"),
+		state: varchar("state", { length: 2 }),
+		status: text("status", { enum: ["active", "inactive"] })
+			.default("active")
+			.notNull(),
 		responsibleUserId: text("responsible_user_id").references(() => user.id, {
 			onDelete: "set null",
 		}),
