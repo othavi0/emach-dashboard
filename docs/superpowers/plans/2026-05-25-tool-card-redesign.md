@@ -1,3 +1,40 @@
+# Tool Card Redesign — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Redesenhar `ToolCard` com overlay de badges na imagem, rodapé mínimo ("Estoque: N"), card inteiro clicável e altura uniforme entre cards com e sem variantes.
+
+**Architecture:** Reescrita de `tool-card.tsx` (único arquivo modificado). Adiciona `"use client"` + `useRouter` para navegação no card-click. Ações envolvidas em `stopPropagation`. Nenhuma alteração de interface de dados (`ToolCardData` inalterado) nem nos componentes consumidores.
+
+**Tech Stack:** Next.js 16 App Router, React 19, Tailwind CSS, shadcn/ui Badge, `next/navigation` useRouter.
+
+---
+
+## Mapa de arquivos
+
+| Arquivo | Status | O que muda |
+|---|---|---|
+| `apps/web/src/app/dashboard/_components/tool-card.tsx` | **Modificar** | Reescrita completa da UI — único arquivo tocado |
+| `apps/web/src/app/dashboard/_components/tool-card-grid.tsx` | Inalterado | Nenhuma alteração |
+| `apps/web/src/app/dashboard/tools/_components/tool-card-actions.tsx` | Inalterado | `stopPropagation` aplicado no wrapper em tool-card.tsx |
+| `apps/web/src/app/dashboard/stock/_components/stock-card-actions.tsx` | Inalterado | Idem |
+
+---
+
+## Task 1: Reescrever `tool-card.tsx`
+
+**Files:**
+- Modify: `apps/web/src/app/dashboard/_components/tool-card.tsx`
+
+### Contexto
+
+O arquivo atual tem `p-4` no wrapper externo (padding envolve a imagem). Na nova estrutura a imagem é edge-to-edge — o padding migra para um `<div>` interno (`px-4 pb-4 pt-3`). As funções `VariantsBlock`, `StockFooter` e `formatBranches` são removidas (inlinadas ou descartadas).
+
+Ambos os contextos de uso — `ToolsInfinite` (`variant="catalog"`) e `StockInfinite` (`variant="stock-overview"`) — já são `"use client"`, então adicionar `"use client"` ao card é seguro.
+
+- [ ] **Step 1: Substituir o conteúdo completo de `tool-card.tsx`**
+
+```tsx
 "use client";
 
 import { Badge } from "@emach/ui/components/badge";
@@ -56,15 +93,9 @@ interface ToolCardProps {
 
 function formatMeta(tool: ToolCardData): string {
 	const parts: string[] = [];
-	if (tool.sku) {
-		parts.push(`SKU ${tool.sku}`);
-	}
-	if (tool.voltage) {
-		parts.push(tool.voltage);
-	}
-	if (tool.supplierName) {
-		parts.push(tool.supplierName);
-	}
+	if (tool.sku) parts.push(`SKU ${tool.sku}`);
+	if (tool.voltage) parts.push(tool.voltage);
+	if (tool.supplierName) parts.push(tool.supplierName);
 	return parts.join(" · ");
 }
 
@@ -80,14 +111,6 @@ export function ToolCard({ tool, variant, canMutate, actions }: ToolCardProps) {
 		<div
 			className="group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm"
 			onClick={() => router.push(`/dashboard/tools/${tool.id}`)}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					router.push(`/dashboard/tools/${tool.id}`);
-				}
-			}}
-			role="button"
-			tabIndex={0}
 		>
 			{/* Imagem com badges sobrepostos */}
 			<div className="relative overflow-hidden">
@@ -100,30 +123,27 @@ export function ToolCard({ tool, variant, canMutate, actions }: ToolCardProps) {
 						src={tool.imageUrl}
 					/>
 				) : (
-					<div
-						aria-hidden
-						className="aspect-[16/9] w-full border-dashed bg-muted/40"
-					/>
+					<div className="aspect-[16/9] w-full border-dashed bg-muted/40" />
 				)}
 				{tool.primaryCategoryName && (
 					<div className="absolute bottom-2 left-2">
 						<Badge
-							className="text-[10px] shadow-sm backdrop-blur-sm"
-							variant="secondary"
+							className="bg-card/80 text-[10px] backdrop-blur-sm"
+							variant="outline"
 						>
 							{tool.primaryCategoryName}
 						</Badge>
 					</div>
 				)}
-				<div className="absolute top-2 right-2">
+				<div className="absolute right-2 top-2">
 					{showReorderHeader ? (
-						<Badge className="shadow-sm backdrop-blur-sm" variant="warning">
+						<Badge className="bg-card/80 backdrop-blur-sm" variant="warning">
 							<AlertTriangleIcon aria-hidden className="size-3" />
 							Repor{tool.reorderCount > 1 ? ` (${tool.reorderCount})` : ""}
 						</Badge>
 					) : (
 						<Badge
-							className="shadow-sm backdrop-blur-sm"
+							className="bg-card/80 backdrop-blur-sm"
 							variant={STATUS_BADGE_VARIANT[tool.status] ?? "outline"}
 						>
 							{TOOL_STATUS_LABELS[tool.status] ?? tool.status}
@@ -133,10 +153,10 @@ export function ToolCard({ tool, variant, canMutate, actions }: ToolCardProps) {
 			</div>
 
 			{/* Corpo */}
-			<div className="flex flex-col gap-2 px-4 pt-3 pb-4">
+			<div className="flex flex-col gap-2 px-4 pb-4 pt-3">
 				{/* Nome + meta */}
 				<div className="flex flex-col gap-1">
-					<span className="line-clamp-2 font-semibold text-[14px] text-foreground leading-[1.3] tracking-tight">
+					<span className="line-clamp-2 text-[14px] font-semibold leading-[1.3] tracking-tight text-foreground">
 						{tool.name}
 					</span>
 					<p className="line-clamp-1 text-muted-foreground text-xs">
@@ -187,7 +207,7 @@ export function ToolCard({ tool, variant, canMutate, actions }: ToolCardProps) {
 					<div className="flex items-baseline gap-1">
 						<span className="text-muted-foreground text-xs">Estoque:</span>
 						<span
-							className={`font-semibold text-[15px] tabular-nums leading-none ${
+							className={`text-[15px] font-semibold tabular-nums leading-none ${
 								stockIsCritical ? "text-destructive" : "text-primary"
 							}`}
 						>
@@ -207,3 +227,45 @@ export function ToolCard({ tool, variant, canMutate, actions }: ToolCardProps) {
 		</div>
 	);
 }
+```
+
+- [ ] **Step 2: Verificar tipos**
+
+```bash
+bun check-types
+```
+
+Esperado: zero erros. Se aparecer erro de import não utilizado (ex: `Link` removido), verificar se o formatter já limpou — o hook `PostToolUse` roda `bun fix` automaticamente após Write/Edit.
+
+---
+
+## Task 2: Smoke test visual + commit
+
+**Files:**
+- Browser: `http://localhost:3001/dashboard/tools`
+- Browser: `http://localhost:3001/dashboard/stock` (variant `stock-overview`)
+
+- [ ] **Step 1: Abrir `/dashboard/tools` no browser e verificar checklist**
+
+Checklist:
+- [ ] Grade sem variação de altura entre cards com e sem variantes
+- [ ] Badges (categoria + status) sobrepostos na foto, legíveis
+- [ ] Nome em sans-serif (não Cormorant/serif)
+- [ ] Rodapé mostra `Estoque: N` — sem breakdown de filiais
+- [ ] `Estoque: 0` aparece em vermelho (card "Disco de Corte Inox")
+- [ ] Clicar em qualquer área do card (fora dos botões) navega para a página de detalhe
+- [ ] Clicar no botão de editar/estoque/excluir NÃO abre a página de detalhe
+- [ ] Hover na imagem → leve aumento de brilho
+
+- [ ] **Step 2: Abrir `/dashboard/stock` e verificar variante `stock-overview`**
+
+Checklist adicional:
+- [ ] Badge de "Repor (N)" aparece no canto superior direito da imagem (não o badge de status)
+- [ ] Card clicável da mesma forma
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add apps/web/src/app/dashboard/_components/tool-card.tsx
+git commit -m "feat: redesign tool card — overlay badges, rodapé mínimo, card clicável"
+```
