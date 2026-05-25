@@ -75,13 +75,20 @@ export async function getBranchKpis(): Promise<BranchKpis> {
 }
 
 export interface BranchDetail {
-	address: string | null;
+	cep: string | null;
+	city: string | null;
+	complement: string | null;
 	createdAt: Date;
 	id: string;
 	name: string;
+	neighborhood: string | null;
 	phone: string | null;
 	responsibleName: string | null;
 	responsibleUserId: string | null;
+	state: string | null;
+	status: "active" | "inactive";
+	street: string | null;
+	streetNumber: string | null;
 	updatedAt: Date;
 }
 
@@ -92,8 +99,15 @@ export async function getBranchDetail(
 		.select({
 			id: branch.id,
 			name: branch.name,
-			address: branch.address,
 			phone: branch.phone,
+			cep: branch.cep,
+			street: branch.street,
+			streetNumber: branch.streetNumber,
+			complement: branch.complement,
+			neighborhood: branch.neighborhood,
+			city: branch.city,
+			state: branch.state,
+			status: branch.status,
 			responsibleUserId: branch.responsibleUserId,
 			responsibleName: userTable.name,
 			createdAt: branch.createdAt,
@@ -202,11 +216,16 @@ export async function getBranchRecentOrders(
 
 export interface BranchTableRow {
 	activeSkus: number;
-	address: string | null;
+	city: string | null;
 	createdAt: Date;
 	id: string;
 	lowStock: number;
 	name: string;
+	neighborhood: string | null;
+	state: string | null;
+	status: "active" | "inactive";
+	street: string | null;
+	streetNumber: string | null;
 	teamCount: number;
 }
 

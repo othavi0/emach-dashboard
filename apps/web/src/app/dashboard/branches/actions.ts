@@ -255,7 +255,12 @@ export async function fetchBranchesTablePage({
 		return {
 			id: b.id,
 			name: b.name,
-			address: b.address,
+			street: b.street,
+			streetNumber: b.streetNumber,
+			neighborhood: b.neighborhood,
+			city: b.city,
+			state: b.state,
+			status: b.status,
 			createdAt: b.createdAt,
 			teamCount: agg.teamCount,
 			activeSkus: agg.activeSkus,
