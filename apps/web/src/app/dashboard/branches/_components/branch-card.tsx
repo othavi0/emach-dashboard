@@ -10,6 +10,7 @@ import {
 import { Boxes, MoreHorizontal, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { formatBranchAddress } from "@/lib/format/branch";
 
 import type { BranchTableRow } from "../data";
 import { DeleteBranchDialog } from "./delete-branch-dialog";
@@ -43,7 +44,7 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 
 	return (
 		<div
-			className="group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			className={`group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${branch.status === "inactive" ? "opacity-70" : ""}`}
 			onClick={() => router.push(canManage ? detailHref : stockHref)}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
@@ -65,11 +66,19 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 					<p className="font-semibold text-[15px] text-foreground leading-tight">
 						{branch.name}
 					</p>
-					{branch.address && (
-						<p className="line-clamp-1 text-muted-foreground text-xs">
-							{branch.address}
-						</p>
+					{branch.status === "inactive" && (
+						<span className="mt-1 inline-flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground uppercase tracking-wider">
+							Inativa
+						</span>
 					)}
+					{(() => {
+						const addr = formatBranchAddress(branch);
+						return addr ? (
+							<p className="line-clamp-1 text-muted-foreground text-xs">
+								{addr}
+							</p>
+						) : null;
+					})()}
 					<div className="mt-1.5">
 						{branch.lowStock === 0 ? (
 							<span className="inline-flex items-center gap-1.5 text-[11px] text-green-500">
