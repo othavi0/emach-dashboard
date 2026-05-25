@@ -11,10 +11,12 @@ import { toolCategory } from "@emach/db/schema/categories";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { deleteToolImage } from "./_components/image-actions";
 import type { ToolStatusValue } from "./_components/tool-schema";
@@ -24,6 +26,8 @@ import {
 	type ToolFormValues,
 	type ToolVariantInput,
 	toolFormSchema,
+	type UpdateVariantInput,
+	updateVariantSchema,
 } from "./_components/tool-schema";
 
 const TOOLS_PATH = "/dashboard/tools";
@@ -692,4 +696,110 @@ export async function fetchToolsPage({
 	);
 
 	return { items: cleanItems, nextCursor };
+}
+
+export async function updateToolVariant(
+	input: UpdateVariantInput
+): Promise<ActionResult> {
+	const parsed = updateVariantSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Dados inválidos",
+		};
+	}
+
+	await requireCapability("tools.update");
+
+	try {
+		const { variantId, ...fields } = parsed.data;
+		// busca toolId pra revalidate
+		const [v] = await db
+			.select({ toolId: toolVariant.toolId })
+			.from(toolVariant)
+			.where(eq(toolVariant.id, variantId));
+
+		if (!v) {
+			return { ok: false, error: "Variante não encontrada" };
+		}
+
+		const updateFields: Record<string, unknown> = {};
+		if (fields.sku !== undefined) {
+			updateFields.sku = fields.sku;
+		}
+		if (fields.voltage !== undefined) {
+			updateFields.voltage = fields.voltage;
+		}
+		if (fields.priceAmount !== undefined) {
+			updateFields.priceAmount = fields.priceAmount;
+		}
+		if (fields.costAmount !== undefined) {
+			updateFields.costAmount = fields.costAmount;
+		}
+
+		if (Object.keys(updateFields).length === 0) {
+			return { ok: true, data: undefined };
+		}
+
+		updateFields.updatedAt = new Date();
+
+		await db
+			.update(toolVariant)
+			.set(updateFields)
+			.where(eq(toolVariant.id, variantId));
+
+		revalidatePath(`/dashboard/tools/${v.toolId}`);
+		revalidatePath("/dashboard/tools");
+
+		return { ok: true, data: undefined };
+	} catch (error) {
+		logger.error("updateToolVariant falhou", error);
+		// SKU duplicado: erro de unique constraint do Postgres
+		if (
+			error instanceof Error &&
+			error.message.toLowerCase().includes("unique")
+		) {
+			return { ok: false, error: "SKU já existe para outra variante" };
+		}
+		return { ok: false, error: "Não foi possível atualizar a variante" };
+	}
+}
+
+const setDefaultVariantSchema = z.object({
+	toolId: z.string().min(1),
+	variantId: z.string().min(1),
+});
+
+export async function setDefaultToolVariant(input: {
+	toolId: string;
+	variantId: string;
+}): Promise<ActionResult> {
+	const parsed = setDefaultVariantSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: "Dados inválidos" };
+	}
+
+	await requireCapability("tools.update");
+
+	try {
+		const { toolId, variantId } = parsed.data;
+		await db.transaction(async (tx) => {
+			await tx
+				.update(toolVariant)
+				.set({ isDefault: false, updatedAt: new Date() })
+				.where(eq(toolVariant.toolId, toolId));
+			await tx
+				.update(toolVariant)
+				.set({ isDefault: true, updatedAt: new Date() })
+				.where(eq(toolVariant.id, variantId));
+		});
+
+		revalidatePath(`/dashboard/tools/${toolId}`);
+		revalidatePath("/dashboard/tools");
+
+		return { ok: true, data: undefined };
+	} catch (error) {
+		logger.error("setDefaultToolVariant falhou", error);
+		return { ok: false, error: "Não foi possível marcar como padrão" };
+	}
 }

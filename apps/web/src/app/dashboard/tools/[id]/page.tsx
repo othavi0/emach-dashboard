@@ -54,7 +54,13 @@ export default async function ToolDetailPage({ params }: PageProps) {
 		{
 			value: "variantes",
 			label: "Variantes & preços",
-			content: <VariantsTab variants={detail.variants} />,
+			content: (
+				<VariantsTab
+					canMutate={canMutate}
+					toolId={detail.tool.id}
+					variants={detail.variants}
+				/>
+			),
 		},
 		{
 			value: "estoque",
