@@ -247,7 +247,7 @@ export function AppSidebar({
 				</SidebarGroup>
 
 				{NAV_GROUPS.map((group) => {
-					if (group.label === "Usuários" && !canManageUsers) {
+					if (group.label === "Internos" && !canManageUsers) {
 						return null;
 					}
 					return (
