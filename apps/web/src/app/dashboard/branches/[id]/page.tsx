@@ -13,7 +13,6 @@ import { BranchEditSheet } from "./_components/branch-edit-sheet";
 import { BranchIdentity } from "./_components/branch-identity";
 import { OrdersTab } from "./_components/orders-tab";
 import { OverviewTab } from "./_components/overview-tab";
-import { StockTab } from "./_components/stock-tab";
 import { TeamTab } from "./_components/team-tab";
 
 interface PageProps {
@@ -69,7 +68,7 @@ export default async function BranchDetailPage({
 			value: "stock",
 			label: "Estoque",
 			icon: <Package aria-hidden className="size-3.5" />,
-			content: <StockTab branchId={id} branchName={detail.name} />,
+			href: `/dashboard/branches/${id}/stock`,
 		},
 	];
 

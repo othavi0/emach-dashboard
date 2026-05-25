@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
 import { PageHeader } from "@/components/page-header";
-import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { BranchCardGrid } from "./_components/branch-card-grid";
 import { BranchesFilters } from "./_components/branches-filters";
 import { type BranchesFiltersInput, fetchBranchesTablePage } from "./actions";
@@ -20,7 +20,8 @@ interface PageProps {
 }
 
 export default async function BranchesPage({ searchParams }: PageProps) {
-	await requireCapabilityOrRedirect("branches.manage");
+	const session = await requireCapabilityOrRedirect("branches.read");
+	const canManage = can(session.user.role, "branches.manage");
 	const sp = await searchParams;
 
 	const filters: BranchesFiltersInput = {
@@ -43,12 +44,14 @@ export default async function BranchesPage({ searchParams }: PageProps) {
 		<div className="flex flex-col gap-6">
 			<PageHeader
 				action={
-					<Link
-						className={buttonVariants({ variant: "default" })}
-						href="/dashboard/branches/new"
-					>
-						Nova filial
-					</Link>
+					canManage ? (
+						<Link
+							className={buttonVariants({ variant: "default" })}
+							href="/dashboard/branches/new"
+						>
+							Nova filial
+						</Link>
+					) : undefined
 				}
 				description="Gerencie as filiais que recebem estoque e aparecem em ajustes de inventário."
 				title="Filiais"
@@ -85,7 +88,7 @@ export default async function BranchesPage({ searchParams }: PageProps) {
 			<BranchesFilters />
 
 			<BranchCardGrid
-				canMutate
+				canManage={canManage}
 				filters={filters}
 				initial={firstPage.items}
 				initialCursor={firstPage.nextCursor}

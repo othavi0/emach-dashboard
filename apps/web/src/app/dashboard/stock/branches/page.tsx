@@ -161,7 +161,10 @@ export default async function BranchesStockPage({
 				))}
 			</div>
 
-			<BranchStockFilters categories={categories} />
+			<BranchStockFilters
+				basePath="/dashboard/stock/branches"
+				categories={categories}
+			/>
 
 			{first.items.length === 0 ? (
 				<Empty>
@@ -182,6 +185,7 @@ export default async function BranchesStockPage({
 				</Empty>
 			) : (
 				<BranchStockInfinite
+					branchId={selectedBranch.id}
 					branchName={selectedBranch.name}
 					canMutate={canMutate}
 					filters={filters}
