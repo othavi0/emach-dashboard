@@ -1,7 +1,11 @@
 import { db } from "@emach/db";
-import type { OrderStatus } from "@emach/db/schema/orders";
+import {
+	type OrderStatus,
+	orderStatusHistory,
+	order as orderTable,
+} from "@emach/db/schema/orders";
 import { toDate } from "@emach/db/utils";
-import { sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
 import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
@@ -88,41 +92,41 @@ export async function fetchOrderActivityPage(
 	cursor: string | null
 ): Promise<InfiniteResult<ActivityEvent>> {
 	await requireCurrentSession();
-	const conditions = [sql`TRUE`];
-	if (cursor) {
-		const c = decodeCursorAs(cursor, "newest");
-		conditions.push(
-			sql`(osh.created_at, osh.id) < (${c.createdAt}::timestamptz, ${c.id})`
-		);
-	}
-	const rows = await db.execute<{
-		created_at: Date;
-		id: string;
-		order_id: string;
-		order_number: string;
-		to_status: OrderStatus;
-	}>(sql`
-		SELECT osh.id, osh.order_id, o.number AS order_number,
-			osh.to_status, osh.created_at
-		FROM order_status_history osh
-		JOIN "order" o ON o.id = osh.order_id
-		WHERE ${sql.join(conditions, sql` AND `)}
-		ORDER BY osh.created_at DESC, osh.id DESC
-		LIMIT ${BATCH_SIZE + 1}
-	`);
+
+	const cursorCondition = cursor
+		? (() => {
+				const c = decodeCursorAs(cursor, "newest");
+				return sql`(${orderStatusHistory.createdAt}, ${orderStatusHistory.id}) < (${c.createdAt}::timestamp, ${c.id})`;
+			})()
+		: undefined;
+
+	const rows = await db
+		.select({
+			id: orderStatusHistory.id,
+			orderId: orderStatusHistory.orderId,
+			orderNumber: orderTable.number,
+			toStatus: orderStatusHistory.toStatus,
+			createdAt: orderStatusHistory.createdAt,
+		})
+		.from(orderStatusHistory)
+		.innerJoin(orderTable, eq(orderStatusHistory.orderId, orderTable.id))
+		.where(cursorCondition ? and(cursorCondition) : undefined)
+		.orderBy(desc(orderStatusHistory.createdAt), desc(orderStatusHistory.id))
+		.limit(BATCH_SIZE + 1);
+
 	return paginate(
-		rows.rows,
+		rows,
 		(r): ActivityEvent => ({
 			id: r.id,
 			kind: "order" as const,
-			at: toDate(r.created_at),
-			primary: `#${r.order_number} → ${ORDER_STATUS_LABELS[r.to_status]}`,
-			href: `/dashboard/orders/${r.order_id}`,
+			at: r.createdAt,
+			primary: `#${r.orderNumber} → ${ORDER_STATUS_LABELS[r.toStatus]}`,
+			href: `/dashboard/orders/${r.orderId}`,
 		}),
 		(last) => ({
 			v: 1,
 			sort: "newest",
-			createdAt: toDate(last.created_at).toISOString(),
+			createdAt: last.createdAt.toISOString(),
 			id: last.id,
 		})
 	);

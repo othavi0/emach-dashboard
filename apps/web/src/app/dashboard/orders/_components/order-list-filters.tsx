@@ -103,8 +103,12 @@ export function OrderFiltersPanel({
 								<span>{tab.label}</span>
 								{(isActive || count > 0) && (
 									<Badge
-										className="ml-1.5 tabular-nums"
-										variant={isActive ? "default" : "outline"}
+										className={
+											isActive
+												? "ml-1.5 tabular-nums"
+												: "ml-1.5 text-muted-foreground tabular-nums"
+										}
+										variant={isActive ? "secondary" : "outline"}
 									>
 										{count}
 									</Badge>
