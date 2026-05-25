@@ -64,15 +64,16 @@ const RELATIVE = new Intl.RelativeTimeFormat("pt-BR", {
 
 function formatRelative(date: Date): string {
 	const diffMs = date.getTime() - Date.now();
-	const diffDays = Math.round(diffMs / 86_400_000);
-	if (Math.abs(diffDays) < 1) {
-		const diffHours = Math.round(diffMs / 3_600_000);
-		if (Math.abs(diffHours) < 1) {
+	const absDays = Math.abs(diffMs) / 86_400_000;
+	if (absDays < 1) {
+		const absHours = Math.abs(diffMs) / 3_600_000;
+		if (absHours < 1) {
 			return RELATIVE.format(Math.round(diffMs / 60_000), "minute");
 		}
-		return RELATIVE.format(diffHours, "hour");
+		return RELATIVE.format(Math.round(diffMs / 3_600_000), "hour");
 	}
-	if (Math.abs(diffDays) < 30) {
+	const diffDays = Math.round(diffMs / 86_400_000);
+	if (absDays < 30) {
 		return RELATIVE.format(diffDays, "day");
 	}
 	return RELATIVE.format(Math.round(diffDays / 30), "month");
@@ -98,7 +99,7 @@ export function UserCard({ user }: UserCardProps) {
 
 	return (
 		<div
-			className="group flex cursor-pointer flex-col gap-3 rounded-[10px] border border-border bg-card p-4 shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm"
+			className="group flex cursor-pointer flex-col gap-3 rounded-[10px] border border-border bg-card p-4 shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			onClick={() => router.push(`/dashboard/users/${user.id}`)}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
