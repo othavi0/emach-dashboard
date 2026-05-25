@@ -7,15 +7,22 @@ import { useInfiniteList } from "@/lib/use-infinite-list";
 
 import { fetchMoreUsersAction } from "../actions";
 import type { UserListFilters, UserListRow } from "../data";
+import type { BranchLite } from "./types";
 import { UserCard } from "./user-card";
 
 interface Props {
+	branches: BranchLite[];
 	filters: UserListFilters;
 	initialCursor: string | null;
 	initialItems: UserListRow[];
 }
 
-export function UsersCardGrid({ initialItems, initialCursor, filters }: Props) {
+export function UsersCardGrid({
+	initialItems,
+	initialCursor,
+	filters,
+	branches,
+}: Props) {
 	const resetKey = JSON.stringify(filters);
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems,
@@ -40,7 +47,7 @@ export function UsersCardGrid({ initialItems, initialCursor, filters }: Props) {
 		<div aria-live="polite">
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{items.map((user) => (
-					<UserCard key={user.id} user={user} />
+					<UserCard branches={branches} key={user.id} user={user} />
 				))}
 			</div>
 			<InfiniteSentinel

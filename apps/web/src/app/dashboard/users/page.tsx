@@ -173,6 +173,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
 				</TabsList>
 			</Tabs>
 			<UsersCardGrid
+				branches={branches}
 				filters={filters}
 				initialCursor={page.nextCursor}
 				initialItems={page.items}
