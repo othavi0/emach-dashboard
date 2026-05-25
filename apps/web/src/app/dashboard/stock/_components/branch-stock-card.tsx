@@ -41,7 +41,6 @@ export function BranchStockCard({
 }: BranchStockCardProps) {
 	const router = useRouter();
 	const status = stockStatus(row);
-	const quantityIsCritical = status === "critical";
 	const hasThresholds = row.minQty > 0 || row.reorderPoint > 0;
 
 	return (
@@ -100,7 +99,7 @@ export function BranchStockCard({
 			{/* Corpo */}
 			<div className="flex flex-col gap-2 px-4 pt-3 pb-4">
 				<div>
-					<span className="line-clamp-2 font-semibold text-[14px] text-foreground leading-[1.3] tracking-tight">
+					<span className="line-clamp-2 font-sans font-semibold text-[14px] text-foreground leading-[1.3] tracking-tight">
 						{row.toolName}
 					</span>
 					<p className="line-clamp-1 text-muted-foreground text-xs">
@@ -117,7 +116,7 @@ export function BranchStockCard({
 						<span className="text-muted-foreground text-xs">Qtd:</span>
 						<span
 							className={`font-semibold text-[15px] tabular-nums leading-none ${
-								quantityIsCritical ? "text-destructive" : "text-primary"
+								row.quantity === 0 ? "text-destructive" : "text-primary"
 							}`}
 						>
 							{row.quantity}
