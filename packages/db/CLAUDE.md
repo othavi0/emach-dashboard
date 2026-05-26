@@ -31,6 +31,10 @@ Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte 
 - "No máximo 1 marcado": `uniqueIndex(...).on(parentId).where(sql\`${isDefault} = true\`)` — ex `tool_variant.isDefault` (1 default por tool).
 - `unique()` em colunas de busca natural (sku, barcode, slug, document).
 
+## Audit / atores deletáveis
+
+Quando um user pode ser deletado e a tabela tem FK `actorUserId` pra `user`, preferir `onDelete: 'set null'` + cachear `actorName` no `metadata`. Padrão aplicado em `user_activity_log` (ver ADR-0011). Cascade só quando o registro **não tem valor sem o ator** (raro).
+
 ## Exports
 
 `src/schema/index.ts` é um **barrel intencional** (marcado com `// biome-ignore lint/performance/noBarrelFile`). Re-exporta como API pública `@emach/db/schema`. Manter sincronizado ao criar arquivos novos.
