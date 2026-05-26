@@ -227,40 +227,69 @@ Quando o conteúdo é crítico (usuário precisa ler o nome inteiro), prefira `<
 
 | Variant | Aparência | Uso |
 |---|---|---|
-| `default` (padrão) | Pill group em `bg-muted` com `ring-1 ring-border/60` (track visível mesmo dentro de card). Aba ativa em `bg-primary` coral sólido com `text-primary-foreground` | Filtros primários, segmentação principal (ex: "Ativos / Pendentes / Suspensos") |
-| `line` | `border-b border-border` na lista (a linha base). Aba ativa em `text-primary` coral com underline `after:bg-primary` 2px | Sub-navegação dentro de página de detalhe (ex: tabs em customer-tabs perfil/endereços/pedidos) |
+| `default` (padrão) | Pill group em `bg-muted` com `ring-1 ring-border/60` (track visível mesmo dentro de card) + **`gap-1` embutido**. Aba ativa em `bg-primary` coral sólido com `text-primary-foreground` | Filtros primários, segmentação principal (ex: "Ativos / Pendentes / Suspensos") |
+| `line` | `border-b border-border` na lista (a linha base) + `gap-1`. Aba ativa em `text-primary` coral com underline `after:bg-primary` 2px | Sub-navegação dentro de página de detalhe (ex: tabs em customer-tabs perfil/endereços/pedidos) |
 
-Aba ativa sempre carrega coral (primary). Estado inativo em `text-muted-foreground`, hover sobe pra `text-foreground` (mantém neutro até o user comprometer com a aba).
+Aba ativa sempre carrega coral (primary). Estado inativo em `text-muted-foreground`, hover sobe pra `text-foreground` (mantém neutro até o user comprometer com a aba). `gap-1` é default — **não passe `className="gap-1"` manual**.
 
 **Orientations:** `horizontal` (default) e `vertical` (passe `orientation="vertical"` no `<Tabs>`).
 
 **Scrollable:** `<TabsList scrollable>` — adiciona overflow-x-auto + fade gradient à direita quando há mais abas que cabem. Use quando muitas categorias possíveis (customer-tabs com perfil/endereços/pedidos/pagamentos/reviews/LGPD/auditoria).
 
-**Padrões de contagem (ordem de preferência):**
+**Padrão de contagem — `<TabsCountBadge value={N} />`:**
 
-1. **Contagem inline** — `<TabsTrigger value="active">Ativos · 24</TabsTrigger>`. Preferida. Sutil, lê como continuação do label.
-2. **Badge de alerta** — só quando contagem > 0 é informação acionável (não decorativa):
-   ```tsx
-   <TabsTrigger value="pending">
-     Pendentes
-     {count > 0 && <Badge className="ml-1.5" variant="warning">{count}</Badge>}
-   </TabsTrigger>
-   ```
-   Use `warning` ou `destructive` na badge — coral default vira ruído.
+```tsx
+<TabsTrigger value="paid">
+  Pagos
+  <TabsCountBadge value={count} />
+</TabsTrigger>
+```
+
+Helper exportado de `@emach/ui/components/tabs`. Wrapper sobre `<Badge variant="secondary">` com `ml-1.5 tabular-nums` embutido. **Sempre `secondary` — em ativo e inativo.** Hierarquia visual vem do container (a tab ativa muda pra `bg-primary`); o badge não duplica essa diferença, e quando duplica fica dois dourados brigando dentro da mesma tab. Padrão único de filter-tab no sistema — não hard-code `<Badge variant="secondary">` em call-sites novos.
+
+**Exceção — badge de alerta:** quando a contagem é uma alerta acionável e não decorativa (ex: pendências críticas), pode usar Badge custom com `warning` ou `destructive`. Mas isso é exceção, não regra; o default é `TabsCountBadge`:
+
+```tsx
+<TabsTrigger value="pending">
+  Pendentes
+  {count > 0 && <Badge className="ml-1.5" variant="warning">{count}</Badge>}
+</TabsTrigger>
+```
 
 **Regras:**
 - Use `default` em filtros e segmentação de listagem; `line` em sub-navegação de detalhe.
 - Não use mais de 7 abas horizontais sem `scrollable` — dá overflow silencioso.
 - Não use 2 níveis de tabs aninhadas — vira labirinto. Use sidebar/sub-rota.
 - Body de `<TabsContent>` em `text-xs/relaxed` por padrão (component baseline).
+- Para sub-tabs internas em painéis (PendingPanel etc.), use `<Tabs>` — **não `<ToggleGroup>`**. ToggleGroup é pra multi-seleção visual; tab é pra seleção única.
 
-Implementação canônica: `apps/web/src/app/dashboard/users/_components/users-tabs.tsx` (default + contagem inline + badge condicional) e `apps/web/src/app/dashboard/customers/_components/customer-tabs.tsx` (scrollable, ~7 abas).
+Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-list-filters.tsx` (filter com TabsCountBadge), `apps/web/src/app/dashboard/users/page.tsx` (filter com TabsCountBadge), `apps/web/src/app/dashboard/customers/_components/customer-tabs.tsx` (scrollable ~7 abas, sem badge), `apps/web/src/components/pending-panel.tsx` (sub-tabs em painel), `apps/web/src/app/design/page.tsx` (showcase).
 
 ### Cards & Containers
 
 - `Card`: `bg-card` (#262320), ring `ring-1 ring-foreground/10` (substitui border tradicional), padding interno 16–32px.
 - `Dialog` / `Popover`: mesma elevação que Card, portal `z-50`.
 - Sidebar: `bg-sidebar` (#171612) — mais escuro que background.
+
+### PendingPanel + ActivityFeed (par de dashboard)
+
+Metáfora "esquerda: o que precisa de ação / direita: o que aconteceu". Usado em `/dashboard`, `/dashboard/orders`, `/dashboard/customers`, `/dashboard/users`.
+
+```tsx
+<section className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+  <PendingPanel compact ... />
+  <div className="relative min-h-[18rem] min-w-0">
+    <div className="absolute inset-0">
+      <ActivityFeed ... />
+    </div>
+  </div>
+</section>
+```
+
+Regras:
+- **Wrapper `min-h-[18rem]` no ActivityFeed** sempre que pareado com `<PendingPanel compact>`. Sem wrapper, ActivityFeed cresce com conteúdo e desequilibra o par. Padrão único em todas as 4 rotas.
+- **`compact` no PendingPanel** pra esse par (`max-h-60 min-h-44` na área scrollável). Default (sem `compact`) é `max-h-[28rem] min-h-72` — usado em telas standalone fora do par.
+- **Sub-tabs do PendingPanel são Tabs reais** (não ToggleGroup). Carregam `<TabsCountBadge>` no contador. Drop intencional: a cor por `tab.role` no badge das sub-tabs (warning/success/info) **não** é aplicada; uniformidade > sinalização redundante. Sinalização de severidade fica nos badges do header do painel ou no `row.badge` dos itens (continua usando `BADGE_COLORS` por role).
 
 ### Callout coral (`callout-card-coral`)
 
@@ -455,11 +484,15 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 - Não desligue `prefers-reduced-motion` em qualquer animação.
 - Não use focus ring sem offset (`ring-1` puro lê como decoração, não como focus). Sempre `ring-offset-1 ring-offset-transparent`.
 - Não use `rounded-none` em componente novo (exceto exceção semântica documentada).
+- Não chame `authClient.useSession()` em Client Component se o parent Server Component já tem a session via `requireCurrentSession()` — passe `user` (e o que mais precisar) via prop. O hook retorna `isPending=true` no SSR e `false` no CSR, causando hydration mismatch quando UI renderiza Skeleton no SSR e conteúdo real no CSR. `signOut` continua usando `authClient.signOut()`; só `useSession()` é o problema.
+- Não use `<Badge variant="secondary">` manual em `<TabsTrigger>` — use `<TabsCountBadge value={N} />` do `@emach/ui/components/tabs`.
+- Não use `<ToggleGroup>` pra sub-tabs visuais com seleção única. Use `<Tabs>` — ToggleGroup é pra multi-seleção (botões de filtro independentes), não tab.
 
 ## 10. Histórico de migrações
 
 Mudanças sistêmicas consolidadas, mais recente primeiro:
 
+- **Padrão de tabs unificado (2026-05-26)** — novo helper `<TabsCountBadge value={N} />` exportado de `@emach/ui/components/tabs` substitui `<Badge variant="secondary" className="ml-1.5 tabular-nums">` manual em filter-tabs. `tabsListVariants` default ganha `gap-1` (já existia em `line`) — propaga gap-1 automático pra todo `<TabsList>`. Filter-tabs em `/orders`, `/users`, `/reviews` migradas; badges agora uniformes em `secondary` (antes `/users` era default/outline e `/reviews` era default/secondary). `PendingPanel` refatorou sub-tabs `<ToggleGroup>` → `<Tabs>` com mesmo padrão — drop intencional da cor por `tab.role` no badge das sub-tabs. Wrapper `min-h-[18rem]` no `<ActivityFeed>` quando pareado com `<PendingPanel compact>` padroniza altura do par em `/orders`, `/customers`, `/dashboard`, `/users`. PendingPanel ganha prop `compact` (`max-h-60 min-h-44`). Hydration mismatch no `FooterContent` do `AppSidebar` corrigido passando `user` via prop do `DashboardLayout` (server) em vez de `authClient.useSession()` no client.
 - **Refinement /impeccable (2026-05-20)** — ring vira hairline (`ring-1 + ring-offset-1`), `--ring` alpha sobe 0.55→0.75. Tipografia: h1 sobe text-3xl→text-4xl, h2 sobe text-xl→text-2xl, weight de serif vira 500 (era 400) pra compensar thinness do Cormorant em dark; display sobe text-4xl→text-5xl. Section bands (`bg-muted/50` com border-y) documentadas pra ritmo vertical em páginas com data zone, aplicado primeiro em `dashboard/page.tsx`.
 - **Re-aproximação Anthropic (2026-05-20)** — coral hue 38 (de copper 45), chroma 0.13 (de 0.15) — agora `oklch(0.65 0.13 38)` ≈ `#cc785c` literal Anthropic. Destructive hue 15 (de 25) — `oklch(0.55 0.20 15)` para preservar 23° de separação do novo primary. **Cormorant Garamond liberada para h1 + h2 de todas as páginas** (era restrita a login + capa de relatório). Adicionado token `--surface-deep` (`oklch(0.11 0.005 70)`) para code/log/featured wells. Documentados componentes `callout-card-coral` e `featured-card-dark`. Mantém dark-only e voz workshop.
 - **Saída do Anthropic Claude inspired** (iteração intermediária, revertida parcialmente acima): coral terracotta + Cormorant editorial gigante + tom helpful AI saíram em favor de industrial neutrals + copper + tipografia funcional. Esta iteração revertia em excesso e foi parcialmente desfeita acima.
@@ -489,6 +522,10 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 | Onde uso `bg-surface-deep`? | Code blocks, log/terminal viewers, featured-card-dark. **Não** em card normal. |
 | Quando uso `callout-card-coral`? | Empty state de módulo vazio, onboarding, banner crítico. Máx 1 por página. |
 | Cormorant em h3? | **Não.** Só h1 + h2. Resto é sans. |
+| Como adiciono contagem numa tab? | `<TabsCountBadge value={N} />` do `@emach/ui/components/tabs`. Sempre `secondary`, ativo + inativo. |
+| `gap-1` na TabsList? | Default. Não passe `className="gap-1"` manual. |
+| Altura do par PendingPanel+ActivityFeed? | `<PendingPanel compact>` + wrapper `min-h-[18rem]` no ActivityFeed. |
+| Como pego user no AppSidebar? | Prop do `DashboardLayout` (server). **Não** `authClient.useSession()` — hydration mismatch. |
 
 ## 12. Origem
 
