@@ -9,6 +9,7 @@ import {
 	EmptyTitle,
 } from "@emach/ui/components/empty";
 import { asc, eq } from "drizzle-orm";
+import { Ban, CheckCircle2, Clock, Package } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -20,7 +21,9 @@ import {
 	type BranchStockSort,
 	type BranchStockStatus,
 	fetchBranchStockPage,
+	getBranchStockKpis,
 } from "@/app/dashboard/stock/branch-stock-data";
+import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityWithContextOrRedirect } from "@/lib/permissions";
 
@@ -59,13 +62,14 @@ export default async function BranchStockPage({
 	const canMutate = can(session.user.role, "stock.adjust");
 	const sp = await searchParams;
 
-	const [detail, categories] = await Promise.all([
+	const [detail, categories, kpis] = await Promise.all([
 		getBranchDetail(id),
 		db
 			.select({ depth: category.depth, id: category.id, name: category.name })
 			.from(category)
 			.where(eq(category.isActive, true))
 			.orderBy(asc(category.path)),
+		getBranchStockKpis(id),
 	]);
 
 	if (!detail) {
@@ -89,6 +93,29 @@ export default async function BranchStockPage({
 			<PageHeader
 				description="Ajuste quantidades e configure limites de alerta por ferramenta."
 				title={`Estoque — ${detail.name}`}
+			/>
+
+			<EntityKpisRow
+				items={[
+					{
+						icon: Package,
+						label: "Itens em estoque",
+						value: kpis.totalItems,
+					},
+					{
+						icon: Ban,
+						label: "Críticas",
+						tone: kpis.criticalCount > 0 ? "danger" : "default",
+						value: kpis.criticalCount,
+					},
+					{
+						icon: Clock,
+						label: "A repor",
+						tone: kpis.reorderCount > 0 ? "warning" : "default",
+						value: kpis.reorderCount,
+					},
+					{ icon: CheckCircle2, label: "OK", value: kpis.okCount },
+				]}
 			/>
 
 			<BranchStockFilters basePath={basePath} categories={categories} />
