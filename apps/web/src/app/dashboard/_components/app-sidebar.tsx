@@ -38,16 +38,6 @@ const DASHBOARD_HREF = "/dashboard" as Route;
 
 const NAV_GROUPS: NavGroup[] = [
 	{
-		label: "Estoque",
-		items: [
-			{
-				label: "Estoque Geral",
-				href: "/dashboard/stock" as Route,
-				exact: true,
-			},
-		],
-	},
-	{
 		label: "Vendas",
 		items: [
 			{ label: "Pedidos", href: "/dashboard/orders" as Route },
@@ -189,9 +179,14 @@ function FooterContent({
 interface AppSidebarProps {
 	canManageUsers: boolean;
 	pendingCount: number;
+	reporCount: number;
 }
 
-export function AppSidebar({ canManageUsers, pendingCount }: AppSidebarProps) {
+export function AppSidebar({
+	canManageUsers,
+	pendingCount,
+	reporCount,
+}: AppSidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
 	const { data: session, isPending } = authClient.useSession();
@@ -252,7 +247,7 @@ export function AppSidebar({ canManageUsers, pendingCount }: AppSidebarProps) {
 				</SidebarGroup>
 
 				{NAV_GROUPS.map((group) => {
-					if (group.label === "Usuários" && !canManageUsers) {
+					if (group.label === "Internos" && !canManageUsers) {
 						return null;
 					}
 					return (
@@ -278,12 +273,25 @@ export function AppSidebar({ canManageUsers, pendingCount }: AppSidebarProps) {
 												<SidebarMenuButton
 													isActive={isActive(pathname, item)}
 													render={
-														<Link href={item.href}>
+														<Link
+															href={
+																item.href === "/dashboard/tools" &&
+																reporCount > 0
+																	? "/dashboard/tools?mode=repor"
+																	: item.href
+															}
+														>
 															{item.label}
 															{item.href === "/dashboard/users" &&
 																pendingCount > 0 && (
 																	<span className="ml-2 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">
 																		{pendingCount}
+																	</span>
+																)}
+															{item.href === "/dashboard/tools" &&
+																reporCount > 0 && (
+																	<span className="ml-2 rounded-full bg-primary/10 px-1.5 text-[10px] text-primary">
+																		{reporCount}
 																	</span>
 																)}
 														</Link>

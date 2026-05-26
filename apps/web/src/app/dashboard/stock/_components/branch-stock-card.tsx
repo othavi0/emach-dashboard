@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@emach/ui/components/badge";
+import Link from "next/link";
 
 import type { BranchStockRow } from "../branch-stock-data";
 
@@ -87,9 +88,13 @@ export function BranchStockCard({ onSelect, row }: BranchStockCardProps) {
 			{/* Corpo */}
 			<div className="flex flex-col gap-2 px-4 pt-3 pb-4">
 				<div>
-					<span className="line-clamp-2 font-sans font-semibold text-[14px] text-foreground leading-[1.3] tracking-tight">
+					<Link
+						className="line-clamp-2 block font-sans font-semibold text-[14px] text-foreground leading-[1.3] tracking-tight hover:underline"
+						href={`/dashboard/tools/${row.toolId}?tab=estoque`}
+						onClick={(e) => e.stopPropagation()}
+					>
 						{row.toolName}
-					</span>
+					</Link>
 					<p className="line-clamp-1 text-muted-foreground text-xs">
 						SKU {row.sku}
 						{row.voltage ? ` · ${row.voltage}` : ""}

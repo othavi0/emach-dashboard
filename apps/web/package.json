@@ -21,6 +21,7 @@
     "@supabase/supabase-js": "^2.105.1",
     "better-auth": "catalog:",
     "browser-image-compression": "^2",
+    "date-fns": "^4.3.0",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "catalog:",
     "next": "^16.2.0",

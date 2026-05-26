@@ -104,6 +104,55 @@ function buildBranchStatusPredicate(status: BranchStockStatus | undefined) {
 	return null;
 }
 
+export interface BranchStockKpis {
+	criticalCount: number;
+	okCount: number;
+	reorderCount: number;
+	totalItems: number;
+}
+
+interface BranchStockKpisDbRow extends Record<string, unknown> {
+	min_qty: number;
+	quantity: number;
+	reorder_point: number;
+}
+
+export async function getBranchStockKpis(
+	branchId: string
+): Promise<BranchStockKpis> {
+	const result = await db.execute<BranchStockKpisDbRow>(sql`
+		SELECT
+			COALESCE(sl.quantity, 0)::int AS quantity,
+			COALESCE(sl.min_qty, 0)::int AS min_qty,
+			COALESCE(sl.reorder_point, 0)::int AS reorder_point
+		FROM stock_level sl
+		WHERE sl.branch_id = ${branchId}
+	`);
+
+	let totalItems = 0;
+	let criticalCount = 0;
+	let reorderCount = 0;
+	let okCount = 0;
+
+	for (const r of result.rows) {
+		const qty = Number(r.quantity ?? 0);
+		const minQty = Number(r.min_qty ?? 0);
+		const reorderPoint = Number(r.reorder_point ?? 0);
+
+		totalItems += qty;
+
+		if (minQty > 0 && qty <= minQty) {
+			criticalCount++;
+		} else if (reorderPoint > 0 && qty <= reorderPoint) {
+			reorderCount++;
+		} else {
+			okCount++;
+		}
+	}
+
+	return { totalItems, criticalCount, reorderCount, okCount };
+}
+
 export async function fetchBranchStockPage({
 	filters,
 	cursor,

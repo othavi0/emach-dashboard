@@ -11,10 +11,12 @@ import { toolCategory } from "@emach/db/schema/categories";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { deleteToolImage } from "./_components/image-actions";
 import type { ToolStatusValue } from "./_components/tool-schema";
@@ -24,6 +26,8 @@ import {
 	type ToolFormValues,
 	type ToolVariantInput,
 	toolFormSchema,
+	type UpdateVariantInput,
+	updateVariantSchema,
 } from "./_components/tool-schema";
 
 const TOOLS_PATH = "/dashboard/tools";
@@ -515,9 +519,12 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 }
 
 export type ToolSort = "newest" | "name";
+export type ToolsListMode = "catalog" | "repor";
 
 export interface ToolsFiltersInput {
+	branchId?: string;
 	categoryId?: string;
+	mode?: ToolsListMode;
 	ncm?: string;
 	search?: string;
 	sort: ToolSort;
@@ -580,6 +587,30 @@ function buildToolsWhereClause(
 	if (filters.ncm) {
 		whereParts.push(sql`t.ncm ILIKE ${`${filters.ncm}%`}`);
 	}
+	if (filters.mode === "repor") {
+		if (filters.branchId) {
+			whereParts.push(sql`
+				EXISTS (
+					SELECT 1 FROM stock_level sl
+					JOIN tool_variant tv ON tv.id = sl.variant_id
+					WHERE tv.tool_id = t.id
+					AND sl.reorder_point > 0
+					AND sl.quantity <= sl.reorder_point
+					AND sl.branch_id = ${filters.branchId}
+				)
+			`);
+		} else {
+			whereParts.push(sql`
+				EXISTS (
+					SELECT 1 FROM stock_level sl
+					JOIN tool_variant tv ON tv.id = sl.variant_id
+					WHERE tv.tool_id = t.id
+					AND sl.reorder_point > 0
+					AND sl.quantity <= sl.reorder_point
+				)
+			`);
+		}
+	}
 	if (decoded) {
 		if (filters.sort === "newest" && decoded.sort === "newest") {
 			whereParts.push(
@@ -625,6 +656,14 @@ export async function fetchToolsPage({
 			? sql`ORDER BY t.name ASC, t.id ASC`
 			: sql`ORDER BY t.created_at DESC, t.id DESC`;
 
+	// Branch filter fragments for stock subqueries
+	const branchStockFilter = filters.branchId
+		? sql` AND sl.branch_id = ${filters.branchId}`
+		: sql``;
+	const branchStockFilter2 = filters.branchId
+		? sql` AND sl2.branch_id = ${filters.branchId}`
+		: sql``;
+
 	const rows = await db.execute<ToolPageRow>(sql`
 		SELECT
 			t.id, t.name, t.slug,
@@ -640,14 +679,14 @@ export async function fetchToolsPage({
 				WHERE tc.tool_id = t.id AND tc.is_primary = true LIMIT 1) AS primary_category_name,
 			s.name AS supplier_name,
 			COALESCE((SELECT SUM(sl.quantity)::int FROM stock_level sl
-				JOIN tool_variant tv ON tv.id = sl.variant_id WHERE tv.tool_id = t.id), 0) AS total_stock,
+				JOIN tool_variant tv ON tv.id = sl.variant_id WHERE tv.tool_id = t.id${branchStockFilter}), 0) AS total_stock,
 			COALESCE((SELECT COUNT(*)::int FROM stock_level sl
 				JOIN tool_variant tv ON tv.id = sl.variant_id
-				WHERE tv.tool_id = t.id AND sl.reorder_point > 0 AND sl.quantity <= sl.reorder_point), 0) AS reorder_count,
+				WHERE tv.tool_id = t.id AND sl.reorder_point > 0 AND sl.quantity <= sl.reorder_point${branchStockFilter}), 0) AS reorder_count,
 			COALESCE((SELECT json_agg(json_build_object('branch_id', b.id, 'branch_name', b.name, 'quantity', branch_total) ORDER BY b.name ASC)
 				FROM (SELECT b2.id AS bid, SUM(sl2.quantity)::int AS branch_total
 					FROM stock_level sl2 JOIN tool_variant tv2 ON tv2.id = sl2.variant_id
-					JOIN branch b2 ON b2.id = sl2.branch_id WHERE tv2.tool_id = t.id GROUP BY b2.id) g
+					JOIN branch b2 ON b2.id = sl2.branch_id WHERE tv2.tool_id = t.id${branchStockFilter2} GROUP BY b2.id) g
 				JOIN branch b ON b.id = g.bid), '[]'::json) AS branches_breakdown,
 			t.created_at::text AS created_at
 		FROM tool t
@@ -692,4 +731,110 @@ export async function fetchToolsPage({
 	);
 
 	return { items: cleanItems, nextCursor };
+}
+
+export async function updateToolVariant(
+	input: UpdateVariantInput
+): Promise<ActionResult> {
+	const parsed = updateVariantSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Dados inválidos",
+		};
+	}
+
+	await requireCapability("tools.update");
+
+	try {
+		const { variantId, ...fields } = parsed.data;
+		// busca toolId pra revalidate
+		const [v] = await db
+			.select({ toolId: toolVariant.toolId })
+			.from(toolVariant)
+			.where(eq(toolVariant.id, variantId));
+
+		if (!v) {
+			return { ok: false, error: "Variante não encontrada" };
+		}
+
+		const updateFields: Record<string, unknown> = {};
+		if (fields.sku !== undefined) {
+			updateFields.sku = fields.sku;
+		}
+		if (fields.voltage !== undefined) {
+			updateFields.voltage = fields.voltage;
+		}
+		if (fields.priceAmount !== undefined) {
+			updateFields.priceAmount = fields.priceAmount;
+		}
+		if (fields.costAmount !== undefined) {
+			updateFields.costAmount = fields.costAmount;
+		}
+
+		if (Object.keys(updateFields).length === 0) {
+			return { ok: true, data: undefined };
+		}
+
+		updateFields.updatedAt = new Date();
+
+		await db
+			.update(toolVariant)
+			.set(updateFields)
+			.where(eq(toolVariant.id, variantId));
+
+		revalidatePath(`/dashboard/tools/${v.toolId}`);
+		revalidatePath("/dashboard/tools");
+
+		return { ok: true, data: undefined };
+	} catch (error) {
+		logger.error("updateToolVariant falhou", error);
+		// SKU duplicado: erro de unique constraint do Postgres
+		if (
+			error instanceof Error &&
+			error.message.toLowerCase().includes("unique")
+		) {
+			return { ok: false, error: "SKU já existe para outra variante" };
+		}
+		return { ok: false, error: "Não foi possível atualizar a variante" };
+	}
+}
+
+const setDefaultVariantSchema = z.object({
+	toolId: z.string().min(1),
+	variantId: z.string().min(1),
+});
+
+export async function setDefaultToolVariant(input: {
+	toolId: string;
+	variantId: string;
+}): Promise<ActionResult> {
+	const parsed = setDefaultVariantSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: "Dados inválidos" };
+	}
+
+	await requireCapability("tools.update");
+
+	try {
+		const { toolId, variantId } = parsed.data;
+		await db.transaction(async (tx) => {
+			await tx
+				.update(toolVariant)
+				.set({ isDefault: false, updatedAt: new Date() })
+				.where(eq(toolVariant.toolId, toolId));
+			await tx
+				.update(toolVariant)
+				.set({ isDefault: true, updatedAt: new Date() })
+				.where(eq(toolVariant.id, variantId));
+		});
+
+		revalidatePath(`/dashboard/tools/${toolId}`);
+		revalidatePath("/dashboard/tools");
+
+		return { ok: true, data: undefined };
+	} catch (error) {
+		logger.error("setDefaultToolVariant falhou", error);
+		return { ok: false, error: "Não foi possível marcar como padrão" };
+	}
 }
