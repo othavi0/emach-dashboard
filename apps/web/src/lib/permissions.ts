@@ -144,7 +144,6 @@ const MANAGER_CAPS: readonly Capability[] = [
 const SUPER_ADMIN_EXCLUSIVE: readonly Capability[] = [
 	"branches.manage",
 	"users.delete",
-	"audit.read", // global (admin tem escopado, mas a cap "audit.read" simples fica exclusiva)
 ];
 
 const ADMIN_CAPS: readonly Capability[] = ALL_CAPS.filter(
