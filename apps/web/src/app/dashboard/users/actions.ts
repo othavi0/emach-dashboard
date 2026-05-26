@@ -10,7 +10,7 @@ import { userBranch } from "@emach/db/schema/inventory";
 import { orderNote, orderStatusHistory } from "@emach/db/schema/orders";
 import { promotion } from "@emach/db/schema/promotions";
 import { stockMovement } from "@emach/db/schema/stock-movements";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { logUserActivity } from "@/lib/activity";
@@ -142,6 +142,65 @@ export async function rejectUser(input: unknown): Promise<ActionResult> {
 	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
+}
+
+export async function bulkRejectUsers(
+	input: unknown
+): Promise<ActionResult<{ rejected: number; skipped: number }>> {
+	const parsed = bulkRejectSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: "validação" };
+	}
+
+	const session = await requireCapabilityWithContext("users.approve", {});
+
+	const targets = await db
+		.select({
+			id: userTable.id,
+			email: userTable.email,
+			name: userTable.name,
+			status: userTable.status,
+		})
+		.from(userTable)
+		.where(inArray(userTable.id, parsed.data.userIds));
+
+	const validIds = targets
+		.filter((t) => t.status === "pending")
+		.map((t) => t.id);
+	const skipped = parsed.data.userIds.length - validIds.length;
+
+	if (validIds.length === 0) {
+		return { ok: true, data: { rejected: 0, skipped } };
+	}
+
+	try {
+		await db.delete(userTable).where(inArray(userTable.id, validIds));
+	} catch (error) {
+		logger.error("bulkRejectUsers falhou", error);
+		return { ok: false, error: "Falha ao rejeitar em massa" };
+	}
+
+	await Promise.all(
+		targets
+			.filter((t) => validIds.includes(t.id))
+			.map((t) =>
+				logUserActivity({
+					actorUserId: session.user.id,
+					action: "user.rejected",
+					targetType: "user",
+					targetId: t.id,
+					metadata: {
+						rejectedEmail: t.email,
+						rejectedName: t.name,
+						bulk: true,
+						...(parsed.data.reason ? { reason: parsed.data.reason } : {}),
+					},
+				})
+			)
+	);
+
+	revalidatePath(USERS_PATH);
+	return { ok: true, data: { rejected: validIds.length, skipped } };
 }
 
 export async function updateUser(
