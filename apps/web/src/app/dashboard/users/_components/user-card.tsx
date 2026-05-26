@@ -94,10 +94,11 @@ const MAX_BRANCH_CHIPS = 3;
 
 interface UserCardProps {
 	branches: BranchLite[];
+	onResolved?: (userId: string) => void;
 	user: UserListRow;
 }
 
-export function UserCard({ user, branches }: UserCardProps) {
+export function UserCard({ user, branches, onResolved }: UserCardProps) {
 	const router = useRouter();
 	const [approving, setApproving] = useState(false);
 	const role = ROLE_META[user.role];
@@ -201,6 +202,7 @@ export function UserCard({ user, branches }: UserCardProps) {
 			<ApprovalSheet
 				branches={branches}
 				onClose={() => setApproving(false)}
+				onResolved={onResolved ? () => onResolved(user.id) : undefined}
 				user={approving ? user : null}
 			/>
 		</>
