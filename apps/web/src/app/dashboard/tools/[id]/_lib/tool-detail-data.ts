@@ -6,7 +6,7 @@ import {
 import { category, toolCategory } from "@emach/db/schema/categories";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
 import { supplier, tool, toolImage, toolVariant } from "@emach/db/schema/tools";
-import { and, asc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { cache } from "react";
 
 export type ToolDetailRow = typeof tool.$inferSelect & {

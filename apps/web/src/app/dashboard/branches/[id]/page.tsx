@@ -2,7 +2,7 @@ import { Building2, Package, ShoppingCart, Users } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
-import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import {
 	getBranchDetail,
 	getBranchDetailKpis,
@@ -15,6 +15,7 @@ import { OrdersTab } from "./_components/orders-tab";
 import { OverviewTab } from "./_components/overview-tab";
 import { StockTab } from "./_components/stock-tab";
 import { TeamTab } from "./_components/team-tab";
+import { AddToolButton } from "./stock/_components/add-tool-button";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -32,7 +33,7 @@ export default async function BranchDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
-	await requireCapabilityOrRedirect("branches.manage");
+	const session = await requireCapabilityOrRedirect("branches.manage");
 
 	const { id } = await params;
 	const sp = await searchParams;
@@ -49,6 +50,7 @@ export default async function BranchDetailPage({
 	}
 
 	const isStockTab = sp.tab === "stock";
+	const canMutateStock = can(session.user.role, "stock.adjust");
 
 	const tabs: EntityTab[] = [
 		{
@@ -93,7 +95,14 @@ export default async function BranchDetailPage({
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
-			<BranchIdentity detail={detail} />
+			<BranchIdentity
+				detail={detail}
+				extraAction={
+					isStockTab && canMutateStock ? (
+						<AddToolButton branchId={id} branchName={detail.name} />
+					) : null
+				}
+			/>
 			<EntityTabs defaultValue="overview" tabs={tabs} />
 			{sp.edit === "1" ? <BranchEditSheet branch={detail} /> : null}
 		</div>
