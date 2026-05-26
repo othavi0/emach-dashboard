@@ -76,6 +76,7 @@ import {
 import {
 	Tabs,
 	TabsContent,
+	TabsCountBadge,
 	TabsList,
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
@@ -633,12 +634,21 @@ export default function DesignPage() {
 						</Tabs>
 					</Showcase>
 
-					<Showcase label="contagem inline (preferida)">
+					<Showcase label="contagem inline (preferida) — TabsCountBadge">
 						<Tabs className="w-full" defaultValue="active">
 							<TabsList>
-								<TabsTrigger value="active">Ativos · 24</TabsTrigger>
-								<TabsTrigger value="pending">Pendentes · 3</TabsTrigger>
-								<TabsTrigger value="suspended">Suspensos · 1</TabsTrigger>
+								<TabsTrigger value="active">
+									Ativos
+									<TabsCountBadge value={24} />
+								</TabsTrigger>
+								<TabsTrigger value="pending">
+									Pendentes
+									<TabsCountBadge value={3} />
+								</TabsTrigger>
+								<TabsTrigger value="suspended">
+									Suspensos
+									<TabsCountBadge value={1} />
+								</TabsTrigger>
 							</TabsList>
 						</Tabs>
 					</Showcase>
