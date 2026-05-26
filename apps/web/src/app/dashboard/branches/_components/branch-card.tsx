@@ -1,19 +1,12 @@
 "use client";
 
 import { buttonVariants } from "@emach/ui/components/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@emach/ui/components/dropdown-menu";
-import { Boxes, MoreHorizontal, Pencil } from "lucide-react";
+import { Boxes, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatBranchAddress } from "@/lib/format/branch";
 
 import type { BranchTableRow } from "../data";
-import { DeleteBranchDialog } from "./delete-branch-dialog";
 
 interface BranchCardProps {
 	branch: BranchTableRow;
@@ -40,22 +33,23 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 	const router = useRouter();
 	const { bg, text } = monogramColor(branch.lowStock);
 	const detailHref = `/dashboard/branches/${branch.id}`;
-	const stockHref = `/dashboard/branches/${branch.id}/stock`;
+	const stockHref = `/dashboard/branches/${branch.id}?tab=stock`;
+	const editHref = `/dashboard/branches/${branch.id}?edit=1`;
+	const primaryHref = canManage ? detailHref : stockHref;
 
 	return (
 		<div
 			className={`group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${branch.status === "inactive" ? "opacity-70" : ""}`}
-			onClick={() => router.push(canManage ? detailHref : stockHref)}
+			onClick={() => router.push(primaryHref)}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
 					e.preventDefault();
-					router.push(canManage ? detailHref : stockHref);
+					router.push(primaryHref);
 				}
 			}}
 			role="button"
 			tabIndex={0}
 		>
-			{/* Header */}
 			<div className="flex items-start gap-3 px-4 pt-4 pb-3">
 				<div
 					className={`flex size-12 flex-shrink-0 items-center justify-center rounded-[10px] font-bold text-[17px] ${bg} ${text}`}
@@ -105,35 +99,24 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 						onClick={(e) => e.stopPropagation()}
 						onKeyDown={(e) => e.stopPropagation()}
 					>
-						<DropdownMenu>
-							<DropdownMenuTrigger
-								aria-label={`Ações para ${branch.name}`}
-								className={buttonVariants({
-									size: "icon-sm",
-									variant: "ghost",
-								})}
-							>
-								<MoreHorizontal aria-hidden className="size-4" />
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end">
-								<DropdownMenuItem onClick={() => router.push(detailHref)}>
-									<Boxes aria-hidden className="size-4" />
-									Detalhes
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									onClick={() => router.push(`${detailHref}?edit=1`)}
-								>
-									<Pencil aria-hidden className="size-4" />
-									Editar
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
-						<DeleteBranchDialog branchId={branch.id} branchName={branch.name} />
+						<Link
+							aria-label={`Ver estoque de ${branch.name}`}
+							className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+							href={stockHref}
+						>
+							<Boxes aria-hidden className="size-4" />
+						</Link>
+						<Link
+							aria-label={`Editar ${branch.name}`}
+							className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+							href={editHref}
+						>
+							<Pencil aria-hidden className="size-4" />
+						</Link>
 					</div>
 				)}
 			</div>
 
-			{/* KPI grid */}
 			<div className="grid grid-cols-3 border-border border-t">
 				<div className="flex flex-col items-center border-border border-r py-3">
 					<span className="font-bold text-[20px] text-foreground tabular-nums">
@@ -163,21 +146,6 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 						Abaixo mín.
 					</span>
 				</div>
-			</div>
-
-			{/* Link de estoque — sempre visível */}
-			<div
-				className="border-border border-t"
-				onClick={(e) => e.stopPropagation()}
-				onKeyDown={(e) => e.stopPropagation()}
-			>
-				<Link
-					className="flex items-center gap-1.5 px-4 py-2.5 text-muted-foreground text-xs transition-colors hover:text-foreground"
-					href={stockHref}
-				>
-					<Boxes aria-hidden className="size-3.5" />
-					Ver estoque
-				</Link>
 			</div>
 		</div>
 	);

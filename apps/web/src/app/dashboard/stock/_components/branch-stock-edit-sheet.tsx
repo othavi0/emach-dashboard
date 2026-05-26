@@ -10,6 +10,7 @@ import {
 } from "@emach/ui/components/sheet";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
+import { ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ import { integerMask } from "@/lib/masks";
 
 import {
 	adjustStock,
+	getReservedQtyByVariantBranch,
 	getStockMovementsByVariantBranch,
 	type StockMovementRow,
 	updateStockThresholds,
@@ -151,10 +153,12 @@ export function BranchStockEditSheet({
 
 	const [movements, setMovements] = useState<StockMovementRow[]>([]);
 	const [isLoadingMovements, startMovementsTransition] = useTransition();
+	const [reservedQty, setReservedQty] = useState<number | null>(null);
 
 	useEffect(() => {
 		if (!row) {
 			setMovements([]);
+			setReservedQty(null);
 			return;
 		}
 		setNewQty(row.quantity);
@@ -163,13 +167,15 @@ export function BranchStockEditSheet({
 		setMinQty(row.minQty);
 		setReorderPoint(row.reorderPoint);
 		setErrors({});
+		setReservedQty(null);
 
 		startMovementsTransition(async () => {
-			const data = await getStockMovementsByVariantBranch(
-				row.variantId,
-				branchId
-			);
+			const [data, reserved] = await Promise.all([
+				getStockMovementsByVariantBranch(row.variantId, branchId),
+				getReservedQtyByVariantBranch(row.variantId, branchId),
+			]);
 			setMovements(data);
+			setReservedQty(reserved);
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [row?.variantId, branchId]);
@@ -247,7 +253,7 @@ export function BranchStockEditSheet({
 			}}
 			open={row !== null}
 		>
-			<SheetContent className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-[440px]">
+			<SheetContent className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-[580px]">
 				{/* Header */}
 				<SheetHeader className="border-border border-b px-6 py-5">
 					<div className="flex items-start gap-3">
@@ -286,6 +292,15 @@ export function BranchStockEditSheet({
 								{" · "}
 								{branchName}
 							</p>
+							<a
+								className="mt-2 inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground"
+								href={`/dashboard/tools/${row.toolId}`}
+								rel="noopener noreferrer"
+								target="_blank"
+							>
+								<ExternalLink aria-hidden className="size-3" />
+								Editar ficha da ferramenta
+							</a>
 						</div>
 					</div>
 				</SheetHeader>
@@ -323,6 +338,37 @@ export function BranchStockEditSheet({
 							)}
 						</div>
 					</div>
+					{reservedQty !== null && (
+						<div className="mt-3 flex items-center gap-4 border-border border-t pt-3 text-xs">
+							<div className="flex items-baseline gap-1.5">
+								<span className="text-muted-foreground">Reservado:</span>
+								<span
+									className={`font-semibold tabular-nums ${
+										reservedQty > 0 ? "text-warning" : "text-foreground"
+									}`}
+								>
+									{reservedQty}
+								</span>
+							</div>
+							<div className="flex items-baseline gap-1.5">
+								<span className="text-muted-foreground">Disponível:</span>
+								<span
+									className={`font-semibold tabular-nums ${
+										row.quantity - reservedQty <= 0
+											? "text-destructive"
+											: "text-success"
+									}`}
+								>
+									{Math.max(0, row.quantity - reservedQty)}
+								</span>
+							</div>
+							{reservedQty > 0 && (
+								<span className="text-muted-foreground/70 italic">
+									em pedidos pagos/em preparo
+								</span>
+							)}
+						</div>
+					)}
 				</div>
 
 				{/* Ajustar quantidade */}

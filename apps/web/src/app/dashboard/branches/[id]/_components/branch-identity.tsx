@@ -11,9 +11,11 @@ import type { BranchDetail } from "../../data";
 export function BranchIdentity({
 	detail,
 	badges,
+	extraAction,
 }: {
 	detail: BranchDetail;
 	badges?: ReactNode;
+	extraAction?: ReactNode;
 }) {
 	const router = useRouter();
 	const pathname = usePathname();
@@ -28,10 +30,13 @@ export function BranchIdentity({
 	return (
 		<EntityIdentityHeader
 			actions={
-				<Button onClick={handleEdit} size="sm" variant="outline">
-					<Pencil aria-hidden className="mr-1.5 size-3.5" />
-					Editar
-				</Button>
+				<div className="flex items-center gap-2">
+					{extraAction}
+					<Button onClick={handleEdit} size="sm" variant="outline">
+						<Pencil aria-hidden className="mr-1.5 size-3.5" />
+						Editar filial
+					</Button>
+				</div>
 			}
 			avatarFallback={<Building2 aria-hidden className="size-5" />}
 			badges={badges}

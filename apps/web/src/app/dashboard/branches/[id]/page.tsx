@@ -2,7 +2,7 @@ import { Building2, Package, ShoppingCart, Users } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
-import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import {
 	getBranchDetail,
 	getBranchDetailKpis,
@@ -13,21 +13,30 @@ import { BranchEditSheet } from "./_components/branch-edit-sheet";
 import { BranchIdentity } from "./_components/branch-identity";
 import { OrdersTab } from "./_components/orders-tab";
 import { OverviewTab } from "./_components/overview-tab";
+import { StockTab } from "./_components/stock-tab";
 import { TeamTab } from "./_components/team-tab";
+import { AddToolButton } from "./stock/_components/add-tool-button";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
-	searchParams: Promise<{ edit?: string; tab?: string }>;
+	searchParams: Promise<{
+		edit?: string;
+		tab?: string;
+		categoryId?: string;
+		search?: string;
+		sort?: string;
+		status?: string;
+	}>;
 }
 
 export default async function BranchDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
-	await requireCapabilityOrRedirect("branches.manage");
+	const session = await requireCapabilityOrRedirect("branches.manage");
 
 	const { id } = await params;
-	const { edit } = await searchParams;
+	const sp = await searchParams;
 
 	const [detail, kpis, team, recentOrders] = await Promise.all([
 		getBranchDetail(id),
@@ -39,6 +48,9 @@ export default async function BranchDetailPage({
 	if (!detail) {
 		notFound();
 	}
+
+	const isStockTab = sp.tab === "stock";
+	const canMutateStock = can(session.user.role, "stock.adjust");
 
 	const tabs: EntityTab[] = [
 		{
@@ -68,15 +80,31 @@ export default async function BranchDetailPage({
 			value: "stock",
 			label: "Estoque",
 			icon: <Package aria-hidden className="size-3.5" />,
-			href: `/dashboard/branches/${id}/stock`,
+			content: isStockTab ? (
+				<StockTab
+					branchId={id}
+					branchName={detail.name}
+					categoryId={sp.categoryId}
+					search={sp.search}
+					sort={sp.sort}
+					status={sp.status}
+				/>
+			) : null,
 		},
 	];
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
-			<BranchIdentity detail={detail} />
+			<BranchIdentity
+				detail={detail}
+				extraAction={
+					isStockTab && canMutateStock ? (
+						<AddToolButton branchId={id} branchName={detail.name} />
+					) : null
+				}
+			/>
 			<EntityTabs defaultValue="overview" tabs={tabs} />
-			{edit === "1" ? <BranchEditSheet branch={detail} /> : null}
+			{sp.edit === "1" ? <BranchEditSheet branch={detail} /> : null}
 		</div>
 	);
 }

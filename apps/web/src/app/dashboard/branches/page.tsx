@@ -16,7 +16,6 @@ interface PageProps {
 	searchParams: Promise<{
 		search?: string;
 		sort?: string;
-		inactive?: string;
 	}>;
 }
 
@@ -28,7 +27,6 @@ export default async function BranchesPage({ searchParams }: PageProps) {
 	const filters: BranchesFiltersInput = {
 		search: sp.search,
 		sort: (sp.sort as BranchesFiltersInput["sort"]) ?? "newest",
-		includeInactive: sp.inactive === "1",
 	};
 
 	const [kpis, firstPage] = await Promise.all([
@@ -60,6 +58,7 @@ export default async function BranchesPage({ searchParams }: PageProps) {
 			/>
 
 			<EntityKpisRow
+				iconSize="lg"
 				items={[
 					{
 						label: "Filiais",
