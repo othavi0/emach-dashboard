@@ -5,17 +5,18 @@ import { user } from "@emach/db/schema/auth";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
 import { stockMovement } from "@emach/db/schema/stock-movements";
 import { toolVariant } from "@emach/db/schema/tools";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
 import { getUserBranchScope } from "@/lib/branch-scope";
-import { decodeCursor, encodeCursor } from "@/lib/cursor";
+import { decodeCursor, decodeCursorAs, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
 import { requireCapability } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import {
+	type STOCK_MOVEMENT_REASONS,
 	type StockAdjustmentInput,
 	stockAdjustmentSchema,
 } from "./_components/stock-adjustment-schema";
@@ -583,4 +584,109 @@ export async function getToolActivity(
 		.where(eq(toolVariant.toolId, toolId))
 		.orderBy(desc(stockMovement.createdAt))
 		.limit(limit);
+}
+
+// ---------------------------------------------------------------------------
+// Tool activity — cursor pagination + filters
+// ---------------------------------------------------------------------------
+
+export type PeriodPreset = "today" | "7d" | "30d" | "90d" | "all";
+
+export interface ToolActivityFilters {
+	branchId?: string;
+	period: PeriodPreset;
+	reasons?: string[];
+	toolId: string;
+}
+
+function computePeriodCutoff(period: PeriodPreset): Date | null {
+	if (period === "all") {
+		return null;
+	}
+	const now = new Date();
+	if (period === "today") {
+		return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	}
+	const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
+	return new Date(now.getTime() - days * 86_400_000);
+}
+
+export async function fetchToolActivityPage(
+	filters: ToolActivityFilters,
+	cursor: string | null
+): Promise<InfiniteResult<ToolActivityRow>> {
+	await requireCapability("stock.read");
+
+	const limit = BATCH_SIZE;
+	const conditions = [eq(toolVariant.toolId, filters.toolId)];
+
+	if (filters.branchId) {
+		conditions.push(eq(stockMovement.branchId, filters.branchId));
+	}
+	if (filters.reasons && filters.reasons.length > 0) {
+		conditions.push(
+			inArray(
+				stockMovement.reason,
+				filters.reasons as (typeof STOCK_MOVEMENT_REASONS)[number][]
+			)
+		);
+	}
+
+	const cutoff = computePeriodCutoff(filters.period);
+	if (cutoff) {
+		conditions.push(gte(stockMovement.createdAt, cutoff));
+	}
+
+	if (cursor) {
+		const c = decodeCursorAs(cursor, "activity");
+		const cursorClause = or(
+			lt(stockMovement.createdAt, new Date(c.createdAt)),
+			and(
+				eq(stockMovement.createdAt, new Date(c.createdAt)),
+				lt(stockMovement.id, c.id)
+			)
+		);
+		if (cursorClause) {
+			conditions.push(cursorClause);
+		}
+	}
+
+	const rows = await db
+		.select({
+			id: stockMovement.id,
+			createdAt: stockMovement.createdAt,
+			branchId: stockMovement.branchId,
+			branchName: branch.name,
+			previousQty: stockMovement.previousQty,
+			newQty: stockMovement.newQty,
+			delta: stockMovement.delta,
+			reason: stockMovement.reason,
+			reasonNote: stockMovement.reasonNote,
+			actorId: stockMovement.actorId,
+			actorName: user.name,
+			variantSku: toolVariant.sku,
+			variantVoltage: toolVariant.voltage,
+		})
+		.from(stockMovement)
+		.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
+		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
+		.leftJoin(user, eq(stockMovement.actorId, user.id))
+		.where(and(...conditions))
+		.orderBy(desc(stockMovement.createdAt), desc(stockMovement.id))
+		.limit(limit + 1);
+
+	const hasMore = rows.length > limit;
+	const items = hasMore ? rows.slice(0, limit) : rows;
+	const last = items.at(-1);
+	const nextCursor =
+		hasMore && last
+			? encodeCursor({
+					v: 1,
+					sort: "activity",
+					id: last.id,
+					createdAt: last.createdAt.toISOString(),
+				})
+			: null;
+
+	return { items, nextCursor };
 }
