@@ -14,7 +14,7 @@ import { FiltersBar } from "@/components/filters-bar";
 import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
 
 const BASE = "/dashboard/branches";
-const TRACKED = ["search", "sort", "inactive"] as const;
+const TRACKED = ["search", "sort"] as const;
 
 export function BranchesFilters() {
 	const { setParam, clearAll, hasActive, searchParams } = useFilterState({
@@ -27,7 +27,6 @@ export function BranchesFilters() {
 	});
 
 	const currentSort = searchParams.get("sort") ?? "newest";
-	const includeInactive = searchParams.get("inactive") === "1";
 
 	return (
 		<FiltersBar hasActive={hasActive} onClear={clearAll}>
@@ -67,21 +66,6 @@ export function BranchesFilters() {
 						</SelectGroup>
 					</SelectContent>
 				</Select>
-			</div>
-
-			<div className="flex flex-col justify-end gap-1">
-				<span className="text-muted-foreground text-xs">Status</span>
-				<button
-					className={`rounded-[7px] border px-3 py-1.5 text-xs transition-colors ${
-						includeInactive
-							? "border-border bg-card text-foreground"
-							: "border-transparent text-muted-foreground hover:text-foreground"
-					}`}
-					onClick={() => setParam("inactive", includeInactive ? null : "1")}
-					type="button"
-				>
-					Mostrar inativas
-				</button>
 			</div>
 		</FiltersBar>
 	);
