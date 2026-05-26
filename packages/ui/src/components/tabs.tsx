@@ -1,6 +1,7 @@
 "use client";
 
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
+import { Badge } from "@emach/ui/components/badge";
 import { cn } from "@emach/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -28,7 +29,7 @@ const tabsListVariants = cva(
 	{
 		variants: {
 			variant: {
-				default: "bg-muted ring-1 ring-border/60",
+				default: "gap-1 bg-muted ring-1 ring-border/60",
 				line: "gap-1 border-border border-b bg-transparent p-0",
 			},
 		},
@@ -144,4 +145,25 @@ function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
 	);
 }
 
-export { Tabs, TabsContent, TabsList, TabsTrigger, tabsListVariants };
+function TabsCountBadge({
+	value,
+	className,
+}: {
+	className?: string;
+	value: number;
+}) {
+	return (
+		<Badge className={cn("ml-1.5 tabular-nums", className)} variant="secondary">
+			{value}
+		</Badge>
+	);
+}
+
+export {
+	Tabs,
+	TabsContent,
+	TabsCountBadge,
+	TabsList,
+	TabsTrigger,
+	tabsListVariants,
+};
