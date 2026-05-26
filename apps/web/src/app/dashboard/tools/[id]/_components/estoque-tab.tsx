@@ -146,12 +146,14 @@ export function EstoqueTab({
 			<div className="flex flex-col gap-4">
 				<div className="flex items-center justify-end">
 					<Tooltip>
-						<TooltipTrigger>
-							<Button disabled size="sm" variant="outline">
-								<ArrowLeftRight className="mr-1.5 size-3.5" />
-								Transferir entre filiais
-							</Button>
-						</TooltipTrigger>
+						<TooltipTrigger
+							render={
+								<Button disabled size="sm" variant="outline">
+									<ArrowLeftRight className="mr-1.5 size-3.5" />
+									Transferir entre filiais
+								</Button>
+							}
+						/>
 						<TooltipContent>
 							Em breve — requer mudança de schema (ADR separada).
 						</TooltipContent>
