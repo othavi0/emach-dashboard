@@ -21,6 +21,7 @@ export interface KpiItem {
 }
 
 interface Props {
+	iconSize?: "sm" | "lg";
 	items: KpiItem[];
 }
 
@@ -38,7 +39,12 @@ const TONE_ICON: Record<KpiTone, string> = {
 	success: "text-success",
 };
 
-export function EntityKpisRow({ items }: Props) {
+const ICON_SIZE: Record<"sm" | "lg", string> = {
+	sm: "size-4",
+	lg: "size-5",
+};
+
+export function EntityKpisRow({ items, iconSize = "sm" }: Props) {
 	return (
 		<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
 			{items.map((item) => {
@@ -51,7 +57,10 @@ export function EntityKpisRow({ items }: Props) {
 								{item.label}
 							</CardTitle>
 							{Icon ? (
-								<Icon aria-hidden className={cn("size-4", TONE_ICON[tone])} />
+								<Icon
+									aria-hidden
+									className={cn(ICON_SIZE[iconSize], TONE_ICON[tone])}
+								/>
 							) : null}
 						</CardHeader>
 						<CardContent>
