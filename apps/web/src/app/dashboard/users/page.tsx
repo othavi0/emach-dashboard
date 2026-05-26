@@ -1,7 +1,11 @@
 import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
-import { Badge } from "@emach/ui/components/badge";
-import { Tabs, TabsList, TabsTrigger } from "@emach/ui/components/tabs";
+import {
+	Tabs,
+	TabsCountBadge,
+	TabsList,
+	TabsTrigger,
+} from "@emach/ui/components/tabs";
 import { asc } from "drizzle-orm";
 import { Ban, Building2, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
@@ -137,12 +141,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
 						value="active"
 					>
 						Ativos
-						<Badge
-							className="ml-1.5 tabular-nums"
-							variant={status === "active" ? "default" : "outline"}
-						>
-							{kpis.active}
-						</Badge>
+						<TabsCountBadge value={kpis.active} />
 					</TabsTrigger>
 					<TabsTrigger
 						nativeButton={false}
@@ -150,12 +149,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
 						value="pending"
 					>
 						Pendentes
-						<Badge
-							className="ml-1.5 tabular-nums"
-							variant={status === "pending" ? "default" : "outline"}
-						>
-							{kpis.pending}
-						</Badge>
+						<TabsCountBadge value={kpis.pending} />
 					</TabsTrigger>
 					<TabsTrigger
 						nativeButton={false}
@@ -163,12 +157,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
 						value="suspended"
 					>
 						Suspensos
-						<Badge
-							className="ml-1.5 tabular-nums"
-							variant={status === "suspended" ? "default" : "outline"}
-						>
-							{kpis.suspended}
-						</Badge>
+						<TabsCountBadge value={kpis.suspended} />
 					</TabsTrigger>
 				</TabsList>
 			</Tabs>
