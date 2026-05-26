@@ -58,6 +58,23 @@ export const toolVariantSchema = z.object({
 });
 export type ToolVariantInput = z.infer<typeof toolVariantSchema>;
 
+export const updateVariantSchema = z.object({
+	variantId: z.string().min(1),
+	sku: z.string().min(1).max(64).optional(),
+	voltage: z.enum(VOLTAGE_OPTIONS).nullable().optional(),
+	priceAmount: z
+		.string()
+		.regex(/^\d+(\.\d{1,2})?$/, "Preço inválido")
+		.optional(),
+	costAmount: z
+		.string()
+		.regex(/^\d+(\.\d{1,2})?$/, "Custo inválido")
+		.nullable()
+		.optional(),
+});
+
+export type UpdateVariantInput = z.infer<typeof updateVariantSchema>;
+
 export const attributeValueInputSchema = z.object({
 	valueText: z.string().nullable().optional(),
 	valueNumeric: z.number().nullable().optional(),

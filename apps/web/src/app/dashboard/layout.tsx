@@ -7,11 +7,12 @@ import {
 } from "@emach/ui/components/sidebar";
 import { count, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
-
+import { getUserBranchScope } from "@/lib/branch-scope";
 import { can } from "@/lib/permissions";
 import type { UserRole } from "@/lib/session";
 import { getUserStatus, requireCurrentSession } from "@/lib/session";
 import { AppSidebar } from "./_components/app-sidebar";
+import { getReporCount } from "./_lib/repor-count";
 
 export default async function DashboardLayout({
 	children,
@@ -27,18 +28,28 @@ export default async function DashboardLayout({
 
 	const role = (session.user.role ?? "user") as UserRole;
 	const canManageUsers = can(role, "users.approve");
-	let pendingCount = 0;
-	if (canManageUsers) {
-		const [row] = await db
-			.select({ value: count() })
-			.from(userTable)
-			.where(eq(userTable.status, "pending"));
-		pendingCount = Number(row?.value ?? 0);
-	}
+	const branchScope = await getUserBranchScope(session);
+
+	const [pendingCountRow, reporCount] = await Promise.all([
+		canManageUsers
+			? db
+					.select({ value: count() })
+					.from(userTable)
+					.where(eq(userTable.status, "pending"))
+					.then((rows) => rows[0])
+			: Promise.resolve(undefined),
+		getReporCount(branchScope),
+	]);
+
+	const pendingCount = Number(pendingCountRow?.value ?? 0);
 
 	return (
 		<SidebarProvider>
-			<AppSidebar canManageUsers={canManageUsers} pendingCount={pendingCount} />
+			<AppSidebar
+				canManageUsers={canManageUsers}
+				pendingCount={pendingCount}
+				reporCount={reporCount}
+			/>
 			<SidebarInset>
 				<header className="flex h-12 items-center gap-2 border-b px-4 md:hidden">
 					<SidebarTrigger />

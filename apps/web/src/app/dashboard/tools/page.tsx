@@ -1,6 +1,7 @@
 import { db } from "@emach/db";
 import type { UserRole } from "@emach/db/schema/auth";
 import { category } from "@emach/db/schema/categories";
+import { branch } from "@emach/db/schema/inventory";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Empty,
@@ -9,7 +10,7 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
@@ -21,17 +22,20 @@ import {
 	fetchToolsPage,
 	type ToolSort,
 	type ToolsFiltersInput,
+	type ToolsListMode,
 } from "./actions";
 
 interface PageProps {
 	searchParams: Promise<{
+		branchId?: string;
 		categoryId?: string;
+		mode?: string;
 		ncm?: string;
 		q?: string;
 		search?: string;
+		sort?: string;
 		status?: string;
 		visible?: string;
-		sort?: string;
 	}>;
 }
 
@@ -40,6 +44,14 @@ async function fetchCategories() {
 		.select({ id: category.id, name: category.name })
 		.from(category)
 		.orderBy(asc(category.path));
+}
+
+async function fetchActiveBranches() {
+	return db
+		.select({ id: branch.id, name: branch.name })
+		.from(branch)
+		.where(eq(branch.status, "active"))
+		.orderBy(asc(branch.name));
 }
 
 const VALID_SORTS: readonly ToolSort[] = ["newest", "name"];
@@ -53,6 +65,13 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 	const sort: ToolSort =
 		sortParam && VALID_SORTS.includes(sortParam) ? sortParam : "newest";
 
+	const mode: ToolsListMode | undefined =
+		params.mode === "repor"
+			? "repor"
+			: params.mode === "catalog"
+				? "catalog"
+				: undefined;
+
 	const filters: ToolsFiltersInput = {
 		search,
 		categoryId: params.categoryId,
@@ -60,15 +79,24 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 		visible: params.visible,
 		ncm: params.ncm,
 		sort,
+		mode,
+		branchId: params.branchId,
 	};
 
-	const [first, categories] = await Promise.all([
+	const [first, categories, branches] = await Promise.all([
 		fetchToolsPage({ filters, cursor: null }),
 		fetchCategories(),
+		fetchActiveBranches(),
 	]);
 
 	const hasFilters = Boolean(
-		search || params.visible || params.status || params.categoryId || params.ncm
+		search ||
+			params.visible ||
+			params.status ||
+			params.categoryId ||
+			params.ncm ||
+			params.mode ||
+			params.branchId
 	);
 	const isEmpty = first.items.length === 0;
 
@@ -89,7 +117,7 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 				title="Ferramentas"
 			/>
 
-			<ToolFilters categories={categories} />
+			<ToolFilters branches={branches} categories={categories} />
 
 			{isEmpty ? (
 				<Empty>

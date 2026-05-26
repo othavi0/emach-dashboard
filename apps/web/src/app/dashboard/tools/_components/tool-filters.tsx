@@ -9,6 +9,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@emach/ui/components/select";
+import { cn } from "@emach/ui/lib/utils";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { FiltersBar } from "@/components/filters-bar";
 import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
@@ -20,7 +23,13 @@ interface CategoryOption {
 	name: string;
 }
 
+interface BranchOption {
+	id: string;
+	name: string;
+}
+
 interface ToolFiltersProps {
+	branches: BranchOption[];
 	categories: CategoryOption[];
 }
 
@@ -34,6 +43,8 @@ const TRACKED = [
 	"status",
 	"ncm",
 	"sort",
+	"mode",
+	"branchId",
 ] as const;
 
 const SORT_OPTIONS = [
@@ -45,7 +56,22 @@ const SORT_LABEL: Record<string, string> = Object.fromEntries(
 	SORT_OPTIONS.map((o) => [o.value, o.label])
 );
 
-export function ToolFilters({ categories }: ToolFiltersProps) {
+function buildModeHref(
+	currentParams: URLSearchParams,
+	mode: string | undefined
+): string {
+	const next = new URLSearchParams(currentParams.toString());
+	if (mode) {
+		next.set("mode", mode);
+	} else {
+		next.delete("mode");
+	}
+	const qs = next.toString();
+	return qs ? `${BASE}?${qs}` : BASE;
+}
+
+export function ToolFilters({ branches, categories }: ToolFiltersProps) {
+	const rawSearchParams = useSearchParams();
 	const { searchParams, setParam, clearAll, hasActive } = useFilterState({
 		basePath: BASE,
 		trackedKeys: TRACKED,
@@ -62,9 +88,39 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 	const currentVisibility = searchParams.get("visible") ?? ALL;
 	const currentStatus = searchParams.get("status") ?? ALL;
 	const currentSort = searchParams.get("sort") ?? "newest";
+	const currentMode = searchParams.get("mode") ?? undefined;
+	const currentBranchId = searchParams.get("branchId") ?? ALL;
 
 	return (
 		<FiltersBar hasActive={hasActive} onClear={clearAll}>
+			{/* Mode toggle — Catálogo / Repor agora */}
+			<div className="flex items-end pb-0.5">
+				<div className="inline-flex rounded-md border border-border bg-muted/40 p-0.5">
+					<Link
+						className={cn(
+							"rounded px-3 py-1 text-xs",
+							currentMode === "repor"
+								? "text-muted-foreground"
+								: "bg-background font-medium text-foreground shadow-sm"
+						)}
+						href={buildModeHref(rawSearchParams, undefined)}
+					>
+						Catálogo
+					</Link>
+					<Link
+						className={cn(
+							"rounded px-3 py-1 text-xs",
+							currentMode === "repor"
+								? "bg-destructive/15 font-medium text-destructive"
+								: "text-muted-foreground"
+						)}
+						href={buildModeHref(rawSearchParams, "repor")}
+					>
+						Repor agora
+					</Link>
+				</div>
+			</div>
+
 			<div className="flex flex-1 flex-col gap-1">
 				<label className="text-muted-foreground text-xs" htmlFor="tool-q">
 					Buscar por nome
@@ -75,6 +131,37 @@ export function ToolFilters({ categories }: ToolFiltersProps) {
 					placeholder="Ex: furadeira"
 					value={search}
 				/>
+			</div>
+
+			<div className="flex flex-col gap-1 md:w-44">
+				<label className="text-muted-foreground text-xs" htmlFor="tool-branch">
+					Filial
+				</label>
+				<Select
+					onValueChange={(v) => setParam("branchId", v === ALL ? null : v)}
+					value={currentBranchId}
+				>
+					<SelectTrigger id="tool-branch">
+						<SelectValue>
+							{(v: string) =>
+								v === ALL
+									? "Todas as filiais"
+									: (branches.find((b) => b.id === v)?.name ??
+										"Todas as filiais")
+							}
+						</SelectValue>
+					</SelectTrigger>
+					<SelectContent>
+						<SelectGroup>
+							<SelectItem value={ALL}>Todas as filiais</SelectItem>
+							{branches.map((b) => (
+								<SelectItem key={b.id} value={b.id}>
+									{b.name}
+								</SelectItem>
+							))}
+						</SelectGroup>
+					</SelectContent>
+				</Select>
 			</div>
 
 			<div className="flex flex-col gap-1 md:w-56">
