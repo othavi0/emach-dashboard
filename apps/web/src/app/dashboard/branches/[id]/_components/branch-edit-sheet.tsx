@@ -14,6 +14,7 @@ import {
 	type BranchFormValues,
 	branchSchema,
 } from "../../_components/branch-schema";
+import { DeleteBranchDialog } from "../../_components/delete-branch-dialog";
 import { updateBranch } from "../../actions";
 import type { BranchDetail } from "../../data";
 
@@ -113,6 +114,20 @@ export function BranchEditSheet({ branch }: Props) {
 				showTeamSection
 				values={values}
 			/>
+			<div className="mt-8 border-border border-t pt-6">
+				<div className="flex items-start justify-between gap-4">
+					<div>
+						<h3 className="font-medium text-destructive text-sm">
+							Zona destrutiva
+						</h3>
+						<p className="mt-1 text-muted-foreground text-xs">
+							Remove a filial. Estoque positivo e pedidos abertos bloqueiam a
+							exclusão.
+						</p>
+					</div>
+					<DeleteBranchDialog branchId={branch.id} branchName={branch.name} />
+				</div>
+			</div>
 		</EntityEditSheet>
 	);
 }
