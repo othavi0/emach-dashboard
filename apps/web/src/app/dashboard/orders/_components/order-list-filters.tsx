@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@emach/ui/components/badge";
 import { DatePicker } from "@emach/ui/components/date-picker";
 import { Input } from "@emach/ui/components/input";
 import {
@@ -11,7 +10,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@emach/ui/components/select";
-import { Tabs, TabsList, TabsTrigger } from "@emach/ui/components/tabs";
+import {
+	Tabs,
+	TabsCountBadge,
+	TabsList,
+	TabsTrigger,
+} from "@emach/ui/components/tabs";
 import Link from "next/link";
 
 import { FiltersBar } from "@/components/filters-bar";
@@ -89,7 +93,7 @@ export function OrderFiltersPanel({
 	return (
 		<div className="flex flex-col gap-3">
 			<Tabs value={currentTab}>
-				<TabsList className="gap-1" scrollable>
+				<TabsList scrollable>
 					{ORDER_TABS.map((tab) => {
 						const count = tabCount(counts, tab.key, tab.statuses);
 						const isActive = currentTab === tab.key;
@@ -101,11 +105,7 @@ export function OrderFiltersPanel({
 								value={tab.key}
 							>
 								<span>{tab.label}</span>
-								{(isActive || count > 0) && (
-									<Badge className="ml-1.5 tabular-nums" variant="secondary">
-										{count}
-									</Badge>
-								)}
+								{(isActive || count > 0) && <TabsCountBadge value={count} />}
 							</TabsTrigger>
 						);
 					})}
