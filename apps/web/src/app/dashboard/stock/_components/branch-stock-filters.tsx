@@ -44,23 +44,9 @@ const STATUS_OPTIONS: Array<{ label: string; value: StatusValue }> = [
 	{ label: "OK", value: "ok" },
 ];
 
-function statusClass(value: StatusValue, active: boolean): string {
-	const base =
-		"px-3 py-1.5 text-xs font-medium transition-colors border-r last:border-r-0 border-border";
-	if (!active) {
-		return `${base} text-muted-foreground hover:text-foreground`;
-	}
-	if (value === "critical") {
-		return `${base} bg-red-950/50 text-red-400`;
-	}
-	if (value === "reorder") {
-		return `${base} bg-amber-950/50 text-amber-400`;
-	}
-	if (value === "ok") {
-		return `${base} bg-green-950/50 text-green-400`;
-	}
-	return `${base} bg-muted text-foreground`;
-}
+const STATUS_LABEL: Record<string, string> = Object.fromEntries(
+	STATUS_OPTIONS.map((o) => [o.value, o.label])
+);
 
 const ALL = "__all__";
 const TRACKED = ["search", "status", "sort", "categoryId"] as const;
@@ -96,23 +82,30 @@ export function BranchStockFilters({
 				/>
 			</div>
 
-			{/* Status segmentado */}
-			<div className="flex flex-col gap-1">
-				<span className="text-muted-foreground text-xs">Status</span>
-				<div className="flex overflow-hidden rounded-md border border-border">
-					{STATUS_OPTIONS.map((opt) => (
-						<button
-							className={statusClass(opt.value, currentStatus === opt.value)}
-							key={opt.value}
-							onClick={() =>
-								setParam("status", opt.value === "all" ? null : opt.value)
-							}
-							type="button"
-						>
-							{opt.label}
-						</button>
-					))}
-				</div>
+			{/* Status */}
+			<div className="flex flex-col gap-1 md:w-36">
+				<label className="text-muted-foreground text-xs" htmlFor="bs-status">
+					Status
+				</label>
+				<Select
+					onValueChange={(v) => setParam("status", v === "all" ? null : v)}
+					value={currentStatus}
+				>
+					<SelectTrigger id="bs-status">
+						<SelectValue>
+							{(v: string) => STATUS_LABEL[v] ?? "Todos"}
+						</SelectValue>
+					</SelectTrigger>
+					<SelectContent>
+						<SelectGroup>
+							{STATUS_OPTIONS.map((o) => (
+								<SelectItem key={o.value} value={o.value}>
+									{o.label}
+								</SelectItem>
+							))}
+						</SelectGroup>
+					</SelectContent>
+				</Select>
 			</div>
 
 			{/* Sort */}

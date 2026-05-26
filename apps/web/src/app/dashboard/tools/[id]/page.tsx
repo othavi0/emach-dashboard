@@ -9,7 +9,6 @@ import { requireCurrentSession } from "@/lib/session";
 import { ActivityTab } from "./_components/activity-tab";
 import { EstoqueTab } from "./_components/estoque-tab";
 import { OverviewTab } from "./_components/overview-tab";
-import { PlaceholderTab } from "./_components/placeholder-tab";
 import { ToolDetailHeader } from "./_components/tool-detail-header";
 import { ToolReviewsSection } from "./_components/tool-reviews-section";
 import { VariantsTab } from "./_components/variants-tab";
