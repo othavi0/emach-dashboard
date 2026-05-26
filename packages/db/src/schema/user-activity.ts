@@ -7,9 +7,9 @@ export const userActivityLog = pgTable(
 	"user_activity_log",
 	{
 		id: text("id").primaryKey(),
-		actorUserId: text("actor_user_id")
-			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
+		actorUserId: text("actor_user_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
 		action: text("action").notNull(),
 		targetType: text("target_type"),
 		targetId: text("target_id"),
