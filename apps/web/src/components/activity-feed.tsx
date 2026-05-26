@@ -29,7 +29,7 @@ export interface ActivityEvent {
 
 interface ActivityFeedProps {
 	emptyMessage?: string;
-	fetchPage: (cursor: string) => Promise<InfiniteResult<ActivityEvent>>;
+	fetchPage: (cursor: string | null) => Promise<InfiniteResult<ActivityEvent>>;
 	initialCursor: string | null;
 	initialEvents: ActivityEvent[];
 	title?: string;

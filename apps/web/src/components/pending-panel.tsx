@@ -32,7 +32,7 @@ export interface PendingRow {
 
 export interface PendingTab {
 	count: number;
-	fetchPage: (cursor: string) => Promise<InfiniteResult<PendingRow>>;
+	fetchPage: (cursor: string | null) => Promise<InfiniteResult<PendingRow>>;
 	id: string;
 	initial: PendingRow[];
 	initialCursor: string | null;
