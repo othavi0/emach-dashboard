@@ -10,9 +10,15 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@emach/ui/components/sheet";
+import { Textarea } from "@emach/ui/components/textarea";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-
+import {
+	STOCK_MOVEMENT_REASONS_UI,
+	type StockAdjustmentUiInput,
+	type StockMovementReasonUi,
+	stockAdjustmentUiSchema,
+} from "@/app/dashboard/stock/_components/stock-adjustment-schema";
 import {
 	adjustStock,
 	getStockMovementsByVariantBranch,
@@ -37,18 +43,61 @@ interface StockCellSheetProps {
 	variantVoltage: string | null;
 }
 
-type Reason = "entrada_compra" | "ajuste_inventario" | "perda" | "outro";
-
-const REASON_LABEL: Record<Reason, string> = {
+const REASON_LABEL_UI: Record<StockMovementReasonUi, string> = {
 	entrada_compra: "Entrada compra",
 	ajuste_inventario: "Ajuste inventário",
 	perda: "Perda",
 	outro: "Outro",
 };
 
+const REASON_LABEL_FULL: Record<string, string> = {
+	entrada_compra: "Entrada compra",
+	saida_venda: "Saída venda",
+	ajuste_inventario: "Ajuste inventário",
+	perda: "Perda",
+	outro: "Outro",
+};
+
+const RELATIVE = new Intl.RelativeTimeFormat("pt-BR", {
+	numeric: "auto",
+	style: "short",
+});
+
+function formatRelative(date: Date): string {
+	const diffMs = date.getTime() - Date.now();
+	const absDays = Math.abs(diffMs) / 86_400_000;
+	if (absDays < 1) {
+		const absHours = Math.abs(diffMs) / 3_600_000;
+		if (absHours < 1) {
+			return RELATIVE.format(Math.round(diffMs / 60_000), "minute");
+		}
+		return RELATIVE.format(Math.round(diffMs / 3_600_000), "hour");
+	}
+	const diffDays = Math.round(diffMs / 86_400_000);
+	if (absDays < 30) {
+		return RELATIVE.format(diffDays, "day");
+	}
+	return RELATIVE.format(Math.round(diffDays / 30), "month");
+}
+
+function zodErrorsToMap(error: {
+	issues: { path: unknown[]; message: string }[];
+}): Partial<Record<keyof StockAdjustmentUiInput, string>> {
+	const map: Partial<Record<keyof StockAdjustmentUiInput, string>> = {};
+	for (const issue of error.issues) {
+		const key = issue.path[0] as keyof StockAdjustmentUiInput | undefined;
+		if (key && !map[key]) {
+			map[key] = issue.message;
+		}
+	}
+	return map;
+}
+
 interface Movement {
+	actorName: string | null;
 	createdAt: Date;
 	delta: number;
+	id: string;
 	reason: string | null;
 	reasonNote: string | null;
 }
@@ -65,8 +114,11 @@ export function StockCellSheet({
 }: StockCellSheetProps) {
 	const currentQty = initial?.quantity ?? 0;
 	const [newQty, setNewQty] = useState(String(currentQty));
-	const [reason, setReason] = useState<Reason>("entrada_compra");
+	const [reason, setReason] = useState<StockMovementReasonUi>("entrada_compra");
 	const [reasonNote, setReasonNote] = useState("");
+	const [errors, setErrors] = useState<
+		Partial<Record<keyof StockAdjustmentUiInput, string>>
+	>({});
 	const [minQty, setMinQty] = useState(String(initial?.minQty ?? 0));
 	const [reorderPoint, setReorderPoint] = useState(
 		String(initial?.reorderPoint ?? 0)
@@ -77,14 +129,15 @@ export function StockCellSheet({
 
 	useEffect(() => {
 		let cancelled = false;
-		// positional args: (variantId, branchId, limit) — returns StockMovementRow[] directly
 		getStockMovementsByVariantBranch(variantId, branchId, 5)
 			.then((rows) => {
 				if (!cancelled) {
 					setMovements(
 						rows.map((m) => ({
+							actorName: m.actorName,
 							createdAt: new Date(m.createdAt),
 							delta: m.delta,
+							id: m.id,
 							reason: m.reason,
 							reasonNote: m.reasonNote,
 						}))
@@ -116,14 +169,24 @@ export function StockCellSheet({
 	}
 
 	function handleAdjust() {
+		setErrors({});
+
+		const input: StockAdjustmentUiInput = {
+			variantId,
+			branchId,
+			newQty: Number(newQty),
+			reason,
+			reasonNote: reasonNote.trim() === "" ? undefined : reasonNote.trim(),
+		};
+
+		const parsed = stockAdjustmentUiSchema.safeParse(input);
+		if (!parsed.success) {
+			setErrors(zodErrorsToMap(parsed.error));
+			return;
+		}
+
 		startAdjust(async () => {
-			const result = await adjustStock({
-				variantId,
-				branchId,
-				newQty: Number(newQty),
-				reason,
-				reasonNote: reasonNote.trim() === "" ? undefined : reasonNote.trim(),
-			});
+			const result = await adjustStock(parsed.data);
 			if (result.ok) {
 				toast.success("Estoque ajustado");
 				onClose();
@@ -201,31 +264,46 @@ export function StockCellSheet({
 								onChange={(e) => setNewQty(e.target.value)}
 								value={newQty}
 							/>
+							{errors.newQty && (
+								<p className="text-destructive text-xs">{errors.newQty}</p>
+							)}
 						</div>
 
 						<div className="flex flex-col gap-2">
 							<Label className="text-xs uppercase">Motivo</Label>
 							<div className="grid grid-cols-2 gap-2">
-								{(Object.keys(REASON_LABEL) as Reason[]).map((r) => (
+								{STOCK_MOVEMENT_REASONS_UI.map((r) => (
 									<Button
 										key={r}
 										onClick={() => setReason(r)}
 										size="sm"
+										type="button"
 										variant={reason === r ? "default" : "outline"}
 									>
-										{REASON_LABEL[r]}
+										{REASON_LABEL_UI[r]}
 									</Button>
 								))}
 							</div>
 						</div>
 
 						<div className="flex flex-col gap-2">
-							<Label className="text-xs uppercase">Nota (opcional)</Label>
-							<Input
+							<Label className="text-xs uppercase">
+								Nota
+								{reason === "outro" ? (
+									<span className="text-destructive"> *</span>
+								) : (
+									<span className="text-muted-foreground"> (opcional)</span>
+								)}
+							</Label>
+							<Textarea
 								onChange={(e) => setReasonNote(e.target.value)}
 								placeholder="NF #1234, fornecedor X…"
+								rows={2}
 								value={reasonNote}
 							/>
+							{errors.reasonNote && (
+								<p className="text-destructive text-xs">{errors.reasonNote}</p>
+							)}
 						</div>
 
 						<Button
@@ -279,32 +357,34 @@ export function StockCellSheet({
 							Sem movimentos recentes.
 						</p>
 					) : (
-						<ul className="mt-2 flex flex-col gap-1.5 text-xs">
-							{movements.map((m, i) => (
-								<li
-									className="flex items-center justify-between border-border border-b py-1.5 last:border-b-0"
-									key={i}
-								>
-									<span>
-										<span
-											className={
-												m.delta < 0 ? "text-destructive" : "text-success"
-											}
-										>
-											{m.delta > 0 ? `+${m.delta}` : m.delta}
-										</span>
-										{" · "}
-										{m.reason?.replace("_", " ") ?? "—"}
-										{m.reasonNote && (
-											<span className="text-muted-foreground">
-												{" "}
-												— {m.reasonNote}
-											</span>
-										)}
+						<ul className="mt-2 flex flex-col gap-2.5 text-xs">
+							{movements.map((m) => (
+								<li className="flex items-start gap-3" key={m.id}>
+									<span
+										className={`flex-shrink-0 rounded px-1.5 py-0.5 font-mono font-semibold tabular-nums ${
+											m.delta >= 0
+												? "bg-success/15 text-success"
+												: "bg-destructive/15 text-destructive"
+										}`}
+									>
+										{m.delta >= 0 ? "+" : ""}
+										{m.delta}
 									</span>
-									<span className="text-muted-foreground">
-										{m.createdAt.toLocaleDateString("pt-BR")}
-									</span>
+									<div className="min-w-0 flex-1">
+										<p className="text-foreground">
+											{m.reason
+												? (REASON_LABEL_FULL[m.reason] ?? m.reason)
+												: "Sem motivo"}
+											{m.reasonNote ? (
+												<span className="ml-1 text-muted-foreground">
+													— {m.reasonNote}
+												</span>
+											) : null}
+										</p>
+										<p className="text-muted-foreground">
+											{m.actorName ?? "Sistema"} · {formatRelative(m.createdAt)}
+										</p>
+									</div>
 								</li>
 							))}
 						</ul>
