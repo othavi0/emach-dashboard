@@ -27,6 +27,8 @@ import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityWithContextOrRedirect } from "@/lib/permissions";
 
+import { AddToolButton } from "./_components/add-tool-button";
+
 export const dynamic = "force-dynamic";
 
 interface PageProps {
@@ -91,6 +93,11 @@ export default async function BranchStockPage({
 	return (
 		<>
 			<PageHeader
+				action={
+					canMutate ? (
+						<AddToolButton branchId={id} branchName={detail.name} />
+					) : null
+				}
 				description="Ajuste quantidades e configure limites de alerta por ferramenta."
 				title={`Estoque — ${detail.name}`}
 			/>
