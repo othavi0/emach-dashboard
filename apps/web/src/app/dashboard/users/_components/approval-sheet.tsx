@@ -43,7 +43,7 @@ export function ApprovalSheet({
 			setRole(allowed.at(-1) ?? "user");
 			setBranchIds([]);
 		}
-	}, [user, allowed]);
+	}, [user, actorRole]);
 
 	function handleApprove() {
 		if (!user) {
