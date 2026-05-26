@@ -75,10 +75,6 @@ export async function StockTab({
 
 	return (
 		<div className="flex flex-col gap-4">
-			<p className="text-muted-foreground text-sm">
-				Ajuste quantidades e configure limites de alerta por ferramenta.
-			</p>
-
 			<BranchStockFilters basePath={basePath} categories={categories} />
 
 			{first.items.length === 0 ? (
