@@ -18,18 +18,24 @@ export interface LogUserActivityInput {
 export async function logUserActivity(
 	input: LogUserActivityInput
 ): Promise<void> {
+	let actorName: string | null = null;
 	try {
 		const [actor] = await db
 			.select({ name: userTable.name })
 			.from(userTable)
 			.where(eq(userTable.id, input.actorUserId))
 			.limit(1);
+		actorName = actor?.name ?? null;
+	} catch (err) {
+		logger.error("logUserActivity actorName lookup", err);
+	}
 
-		const metadata = {
-			...(input.metadata ?? {}),
-			actorName: actor?.name ?? null,
-		};
+	const metadata = {
+		...(input.metadata ?? {}),
+		actorName,
+	};
 
+	try {
 		await db.insert(userActivityLog).values({
 			id: crypto.randomUUID(),
 			actorUserId: input.actorUserId,
