@@ -532,6 +532,30 @@ export async function fetchPendingUsersAction(
 	return fetchPendingUsersPage(cursor);
 }
 
+export async function fetchUserActivityByUserPage(
+	userId: string,
+	cursor: string | null
+): Promise<
+	import("@/lib/infinite").InfiniteResult<import("./data").UserActivityRow>
+> {
+	await requireCapabilityWithContext("users.manage", { targetUserId: userId });
+	const { getUserActivity } = await import("./data");
+	return getUserActivity(userId, cursor);
+}
+
+export async function fetchUserActivityAffectingPage(
+	userId: string,
+	cursor: string | null
+): Promise<
+	import("@/lib/infinite").InfiniteResult<
+		import("./data").UserActivityRow & { actorName: string | null }
+	>
+> {
+	await requireCapabilityWithContext("users.manage", { targetUserId: userId });
+	const { getUserAffectedActivity } = await import("./data");
+	return getUserAffectedActivity(userId, cursor);
+}
+
 export async function fetchUserActivityFeedPage(
 	_cursor: string | null
 ): Promise<
