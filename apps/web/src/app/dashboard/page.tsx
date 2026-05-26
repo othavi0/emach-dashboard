@@ -75,8 +75,8 @@ export default async function DashboardPage() {
 			</section>
 
 			<section className="-mx-6 grid min-w-0 gap-4 border-border border-y bg-muted/50 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-				<PendingPanel tabs={tabs} />
-				<div className="relative min-h-[24rem] min-w-0">
+				<PendingPanel compact tabs={tabs} />
+				<div className="relative min-h-[18rem] min-w-0">
 					<div className="absolute inset-0">
 						<ActivityFeed
 							fetchPage={fetchDashboardActivity}

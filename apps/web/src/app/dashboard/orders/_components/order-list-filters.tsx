@@ -89,7 +89,7 @@ export function OrderFiltersPanel({
 	return (
 		<div className="flex flex-col gap-3">
 			<Tabs value={currentTab}>
-				<TabsList scrollable>
+				<TabsList className="gap-1" scrollable>
 					{ORDER_TABS.map((tab) => {
 						const count = tabCount(counts, tab.key, tab.statuses);
 						const isActive = currentTab === tab.key;
@@ -102,14 +102,7 @@ export function OrderFiltersPanel({
 							>
 								<span>{tab.label}</span>
 								{(isActive || count > 0) && (
-									<Badge
-										className={
-											isActive
-												? "ml-1.5 tabular-nums"
-												: "ml-1.5 text-muted-foreground tabular-nums"
-										}
-										variant={isActive ? "secondary" : "outline"}
-									>
+									<Badge className="ml-1.5 tabular-nums" variant="secondary">
 										{count}
 									</Badge>
 								)}

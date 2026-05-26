@@ -110,11 +110,12 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 
 			<section className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<PendingPanel
+					compact
 					emptyMessage="Nenhum pedido aguardando ação."
 					tabs={pendingTabs}
 					title="Pendências de pedidos"
 				/>
-				<div className="relative min-h-[28rem] min-w-0">
+				<div className="relative min-h-[18rem] min-w-0">
 					<div className="absolute inset-0">
 						<ActivityFeed
 							emptyMessage="Sem mudanças de status recentes."

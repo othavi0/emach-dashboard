@@ -131,6 +131,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 
 			<section className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<PendingPanel
+					compact
 					emptyMessage="Nenhum cliente aguardando ação."
 					tabs={pendingTabs}
 					title="Atenção em clientes"

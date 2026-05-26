@@ -41,6 +41,7 @@ export interface PendingTab {
 }
 
 interface PendingPanelProps {
+	compact?: boolean;
 	emptyMessage?: string;
 	tabs: PendingTab[];
 	title?: string;
@@ -55,7 +56,13 @@ const BADGE_COLORS: Record<PendingRole, string> = {
 	warning: "text-warning",
 };
 
-function PendingTabContent({ tab }: { tab: PendingTab }) {
+function PendingTabContent({
+	compact,
+	tab,
+}: {
+	compact?: boolean;
+	tab: PendingTab;
+}) {
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: tab.initial,
@@ -74,7 +81,10 @@ function PendingTabContent({ tab }: { tab: PendingTab }) {
 	return (
 		<div
 			aria-live="polite"
-			className="max-h-[28rem] min-h-72 min-w-0 max-w-full overflow-y-auto"
+			className={cn(
+				"min-w-0 max-w-full overflow-y-auto",
+				compact ? "max-h-60 min-h-44" : "max-h-[28rem] min-h-72"
+			)}
 			ref={scrollRef}
 		>
 			<ul className="flex flex-col">
@@ -118,6 +128,7 @@ function PendingTabContent({ tab }: { tab: PendingTab }) {
 }
 
 export function PendingPanel({
+	compact,
 	tabs,
 	title = "Pendências",
 	emptyMessage = "Nada pendente. Bom trabalho.",
@@ -166,7 +177,11 @@ export function PendingPanel({
 						{emptyMessage}
 					</p>
 				) : (
-					<PendingTabContent key={activeTab.id} tab={activeTab} />
+					<PendingTabContent
+						compact={compact}
+						key={activeTab.id}
+						tab={activeTab}
+					/>
 				)}
 			</CardContent>
 		</Card>

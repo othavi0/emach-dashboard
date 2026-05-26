@@ -11,6 +11,7 @@ interface Props {
 export function UsersPendingCard({ initial, initialCursor, count }: Props) {
 	return (
 		<PendingPanel
+			compact
 			emptyMessage="Nenhum usuário aguardando aprovação."
 			tabs={[
 				{
