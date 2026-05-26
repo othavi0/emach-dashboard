@@ -9,7 +9,6 @@ import {
 	EmptyTitle,
 } from "@emach/ui/components/empty";
 import { asc, eq } from "drizzle-orm";
-import { Ban, CheckCircle2, Clock, Package } from "lucide-react";
 import Link from "next/link";
 
 import { BranchStockFilters } from "@/app/dashboard/stock/_components/branch-stock-filters";
@@ -19,12 +18,8 @@ import {
 	type BranchStockSort,
 	type BranchStockStatus,
 	fetchBranchStockPage,
-	getBranchStockKpis,
 } from "@/app/dashboard/stock/branch-stock-data";
-import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
 import { can, requireCapabilityWithContextOrRedirect } from "@/lib/permissions";
-
-import { AddToolButton } from "../stock/_components/add-tool-button";
 
 interface StockTabProps {
 	branchId: string;
@@ -60,14 +55,11 @@ export async function StockTab({
 	});
 	const canMutate = can(session.user.role, "stock.adjust");
 
-	const [categories, kpis] = await Promise.all([
-		db
-			.select({ depth: category.depth, id: category.id, name: category.name })
-			.from(category)
-			.where(eq(category.isActive, true))
-			.orderBy(asc(category.path)),
-		getBranchStockKpis(branchId),
-	]);
+	const categories = await db
+		.select({ depth: category.depth, id: category.id, name: category.name })
+		.from(category)
+		.where(eq(category.isActive, true))
+		.orderBy(asc(category.path));
 
 	const basePath = `/dashboard/branches/${branchId}`;
 
@@ -83,37 +75,9 @@ export async function StockTab({
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="flex items-center justify-between gap-3">
-				<p className="text-muted-foreground text-sm">
-					Ajuste quantidades e configure limites de alerta por ferramenta.
-				</p>
-				{canMutate ? (
-					<AddToolButton branchId={branchId} branchName={branchName} />
-				) : null}
-			</div>
-
-			<EntityKpisRow
-				items={[
-					{
-						icon: Package,
-						label: "Itens em estoque",
-						value: kpis.totalItems,
-					},
-					{
-						icon: Ban,
-						label: "Críticas",
-						tone: kpis.criticalCount > 0 ? "danger" : "default",
-						value: kpis.criticalCount,
-					},
-					{
-						icon: Clock,
-						label: "A repor",
-						tone: kpis.reorderCount > 0 ? "warning" : "default",
-						value: kpis.reorderCount,
-					},
-					{ icon: CheckCircle2, label: "OK", value: kpis.okCount },
-				]}
-			/>
+			<p className="text-muted-foreground text-sm">
+				Ajuste quantidades e configure limites de alerta por ferramenta.
+			</p>
 
 			<BranchStockFilters basePath={basePath} categories={categories} />
 
