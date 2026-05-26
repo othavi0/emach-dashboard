@@ -150,6 +150,7 @@ export async function adjustStock(
 
 		revalidatePath("/dashboard/stock");
 		revalidatePath("/dashboard/stock/branches");
+		revalidatePath(`/dashboard/branches/${branchId}`);
 		revalidatePath(`/dashboard/branches/${branchId}/stock`);
 		if (toolId) {
 			revalidatePath(`/dashboard/tools/${toolId}/stock`);
@@ -222,6 +223,7 @@ export async function updateStockThresholds(
 
 		revalidatePath("/dashboard/stock");
 		revalidatePath("/dashboard/stock/branches");
+		revalidatePath(`/dashboard/branches/${branchId}`);
 		revalidatePath(`/dashboard/branches/${branchId}/stock`);
 		if (toolId) {
 			revalidatePath(`/dashboard/tools/${toolId}/stock`);
@@ -820,6 +822,7 @@ export async function addToolToBranchStock(
 		};
 	}
 
+	revalidatePath(`/dashboard/branches/${branchId}`);
 	revalidatePath(`/dashboard/branches/${branchId}/stock`);
 	revalidatePath("/dashboard", "layout");
 	return { ok: true, data: undefined };
