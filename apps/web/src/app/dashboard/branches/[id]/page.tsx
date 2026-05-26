@@ -13,11 +13,19 @@ import { BranchEditSheet } from "./_components/branch-edit-sheet";
 import { BranchIdentity } from "./_components/branch-identity";
 import { OrdersTab } from "./_components/orders-tab";
 import { OverviewTab } from "./_components/overview-tab";
+import { StockTab } from "./_components/stock-tab";
 import { TeamTab } from "./_components/team-tab";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
-	searchParams: Promise<{ edit?: string; tab?: string }>;
+	searchParams: Promise<{
+		edit?: string;
+		tab?: string;
+		categoryId?: string;
+		search?: string;
+		sort?: string;
+		status?: string;
+	}>;
 }
 
 export default async function BranchDetailPage({
@@ -27,7 +35,7 @@ export default async function BranchDetailPage({
 	await requireCapabilityOrRedirect("branches.manage");
 
 	const { id } = await params;
-	const { edit } = await searchParams;
+	const sp = await searchParams;
 
 	const [detail, kpis, team, recentOrders] = await Promise.all([
 		getBranchDetail(id),
@@ -39,6 +47,8 @@ export default async function BranchDetailPage({
 	if (!detail) {
 		notFound();
 	}
+
+	const isStockTab = sp.tab === "stock";
 
 	const tabs: EntityTab[] = [
 		{
@@ -68,7 +78,16 @@ export default async function BranchDetailPage({
 			value: "stock",
 			label: "Estoque",
 			icon: <Package aria-hidden className="size-3.5" />,
-			href: `/dashboard/branches/${id}/stock`,
+			content: isStockTab ? (
+				<StockTab
+					branchId={id}
+					branchName={detail.name}
+					categoryId={sp.categoryId}
+					search={sp.search}
+					sort={sp.sort}
+					status={sp.status}
+				/>
+			) : null,
 		},
 	];
 
@@ -76,7 +95,7 @@ export default async function BranchDetailPage({
 		<div className="flex flex-col gap-6 p-6">
 			<BranchIdentity detail={detail} />
 			<EntityTabs defaultValue="overview" tabs={tabs} />
-			{edit === "1" ? <BranchEditSheet branch={detail} /> : null}
+			{sp.edit === "1" ? <BranchEditSheet branch={detail} /> : null}
 		</div>
 	);
 }
