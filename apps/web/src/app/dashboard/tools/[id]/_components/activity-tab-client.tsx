@@ -83,7 +83,11 @@ export function ActivityTabClient({
 				reasons={reasons}
 			/>
 
-			{items.length === 0 ? (
+			{items.length === 0 && pending ? (
+				<div className="flex items-center justify-center rounded-md border border-border py-12">
+					<Spinner />
+				</div>
+			) : items.length === 0 ? (
 				<div className="flex flex-col items-center gap-2 rounded-md border border-border py-12 text-center">
 					<p className="text-muted-foreground text-sm">
 						{isFiltered
