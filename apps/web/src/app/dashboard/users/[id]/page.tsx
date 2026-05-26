@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
-
+import type { UserRow } from "../_components/types";
 import { UserEditSheet } from "../_components/user-edit-sheet";
 import { getUserDetail } from "../data";
 import { ActivityTab } from "./_components/activity-tab";
@@ -21,7 +21,7 @@ interface PageProps {
 }
 
 export default async function UserDetailPage({ params }: PageProps) {
-	await requireCapabilityOrRedirect("users.manage");
+	const actorSession = await requireCapabilityOrRedirect("users.manage");
 
 	const { id } = await params;
 
@@ -77,13 +77,8 @@ export default async function UserDetailPage({ params }: PageProps) {
 			<UserIdentity user={user} />
 			<EntityTabs defaultValue="profile" tabs={tabs} />
 			<UserEditSheet
-				branches={availableBranches}
-				user={{
-					id: user.id,
-					name: user.name,
-					role: user.role,
-					branchIds: user.branchIds,
-				}}
+				actorRole={actorSession.user.role as UserRow["role"]}
+				user={{ id: user.id, name: user.name, role: user.role }}
 			/>
 		</div>
 	);

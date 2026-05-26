@@ -11,35 +11,31 @@ import {
 	type FormIssue,
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
-
+import { allowedApprovalRoles } from "../_lib/approval-roles";
 import { updateUser } from "../actions";
 import { updateUserSchema } from "../schema";
-import { BranchesCombobox } from "./branches-combobox";
-import type { Role } from "./role-labels";
 import { RoleSelect } from "./role-select";
-import type { BranchLite, UserRow } from "./types";
-
-const ALL_ROLES: Role[] = ["super_admin", "admin", "manager", "user"];
+import type { UserRow } from "./types";
 
 interface Props {
-	branches: BranchLite[];
+	actorRole: UserRow["role"];
 	user: {
 		id: string;
 		name: string;
 		role: UserRow["role"];
-		branchIds: string[];
 	};
 }
 
-export function UserEditSheet({ user, branches }: Props) {
+export function UserEditSheet({ user, actorRole }: Props) {
 	const router = useRouter();
 	const pathname = usePathname();
 	const params = useSearchParams();
 	const open = params.get("edit") === "1";
 
+	const allowed = allowedApprovalRoles(actorRole);
+
 	const [name, setName] = useState(user.name);
 	const [role, setRole] = useState<UserRow["role"]>(user.role);
-	const [branchIds, setBranchIds] = useState<string[]>(user.branchIds);
 	const [issues, setIssues] = useState<FormIssue[]>([]);
 	const [submitting, startTransition] = useTransition();
 
@@ -47,7 +43,6 @@ export function UserEditSheet({ user, branches }: Props) {
 		if (open) {
 			setName(user.name);
 			setRole(user.role);
-			setBranchIds(user.branchIds);
 			setIssues([]);
 		}
 	}, [open, user]);
@@ -65,15 +60,10 @@ export function UserEditSheet({ user, branches }: Props) {
 			userId: user.id,
 			name,
 			role,
-			branchIds,
 		});
 		if (!parsed.success) {
 			setIssues(
-				zodIssuesToFormIssues(parsed.error, {
-					name: "Nome",
-					role: "Cargo",
-					branchIds: "Filiais",
-				})
+				zodIssuesToFormIssues(parsed.error, { name: "Nome", role: "Cargo" })
 			);
 			return;
 		}
@@ -90,7 +80,7 @@ export function UserEditSheet({ user, branches }: Props) {
 
 	return (
 		<EntityEditSheet
-			description="Atualize nome, cargo e filiais"
+			description="Atualize nome e cargo. Filiais são geridas na aba Filiais."
 			issues={issues}
 			onOpenChange={(v) => !v && close()}
 			onSubmit={handleSubmit}
@@ -109,19 +99,7 @@ export function UserEditSheet({ user, branches }: Props) {
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label>Cargo</Label>
-					<RoleSelect
-						allowedRoles={ALL_ROLES}
-						onChange={setRole}
-						value={role}
-					/>
-				</div>
-				<div className="flex flex-col gap-1.5">
-					<Label>Filiais</Label>
-					<BranchesCombobox
-						branches={branches}
-						onChange={setBranchIds}
-						value={branchIds}
-					/>
+					<RoleSelect allowedRoles={allowed} onChange={setRole} value={role} />
 				</div>
 			</div>
 		</EntityEditSheet>

@@ -162,30 +162,14 @@ export async function updateUser(
 		if (!current) {
 			return { ok: false, error: "Usuário não encontrado" };
 		}
-		const currentBranchIds = (
-			await db
-				.select({ branchId: userBranch.branchId })
-				.from(userBranch)
-				.where(eq(userBranch.userId, parsed.data.userId))
-		).map((r) => r.branchId);
 
 		const roleChanged =
 			parsed.data.role !== undefined && parsed.data.role !== current.role;
-		const branchesChanged =
-			parsed.data.branchIds !== undefined &&
-			(parsed.data.branchIds.length !== currentBranchIds.length ||
-				parsed.data.branchIds.some((id) => !currentBranchIds.includes(id)));
 		const nameChanged = parsed.data.name !== undefined;
 
 		if (roleChanged) {
 			session = await requireCapabilityWithContext("users.update_role", {
 				targetUserId: parsed.data.userId,
-			});
-		}
-		if (branchesChanged) {
-			session = await requireCapabilityWithContext("users.update_branches", {
-				targetUserId: parsed.data.userId,
-				targetBranchIds: parsed.data.branchIds,
 			});
 		}
 		if (nameChanged) {
@@ -195,7 +179,7 @@ export async function updateUser(
 		}
 
 		await db.transaction(async (tx) => {
-			const update: { name?: string; role?: ApproveUserInput["role"] } = {};
+			const update: { name?: string; role?: UpdateUserInput["role"] } = {};
 			if (parsed.data.name) {
 				update.name = parsed.data.name;
 			}
@@ -208,18 +192,10 @@ export async function updateUser(
 					.set(update)
 					.where(eq(userTable.id, parsed.data.userId));
 			}
-			if (parsed.data.branchIds) {
+			if (roleChanged) {
 				await tx
-					.delete(userBranch)
-					.where(eq(userBranch.userId, parsed.data.userId));
-				if (parsed.data.branchIds.length > 0) {
-					await tx.insert(userBranch).values(
-						parsed.data.branchIds.map((branchId) => ({
-							userId: parsed.data.userId,
-							branchId,
-						}))
-					);
-				}
+					.delete(sessionTable)
+					.where(eq(sessionTable.userId, parsed.data.userId));
 			}
 		});
 	} catch (error) {
@@ -235,9 +211,6 @@ export async function updateUser(
 	}
 	if (parsed.data.role !== undefined) {
 		changes.role = parsed.data.role;
-	}
-	if (parsed.data.branchIds !== undefined) {
-		changes.branchIds = parsed.data.branchIds;
 	}
 
 	await logUserActivity({
