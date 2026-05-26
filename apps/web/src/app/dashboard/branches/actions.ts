@@ -89,7 +89,6 @@ export async function listResponsibleCandidates(
 export type BranchSort = "newest" | "name";
 
 export interface BranchesFiltersInput {
-	includeInactive?: boolean;
 	search?: string;
 	sort: BranchSort;
 }
@@ -103,9 +102,6 @@ export async function fetchBranchesPage({
 }): Promise<InfiniteResult<BranchListItem>> {
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const conditions: ReturnType<typeof sql>[] = [];
-	if (!filters.includeInactive) {
-		conditions.push(eq(branch.status, "active"));
-	}
 	if (filters.search) {
 		conditions.push(sql`${branch.name} ILIKE ${`%${filters.search}%`}`);
 	}
