@@ -1,11 +1,12 @@
 "use client";
 
-import { Badge } from "@emach/ui/components/badge";
 import { Card, CardContent, CardHeader } from "@emach/ui/components/card";
 import {
-	ToggleGroup,
-	ToggleGroupItem,
-} from "@emach/ui/components/toggle-group";
+	Tabs,
+	TabsCountBadge,
+	TabsList,
+	TabsTrigger,
+} from "@emach/ui/components/tabs";
 import { cn } from "@emach/ui/lib/utils";
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -148,28 +149,23 @@ export function PendingPanel({
 						{total} {total === 1 ? "item" : "itens"}
 					</span>
 				</div>
-				<ToggleGroup
-					className="min-w-0 max-w-full flex-wrap justify-start"
+				<Tabs
 					onValueChange={(v) => {
-						const next = v[0];
-						if (next) {
-							setActiveId(next);
+						if (v) {
+							setActiveId(v);
 						}
 					}}
-					value={[activeId]}
+					value={activeId}
 				>
-					{tabs.map((tab) => (
-						<ToggleGroupItem key={tab.id} value={tab.id}>
-							{tab.label}
-							<Badge
-								className={cn("ml-1.5", BADGE_COLORS[tab.role ?? "default"])}
-								variant="outline"
-							>
-								{tab.count}
-							</Badge>
-						</ToggleGroupItem>
-					))}
-				</ToggleGroup>
+					<TabsList className="max-w-full">
+						{tabs.map((tab) => (
+							<TabsTrigger key={tab.id} value={tab.id}>
+								<span>{tab.label}</span>
+								<TabsCountBadge value={tab.count} />
+							</TabsTrigger>
+						))}
+					</TabsList>
+				</Tabs>
 			</CardHeader>
 			<CardContent className="flex min-w-0 flex-col">
 				{total === 0 || !activeTab ? (
