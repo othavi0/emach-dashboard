@@ -3,6 +3,7 @@
 import { db } from "@emach/db";
 import { user } from "@emach/db/schema/auth";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
+import { order, orderItem } from "@emach/db/schema/orders";
 import { stockMovement } from "@emach/db/schema/stock-movements";
 
 import { tool, toolVariant } from "@emach/db/schema/tools";
@@ -562,6 +563,27 @@ export async function getStockMovementsByVariantBranch(
 		)
 		.orderBy(desc(stockMovement.createdAt))
 		.limit(limit);
+}
+
+export async function getReservedQtyByVariantBranch(
+	variantId: string,
+	branchId: string
+): Promise<number> {
+	await requireCurrentSession();
+	const [row] = await db
+		.select({
+			reserved: sql<number>`coalesce(sum(${orderItem.quantity}), 0)::int`,
+		})
+		.from(orderItem)
+		.innerJoin(order, eq(orderItem.orderId, order.id))
+		.where(
+			and(
+				eq(orderItem.variantId, variantId),
+				eq(order.branchId, branchId),
+				inArray(order.status, ["paid", "preparing"])
+			)
+		);
+	return row?.reserved ?? 0;
 }
 
 export interface ToolActivityRow {
