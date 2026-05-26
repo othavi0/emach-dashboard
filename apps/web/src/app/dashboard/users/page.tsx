@@ -22,6 +22,7 @@ import {
 	fetchUsersPage,
 	getRecentUserActivity,
 	getUserKpis,
+	type UserListRow,
 } from "./data";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +60,7 @@ function buildStatusHref(
 }
 
 export default async function UsersPage({ searchParams }: PageProps) {
-	await requireCapabilityOrRedirect("users.manage");
+	const actorSession = await requireCapabilityOrRedirect("users.manage");
 	const sp = await searchParams;
 
 	const status = (sp.status as Status | undefined) ?? "active";
@@ -166,6 +167,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
 				</TabsList>
 			</Tabs>
 			<UsersCardGrid
+				actorRole={actorSession.user.role as UserListRow["role"]}
 				branches={branches}
 				filters={filters}
 				initialCursor={page.nextCursor}
