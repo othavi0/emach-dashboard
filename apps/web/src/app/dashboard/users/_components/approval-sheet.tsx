@@ -21,6 +21,7 @@ interface Props {
 	allowedRoles?: UserRow["role"][];
 	branches: BranchLite[];
 	onClose: () => void;
+	onResolved?: () => void;
 	user: UserRow | null;
 }
 
@@ -28,6 +29,7 @@ export function ApprovalSheet({
 	user,
 	branches,
 	onClose,
+	onResolved,
 	allowedRoles = ["manager", "user"],
 }: Props) {
 	const [role, setRole] = useState<UserRow["role"]>("user");
@@ -52,6 +54,7 @@ export function ApprovalSheet({
 			setSubmitting(false);
 			if (result.ok) {
 				toast.success("Usuário aprovado");
+				onResolved?.();
 				onClose();
 			} else {
 				toast.error(result.error);
@@ -69,6 +72,7 @@ export function ApprovalSheet({
 			setSubmitting(false);
 			if (result.ok) {
 				toast.success("Solicitação rejeitada");
+				onResolved?.();
 				onClose();
 			} else {
 				toast.error(result.error);

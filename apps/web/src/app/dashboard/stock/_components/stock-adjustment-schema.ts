@@ -54,6 +54,42 @@ export const stockAdjustmentSchema = z
 
 export type StockAdjustmentInput = z.infer<typeof stockAdjustmentSchema>;
 
+export const STOCK_MOVEMENT_REASONS_UI = [
+	"entrada_compra",
+	"ajuste_inventario",
+	"perda",
+	"outro",
+] as const;
+
+export type StockMovementReasonUi = (typeof STOCK_MOVEMENT_REASONS_UI)[number];
+
+export const stockAdjustmentUiSchema = z
+	.object({
+		variantId: z.string().min(1, "Variante obrigatória"),
+		branchId: z.string().min(1, "Filial obrigatória"),
+		newQty: z
+			.int("Quantidade deve ser inteira")
+			.min(0, "Quantidade não pode ser negativa")
+			.max(999_999, "Quantidade excede o limite permitido"),
+		reason: z.enum(STOCK_MOVEMENT_REASONS_UI),
+		reasonNote: z
+			.string()
+			.trim()
+			.max(500, "Observação não pode exceder 500 caracteres")
+			.optional(),
+	})
+	.refine(
+		(data) =>
+			data.reason !== "outro" ||
+			(typeof data.reasonNote === "string" && data.reasonNote.length > 0),
+		{
+			path: ["reasonNote"],
+			message: "Observação obrigatória quando motivo é 'Outro'",
+		}
+	);
+
+export type StockAdjustmentUiInput = z.infer<typeof stockAdjustmentUiSchema>;
+
 export const addToolToBranchStockSchema = z.object({
 	branchId: z.string().min(1, "Filial obrigatória"),
 	variantId: z.string().min(1, "Variante obrigatória"),

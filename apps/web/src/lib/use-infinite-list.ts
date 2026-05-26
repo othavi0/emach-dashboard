@@ -33,6 +33,10 @@ export function useInfiniteList<T>({
 		setError(null);
 	}
 
+	const removeItem = useCallback((predicate: (item: T) => boolean) => {
+		setItems((prev) => prev.filter((item) => !predicate(item)));
+	}, []);
+
 	const loadMore = useCallback(() => {
 		if (!cursorRef.current || inflightRef.current) {
 			return;
@@ -59,5 +63,6 @@ export function useInfiniteList<T>({
 		loadMore,
 		pending,
 		error,
+		removeItem,
 	};
 }

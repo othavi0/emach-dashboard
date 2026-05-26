@@ -3,14 +3,6 @@
 import { Button } from "@emach/ui/components/button";
 import { Label } from "@emach/ui/components/label";
 import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@emach/ui/components/select";
-import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
@@ -29,12 +21,14 @@ import {
 	adjustStock,
 	getStockMovementsByVariantBranch,
 	type StockMovementRow,
+	updateStockThresholds,
 } from "../actions";
 import type { BranchStockRow } from "../branch-stock-data";
-import { BranchStockThresholdInputs } from "./branch-stock-threshold-inputs";
 import {
-	type StockAdjustmentInput,
-	stockAdjustmentSchema,
+	STOCK_MOVEMENT_REASONS_UI,
+	type StockAdjustmentUiInput,
+	type StockMovementReasonUi,
+	stockAdjustmentUiSchema,
 } from "./stock-adjustment-schema";
 
 // ─── Tipos e constantes ────────────────────────────────────────────────────
@@ -66,25 +60,23 @@ const STATUS_LABEL: Record<StockStatus, string | null> = {
 };
 
 const STATUS_CLASS: Record<StockStatus, string> = {
-	critical: "bg-red-950/60 text-red-400 border border-red-900/40",
-	reorder: "bg-amber-950/60 text-amber-400 border border-amber-900/40",
-	ok: "bg-green-950/60 text-green-400 border border-green-900/40",
-	none: "",
+	critical: "bg-destructive/15 text-destructive",
+	reorder: "bg-warning/15 text-warning",
+	ok: "bg-success/15 text-success",
+	none: "bg-muted text-muted-foreground",
 };
 
-const REASON_OPTIONS = [
-	{ label: "Sem motivo", value: "__none__" },
-	{ label: "Entrada de compra", value: "entrada_compra" },
-	{ label: "Saída de venda", value: "saida_venda" },
-	{ label: "Ajuste de inventário", value: "ajuste_inventario" },
-	{ label: "Perda", value: "perda" },
-	{ label: "Outro", value: "outro" },
-] as const;
+const REASON_LABEL_UI: Record<StockMovementReasonUi, string> = {
+	entrada_compra: "Entrada compra",
+	ajuste_inventario: "Ajuste inventário",
+	perda: "Perda",
+	outro: "Outro",
+};
 
-const REASON_LABELS: Record<string, string> = {
-	entrada_compra: "Entrada de compra",
-	saida_venda: "Saída de venda",
-	ajuste_inventario: "Ajuste de inventário",
+const REASON_LABEL_FULL: Record<string, string> = {
+	entrada_compra: "Entrada compra",
+	saida_venda: "Saída venda",
+	ajuste_inventario: "Ajuste inventário",
 	perda: "Perda",
 	outro: "Outro",
 };
@@ -111,25 +103,14 @@ function formatRelative(date: Date): string {
 	return RELATIVE.format(Math.round(diffDays / 30), "month");
 }
 
-function zodErrorsToMap(
-	error: Parameters<typeof stockAdjustmentSchema.safeParse>[0] extends never
-		? never
-		: ReturnType<typeof stockAdjustmentSchema.safeParse> extends {
-					success: false;
-					error: infer E;
-				}
-			? E
-			: never
-): Partial<Record<keyof StockAdjustmentInput, string>> {
-	const map: Partial<Record<keyof StockAdjustmentInput, string>> = {};
-	if ("issues" in error) {
-		for (const issue of (
-			error as { issues: { path: unknown[]; message: string }[] }
-		).issues) {
-			const key = issue.path[0] as keyof StockAdjustmentInput | undefined;
-			if (key && !map[key]) {
-				map[key] = issue.message;
-			}
+function zodErrorsToMap(error: {
+	issues: { path: unknown[]; message: string }[];
+}): Partial<Record<keyof StockAdjustmentUiInput, string>> {
+	const map: Partial<Record<keyof StockAdjustmentUiInput, string>> = {};
+	for (const issue of error.issues) {
+		const key = issue.path[0] as keyof StockAdjustmentUiInput | undefined;
+		if (key && !map[key]) {
+			map[key] = issue.message;
 		}
 	}
 	return map;
@@ -154,28 +135,33 @@ export function BranchStockEditSheet({
 }: BranchStockEditSheetProps) {
 	const router = useRouter();
 
-	// ── Adjust form state ──────────────────────────────────────────────────
 	const [newQty, setNewQty] = useState<number | undefined>(undefined);
-	const [reason, setReason] = useState("__none__");
+	const [reason, setReason] = useState<StockMovementReasonUi>("entrada_compra");
 	const [reasonNote, setReasonNote] = useState("");
 	const [errors, setErrors] = useState<
-		Partial<Record<keyof StockAdjustmentInput, string>>
+		Partial<Record<keyof StockAdjustmentUiInput, string>>
 	>({});
 	const [isAdjusting, startAdjustTransition] = useTransition();
 
-	// ── Movements state ────────────────────────────────────────────────────
+	const [minQty, setMinQty] = useState<number | undefined>(undefined);
+	const [reorderPoint, setReorderPoint] = useState<number | undefined>(
+		undefined
+	);
+	const [isUpdatingLimits, startLimitsTransition] = useTransition();
+
 	const [movements, setMovements] = useState<StockMovementRow[]>([]);
 	const [isLoadingMovements, startMovementsTransition] = useTransition();
 
-	// Resetar form e buscar movimentos ao trocar de variante
 	useEffect(() => {
 		if (!row) {
 			setMovements([]);
 			return;
 		}
 		setNewQty(row.quantity);
-		setReason("__none__");
+		setReason("entrada_compra");
 		setReasonNote("");
+		setMinQty(row.minQty);
+		setReorderPoint(row.reorderPoint);
 		setErrors({});
 
 		startMovementsTransition(async () => {
@@ -192,26 +178,21 @@ export function BranchStockEditSheet({
 		e.preventDefault();
 		setErrors({});
 
-		const resolvedReason =
-			reason === "__none__"
-				? undefined
-				: (reason as StockAdjustmentInput["reason"]);
-		const resolvedNote =
-			reasonNote.trim() === "" ? undefined : reasonNote.trim();
+		if (!row) {
+			return;
+		}
 
-		const input: StockAdjustmentInput = {
-			variantId: row!.variantId,
+		const input: StockAdjustmentUiInput = {
+			variantId: row.variantId,
 			branchId,
 			newQty: newQty ?? Number.NaN,
-			reason: resolvedReason,
-			reasonNote: resolvedNote,
+			reason,
+			reasonNote: reasonNote.trim() === "" ? undefined : reasonNote.trim(),
 		};
 
-		const parsed = stockAdjustmentSchema.safeParse(input);
+		const parsed = stockAdjustmentUiSchema.safeParse(input);
 		if (!parsed.success) {
-			setErrors(
-				zodErrorsToMap(parsed.error as Parameters<typeof zodErrorsToMap>[0])
-			);
+			setErrors(zodErrorsToMap(parsed.error));
 			return;
 		}
 
@@ -227,6 +208,26 @@ export function BranchStockEditSheet({
 		});
 	}
 
+	function handleLimitsSubmit() {
+		if (!row || minQty === undefined || reorderPoint === undefined) {
+			return;
+		}
+		startLimitsTransition(async () => {
+			const result = await updateStockThresholds({
+				variantId: row.variantId,
+				branchId,
+				minQty,
+				reorderPoint,
+			});
+			if (result.ok) {
+				toast.success("Limites atualizados");
+				router.refresh();
+			} else {
+				toast.error(result.error || "Não foi possível atualizar os limites");
+			}
+		});
+	}
+
 	if (!row) {
 		return null;
 	}
@@ -234,6 +235,8 @@ export function BranchStockEditSheet({
 	const status = resolveStatus(row);
 	const statusLabel = STATUS_LABEL[status];
 	const hasLimits = row.minQty > 0 || row.reorderPoint > 0;
+	const limitsDirty =
+		minQty !== row.minQty || reorderPoint !== row.reorderPoint;
 
 	return (
 		<Sheet
@@ -248,7 +251,6 @@ export function BranchStockEditSheet({
 				{/* Header */}
 				<SheetHeader className="border-border border-b px-6 py-5">
 					<div className="flex items-start gap-3">
-						{/* Imagem / monograma */}
 						<div className="size-14 flex-shrink-0 overflow-hidden rounded-[8px] bg-muted">
 							{row.imageUrl ? (
 								// biome-ignore lint/performance/noImgElement: Supabase public URL
@@ -300,9 +302,9 @@ export function BranchStockEditSheet({
 									row.quantity === 0
 										? "text-destructive"
 										: status === "critical"
-											? "text-red-400"
+											? "text-destructive"
 											: status === "reorder"
-												? "text-amber-400"
+												? "text-warning"
 												: "text-foreground"
 								}`}
 							>
@@ -347,45 +349,44 @@ export function BranchStockEditSheet({
 							</div>
 
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="sheet-reason">Motivo</Label>
-								<Select
-									disabled={isAdjusting}
-									onValueChange={(v) => setReason(v ?? "__none__")}
-									value={reason}
-								>
-									<SelectTrigger id="sheet-reason">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectGroup>
-											{REASON_OPTIONS.map((o) => (
-												<SelectItem key={o.value} value={o.value}>
-													{o.label}
-												</SelectItem>
-											))}
-										</SelectGroup>
-									</SelectContent>
-								</Select>
+								<Label>Motivo</Label>
+								<div className="grid grid-cols-2 gap-2">
+									{STOCK_MOVEMENT_REASONS_UI.map((r) => (
+										<Button
+											disabled={isAdjusting}
+											key={r}
+											onClick={() => setReason(r)}
+											size="sm"
+											type="button"
+											variant={reason === r ? "default" : "outline"}
+										>
+											{REASON_LABEL_UI[r]}
+										</Button>
+									))}
+								</div>
 							</div>
 
-							{reason === "outro" && (
-								<div className="flex flex-col gap-1.5">
-									<Label htmlFor="sheet-reason-note">Observação</Label>
-									<Textarea
-										disabled={isAdjusting}
-										id="sheet-reason-note"
-										onChange={(e) => setReasonNote(e.target.value)}
-										placeholder="Descreva o motivo"
-										rows={2}
-										value={reasonNote}
-									/>
-									{errors.reasonNote && (
-										<p className="text-destructive text-xs">
-											{errors.reasonNote}
-										</p>
+							<div className="flex flex-col gap-1.5">
+								<Label htmlFor="sheet-reason-note">
+									Observação
+									{reason === "outro" && (
+										<span className="text-destructive"> *</span>
 									)}
-								</div>
-							)}
+								</Label>
+								<Textarea
+									disabled={isAdjusting}
+									id="sheet-reason-note"
+									onChange={(e) => setReasonNote(e.target.value)}
+									placeholder="NF #1234, fornecedor X…"
+									rows={2}
+									value={reasonNote}
+								/>
+								{errors.reasonNote && (
+									<p className="text-destructive text-xs">
+										{errors.reasonNote}
+									</p>
+								)}
+							</div>
 
 							<Button
 								className="self-start"
@@ -406,23 +407,49 @@ export function BranchStockEditSheet({
 				)}
 
 				{/* Limites de alerta */}
-				<div className="border-border border-b px-6 py-5">
-					<p className="mb-3 font-medium text-sm">Limites de alerta</p>
-					{canMutate ? (
-						<BranchStockThresholdInputs
-							branchId={branchId}
-							initialMinQty={row.minQty}
-							initialReorderPoint={row.reorderPoint}
-							variantId={row.variantId}
-						/>
-					) : (
-						<p className="text-muted-foreground text-sm tabular-nums">
-							{hasLimits
-								? `Mínimo: ${row.minQty} · Reposição: ${row.reorderPoint}`
-								: "Nenhum limite configurado."}
-						</p>
-					)}
-				</div>
+				{canMutate && (
+					<div className="border-border border-b px-6 py-5">
+						<p className="mb-3 font-medium text-sm">Limites de alerta</p>
+						<div className="grid grid-cols-2 gap-3">
+							<div className="flex flex-col gap-1.5">
+								<Label htmlFor="sheet-min-qty">Mínimo</Label>
+								<MaskedInput
+									disabled={isUpdatingLimits}
+									id="sheet-min-qty"
+									mask={integerMask}
+									onChange={setMinQty}
+									value={minQty}
+								/>
+							</div>
+							<div className="flex flex-col gap-1.5">
+								<Label htmlFor="sheet-reorder-point">Reposição</Label>
+								<MaskedInput
+									disabled={isUpdatingLimits}
+									id="sheet-reorder-point"
+									mask={integerMask}
+									onChange={setReorderPoint}
+									value={reorderPoint}
+								/>
+							</div>
+						</div>
+						<Button
+							className="mt-3"
+							disabled={isUpdatingLimits || !limitsDirty}
+							onClick={handleLimitsSubmit}
+							size="sm"
+							type="button"
+							variant="outline"
+						>
+							{isUpdatingLimits ? (
+								<>
+									<Spinner /> Salvando…
+								</>
+							) : (
+								"Salvar limites"
+							)}
+						</Button>
+					</div>
+				)}
 
 				{/* Histórico */}
 				<div className="px-6 py-5">
@@ -442,8 +469,8 @@ export function BranchStockEditSheet({
 									<span
 										className={`flex-shrink-0 rounded px-1.5 py-0.5 font-mono font-semibold tabular-nums ${
 											m.delta >= 0
-												? "bg-green-950/60 text-green-400"
-												: "bg-red-950/60 text-destructive"
+												? "bg-success/15 text-success"
+												: "bg-destructive/15 text-destructive"
 										}`}
 									>
 										{m.delta >= 0 ? "+" : ""}
@@ -452,7 +479,7 @@ export function BranchStockEditSheet({
 									<div className="min-w-0 flex-1">
 										<p className="text-foreground">
 											{m.reason
-												? (REASON_LABELS[m.reason] ?? m.reason)
+												? (REASON_LABEL_FULL[m.reason] ?? m.reason)
 												: "Sem motivo"}
 											{m.reasonNote ? (
 												<span className="ml-1 text-muted-foreground">

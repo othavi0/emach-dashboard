@@ -1,6 +1,7 @@
 "use client";
 
 import { Users } from "lucide-react";
+import { useCallback } from "react";
 
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { useInfiniteList } from "@/lib/use-infinite-list";
@@ -24,12 +25,20 @@ export function UsersCardGrid({
 	branches,
 }: Props) {
 	const resetKey = JSON.stringify(filters);
-	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
-		initialItems,
-		initialCursor,
-		fetchPage: (cursor) => fetchMoreUsersAction(filters, cursor),
-		resetKey,
-	});
+	const { items, hasMore, loadMore, pending, error, removeItem } =
+		useInfiniteList({
+			initialItems,
+			initialCursor,
+			fetchPage: (cursor) => fetchMoreUsersAction(filters, cursor),
+			resetKey,
+		});
+
+	const handleResolved = useCallback(
+		(userId: string) => {
+			removeItem((u) => u.id === userId);
+		},
+		[removeItem]
+	);
 
 	if (items.length === 0) {
 		return (
@@ -47,7 +56,12 @@ export function UsersCardGrid({
 		<div aria-live="polite">
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{items.map((user) => (
-					<UserCard branches={branches} key={user.id} user={user} />
+					<UserCard
+						branches={branches}
+						key={user.id}
+						onResolved={handleResolved}
+						user={user}
+					/>
 				))}
 			</div>
 			<InfiniteSentinel
