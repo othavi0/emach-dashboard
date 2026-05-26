@@ -557,26 +557,24 @@ export async function fetchUserActivityAffectingPage(
 }
 
 export async function fetchUserActivityFeedPage(
-	_cursor: string | null
+	cursor: string | null
 ): Promise<
 	import("@/lib/infinite").InfiniteResult<
 		import("@/components/activity-feed").ActivityEvent
 	>
 > {
 	await requireCapabilityWithContext("users.manage", {});
-	const { getRecentUserActivity } = await import("./data");
-	// For paginated feed we reuse getRecentUserActivity with a larger limit;
-	// full cursor-based pagination can be added in a later task.
-	const rows = await getRecentUserActivity(20);
+	const { getUserActivityFeedPaginated } = await import("./data");
+	const page = await getUserActivityFeedPaginated(cursor);
 	return {
-		items: rows.map((a) => ({
+		items: page.items.map((a) => ({
 			id: a.id,
 			kind: "user" as const,
 			primary: humanizeActivityAction(a.action, a.actorName ?? "—"),
 			at: a.createdAt,
 			href: a.targetId ? `/dashboard/users/${a.targetId}` : undefined,
 		})),
-		nextCursor: null,
+		nextCursor: page.nextCursor,
 	};
 }
 
