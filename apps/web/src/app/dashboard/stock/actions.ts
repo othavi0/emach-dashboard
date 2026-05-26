@@ -539,3 +539,48 @@ export async function getStockMovementsByVariantBranch(
 		.orderBy(desc(stockMovement.createdAt))
 		.limit(limit);
 }
+
+export interface ToolActivityRow {
+	actorId: string | null;
+	actorName: string | null;
+	branchId: string | null;
+	branchName: string | null;
+	createdAt: Date;
+	delta: number;
+	id: string;
+	newQty: number;
+	previousQty: number;
+	reason: string | null;
+	reasonNote: string | null;
+	variantSku: string;
+	variantVoltage: string | null;
+}
+
+export async function getToolActivity(
+	toolId: string,
+	limit = 100
+): Promise<ToolActivityRow[]> {
+	return await db
+		.select({
+			id: stockMovement.id,
+			createdAt: stockMovement.createdAt,
+			branchId: stockMovement.branchId,
+			branchName: branch.name,
+			previousQty: stockMovement.previousQty,
+			newQty: stockMovement.newQty,
+			delta: stockMovement.delta,
+			reason: stockMovement.reason,
+			reasonNote: stockMovement.reasonNote,
+			actorId: stockMovement.actorId,
+			actorName: user.name,
+			variantSku: toolVariant.sku,
+			variantVoltage: toolVariant.voltage,
+		})
+		.from(stockMovement)
+		.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
+		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
+		.leftJoin(user, eq(stockMovement.actorId, user.id))
+		.where(eq(toolVariant.toolId, toolId))
+		.orderBy(desc(stockMovement.createdAt))
+		.limit(limit);
+}

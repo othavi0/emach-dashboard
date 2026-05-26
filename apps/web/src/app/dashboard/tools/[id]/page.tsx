@@ -6,6 +6,7 @@ import { can } from "@/lib/permissions";
 import type { UserRole } from "@/lib/session";
 import { requireCurrentSession } from "@/lib/session";
 
+import { ActivityTab } from "./_components/activity-tab";
 import { EstoqueTab } from "./_components/estoque-tab";
 import { OverviewTab } from "./_components/overview-tab";
 import { PlaceholderTab } from "./_components/placeholder-tab";
@@ -83,9 +84,7 @@ export default async function ToolDetailPage({ params }: PageProps) {
 		{
 			value: "atividade",
 			label: "Atividade",
-			content: (
-				<PlaceholderTab description="Movimentações + pedidos chegam na próxima entrega." />
-			),
+			content: <ActivityTab toolId={detail.tool.id} />,
 		},
 		{
 			value: "avaliacoes",
