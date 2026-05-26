@@ -19,7 +19,7 @@ Capabilities granulares substituem `requireRole` em mutations sensíveis. `requi
 
 Matriz canônica em `ROLE_CAPS`. `super_admin` tem `SUPER_ADMIN_EXCLUSIVE` (`branches.manage`, `branches.set_default`, `users.delete`, `audit.read`).
 
-⚠️ **Bug confirmado, fix pendente:** `audit.read` está em `MANAGER_CAPS` **e** em `SUPER_ADMIN_EXCLUSIVE` — `admin` não herda. Decisão (grilling 2026-05-26): remover de `SUPER_ADMIN_EXCLUSIVE`. Quando o fix for aplicado, atualizar este parágrafo.
+`audit.read` em `MANAGER_CAPS` e `ADMIN_CAPS` (admin herda via `ALL_CAPS - SUPER_ADMIN_EXCLUSIVE`). `super_admin` também tem (via `ALL_CAPS`).
 
 Bootstrap do primeiro `super_admin` via SQL: `UPDATE "user" SET role='super_admin', status='active' WHERE email='...'`.
 
