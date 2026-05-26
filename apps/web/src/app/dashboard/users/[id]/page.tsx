@@ -77,6 +77,7 @@ export default async function UserDetailPage({ params }: PageProps) {
 			<UserIdentity user={user} />
 			<EntityTabs defaultValue="profile" tabs={tabs} />
 			<UserEditSheet
+				// Better Auth infere additionalFields como string; cast pro enum estrito.
 				actorRole={actorSession.user.role as UserRow["role"]}
 				user={{ id: user.id, name: user.name, role: user.role }}
 			/>
