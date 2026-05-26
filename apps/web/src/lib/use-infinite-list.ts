@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import type { InfiniteResult } from "./infinite";
 
 interface UseInfiniteListProps<T> {
-	fetchPage: (cursor: string) => Promise<InfiniteResult<T>>;
+	fetchPage: (cursor: string | null) => Promise<InfiniteResult<T>>;
 	initialCursor: string | null;
 	initialItems: T[];
 	resetKey?: string;
@@ -24,14 +24,39 @@ export function useInfiniteList<T>({
 	const lastResetKey = useRef(resetKey);
 	const inflightRef = useRef(false);
 	const cursorRef = useRef(initialCursor);
+	const refetchSeq = useRef(0);
 
-	if (resetKey !== lastResetKey.current) {
+	useEffect(() => {
+		if (resetKey === lastResetKey.current) {
+			return;
+		}
 		lastResetKey.current = resetKey;
-		setItems(initialItems);
-		setCursor(initialCursor);
-		cursorRef.current = initialCursor;
+		const mySeq = ++refetchSeq.current;
+		setItems([]);
+		setCursor(null);
+		cursorRef.current = null;
 		setError(null);
-	}
+		inflightRef.current = true;
+		startTransition(async () => {
+			try {
+				const next = await fetchPage(null);
+				if (mySeq !== refetchSeq.current) {
+					return;
+				}
+				setItems(next.items);
+				cursorRef.current = next.nextCursor;
+				setCursor(next.nextCursor);
+			} catch {
+				if (mySeq === refetchSeq.current) {
+					setError("Falha ao recarregar.");
+				}
+			} finally {
+				if (mySeq === refetchSeq.current) {
+					inflightRef.current = false;
+				}
+			}
+		});
+	}, [resetKey, fetchPage]);
 
 	const removeItem = useCallback((predicate: (item: T) => boolean) => {
 		setItems((prev) => prev.filter((item) => !predicate(item)));
