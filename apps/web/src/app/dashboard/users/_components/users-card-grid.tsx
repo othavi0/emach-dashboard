@@ -12,6 +12,7 @@ import type { BranchLite } from "./types";
 import { UserCard } from "./user-card";
 
 interface Props {
+	actorRole: UserListRow["role"];
 	branches: BranchLite[];
 	filters: UserListFilters;
 	initialCursor: string | null;
@@ -23,6 +24,7 @@ export function UsersCardGrid({
 	initialCursor,
 	filters,
 	branches,
+	actorRole,
 }: Props) {
 	const resetKey = JSON.stringify(filters);
 	const { items, hasMore, loadMore, pending, error, removeItem } =
@@ -57,6 +59,7 @@ export function UsersCardGrid({
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{items.map((user) => (
 					<UserCard
+						actorRole={actorRole}
 						branches={branches}
 						key={user.id}
 						onResolved={handleResolved}
