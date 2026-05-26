@@ -273,7 +273,14 @@ export function AppSidebar({
 												<SidebarMenuButton
 													isActive={isActive(pathname, item)}
 													render={
-														<Link href={item.href}>
+														<Link
+															href={
+																item.href === "/dashboard/tools" &&
+																reporCount > 0
+																	? "/dashboard/tools?mode=repor"
+																	: item.href
+															}
+														>
 															{item.label}
 															{item.href === "/dashboard/users" &&
 																pendingCount > 0 && (

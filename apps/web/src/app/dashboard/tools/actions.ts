@@ -519,9 +519,12 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 }
 
 export type ToolSort = "newest" | "name";
+export type ToolsListMode = "catalog" | "repor";
 
 export interface ToolsFiltersInput {
+	branchId?: string;
 	categoryId?: string;
+	mode?: ToolsListMode;
 	ncm?: string;
 	search?: string;
 	sort: ToolSort;
@@ -584,6 +587,30 @@ function buildToolsWhereClause(
 	if (filters.ncm) {
 		whereParts.push(sql`t.ncm ILIKE ${`${filters.ncm}%`}`);
 	}
+	if (filters.mode === "repor") {
+		if (filters.branchId) {
+			whereParts.push(sql`
+				EXISTS (
+					SELECT 1 FROM stock_level sl
+					JOIN tool_variant tv ON tv.id = sl.variant_id
+					WHERE tv.tool_id = t.id
+					AND sl.reorder_point > 0
+					AND sl.quantity <= sl.reorder_point
+					AND sl.branch_id = ${filters.branchId}
+				)
+			`);
+		} else {
+			whereParts.push(sql`
+				EXISTS (
+					SELECT 1 FROM stock_level sl
+					JOIN tool_variant tv ON tv.id = sl.variant_id
+					WHERE tv.tool_id = t.id
+					AND sl.reorder_point > 0
+					AND sl.quantity <= sl.reorder_point
+				)
+			`);
+		}
+	}
 	if (decoded) {
 		if (filters.sort === "newest" && decoded.sort === "newest") {
 			whereParts.push(
@@ -629,6 +656,14 @@ export async function fetchToolsPage({
 			? sql`ORDER BY t.name ASC, t.id ASC`
 			: sql`ORDER BY t.created_at DESC, t.id DESC`;
 
+	// Branch filter fragments for stock subqueries
+	const branchStockFilter = filters.branchId
+		? sql` AND sl.branch_id = ${filters.branchId}`
+		: sql``;
+	const branchStockFilter2 = filters.branchId
+		? sql` AND sl2.branch_id = ${filters.branchId}`
+		: sql``;
+
 	const rows = await db.execute<ToolPageRow>(sql`
 		SELECT
 			t.id, t.name, t.slug,
@@ -644,14 +679,14 @@ export async function fetchToolsPage({
 				WHERE tc.tool_id = t.id AND tc.is_primary = true LIMIT 1) AS primary_category_name,
 			s.name AS supplier_name,
 			COALESCE((SELECT SUM(sl.quantity)::int FROM stock_level sl
-				JOIN tool_variant tv ON tv.id = sl.variant_id WHERE tv.tool_id = t.id), 0) AS total_stock,
+				JOIN tool_variant tv ON tv.id = sl.variant_id WHERE tv.tool_id = t.id${branchStockFilter}), 0) AS total_stock,
 			COALESCE((SELECT COUNT(*)::int FROM stock_level sl
 				JOIN tool_variant tv ON tv.id = sl.variant_id
-				WHERE tv.tool_id = t.id AND sl.reorder_point > 0 AND sl.quantity <= sl.reorder_point), 0) AS reorder_count,
+				WHERE tv.tool_id = t.id AND sl.reorder_point > 0 AND sl.quantity <= sl.reorder_point${branchStockFilter}), 0) AS reorder_count,
 			COALESCE((SELECT json_agg(json_build_object('branch_id', b.id, 'branch_name', b.name, 'quantity', branch_total) ORDER BY b.name ASC)
 				FROM (SELECT b2.id AS bid, SUM(sl2.quantity)::int AS branch_total
 					FROM stock_level sl2 JOIN tool_variant tv2 ON tv2.id = sl2.variant_id
-					JOIN branch b2 ON b2.id = sl2.branch_id WHERE tv2.tool_id = t.id GROUP BY b2.id) g
+					JOIN branch b2 ON b2.id = sl2.branch_id WHERE tv2.tool_id = t.id${branchStockFilter2} GROUP BY b2.id) g
 				JOIN branch b ON b.id = g.bid), '[]'::json) AS branches_breakdown,
 			t.created_at::text AS created_at
 		FROM tool t
