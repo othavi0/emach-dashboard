@@ -124,13 +124,17 @@ export default async function UsersPage({ searchParams }: PageProps) {
 					initial={pending.items}
 					initialCursor={pending.nextCursor}
 				/>
-				<ActivityFeed
-					emptyMessage="Sem atividade recente de usuários."
-					fetchPage={fetchUserActivityFeedPage}
-					initialCursor={null}
-					initialEvents={activityEvents}
-					title="Atividade recente"
-				/>
+				<div className="relative min-h-[18rem] min-w-0">
+					<div className="absolute inset-0">
+						<ActivityFeed
+							emptyMessage="Sem atividade recente de usuários."
+							fetchPage={fetchUserActivityFeedPage}
+							initialCursor={null}
+							initialEvents={activityEvents}
+							title="Atividade recente"
+						/>
+					</div>
+				</div>
 			</section>
 			<UsersFilters branches={branches} />
 			<Tabs value={status}>

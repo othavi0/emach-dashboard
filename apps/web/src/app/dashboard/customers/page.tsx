@@ -136,13 +136,17 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 					tabs={pendingTabs}
 					title="Atenção em clientes"
 				/>
-				<ActivityFeed
-					emptyMessage="Sem atividade recente."
-					fetchPage={fetchCustomerActivityPage}
-					initialCursor={activity.nextCursor}
-					initialEvents={activity.items}
-					title="Atividade recente"
-				/>
+				<div className="relative min-h-[18rem] min-w-0">
+					<div className="absolute inset-0">
+						<ActivityFeed
+							emptyMessage="Sem atividade recente."
+							fetchPage={fetchCustomerActivityPage}
+							initialCursor={activity.nextCursor}
+							initialEvents={activity.items}
+							title="Atividade recente"
+						/>
+					</div>
+				</div>
 			</section>
 
 			<CustomerFilters filters={filters} />
