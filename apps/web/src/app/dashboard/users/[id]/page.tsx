@@ -14,6 +14,7 @@ import { BranchesTab } from "./_components/branches-tab";
 import { ProfileTab } from "./_components/profile-tab";
 import { SecurityTab } from "./_components/security-tab";
 import { SessionsTab } from "./_components/sessions-tab";
+import { UserActionsMenu } from "./_components/user-actions-menu";
 import { UserIdentity } from "./_components/user-identity";
 
 interface PageProps {
@@ -74,7 +75,14 @@ export default async function UserDetailPage({ params }: PageProps) {
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
-			<UserIdentity user={user} />
+			<UserIdentity
+				extraActions={
+					<UserActionsMenu
+						user={{ id: user.id, name: user.name, status: user.status }}
+					/>
+				}
+				user={user}
+			/>
 			<EntityTabs defaultValue="profile" tabs={tabs} />
 			<UserEditSheet
 				// Better Auth infere additionalFields como string; cast pro enum estrito.
