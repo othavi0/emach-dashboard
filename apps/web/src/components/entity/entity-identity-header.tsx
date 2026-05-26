@@ -28,7 +28,7 @@ export function EntityIdentityHeader({
 	return (
 		<div
 			className={cn(
-				"flex flex-col gap-4 border-border border-b pb-4 sm:flex-row sm:items-center sm:justify-between",
+				"flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
 				className
 			)}
 		>
