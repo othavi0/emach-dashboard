@@ -13,7 +13,6 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@emach/ui/components/sidebar";
-import { Skeleton } from "@emach/ui/components/skeleton";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -120,25 +119,14 @@ const ROLE_VARIANTS: Record<string, "default" | "info" | "secondary"> = {
 };
 
 function FooterContent({
-	isPending,
 	isSigningOut,
 	user,
 	onSignOut,
 }: {
-	isPending: boolean;
 	isSigningOut: boolean;
 	user: FooterUser;
 	onSignOut: () => Promise<void>;
 }) {
-	if (isPending) {
-		return (
-			<div className="flex flex-col gap-2 px-2 py-2">
-				<Skeleton className="h-4 w-32" />
-				<Skeleton className="h-3 w-40" />
-			</div>
-		);
-	}
-
 	if (!user) {
 		return null;
 	}
@@ -180,16 +168,17 @@ interface AppSidebarProps {
 	canManageUsers: boolean;
 	pendingCount: number;
 	reporCount: number;
+	user: FooterUser;
 }
 
 export function AppSidebar({
 	canManageUsers,
 	pendingCount,
 	reporCount,
+	user,
 }: AppSidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const { data: session, isPending } = authClient.useSession();
 	const [isSigningOut, setIsSigningOut] = useState(false);
 
 	const handleSignOut = async () => {
@@ -309,10 +298,9 @@ export function AppSidebar({
 
 			<SidebarFooter>
 				<FooterContent
-					isPending={isPending}
 					isSigningOut={isSigningOut}
 					onSignOut={handleSignOut}
-					user={session?.user}
+					user={user}
 				/>
 			</SidebarFooter>
 		</Sidebar>

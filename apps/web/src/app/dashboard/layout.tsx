@@ -49,6 +49,11 @@ export default async function DashboardLayout({
 				canManageUsers={canManageUsers}
 				pendingCount={pendingCount}
 				reporCount={reporCount}
+				user={{
+					name: session.user.name,
+					email: session.user.email,
+					role: session.user.role,
+				}}
 			/>
 			<SidebarInset>
 				<header className="flex h-12 items-center gap-2 border-b px-4 md:hidden">
