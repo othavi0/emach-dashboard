@@ -167,6 +167,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
 				</TabsList>
 			</Tabs>
 			<UsersCardGrid
+				// Better Auth infere additionalFields como string; cast pro enum estrito.
 				actorRole={actorSession.user.role as UserListRow["role"]}
 				branches={branches}
 				filters={filters}
