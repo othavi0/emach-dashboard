@@ -54,7 +54,7 @@ export function SuppliersTable({
 }: SuppliersTableProps) {
 	const router = useRouter();
 	const resetKey = JSON.stringify(filters);
-	const fetchPage = (cursor: string) =>
+	const fetchPage = (cursor: string | null) =>
 		fetchSuppliersTablePage({ filters, cursor });
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,

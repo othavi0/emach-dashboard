@@ -529,7 +529,7 @@ export async function fetchMoreUsersAction(
 }
 
 export async function fetchPendingUsersAction(
-	cursor: string
+	cursor: string | null
 ): Promise<
 	import("@/lib/infinite").InfiniteResult<
 		import("@/components/pending-panel").PendingRow
@@ -541,7 +541,7 @@ export async function fetchPendingUsersAction(
 }
 
 export async function fetchUserActivityFeedPage(
-	_cursor: string
+	_cursor: string | null
 ): Promise<
 	import("@/lib/infinite").InfiniteResult<
 		import("@/components/activity-feed").ActivityEvent
