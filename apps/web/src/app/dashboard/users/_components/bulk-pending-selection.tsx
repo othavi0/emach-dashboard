@@ -4,6 +4,7 @@ import { Button } from "@emach/ui/components/button";
 import { Checkbox } from "@emach/ui/components/checkbox";
 import { Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function BulkPendingSelection({ initial }: Props) {
+	const router = useRouter();
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [submitting, startTransition] = useTransition();
 
@@ -48,6 +50,7 @@ export function BulkPendingSelection({ initial }: Props) {
 					`${res.data.rejected} rejeitado(s); ${res.data.skipped} ignorado(s)`
 				);
 				setSelected(new Set());
+				router.refresh();
 			} else {
 				toast.error(res.error);
 			}
