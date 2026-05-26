@@ -143,5 +143,7 @@ Decisões arquiteturais ficam em `docs/adr/`:
 - **ADR-0007** — Débito de estoque ocorre na transição para `paid`, não na criação do pedido.
 - **ADR-0008** — Documentos do Asaas chegam ao dashboard pelo banco de dados; o dashboard nunca chama a API do Asaas.
 - **ADR-0009** — O schema do e-commerce sincroniza do dashboard via CI (PR automático); o dashboard é a fonte de verdade.
+- **ADR-0010** — Signup de staff é público (aprovação manual no dashboard), sem flow de invitation.
+- **ADR-0011** — Audit log de user sobrevive ao delete: FK `set null` + snapshot do nome em `metadata`.
 
 Se um output contradiz um ADR existente, sinalize explicitamente em vez de sobrescrever em silêncio.
