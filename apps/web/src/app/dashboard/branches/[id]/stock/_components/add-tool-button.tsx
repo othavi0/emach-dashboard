@@ -17,7 +17,7 @@ export function AddToolButton({ branchId, branchName }: Props) {
 		<>
 			<Button onClick={() => setOpen(true)} size="sm">
 				<Plus className="size-4" />
-				Adicionar ferramenta
+				Adicionar ao estoque
 			</Button>
 			<AddToolToBranchSheet
 				branchId={branchId}

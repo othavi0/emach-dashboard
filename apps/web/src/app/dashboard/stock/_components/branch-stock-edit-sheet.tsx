@@ -247,7 +247,7 @@ export function BranchStockEditSheet({
 			}}
 			open={row !== null}
 		>
-			<SheetContent className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-[440px]">
+			<SheetContent className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-[580px]">
 				{/* Header */}
 				<SheetHeader className="border-border border-b px-6 py-5">
 					<div className="flex items-start gap-3">

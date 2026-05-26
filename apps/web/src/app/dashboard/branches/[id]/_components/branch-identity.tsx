@@ -34,7 +34,7 @@ export function BranchIdentity({
 					{extraAction}
 					<Button onClick={handleEdit} size="sm" variant="outline">
 						<Pencil aria-hidden className="mr-1.5 size-3.5" />
-						Editar
+						Editar filial
 					</Button>
 				</div>
 			}

@@ -102,6 +102,12 @@ export async function StockTab({
 					filters={filters}
 					initial={first.items}
 					initialCursor={first.nextCursor}
+					key={first.items
+						.map(
+							(i) =>
+								`${i.variantId}:${i.quantity}:${i.minQty}:${i.reorderPoint}`
+						)
+						.join("|")}
 				/>
 			)}
 		</div>
