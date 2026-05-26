@@ -102,4 +102,23 @@ describe("logUserActivity", () => {
 			})
 		);
 	});
+
+	it("se SELECT falha, INSERT segue com actorName null", async () => {
+		const limitMock = vi.fn().mockRejectedValue(new Error("network blip"));
+		const whereMock = vi.fn().mockReturnValue({ limit: limitMock });
+		const fromMock = vi.fn().mockReturnValue({ where: whereMock });
+		selectMock.mockReturnValue({ from: fromMock });
+
+		await logUserActivity({
+			actorUserId: "user-1",
+			action: "user.approved",
+		});
+		expect(insertMock).toHaveBeenCalledOnce();
+		const values = insertMock.mock.results[0]?.value.values;
+		expect(values).toHaveBeenCalledWith(
+			expect.objectContaining({
+				metadata: { actorName: null },
+			})
+		);
+	});
 });
