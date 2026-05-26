@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@emach/ui/components/badge";
 import { DatePicker } from "@emach/ui/components/date-picker";
 import { Input } from "@emach/ui/components/input";
 import {
@@ -11,7 +10,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@emach/ui/components/select";
-import { Tabs, TabsList, TabsTrigger } from "@emach/ui/components/tabs";
+import {
+	Tabs,
+	TabsCountBadge,
+	TabsList,
+	TabsTrigger,
+} from "@emach/ui/components/tabs";
 import Link from "next/link";
 
 import { FiltersBar } from "@/components/filters-bar";
@@ -78,7 +82,6 @@ export function ReviewsFilters({ counts, filters }: ReviewsFiltersProps) {
 			<Tabs value={currentTab}>
 				<TabsList scrollable>
 					{REVIEW_TABS.map((tab) => {
-						const isActive = currentTab === tab.key;
 						const count = counts[tab.key] ?? 0;
 						return (
 							<TabsTrigger
@@ -88,12 +91,7 @@ export function ReviewsFilters({ counts, filters }: ReviewsFiltersProps) {
 								value={tab.key}
 							>
 								<span>{tab.label}</span>
-								<Badge
-									className="ml-2"
-									variant={isActive ? "default" : "secondary"}
-								>
-									{count}
-								</Badge>
+								<TabsCountBadge value={count} />
 							</TabsTrigger>
 						);
 					})}
