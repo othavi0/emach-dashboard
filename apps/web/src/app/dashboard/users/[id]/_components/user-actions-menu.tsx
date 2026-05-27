@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@emach/ui/components/button";
+import { buttonVariants } from "@emach/ui/components/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -57,12 +57,11 @@ export function UserActionsMenu({ user }: Props) {
 		<>
 			<DropdownMenu>
 				<DropdownMenuTrigger
-					render={
-						<Button aria-label="Mais ações" size="sm" variant="outline">
-							<MoreVertical aria-hidden className="size-3.5" />
-						</Button>
-					}
-				/>
+					aria-label="Mais ações"
+					className={buttonVariants({ size: "sm", variant: "outline" })}
+				>
+					<MoreVertical aria-hidden className="size-3.5" />
+				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" side="bottom">
 					{user.status === "active" ? (
 						<DropdownMenuItem onClick={() => setDialogOpen("suspend")}>
