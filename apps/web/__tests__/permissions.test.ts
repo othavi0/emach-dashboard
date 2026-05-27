@@ -100,6 +100,10 @@ describe("super_admin caps", () => {
 		expect(can("admin", "branches.manage")).toBe(false);
 	});
 
+	it("admin herda audit.read", () => {
+		expect(can("admin", "audit.read")).toBe(true);
+	});
+
 	it("admin tem users.approve, users.suspend, users.update_role, users.update_branches", () => {
 		expect(can("admin", "users.approve")).toBe(true);
 		expect(can("admin", "users.suspend")).toBe(true);

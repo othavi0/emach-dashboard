@@ -19,7 +19,6 @@ export const updateUserSchema = z.object({
 	userId: z.string().min(1),
 	name: z.string().min(2).max(100).optional(),
 	role: z.enum(ROLES).optional(),
-	branchIds: z.array(z.string().min(1)).optional(),
 });
 
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
@@ -44,3 +43,27 @@ export const branchLinkSchema = z.object({
 	branchId: z.string().min(1),
 });
 export type BranchLinkInput = z.infer<typeof branchLinkSchema>;
+
+export const suspendUserSchema = z.object({
+	userId: z.string().min(1),
+	reason: z.string().min(10, "Motivo precisa de pelo menos 10 caracteres"),
+});
+export type SuspendUserInput = z.infer<typeof suspendUserSchema>;
+
+export const deleteUserSchema = z.object({
+	userId: z.string().min(1),
+	reason: z.string().min(10, "Motivo precisa de pelo menos 10 caracteres"),
+});
+export type DeleteUserInput = z.infer<typeof deleteUserSchema>;
+
+export const rejectUserSchema = z.object({
+	userId: z.string().min(1),
+	reason: z.string().min(1).optional(),
+});
+export type RejectUserInput = z.infer<typeof rejectUserSchema>;
+
+export const bulkRejectSchema = z.object({
+	userIds: z.array(z.string().min(1)).min(1),
+	reason: z.string().min(1).optional(),
+});
+export type BulkRejectInput = z.infer<typeof bulkRejectSchema>;

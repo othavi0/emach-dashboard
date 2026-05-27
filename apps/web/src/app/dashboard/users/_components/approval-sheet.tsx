@@ -11,14 +11,14 @@ import {
 } from "@emach/ui/components/sheet";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-
+import { allowedApprovalRoles } from "../_lib/approval-roles";
 import { approveUser, rejectUser } from "../actions";
 import { BranchesCombobox } from "./branches-combobox";
 import { RoleSelect } from "./role-select";
 import type { BranchLite, UserRow } from "./types";
 
 interface Props {
-	allowedRoles?: UserRow["role"][];
+	actorRole: UserRow["role"];
 	branches: BranchLite[];
 	onClose: () => void;
 	onResolved?: () => void;
@@ -30,19 +30,20 @@ export function ApprovalSheet({
 	branches,
 	onClose,
 	onResolved,
-	allowedRoles = ["manager", "user"],
+	actorRole,
 }: Props) {
-	const [role, setRole] = useState<UserRow["role"]>("user");
+	const allowed = allowedApprovalRoles(actorRole);
+	const [role, setRole] = useState<UserRow["role"]>(allowed.at(-1) ?? "user");
 	const [branchIds, setBranchIds] = useState<string[]>([]);
 	const [, startTransition] = useTransition();
 	const [submitting, setSubmitting] = useState(false);
 
 	useEffect(() => {
 		if (user) {
-			setRole("user");
+			setRole(allowed.at(-1) ?? "user");
 			setBranchIds([]);
 		}
-	}, [user]);
+	}, [user, actorRole]);
 
 	function handleApprove() {
 		if (!user) {
@@ -95,7 +96,7 @@ export function ApprovalSheet({
 						<div className="flex flex-col gap-2">
 							<Label>Role</Label>
 							<RoleSelect
-								allowedRoles={allowedRoles}
+								allowedRoles={allowed}
 								disabled={submitting}
 								onChange={setRole}
 								value={role}

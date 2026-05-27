@@ -10,7 +10,7 @@ import { userBranch } from "@emach/db/schema/inventory";
 import { orderNote, orderStatusHistory } from "@emach/db/schema/orders";
 import { promotion } from "@emach/db/schema/promotions";
 import { stockMovement } from "@emach/db/schema/stock-movements";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { logUserActivity } from "@/lib/activity";
@@ -22,7 +22,11 @@ import {
 	type ApproveUserInput,
 	approveUserSchema,
 	branchLinkSchema,
+	bulkRejectSchema,
+	deleteUserSchema,
+	rejectUserSchema,
 	revokeSessionSchema,
+	suspendUserSchema,
 	triggerPasswordResetSchema,
 	type UpdateUserInput,
 	updateUserSchema,
@@ -91,11 +95,8 @@ export async function approveUser(
 	return { ok: true, data: undefined };
 }
 
-export async function rejectUser(input: {
-	userId: string;
-	reason?: string;
-}): Promise<ActionResult> {
-	const parsed = userIdSchema.safeParse(input);
+export async function rejectUser(input: unknown): Promise<ActionResult> {
+	const parsed = rejectUserSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
@@ -105,7 +106,11 @@ export async function rejectUser(input: {
 	});
 
 	const [target] = await db
-		.select({ status: userTable.status })
+		.select({
+			status: userTable.status,
+			email: userTable.email,
+			name: userTable.name,
+		})
 		.from(userTable)
 		.where(eq(userTable.id, parsed.data.userId))
 		.limit(1);
@@ -129,12 +134,73 @@ export async function rejectUser(input: {
 		action: "user.rejected",
 		targetType: "user",
 		targetId: parsed.data.userId,
-		metadata: (input as { reason?: string }).reason
-			? { reason: (input as { reason?: string }).reason }
-			: undefined,
+		metadata: {
+			rejectedEmail: target.email,
+			rejectedName: target.name,
+			...(parsed.data.reason ? { reason: parsed.data.reason } : {}),
+		},
 	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
+}
+
+export async function bulkRejectUsers(
+	input: unknown
+): Promise<ActionResult<{ rejected: number; skipped: number }>> {
+	const parsed = bulkRejectSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: "validação" };
+	}
+
+	const session = await requireCapabilityWithContext("users.approve", {});
+
+	const targets = await db
+		.select({
+			id: userTable.id,
+			email: userTable.email,
+			name: userTable.name,
+			status: userTable.status,
+		})
+		.from(userTable)
+		.where(inArray(userTable.id, parsed.data.userIds));
+
+	const validIds = targets
+		.filter((t) => t.status === "pending")
+		.map((t) => t.id);
+	const skipped = parsed.data.userIds.length - validIds.length;
+
+	if (validIds.length === 0) {
+		return { ok: true, data: { rejected: 0, skipped } };
+	}
+
+	try {
+		await db.delete(userTable).where(inArray(userTable.id, validIds));
+	} catch (error) {
+		logger.error("bulkRejectUsers falhou", error);
+		return { ok: false, error: "Falha ao rejeitar em massa" };
+	}
+
+	await Promise.all(
+		targets
+			.filter((t) => validIds.includes(t.id))
+			.map((t) =>
+				logUserActivity({
+					actorUserId: session.user.id,
+					action: "user.rejected",
+					targetType: "user",
+					targetId: t.id,
+					metadata: {
+						rejectedEmail: t.email,
+						rejectedName: t.name,
+						bulk: true,
+						...(parsed.data.reason ? { reason: parsed.data.reason } : {}),
+					},
+				})
+			)
+	);
+
+	revalidatePath(USERS_PATH);
+	return { ok: true, data: { rejected: validIds.length, skipped } };
 }
 
 export async function updateUser(
@@ -155,30 +221,14 @@ export async function updateUser(
 		if (!current) {
 			return { ok: false, error: "Usuário não encontrado" };
 		}
-		const currentBranchIds = (
-			await db
-				.select({ branchId: userBranch.branchId })
-				.from(userBranch)
-				.where(eq(userBranch.userId, parsed.data.userId))
-		).map((r) => r.branchId);
 
 		const roleChanged =
 			parsed.data.role !== undefined && parsed.data.role !== current.role;
-		const branchesChanged =
-			parsed.data.branchIds !== undefined &&
-			(parsed.data.branchIds.length !== currentBranchIds.length ||
-				parsed.data.branchIds.some((id) => !currentBranchIds.includes(id)));
 		const nameChanged = parsed.data.name !== undefined;
 
 		if (roleChanged) {
 			session = await requireCapabilityWithContext("users.update_role", {
 				targetUserId: parsed.data.userId,
-			});
-		}
-		if (branchesChanged) {
-			session = await requireCapabilityWithContext("users.update_branches", {
-				targetUserId: parsed.data.userId,
-				targetBranchIds: parsed.data.branchIds,
 			});
 		}
 		if (nameChanged) {
@@ -188,7 +238,7 @@ export async function updateUser(
 		}
 
 		await db.transaction(async (tx) => {
-			const update: { name?: string; role?: ApproveUserInput["role"] } = {};
+			const update: { name?: string; role?: UpdateUserInput["role"] } = {};
 			if (parsed.data.name) {
 				update.name = parsed.data.name;
 			}
@@ -201,18 +251,10 @@ export async function updateUser(
 					.set(update)
 					.where(eq(userTable.id, parsed.data.userId));
 			}
-			if (parsed.data.branchIds) {
+			if (roleChanged) {
 				await tx
-					.delete(userBranch)
-					.where(eq(userBranch.userId, parsed.data.userId));
-				if (parsed.data.branchIds.length > 0) {
-					await tx.insert(userBranch).values(
-						parsed.data.branchIds.map((branchId) => ({
-							userId: parsed.data.userId,
-							branchId,
-						}))
-					);
-				}
+					.delete(sessionTable)
+					.where(eq(sessionTable.userId, parsed.data.userId));
 			}
 		});
 	} catch (error) {
@@ -229,9 +271,6 @@ export async function updateUser(
 	if (parsed.data.role !== undefined) {
 		changes.role = parsed.data.role;
 	}
-	if (parsed.data.branchIds !== undefined) {
-		changes.branchIds = parsed.data.branchIds;
-	}
 
 	await logUserActivity({
 		actorUserId: session.user.id,
@@ -244,13 +283,13 @@ export async function updateUser(
 	return { ok: true, data: undefined };
 }
 
-export async function suspendUser(input: {
-	userId: string;
-	reason?: string;
-}): Promise<ActionResult> {
-	const parsed = userIdSchema.safeParse(input);
+export async function suspendUser(input: unknown): Promise<ActionResult> {
+	const parsed = suspendUserSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: "validação" };
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "validação",
+		};
 	}
 
 	const session = await requireCapabilityWithContext("users.suspend", {
@@ -277,9 +316,7 @@ export async function suspendUser(input: {
 		action: "user.suspended",
 		targetType: "user",
 		targetId: parsed.data.userId,
-		metadata: (input as { reason?: string }).reason
-			? { reason: (input as { reason?: string }).reason }
-			: undefined,
+		metadata: { reason: parsed.data.reason },
 	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
@@ -358,12 +395,13 @@ export async function triggerPasswordReset(
 	return { ok: true, data: undefined };
 }
 
-export async function deleteUser(input: {
-	userId: string;
-}): Promise<ActionResult> {
-	const parsed = userIdSchema.safeParse(input);
+export async function deleteUser(input: unknown): Promise<ActionResult> {
+	const parsed = deleteUserSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: "validação" };
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "validação",
+		};
 	}
 
 	const session = await requireCapabilityWithContext("users.delete", {
@@ -371,7 +409,12 @@ export async function deleteUser(input: {
 	});
 
 	const [target] = await db
-		.select({ role: userTable.role, status: userTable.status })
+		.select({
+			role: userTable.role,
+			status: userTable.status,
+			email: userTable.email,
+			name: userTable.name,
+		})
 		.from(userTable)
 		.where(eq(userTable.id, parsed.data.userId))
 		.limit(1);
@@ -430,6 +473,11 @@ export async function deleteUser(input: {
 		action: "user.deleted",
 		targetType: "user",
 		targetId: parsed.data.userId,
+		metadata: {
+			deletedEmail: target.email,
+			deletedName: target.name,
+			reason: parsed.data.reason,
+		},
 	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
@@ -491,12 +539,15 @@ export async function forceLogoutAllSessions(
 }
 
 export async function linkUserToBranch(input: unknown): Promise<ActionResult> {
-	await requireCapabilityWithContext("users.update_branches", {});
-	const actor = await requireCurrentSession();
 	const parsed = branchLinkSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
+
+	const actor = await requireCapabilityWithContext("users.update_branches", {
+		targetUserId: parsed.data.userId,
+		targetBranchIds: [parsed.data.branchId],
+	});
 
 	await db
 		.insert(userBranch)
@@ -540,27 +591,49 @@ export async function fetchPendingUsersAction(
 	return fetchPendingUsersPage(cursor);
 }
 
+export async function fetchUserActivityByUserPage(
+	userId: string,
+	cursor: string | null
+): Promise<
+	import("@/lib/infinite").InfiniteResult<import("./data").UserActivityRow>
+> {
+	await requireCapabilityWithContext("users.manage", { targetUserId: userId });
+	const { getUserActivity } = await import("./data");
+	return getUserActivity(userId, cursor);
+}
+
+export async function fetchUserActivityAffectingPage(
+	userId: string,
+	cursor: string | null
+): Promise<
+	import("@/lib/infinite").InfiniteResult<
+		import("./data").UserActivityRow & { actorName: string | null }
+	>
+> {
+	await requireCapabilityWithContext("users.manage", { targetUserId: userId });
+	const { getUserAffectedActivity } = await import("./data");
+	return getUserAffectedActivity(userId, cursor);
+}
+
 export async function fetchUserActivityFeedPage(
-	_cursor: string | null
+	cursor: string | null
 ): Promise<
 	import("@/lib/infinite").InfiniteResult<
 		import("@/components/activity-feed").ActivityEvent
 	>
 > {
 	await requireCapabilityWithContext("users.manage", {});
-	const { getRecentUserActivity } = await import("./data");
-	// For paginated feed we reuse getRecentUserActivity with a larger limit;
-	// full cursor-based pagination can be added in a later task.
-	const rows = await getRecentUserActivity(20);
+	const { getUserActivityFeedPaginated } = await import("./data");
+	const page = await getUserActivityFeedPaginated(cursor);
 	return {
-		items: rows.map((a) => ({
+		items: page.items.map((a) => ({
 			id: a.id,
 			kind: "user" as const,
 			primary: humanizeActivityAction(a.action, a.actorName ?? "—"),
 			at: a.createdAt,
 			href: a.targetId ? `/dashboard/users/${a.targetId}` : undefined,
 		})),
-		nextCursor: null,
+		nextCursor: page.nextCursor,
 	};
 }
 
@@ -596,14 +669,16 @@ function humanizeActivityAction(action: string, actorName: string): string {
 export async function unlinkUserFromBranch(
 	input: unknown
 ): Promise<ActionResult> {
-	await requireCapabilityWithContext("users.update_branches", {});
-	const actor = await requireCurrentSession();
 	const parsed = branchLinkSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
 
-	// TODO: guard "último admin" — não implementado intencionalmente (simétrico ao gap em updateUser)
+	const actor = await requireCapabilityWithContext("users.update_branches", {
+		targetUserId: parsed.data.userId,
+		targetBranchIds: [parsed.data.branchId],
+	});
+
 	await db
 		.delete(userBranch)
 		.where(
