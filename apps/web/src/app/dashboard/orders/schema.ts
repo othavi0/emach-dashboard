@@ -124,3 +124,39 @@ export const updateTrackingCodeSchema = z.object({
 });
 
 export type UpdateTrackingCodeInput = z.infer<typeof updateTrackingCodeSchema>;
+
+export const refundOrderSchema = z
+	.object({
+		orderId: z.string().uuid(),
+		reason: z.string().trim().min(1, "Motivo obrigatório").max(500),
+		creditStock: z.boolean(),
+		returnItems: z
+			.array(
+				z.object({
+					orderItemId: z.string().uuid(),
+					branchId: z.string().uuid(),
+				})
+			)
+			.optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (
+			data.creditStock &&
+			(!data.returnItems || data.returnItems.length === 0)
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Selecione pelo menos um item para creditar ao estoque",
+				path: ["returnItems"],
+			});
+		}
+	});
+
+export type RefundOrderInput = z.infer<typeof refundOrderSchema>;
+
+export const cancelOrderSchema = z.object({
+	orderId: z.string().uuid(),
+	reason: z.string().trim().min(1, "Motivo obrigatório").max(500),
+});
+
+export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
