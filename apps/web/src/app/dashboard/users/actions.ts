@@ -1,6 +1,7 @@
 "use server";
 
 import { authDashboard } from "@emach/auth/dashboard";
+import type { DashboardSession } from "@emach/auth/dashboard";
 import { db } from "@emach/db";
 import {
 	session as sessionTable,
@@ -10,7 +11,7 @@ import { userBranch } from "@emach/db/schema/inventory";
 import { orderNote, orderStatusHistory } from "@emach/db/schema/orders";
 import { promotion } from "@emach/db/schema/promotions";
 import { stockMovement } from "@emach/db/schema/stock-movements";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { logUserActivity } from "@/lib/activity";
@@ -292,9 +293,15 @@ export async function suspendUser(input: unknown): Promise<ActionResult> {
 		};
 	}
 
-	const session = await requireCapabilityWithContext("users.suspend", {
-		targetUserId: parsed.data.userId,
-	});
+	let session: DashboardSession;
+	try {
+		session = await requireCapabilityWithContext("users.suspend", {
+			targetUserId: parsed.data.userId,
+		});
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Acesso negado";
+		return { ok: false, error: message };
+	}
 
 	try {
 		await db.transaction(async (tx) => {
@@ -404,14 +411,19 @@ export async function deleteUser(input: unknown): Promise<ActionResult> {
 		};
 	}
 
-	const session = await requireCapabilityWithContext("users.delete", {
-		targetUserId: parsed.data.userId,
-	});
+	let session: DashboardSession;
+	try {
+		session = await requireCapabilityWithContext("users.delete", {
+			targetUserId: parsed.data.userId,
+		});
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Acesso negado";
+		return { ok: false, error: message };
+	}
 
 	const [target] = await db
 		.select({
-			role: userTable.role,
-			status: userTable.status,
+			id: userTable.id,
 			email: userTable.email,
 			name: userTable.name,
 		})
@@ -421,22 +433,6 @@ export async function deleteUser(input: unknown): Promise<ActionResult> {
 
 	if (!target) {
 		return { ok: false, error: "User não encontrado" };
-	}
-
-	if (target.role === "super_admin") {
-		const [row] = await db
-			.select({ value: sql<number>`count(*)::int` })
-			.from(userTable)
-			.where(
-				and(eq(userTable.role, "super_admin"), eq(userTable.status, "active"))
-			);
-		const active = row?.value ?? 0;
-		if (active <= 1) {
-			return {
-				ok: false,
-				error: "Necessário ao menos 1 super_admin ativo",
-			};
-		}
 	}
 
 	try {
