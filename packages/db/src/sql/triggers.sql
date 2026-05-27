@@ -109,7 +109,7 @@ CREATE OR REPLACE FUNCTION order_nfe_cancelled_note() RETURNS trigger
 LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
   IF NEW.nfe_status = 'cancelled'
-     AND (OLD.nfe_status IS NULL OR OLD.nfe_status IS DISTINCT FROM 'cancelled')
+     AND OLD.nfe_status IS DISTINCT FROM 'cancelled'
   THEN
     INSERT INTO public.order_note (id, order_id, author_id, body, created_at)
     VALUES (
@@ -126,5 +126,4 @@ END $$;
 DROP TRIGGER IF EXISTS trg_order_nfe_cancelled ON "order";
 CREATE TRIGGER trg_order_nfe_cancelled
 AFTER UPDATE OF nfe_status ON "order"
-FOR EACH ROW
-EXECUTE FUNCTION order_nfe_cancelled_note();
+FOR EACH ROW EXECUTE FUNCTION order_nfe_cancelled_note();
