@@ -15,6 +15,7 @@ import {
 } from "@emach/ui/components/table";
 
 import type { OrderDetail } from "../data";
+import { CustomerNoteCard } from "./customer-note-card";
 import { OrderDocumentsSection } from "./order-documents-section";
 import { OrderLifecycleStepper } from "./order-lifecycle-stepper";
 import { OrderStatusBadge } from "./order-status-badge";
@@ -61,6 +62,7 @@ export function OrderDetailInfo({ order }: { order: OrderDetail }) {
 
 	return (
 		<div className="flex flex-col gap-4">
+			<CustomerNoteCard notes={order.customerNotes} />
 			<Card>
 				<CardHeader>
 					<CardTitle className="flex items-center gap-3">
