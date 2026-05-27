@@ -25,6 +25,11 @@ describe("normalizeCep", () => {
 		expect(normalizeCep("123")).toBeNull();
 		expect(normalizeCep("abcde-fgh")).toBeNull();
 	});
+
+	it("retorna null para null e undefined", () => {
+		expect(normalizeCep(null)).toBeNull();
+		expect(normalizeCep(undefined)).toBeNull();
+	});
 });
 
 describe("suggestBranchForCep", () => {
