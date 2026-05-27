@@ -1,22 +1,14 @@
 import type { DashboardSession } from "@emach/auth/dashboard";
-import { db } from "@emach/db";
-import { userBranch } from "@emach/db/schema/inventory";
-import { eq } from "drizzle-orm";
 import { cache } from "react";
+
+// ⚠️ Gates role-based desligados em 2026-05-27 (ver docs/adr/0012-disable-role-based-gates.md).
+// Versão original (consulta a `user_branch`) recuperável via `git log -p -- apps/web/src/lib/branch-scope.ts`.
 
 export type BranchScope = string[] | null;
 
+// `cache()` mantido para preservar a assinatura — voltará a memoizar I/O ao reativar gates.
 export const getUserBranchScope = cache(
-	async (session: DashboardSession): Promise<BranchScope> => {
-		if (session.user.role === "super_admin") {
-			return null;
-		}
-		const rows = await db
-			.select({ branchId: userBranch.branchId })
-			.from(userBranch)
-			.where(eq(userBranch.userId, session.user.id));
-		return rows.map((r) => r.branchId);
-	}
+	async (_session: DashboardSession): Promise<BranchScope> => null
 );
 
 export function inScope(scope: BranchScope, branchId: string): boolean {

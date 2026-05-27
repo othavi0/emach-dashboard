@@ -19,7 +19,9 @@ Duas instâncias **completamente isoladas** Better Auth no mesmo banco:
 5. Schema é **push-only** (ADR-0006): `bun db:sync` após editar `packages/db/src/schema/*.ts`. Sem migrations versionadas.
 6. DB compartilhada com app ecomerce externo (ADR-0004). Admin **não** chama ecomerce; ecomerce **não** chama admin. Coordenação via schema. Sync schema TS é **CI PR automático** dashboard → ecommerce (ADR-0009). Contrato: `docs/integration/admin-ecommerce.md`.
 
-Roles dashboard: `user.role` enum `super_admin/admin/manager/user`; `user.status` enum `pending/active/suspended`. Better Auth cria novo user com `role='user' + status='pending'`. Promoção bootstrap via SQL direto. Capabilities granulares em `apps/web/src/lib/permissions.ts`.
+Roles dashboard: `user.role` enum `super_admin/admin/manager/user`; `user.status` enum `pending/active/suspended`. Better Auth cria novo user com `role='user' + status='pending'`. Promoção bootstrap via SQL direto.
+
+**⚠️ Gates role-based desligados em 2026-05-27 (ADR-0012).** `requireCapability*`, `can()`, `requireRole` e `getUserBranchScope` em `apps/web/src/lib/` são no-op — validam só sessão + `status='active'`. Matriz original preservada em `apps/web/src/lib/permissions.disabled.ts`. Mantidos como guard-rails: status gate, self-action guard, last-super-admin guard. **Não adicionar capabilities novas sem religar** (passos em `docs/adr/0012-disable-role-based-gates.md`). Reativar antes de produção.
 
 ## Anti-patterns banidos (P0/P1)
 

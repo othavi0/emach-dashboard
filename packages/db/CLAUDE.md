@@ -100,9 +100,15 @@ Assinatura padrão: `db: NodePgDatabase<Record<string, unknown>>` parametrizado 
 
 Detalhes (formatos aceitos, cap 2MB pós-compressão, bucket privado de anexos): `docs/storage-buckets.md`.
 
-## ⚠️ Gap conhecido — anonimização LGPD
+## ⚠️ Gaps conhecidos
+
+### Anonimização LGPD
 
 Não há script nem server action de anonimização de cliente ("direito ao esquecimento"). Só export existe (`client_export_log` + `dashboard/customers/export/`). **Implementar antes de produção.**
+
+### Gates role-based desligados (ADR-0012)
+
+`requireCapability*`, `can()`, `requireRole` e `getUserBranchScope` em `apps/web/src/lib/` são no-op desde 2026-05-27. Matriz original preservada em `apps/web/src/lib/permissions.disabled.ts`. **Religar antes de produção** — passos em `docs/adr/0012-disable-role-based-gates.md`.
 
 ## Scripts adicionais
 
