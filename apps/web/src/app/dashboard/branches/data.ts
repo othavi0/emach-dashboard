@@ -76,6 +76,7 @@ export async function getBranchKpis(): Promise<BranchKpis> {
 
 export interface BranchDetail {
 	cep: string | null;
+	cepRanges: Array<{ from: string; to: string }> | null;
 	city: string | null;
 	complement: string | null;
 	createdAt: Date;
@@ -101,6 +102,7 @@ export async function getBranchDetail(
 			name: branch.name,
 			phone: branch.phone,
 			cep: branch.cep,
+			cepRanges: branch.cepRanges,
 			street: branch.street,
 			streetNumber: branch.streetNumber,
 			complement: branch.complement,
