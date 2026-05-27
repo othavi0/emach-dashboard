@@ -39,6 +39,8 @@ import {
 	addOrderNoteSchema,
 	assignBranchSchema,
 	capForStatus,
+	type RefundOrderInput,
+	refundOrderSchema,
 	type UpdateOrderStatusInput,
 	type UpdateTrackingCodeInput,
 	updateOrderStatusSchema,
@@ -390,5 +392,73 @@ export async function updateTrackingCode(
 			return { ok: false, error: "Pedido não encontrado" };
 		}
 		return { ok: false, error: "Erro ao atualizar rastreio" };
+	}
+}
+
+export async function refundOrder(
+	input: RefundOrderInput
+): Promise<ActionResult> {
+	const parsed = refundOrderSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+
+	const { orderId, reason, creditStock, returnItems } = parsed.data;
+
+	try {
+		await db.transaction(async (tx) => {
+			const locked = await lockOrderAndAuthorize(tx, "orders.refund", orderId);
+			if (!locked) {
+				throw new Error("Pedido não encontrado");
+			}
+
+			const { session } = locked;
+			const currentStatus = locked.status as OrderStatus;
+			const allowed = VALID_TRANSITIONS[currentStatus];
+			if (!allowed?.includes("refunded")) {
+				throw new Error(`Transição inválida: ${currentStatus} → refunded`);
+			}
+
+			await tx
+				.update(order)
+				.set({ status: "refunded", refundedAt: new Date() })
+				.where(eq(order.id, orderId));
+
+			await tx.insert(orderStatusHistory).values({
+				id: crypto.randomUUID(),
+				orderId,
+				fromStatus: currentStatus,
+				toStatus: "refunded",
+				actorType: "user",
+				actorUserId: session.user.id,
+				reason,
+			});
+
+			if (creditStock && returnItems && returnItems.length > 0) {
+				await applyStockReturns(
+					tx,
+					orderId,
+					returnItems,
+					session.user.id,
+					"Estoque creditado em reembolso"
+				);
+			}
+		});
+
+		revalidatePath(ORDERS_PATH);
+		revalidatePath(`${ORDERS_PATH}/${orderId}`);
+		return { ok: true, data: undefined };
+	} catch (error) {
+		logger.error("refundOrder", error);
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para reembolsar este pedido." };
+		}
+		return {
+			ok: false,
+			error: error instanceof Error ? error.message : "Erro interno",
+		};
 	}
 }
