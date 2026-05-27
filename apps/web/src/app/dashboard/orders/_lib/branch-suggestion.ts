@@ -1,3 +1,4 @@
+/** Faixa de CEP `from <= to` (validação de ordem fica com o caller via Zod). */
 export type CepRange = { from: string; to: string };
 
 export interface BranchWithCepRanges {
