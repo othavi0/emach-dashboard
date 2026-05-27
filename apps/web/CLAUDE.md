@@ -11,17 +11,21 @@ Dashboard Next 16 / React 19. Regras gerais (auth invariantes, anti-patterns, go
 
 ## Capabilities (`src/lib/permissions.ts`)
 
-Capabilities granulares substituem `requireRole` em mutations sensíveis. `requireRole` ainda usado em gates grosseiros de layout.
+**⚠️ Desligado em 2026-05-27 (ADR-0012).** Funções `requireCapability`, `requireCapabilityOrRedirect`, `requireCapabilityWithContext`, `requireCapabilityWithContextOrRedirect`, `can` são **no-op** — validam só sessão + `status='active'`. Matriz original preservada em `src/lib/permissions.disabled.ts` (não-importada).
 
-- `requireCapability(cap)` — server actions sensíveis (lança Error).
-- `requireCapabilityOrRedirect(cap, redirectTo?)` — Server Components / pages.
-- `requireCapabilityWithContext(cap, { targetUserId?, targetBranchIds? })` — adiciona (a) escopo de filial (non-`super_admin` só age sobre filiais em `user_branch`) e (b) hierarquia de role (não gerencia igual/superior; `users.suspend/delete/update_role` não miram a si mesmo).
+**O padrão obrigatório em server actions continua sendo `await requireCapability(cap)` ou `requireCapabilityWithContext(cap, ctx)`** — assim, quando religar, todos os endpoints já estão cobertos sem varredura. **Nunca remover essas chamadas; novos endpoints precisam delas.**
 
-Matriz canônica em `ROLE_CAPS`. `super_admin` tem `SUPER_ADMIN_EXCLUSIVE` (`branches.manage`, `branches.set_default`, `users.delete`, `audit.read`).
+Guard-rails mantidos dentro dos no-ops:
 
-`audit.read` em `MANAGER_CAPS` e `ADMIN_CAPS` (admin herda via `ALL_CAPS - SUPER_ADMIN_EXCLUSIVE`). `super_admin` também tem (via `ALL_CAPS`).
+- `ensureActive(session)` — bloqueia `pending` / `suspended` (defesa-em-profundidade).
+- Self-action guard em `users.suspend` / `users.delete` / `users.update_role`.
+- Last super_admin guard — `assertNotLastActiveSuperAdmin` bloqueia rebaixar/suspender/deletar o último `super_admin` `active`.
+
+`requireRole` em `src/lib/session.ts` também é no-op (mesma validação). `ROLE_WEIGHT` permanece (usado em `<RoleBadge>` e formulários).
 
 Bootstrap do primeiro `super_admin` via SQL: `UPDATE "user" SET role='super_admin', status='active' WHERE email='...'`.
+
+Reativar: ver `docs/adr/0012-disable-role-based-gates.md`.
 
 ## Imports
 
@@ -65,3 +69,7 @@ Mutações de pedido (status, anexos) passam por `lockOrderAndAuthorize(tx, cap,
 ## Smoke run-time
 
 `tsc` não detecta SQL inválido em template strings nem queries com colunas removidas. Após mexer em schema ou queries SSR: `bun dev:web` + visitar rotas afetadas. Stack trace via `nextjs_call <port> get_errors` (MCP `next-devtools`).
+
+## Testes — gap conhecido
+
+`__tests__/activity.test.ts` falha com `Cannot find package 'server-only'` em ambiente vitest. `src/lib/activity.ts` importa `server-only` (boundary do Next), que não tem stub no test runner. Fix esperado: adicionar `resolve.alias['server-only'] = path/to/stub` em `vitest.config.ts` (ou `vi.mock('server-only', () => ({}))` em setup file). Pré-existente; não regressão.
