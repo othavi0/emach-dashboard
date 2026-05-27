@@ -22,6 +22,7 @@ import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { suggestBranchForCep } from "../_lib/branch-suggestion";
 import {
 	addOrderNote,
 	assignBranch,
@@ -287,7 +288,20 @@ export function OrderActionsPanel({
 	order,
 }: OrderActionsPanelProps) {
 	const router = useRouter();
-	const [branchId, setBranchId] = useState(order.branchId ?? "");
+	const [branchId, setBranchId] = useState(() => {
+		if (order.branchId) {
+			return order.branchId;
+		}
+		// Pre-fill com sugestão por CEP apenas em paid (próxima ação = preparing)
+		if (order.status === "paid") {
+			const suggested = suggestBranchForCep(
+				order.shippingAddress.zipCode ?? "",
+				branches.map((b) => ({ id: b.id, cepRanges: b.cepRanges ?? null }))
+			);
+			return suggested ?? "";
+		}
+		return "";
+	});
 	const [trackingCode, setTrackingCode] = useState(
 		order.shippingTrackingCode ?? ""
 	);
