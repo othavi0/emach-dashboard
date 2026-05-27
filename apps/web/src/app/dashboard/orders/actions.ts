@@ -23,6 +23,7 @@ import {
 	requireCapability,
 	requireCapabilityWithContext,
 } from "@/lib/permissions";
+import { applyStockReturns } from "./_lib/stock-returns";
 import {
 	fetchOrdersPage as fetchOrdersPageImpl,
 	type OrderListItem,
@@ -149,71 +150,6 @@ export async function lockOrderAndAuthorize(
 	return { status: locked.status, branchId: locked.branchId, session };
 }
 
-async function applyStockReturns(
-	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-	orderId: string,
-	returnItems: { branchId: string; orderItemId: string }[],
-	userId: string
-) {
-	for (const item of returnItems) {
-		const [oi] = await tx
-			.select({
-				quantity: orderItem.quantity,
-				variantId: orderItem.variantId,
-			})
-			.from(orderItem)
-			.where(
-				and(eq(orderItem.id, item.orderItemId), eq(orderItem.orderId, orderId))
-			);
-
-		if (!oi) {
-			continue;
-		}
-
-		const [sl] = await tx
-			.select({ quantity: stockLevel.quantity })
-			.from(stockLevel)
-			.where(
-				and(
-					eq(stockLevel.variantId, oi.variantId),
-					eq(stockLevel.branchId, item.branchId)
-				)
-			)
-			.for("update");
-
-		const previousQty = sl?.quantity ?? 0;
-		const newQty = previousQty + oi.quantity;
-
-		await tx
-			.insert(stockLevel)
-			.values({
-				variantId: oi.variantId,
-				branchId: item.branchId,
-				quantity: newQty,
-				updatedAt: new Date(),
-			})
-			.onConflictDoUpdate({
-				target: [stockLevel.variantId, stockLevel.branchId],
-				set: { quantity: newQty, updatedAt: new Date() },
-			});
-
-		await tx.insert(stockMovement).values({
-			id: crypto.randomUUID(),
-			variantId: oi.variantId,
-			branchId: item.branchId,
-			previousQty,
-			newQty,
-			delta: oi.quantity,
-			reason: "ajuste_inventario",
-			reasonNote: "Devolução ao estoque — pedido devolvido",
-			orderId,
-			orderItemId: item.orderItemId,
-			actorType: "user",
-			actorId: userId,
-		});
-	}
-}
-
 export async function updateOrderStatus(
 	input: UpdateOrderStatusInput
 ): Promise<ActionResult> {
@@ -283,7 +219,13 @@ export async function updateOrderStatus(
 			// Canceled orders (especially unpaid ones) never debited stock, so we
 			// must NOT credit stock back on cancellation.
 			if (toStatus === "returned" && returnItems && returnItems.length > 0) {
-				await applyStockReturns(tx, orderId, returnItems, session.user.id);
+				await applyStockReturns(
+					tx,
+					orderId,
+					returnItems,
+					session.user.id,
+					"Devolução ao estoque — pedido devolvido"
+				);
 			}
 		});
 
