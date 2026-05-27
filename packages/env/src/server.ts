@@ -23,6 +23,7 @@ export const env = createEnv({
 		DATABASE_URL: z.string().min(1),
 		BETTER_AUTH_SECRET: z.string().min(32),
 		BETTER_AUTH_URL: z.url(),
+		CRON_SECRET: z.string().min(32),
 		CORS_ORIGIN: z.url(),
 		BETTER_AUTH_URL_ECOMMERCE: z.url().optional(),
 		ECOMMERCE_ORIGIN: z.url().optional(),

@@ -3,6 +3,7 @@ import {
 	check,
 	index,
 	integer,
+	jsonb,
 	pgTable,
 	primaryKey,
 	text,
@@ -33,6 +34,7 @@ export const branch = pgTable(
 		responsibleUserId: text("responsible_user_id").references(() => user.id, {
 			onDelete: "set null",
 		}),
+		cepRanges: jsonb("cep_ranges").$type<Array<{ from: string; to: string }>>(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()

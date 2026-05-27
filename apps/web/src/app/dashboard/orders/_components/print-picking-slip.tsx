@@ -35,10 +35,10 @@ export function PrintPickingSlip({ order }: PrintPickingSlipProps) {
 					</div>
 					<div>
 						<p className="text-muted-foreground text-xs uppercase tracking-wide">
-							Notas do cliente
+							Observação do cliente
 						</p>
 						<p className="text-sm">
-							Verifique endereço e embalagem antes do envio.
+							{order.customerNotes?.trim() ? order.customerNotes : "—"}
 						</p>
 					</div>
 				</div>
