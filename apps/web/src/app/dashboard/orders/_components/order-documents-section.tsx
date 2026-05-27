@@ -357,7 +357,7 @@ function AttachmentUploadForm({
 				autoComplete="off"
 				name="label"
 				onChange={(e) => setLabel(e.target.value)}
-				placeholder="Rótulo opcional (ex: NF fornecedor, boleto)"
+				placeholder="Rótulo (ex: foto defeito, NF de devolução)"
 				value={label}
 			/>
 
@@ -375,7 +375,7 @@ function AttachmentUploadForm({
 				) : (
 					<>
 						<UploadIcon aria-hidden="true" className="size-3.5" />
-						Enviar anexo
+						Enviar evidência
 					</>
 				)}
 			</Button>
@@ -414,7 +414,7 @@ function StaffAttachmentsBlock({
 	return (
 		<div className="flex flex-col gap-4">
 			<p className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
-				Anexos da equipe
+				Evidências e anexos
 			</p>
 
 			{attachments.length === 0 ? (
@@ -449,18 +449,22 @@ interface OrderDocumentsSectionProps {
 		| "nfeUrl"
 		| "nfeXmlUrl"
 		| "paymentReceiptUrl"
+		| "status"
 	>;
 }
 
 export function OrderDocumentsSection({ order }: OrderDocumentsSectionProps) {
 	const router = useRouter();
+	const highlightForReturn = order.status === "returned";
 
 	return (
-		<Card>
+		<Card className={highlightForReturn ? "border-amber-500" : undefined}>
 			<CardHeader>
 				<CardTitle>Documentos</CardTitle>
 				<CardDescription>
-					Comprovante Asaas, NF-e (somente leitura) e anexos da equipe.
+					Comprovante Asaas e NF-e (somente leitura). Anexos da equipe:
+					evidências de problemas em itens (foto de defeito enviada pelo
+					cliente), úteis para auditoria de devolução.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

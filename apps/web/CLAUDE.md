@@ -62,6 +62,22 @@ CHECK `actor_coherence` no DB rejeita combinações inválidas.
 
 Mutações de pedido (status, anexos) passam por `lockOrderAndAuthorize(tx, cap, orderId)` em `dashboard/orders/actions.ts`: `SELECT ... FOR UPDATE` **e** capability check no mesmo lock — non-`super_admin` só age sobre pedidos da própria filial. Toda transição escreve em `orderStatusHistory`; `canceled`/`refunded`/`returned` exigem `reason`, `preparing` exige `branchId`.
 
+## Cron jobs (Vercel Cron)
+
+Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bearer ${env.CRON_SECRET}`. Vercel injeta automaticamente quando o cron declarado em `apps/web/vercel.json` dispara. `CRON_SECRET` é env obrigatória (32+ chars) validada em `packages/env/src/server.ts`.
+
+**Convenções:**
+
+- `export const dynamic = "force-dynamic"` + `runtime = "nodejs"` no topo do handler.
+- Authorize ANTES de qualquer query: `if (authHeader !== \`Bearer \${env.CRON_SECRET}\`) return 401`.
+- Processar item-a-item em transações separadas com `FOR UPDATE` + re-check de estado (idempotência contra disparo concorrente + race com ecommerce).
+- `actorType: 'system'`, `actorUserId: null` em writes — CHECK `actor_coherence` no DB exige.
+- Logar erros por item via `logger.error("jobName", { id, err })` sem abortar o batch.
+
+**Gerar secret:** `openssl rand -hex 32`. Em produção: configurar em **Vercel > Project Settings > Environment Variables (Production)**. Vercel Cron só dispara em deploys de produção (não preview).
+
+**Job ativo:** `/api/cron/cancel-stale-orders` — diário 04:00 UTC; cancela `pending_payment` com `createdAt < now() - 72h`.
+
 ## Cache (Next 16)
 
 `cacheTag` por feature (`'orders'`, `'customers'`, `'site-banners'`...). `revalidateTag` em mutations. Ver skill `next-cache-components`.

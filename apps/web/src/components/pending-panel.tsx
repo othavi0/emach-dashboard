@@ -24,6 +24,7 @@ export type PendingRole =
 	| "warning";
 
 export interface PendingRow {
+	aging?: { level: "ok" | "warn" | "late"; label: string };
 	badge?: { label: string; role: PendingRole };
 	href: string;
 	id: string;
@@ -111,6 +112,17 @@ function PendingTabContent({
 									)}
 								>
 									{row.badge.label}
+								</span>
+							)}
+							{row.aging && row.aging.level !== "ok" && (
+								<span
+									className={
+										row.aging.level === "late"
+											? "rounded-md bg-destructive/15 px-2 py-0.5 font-medium text-[11px] text-destructive"
+											: "rounded-md bg-amber-100 px-2 py-0.5 font-medium text-[11px] text-amber-900 dark:bg-amber-900/30 dark:text-amber-200"
+									}
+								>
+									{row.aging.label}
 								</span>
 							)}
 						</Link>

@@ -53,6 +53,15 @@ export function PrintShippingLabel({ order }: PrintShippingLabelProps) {
 						<span>{order.shippingMethod ?? "—"}</span>
 					</div>
 				</div>
+
+				{order.customerNotes?.trim() && (
+					<div className="border border-amber-400 bg-amber-50 p-3 text-sm">
+						<p className="font-medium text-xs uppercase tracking-wide">
+							Observação do cliente
+						</p>
+						<p className="mt-1">{order.customerNotes}</p>
+					</div>
+				)}
 			</CardContent>
 		</Card>
 	);

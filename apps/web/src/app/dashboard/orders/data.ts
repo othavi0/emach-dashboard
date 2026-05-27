@@ -50,6 +50,7 @@ export interface OrderListResult {
 }
 
 export interface BranchOption {
+	cepRanges: Array<{ from: string; to: string }> | null;
 	id: string;
 	name: string;
 }
@@ -126,6 +127,8 @@ export interface OrderDetail {
 	clientName: string;
 	clientPhone: string | null;
 	createdAt: Date;
+	/** Observação preenchida pelo CLIENTE no checkout (ex.: "deixar com porteiro"). */
+	customerNotes: string | null;
 	deliveredAt: Date | null;
 	history: OrderHistoryItem[];
 	id: string;
@@ -196,7 +199,7 @@ export async function listOrderBranches(): Promise<BranchOption[]> {
 	const session = await requireCurrentSession();
 	const scope = await getUserBranchScope(session);
 	const query = db
-		.select({ id: branch.id, name: branch.name })
+		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
 		.from(branch)
 		.orderBy(asc(branch.name));
 	if (scope === null) {
@@ -206,7 +209,7 @@ export async function listOrderBranches(): Promise<BranchOption[]> {
 		return [];
 	}
 	return db
-		.select({ id: branch.id, name: branch.name })
+		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
 		.from(branch)
 		.where(inArray(branch.id, scope))
 		.orderBy(asc(branch.name));
@@ -603,6 +606,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			delivered_at: Date | null;
 			id: string;
 			nfe_number: string | null;
+			customer_notes: string | null;
 			nfe_status: string | null;
 			nfe_url: string | null;
 			nfe_xml_url: string | null;
@@ -643,6 +647,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				o.nfe_url,
 				o.nfe_xml_url,
 				o.nfe_status,
+				o.notes AS customer_notes,
 				c.id AS client_id,
 				c.name AS client_name,
 				c.email AS client_email,
@@ -727,6 +732,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		status: row.status,
 		clientId: row.client_id,
 		clientName: row.client_name,
+		customerNotes: row.customer_notes,
 		clientEmail: row.client_email,
 		clientPhone: row.client_phone,
 		branchId: row.branch_id,

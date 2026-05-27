@@ -23,6 +23,7 @@ import {
 	requireCapability,
 	requireCapabilityWithContext,
 } from "@/lib/permissions";
+import { applyStockReturns } from "./_lib/stock-returns";
 import {
 	fetchOrdersPage as fetchOrdersPageImpl,
 	type OrderListItem,
@@ -38,6 +39,8 @@ import {
 	addOrderNoteSchema,
 	assignBranchSchema,
 	capForStatus,
+	type RefundOrderInput,
+	refundOrderSchema,
 	type UpdateOrderStatusInput,
 	type UpdateTrackingCodeInput,
 	updateOrderStatusSchema,
@@ -149,71 +152,6 @@ export async function lockOrderAndAuthorize(
 	return { status: locked.status, branchId: locked.branchId, session };
 }
 
-async function applyStockReturns(
-	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-	orderId: string,
-	returnItems: { branchId: string; orderItemId: string }[],
-	userId: string
-) {
-	for (const item of returnItems) {
-		const [oi] = await tx
-			.select({
-				quantity: orderItem.quantity,
-				variantId: orderItem.variantId,
-			})
-			.from(orderItem)
-			.where(
-				and(eq(orderItem.id, item.orderItemId), eq(orderItem.orderId, orderId))
-			);
-
-		if (!oi) {
-			continue;
-		}
-
-		const [sl] = await tx
-			.select({ quantity: stockLevel.quantity })
-			.from(stockLevel)
-			.where(
-				and(
-					eq(stockLevel.variantId, oi.variantId),
-					eq(stockLevel.branchId, item.branchId)
-				)
-			)
-			.for("update");
-
-		const previousQty = sl?.quantity ?? 0;
-		const newQty = previousQty + oi.quantity;
-
-		await tx
-			.insert(stockLevel)
-			.values({
-				variantId: oi.variantId,
-				branchId: item.branchId,
-				quantity: newQty,
-				updatedAt: new Date(),
-			})
-			.onConflictDoUpdate({
-				target: [stockLevel.variantId, stockLevel.branchId],
-				set: { quantity: newQty, updatedAt: new Date() },
-			});
-
-		await tx.insert(stockMovement).values({
-			id: crypto.randomUUID(),
-			variantId: oi.variantId,
-			branchId: item.branchId,
-			previousQty,
-			newQty,
-			delta: oi.quantity,
-			reason: "ajuste_inventario",
-			reasonNote: "Devolução ao estoque — pedido devolvido",
-			orderId,
-			orderItemId: item.orderItemId,
-			actorType: "user",
-			actorId: userId,
-		});
-	}
-}
-
 export async function updateOrderStatus(
 	input: UpdateOrderStatusInput
 ): Promise<ActionResult> {
@@ -283,7 +221,13 @@ export async function updateOrderStatus(
 			// Canceled orders (especially unpaid ones) never debited stock, so we
 			// must NOT credit stock back on cancellation.
 			if (toStatus === "returned" && returnItems && returnItems.length > 0) {
-				await applyStockReturns(tx, orderId, returnItems, session.user.id);
+				await applyStockReturns(
+					tx,
+					orderId,
+					returnItems,
+					session.user.id,
+					"Devolução ao estoque — pedido devolvido"
+				);
 			}
 		});
 
@@ -448,5 +392,73 @@ export async function updateTrackingCode(
 			return { ok: false, error: "Pedido não encontrado" };
 		}
 		return { ok: false, error: "Erro ao atualizar rastreio" };
+	}
+}
+
+export async function refundOrder(
+	input: RefundOrderInput
+): Promise<ActionResult> {
+	const parsed = refundOrderSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+
+	const { orderId, reason, creditStock, returnItems } = parsed.data;
+
+	try {
+		await db.transaction(async (tx) => {
+			const locked = await lockOrderAndAuthorize(tx, "orders.refund", orderId);
+			if (!locked) {
+				throw new Error("Pedido não encontrado");
+			}
+
+			const { session } = locked;
+			const currentStatus = locked.status as OrderStatus;
+			const allowed = VALID_TRANSITIONS[currentStatus];
+			if (!allowed?.includes("refunded")) {
+				throw new Error(`Transição inválida: ${currentStatus} → refunded`);
+			}
+
+			await tx
+				.update(order)
+				.set({ status: "refunded", refundedAt: new Date() })
+				.where(eq(order.id, orderId));
+
+			await tx.insert(orderStatusHistory).values({
+				id: crypto.randomUUID(),
+				orderId,
+				fromStatus: currentStatus,
+				toStatus: "refunded",
+				actorType: "user",
+				actorUserId: session.user.id,
+				reason,
+			});
+
+			if (creditStock && returnItems && returnItems.length > 0) {
+				await applyStockReturns(
+					tx,
+					orderId,
+					returnItems,
+					session.user.id,
+					"Estoque creditado em reembolso"
+				);
+			}
+		});
+
+		revalidatePath(ORDERS_PATH);
+		revalidatePath(`${ORDERS_PATH}/${orderId}`);
+		return { ok: true, data: undefined };
+	} catch (error) {
+		logger.error("refundOrder", error);
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para reembolsar este pedido." };
+		}
+		return {
+			ok: false,
+			error: error instanceof Error ? error.message : "Erro interno",
+		};
 	}
 }

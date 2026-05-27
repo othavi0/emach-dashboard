@@ -3,6 +3,12 @@ import { z } from "zod";
 const phoneRegex = /^(\+?55)?\s*\(?\d{2}\)?\s*\d{4,5}-?\d{4}$/;
 const cepDigitsRegex = /^\d{8}$/;
 const ufRegex = /^[A-Z]{2}$/;
+const CEP_RANGE_REGEX = /^\d{5}-?\d{3}$/;
+
+export const cepRangeSchema = z.object({
+	from: z.string().regex(CEP_RANGE_REGEX, "CEP inválido (00000-000)"),
+	to: z.string().regex(CEP_RANGE_REGEX, "CEP inválido (00000-000)"),
+});
 
 const optionalTrimmed = z
 	.string()
@@ -59,6 +65,7 @@ export const branchSchema = z
 			.transform((v) => (v ? v : undefined))
 			.refine((v) => !v || ufRegex.test(v), "UF inválido (use 2 letras)"),
 		responsibleUserId: optionalTrimmed.pipe(z.string().min(1).optional()),
+		cepRanges: z.array(cepRangeSchema).max(20).optional().nullable(),
 	})
 	.refine(
 		(data) => {

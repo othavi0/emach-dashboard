@@ -22,6 +22,7 @@ import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { suggestBranchForCep } from "../_lib/branch-suggestion";
 import {
 	addOrderNote,
 	assignBranch,
@@ -30,6 +31,7 @@ import {
 } from "../actions";
 import type { BranchOption, OrderDetail, OrderStatus } from "../data";
 import { ORDER_STATUS_LABELS } from "../status-meta";
+import { CancelOrderDialog } from "./cancel-order-dialog";
 import { RefundDialog } from "./refund-dialog";
 import { StockReturnDialog } from "./stock-return-dialog";
 
@@ -286,7 +288,20 @@ export function OrderActionsPanel({
 	order,
 }: OrderActionsPanelProps) {
 	const router = useRouter();
-	const [branchId, setBranchId] = useState(order.branchId ?? "");
+	const [branchId, setBranchId] = useState(() => {
+		if (order.branchId) {
+			return order.branchId;
+		}
+		// Pre-fill com sugestão por CEP apenas em paid (próxima ação = preparing)
+		if (order.status === "paid") {
+			const suggested = suggestBranchForCep(
+				order.shippingAddress.zipCode ?? "",
+				branches.map((b) => ({ id: b.id, cepRanges: b.cepRanges ?? null }))
+			);
+			return suggested ?? "";
+		}
+		return "";
+	});
 	const [trackingCode, setTrackingCode] = useState(
 		order.shippingTrackingCode ?? ""
 	);
@@ -404,17 +419,7 @@ export function OrderActionsPanel({
 							Cancelamento, devolução e reembolso fora do fluxo principal.
 						</p>
 						<div className="flex flex-wrap gap-2">
-							{showCancelException && (
-								<StockReturnDialog
-									branches={branches}
-									currentBranchId={order.branchId}
-									items={order.items}
-									orderId={order.id}
-									toStatus="canceled"
-									triggerLabel="Cancelar pedido"
-									triggerVariant="destructive"
-								/>
-							)}
+							{showCancelException && <CancelOrderDialog orderId={order.id} />}
 							{showReturnException && (
 								<StockReturnDialog
 									branches={branches}
@@ -426,7 +431,15 @@ export function OrderActionsPanel({
 									triggerVariant="warning"
 								/>
 							)}
-							{showRefundException && <RefundDialog orderId={order.id} />}
+							{showRefundException && (
+								<RefundDialog
+									branches={branches}
+									currentBranchId={order.branchId}
+									currentStatus={order.status}
+									items={order.items}
+									orderId={order.id}
+								/>
+							)}
 						</div>
 					</CardContent>
 				</>

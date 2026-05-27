@@ -99,3 +99,31 @@ DROP TRIGGER IF EXISTS trg_derive_client_type ON client;
 CREATE TRIGGER trg_derive_client_type
 BEFORE INSERT OR UPDATE OF document, client_type ON client
 FOR EACH ROW EXECUTE FUNCTION derive_client_type();
+
+-- =============================================================
+-- Trigger: insere order_note quando nfe_status muda para 'cancelled'.
+-- Garante que o staff veja o evento no histórico de notas mesmo se o ecommerce
+-- atualizar o campo sem passar pelo dashboard.
+-- =============================================================
+CREATE OR REPLACE FUNCTION order_nfe_cancelled_note() RETURNS trigger
+LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF NEW.nfe_status = 'cancelled'
+     AND OLD.nfe_status IS DISTINCT FROM 'cancelled'
+  THEN
+    INSERT INTO public.order_note (id, order_id, author_id, body, created_at)
+    VALUES (
+      extensions.gen_random_uuid()::text,
+      NEW.id,
+      NULL,
+      'NF-e cancelada (status alterado para cancelled no Asaas) — verificar com financeiro.',
+      now()
+    );
+  END IF;
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS trg_order_nfe_cancelled ON "order";
+CREATE TRIGGER trg_order_nfe_cancelled
+AFTER UPDATE OF nfe_status ON "order"
+FOR EACH ROW EXECUTE FUNCTION order_nfe_cancelled_note();
