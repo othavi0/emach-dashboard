@@ -105,14 +105,15 @@ FOR EACH ROW EXECUTE FUNCTION derive_client_type();
 -- Garante que o staff veja o evento no histórico de notas mesmo se o ecommerce
 -- atualizar o campo sem passar pelo dashboard.
 -- =============================================================
-CREATE OR REPLACE FUNCTION order_nfe_cancelled_note() RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION order_nfe_cancelled_note() RETURNS trigger
+LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
   IF NEW.nfe_status = 'cancelled'
      AND (OLD.nfe_status IS NULL OR OLD.nfe_status IS DISTINCT FROM 'cancelled')
   THEN
-    INSERT INTO order_note (id, order_id, author_id, body, created_at)
+    INSERT INTO public.order_note (id, order_id, author_id, body, created_at)
     VALUES (
-      gen_random_uuid()::text,
+      extensions.gen_random_uuid()::text,
       NEW.id,
       NULL,
       'NF-e cancelada (status alterado para cancelled no Asaas) — verificar com financeiro.',
@@ -120,8 +121,7 @@ BEGIN
     );
   END IF;
   RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+END $$;
 
 DROP TRIGGER IF EXISTS trg_order_nfe_cancelled ON "order";
 CREATE TRIGGER trg_order_nfe_cancelled
