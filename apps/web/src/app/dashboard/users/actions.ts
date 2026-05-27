@@ -1,7 +1,7 @@
 "use server";
 
-import { authDashboard } from "@emach/auth/dashboard";
 import type { DashboardSession } from "@emach/auth/dashboard";
+import { authDashboard } from "@emach/auth/dashboard";
 import { db } from "@emach/db";
 import {
 	session as sessionTable,
