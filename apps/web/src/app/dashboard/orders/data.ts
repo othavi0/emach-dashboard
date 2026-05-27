@@ -50,6 +50,7 @@ export interface OrderListResult {
 }
 
 export interface BranchOption {
+	cepRanges: Array<{ from: string; to: string }> | null;
 	id: string;
 	name: string;
 }
@@ -198,7 +199,7 @@ export async function listOrderBranches(): Promise<BranchOption[]> {
 	const session = await requireCurrentSession();
 	const scope = await getUserBranchScope(session);
 	const query = db
-		.select({ id: branch.id, name: branch.name })
+		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
 		.from(branch)
 		.orderBy(asc(branch.name));
 	if (scope === null) {
@@ -208,7 +209,7 @@ export async function listOrderBranches(): Promise<BranchOption[]> {
 		return [];
 	}
 	return db
-		.select({ id: branch.id, name: branch.name })
+		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
 		.from(branch)
 		.where(inArray(branch.id, scope))
 		.orderBy(asc(branch.name));
