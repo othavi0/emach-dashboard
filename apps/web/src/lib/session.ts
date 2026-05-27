@@ -33,17 +33,14 @@ export const requireCurrentSession = async (): Promise<DashboardSession> => {
 	return session;
 };
 
+// ⚠️ Gates role-based desligados em 2026-05-27 (ver docs/adr/0012-disable-role-based-gates.md).
+// Validação por ROLE_WEIGHT recuperável via `git log -p -- apps/web/src/lib/session.ts`.
 export const requireRole = async (
-	role: UserRole
+	_role: UserRole
 ): Promise<DashboardSession> => {
 	const session = await requireCurrentSession();
-	const currentRole = (session.user.role ?? "user") as UserRole;
-
-	if (ROLE_WEIGHT[currentRole] < ROLE_WEIGHT[role]) {
-		throw new Error(
-			`Forbidden: role "${currentRole}" nao atende ao requisito "${role}"`
-		);
+	if (session.user.status !== "active") {
+		throw new Error("Conta não ativa");
 	}
-
 	return session;
 };
