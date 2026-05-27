@@ -313,6 +313,121 @@ export async function getUserActivity(
 	};
 }
 
+/**
+ * Atividade SOFRIDA pelo user (target). Filtra por targetType='user' + targetId.
+ */
+export async function getUserAffectedActivity(
+	userId: string,
+	cursor: string | null,
+	limit = 25
+): Promise<InfiniteResult<UserActivityRow & { actorName: string | null }>> {
+	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
+	const rows = await db
+		.select({
+			id: userActivityLog.id,
+			action: userActivityLog.action,
+			createdAt: userActivityLog.createdAt,
+			metadata: userActivityLog.metadata,
+			targetId: userActivityLog.targetId,
+			targetType: userActivityLog.targetType,
+			actorName: userTable.name,
+		})
+		.from(userActivityLog)
+		.leftJoin(userTable, eq(userTable.id, userActivityLog.actorUserId))
+		.where(
+			and(
+				eq(userActivityLog.targetType, "user"),
+				eq(userActivityLog.targetId, userId),
+				decoded
+					? lte(userActivityLog.createdAt, new Date(decoded.createdAt))
+					: undefined
+			)
+		)
+		.orderBy(desc(userActivityLog.createdAt))
+		.limit(limit + 1);
+
+	const hasMore = rows.length > limit;
+	const items = hasMore ? rows.slice(0, limit) : rows;
+	const last = items.at(-1);
+	const nextCursor =
+		hasMore && last
+			? encodeCursor({
+					v: 1,
+					sort: "newest",
+					createdAt: last.createdAt.toISOString(),
+					id: last.id,
+				})
+			: null;
+
+	return {
+		items: items.map((r) => ({
+			action: r.action,
+			actorName:
+				r.actorName ??
+				((r.metadata as Record<string, unknown> | null)?.actorName as
+					| string
+					| null) ??
+				null,
+			createdAt: r.createdAt,
+			id: r.id,
+			metadata: (r.metadata as Record<string, unknown> | null) ?? null,
+			targetId: r.targetId,
+			targetType: r.targetType,
+		})),
+		nextCursor,
+	};
+}
+
+export async function getUserActivityFeedPaginated(
+	cursor: string | null,
+	limit = 20
+): Promise<
+	InfiniteResult<{
+		action: string;
+		actorName: string | null;
+		createdAt: Date;
+		id: string;
+		targetId: string | null;
+	}>
+> {
+	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
+	const rows = await db
+		.select({
+			action: userActivityLog.action,
+			actorName: userTable.name,
+			createdAt: userActivityLog.createdAt,
+			id: userActivityLog.id,
+			targetId: userActivityLog.targetId,
+		})
+		.from(userActivityLog)
+		.leftJoin(userTable, eq(userTable.id, userActivityLog.actorUserId))
+		.where(
+			and(
+				ilike(userActivityLog.action, "user.%"),
+				decoded
+					? sql`(${userActivityLog.createdAt}, ${userActivityLog.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+					: undefined
+			)
+		)
+		.orderBy(desc(userActivityLog.createdAt), desc(userActivityLog.id))
+		.limit(limit + 1);
+
+	const hasMore = rows.length > limit;
+	const items = hasMore ? rows.slice(0, limit) : rows;
+	const last = items.at(-1);
+	const nextCursor =
+		hasMore && last
+			? encodeCursor({
+					v: 1,
+					sort: "newest",
+					createdAt: last.createdAt.toISOString(),
+					id: last.id,
+				})
+			: null;
+
+	return { items, nextCursor };
+}
+
 export async function getRecentUserActivity(limit = 8) {
 	return await db
 		.select({

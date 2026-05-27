@@ -19,7 +19,12 @@ function getInitials(name: string): string {
 		.join("");
 }
 
-export function UserIdentity({ user }: { user: UserDetail }) {
+interface Props {
+	extraActions?: React.ReactNode;
+	user: UserDetail;
+}
+
+export function UserIdentity({ user, extraActions }: Props) {
 	const router = useRouter();
 	const pathname = usePathname();
 	const params = useSearchParams();
@@ -33,10 +38,13 @@ export function UserIdentity({ user }: { user: UserDetail }) {
 	return (
 		<EntityIdentityHeader
 			actions={
-				<Button onClick={handleEdit} size="sm" variant="outline">
-					<Pencil aria-hidden className="mr-1.5 size-3.5" />
-					Editar
-				</Button>
+				<div className="flex items-center gap-2">
+					<Button onClick={handleEdit} size="sm" variant="outline">
+						<Pencil aria-hidden className="mr-1.5 size-3.5" />
+						Editar
+					</Button>
+					{extraActions}
+				</div>
 			}
 			avatarFallback={getInitials(user.name)}
 			avatarUrl={user.image}
