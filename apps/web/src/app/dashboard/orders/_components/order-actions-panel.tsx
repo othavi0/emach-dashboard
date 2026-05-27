@@ -30,6 +30,7 @@ import {
 } from "../actions";
 import type { BranchOption, OrderDetail, OrderStatus } from "../data";
 import { ORDER_STATUS_LABELS } from "../status-meta";
+import { CancelOrderDialog } from "./cancel-order-dialog";
 import { RefundDialog } from "./refund-dialog";
 import { StockReturnDialog } from "./stock-return-dialog";
 
@@ -404,17 +405,7 @@ export function OrderActionsPanel({
 							Cancelamento, devolução e reembolso fora do fluxo principal.
 						</p>
 						<div className="flex flex-wrap gap-2">
-							{showCancelException && (
-								<StockReturnDialog
-									branches={branches}
-									currentBranchId={order.branchId}
-									items={order.items}
-									orderId={order.id}
-									toStatus="canceled"
-									triggerLabel="Cancelar pedido"
-									triggerVariant="destructive"
-								/>
-							)}
+							{showCancelException && <CancelOrderDialog orderId={order.id} />}
 							{showReturnException && (
 								<StockReturnDialog
 									branches={branches}
