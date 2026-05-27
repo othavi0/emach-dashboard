@@ -69,3 +69,7 @@ Mutações de pedido (status, anexos) passam por `lockOrderAndAuthorize(tx, cap,
 ## Smoke run-time
 
 `tsc` não detecta SQL inválido em template strings nem queries com colunas removidas. Após mexer em schema ou queries SSR: `bun dev:web` + visitar rotas afetadas. Stack trace via `nextjs_call <port> get_errors` (MCP `next-devtools`).
+
+## Testes — gap conhecido
+
+`__tests__/activity.test.ts` falha com `Cannot find package 'server-only'` em ambiente vitest. `src/lib/activity.ts` importa `server-only` (boundary do Next), que não tem stub no test runner. Fix esperado: adicionar `resolve.alias['server-only'] = path/to/stub` em `vitest.config.ts` (ou `vi.mock('server-only', () => ({}))` em setup file). Pré-existente; não regressão.
