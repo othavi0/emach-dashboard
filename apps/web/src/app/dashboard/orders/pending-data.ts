@@ -6,13 +6,13 @@ import {
 } from "@emach/db/schema/orders";
 import { toDate } from "@emach/db/utils";
 import { and, desc, eq, sql } from "drizzle-orm";
-
 import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursorAs } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
+import { formatAgingLabel, getAgingLevel } from "./_lib/aging";
 import { ORDER_STATUS_LABELS } from "./status-meta";
 
 const PENDING_ORDER_BADGE: Record<string, NonNullable<PendingRow["badge"]>> = {
@@ -57,11 +57,23 @@ export async function fetchPendingOrdersPage({
 	const rows = await db.execute<{
 		client_name: string;
 		created_at: Date;
+		entered_at: Date | null;
 		id: string;
 		number: string;
 		status: OrderStatus;
 	}>(sql`
-		SELECT o.id, o.number, o.status, o.created_at, c.name AS client_name
+		SELECT
+			o.id,
+			o.number,
+			o.status,
+			o.created_at,
+			c.name AS client_name,
+			CASE o.status
+				WHEN 'paid' THEN o.paid_at
+				WHEN 'preparing' THEN o.preparing_at
+				WHEN 'shipped' THEN o.shipped_at
+				ELSE o.created_at
+			END AS entered_at
 		FROM "order" o
 		JOIN client c ON c.id = o.client_id
 		WHERE ${sql.join(conditions, sql` AND `)}
@@ -70,15 +82,22 @@ export async function fetchPendingOrdersPage({
 	`);
 	return paginate(
 		rows.rows,
-		(r): PendingRow => ({
-			id: r.id,
-			href: `/dashboard/orders/${r.id}`,
-			primary: `#${r.number} · ${r.client_name}`,
-			badge: PENDING_ORDER_BADGE[r.status] ?? {
-				label: r.status,
-				role: "info",
-			},
-		}),
+		(r): PendingRow => {
+			const enteredAt = r.entered_at ? toDate(r.entered_at) : null;
+			const level = getAgingLevel(r.status, enteredAt);
+			return {
+				id: r.id,
+				href: `/dashboard/orders/${r.id}`,
+				primary: `#${r.number} · ${r.client_name}`,
+				badge: PENDING_ORDER_BADGE[r.status] ?? {
+					label: r.status,
+					role: "info",
+				},
+				aging: enteredAt
+					? { level, label: formatAgingLabel(enteredAt) }
+					: undefined,
+			};
+		},
 		(last) => ({
 			v: 1,
 			sort: "newest",
