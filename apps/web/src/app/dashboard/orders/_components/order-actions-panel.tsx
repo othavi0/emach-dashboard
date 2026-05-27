@@ -417,7 +417,15 @@ export function OrderActionsPanel({
 									triggerVariant="warning"
 								/>
 							)}
-							{showRefundException && <RefundDialog orderId={order.id} />}
+							{showRefundException && (
+								<RefundDialog
+									branches={branches}
+									currentBranchId={order.branchId}
+									currentStatus={order.status}
+									items={order.items}
+									orderId={order.id}
+								/>
+							)}
 						</div>
 					</CardContent>
 				</>
