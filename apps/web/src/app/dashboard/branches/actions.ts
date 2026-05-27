@@ -37,6 +37,7 @@ function normalizePayload(input: BranchFormValues) {
 		city: input.city ?? null,
 		state: input.state ?? null,
 		responsibleUserId: input.responsibleUserId ?? null,
+		cepRanges: input.cepRanges ?? null,
 	};
 }
 
