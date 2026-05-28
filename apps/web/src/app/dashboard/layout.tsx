@@ -6,11 +6,13 @@ import {
 	SidebarTrigger,
 } from "@emach/ui/components/sidebar";
 import { count, eq } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { can } from "@/lib/permissions";
 import type { UserRole } from "@/lib/session";
 import { getUserStatus, requireCurrentSession } from "@/lib/session";
+import { parseSidebarCookie, SIDEBAR_COOKIE_NAME } from "@/lib/sidebar-cookie";
 import { AppSidebar } from "./_components/app-sidebar";
 import { getReporCount } from "./_lib/repor-count";
 
@@ -43,8 +45,13 @@ export default async function DashboardLayout({
 
 	const pendingCount = Number(pendingCountRow?.value ?? 0);
 
+	const cookieStore = await cookies();
+	const sidebarOpen = parseSidebarCookie(
+		`${SIDEBAR_COOKIE_NAME}=${cookieStore.get(SIDEBAR_COOKIE_NAME)?.value ?? ""}`
+	);
+
 	return (
-		<SidebarProvider>
+		<SidebarProvider defaultOpen={sidebarOpen}>
 			<AppSidebar
 				canManageUsers={canManageUsers}
 				pendingCount={pendingCount}
