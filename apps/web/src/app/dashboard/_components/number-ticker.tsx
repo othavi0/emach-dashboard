@@ -9,18 +9,24 @@ import {
 } from "motion/react";
 import { useEffect } from "react";
 
+export type NumberFormat = "currency" | "number";
+
+const FORMATTERS: Record<NumberFormat, (n: number) => string> = {
+	currency: (n) =>
+		n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+	number: (n) => Math.round(n).toLocaleString("pt-BR"),
+};
+
 export function NumberTicker({
 	value,
-	format,
+	format = "number",
 }: {
 	value: number;
-	format?: (n: number) => string;
+	format?: NumberFormat;
 }) {
 	const reduce = useReducedMotion();
 	const mv = useMotionValue(0);
-	const display = useTransform(mv, (n) =>
-		format ? format(n) : Math.round(n).toLocaleString("pt-BR")
-	);
+	const display = useTransform(mv, (n) => FORMATTERS[format](n));
 
 	useEffect(() => {
 		if (reduce) {
