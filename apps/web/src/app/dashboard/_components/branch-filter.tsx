@@ -7,7 +7,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@emach/ui/components/select";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useFilterState } from "@/lib/use-filter-state";
 
 export function BranchFilter({
 	options,
@@ -16,18 +17,11 @@ export function BranchFilter({
 	options: { id: string; name: string }[];
 	value: string | null;
 }) {
-	const router = useRouter();
 	const pathname = usePathname();
-	const params = useSearchParams();
+	const { setParam } = useFilterState({ basePath: pathname });
 
 	const onChange = (next: string | null) => {
-		const sp = new URLSearchParams(params.toString());
-		if (!next || next === "all") {
-			sp.delete("branch");
-		} else {
-			sp.set("branch", next);
-		}
-		router.push(`${pathname}?${sp.toString()}`);
+		setParam("branch", !next || next === "all" ? null : next);
 	};
 
 	return (

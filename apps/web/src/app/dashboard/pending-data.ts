@@ -157,10 +157,10 @@ export async function fetchExpiringPromotions(
 	cursor: string | null
 ): Promise<InfiniteResult<PendingRow>> {
 	await requireCurrentSession();
-	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
+	const decoded = cursor ? decodeCursorAs(cursor, "expiringPromo") : null;
 	// ordena por ends_at ASC (mais urgente primeiro) — keyset crescente
 	const keyset = decoded
-		? sql`AND (p.ends_at, p.id) > (${decoded.createdAt}::timestamp, ${decoded.id})`
+		? sql`AND (p.ends_at, p.id) > (${decoded.endsAt}::timestamp, ${decoded.id})`
 		: sql``;
 	const result = await db.execute<{
 		ends_at: string;
@@ -196,7 +196,12 @@ export async function fetchExpiringPromotions(
 				},
 			};
 		},
-		(last) => ({ v: 1, sort: "newest", createdAt: last.ends_at, id: last.id })
+		(last) => ({
+			v: 1,
+			sort: "expiringPromo",
+			endsAt: last.ends_at,
+			id: last.id,
+		})
 	);
 }
 
