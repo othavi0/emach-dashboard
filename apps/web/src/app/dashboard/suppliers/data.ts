@@ -5,40 +5,7 @@ import { user as userTable } from "@emach/db/schema/auth";
 import { toolCategory } from "@emach/db/schema/categories";
 import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
 import { supplier, tool } from "@emach/db/schema/tools";
-import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
-
-export interface SupplierKpis {
-	empty: number;
-	recent30d: number;
-	total: number;
-	withActive: number;
-}
-
-export async function getSupplierKpis(): Promise<SupplierKpis> {
-	const [total] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(supplier);
-	const [withActive] = await db
-		.select({ n: sql<number>`count(distinct ${supplier.id})::int` })
-		.from(supplier)
-		.innerJoin(tool, eq(tool.supplierId, supplier.id))
-		.where(eq(tool.status, "active"));
-	const [empty] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(supplier)
-		.leftJoin(tool, eq(tool.supplierId, supplier.id))
-		.where(isNull(tool.id));
-	const [recent] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(supplier)
-		.where(sql`${supplier.createdAt} >= now() - interval '30 days'`);
-	return {
-		total: total?.n ?? 0,
-		withActive: withActive?.n ?? 0,
-		empty: empty?.n ?? 0,
-		recent30d: recent?.n ?? 0,
-	};
-}
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
 export interface SupplierDetail {
 	cnpj: string | null;

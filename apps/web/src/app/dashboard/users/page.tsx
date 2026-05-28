@@ -7,10 +7,8 @@ import {
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
 import { asc } from "drizzle-orm";
-import { Ban, Building2, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
 import { ActivityFeed } from "@/components/activity-feed";
-import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { UsersCardGrid } from "./_components/users-card-grid";
@@ -95,29 +93,6 @@ export default async function UsersPage({ searchParams }: PageProps) {
 			<PageHeader
 				description="Equipe interna do Emach — aprovação, cargos e filiais."
 				title="Usuários"
-			/>
-			<EntityKpisRow
-				items={[
-					{ label: "Ativos", value: kpis.active, icon: CheckCircle2 },
-					{
-						label: "Pendentes",
-						value: kpis.pending,
-						tone: kpis.pending > 0 ? "warning" : "default",
-						icon: Clock,
-						href: buildStatusHref(sp, "pending"),
-					},
-					{
-						label: "Suspensos",
-						value: kpis.suspended,
-						tone: kpis.suspended > 0 ? "danger" : "default",
-						icon: Ban,
-					},
-					{
-						label: "Filiais cobertas",
-						value: kpis.branchesCovered,
-						icon: Building2,
-					},
-				]}
 			/>
 			<section className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<UsersPendingCard
