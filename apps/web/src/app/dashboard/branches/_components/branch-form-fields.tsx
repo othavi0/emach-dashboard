@@ -110,7 +110,9 @@ export function BranchFormFields({
 			<section className="flex flex-col gap-3">
 				<SectionHeader>Endereço</SectionHeader>
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="branch-cep">CEP</Label>
+					<Label htmlFor="branch-cep">
+						CEP <span className="text-destructive">*</span>
+					</Label>
 					<CepInput
 						disabled={disabled}
 						id="branch-cep"
@@ -120,7 +122,9 @@ export function BranchFormFields({
 					/>
 				</div>
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="branch-street">Rua</Label>
+					<Label htmlFor="branch-street">
+						Rua <span className="text-destructive">*</span>
+					</Label>
 					<Input
 						disabled={disabled}
 						id="branch-street"
@@ -130,7 +134,9 @@ export function BranchFormFields({
 				</div>
 				<div className="grid grid-cols-[100px_1fr] gap-3">
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="branch-number">Nº</Label>
+						<Label htmlFor="branch-number">
+							Nº <span className="text-destructive">*</span>
+						</Label>
 						<Input
 							disabled={disabled}
 							id="branch-number"
@@ -159,7 +165,9 @@ export function BranchFormFields({
 				</div>
 				<div className="grid grid-cols-[1fr_100px] gap-3">
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="branch-city">Cidade</Label>
+						<Label htmlFor="branch-city">
+							Cidade <span className="text-destructive">*</span>
+						</Label>
 						<Input
 							disabled={disabled}
 							id="branch-city"
@@ -168,7 +176,9 @@ export function BranchFormFields({
 						/>
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="branch-state">UF</Label>
+						<Label htmlFor="branch-state">
+							UF <span className="text-destructive">*</span>
+						</Label>
 						<Input
 							disabled={disabled}
 							id="branch-state"

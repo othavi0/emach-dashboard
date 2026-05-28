@@ -21,9 +21,11 @@ function monogramColor(lowStock: number): { bg: string; text: string } {
 }
 
 function initials(name: string): string {
-	return name
-		.split(" ")
-		.filter(Boolean)
+	const words = name.split(" ").filter(Boolean);
+	if (words.length === 1) {
+		return (words[0]?.slice(0, 2) ?? "").toUpperCase();
+	}
+	return words
 		.slice(0, 2)
 		.map((w) => w[0]?.toUpperCase() ?? "")
 		.join("");
@@ -36,6 +38,12 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 	const stockHref = `/dashboard/branches/${branch.id}?tab=stock`;
 	const editHref = `/dashboard/branches/${branch.id}?edit=1`;
 	const primaryHref = canManage ? detailHref : stockHref;
+	const stockValueFormatted = new Intl.NumberFormat("pt-BR", {
+		style: "currency",
+		currency: "BRL",
+		notation: "compact",
+		maximumFractionDigits: 1,
+	}).format(branch.stockValue);
 
 	return (
 		<div
@@ -71,7 +79,11 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 							<p className="line-clamp-1 text-muted-foreground text-xs">
 								{addr}
 							</p>
-						) : null;
+						) : (
+							<p className="line-clamp-1 text-muted-foreground/60 text-xs italic">
+								Endereço pendente
+							</p>
+						);
 					})()}
 					<div className="mt-1.5">
 						{branch.lowStock === 0 ? (
@@ -101,14 +113,20 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 					>
 						<Link
 							aria-label={`Ver estoque de ${branch.name}`}
-							className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+							className={buttonVariants({
+								size: "icon-sm",
+								variant: "secondary",
+							})}
 							href={stockHref}
 						>
 							<Boxes aria-hidden className="size-4" />
 						</Link>
 						<Link
 							aria-label={`Editar ${branch.name}`}
-							className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+							className={buttonVariants({
+								size: "icon-sm",
+								variant: "secondary",
+							})}
 							href={editHref}
 						>
 							<Pencil aria-hidden className="size-4" />
@@ -135,15 +153,11 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 					</span>
 				</div>
 				<div className="flex flex-col items-center py-3">
-					<span
-						className={`font-bold text-[20px] tabular-nums ${
-							branch.lowStock > 0 ? "text-amber-500" : "text-foreground"
-						}`}
-					>
-						{branch.lowStock}
+					<span className="font-bold text-[20px] text-foreground tabular-nums">
+						{stockValueFormatted}
 					</span>
 					<span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-						Abaixo mín.
+						Valor estoque
 					</span>
 				</div>
 			</div>

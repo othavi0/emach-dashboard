@@ -37,43 +37,6 @@ export async function getEligibleUsersForBranch(
 		.limit(20);
 }
 
-export interface BranchKpis {
-	lowStockCount: number;
-	openOrders: number;
-	stockValue: number;
-	total: number;
-}
-
-export async function getBranchKpis(): Promise<BranchKpis> {
-	const [total] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(branch);
-	const [low] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(stockLevel)
-		.where(
-			sql`${stockLevel.quantity} <= coalesce(${stockLevel.minQty}, 0) and coalesce(${stockLevel.minQty}, 0) > 0`
-		);
-	const [value] = await db
-		.select({
-			v: sql<number>`coalesce(sum(${stockLevel.quantity} * coalesce(${toolVariant.priceAmount}, 0)), 0)::float`,
-		})
-		.from(stockLevel)
-		.leftJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId));
-	const [open] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(order)
-		.where(
-			sql`${order.status} in ('pending_payment', 'paid', 'preparing', 'shipped')`
-		);
-	return {
-		total: total?.n ?? 0,
-		lowStockCount: low?.n ?? 0,
-		stockValue: value?.v ?? 0,
-		openOrders: open?.n ?? 0,
-	};
-}
-
 export interface BranchDetail {
 	cep: string | null;
 	cepRanges: Array<{ from: string; to: string }> | null;
@@ -226,15 +189,22 @@ export interface BranchTableRow {
 	neighborhood: string | null;
 	state: string | null;
 	status: "active" | "inactive";
+	stockValue: number;
 	street: string | null;
 	streetNumber: string | null;
 	teamCount: number;
 }
 
-export async function getBranchTableAggregates(
-	branchIds: string[]
-): Promise<
-	Map<string, { teamCount: number; activeSkus: number; lowStock: number }>
+export async function getBranchTableAggregates(branchIds: string[]): Promise<
+	Map<
+		string,
+		{
+			teamCount: number;
+			activeSkus: number;
+			lowStock: number;
+			stockValue: number;
+		}
+	>
 > {
 	if (branchIds.length === 0) {
 		return new Map();
@@ -252,16 +222,23 @@ export async function getBranchTableAggregates(
 			branchId: stockLevel.branchId,
 			active: sql<number>`count(*) filter (where ${stockLevel.quantity} > 0)::int`,
 			low: sql<number>`count(*) filter (where ${stockLevel.quantity} <= coalesce(${stockLevel.minQty}, 0) and coalesce(${stockLevel.minQty}, 0) > 0)::int`,
+			value: sql<number>`coalesce(sum(${stockLevel.quantity} * coalesce(${toolVariant.priceAmount}, 0)), 0)::float`,
 		})
 		.from(stockLevel)
+		.leftJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
 		.where(inArray(stockLevel.branchId, branchIds))
 		.groupBy(stockLevel.branchId);
 	const map = new Map<
 		string,
-		{ teamCount: number; activeSkus: number; lowStock: number }
+		{
+			teamCount: number;
+			activeSkus: number;
+			lowStock: number;
+			stockValue: number;
+		}
 	>();
 	for (const id of branchIds) {
-		map.set(id, { teamCount: 0, activeSkus: 0, lowStock: 0 });
+		map.set(id, { teamCount: 0, activeSkus: 0, lowStock: 0, stockValue: 0 });
 	}
 	for (const r of teamRows) {
 		const v = map.get(r.branchId);
@@ -274,6 +251,7 @@ export async function getBranchTableAggregates(
 		if (v) {
 			v.activeSkus = r.active;
 			v.lowStock = r.low;
+			v.stockValue = r.value;
 		}
 	}
 	return map;

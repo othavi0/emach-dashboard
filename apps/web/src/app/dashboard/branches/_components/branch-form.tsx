@@ -58,13 +58,13 @@ function buildInitial(d: Partial<BranchFormValues>): BranchFormValues {
 		name: d.name ?? "",
 		status: d.status ?? "active",
 		phone: d.phone,
-		cep: d.cep,
-		street: d.street,
-		streetNumber: d.streetNumber,
+		cep: d.cep ?? "",
+		street: d.street ?? "",
+		streetNumber: d.streetNumber ?? "",
 		complement: d.complement,
 		neighborhood: d.neighborhood,
-		city: d.city,
-		state: d.state,
+		city: d.city ?? "",
+		state: d.state ?? "",
 		responsibleUserId: d.responsibleUserId,
 	};
 }

@@ -311,6 +311,7 @@ export async function fetchBranchesTablePage({
 			teamCount: 0,
 			activeSkus: 0,
 			lowStock: 0,
+			stockValue: 0,
 		};
 		return {
 			id: b.id,
@@ -325,6 +326,7 @@ export async function fetchBranchesTablePage({
 			teamCount: agg.teamCount,
 			activeSkus: agg.activeSkus,
 			lowStock: agg.lowStock,
+			stockValue: agg.stockValue,
 		};
 	});
 	return { items, nextCursor: page.nextCursor };
