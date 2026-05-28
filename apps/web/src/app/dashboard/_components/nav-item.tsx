@@ -56,7 +56,11 @@ export function NavItem({
 				}
 				tooltip={item.label}
 			/>
-			{showBadge && <SidebarMenuBadge>{badgeCount}</SidebarMenuBadge>}
+			{showBadge && (
+				<SidebarMenuBadge className="bg-secondary text-secondary-foreground peer-data-active/menu-button:text-secondary-foreground">
+					{badgeCount}
+				</SidebarMenuBadge>
+			)}
 		</SidebarMenuItem>
 	);
 }
