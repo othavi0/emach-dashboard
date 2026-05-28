@@ -45,6 +45,7 @@ Guard-rails mantidos:
 5. Auditar `user_branch` antes de religar — repovoar registros desatualizados.
 6. Remover item de gap em `packages/db/CLAUDE.md`.
 7. Atualizar `CLAUDE.md` raiz desfazendo a nota de no-op.
+8. **Unificar checks de `canMutate` hardcoded com `can()`.** Duas listagens não usam `can()` e sim comparação direta de `role`: `apps/web/src/app/dashboard/promotions/page.tsx` e `apps/web/src/app/dashboard/suppliers/page.tsx`. Como `can()` está no-op, esses checks continuam restringindo por role enquanto o resto do dashboard libera pra todo `active` — comportamento divergente. Converter ambos para `can(role, "promotions.manage")` / `can(role, "suppliers.manage")` na reativação, garantindo que a matriz volte de forma consistente. **Contexto:** descoberto em 2026-05-28 via bug — `promotions` omitia `super_admin` no check hardcoded (`role === "admin" || role === "manager"`), escondendo as ações dos cards do role mais alto; corrigido pontualmente adicionando `super_admin`, mas a raiz (hardcode em vez de `can()`) permanece.
 
 ## Não decidido
 
