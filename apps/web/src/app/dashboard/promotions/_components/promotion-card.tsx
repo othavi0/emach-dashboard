@@ -55,7 +55,7 @@ export function PromotionCard({ canMutate, promotion }: PromotionCardProps) {
 				<PromotionStatusBadge status={promotion.status} />
 			</div>
 
-			<h3 className="line-clamp-2 font-medium font-serif text-[17px] text-foreground leading-[1.3]">
+			<h3 className="line-clamp-2 font-semibold text-[17px] text-foreground leading-[1.3]">
 				{promotion.title}
 			</h3>
 
