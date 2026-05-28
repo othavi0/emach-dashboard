@@ -18,17 +18,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { getInitials } from "@/lib/format/name";
 
 export type FooterUser = { email: string; name: string; role?: string | null };
-
-function initials(name: string): string {
-	return name
-		.split(" ")
-		.filter(Boolean)
-		.slice(0, 2)
-		.map((p) => p[0]?.toUpperCase() ?? "")
-		.join("");
-}
 
 export function SidebarFooterUser({ user }: { user: FooterUser }) {
 	const router = useRouter();
@@ -66,7 +58,7 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 							>
 								<Avatar className="rounded-md" size="default">
 									<AvatarFallback className="rounded-md text-xs">
-										{initials(user.name)}
+										{getInitials(user.name)}
 									</AvatarFallback>
 								</Avatar>
 								<div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
