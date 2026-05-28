@@ -64,7 +64,11 @@ export function AppSidebar({
 							width={224}
 						/>
 					</Link>
-					<CommandPalette onOpenChange={setCommandOpen} open={commandOpen} />
+					<CommandPalette
+						canManageUsers={canManageUsers}
+						onOpenChange={setCommandOpen}
+						open={commandOpen}
+					/>
 				</SidebarHeader>
 
 				<SidebarContent>

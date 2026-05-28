@@ -22,9 +22,11 @@ const EMPTY: SearchResults = { tools: [], orders: [], clients: [] };
 export function CommandPalette({
 	open,
 	onOpenChange,
+	canManageUsers,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	canManageUsers: boolean;
 }) {
 	const router = useRouter();
 	const [query, setQuery] = useState("");
@@ -47,15 +49,20 @@ export function CommandPalette({
 			setResults(EMPTY);
 			return;
 		}
+		let active = true;
 		const id = setTimeout(() => {
 			startTransition(async () => {
 				const res = await globalSearch(query);
-				if (res.ok) {
+				// Ignora resposta de uma query que já foi substituída por outra mais recente.
+				if (active && res.ok) {
 					setResults(res.data);
 				}
 			});
 		}, 250);
-		return () => clearTimeout(id);
+		return () => {
+			active = false;
+			clearTimeout(id);
+		};
 	}, [query]);
 
 	const setOpen = (next: boolean) => {
@@ -72,7 +79,7 @@ export function CommandPalette({
 
 	const trimmed = query.trim().toLowerCase();
 	const navItems = NAV_GROUPS.flatMap((g) => g.items).filter(
-		(i) => !i.disabled
+		(i) => !i.disabled && (!i.requiresManageUsers || canManageUsers)
 	);
 	const visibleNav = trimmed
 		? navItems.filter((i) => i.label.toLowerCase().includes(trimmed))
