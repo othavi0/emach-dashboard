@@ -1,6 +1,10 @@
 "use server";
 
 import { db } from "@emach/db";
+import {
+	OPEN_ORDER_STATUSES,
+	sqlStatusList,
+} from "@emach/db/order-status-groups";
 import { user } from "@emach/db/schema/auth";
 import { branch, stockLevel, userBranch } from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
@@ -263,7 +267,7 @@ export async function deleteBranch(id: string): Promise<ActionResult> {
 		.select({ n: sql<number>`count(*)::int` })
 		.from(order)
 		.where(
-			sql`${order.branchId} = ${id} and ${order.status} in ('pending_payment','paid','preparing','shipped')`
+			sql`${order.branchId} = ${id} and ${order.status} in (${sqlStatusList(OPEN_ORDER_STATUSES)})`
 		);
 
 	if ((openOrders?.n ?? 0) > 0) {

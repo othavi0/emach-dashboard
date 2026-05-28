@@ -1,5 +1,9 @@
 import crypto from "node:crypto";
 import { db } from "@emach/db";
+import {
+	REVENUE_ORDER_STATUSES,
+	sqlStatusList,
+} from "@emach/db/order-status-groups";
 import { clientExportLog } from "@emach/db/schema/client-export";
 import { toDate } from "@emach/db/utils";
 import { sql } from "drizzle-orm";
@@ -153,7 +157,7 @@ export async function GET(req: Request) {
 					WITH order_stats AS (
 						SELECT
 							o.client_id,
-							SUM(CASE WHEN o.status IN ('paid','preparing','shipped','delivered') THEN o.total_amount ELSE 0 END)::numeric AS ltv,
+							SUM(CASE WHEN o.status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)}) THEN o.total_amount ELSE 0 END)::numeric AS ltv,
 							COUNT(*)::int AS orders_count,
 							MAX(o.created_at) AS last_order_at
 						FROM "order" o

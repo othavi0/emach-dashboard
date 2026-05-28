@@ -1,4 +1,8 @@
 import { db } from "@emach/db";
+import {
+	REVENUE_ORDER_STATUSES,
+	sqlStatusList,
+} from "@emach/db/order-status-groups";
 import { user } from "@emach/db/schema/auth";
 import {
 	type ClientStatus,
@@ -285,7 +289,7 @@ export async function listCustomers({
 		WITH order_stats AS (
 			SELECT
 				o.client_id,
-				SUM(CASE WHEN o.status IN ('paid','preparing','shipped','delivered') THEN o.total_amount ELSE 0 END)::numeric AS ltv,
+				SUM(CASE WHEN o.status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)}) THEN o.total_amount ELSE 0 END)::numeric AS ltv,
 				COUNT(*)::int AS orders_count,
 				MAX(o.created_at) AS last_order_at,
 				(SELECT status FROM "order" lo WHERE lo.client_id = o.client_id ORDER BY lo.created_at DESC LIMIT 1) AS last_order_status
@@ -401,9 +405,9 @@ export async function getCustomerKpis(id: string): Promise<CustomerKpis> {
 		orders_count: number | null;
 	}>(sql`
 		SELECT
-			COALESCE(SUM(CASE WHEN o.status IN ('paid','preparing','shipped','delivered') THEN o.total_amount ELSE 0 END), 0)::numeric AS ltv,
+			COALESCE(SUM(CASE WHEN o.status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)}) THEN o.total_amount ELSE 0 END), 0)::numeric AS ltv,
 			COUNT(o.id)::int AS orders_count,
-			COALESCE(AVG(CASE WHEN o.status IN ('paid','preparing','shipped','delivered') THEN o.total_amount END), 0)::numeric AS avg_ticket,
+			COALESCE(AVG(CASE WHEN o.status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)}) THEN o.total_amount END), 0)::numeric AS avg_ticket,
 			MAX(o.created_at) AS last_order_at,
 			(SELECT status FROM "order" WHERE client_id = ${id} ORDER BY created_at DESC LIMIT 1) AS last_order_status,
 			EXTRACT(day FROM (now() - c.created_at))::int AS days_since_created

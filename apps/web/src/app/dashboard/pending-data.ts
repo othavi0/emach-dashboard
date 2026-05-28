@@ -1,4 +1,8 @@
 import { db } from "@emach/db";
+import {
+	ACTIVE_ORDER_STATUSES,
+	sqlStatusList,
+} from "@emach/db/order-status-groups";
 import { toDate } from "@emach/db/utils";
 import { sql } from "drizzle-orm";
 import { cache } from "react";
@@ -82,7 +86,7 @@ export async function fetchPendingOrders(
 		SELECT o.id, o.number, o.status, o.created_at, c.name AS client_name
 		FROM "order" o
 		JOIN client c ON c.id = o.client_id
-		WHERE o.status IN ('paid', 'preparing', 'shipped')
+		WHERE o.status IN (${sqlStatusList(ACTIVE_ORDER_STATUSES)})
 		${keyset}
 		ORDER BY o.created_at DESC, o.id DESC
 		LIMIT ${BATCH_SIZE + 1}
@@ -289,7 +293,7 @@ export const fetchDashboardCounts = cache(
 		SELECT
 			(SELECT COUNT(*)::int FROM stock_level
 				WHERE quantity = 0 OR (reorder_point > 0 AND quantity <= reorder_point)) AS stock,
-			(SELECT COUNT(*)::int FROM "order" WHERE status IN ('paid', 'preparing', 'shipped')) AS orders,
+			(SELECT COUNT(*)::int FROM "order" WHERE status IN (${sqlStatusList(ACTIVE_ORDER_STATUSES)})) AS orders,
 			(SELECT COUNT(*)::int FROM review WHERE status = 'pending') AS reviews,
 			(SELECT COUNT(*)::int FROM promotion
 				WHERE active = true AND ends_at IS NOT NULL
