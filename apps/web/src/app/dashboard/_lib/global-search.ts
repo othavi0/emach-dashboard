@@ -1,15 +1,15 @@
 export interface SearchHit {
+	group: "Ferramentas" | "Pedidos" | "Clientes";
+	href: string;
 	id: string;
 	label: string;
 	sublabel?: string;
-	href: string;
-	group: "Ferramentas" | "Pedidos" | "Clientes";
 }
 
 export interface SearchResults {
-	tools: SearchHit[];
-	orders: SearchHit[];
 	clients: SearchHit[];
+	orders: SearchHit[];
+	tools: SearchHit[];
 }
 
 export function isSearchable(query: string): boolean {

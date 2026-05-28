@@ -15,13 +15,13 @@ import { CommandPalette } from "./command-palette";
 import { MotionProvider } from "./motion-provider";
 import { DASHBOARD_HREF, NAV_GROUPS } from "./nav-config";
 import { NavGroup } from "./nav-group";
-import { SidebarFooterUser, type FooterUser } from "./sidebar-footer-user";
+import { type FooterUser, SidebarFooterUser } from "./sidebar-footer-user";
 
 interface AppSidebarProps {
 	canManageUsers: boolean;
 	orderCount: number;
-	reviewCount: number;
 	pendingCount: number;
+	reviewCount: number;
 	stockCount: number;
 	user: FooterUser | null | undefined;
 }
@@ -43,7 +43,7 @@ export function AppSidebar({
 	} as const;
 
 	const groups = NAV_GROUPS.filter(
-		(g) => g.label !== "Administração" || canManageUsers,
+		(g) => g.label !== "Administração" || canManageUsers
 	);
 
 	return (

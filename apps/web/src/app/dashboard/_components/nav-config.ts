@@ -1,4 +1,3 @@
-import type { Route } from "next";
 import {
 	Bell,
 	Boxes,
@@ -15,22 +14,23 @@ import {
 	Users,
 	Wrench,
 } from "lucide-react";
+import type { Route } from "next";
 
 export type BadgeKey = "orders" | "stock" | "reviews" | "users";
 
 export interface NavItemConfig {
-	label: string;
+	badgeKey?: BadgeKey;
+	disabled?: boolean;
+	exact?: boolean;
 	href: Route;
 	icon: LucideIcon;
-	exact?: boolean;
-	disabled?: boolean;
-	badgeKey?: BadgeKey;
+	label: string;
 	requiresManageUsers?: boolean;
 }
 
 export interface NavGroupConfig {
-	label: string;
 	items: NavItemConfig[];
+	label: string;
 }
 
 export const DASHBOARD_HREF = "/dashboard" as Route;
@@ -139,7 +139,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 export function isNavItemActive(
 	pathname: string,
 	href: string,
-	exact?: boolean,
+	exact?: boolean
 ): boolean {
 	if (href === DASHBOARD_HREF || exact) {
 		return pathname === href;
