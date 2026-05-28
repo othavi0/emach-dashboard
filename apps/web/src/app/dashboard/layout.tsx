@@ -8,13 +8,12 @@ import {
 import { count, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getUserBranchScope } from "@/lib/branch-scope";
 import { can } from "@/lib/permissions";
 import type { UserRole } from "@/lib/session";
 import { getUserStatus, requireCurrentSession } from "@/lib/session";
 import { parseSidebarCookie, SIDEBAR_COOKIE_NAME } from "@/lib/sidebar-cookie";
 import { AppSidebar } from "./_components/app-sidebar";
-import { getReporCount } from "./_lib/repor-count";
+import { fetchDashboardCounts } from "./pending-data";
 
 export default async function DashboardLayout({
 	children,
@@ -30,9 +29,8 @@ export default async function DashboardLayout({
 
 	const role = (session.user.role ?? "user") as UserRole;
 	const canManageUsers = can(role, "users.approve");
-	const branchScope = await getUserBranchScope(session);
 
-	const [pendingCountRow, reporCount] = await Promise.all([
+	const [pendingCountRow, counts] = await Promise.all([
 		canManageUsers
 			? db
 					.select({ value: count() })
@@ -40,7 +38,7 @@ export default async function DashboardLayout({
 					.where(eq(userTable.status, "pending"))
 					.then((rows) => rows[0])
 			: Promise.resolve(undefined),
-		getReporCount(branchScope),
+		fetchDashboardCounts(),
 	]);
 
 	const pendingCount = Number(pendingCountRow?.value ?? 0);
@@ -54,8 +52,10 @@ export default async function DashboardLayout({
 		<SidebarProvider defaultOpen={sidebarOpen}>
 			<AppSidebar
 				canManageUsers={canManageUsers}
+				orderCount={counts.orders}
+				reviewCount={counts.reviews}
+				stockCount={counts.stock}
 				pendingCount={pendingCount}
-				reporCount={reporCount}
 				user={{
 					name: session.user.name,
 					email: session.user.email,
