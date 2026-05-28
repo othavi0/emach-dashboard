@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	Command,
 	CommandDialog,
 	CommandEmpty,
 	CommandGroup,
@@ -12,8 +13,8 @@ import { SidebarMenuButton } from "@emach/ui/components/sidebar";
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { globalSearch } from "../search-actions";
 import type { SearchResults } from "../_lib/global-search";
+import { globalSearch } from "../search-actions";
 import { NAV_GROUPS } from "./nav-config";
 
 const EMPTY: SearchResults = { tools: [], orders: [], clients: [] };
@@ -57,66 +58,82 @@ export function CommandPalette({
 		return () => clearTimeout(id);
 	}, [query]);
 
+	const setOpen = (next: boolean) => {
+		if (!next) {
+			setQuery("");
+		}
+		onOpenChange(next);
+	};
+
 	const go = (href: string) => {
-		onOpenChange(false);
-		setQuery("");
+		setOpen(false);
 		router.push(href);
 	};
 
+	const trimmed = query.trim().toLowerCase();
+	const navItems = NAV_GROUPS.flatMap((g) => g.items).filter(
+		(i) => !i.disabled
+	);
+	const visibleNav = trimmed
+		? navItems.filter((i) => i.label.toLowerCase().includes(trimmed))
+		: navItems;
 	const allHits = [...results.tools, ...results.orders, ...results.clients];
+	const isEmpty = visibleNav.length === 0 && allHits.length === 0;
 
 	return (
 		<>
 			<SidebarMenuButton
-				onClick={() => onOpenChange(true)}
 				className="text-muted-foreground"
+				onClick={() => onOpenChange(true)}
 			>
-				<Search className="size-4" aria-hidden />
+				<Search aria-hidden className="size-4" />
 				<span>Buscar…</span>
 				<kbd className="ml-auto text-[10px] group-data-[collapsible=icon]:hidden">
 					⌘K
 				</kbd>
 			</SidebarMenuButton>
 
-			<CommandDialog open={open} onOpenChange={onOpenChange}>
-				<CommandInput
-					placeholder="Buscar rotas, ferramentas, pedidos, clientes…"
-					value={query}
-					onValueChange={setQuery}
-				/>
-				<CommandList>
-					<CommandEmpty>Nada encontrado.</CommandEmpty>
-					<CommandGroup heading="Navegação">
-						{NAV_GROUPS.flatMap((g) => g.items)
-							.filter((i) => !i.disabled)
-							.map((item) => (
-								<CommandItem key={item.href} onSelect={() => go(item.href)}>
-									<item.icon className="size-4" aria-hidden />
-									{item.label}
-								</CommandItem>
-							))}
-					</CommandGroup>
-					{allHits.length > 0 && (
-						<CommandGroup heading="Resultados">
-							{allHits.map((hit) => (
-								<CommandItem
-									key={`${hit.group}-${hit.id}`}
-									onSelect={() => go(hit.href)}
-								>
-									<span>{hit.label}</span>
-									{hit.sublabel && (
-										<span className="ml-2 text-muted-foreground text-xs">
-											{hit.sublabel}
+			<CommandDialog onOpenChange={setOpen} open={open}>
+				<Command shouldFilter={false}>
+					<CommandInput
+						onValueChange={setQuery}
+						placeholder="Buscar rotas, ferramentas, pedidos, clientes…"
+						value={query}
+					/>
+					<CommandList>
+						{isEmpty && <CommandEmpty>Nada encontrado.</CommandEmpty>}
+						{visibleNav.length > 0 && (
+							<CommandGroup heading="Navegação">
+								{visibleNav.map((item) => (
+									<CommandItem key={item.href} onSelect={() => go(item.href)}>
+										<item.icon aria-hidden className="size-4" />
+										{item.label}
+									</CommandItem>
+								))}
+							</CommandGroup>
+						)}
+						{allHits.length > 0 && (
+							<CommandGroup heading="Resultados">
+								{allHits.map((hit) => (
+									<CommandItem
+										key={`${hit.group}-${hit.id}`}
+										onSelect={() => go(hit.href)}
+									>
+										<span>{hit.label}</span>
+										{hit.sublabel && (
+											<span className="ml-2 text-muted-foreground text-xs">
+												{hit.sublabel}
+											</span>
+										)}
+										<span className="ml-auto text-[10px] text-muted-foreground">
+											{hit.group}
 										</span>
-									)}
-									<span className="ml-auto text-muted-foreground text-[10px]">
-										{hit.group}
-									</span>
-								</CommandItem>
-							))}
-						</CommandGroup>
-					)}
-				</CommandList>
+									</CommandItem>
+								))}
+							</CommandGroup>
+						)}
+					</CommandList>
+				</Command>
 			</CommandDialog>
 		</>
 	);
