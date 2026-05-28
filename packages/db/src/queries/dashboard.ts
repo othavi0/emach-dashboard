@@ -26,6 +26,15 @@ export function sortByFunnel<T extends { status: string }>(rows: T[]): T[] {
 	return [...rows].sort((a, b) => pos(a.status) - pos(b.status));
 }
 
+/**
+ * Converte 'YYYY-MM-DD' (string crua de coluna `::date` via `db.execute`) em
+ * Date à meia-noite LOCAL. `new Date('YYYY-MM-DD')` parseia como meia-noite UTC,
+ * o que faz `format()` exibir o dia anterior em fusos negativos (ex: UTC-3).
+ */
+export function localDate(value: string): Date {
+	return new Date(`${value}T00:00:00`);
+}
+
 /** Média móvel trailing (janela cresce até `window`). */
 export function movingAverage(values: number[], window: number): number[] {
 	return values.map((_, i) => {
@@ -174,7 +183,7 @@ export async function getDailyRevenue(
 	const revenues = res.rows.map((r) => Number(r.revenue));
 	const ma = movingAverage(revenues, 7);
 	return res.rows.map((r, i) => ({
-		day: new Date(r.day),
+		day: localDate(r.day),
 		revenue: revenues[i] as number,
 		movingAvg: Number(ma[i]?.toFixed(2) ?? 0),
 	}));
@@ -275,7 +284,7 @@ export async function getNewClients(db: AnyDb): Promise<NewClientPoint[]> {
 		WHERE created_at >= now() - INTERVAL '90 days'
 		GROUP BY 1 ORDER BY 1 ASC
 	`);
-	return res.rows.map((r) => ({ week: new Date(r.week), count: r.count }));
+	return res.rows.map((r) => ({ week: localDate(r.week), count: r.count }));
 }
 
 // ---------------------------------------------------------------------------
@@ -319,7 +328,7 @@ export async function getStockFlow(
 		GROUP BY 1 ORDER BY 1 ASC
 	`);
 	return res.rows.map((r) => ({
-		week: new Date(r.week),
+		week: localDate(r.week),
 		entradas: r.entradas,
 		saidas: r.saidas,
 	}));
