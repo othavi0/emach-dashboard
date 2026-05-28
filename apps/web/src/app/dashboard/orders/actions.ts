@@ -2,16 +2,14 @@
 
 import type { DashboardSession } from "@emach/auth/dashboard";
 import { db } from "@emach/db";
-import { branch, stockLevel } from "@emach/db/schema/inventory";
+import { branch } from "@emach/db/schema/inventory";
 import {
 	type OrderStatus,
 	order,
-	orderItem,
 	orderNote,
 	orderStatusHistory,
 } from "@emach/db/schema/orders";
-import { stockMovement } from "@emach/db/schema/stock-movements";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import type { ActivityEvent } from "@/components/activity-feed";
