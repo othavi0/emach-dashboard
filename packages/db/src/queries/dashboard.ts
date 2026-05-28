@@ -1,5 +1,10 @@
 import { sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import {
+	ACTIVE_ORDER_STATUSES,
+	REVENUE_ORDER_STATUSES,
+	sqlStatusList,
+} from "../order-status-groups";
 import type { orderStatusEnum } from "../schema/orders";
 
 type AnyDb = NodePgDatabase<Record<string, unknown>>;
@@ -140,10 +145,10 @@ export async function getDashboardKpis(
 	}>(sql`
 		SELECT
 			(SELECT COALESCE(SUM(o.total_amount), 0) FROM "order" o
-				WHERE o.status IN ('paid','preparing','shipped','delivered')
+				WHERE o.status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)})
 				AND o.created_at >= date_trunc('day', now()) ${branchFilter}) AS revenue_today,
 			(SELECT COUNT(*)::int FROM "order" o
-				WHERE o.status IN ('paid','preparing','shipped') ${branchFilter}) AS active_orders,
+				WHERE o.status IN (${sqlStatusList(ACTIVE_ORDER_STATUSES)}) ${branchFilter}) AS active_orders,
 			(SELECT COUNT(*)::int FROM review WHERE status = 'pending') AS pending_reviews,
 			(SELECT ROUND(EXTRACT(EPOCH FROM (now() - MIN(created_at))) / 3600)::text
 				FROM review WHERE status = 'pending') AS oldest_pending_review_hours,
@@ -187,7 +192,7 @@ export async function getDailyRevenue(
 		SELECT date_trunc('day', o.created_at)::date AS day,
 			COALESCE(SUM(o.total_amount), 0) AS revenue
 		FROM "order" o
-		WHERE o.status IN ('paid','preparing','shipped','delivered')
+		WHERE o.status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)})
 			AND o.created_at >= now() - INTERVAL '30 days' ${branchFilter}
 		GROUP BY 1 ORDER BY 1 ASC
 	`);

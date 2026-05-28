@@ -1,4 +1,8 @@
 import { db } from "@emach/db";
+import {
+	REVENUE_ORDER_STATUSES,
+	sqlStatusList,
+} from "@emach/db/order-status-groups";
 import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
 import { toDate } from "@emach/db/utils";
@@ -809,22 +813,22 @@ export async function getOrderKpis(): Promise<OrderKpis> {
 	}>(sql`
 		SELECT
 			SUM(total_amount) FILTER (
-				WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+				WHERE status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)})
 				AND created_at::date = CURRENT_DATE
 			) AS revenue_today,
 			SUM(total_amount) FILTER (
-				WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+				WHERE status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)})
 				AND created_at::date = CURRENT_DATE - INTERVAL '1 day'
 			) AS revenue_yesterday,
 			AVG(total_amount) FILTER (
-				WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+				WHERE status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)})
 				AND created_at > now() - INTERVAL '30 days'
 			) AS average_ticket,
 			CASE
 				WHEN COUNT(*) FILTER (WHERE created_at > now() - INTERVAL '30 days') = 0 THEN 0
 				ELSE (
 					COUNT(*) FILTER (
-						WHERE status IN ('paid', 'preparing', 'shipped', 'delivered')
+						WHERE status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)})
 						AND created_at > now() - INTERVAL '30 days'
 					)::numeric
 					/ COUNT(*) FILTER (WHERE created_at > now() - INTERVAL '30 days')::numeric
