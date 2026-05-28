@@ -60,25 +60,28 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 					<DropdownMenuTrigger
 						render={
 							<SidebarMenuButton
-								size="lg"
 								className="data-[state=open]:bg-sidebar-accent"
+								size="lg"
 							>
 								<Avatar className="rounded-md" size="default">
 									<AvatarFallback className="rounded-md text-xs">
 										{initials(user.name)}
 									</AvatarFallback>
 								</Avatar>
-								<div className="grid flex-1 text-left text-sm leading-tight">
+								<div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
 									<span className="truncate font-medium">{user.name}</span>
 									<span className="truncate text-muted-foreground text-xs">
 										{user.email}
 									</span>
 								</div>
-								<ChevronsUpDown className="ml-auto size-4" aria-hidden />
+								<ChevronsUpDown
+									aria-hidden
+									className="ml-auto size-4 group-data-[collapsible=icon]:hidden"
+								/>
 							</SidebarMenuButton>
 						}
 					/>
-					<DropdownMenuContent side="top" align="start" className="w-56">
+					<DropdownMenuContent align="start" className="w-56" side="top">
 						<DropdownMenuItem
 							onClick={() => {
 								router.push("/dashboard/users");
