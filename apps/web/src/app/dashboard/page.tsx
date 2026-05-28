@@ -4,6 +4,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@emach/ui/components/card";
+import type { ChartConfig } from "@emach/ui/components/chart";
 import { Skeleton } from "@emach/ui/components/skeleton";
 import { format } from "date-fns";
 import { Suspense } from "react";
@@ -12,9 +13,12 @@ import { ActivityFeed } from "@/components/activity-feed";
 import { PendingPanel, type PendingTab } from "@/components/pending-panel";
 import { requireCurrentSession } from "@/lib/session";
 import { BranchFilter } from "./_components/branch-filter";
+import { NewClientsLine } from "./_components/charts/new-clients-line";
 import { OrderFunnel } from "./_components/charts/order-funnel";
 import { RatingBars } from "./_components/charts/rating-bars";
 import { RevenueArea } from "./_components/charts/revenue-area";
+import { StatusDonut } from "./_components/charts/status-donut";
+import { StockFlowArea } from "./_components/charts/stock-flow-area";
 import { KpiRow } from "./_components/kpi-row";
 import { ReorderTable } from "./_components/reorder-table";
 import { parseBranchParam } from "./_lib/dashboard-params";
@@ -29,10 +33,28 @@ import {
 import {
 	fetchBranchOptions,
 	fetchDailyRevenue,
+	fetchNewClients,
 	fetchOrderFunnel,
+	fetchPromotionStatus,
 	fetchRatingDistribution,
 	fetchReorderTable,
+	fetchStockFlow,
+	fetchToolStatus,
 } from "./dashboard-data";
+
+const TOOL_STATUS_CONFIG = {
+	draft: { label: "Rascunho" },
+	active: { label: "Ativo" },
+	out_of_stock: { label: "Sem estoque" },
+	discontinued: { label: "Descontinuado" },
+} satisfies ChartConfig;
+
+const PROMO_STATUS_CONFIG = {
+	ativa: { label: "Ativa" },
+	agendada: { label: "Agendada" },
+	expirada: { label: "Expirada" },
+	inativa: { label: "Inativa" },
+} satisfies ChartConfig;
 
 export default async function DashboardPage({
 	searchParams,
@@ -66,6 +88,10 @@ export default async function DashboardPage({
 
 			<Suspense fallback={<Skeleton className="h-64 w-full" />}>
 				<TrendsSection branchId={branchId} />
+			</Suspense>
+
+			<Suspense fallback={<Skeleton className="h-56 w-full" />}>
+				<StrategicSection branchId={branchId} />
 			</Suspense>
 		</main>
 	);
@@ -191,6 +217,63 @@ async function TrendsSection({ branchId }: { branchId: string | null }) {
 				</CardHeader>
 				<CardContent>
 					<ReorderTable rows={reorder} />
+				</CardContent>
+			</Card>
+		</div>
+	);
+}
+
+async function StrategicSection({ branchId }: { branchId: string | null }) {
+	const [toolStatus, newClients, promoStatus, stockFlow] = await Promise.all([
+		fetchToolStatus(),
+		fetchNewClients(),
+		fetchPromotionStatus(),
+		fetchStockFlow(branchId),
+	]);
+	const clientsData = newClients.map((p) => ({
+		week: format(p.week, "dd/MM"),
+		count: p.count,
+	}));
+	const flowData = stockFlow.map((p) => ({
+		week: format(p.week, "dd/MM"),
+		entradas: p.entradas,
+		saidas: p.saidas,
+	}));
+
+	return (
+		<div className="flex flex-col gap-4">
+			<div className="grid gap-4 lg:grid-cols-3">
+				<Card>
+					<CardHeader>
+						<CardTitle>Ferramentas por status</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<StatusDonut config={TOOL_STATUS_CONFIG} data={toolStatus} />
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader>
+						<CardTitle>Novos clientes (90d)</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<NewClientsLine data={clientsData} />
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader>
+						<CardTitle>Status de promoções</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<StatusDonut config={PROMO_STATUS_CONFIG} data={promoStatus} />
+					</CardContent>
+				</Card>
+			</div>
+			<Card>
+				<CardHeader>
+					<CardTitle>Entradas × Saídas de estoque (12 sem)</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<StockFlowArea data={flowData} />
 				</CardContent>
 			</Card>
 		</div>
