@@ -65,7 +65,8 @@ function parseDiscount(raw?: string): number | undefined {
 export default async function PromotionsPage({ searchParams }: PageProps) {
 	const session = await requireCurrentSession();
 	const role = session.user.role ?? "user";
-	const canMutate = role === "admin" || role === "manager";
+	const canMutate =
+		role === "admin" || role === "super_admin" || role === "manager";
 
 	const params = await searchParams;
 	const search = params.search ?? "";
