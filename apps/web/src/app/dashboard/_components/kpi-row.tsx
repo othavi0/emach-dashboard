@@ -1,14 +1,15 @@
 import { fetchKpis } from "../dashboard-data";
 import { KpiCard } from "./kpi-card";
 
-const brl = (n: number) =>
-	n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
 export async function KpiRow({ branchId }: { branchId: string | null }) {
 	const k = await fetchKpis(branchId);
 	return (
 		<div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-			<KpiCard format={brl} label="Receita do dia" value={k.revenueToday} />
+			<KpiCard
+				format="currency"
+				label="Receita do dia"
+				value={k.revenueToday}
+			/>
 			<KpiCard label="Pedidos ativos" value={k.activeOrders} />
 			<KpiCard
 				label="Reviews pendentes"
