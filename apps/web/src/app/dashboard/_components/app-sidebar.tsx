@@ -1,308 +1,83 @@
 "use client";
 
-import { Badge } from "@emach/ui/components/badge";
 import {
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
-	SidebarGroup,
-	SidebarGroupContent,
-	SidebarGroupLabel,
 	SidebarHeader,
-	SidebarMenu,
-	SidebarMenuButton,
-	SidebarMenuItem,
+	SidebarRail,
 } from "@emach/ui/components/sidebar";
-import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { authClient } from "@/lib/auth-client";
-
-interface NavItem {
-	disabled?: boolean;
-	exact?: boolean;
-	href: Route;
-	label: string;
-}
-
-interface NavGroup {
-	items: NavItem[];
-	label: string;
-}
-
-const DASHBOARD_HREF = "/dashboard" as Route;
-
-const NAV_GROUPS: NavGroup[] = [
-	{
-		label: "Vendas",
-		items: [
-			{ label: "Pedidos", href: "/dashboard/orders" as Route },
-			{ label: "Clientes", href: "/dashboard/customers" as Route },
-			{ label: "Avaliações", href: "/dashboard/reviews" as Route },
-		],
-	},
-	{
-		label: "Site",
-		items: [
-			{
-				label: "Promoções",
-				href: "/dashboard/promotions" as Route,
-			},
-			{
-				label: "Banners",
-				href: "/dashboard/site/banners" as Route,
-				disabled: true,
-			},
-			{
-				label: "Configurações",
-				href: "/dashboard/site/settings" as Route,
-				disabled: true,
-			},
-		],
-	},
-	{
-		label: "Catálogo",
-		items: [
-			{ label: "Ferramentas", href: "/dashboard/tools" as Route },
-			{
-				label: "Categorias",
-				href: "/dashboard/categories" as Route,
-			},
-			{
-				label: "Fornecedores",
-				href: "/dashboard/suppliers" as Route,
-			},
-			{
-				label: "Filiais",
-				href: "/dashboard/branches" as Route,
-			},
-		],
-	},
-	{
-		label: "Internos",
-		items: [{ label: "Usuários", href: "/dashboard/users" as Route }],
-	},
-];
-
-function isActive(
-	pathname: string,
-	item: Pick<NavItem, "exact" | "href">
-): boolean {
-	const href = item.href;
-	if (href === DASHBOARD_HREF) {
-		return pathname === DASHBOARD_HREF;
-	}
-	if (item.exact) {
-		return pathname === href;
-	}
-	return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-type FooterUser =
-	| { email: string; name: string; role?: string | null }
-	| null
-	| undefined;
-
-const ROLE_LABELS: Record<string, string> = {
-	admin: "Admin",
-	manager: "Manager",
-	user: "User",
-};
-
-const ROLE_VARIANTS: Record<string, "default" | "info" | "secondary"> = {
-	admin: "default",
-	manager: "info",
-	user: "secondary",
-};
-
-function FooterContent({
-	isSigningOut,
-	user,
-	onSignOut,
-}: {
-	isSigningOut: boolean;
-	user: FooterUser;
-	onSignOut: () => Promise<void>;
-}) {
-	if (!user) {
-		return null;
-	}
-
-	return (
-		<div className="flex flex-col gap-3 px-2 py-2">
-			<div className="flex flex-col gap-1">
-				<div className="flex items-center gap-2">
-					<p className="font-medium text-sm">{user.name}</p>
-					{user.role && ROLE_LABELS[user.role] && (
-						<Badge variant={ROLE_VARIANTS[user.role] ?? "secondary"}>
-							{ROLE_LABELS[user.role]}
-						</Badge>
-					)}
-				</div>
-				<p className="text-muted-foreground text-xs">{user.email}</p>
-			</div>
-			<SidebarMenu>
-				<SidebarMenuItem>
-					<SidebarMenuButton
-						aria-disabled={isSigningOut}
-						disabled={isSigningOut}
-						onClick={() => {
-							onSignOut().catch(() => undefined);
-						}}
-						render={
-							<button type="button">
-								{isSigningOut ? "Saindo..." : "Sair"}
-							</button>
-						}
-					/>
-				</SidebarMenuItem>
-			</SidebarMenu>
-		</div>
-	);
-}
+import { CommandPalette } from "./command-palette";
+import { MotionProvider } from "./motion-provider";
+import { DASHBOARD_HREF, NAV_GROUPS } from "./nav-config";
+import { NavGroup } from "./nav-group";
+import { SidebarFooterUser, type FooterUser } from "./sidebar-footer-user";
 
 interface AppSidebarProps {
 	canManageUsers: boolean;
+	orderCount: number;
+	reviewCount: number;
 	pendingCount: number;
-	reporCount: number;
-	user: FooterUser;
+	stockCount: number;
+	user: FooterUser | null | undefined;
 }
 
 export function AppSidebar({
 	canManageUsers,
+	orderCount,
+	reviewCount,
 	pendingCount,
-	reporCount,
+	stockCount,
 	user,
 }: AppSidebarProps) {
-	const pathname = usePathname();
-	const router = useRouter();
-	const [isSigningOut, setIsSigningOut] = useState(false);
+	const [commandOpen, setCommandOpen] = useState(false);
+	const badges = {
+		orders: orderCount,
+		reviews: reviewCount,
+		users: pendingCount,
+		stock: stockCount,
+	} as const;
 
-	const handleSignOut = async () => {
-		if (isSigningOut) {
-			return;
-		}
-
-		setIsSigningOut(true);
-
-		try {
-			await authClient.signOut({
-				fetchOptions: {
-					onSuccess: () => {
-						router.replace("/login");
-						router.refresh();
-					},
-				},
-			});
-		} finally {
-			setIsSigningOut(false);
-		}
-	};
+	const groups = NAV_GROUPS.filter(
+		(g) => g.label !== "Administração" || canManageUsers,
+	);
 
 	return (
-		<Sidebar collapsible="offcanvas">
-			<SidebarHeader>
-				<Link
-					aria-label="Emach — ir para o dashboard"
-					className="flex items-center justify-center px-2 py-2"
-					href={DASHBOARD_HREF}
-				>
-					<Image
-						alt="Emach"
-						className="h-7 w-auto"
-						height={56}
-						priority
-						src="/emach-nome-branco.svg"
-						width={224}
-					/>
-				</Link>
-			</SidebarHeader>
+		<MotionProvider>
+			<Sidebar collapsible="icon">
+				<SidebarHeader>
+					<Link
+						aria-label="Emach — ir para o dashboard"
+						className="flex items-center justify-center px-2 py-2 group-data-[collapsible=icon]:px-0"
+						href={DASHBOARD_HREF}
+					>
+						<Image
+							alt="Emach"
+							className="h-7 w-auto group-data-[collapsible=icon]:hidden"
+							height={56}
+							priority
+							src="/emach-nome-branco.svg"
+							width={224}
+						/>
+					</Link>
+					<CommandPalette onOpenChange={setCommandOpen} open={commandOpen} />
+				</SidebarHeader>
 
-			<SidebarContent>
-				<SidebarGroup>
-					<SidebarGroupContent>
-						<SidebarMenu>
-							<SidebarMenuItem>
-								<SidebarMenuButton
-									isActive={isActive(pathname, { href: DASHBOARD_HREF })}
-									render={<Link href={DASHBOARD_HREF}>Dashboard</Link>}
-								/>
-							</SidebarMenuItem>
-						</SidebarMenu>
-					</SidebarGroupContent>
-				</SidebarGroup>
+				<SidebarContent>
+					{groups.map((group) => (
+						<NavGroup badges={badges} group={group} key={group.label} />
+					))}
+				</SidebarContent>
 
-				{NAV_GROUPS.map((group) => {
-					if (group.label === "Internos" && !canManageUsers) {
-						return null;
-					}
-					return (
-						<SidebarGroup key={group.label}>
-							<SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-							<SidebarGroupContent>
-								<SidebarMenu>
-									{group.items.map((item) =>
-										item.disabled ? (
-											<SidebarMenuItem key={item.href}>
-												<div
-													aria-disabled="true"
-													className="flex h-8 w-full items-center gap-2 rounded-md p-2 text-left text-xs opacity-50"
-												>
-													<span>{item.label}</span>
-													<span className="ml-auto text-[10px] text-muted-foreground uppercase tracking-wide">
-														em breve
-													</span>
-												</div>
-											</SidebarMenuItem>
-										) : (
-											<SidebarMenuItem key={item.href}>
-												<SidebarMenuButton
-													isActive={isActive(pathname, item)}
-													render={
-														<Link
-															href={
-																item.href === "/dashboard/tools" &&
-																reporCount > 0
-																	? "/dashboard/tools?mode=repor"
-																	: item.href
-															}
-														>
-															{item.label}
-															{item.href === "/dashboard/users" &&
-																pendingCount > 0 && (
-																	<span className="ml-2 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">
-																		{pendingCount}
-																	</span>
-																)}
-															{item.href === "/dashboard/tools" &&
-																reporCount > 0 && (
-																	<span className="ml-2 rounded-full bg-primary/10 px-1.5 text-[10px] text-primary">
-																		{reporCount}
-																	</span>
-																)}
-														</Link>
-													}
-												/>
-											</SidebarMenuItem>
-										)
-									)}
-								</SidebarMenu>
-							</SidebarGroupContent>
-						</SidebarGroup>
-					);
-				})}
-			</SidebarContent>
-
-			<SidebarFooter>
-				<FooterContent
-					isSigningOut={isSigningOut}
-					onSignOut={handleSignOut}
-					user={user}
-				/>
-			</SidebarFooter>
-		</Sidebar>
+				<SidebarFooter>
+					{user && <SidebarFooterUser user={user} />}
+				</SidebarFooter>
+				<SidebarRail />
+			</Sidebar>
+		</MotionProvider>
 	);
 }
