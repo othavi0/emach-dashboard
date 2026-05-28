@@ -12,6 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { getInitials } from "@/lib/format/name";
 import type { UserListRow } from "../data";
 import { ApprovalSheet } from "./approval-sheet";
 import type { BranchLite } from "./types";
@@ -83,13 +84,6 @@ function formatRelative(date: Date): string {
 	return RELATIVE.format(Math.round(diffDays / 30), "month");
 }
 
-function initials(name: string): string {
-	const parts = name.split(" ").filter(Boolean);
-	const first = parts[0]?.[0]?.toUpperCase() ?? "";
-	const last = parts.length > 1 ? (parts.at(-1)?.[0]?.toUpperCase() ?? "") : "";
-	return first + last || "?";
-}
-
 const MAX_BRANCH_CHIPS = 3;
 
 interface UserCardProps {
@@ -134,7 +128,7 @@ export function UserCard({
 							// biome-ignore lint/correctness/useImageSize: tamanho fixo via Tailwind
 							<img alt="" className="size-full object-cover" src={user.image} />
 						) : (
-							initials(user.name)
+							getInitials(user.name)
 						)}
 					</div>
 					<div className="min-w-0 flex-1">

@@ -5,6 +5,7 @@ import { Boxes, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatBranchAddress } from "@/lib/format/branch";
+import { getInitials } from "@/lib/format/name";
 
 import type { BranchTableRow } from "../data";
 
@@ -18,15 +19,6 @@ function monogramColor(lowStock: number): { bg: string; text: string } {
 		return { bg: "bg-amber-950", text: "text-amber-400" };
 	}
 	return { bg: "bg-green-950", text: "text-green-400" };
-}
-
-function initials(name: string): string {
-	return name
-		.split(" ")
-		.filter(Boolean)
-		.slice(0, 2)
-		.map((w) => w[0]?.toUpperCase() ?? "")
-		.join("");
 }
 
 export function BranchCard({ branch, canManage }: BranchCardProps) {
@@ -54,7 +46,7 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 				<div
 					className={`flex size-12 flex-shrink-0 items-center justify-center rounded-[10px] font-bold text-[17px] ${bg} ${text}`}
 				>
-					{initials(branch.name)}
+					{getInitials(branch.name)}
 				</div>
 				<div className="min-w-0 flex-1">
 					<p className="font-semibold text-[15px] text-foreground leading-tight">
