@@ -10,6 +10,7 @@ import { parseBranchParam } from "./_lib/dashboard-params";
 import {
 	fetchDashboardActivity,
 	fetchDashboardCounts,
+	fetchExpiringPromotions,
 	fetchPendingOrders,
 	fetchPendingReviews,
 	fetchPendingStock,
@@ -60,11 +61,12 @@ function KpiSkeleton() {
 }
 
 async function PendingSection() {
-	const [counts, stock, orders, reviews, activity] = await Promise.all([
+	const [counts, stock, orders, reviews, promos, activity] = await Promise.all([
 		fetchDashboardCounts(),
 		fetchPendingStock(null),
 		fetchPendingOrders(null),
 		fetchPendingReviews(null),
+		fetchExpiringPromotions(null),
 		fetchDashboardActivity(null),
 	]);
 	const tabs: PendingTab[] = [
@@ -94,6 +96,15 @@ async function PendingSection() {
 			initial: reviews.items,
 			initialCursor: reviews.nextCursor,
 			fetchPage: fetchPendingReviews,
+		},
+		{
+			id: "promotions",
+			label: "Promoções",
+			count: counts.promotionsExpiring,
+			role: "warning",
+			initial: promos.items,
+			initialCursor: promos.nextCursor,
+			fetchPage: fetchExpiringPromotions,
 		},
 	];
 	return (

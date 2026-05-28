@@ -7,6 +7,7 @@ import {
 	type DashboardCounts,
 	fetchDashboardActivity as fetchDashboardActivityImpl,
 	fetchDashboardCounts as fetchDashboardCountsImpl,
+	fetchExpiringPromotions as fetchExpiringPromotionsImpl,
 	fetchPendingOrders as fetchPendingOrdersImpl,
 	fetchPendingReviews as fetchPendingReviewsImpl,
 	fetchPendingStock as fetchPendingStockImpl,
@@ -34,6 +35,12 @@ export async function fetchDashboardActivity(
 	cursor: string | null
 ): Promise<InfiniteResult<ActivityEvent>> {
 	return await fetchDashboardActivityImpl(cursor);
+}
+
+export async function fetchExpiringPromotions(
+	cursor: string | null
+): Promise<InfiniteResult<PendingRow>> {
+	return await fetchExpiringPromotionsImpl(cursor);
 }
 
 export async function fetchDashboardCounts(): Promise<DashboardCounts> {
