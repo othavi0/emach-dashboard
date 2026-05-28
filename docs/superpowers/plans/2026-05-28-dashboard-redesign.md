@@ -750,6 +750,131 @@ git commit -m "feat: dashboard F1 — KPIs + painéis + filtro de filial (Suspen
 
 ---
 
+## Task 6b: Evoluir PendingPanel — 4ª aba "Promoções expirando" (F1)
+
+> **Decisão (2026-05-28):** entra no F1. A distinção ruptura/repor **já está coberta**: (a) as linhas da aba Estoque já marcam "Sem estoque" (destructive) vs "Repor" (warning) em `fetchPendingStock`; (b) o KPI card "Rupturas de estoque" já isola a contagem de ruptura com tom destructive. O que falta é a 4ª aba.
+
+**Files:**
+- Modify: `apps/web/src/app/dashboard/pending-data.ts` (nova `fetchExpiringPromotions`)
+- Modify: `apps/web/src/app/dashboard/actions.ts` (expor a action)
+- Modify: `apps/web/src/app/dashboard/pending-data.ts` (`DashboardCounts` ganha `promotionsExpiring`)
+- Modify: `apps/web/src/app/dashboard/page.tsx` (`PendingSection` monta a 4ª aba)
+
+- [ ] **Step 1: Query de promoções expirando (padrão pending-data)**
+
+```ts
+// apps/web/src/app/dashboard/pending-data.ts (append)
+export async function fetchExpiringPromotions(
+	cursor: string | null
+): Promise<InfiniteResult<PendingRow>> {
+	await requireCurrentSession();
+	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
+	// ordena por ends_at ASC (mais urgente primeiro) — keyset crescente
+	const keyset = decoded
+		? sql`AND (p.ends_at, p.id) > (${decoded.createdAt}::timestamp, ${decoded.id})`
+		: sql``;
+	const result = await db.execute<{
+		id: string;
+		title: string;
+		ends_at: string;
+		hours_left: string;
+	}>(sql`
+		SELECT p.id, p.title, p.ends_at,
+			ROUND(EXTRACT(EPOCH FROM (p.ends_at - now())) / 3600)::text AS hours_left
+		FROM promotion p
+		WHERE p.active = true
+			AND p.ends_at IS NOT NULL
+			AND p.ends_at BETWEEN now() AND now() + INTERVAL '7 days'
+		${keyset}
+		ORDER BY p.ends_at ASC, p.id ASC
+		LIMIT ${BATCH_SIZE + 1}
+	`);
+	return paginate(
+		result.rows,
+		(r): PendingRow => {
+			const hours = Number(r.hours_left);
+			return {
+				id: r.id,
+				href: `/dashboard/promotions/${r.id}`,
+				primary: r.title,
+				secondary: hours <= 24 ? `expira em ${hours}h` : `expira em ${Math.round(hours / 24)}d`,
+				badge: { label: hours <= 24 ? "Urgente" : "Expirando", role: hours <= 24 ? "destructive" : "warning" },
+			};
+		},
+		(last) => ({ v: 1, sort: "newest", createdAt: last.ends_at, id: last.id })
+	);
+}
+```
+
+- [ ] **Step 2: Adicionar contagem em DashboardCounts**
+
+Em `fetchDashboardCounts`, adicionar à query consolidada:
+
+```ts
+// no SELECT existente, adicionar:
+(SELECT COUNT(*)::int FROM promotion
+	WHERE active = true AND ends_at IS NOT NULL
+	AND ends_at BETWEEN now() AND now() + INTERVAL '7 days') AS promotions_expiring
+```
+
+E ampliar a interface:
+
+```ts
+export interface DashboardCounts {
+	orders: number;
+	reviews: number;
+	stock: number;
+	promotionsExpiring: number;
+}
+```
+
+(tipar a linha do `db.execute` com o campo `promotions_expiring: number` e retornar `promotionsExpiring: row.promotions_expiring`).
+
+- [ ] **Step 3: Expor a action**
+
+```ts
+// apps/web/src/app/dashboard/actions.ts (append)
+export async function fetchExpiringPromotions(
+	cursor: string | null
+): Promise<InfiniteResult<PendingRow>> {
+	return await fetchExpiringPromotionsImpl(cursor);
+}
+```
+
+(adicionar `fetchExpiringPromotions as fetchExpiringPromotionsImpl` ao import de `./pending-data`).
+
+- [ ] **Step 4: Montar a 4ª aba na page**
+
+Em `PendingSection` (page.tsx), incluir o fetch e o tab:
+
+```tsx
+const [counts, stock, orders, reviews, promos, activity] = await Promise.all([
+	fetchDashboardCounts(),
+	fetchPendingStock(null),
+	fetchPendingOrders(null),
+	fetchPendingReviews(null),
+	fetchExpiringPromotions(null),
+	fetchDashboardActivity(null),
+]);
+// adicionar ao array tabs:
+{ id: "promotions", label: "Promoções", count: counts.promotionsExpiring, role: "warning", initial: promos.items, initialCursor: promos.nextCursor, fetchPage: fetchExpiringPromotions },
+```
+
+(importar `fetchExpiringPromotions` de `./actions`.)
+
+- [ ] **Step 5: Verificar tipos + smoke**
+
+Run: `bun check-types`; `bun dev:web` → aba "Promoções" aparece com promoções expirando; itens com <24h marcados "Urgente" (destructive). Verificar SQL via `nextjs_call 3001 get_errors`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add apps/web/src/app/dashboard/pending-data.ts apps/web/src/app/dashboard/actions.ts apps/web/src/app/dashboard/page.tsx
+git commit -m "feat: PendingPanel ganha aba de promoções expirando (F1)"
+```
+
+---
+
 ## Task 7: Charts F2 (receita, funil, notas, tabela reposição)
 
 **Files:**
@@ -1088,8 +1213,8 @@ git add -A && git commit -m "chore: ajustes finais do dashboard pós-review"
 ## Self-Review (preenchido pelo autor do plano)
 
 **Spec coverage:**
-- 6 Hero KPIs → Tasks 2,5 ✅ · PendingPanel mantido → Task 6 ✅ · selector de filial URL param → Tasks 3,6 ✅ · Cache Components → Task 4 ✅ · Suspense streaming → Tasks 6,7,8 ✅ · F2 (receita/funil/notas/reposição) → Task 7 ✅ · F3 (donuts/clientes/fluxo) → Task 8 ✅ · NumberTicker (magicui) + reduced-motion → Task 5 ✅ · métricas vanity fora → respeitado (não implementadas aqui) ✅
-- **Gap consciente:** evolução do PendingPanel para 4 abas (Promoções expirando) + split ruptura/repor com cores — descrito no spec §5.1 mas **não implementado** neste plano (Task 6 mantém as 3 abas atuais). Marcar como Task follow-up ou incremento; requer alterar `PendingPanel`/`fetchDashboardCounts` para separar `stockOutages` de `reorderCount` e nova aba `fetchExpiringPromotions`. **Decisão:** sai do caminho crítico F1; criar issue dedicada para não inflar este plano.
+- 6 Hero KPIs → Tasks 2,5 ✅ · PendingPanel evoluído (4ª aba Promoções) → Task 6b ✅ · selector de filial URL param → Tasks 3,6 ✅ · Cache Components → Task 4 ✅ · Suspense streaming → Tasks 6,7,8 ✅ · F2 (receita/funil/notas/reposição) → Task 7 ✅ · F3 (donuts/clientes/fluxo) → Task 8 ✅ · NumberTicker (magicui) + reduced-motion → Task 5 ✅ · métricas vanity fora → respeitado (não implementadas aqui) ✅
+- **Split ruptura/repor (spec §5.1):** coberto sem tab extra — linhas da aba Estoque já distinguem "Sem estoque" (destructive) vs "Repor" (warning) em `fetchPendingStock`, e o KPI card "Rupturas de estoque" (Task 5) isola a contagem de ruptura com tom destructive. A 4ª aba "Promoções expirando" é a adição nova (Task 6b).
 
 **Placeholders:** nenhum "TBD" de lógica; pontos "confirmar API do next/cache" são verificações de versão (find-docs na execução), não lacunas.
 
