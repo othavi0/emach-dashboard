@@ -32,7 +32,6 @@ import {
 	useState,
 } from "react";
 
-const SIDEBAR_STORAGE_KEY = "sidebar_state";
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
@@ -77,18 +76,8 @@ function SidebarProvider({
 
 	// This is the internal state of the sidebar.
 	// We use openProp and setOpenProp for control from outside the component.
-	const [_open, _setOpen] = useState(() => {
-		if (typeof window === "undefined") {
-			return defaultOpen;
-		}
-
-		const storedValue = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
-		if (storedValue === null) {
-			return defaultOpen;
-		}
-
-		return storedValue === "true";
-	});
+	// defaultOpen is read from a cookie server-side (layout.tsx) → no hydration flash.
+	const [_open, _setOpen] = useState(defaultOpen);
 	const open = openProp ?? _open;
 	const setOpen = useCallback(
 		(value: boolean | ((value: boolean) => boolean)) => {
@@ -99,7 +88,8 @@ function SidebarProvider({
 				_setOpen(openState);
 			}
 
-			window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(openState));
+			// cookie em vez de localStorage: lido no server → sem flash de hydration
+			document.cookie = `sidebar_state=${openState}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 		},
 		[setOpenProp, open]
 	);
