@@ -91,7 +91,7 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 					/>
 					<DropdownMenuContent
 						align="start"
-						className="w-56 shadow-xl ring-1 ring-foreground/25"
+						className="shadow-xl ring-1 ring-foreground/25"
 						side="top"
 					>
 						<DropdownMenuItem
