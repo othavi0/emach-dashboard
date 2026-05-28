@@ -4,8 +4,8 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
+import { SupplierCardGrid } from "./_components/supplier-card-grid";
 import { SuppliersFilters } from "./_components/suppliers-filter";
-import { SuppliersTable } from "./_components/suppliers-table";
 import { fetchSuppliersTablePage, type SuppliersFiltersInput } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +52,7 @@ export default async function SuppliersPage({ searchParams }: PageProps) {
 
 			<SuppliersFilters />
 
-			<SuppliersTable
+			<SupplierCardGrid
 				canMutate={canMutate}
 				filters={filters}
 				initial={first.items}
