@@ -10,6 +10,7 @@ import { requireCurrentSession } from "@/lib/session";
 
 export interface DashboardCounts {
 	orders: number;
+	promotionsExpiring: number;
 	reviews: number;
 	stock: number;
 }
@@ -151,6 +152,53 @@ export async function fetchPendingReviews(
 	);
 }
 
+export async function fetchExpiringPromotions(
+	cursor: string | null
+): Promise<InfiniteResult<PendingRow>> {
+	await requireCurrentSession();
+	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
+	// ordena por ends_at ASC (mais urgente primeiro) — keyset crescente
+	const keyset = decoded
+		? sql`AND (p.ends_at, p.id) > (${decoded.createdAt}::timestamp, ${decoded.id})`
+		: sql``;
+	const result = await db.execute<{
+		ends_at: string;
+		hours_left: string;
+		id: string;
+		title: string;
+	}>(sql`
+		SELECT p.id, p.title, p.ends_at,
+			ROUND(EXTRACT(EPOCH FROM (p.ends_at - now())) / 3600)::text AS hours_left
+		FROM promotion p
+		WHERE p.active = true
+			AND p.ends_at IS NOT NULL
+			AND p.ends_at BETWEEN now() AND now() + INTERVAL '7 days'
+		${keyset}
+		ORDER BY p.ends_at ASC, p.id ASC
+		LIMIT ${BATCH_SIZE + 1}
+	`);
+	return paginate(
+		result.rows,
+		(r): PendingRow => {
+			const hours = Number(r.hours_left);
+			return {
+				id: r.id,
+				href: `/dashboard/promotions/${r.id}`,
+				primary: r.title,
+				secondary:
+					hours <= 24
+						? `expira em ${hours}h`
+						: `expira em ${Math.round(hours / 24)}d`,
+				badge: {
+					label: hours <= 24 ? "Urgente" : "Expirando",
+					role: hours <= 24 ? "destructive" : "warning",
+				},
+			};
+		},
+		(last) => ({ v: 1, sort: "newest", createdAt: last.ends_at, id: last.id })
+	);
+}
+
 export async function fetchDashboardActivity(
 	cursor: string | null
 ): Promise<InfiniteResult<ActivityEvent>> {
@@ -225,6 +273,7 @@ export async function fetchDashboardCounts(): Promise<DashboardCounts> {
 	await requireCurrentSession();
 	const result = await db.execute<{
 		orders: number;
+		promotions_expiring: number;
 		reviews: number;
 		stock: number;
 	}>(sql`
@@ -232,11 +281,19 @@ export async function fetchDashboardCounts(): Promise<DashboardCounts> {
 			(SELECT COUNT(*)::int FROM stock_level
 				WHERE quantity = 0 OR (reorder_point > 0 AND quantity <= reorder_point)) AS stock,
 			(SELECT COUNT(*)::int FROM "order" WHERE status IN ('paid', 'preparing', 'shipped')) AS orders,
-			(SELECT COUNT(*)::int FROM review WHERE status = 'pending') AS reviews
+			(SELECT COUNT(*)::int FROM review WHERE status = 'pending') AS reviews,
+			(SELECT COUNT(*)::int FROM promotion
+				WHERE active = true AND ends_at IS NOT NULL
+				AND ends_at BETWEEN now() AND now() + INTERVAL '7 days') AS promotions_expiring
 	`);
 	const row = result.rows[0];
 	if (!row) {
 		throw new Error("fetchDashboardCounts: query retornou 0 linhas");
 	}
-	return row;
+	return {
+		orders: row.orders,
+		promotionsExpiring: row.promotions_expiring,
+		reviews: row.reviews,
+		stock: row.stock,
+	};
 }
