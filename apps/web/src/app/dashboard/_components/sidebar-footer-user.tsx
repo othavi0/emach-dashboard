@@ -13,7 +13,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@emach/ui/components/sidebar";
-import { ChevronsUpDown, LogOut, User as UserIcon } from "lucide-react";
+import { ChevronDown, ChevronUp, LogOut, User as UserIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -33,6 +33,7 @@ function initials(name: string): string {
 export function SidebarFooterUser({ user }: { user: FooterUser }) {
 	const router = useRouter();
 	const [isSigningOut, setIsSigningOut] = useState(false);
+	const [menuOpen, setMenuOpen] = useState(false);
 
 	const handleSignOut = async () => {
 		if (isSigningOut) {
@@ -56,7 +57,7 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 	return (
 		<SidebarMenu>
 			<SidebarMenuItem>
-				<DropdownMenu>
+				<DropdownMenu onOpenChange={setMenuOpen} open={menuOpen}>
 					<DropdownMenuTrigger
 						render={
 							<SidebarMenuButton
@@ -74,14 +75,25 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 										{user.email}
 									</span>
 								</div>
-								<ChevronsUpDown
-									aria-hidden
-									className="ml-auto size-4 group-data-[collapsible=icon]:hidden"
-								/>
+								{menuOpen ? (
+									<ChevronUp
+										aria-hidden
+										className="ml-auto size-4 group-data-[collapsible=icon]:hidden"
+									/>
+								) : (
+									<ChevronDown
+										aria-hidden
+										className="ml-auto size-4 group-data-[collapsible=icon]:hidden"
+									/>
+								)}
 							</SidebarMenuButton>
 						}
 					/>
-					<DropdownMenuContent align="start" className="w-56" side="top">
+					<DropdownMenuContent
+						align="start"
+						className="w-56 shadow-xl ring-1 ring-foreground/25"
+						side="top"
+					>
 						<DropdownMenuItem
 							onClick={() => {
 								router.push("/dashboard/users");
