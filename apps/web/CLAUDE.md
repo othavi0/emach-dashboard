@@ -82,6 +82,8 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 
 `cacheTag` por feature (`'orders'`, `'customers'`, `'site-banners'`...). `revalidateTag` em mutations. Ver skill `next-cache-components`.
 
+**Dedup request-scoped sem Cache Components:** fetcher chamado em mais de um lugar no mesmo render (ex: `fetchDashboardCounts` no `layout.tsx` para badges **e** na `page.tsx` para o painel) → envolver em `cache()` do `react`. Dedupa a query no mesmo request sem precisar ligar `use cache`/Cache Components. Só funciona para a **mesma** função com os mesmos args; queries diferentes que contam o mesmo dado não deduplicam (ver issue de extrair counts num único fetch).
+
 ## Smoke run-time
 
 `tsc` não detecta SQL inválido em template strings nem queries com colunas removidas. Após mexer em schema ou queries SSR: `bun dev:web` + visitar rotas afetadas. Stack trace via `nextjs_call <port> get_errors` (MCP `next-devtools`).
