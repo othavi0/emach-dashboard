@@ -13,10 +13,6 @@ export default defineConfig({
 				import.meta.dirname,
 				"src/__mocks__/server-only.ts"
 			),
-			"@emach/db": path.resolve(
-				import.meta.dirname,
-				"src/__mocks__/emach-db.ts"
-			),
 		},
 	},
 });
