@@ -10,4 +10,9 @@ describe("global-search", () => {
 	it("buildSearchPattern faz lower + wrap ILIKE", () => {
 		expect(buildSearchPattern(" Furadeira ")).toBe("%furadeira%");
 	});
+	it("buildSearchPattern escapa metacaracteres LIKE", () => {
+		expect(buildSearchPattern("50%")).toBe("%50\\%%");
+		expect(buildSearchPattern("a_b")).toBe("%a\\_b%");
+		expect(buildSearchPattern("c\\d")).toBe("%c\\\\d%");
+	});
 });
