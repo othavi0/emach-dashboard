@@ -55,6 +55,11 @@ export const stockMovement = pgTable(
 			table.variantId,
 			table.createdAt.desc()
 		),
+		// Dashboard: fluxo de estoque por filial em janela temporal (getStockFlow).
+		index("stock_movement_branch_created_idx").on(
+			table.branchId,
+			table.createdAt.desc()
+		),
 		index("stock_movement_order_idx").on(table.orderId),
 		index("stock_movement_actor_idx").on(table.actorType, table.actorId),
 		uniqueIndex("stock_movement_sale_idempotency")
