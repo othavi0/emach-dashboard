@@ -64,7 +64,6 @@ export default async function DashboardPage({
 	const session = await requireCurrentSession();
 	const sp = await searchParams;
 	const branchId = parseBranchParam(sp.branch);
-	const branchOptions = await fetchBranchOptions();
 
 	return (
 		<main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-2 py-4">
@@ -75,7 +74,9 @@ export default async function DashboardPage({
 						Olá, {session.user.name?.split(" ")[0] ?? "admin"}
 					</h1>
 				</div>
-				<BranchFilter options={branchOptions} value={branchId} />
+				<Suspense fallback={<Skeleton className="h-9 w-48" />}>
+					<BranchFilterSlot value={branchId} />
+				</Suspense>
 			</section>
 
 			<Suspense fallback={<KpiSkeleton />}>
@@ -95,6 +96,11 @@ export default async function DashboardPage({
 			</Suspense>
 		</main>
 	);
+}
+
+async function BranchFilterSlot({ value }: { value: string | null }) {
+	const options = await fetchBranchOptions();
+	return <BranchFilter options={options} value={value} />;
 }
 
 function KpiSkeleton() {

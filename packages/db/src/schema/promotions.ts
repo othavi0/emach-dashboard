@@ -42,6 +42,11 @@ export const promotion = pgTable(
 	},
 	(table) => [
 		index("promotion_created_idx").on(table.createdAt.desc(), table.id.desc()),
+		// Dashboard: contagem/keyset de promoções ativas expirando (getDashboardKpis,
+		// fetchExpiringPromotions). Parcial em active=true cobre o predicado quente.
+		index("promotion_active_ends_idx")
+			.on(table.endsAt)
+			.where(sql`active = true`),
 		check(
 			"valid_promotion_type",
 			sql`${table.type} IN ('promotion', 'promocode')`

@@ -1,6 +1,7 @@
 import { db } from "@emach/db";
 import { toDate } from "@emach/db/utils";
 import { sql } from "drizzle-orm";
+import { cache } from "react";
 
 import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
@@ -269,14 +270,17 @@ export async function fetchDashboardActivity(
 	);
 }
 
-export async function fetchDashboardCounts(): Promise<DashboardCounts> {
-	await requireCurrentSession();
-	const result = await db.execute<{
-		orders: number;
-		promotions_expiring: number;
-		reviews: number;
-		stock: number;
-	}>(sql`
+// Cacheado por request (React cache): layout (badges) e page (PendingSection)
+// chamam isto no mesmo render — dedupa a query de counts.
+export const fetchDashboardCounts = cache(
+	async (): Promise<DashboardCounts> => {
+		await requireCurrentSession();
+		const result = await db.execute<{
+			orders: number;
+			promotions_expiring: number;
+			reviews: number;
+			stock: number;
+		}>(sql`
 		SELECT
 			(SELECT COUNT(*)::int FROM stock_level
 				WHERE quantity = 0 OR (reorder_point > 0 AND quantity <= reorder_point)) AS stock,
@@ -286,14 +290,15 @@ export async function fetchDashboardCounts(): Promise<DashboardCounts> {
 				WHERE active = true AND ends_at IS NOT NULL
 				AND ends_at BETWEEN now() AND now() + INTERVAL '7 days') AS promotions_expiring
 	`);
-	const row = result.rows[0];
-	if (!row) {
-		throw new Error("fetchDashboardCounts: query retornou 0 linhas");
+		const row = result.rows[0];
+		if (!row) {
+			throw new Error("fetchDashboardCounts: query retornou 0 linhas");
+		}
+		return {
+			orders: row.orders,
+			promotionsExpiring: row.promotions_expiring,
+			reviews: row.reviews,
+			stock: row.stock,
+		};
 	}
-	return {
-		orders: row.orders,
-		promotionsExpiring: row.promotions_expiring,
-		reviews: row.reviews,
-		stock: row.stock,
-	};
-}
+);
