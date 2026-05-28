@@ -1,11 +1,22 @@
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@emach/ui/components/card";
 import { Skeleton } from "@emach/ui/components/skeleton";
+import { format } from "date-fns";
 import { Suspense } from "react";
 
 import { ActivityFeed } from "@/components/activity-feed";
 import { PendingPanel, type PendingTab } from "@/components/pending-panel";
 import { requireCurrentSession } from "@/lib/session";
 import { BranchFilter } from "./_components/branch-filter";
+import { OrderFunnel } from "./_components/charts/order-funnel";
+import { RatingBars } from "./_components/charts/rating-bars";
+import { RevenueArea } from "./_components/charts/revenue-area";
 import { KpiRow } from "./_components/kpi-row";
+import { ReorderTable } from "./_components/reorder-table";
 import { parseBranchParam } from "./_lib/dashboard-params";
 import {
 	fetchDashboardActivity,
@@ -15,7 +26,13 @@ import {
 	fetchPendingReviews,
 	fetchPendingStock,
 } from "./actions";
-import { fetchBranchOptions } from "./dashboard-data";
+import {
+	fetchBranchOptions,
+	fetchDailyRevenue,
+	fetchOrderFunnel,
+	fetchRatingDistribution,
+	fetchReorderTable,
+} from "./dashboard-data";
 
 export default async function DashboardPage({
 	searchParams,
@@ -45,6 +62,10 @@ export default async function DashboardPage({
 
 			<Suspense fallback={<Skeleton className="h-72 w-full" />}>
 				<PendingSection />
+			</Suspense>
+
+			<Suspense fallback={<Skeleton className="h-64 w-full" />}>
+				<TrendsSection branchId={branchId} />
 			</Suspense>
 		</main>
 	);
@@ -120,5 +141,58 @@ async function PendingSection() {
 				</div>
 			</div>
 		</section>
+	);
+}
+
+async function TrendsSection({ branchId }: { branchId: string | null }) {
+	const [revenue, funnel, ratings, reorder] = await Promise.all([
+		fetchDailyRevenue(branchId),
+		fetchOrderFunnel(branchId),
+		fetchRatingDistribution(),
+		fetchReorderTable(branchId),
+	]);
+	const revenueData = revenue.map((p) => ({
+		day: format(p.day, "dd/MM"),
+		revenue: p.revenue,
+		movingAvg: p.movingAvg,
+	}));
+
+	return (
+		<div className="flex flex-col gap-4">
+			<Card>
+				<CardHeader>
+					<CardTitle>Receita diária (30d)</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<RevenueArea data={revenueData} />
+				</CardContent>
+			</Card>
+			<div className="grid gap-4 lg:grid-cols-2">
+				<Card>
+					<CardHeader>
+						<CardTitle>Funil de pedidos</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<OrderFunnel data={funnel} />
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader>
+						<CardTitle>Distribuição de notas</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<RatingBars data={ratings} />
+					</CardContent>
+				</Card>
+			</div>
+			<Card>
+				<CardHeader>
+					<CardTitle>Itens para repor</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<ReorderTable rows={reorder} />
+				</CardContent>
+			</Card>
+		</div>
 	);
 }
