@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@emach/ui/components/card";
 import { cn } from "@emach/ui/lib/utils";
 import type { ReactNode } from "react";
-import { NumberTicker } from "./number-ticker";
+import { type NumberFormat, NumberTicker } from "./number-ticker";
 
 export function KpiCard({
 	label,
@@ -14,7 +14,7 @@ export function KpiCard({
 	value: number;
 	sub?: ReactNode;
 	tone?: "default" | "warning" | "destructive";
-	format?: (n: number) => string;
+	format?: NumberFormat;
 }) {
 	return (
 		<Card
