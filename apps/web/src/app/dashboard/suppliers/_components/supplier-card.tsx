@@ -58,7 +58,7 @@ export function SupplierCard({ supplier, canMutate }: SupplierCardProps) {
 					{initials(supplier.name)}
 				</div>
 				<div className="min-w-0 flex-1">
-					<p className="font-semibold text-[15px] text-foreground leading-tight">
+					<p className="line-clamp-2 min-h-[2.4rem] font-semibold text-[15px] text-foreground leading-tight">
 						{supplier.name}
 					</p>
 					{contact ? (
