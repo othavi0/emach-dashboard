@@ -55,6 +55,11 @@ export interface ActivityCursor extends CursorBase {
 	sort: "activity";
 }
 
+export interface ExpiringPromoCursor extends CursorBase {
+	endsAt: string;
+	sort: "expiringPromo";
+}
+
 export type Cursor =
 	| NewestCursor
 	| NameCursor
@@ -65,7 +70,8 @@ export type Cursor =
 	| LastOrderCursor
 	| NameAscCursor
 	| PendingStockCursor
-	| ActivityCursor;
+	| ActivityCursor
+	| ExpiringPromoCursor;
 
 export function encodeCursor(c: Cursor): string {
 	return Buffer.from(JSON.stringify(c)).toString("base64url");

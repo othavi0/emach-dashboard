@@ -41,13 +41,15 @@ import {
 	fetchStockFlow,
 	fetchToolStatus,
 } from "./dashboard-data";
+import { TOOL_STATUS_LABELS } from "./tools/_components/tool-schema";
 
-const TOOL_STATUS_CONFIG = {
-	draft: { label: "Rascunho" },
-	active: { label: "Ativo" },
-	out_of_stock: { label: "Sem estoque" },
-	discontinued: { label: "Descontinuado" },
-} satisfies ChartConfig;
+// Deriva do mapa canônico de labels (tool-schema) — evita drift se um rótulo mudar.
+const TOOL_STATUS_CONFIG = Object.fromEntries(
+	Object.entries(TOOL_STATUS_LABELS).map(([status, label]) => [
+		status,
+		{ label },
+	])
+) satisfies ChartConfig;
 
 const PROMO_STATUS_CONFIG = {
 	ativa: { label: "Ativa" },

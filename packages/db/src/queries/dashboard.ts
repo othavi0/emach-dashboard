@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { orderStatusEnum } from "../schema/orders";
 
 type AnyDb = NodePgDatabase<Record<string, unknown>>;
 
@@ -15,6 +16,16 @@ export const ORDER_STATUS_FUNNEL = [
 	"payment_failed",
 	"returned",
 ] as const;
+
+/** União dos status cobertos pelo funil. */
+export type OrderFunnelStatus = (typeof ORDER_STATUS_FUNNEL)[number];
+
+// Drift guard (type-level): se um status novo do enum não entrar no funil,
+// `Exclude` deixa de ser `never` e este alias quebra a compilação.
+type AssertNever<T extends never> = T;
+export type OrderFunnelCoversEnum = AssertNever<
+	Exclude<(typeof orderStatusEnum.enumValues)[number], OrderFunnelStatus>
+>;
 
 export function sortByFunnel<T extends { status: string }>(rows: T[]): T[] {
 	const pos = (s: string) => {
