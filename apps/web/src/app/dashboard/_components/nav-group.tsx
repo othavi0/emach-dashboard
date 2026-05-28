@@ -26,9 +26,9 @@ export function NavGroup({
 				<SidebarMenu>
 					{group.items.map((item, index) => (
 						<m.div
-							key={item.href}
-							initial={reduce ? false : { opacity: 0, x: -6 }}
 							animate={{ opacity: 1, x: 0 }}
+							initial={reduce ? false : { opacity: 0, x: -6 }}
+							key={item.href}
 							transition={{
 								duration: 0.18,
 								ease: "easeOut",
@@ -36,8 +36,8 @@ export function NavGroup({
 							}}
 						>
 							<NavItem
-								item={item}
 								badgeCount={item.badgeKey ? badges[item.badgeKey] : undefined}
+								item={item}
 							/>
 						</m.div>
 					))}

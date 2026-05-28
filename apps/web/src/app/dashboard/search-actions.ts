@@ -10,7 +10,7 @@ type ActionResult<T = undefined> =
 	| { ok: false; error: string };
 
 export async function globalSearch(
-	query: string,
+	query: string
 ): Promise<ActionResult<SearchResults>> {
 	await requireCurrentSession();
 	try {

@@ -53,9 +53,9 @@ export default async function DashboardLayout({
 			<AppSidebar
 				canManageUsers={canManageUsers}
 				orderCount={counts.orders}
+				pendingCount={pendingCount}
 				reviewCount={counts.reviews}
 				stockCount={counts.stock}
-				pendingCount={pendingCount}
 				user={{
 					name: session.user.name,
 					email: session.user.email,
