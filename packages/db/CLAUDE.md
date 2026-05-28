@@ -58,6 +58,7 @@ Sintoma: `Intl.DateTimeFormat.format(value)` lança `RangeError: Invalid time va
 
 - `db.query.X.findMany` (relational) e `db.select().from(...)` (query builder) **não** sofrem do bug — devolvem `Date`. Sem coerção.
 - Retornos de objetos inteiros: helper `coerceDates(obj, [...keys])` em `queries/catalog.ts`.
+- **Colunas `::date` (date-only) → off-by-one no display:** `db.execute` devolve `'YYYY-MM-DD'` (string). `new Date('2026-05-01')` parseia como **meia-noite UTC**, então `format()` em fuso negativo (dev BR = UTC-3) mostra o **dia anterior**. Para séries de data exibidas (eixo de gráfico), parsear como meia-noite **local** — helper `localDate(s)` em `queries/dashboard.ts` (`new Date(\`${s}T00:00:00\`)`). `toDate` não resolve isso (date-only não tem hora). Manifesta em dev BR; em prod Vercel-UTC fica correto, mas é latente.
 
 ## Armadilha: `db.execute<T>` devolve colunas em snake_case
 
