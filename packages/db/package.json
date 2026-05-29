@@ -16,7 +16,8 @@
     "db:apply-triggers": "bun run scripts/apply-triggers.ts",
     "db:seed-demo": "bun run scripts/seed-demo.ts",
     "db:reset-demo": "bun run scripts/reset-demo.ts",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@emach/env": "workspace:*",
