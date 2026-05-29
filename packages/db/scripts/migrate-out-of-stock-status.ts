@@ -15,6 +15,15 @@ async function main() {
 		throw new Error(`Ainda há ${remaining?.n} tools out_of_stock`);
 	}
 	console.info("OK: 0 tools out_of_stock restantes");
+
+	// drizzle-kit push não faz diff de CHECK constraints — apertar manualmente.
+	await db.execute(
+		sql`ALTER TABLE "tool" DROP CONSTRAINT IF EXISTS "valid_tool_status"`
+	);
+	await db.execute(
+		sql`ALTER TABLE "tool" ADD CONSTRAINT "valid_tool_status" CHECK (status IN ('draft','active','discontinued'))`
+	);
+	console.info("OK: CHECK valid_tool_status apertado para 3 status");
 }
 
 main()

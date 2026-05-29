@@ -38,11 +38,7 @@ type AnyDb = NodePgDatabase<Record<string, unknown>>;
 // Constants
 // ---------------------------------------------------------------------------
 
-const STOREFRONT_TOOL_STATUSES = [
-	"active",
-	"out_of_stock",
-	"discontinued",
-] as const;
+const STOREFRONT_TOOL_STATUSES = ["active", "discontinued"] as const;
 const APPROVED = "approved" as const;
 const DEFAULT_LIST_LIMIT = 24;
 const DEFAULT_SEARCH_LIMIT = 8;
@@ -201,7 +197,7 @@ function arrayLiteral<T>(values: T[], castType: string) {
 const REVIEWER_NAME_SPLIT_RE = /\s+/;
 
 // SQL fragments shared by getTools / getRecentTools / getActivePromotions
-const STOREFRONT_STATUS_SQL = sql`t.status IN ('active','out_of_stock','discontinued')`;
+const STOREFRONT_STATUS_SQL = sql`t.status IN ('active','discontinued')`;
 
 // ---------------------------------------------------------------------------
 // 1. getTools
