@@ -15,7 +15,6 @@ import { useSearchParams } from "next/navigation";
 
 import { FiltersBar } from "@/components/filters-bar";
 import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
-
 import { TOOL_STATUS_LABELS, TOOL_STATUS_OPTIONS } from "./tool-schema";
 
 interface CategoryOption {
@@ -41,20 +40,9 @@ const TRACKED = [
 	"categoryId",
 	"visible",
 	"status",
-	"ncm",
-	"sort",
 	"mode",
 	"branchId",
 ] as const;
-
-const SORT_OPTIONS = [
-	{ label: "Mais nova", value: "newest" },
-	{ label: "Nome (A–Z)", value: "name" },
-] as const;
-
-const SORT_LABEL: Record<string, string> = Object.fromEntries(
-	SORT_OPTIONS.map((o) => [o.value, o.label])
-);
 
 function buildModeHref(
 	currentParams: URLSearchParams,
@@ -80,25 +68,20 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 		basePath: BASE,
 		key: "search",
 	});
-	const [ncm, setNcm] = useDebouncedParam({
-		basePath: BASE,
-		key: "ncm",
-	});
 	const currentCategoryId = searchParams.get("categoryId") ?? ALL;
 	const currentVisibility = searchParams.get("visible") ?? ALL;
 	const currentStatus = searchParams.get("status") ?? ALL;
-	const currentSort = searchParams.get("sort") ?? "newest";
 	const currentMode = searchParams.get("mode") ?? undefined;
 	const currentBranchId = searchParams.get("branchId") ?? ALL;
 
 	return (
 		<FiltersBar hasActive={hasActive} onClear={clearAll}>
 			{/* Mode toggle — Catálogo / Repor agora / Esgotadas */}
-			<div className="flex items-end pb-0.5">
+			<div className="flex shrink-0 items-end pb-0.5">
 				<div className="inline-flex rounded-md border border-border bg-muted/40 p-0.5">
 					<Link
 						className={cn(
-							"rounded px-3 py-1 text-xs",
+							"whitespace-nowrap rounded px-3 py-1 text-xs",
 							currentMode
 								? "text-muted-foreground"
 								: "bg-background font-medium text-foreground shadow-sm"
@@ -109,7 +92,7 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 					</Link>
 					<Link
 						className={cn(
-							"rounded px-3 py-1 text-xs",
+							"whitespace-nowrap rounded px-3 py-1 text-xs",
 							currentMode === "repor"
 								? "bg-destructive/15 font-medium text-destructive"
 								: "text-muted-foreground"
@@ -120,7 +103,7 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 					</Link>
 					<Link
 						className={cn(
-							"rounded px-3 py-1 text-xs",
+							"whitespace-nowrap rounded px-3 py-1 text-xs",
 							currentMode === "esgotado"
 								? "bg-destructive/15 font-medium text-destructive"
 								: "text-muted-foreground"
@@ -132,8 +115,11 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 				</div>
 			</div>
 
-			<div className="flex flex-1 flex-col gap-1">
-				<label className="text-muted-foreground text-xs" htmlFor="tool-q">
+			<div className="flex flex-1 flex-col gap-1 md:min-w-[220px]">
+				<label
+					className="whitespace-nowrap text-muted-foreground text-xs"
+					htmlFor="tool-q"
+				>
 					Buscar por nome
 				</label>
 				<Input
@@ -208,7 +194,7 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 				</Select>
 			</div>
 
-			<div className="flex flex-col gap-1 md:w-44">
+			<div className="flex flex-col gap-1 md:w-32">
 				<label className="text-muted-foreground text-xs" htmlFor="tool-vis">
 					Visibilidade
 				</label>
@@ -239,7 +225,7 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 				</Select>
 			</div>
 
-			<div className="flex flex-col gap-1 md:w-44">
+			<div className="flex flex-col gap-1 md:w-40">
 				<label className="text-muted-foreground text-xs" htmlFor="tool-status">
 					Status
 				</label>
@@ -267,43 +253,6 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 							{TOOL_STATUS_OPTIONS.map((s) => (
 								<SelectItem key={s} value={s}>
 									{TOOL_STATUS_LABELS[s]}
-								</SelectItem>
-							))}
-						</SelectGroup>
-					</SelectContent>
-				</Select>
-			</div>
-
-			<div className="flex flex-col gap-1 md:w-36">
-				<label className="text-muted-foreground text-xs" htmlFor="tool-ncm">
-					NCM (prefixo)
-				</label>
-				<Input
-					id="tool-ncm"
-					onChange={(e) => setNcm(e.target.value)}
-					placeholder="Ex: 8467"
-					value={ncm}
-				/>
-			</div>
-
-			<div className="flex flex-col gap-1 md:w-40">
-				<label className="text-muted-foreground text-xs" htmlFor="tool-sort">
-					Ordenar por
-				</label>
-				<Select
-					onValueChange={(v) => setParam("sort", v === "newest" ? null : v)}
-					value={currentSort}
-				>
-					<SelectTrigger id="tool-sort">
-						<SelectValue>
-							{(v: string) => SORT_LABEL[v] ?? "Mais nova"}
-						</SelectValue>
-					</SelectTrigger>
-					<SelectContent>
-						<SelectGroup>
-							{SORT_OPTIONS.map((o) => (
-								<SelectItem key={o.value} value={o.value}>
-									{o.label}
 								</SelectItem>
 							))}
 						</SelectGroup>

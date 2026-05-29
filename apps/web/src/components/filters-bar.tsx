@@ -11,7 +11,7 @@ interface FiltersBarProps {
 
 export function FiltersBar({ children, hasActive, onClear }: FiltersBarProps) {
 	return (
-		<div className="flex flex-col gap-3 md:flex-row md:items-end">
+		<div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
 			{children}
 			<Button
 				className="md:self-end"
