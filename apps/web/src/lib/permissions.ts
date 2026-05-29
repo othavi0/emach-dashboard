@@ -132,6 +132,23 @@ export async function requireCapabilityOrRedirect(
 	return session;
 }
 
+export async function requireUserDetailAccessOrRedirect(
+	targetUserId: string,
+	redirectTo = "/dashboard"
+): Promise<DashboardSession> {
+	const session = await requireCurrentSession();
+	if (session.user.status !== "active") {
+		redirect(redirectTo);
+	}
+	if (session.user.id === targetUserId) {
+		return session;
+	}
+	if (!can(session.user.role, "users.manage")) {
+		redirect(redirectTo);
+	}
+	return session;
+}
+
 interface CapabilityContext {
 	targetBranchIds?: string[];
 	targetUserId?: string;
