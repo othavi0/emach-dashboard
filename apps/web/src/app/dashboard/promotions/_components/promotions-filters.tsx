@@ -24,12 +24,25 @@ import {
 	SelectValue,
 } from "@emach/ui/components/select";
 import { ChevronsUpDown, X } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
+import { FiltersBar } from "@/components/filters-bar";
 import { MaskedInput } from "@/components/masked-input";
 import { percentageMask } from "@/lib/masks";
+import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
 import type { PromotionSort, PromotionStatus } from "../actions";
+
+const BASE = "/dashboard/promotions";
+const TRACKED = [
+	"search",
+	"type",
+	"status",
+	"sort",
+	"toolId",
+	"discountMin",
+	"discountMax",
+] as const;
 
 interface ToolOption {
 	id: string;
@@ -38,13 +51,6 @@ interface ToolOption {
 
 interface PromotionsFiltersProps {
 	availableTools: ToolOption[];
-	initialDiscountMax: string;
-	initialDiscountMin: string;
-	initialSearch: string;
-	initialSort: PromotionSort;
-	initialStatus: PromotionStatus | "all";
-	initialToolId: string;
-	initialType: "promotion" | "promocode" | "all";
 }
 
 const SORT_OPTIONS: Array<{ value: PromotionSort; label: string }> = [
@@ -73,98 +79,87 @@ const TYPE_OPTIONS: Array<{
 	{ value: "promocode", label: "Cupom" },
 ];
 
-export function PromotionsFilters({
-	availableTools,
-	initialDiscountMax,
-	initialDiscountMin,
-	initialSearch,
-	initialSort,
-	initialStatus,
-	initialToolId,
-	initialType,
-}: PromotionsFiltersProps) {
+export function PromotionsFilters({ availableTools }: PromotionsFiltersProps) {
 	const router = useRouter();
-	const sp = useSearchParams();
+	const { setParam, clearAll, hasActive, searchParams } = useFilterState({
+		basePath: BASE,
+		trackedKeys: TRACKED,
+	});
+	const [search, setSearch] = useDebouncedParam({
+		basePath: BASE,
+		key: "search",
+	});
 
-	const [search, setSearch] = useState(initialSearch);
+	const currentType = searchParams.get("type") ?? "all";
+	const currentStatus = searchParams.get("status") ?? "all";
+	const currentSort = searchParams.get("sort") ?? "createdDesc";
+	const currentToolId = searchParams.get("toolId") ?? "all";
+
 	const [advancedOpen, setAdvancedOpen] = useState(
-		Boolean(initialDiscountMin || initialDiscountMax || initialToolId !== "all")
+		Boolean(
+			searchParams.get("discountMin") ||
+				searchParams.get("discountMax") ||
+				(currentToolId !== "all" && currentToolId)
+		)
 	);
-	const [discountMin, setDiscountMin] = useState<number | undefined>(
-		initialDiscountMin ? Number(initialDiscountMin) : undefined
-	);
-	const [discountMax, setDiscountMax] = useState<number | undefined>(
-		initialDiscountMax ? Number(initialDiscountMax) : undefined
-	);
+	const [discountMin, setDiscountMin] = useState<number | undefined>(() => {
+		const v = searchParams.get("discountMin");
+		return v ? Number(v) : undefined;
+	});
+	const [discountMax, setDiscountMax] = useState<number | undefined>(() => {
+		const v = searchParams.get("discountMax");
+		return v ? Number(v) : undefined;
+	});
 	const [toolPopoverOpen, setToolPopoverOpen] = useState(false);
-	const [toolId, setToolId] = useState(initialToolId);
 
-	// Debounced search push — intencionalmente depende só de `search`
-	// biome-ignore lint/correctness/useExhaustiveDependencies: só dispara ao alterar o campo de busca
-	useEffect(() => {
-		const handle = setTimeout(() => {
-			const params = new URLSearchParams(sp);
-			if (search.trim()) {
-				params.set("search", search.trim());
-			} else {
-				params.delete("search");
-			}
-			params.delete("view"); // fechar Sheet ao filtrar
-			router.replace(`/dashboard/promotions?${params.toString()}`);
-		}, 300);
-		return () => clearTimeout(handle);
-	}, [search]);
+	const selectedTool = availableTools.find((t) => t.id === currentToolId);
 
-	function pushParam(key: string, value: string | null | undefined) {
-		const params = new URLSearchParams(sp);
-		if (value && value !== "all" && value !== "") {
-			params.set(key, value);
-		} else {
-			params.delete(key);
-		}
-		params.delete("view");
-		router.replace(`/dashboard/promotions?${params.toString()}`);
-	}
-
+	// Aplica min+max num único replace (evita o closure-staleness de 2x setParam)
 	function applyDiscountRange() {
-		const params = new URLSearchParams(sp);
+		const next = new URLSearchParams(searchParams.toString());
 		if (typeof discountMin === "number") {
-			params.set("discountMin", String(discountMin));
+			next.set("discountMin", String(discountMin));
 		} else {
-			params.delete("discountMin");
+			next.delete("discountMin");
 		}
 		if (typeof discountMax === "number") {
-			params.set("discountMax", String(discountMax));
+			next.set("discountMax", String(discountMax));
 		} else {
-			params.delete("discountMax");
+			next.delete("discountMax");
 		}
-		params.delete("view");
-		router.replace(`/dashboard/promotions?${params.toString()}`);
+		const qs = next.toString();
+		router.replace(qs ? `${BASE}?${qs}` : BASE);
 	}
 
-	const selectedTool = useMemo(
-		() => availableTools.find((t) => t.id === toolId),
-		[availableTools, toolId]
-	);
+	function handleClear() {
+		setDiscountMin(undefined);
+		setDiscountMax(undefined);
+		clearAll();
+	}
 
 	return (
 		<div className="flex flex-col gap-3">
-			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="filter-search">Buscar</Label>
+			<FiltersBar hasActive={hasActive} onClear={handleClear}>
+				<div className="flex flex-1 flex-col gap-1">
+					<Label
+						className="text-muted-foreground text-xs"
+						htmlFor="promo-search"
+					>
+						Buscar
+					</Label>
 					<Input
-						id="filter-search"
+						id="promo-search"
 						onChange={(e) => setSearch(e.target.value)}
 						placeholder="Título ou código…"
 						value={search}
 					/>
 				</div>
 
-				<div className="flex flex-col gap-1.5">
-					<Label>Tipo</Label>
+				<div className="flex flex-col gap-1 md:w-44">
+					<Label className="text-muted-foreground text-xs">Tipo</Label>
 					<Select
-						onValueChange={(v) => pushParam("type", v)}
-						value={initialType}
+						onValueChange={(v) => setParam("type", v === "all" ? null : v)}
+						value={currentType}
 					>
 						<SelectTrigger>
 							<SelectValue />
@@ -179,11 +174,11 @@ export function PromotionsFilters({
 					</Select>
 				</div>
 
-				<div className="flex flex-col gap-1.5">
-					<Label>Status</Label>
+				<div className="flex flex-col gap-1 md:w-44">
+					<Label className="text-muted-foreground text-xs">Status</Label>
 					<Select
-						onValueChange={(v) => pushParam("status", v)}
-						value={initialStatus}
+						onValueChange={(v) => setParam("status", v === "all" ? null : v)}
+						value={currentStatus}
 					>
 						<SelectTrigger>
 							<SelectValue />
@@ -198,11 +193,13 @@ export function PromotionsFilters({
 					</Select>
 				</div>
 
-				<div className="flex flex-col gap-1.5">
-					<Label>Ordenar por</Label>
+				<div className="flex flex-col gap-1 md:w-44">
+					<Label className="text-muted-foreground text-xs">Ordenar por</Label>
 					<Select
-						onValueChange={(v) => pushParam("sort", v)}
-						value={initialSort}
+						onValueChange={(v) =>
+							setParam("sort", v === "createdDesc" ? null : v)
+						}
+						value={currentSort}
 					>
 						<SelectTrigger>
 							<SelectValue />
@@ -216,7 +213,7 @@ export function PromotionsFilters({
 						</SelectContent>
 					</Select>
 				</div>
-			</div>
+			</FiltersBar>
 
 			<Button
 				className="w-fit"
@@ -239,14 +236,13 @@ export function PromotionsFilters({
 								<span className="truncate">
 									{selectedTool ? selectedTool.name : "Todas"}
 								</span>
-								{toolId !== "all" && (
+								{currentToolId !== "all" && (
 									<button
 										aria-label="Limpar ferramenta"
 										className="ml-2"
 										onClick={(e) => {
 											e.stopPropagation();
-											setToolId("all");
-											pushParam("toolId", undefined);
+											setParam("toolId", null);
 										}}
 										type="button"
 									>
@@ -265,9 +261,8 @@ export function PromotionsFilters({
 												<CommandItem
 													key={t.id}
 													onSelect={() => {
-														setToolId(t.id);
 														setToolPopoverOpen(false);
-														pushParam("toolId", t.id);
+														setParam("toolId", t.id);
 													}}
 													value={t.name}
 												>

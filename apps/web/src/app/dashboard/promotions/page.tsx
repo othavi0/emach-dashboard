@@ -128,16 +128,7 @@ export default async function PromotionsPage({ searchParams }: PageProps) {
 				title="Promoções"
 			/>
 
-			<PromotionsFilters
-				availableTools={availableTools}
-				initialDiscountMax={params.discountMax ?? ""}
-				initialDiscountMin={params.discountMin ?? ""}
-				initialSearch={search}
-				initialSort={sort}
-				initialStatus={statusFilter}
-				initialToolId={toolId ?? "all"}
-				initialType={typeFilter}
-			/>
+			<PromotionsFilters availableTools={availableTools} />
 
 			{isEmpty ? (
 				<Empty>
