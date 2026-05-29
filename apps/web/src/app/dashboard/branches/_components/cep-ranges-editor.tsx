@@ -4,19 +4,11 @@ import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
 
 import { MaskedInput } from "@/components/masked-input";
 import { cepMask } from "@/lib/masks";
 
 export type CepRangeValue = { from: string; to: string; label?: string };
-
-interface Row {
-	from: string;
-	label: string;
-	to: string;
-	uiId: string;
-}
 
 interface Props {
 	disabled?: boolean;
@@ -26,103 +18,83 @@ interface Props {
 
 const MAX_RANGES = 20;
 
-function toRows(value: CepRangeValue[]): Row[] {
-	return value.map((r) => ({
-		uiId: crypto.randomUUID(),
-		from: r.from,
-		to: r.to,
-		label: r.label ?? "",
-	}));
-}
-
-function stripUi(rows: Row[]): CepRangeValue[] {
+/** Mantém o label digitado, mas omite a chave quando vazio (não persiste ""). */
+function normalize(rows: CepRangeValue[]): CepRangeValue[] {
 	return rows.map((r) => {
-		const label = r.label.trim();
-		return label
-			? { from: r.from, to: r.to, label }
+		const hasLabel = Boolean(r.label && r.label.trim() !== "");
+		return hasLabel
+			? { from: r.from, to: r.to, label: r.label }
 			: { from: r.from, to: r.to };
 	});
 }
 
 export function CepRangesEditor({ value, onChange, disabled }: Props) {
-	// Estado local mantém uiId estável por linha; sincroniza pro pai sem uiId.
-	const [rows, setRows] = useState<Row[]>(() => toRows(value));
-
-	function commit(next: Row[]) {
-		setRows(next);
-		onChange(stripUi(next));
-	}
-
-	function patchRow(uiId: string, patch: Partial<Omit<Row, "uiId">>) {
-		commit(rows.map((r) => (r.uiId === uiId ? { ...r, ...patch } : r)));
+	function patchRow(idx: number, patch: Partial<CepRangeValue>) {
+		onChange(
+			normalize(value.map((r, i) => (i === idx ? { ...r, ...patch } : r)))
+		);
 	}
 
 	function addRow() {
-		if (rows.length >= MAX_RANGES) {
+		if (value.length >= MAX_RANGES) {
 			return;
 		}
-		commit([
-			...rows,
-			{ uiId: crypto.randomUUID(), from: "", to: "", label: "" },
-		]);
+		onChange([...value, { from: "", to: "" }]);
 	}
 
-	function removeRow(uiId: string) {
-		commit(rows.filter((r) => r.uiId !== uiId));
+	function removeRow(idx: number) {
+		onChange(value.filter((_, i) => i !== idx));
 	}
 
 	return (
 		<div className="flex flex-col gap-3">
-			{rows.length === 0 ? (
+			{value.length === 0 ? (
 				<p className="text-muted-foreground text-sm">
 					Nenhuma faixa configurada. A filial não será sugerida por CEP.
 				</p>
 			) : (
 				<ul className="flex flex-col gap-3">
-					{rows.map((row) => (
+					{value.map((row, idx) => (
 						<li
 							className="flex flex-col gap-2 rounded-md border border-border p-3"
-							key={row.uiId}
+							// biome-ignore lint/suspicious/noArrayIndexKey: lista controlada sem IDs estáveis; sem reordenação, só add/remove
+							key={idx}
 						>
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor={`cep-label-${row.uiId}`}>
-									Rótulo (opcional)
-								</Label>
+								<Label htmlFor={`cep-label-${idx}`}>Rótulo (opcional)</Label>
 								<Input
 									disabled={disabled}
-									id={`cep-label-${row.uiId}`}
-									onChange={(e) =>
-										patchRow(row.uiId, { label: e.target.value })
-									}
+									id={`cep-label-${idx}`}
+									onChange={(e) => patchRow(idx, { label: e.target.value })}
 									placeholder="Ex.: SP capital zona oeste"
-									value={row.label}
+									value={row.label ?? ""}
 								/>
 							</div>
 							<div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
 								<div className="flex flex-col gap-1.5">
-									<Label htmlFor={`cep-from-${row.uiId}`}>De</Label>
+									<Label htmlFor={`cep-from-${idx}`}>De</Label>
 									<MaskedInput
 										disabled={disabled}
-										id={`cep-from-${row.uiId}`}
+										id={`cep-from-${idx}`}
 										mask={cepMask}
-										onChange={(v) => patchRow(row.uiId, { from: v ?? "" })}
+										onChange={(v) => patchRow(idx, { from: v ?? "" })}
 										value={row.from}
 									/>
 								</div>
 								<div className="flex flex-col gap-1.5">
-									<Label htmlFor={`cep-to-${row.uiId}`}>Até</Label>
+									<Label htmlFor={`cep-to-${idx}`}>Até</Label>
 									<MaskedInput
 										disabled={disabled}
-										id={`cep-to-${row.uiId}`}
+										id={`cep-to-${idx}`}
 										mask={cepMask}
-										onChange={(v) => patchRow(row.uiId, { to: v ?? "" })}
+										onChange={(v) => patchRow(idx, { to: v ?? "" })}
 										value={row.to}
 									/>
 								</div>
 								<Button
 									aria-label="Remover faixa"
 									disabled={disabled}
-									onClick={() => removeRow(row.uiId)}
+									onClick={() => removeRow(idx)}
 									size="icon"
 									type="button"
 									variant="ghost"
@@ -136,7 +108,7 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 			)}
 			<Button
 				className="self-start"
-				disabled={disabled || rows.length >= MAX_RANGES}
+				disabled={disabled || value.length >= MAX_RANGES}
 				onClick={addRow}
 				size="sm"
 				type="button"
