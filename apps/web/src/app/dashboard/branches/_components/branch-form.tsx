@@ -33,6 +33,7 @@ const FIELD_LABELS: Record<string, string> = {
 	neighborhood: "Bairro",
 	city: "Cidade",
 	state: "UF",
+	cepRanges: "Faixas de CEP",
 };
 
 interface BranchFormProps {
@@ -72,6 +73,7 @@ function buildInitial(d: Partial<BranchFormValues>): BranchFormValues {
 		city: d.city,
 		state: d.state,
 		responsibleUserId: d.responsibleUserId,
+		cepRanges: d.cepRanges ?? [],
 	};
 }
 
