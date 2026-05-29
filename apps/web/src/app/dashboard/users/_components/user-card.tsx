@@ -2,13 +2,6 @@
 
 import { Badge } from "@emach/ui/components/badge";
 import { Button } from "@emach/ui/components/button";
-import {
-	Crown,
-	type LucideIcon,
-	Shield,
-	ShieldCheck,
-	UserRound,
-} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -17,34 +10,11 @@ import type { UserListRow } from "../data";
 import { ApprovalSheet } from "./approval-sheet";
 import type { BranchLite } from "./types";
 
-const ROLE_META: Record<
-	UserListRow["role"],
-	{ icon: LucideIcon; avatarBg: string; avatarText: string; iconColor: string }
-> = {
-	super_admin: {
-		icon: Crown,
-		avatarBg: "bg-amber-950",
-		avatarText: "text-amber-400",
-		iconColor: "text-amber-400",
-	},
-	admin: {
-		icon: ShieldCheck,
-		avatarBg: "bg-blue-950",
-		avatarText: "text-blue-400",
-		iconColor: "text-blue-400",
-	},
-	manager: {
-		icon: Shield,
-		avatarBg: "bg-green-950",
-		avatarText: "text-green-400",
-		iconColor: "text-green-400",
-	},
-	user: {
-		icon: UserRound,
-		avatarBg: "bg-muted",
-		avatarText: "text-muted-foreground",
-		iconColor: "text-muted-foreground",
-	},
+const ROLE_LABEL: Record<UserListRow["role"], string> = {
+	super_admin: "Super admin",
+	admin: "Admin",
+	manager: "Gerente",
+	user: "Usuário",
 };
 
 const STATUS_VARIANT: Record<
@@ -101,8 +71,6 @@ export function UserCard({
 }: UserCardProps) {
 	const router = useRouter();
 	const [approving, setApproving] = useState(false);
-	const role = ROLE_META[user.role];
-	const RoleIcon = role.icon;
 
 	return (
 		<>
@@ -118,11 +86,9 @@ export function UserCard({
 				role="button"
 				tabIndex={0}
 			>
-				{/* Header: avatar + nome + role icon + status badge */}
+				{/* Header: avatar + nome + email + status badge */}
 				<div className="flex items-start gap-3">
-					<div
-						className={`flex size-[52px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[10px] font-bold text-[18px] ${role.avatarBg} ${role.avatarText}`}
-					>
+					<div className="flex size-[52px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-border bg-muted font-bold text-[18px] text-foreground">
 						{user.image ? (
 							// biome-ignore lint/performance/noImgElement: avatar do usuário
 							// biome-ignore lint/correctness/useImageSize: tamanho fixo via Tailwind
@@ -132,15 +98,9 @@ export function UserCard({
 						)}
 					</div>
 					<div className="min-w-0 flex-1">
-						<div className="flex items-center gap-1.5">
-							<RoleIcon
-								aria-hidden
-								className={`size-3.5 flex-shrink-0 ${role.iconColor}`}
-							/>
-							<span className="truncate font-semibold text-[14px] text-foreground leading-tight">
-								{user.name}
-							</span>
-						</div>
+						<span className="block truncate font-semibold text-[14px] text-foreground leading-tight">
+							{user.name}
+						</span>
 						<p className="truncate text-muted-foreground text-xs">
 							{user.email}
 						</p>
@@ -181,6 +141,12 @@ export function UserCard({
 				{/* Footer */}
 				<div className="flex items-center justify-between gap-2 border-border border-t pt-3">
 					<span className="text-muted-foreground text-xs">
+						<span className="font-semibold text-foreground">
+							{ROLE_LABEL[user.role]}
+						</span>
+						<span aria-hidden className="mx-1.5">
+							·
+						</span>
 						{user.lastLoginAt
 							? `Login ${formatRelative(user.lastLoginAt)}`
 							: "Nunca logou"}

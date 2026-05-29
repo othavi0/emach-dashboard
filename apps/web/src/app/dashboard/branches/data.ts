@@ -1,10 +1,6 @@
 import "server-only";
 
 import { db } from "@emach/db";
-import {
-	OPEN_ORDER_STATUSES,
-	sqlStatusList,
-} from "@emach/db/queries/order-status-groups";
 import { user as userTable } from "@emach/db/schema/auth";
 import {
 	type BranchBusinessHours,
@@ -44,41 +40,6 @@ export async function getEligibleUsersForBranch(
 			    and (${userTable.name} ilike ${pattern} or ${userTable.email} ilike ${pattern})`
 		)
 		.limit(20);
-}
-
-export interface BranchKpis {
-	lowStockCount: number;
-	openOrders: number;
-	stockValue: number;
-	total: number;
-}
-
-export async function getBranchKpis(): Promise<BranchKpis> {
-	const [total] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(branch);
-	const [low] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(stockLevel)
-		.where(
-			sql`${stockLevel.quantity} <= coalesce(${stockLevel.minQty}, 0) and coalesce(${stockLevel.minQty}, 0) > 0`
-		);
-	const [value] = await db
-		.select({
-			v: sql<number>`coalesce(sum(${stockLevel.quantity} * coalesce(${toolVariant.priceAmount}, 0)), 0)::float`,
-		})
-		.from(stockLevel)
-		.leftJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId));
-	const [open] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(order)
-		.where(sql`${order.status} in (${sqlStatusList(OPEN_ORDER_STATUSES)})`);
-	return {
-		total: total?.n ?? 0,
-		lowStockCount: low?.n ?? 0,
-		stockValue: value?.v ?? 0,
-		openOrders: open?.n ?? 0,
-	};
 }
 
 export interface BranchDetail {
