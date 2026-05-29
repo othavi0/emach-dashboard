@@ -1,5 +1,5 @@
 import { type SQL, sql } from "drizzle-orm";
-import type { orderStatusEnum } from "./schema/orders";
+import type { orderStatusEnum } from "../schema/orders";
 
 type OrderStatus = (typeof orderStatusEnum.enumValues)[number];
 

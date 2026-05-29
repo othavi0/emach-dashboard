@@ -3,7 +3,7 @@ import { db } from "@emach/db";
 import {
 	REVENUE_ORDER_STATUSES,
 	sqlStatusList,
-} from "@emach/db/order-status-groups";
+} from "@emach/db/queries/order-status-groups";
 import { clientExportLog } from "@emach/db/schema/client-export";
 import { toDate } from "@emach/db/utils";
 import { sql } from "drizzle-orm";

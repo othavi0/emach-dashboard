@@ -4,7 +4,7 @@ import { db } from "@emach/db";
 import {
 	OPEN_ORDER_STATUSES,
 	sqlStatusList,
-} from "@emach/db/order-status-groups";
+} from "@emach/db/queries/order-status-groups";
 import { user } from "@emach/db/schema/auth";
 import { branch, stockLevel, userBranch } from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
