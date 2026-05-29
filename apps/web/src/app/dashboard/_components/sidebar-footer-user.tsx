@@ -20,7 +20,16 @@ import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { getInitials } from "@/lib/format/name";
 
-export type FooterUser = { email: string; name: string; role?: string | null };
+export type FooterUser = {
+	email: string;
+	id: string;
+	name: string;
+	role?: string | null;
+};
+
+export function getSidebarProfileHref(userId: string): string {
+	return `/dashboard/users/${userId}`;
+}
 
 export function SidebarFooterUser({ user }: { user: FooterUser }) {
 	const router = useRouter();
@@ -88,7 +97,7 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 					>
 						<DropdownMenuItem
 							onClick={() => {
-								router.push("/dashboard/users");
+								router.push(getSidebarProfileHref(user.id));
 							}}
 						>
 							<UserIcon className="size-4" />

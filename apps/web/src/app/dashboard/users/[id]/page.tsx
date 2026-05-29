@@ -5,7 +5,7 @@ import { Activity, Briefcase, Lock, Monitor, User } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
-import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
+import { can, requireUserDetailAccessOrRedirect } from "@/lib/permissions";
 import type { UserRow } from "../_components/types";
 import { UserEditSheet } from "../_components/user-edit-sheet";
 import { getUserDetail } from "../data";
@@ -22,10 +22,9 @@ interface PageProps {
 }
 
 export default async function UserDetailPage({ params }: PageProps) {
-	const actorSession = await requireCapabilityOrRedirect("users.manage");
-	const canDelete = can(actorSession.user.role, "users.delete");
-
 	const { id } = await params;
+	const actorSession = await requireUserDetailAccessOrRedirect(id);
+	const canDelete = can(actorSession.user.role, "users.delete");
 
 	const [user, availableBranches] = await Promise.all([
 		getUserDetail(id),
