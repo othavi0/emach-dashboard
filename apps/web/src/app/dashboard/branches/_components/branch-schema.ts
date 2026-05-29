@@ -1,9 +1,17 @@
+import type { BranchBusinessHours } from "@emach/db/schema/inventory";
 import { z } from "zod";
 
 const phoneRegex = /^(\+?55)?\s*\(?\d{2}\)?\s*\d{4,5}-?\d{4}$/;
 const cepDigitsRegex = /^\d{8}$/;
 const ufRegex = /^[A-Z]{2}$/;
 const CEP_8_DIGITS = /^\d{8}$/;
+const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export const defaultBusinessHours: BranchBusinessHours = {
+	weekdays: { isOpen: true, opensAt: "08:00", closesAt: "18:00" },
+	saturday: { isOpen: true, opensAt: "08:00", closesAt: "12:00" },
+	holidays: { isOpen: false, opensAt: null, closesAt: null },
+};
 
 const cepDigits = z
 	.string()
@@ -40,6 +48,61 @@ const optionalTrimmed = z
 	.or(z.literal(""))
 	.transform((v) => (v ? v : undefined));
 
+const timeValueSchema = z
+	.string()
+	.trim()
+	.regex(timeRegex, "Horário inválido (HH:mm)")
+	.nullable();
+
+const businessHoursPeriodSchema = z
+	.object({
+		isOpen: z.boolean(),
+		opensAt: timeValueSchema,
+		closesAt: timeValueSchema,
+	})
+	.superRefine((value, ctx) => {
+		if (!value.isOpen) {
+			return;
+		}
+
+		if (!value.opensAt) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Horário de abertura obrigatório",
+				path: ["opensAt"],
+			});
+		}
+
+		if (!value.closesAt) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Horário de fechamento obrigatório",
+				path: ["closesAt"],
+			});
+		}
+
+		if (value.opensAt && value.closesAt && value.closesAt <= value.opensAt) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Fechamento deve ser depois da abertura",
+				path: ["closesAt"],
+			});
+		}
+	})
+	.transform((value) => ({
+		isOpen: value.isOpen,
+		opensAt: value.isOpen ? value.opensAt : null,
+		closesAt: value.isOpen ? value.closesAt : null,
+	}));
+
+export const businessHoursSchema = z
+	.object({
+		weekdays: businessHoursPeriodSchema,
+		saturday: businessHoursPeriodSchema,
+		holidays: businessHoursPeriodSchema,
+	})
+	.default(defaultBusinessHours);
+
 export const branchSchema = z
 	.object({
 		name: z
@@ -57,6 +120,7 @@ export const branchSchema = z
 			.optional()
 			.or(z.literal(""))
 			.transform((v) => (v ? v : undefined)),
+		businessHours: businessHoursSchema,
 		cep: z
 			.string()
 			.trim()

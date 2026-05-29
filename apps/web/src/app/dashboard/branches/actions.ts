@@ -33,6 +33,7 @@ function normalizePayload(input: BranchFormValues) {
 		name: input.name,
 		status: input.status,
 		phone: input.phone ?? null,
+		businessHours: input.businessHours,
 		cep: input.cep ?? null, // já vem em dígitos via Zod transform
 		street: input.street ?? null,
 		streetNumber: input.streetNumber ?? null,

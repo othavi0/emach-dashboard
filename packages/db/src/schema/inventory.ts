@@ -14,12 +14,25 @@ import {
 import { user } from "./auth";
 import { toolVariant } from "./tools";
 
+export interface BranchBusinessHoursPeriod {
+	closesAt: string | null;
+	isOpen: boolean;
+	opensAt: string | null;
+}
+
+export interface BranchBusinessHours {
+	holidays: BranchBusinessHoursPeriod;
+	saturday: BranchBusinessHoursPeriod;
+	weekdays: BranchBusinessHoursPeriod;
+}
+
 export const branch = pgTable(
 	"branch",
 	{
 		id: text("id").primaryKey(),
 		name: text("name").notNull(),
 		phone: text("phone"),
+		businessHours: jsonb("business_hours").$type<BranchBusinessHours>(),
 		// Endereço estruturado (substitui address legacy)
 		cep: text("cep"),
 		street: text("street"),
