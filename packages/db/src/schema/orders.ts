@@ -261,10 +261,11 @@ export const refundRequest = pgTable(
 			table.requestedAt.desc()
 		),
 		index("refund_request_order_idx").on(table.orderId),
-		// 1 solicitação ABERTA por pedido (parcial: status não-terminal)
+		// 1 solicitação ATIVA por pedido (parcial: status não-terminal).
+		// Espelha ACTIVE_REFUND_STATUSES do ecommerce: requested + under_review + approved.
 		uniqueIndex("refund_request_one_open_per_order")
 			.on(table.orderId)
-			.where(sql`${table.status} IN ('requested', 'under_review')`),
+			.where(sql`${table.status} IN ('requested', 'under_review', 'approved')`),
 		check(
 			"refund_actor_coherence",
 			sql`(
