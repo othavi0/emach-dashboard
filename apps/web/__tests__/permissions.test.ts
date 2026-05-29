@@ -129,8 +129,8 @@ describe("requireUserDetailAccessOrRedirect", () => {
 	});
 
 	it("libera self-view do detalhe do próprio usuário", async () => {
-		await expect(
-			requireUserDetailAccessOrRedirect("actor-1")
-		).resolves.toBe(sessionActive);
+		await expect(requireUserDetailAccessOrRedirect("actor-1")).resolves.toBe(
+			sessionActive
+		);
 	});
 });
