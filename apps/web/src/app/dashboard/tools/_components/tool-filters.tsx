@@ -93,13 +93,13 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 
 	return (
 		<FiltersBar hasActive={hasActive} onClear={clearAll}>
-			{/* Mode toggle — Catálogo / Repor agora */}
+			{/* Mode toggle — Catálogo / Repor agora / Esgotadas */}
 			<div className="flex items-end pb-0.5">
 				<div className="inline-flex rounded-md border border-border bg-muted/40 p-0.5">
 					<Link
 						className={cn(
 							"rounded px-3 py-1 text-xs",
-							currentMode === "repor"
+							currentMode
 								? "text-muted-foreground"
 								: "bg-background font-medium text-foreground shadow-sm"
 						)}
@@ -117,6 +117,17 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 						href={buildModeHref(rawSearchParams, "repor")}
 					>
 						Repor agora
+					</Link>
+					<Link
+						className={cn(
+							"rounded px-3 py-1 text-xs",
+							currentMode === "esgotado"
+								? "bg-destructive/15 font-medium text-destructive"
+								: "text-muted-foreground"
+						)}
+						href={buildModeHref(rawSearchParams, "esgotado")}
+					>
+						Esgotadas
 					</Link>
 				</div>
 			</div>
