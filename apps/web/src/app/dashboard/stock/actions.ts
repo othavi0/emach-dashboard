@@ -390,6 +390,12 @@ export interface ToolActivityFilters {
 	toolId: string;
 }
 
+const PERIOD_DAYS: Record<"7d" | "30d" | "90d", number> = {
+	"7d": 7,
+	"30d": 30,
+	"90d": 90,
+};
+
 function computePeriodCutoff(period: PeriodPreset): Date | null {
 	if (period === "all") {
 		return null;
@@ -398,8 +404,7 @@ function computePeriodCutoff(period: PeriodPreset): Date | null {
 	if (period === "today") {
 		return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	}
-	const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
-	return new Date(now.getTime() - days * 86_400_000);
+	return new Date(now.getTime() - PERIOD_DAYS[period] * 86_400_000);
 }
 
 export async function fetchToolActivityPage(
