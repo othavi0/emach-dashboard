@@ -612,6 +612,8 @@ function buildToolsWhereClause(
 		}
 	}
 	if (filters.mode === "esgotado") {
+		// Coerente com o badge "Esgotado": só tools vendáveis (active) sem estoque.
+		whereParts.push(sql`t.status = 'active'`);
 		whereParts.push(sql`
 			NOT EXISTS (
 				SELECT 1 FROM stock_level sl
