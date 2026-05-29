@@ -3,10 +3,18 @@
 import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@emach/ui/components/select";
 import { Plus, Trash2 } from "lucide-react";
 
 import { MaskedInput } from "@/components/masked-input";
 import { cepMask } from "@/lib/masks";
+import { BRASIL_PRESET, UF_CEP_PRESETS } from "./cep-presets";
 
 export type CepRangeValue = { from: string; to: string; label?: string };
 
@@ -40,6 +48,31 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 			return;
 		}
 		onChange([...value, { from: "", to: "" }]);
+	}
+
+	function addBrasil() {
+		if (value.length >= MAX_RANGES) {
+			return;
+		}
+		onChange([
+			...value,
+			{
+				from: BRASIL_PRESET.from,
+				to: BRASIL_PRESET.to,
+				label: BRASIL_PRESET.label,
+			},
+		]);
+	}
+
+	function addUf(uf: string | null) {
+		const preset = UF_CEP_PRESETS.find((p) => p.uf === uf);
+		if (!preset || value.length >= MAX_RANGES) {
+			return;
+		}
+		onChange([
+			...value,
+			{ from: preset.from, to: preset.to, label: preset.name },
+		]);
 	}
 
 	function removeRow(idx: number) {
@@ -106,16 +139,42 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 					))}
 				</ul>
 			)}
-			<Button
-				className="self-start"
-				disabled={disabled || value.length >= MAX_RANGES}
-				onClick={addRow}
-				size="sm"
-				type="button"
-				variant="outline"
-			>
-				<Plus className="size-4" /> Adicionar faixa
-			</Button>
+			<div className="flex flex-wrap items-center gap-2">
+				<Button
+					disabled={disabled || value.length >= MAX_RANGES}
+					onClick={addRow}
+					size="sm"
+					type="button"
+					variant="outline"
+				>
+					<Plus className="size-4" /> Adicionar faixa
+				</Button>
+				<Button
+					disabled={disabled || value.length >= MAX_RANGES}
+					onClick={addBrasil}
+					size="sm"
+					type="button"
+					variant="outline"
+				>
+					Brasil todo
+				</Button>
+				<Select
+					disabled={disabled || value.length >= MAX_RANGES}
+					onValueChange={addUf}
+					value=""
+				>
+					<SelectTrigger className="h-8 w-[200px]" size="sm">
+						<SelectValue placeholder="Adicionar estado…" />
+					</SelectTrigger>
+					<SelectContent>
+						{UF_CEP_PRESETS.map((preset) => (
+							<SelectItem key={preset.uf} value={preset.uf}>
+								{preset.uf} — {preset.name}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			</div>
 		</div>
 	);
 }
