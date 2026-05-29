@@ -7,6 +7,7 @@ import {
 	LayoutDashboard,
 	type LucideIcon,
 	Megaphone,
+	Settings,
 	ShieldCheck,
 	ShoppingCart,
 	Star,
@@ -76,6 +77,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				label: "Ferramentas",
 				href: "/dashboard/tools" as Route,
 				icon: Wrench,
+				badgeKey: "stock",
 			},
 			{
 				label: "Categorias",
@@ -118,6 +120,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				label: "Notificações",
 				href: "/dashboard/site/notifications" as Route,
 				icon: Bell,
+				disabled: true,
+			},
+			{
+				label: "Configurações",
+				href: "/dashboard/site/settings" as Route,
+				icon: Settings,
 				disabled: true,
 			},
 		],
