@@ -17,7 +17,11 @@ vi.mock("@emach/db", () => ({
 }));
 
 import { db } from "@emach/db";
-import { can, requireCapabilityWithContext } from "@/lib/permissions";
+import {
+	can,
+	requireCapabilityWithContext,
+	requireUserDetailAccessOrRedirect,
+} from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 
 describe("can() — no-op pós ADR-0012", () => {
@@ -112,6 +116,21 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		mockTargetLookup({ role: "admin", status: "active" });
 		await expect(
 			requireCapabilityWithContext("users.delete", { targetUserId: "other-1" })
+		).resolves.toBe(sessionActive);
+	});
+});
+
+describe("requireUserDetailAccessOrRedirect", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+			sessionActive
+		);
+	});
+
+	it("libera self-view do detalhe do próprio usuário", async () => {
+		await expect(
+			requireUserDetailAccessOrRedirect("actor-1")
 		).resolves.toBe(sessionActive);
 	});
 });
