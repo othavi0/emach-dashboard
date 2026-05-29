@@ -13,7 +13,7 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-export type ToolStatus = "draft" | "active" | "discontinued" | "out_of_stock";
+export type ToolStatus = "draft" | "active" | "discontinued";
 
 export const voltageEnum = pgEnum("voltage", [
 	"127V",
@@ -85,7 +85,7 @@ export const tool = pgTable(
 		index("tool_status_idx").on(table.status),
 		check(
 			"valid_tool_status",
-			sql`${table.status} IN ('draft','active','discontinued','out_of_stock')`
+			sql`${table.status} IN ('draft','active','discontinued')`
 		),
 		check(
 			"weight_positive",

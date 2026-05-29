@@ -5,12 +5,7 @@ import type {
 import { z } from "zod";
 
 export const VOLTAGE_OPTIONS = ["127V", "220V", "Bivolt", "380V"] as const;
-export const TOOL_STATUS_OPTIONS = [
-	"draft",
-	"active",
-	"discontinued",
-	"out_of_stock",
-] as const;
+export const TOOL_STATUS_OPTIONS = ["draft", "active", "discontinued"] as const;
 
 export const TOOL_STATUS_LABELS: Record<
 	(typeof TOOL_STATUS_OPTIONS)[number],
@@ -19,7 +14,6 @@ export const TOOL_STATUS_LABELS: Record<
 	draft: "Rascunho",
 	active: "Ativo",
 	discontinued: "Descontinuado",
-	out_of_stock: "Sem estoque",
 };
 
 export const MIN_IMAGES_ACTIVE = 3;

@@ -757,7 +757,7 @@ export async function searchVariantsNotInBranch(
 	const cleanQuery = query.trim();
 	const conditions = [
 		isNull(stockLevel.variantId),
-		inArray(tool.status, ["active", "out_of_stock"]),
+		inArray(tool.status, ["active"]),
 	];
 	if (cleanQuery.length > 0) {
 		const filter = or(

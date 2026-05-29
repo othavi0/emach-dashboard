@@ -8,7 +8,6 @@ const STATUS_LABEL: Record<string, string> = {
 	active: "Ativa",
 	draft: "Rascunho",
 	discontinued: "Descontinuada",
-	out_of_stock: "Sem estoque",
 };
 
 const STATUS_VARIANT: Record<
@@ -18,7 +17,6 @@ const STATUS_VARIANT: Record<
 	active: "success",
 	draft: "secondary",
 	discontinued: "outline",
-	out_of_stock: "destructive",
 };
 
 interface ToolDetailHeaderProps {

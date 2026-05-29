@@ -127,7 +127,7 @@ export interface SupplierToolRow {
 	id: string;
 	name: string;
 	slug: string;
-	status: "draft" | "active" | "discontinued" | "out_of_stock";
+	status: "draft" | "active" | "discontinued";
 }
 
 export async function getSupplierTools(
