@@ -9,6 +9,7 @@ import {
 	pgTable,
 	text,
 	timestamp,
+	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -33,6 +34,24 @@ export const orderStatusEnum = pgEnum("order_status", [
 	"returned",
 ]);
 export type OrderStatus = (typeof orderStatusEnum.enumValues)[number];
+
+export const refundReasonEnum = pgEnum("refund_reason", [
+	"defeito",
+	"item_errado",
+	"avaria_transporte",
+	"arrependimento",
+	"outro",
+]);
+export type RefundReason = (typeof refundReasonEnum.enumValues)[number];
+
+export const refundStatusEnum = pgEnum("refund_status", [
+	"requested",
+	"under_review",
+	"approved",
+	"refunded",
+	"rejected",
+]);
+export type RefundStatus = (typeof refundStatusEnum.enumValues)[number];
 
 // --- Tables ---
 
@@ -211,6 +230,51 @@ export const orderAttachment = pgTable(
 	]
 );
 
+export const refundRequest = pgTable(
+	"refund_request",
+	{
+		id: text("id").primaryKey(),
+		orderId: text("order_id")
+			.notNull()
+			.references(() => order.id, { onDelete: "restrict" }),
+		clientId: text("client_id")
+			.notNull()
+			.references(() => client.id, { onDelete: "restrict" }),
+		reasonCategory: refundReasonEnum("reason_category").notNull(),
+		reasonText: text("reason_text"),
+		status: refundStatusEnum("status").notNull().default("requested"),
+		// snapshot do total do pedido no momento da solicitação
+		amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+		asaasRefundRef: text("asaas_refund_ref"),
+		rejectionReason: text("rejection_reason"),
+		actorType: actorTypeEnum("actor_type").notNull(),
+		actorUserId: text("actor_user_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		requestedAt: timestamp("requested_at").defaultNow().notNull(),
+		resolvedAt: timestamp("resolved_at"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(table) => [
+		index("refund_request_client_idx").on(
+			table.clientId,
+			table.requestedAt.desc()
+		),
+		index("refund_request_order_idx").on(table.orderId),
+		// 1 solicitação ABERTA por pedido (parcial: status não-terminal)
+		uniqueIndex("refund_request_one_open_per_order")
+			.on(table.orderId)
+			.where(sql`${table.status} IN ('requested', 'under_review')`),
+		check(
+			"refund_actor_coherence",
+			sql`(
+				(${table.actorType} = 'user'   AND ${table.actorUserId} IS NOT NULL)
+				OR (${table.actorType} = 'system' AND ${table.actorUserId} IS NULL)
+			)`
+		),
+	]
+);
+
 // --- Relations ---
 
 export const orderRelations = relations(order, ({ one, many }) => ({
@@ -220,6 +284,7 @@ export const orderRelations = relations(order, ({ one, many }) => ({
 	statusHistory: many(orderStatusHistory),
 	notes: many(orderNote),
 	attachments: many(orderAttachment),
+	refundRequests: many(refundRequest),
 }));
 
 export const orderItemRelations = relations(orderItem, ({ one }) => ({
@@ -270,6 +335,21 @@ export const orderAttachmentRelations = relations(
 	})
 );
 
+export const refundRequestRelations = relations(refundRequest, ({ one }) => ({
+	order: one(order, {
+		fields: [refundRequest.orderId],
+		references: [order.id],
+	}),
+	client: one(client, {
+		fields: [refundRequest.clientId],
+		references: [client.id],
+	}),
+	actorUser: one(user, {
+		fields: [refundRequest.actorUserId],
+		references: [user.id],
+	}),
+}));
+
 // --- Types ---
 
 export type Order = typeof order.$inferSelect;
@@ -282,3 +362,5 @@ export type OrderNote = typeof orderNote.$inferSelect;
 export type NewOrderNote = typeof orderNote.$inferInsert;
 export type OrderAttachment = typeof orderAttachment.$inferSelect;
 export type NewOrderAttachment = typeof orderAttachment.$inferInsert;
+export type RefundRequest = typeof refundRequest.$inferSelect;
+export type NewRefundRequest = typeof refundRequest.$inferInsert;
