@@ -15,12 +15,17 @@ import {
 
 import { createBranch, updateBranch } from "../actions";
 import { BranchFormFields } from "./branch-form-fields";
-import { type BranchFormValues, branchSchema } from "./branch-schema";
+import {
+	type BranchFormValues,
+	branchSchema,
+	defaultBusinessHours,
+} from "./branch-schema";
 
 const FIELD_LABELS: Record<string, string> = {
 	name: "Nome",
 	status: "Status",
 	phone: "Telefone",
+	businessHours: "Horário de funcionamento",
 	cep: "CEP",
 	street: "Rua",
 	streetNumber: "Número",
@@ -58,6 +63,7 @@ function buildInitial(d: Partial<BranchFormValues>): BranchFormValues {
 		name: d.name ?? "",
 		status: d.status ?? "active",
 		phone: d.phone,
+		businessHours: d.businessHours ?? defaultBusinessHours,
 		cep: d.cep,
 		street: d.street,
 		streetNumber: d.streetNumber,

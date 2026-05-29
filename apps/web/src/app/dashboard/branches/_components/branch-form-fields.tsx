@@ -18,6 +18,13 @@ import { CepInput, type CepResolved } from "./cep-input";
 import { ResponsibleUserSelect } from "./responsible-user-select";
 
 type Patch = (next: Partial<BranchFormValues>) => void;
+type BusinessHoursKey = keyof BranchFormValues["businessHours"];
+
+const BUSINESS_HOURS_ROWS: Array<{ key: BusinessHoursKey; label: string }> = [
+	{ key: "weekdays", label: "Dias de semana" },
+	{ key: "saturday", label: "Sábado" },
+	{ key: "holidays", label: "Feriados" },
+];
 
 interface Props {
 	branchId?: string;
@@ -48,6 +55,18 @@ export function BranchFormFields({
 			neighborhood: values.neighborhood || resolved.neighborhood,
 			city: values.city || resolved.city,
 			state: values.state || resolved.state,
+		});
+	};
+
+	const patchBusinessHours = (
+		key: BusinessHoursKey,
+		next: Partial<BranchFormValues["businessHours"][BusinessHoursKey]>
+	) => {
+		onPatch({
+			businessHours: {
+				...values.businessHours,
+				[key]: { ...values.businessHours[key], ...next },
+			},
 		});
 	};
 
@@ -104,6 +123,89 @@ export function BranchFormFields({
 						value={values.phone}
 					/>
 				</div>
+			</section>
+
+			{/* Horário de funcionamento */}
+			<section className="flex flex-col gap-3">
+				<SectionHeader>Horário de funcionamento</SectionHeader>
+				<div className="flex flex-col gap-3">
+					{BUSINESS_HOURS_ROWS.map((row) => {
+						const period = values.businessHours[row.key];
+						return (
+							<div
+								className="grid gap-3 md:grid-cols-[1fr_140px_120px_120px]"
+								key={row.key}
+							>
+								<div className="flex items-center">
+									<Label htmlFor={`branch-hours-${row.key}-status`}>
+										{row.label}
+									</Label>
+								</div>
+								<Select
+									disabled={disabled}
+									onValueChange={(value) =>
+										patchBusinessHours(
+											row.key,
+											value === "open"
+												? { isOpen: true, opensAt: "08:00", closesAt: "18:00" }
+												: { isOpen: false, opensAt: null, closesAt: null }
+										)
+									}
+									value={period.isOpen ? "open" : "closed"}
+								>
+									<SelectTrigger id={`branch-hours-${row.key}-status`}>
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="open">Aberto</SelectItem>
+										<SelectItem value="closed">Fechado</SelectItem>
+									</SelectContent>
+								</Select>
+								<div className="flex flex-col gap-1.5">
+									<Label
+										className="sr-only"
+										htmlFor={`branch-hours-${row.key}-opens`}
+									>
+										Abertura de {row.label}
+									</Label>
+									<Input
+										disabled={disabled || !period.isOpen}
+										id={`branch-hours-${row.key}-opens`}
+										onChange={(event) =>
+											patchBusinessHours(row.key, {
+												opensAt: event.target.value || null,
+											})
+										}
+										type="time"
+										value={period.opensAt ?? ""}
+									/>
+								</div>
+								<div className="flex flex-col gap-1.5">
+									<Label
+										className="sr-only"
+										htmlFor={`branch-hours-${row.key}-closes`}
+									>
+										Fechamento de {row.label}
+									</Label>
+									<Input
+										disabled={disabled || !period.isOpen}
+										id={`branch-hours-${row.key}-closes`}
+										onChange={(event) =>
+											patchBusinessHours(row.key, {
+												closesAt: event.target.value || null,
+											})
+										}
+										type="time"
+										value={period.closesAt ?? ""}
+									/>
+								</div>
+							</div>
+						);
+					})}
+				</div>
+				<p className="text-muted-foreground text-xs">
+					Domingos são tratados como fechado.
+				</p>
 			</section>
 
 			{/* Endereço */}

@@ -17,6 +17,7 @@ import { BranchFormFields } from "../../_components/branch-form-fields";
 import {
 	type BranchFormValues,
 	branchSchema,
+	defaultBusinessHours,
 } from "../../_components/branch-schema";
 import { DeleteBranchDialog } from "../../_components/delete-branch-dialog";
 import { updateBranch } from "../../actions";
@@ -30,6 +31,7 @@ const FIELD_LABELS: Record<string, string> = {
 	name: "Nome",
 	status: "Status",
 	phone: "Telefone",
+	businessHours: "Horário de funcionamento",
 	cep: "CEP",
 	street: "Rua",
 	streetNumber: "Número",
@@ -45,6 +47,7 @@ function toFormValues(b: BranchDetail): BranchFormValues {
 		name: b.name,
 		status: b.status,
 		phone: b.phone ?? undefined,
+		businessHours: b.businessHours ?? defaultBusinessHours,
 		cep: b.cep ?? undefined,
 		street: b.street ?? undefined,
 		streetNumber: b.streetNumber ?? undefined,
