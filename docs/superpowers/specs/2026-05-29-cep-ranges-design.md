@@ -159,6 +159,16 @@ Quando `detail.cepRanges` tem itens, mostra uma lista compacta na visão geral: 
 
 ---
 
+## Ajustes durante a execução (2026-05-29)
+
+Descobertas que corrigiram premissas deste spec:
+
+- **O `branch-edit-sheet.tsx` já tinha um editor de faixas inline** (sem label, sem máscara). A premissa "o form descarta `cepRanges`" valia só pro `branch-form.tsx` (criar). Consolidado: o sheet passou a usar o `CepRangesEditor` compartilhado (com label + máscara) e o editor inline antigo foi removido.
+- **`CepRangesEditor` virou controlado** (sem state interno) pra refletir troca de filial / reabertura do sheet sem estado duplicado.
+- **`label` é chave opcional** (`z.string().optional()`, sem transform) — em zod v4 o `.transform` forçava a chave a ser `required`, quebrando a atribuição a partir de `BranchDetail`. Empty string é omitida no editor (não persiste `""`).
+- **Removida a "Zona destrutiva"** (exclusão de filial) do edit sheet a pedido — `DeleteBranchDialog` ficou órfão no código.
+- **Presets:** botão "Brasil todo" + dropdown de UF (faixas aproximadas por estado em `cep-presets.ts`) pra preencher faixas rapidamente.
+
 ## Fora de escopo
 
 - Roteamento automático de pedidos por CEP (hoje todos os pedidos vão pra todas as filiais).
