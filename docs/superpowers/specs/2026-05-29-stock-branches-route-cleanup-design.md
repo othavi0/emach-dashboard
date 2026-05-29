@@ -35,7 +35,12 @@ Confirmado que **não afetam outras regiões**: `adjustStock`, `updateStockThres
 
 ## Decisão
 
-**Escopo mínimo** (escolha do usuário): matar a rota órfã e limpar o código morto da mesma área. **Não** mexer na sidebar nem repensar o significado do item "Estoque" (fica para outra issue, se necessário).
+Executado em duas fases:
+
+- **Fase 1 (escopo mínimo):** matar a rota órfã `/dashboard/stock/branches` e limpar o código morto da mesma área.
+- **Fase 2 (item B completo + decisão sobre C):** resolver a ambiguidade da sidebar **removendo o item "Estoque"** do grupo Operação. Passa a haver uma porta só — "Ferramentas" (Catálogo), com o toggle Catálogo/Repor/Esgotadas e o badge de estoque. Reposição vira filtro interno de Ferramentas. O **item C** (#79 — atalho de reposição na sidebar) fica **descartado por decisão consciente**: "sem atalho direto na nav".
+
+A `/dashboard/stock` (redirect → `tools?mode=repor`) **permanece**, pois deep-links internos (ReorderTable, pending-data, KPI de filial) ainda a usam.
 
 ## Mudanças
 
@@ -68,9 +73,17 @@ Em `apps/web/src/app/dashboard/stock/actions.ts`:
 
 Após remover, rodar `bun check-types` para confirmar que nenhum import pendente quebrou.
 
+### 4. Remover item "Estoque" da sidebar (Fase 2)
+
+Em `apps/web/src/app/dashboard/_components/nav-config.ts`:
+- Remover o item `Estoque` (`href: /dashboard/stock`, `badgeKey: "stock"`) do grupo "Operação". O grupo passa a ter Pedidos + Filiais.
+- Remover o ícone `Boxes` do import de `lucide-react` (fica órfão).
+- "Ferramentas" (grupo Catálogo) mantém `badgeKey: "stock"` e o toggle de modos — vira a porta única de estoque/reposição.
+
 ## O que NÃO muda
 
-- Sidebar (`nav-config.ts`): item "Estoque" continua → `/dashboard/stock` → `tools?mode=repor`. Item "Ferramentas" intacto.
+- "Ferramentas" (`nav-config.ts`, grupo Catálogo): mantém `badgeKey: "stock"` e o toggle Catálogo/Repor/Esgotadas.
+- `/dashboard/stock` (redirect → `tools?mode=repor`): permanece — deep-links internos (ReorderTable, pending-data, KPI de filial) seguem válidos.
 - `branches/[id]?tab=stock` (`StockTab`) e toda a cadeia `branch-stock-*` — permanecem.
 - Edição de saldo (`adjustStock`, `updateStockThresholds`, sheets, schemas) — permanece.
 - `/dashboard/stock` (redirect → tools), `branches/[id]/stock` e `tools/[id]/stock` (já redirects) — intactos.
@@ -92,7 +105,7 @@ Após remover, rodar `bun check-types` para confirmar que nenhum import pendente
 - **Baixo.** A rota removida é órfã (sem links de entrada). O redirect cobre bookmarks/histórico. O código morto removido não tem consumidores vivos (verificado).
 - Atenção ao remover helpers de `fetchStockPage` em `actions.ts`: confirmar que não são compartilhados antes de deletar (`bun check-types` pega).
 
-## Itens deixados de fora (futuro)
+## Decisões registradas (não são "futuro")
 
-- **Item C** (#79): atalho de reposição na sidebar (deep-link condicional / badge com contagem).
-- Repensar o significado do item "Estoque" da sidebar (hoje "Estoque" e "Ferramentas" apontam para a mesma `/dashboard/tools` com o mesmo badge — ambiguidade conceitual remanescente).
+- **Item C** (#79): atalho de reposição na sidebar — **descartado**. A reposição é acessível via Ferramentas (toggle "Repor agora", badge) e via deep-links internos; não haverá item dedicado na navegação.
+- Ambiguidade "Estoque" × "Ferramentas": **resolvida** removendo o item "Estoque" (Fase 2). Porta única = Ferramentas.

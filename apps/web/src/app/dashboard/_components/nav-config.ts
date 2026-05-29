@@ -1,6 +1,5 @@
 import {
 	Bell,
-	Boxes,
 	Building2,
 	FolderTree,
 	Image as ImageIcon,
@@ -56,12 +55,6 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				href: "/dashboard/orders" as Route,
 				icon: ShoppingCart,
 				badgeKey: "orders",
-			},
-			{
-				label: "Estoque",
-				href: "/dashboard/stock" as Route,
-				icon: Boxes,
-				badgeKey: "stock",
 			},
 			{
 				label: "Filiais",
