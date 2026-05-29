@@ -96,6 +96,25 @@ export function OverviewTab({ detail, kpis }: Props) {
 								})()}
 							</dd>
 						</div>
+						{detail.cepRanges && detail.cepRanges.length > 0 ? (
+							<div className="sm:col-span-2">
+								<dt className="text-muted-foreground text-xs uppercase tracking-wide">
+									Faixas de CEP atendidas
+								</dt>
+								<dd className="mt-1 flex flex-col gap-0.5 text-sm">
+									{detail.cepRanges.map((range) => {
+										const from = formatCep(range.from);
+										const to = formatCep(range.to);
+										return (
+											<span key={`${range.from}-${range.to}`}>
+												{range.label ? `${range.label}: ` : ""}
+												{from} a {to}
+											</span>
+										);
+									})}
+								</dd>
+							</div>
+						) : null}
 						{detail.phone ? (
 							<div>
 								<dt className="text-muted-foreground text-xs uppercase tracking-wide">
