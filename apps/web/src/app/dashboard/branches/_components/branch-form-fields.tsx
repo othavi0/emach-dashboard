@@ -15,6 +15,7 @@ import { phoneBrMask } from "@/lib/masks";
 
 import type { BranchFormValues } from "./branch-schema";
 import { CepInput, type CepResolved } from "./cep-input";
+import { CepRangesEditor } from "./cep-ranges-editor";
 import { ResponsibleUserSelect } from "./responsible-user-select";
 
 type Patch = (next: Partial<BranchFormValues>) => void;
@@ -178,6 +179,20 @@ export function BranchFormFields({
 						/>
 					</div>
 				</div>
+			</section>
+
+			{/* Faixas de CEP */}
+			<section className="flex flex-col gap-3">
+				<SectionHeader>Faixas de CEP atendidas</SectionHeader>
+				<p className="text-muted-foreground text-xs">
+					Sugestão de qual filial atende cada região. Não restringe pedidos —
+					todos chegam para todas as filiais.
+				</p>
+				<CepRangesEditor
+					disabled={disabled}
+					onChange={(next) => onPatch({ cepRanges: next })}
+					value={values.cepRanges ?? []}
+				/>
 			</section>
 
 			{/* Equipe (oculto no create) */}
