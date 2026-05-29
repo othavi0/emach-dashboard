@@ -239,64 +239,6 @@ export async function updateBranch(
 	return { ok: true, data: { id } };
 }
 
-export async function deleteBranch(id: string): Promise<ActionResult> {
-	const session = await requireCapability("branches.manage");
-
-	const [target] = await db
-		.select({ name: branch.name })
-		.from(branch)
-		.where(eq(branch.id, id))
-		.limit(1);
-
-	if (!target) {
-		return { ok: false, error: "Filial não encontrada" };
-	}
-
-	const [stockCheck] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(stockLevel)
-		.where(and(eq(stockLevel.branchId, id), gt(stockLevel.quantity, 0)));
-
-	if ((stockCheck?.n ?? 0) > 0) {
-		return {
-			ok: false,
-			error: `Filial tem ${stockCheck?.n} variante(s) com estoque positivo. Transfira ou zere antes de deletar.`,
-		};
-	}
-
-	const [openOrders] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(order)
-		.where(
-			sql`${order.branchId} = ${id} and ${order.status} in (${sqlStatusList(OPEN_ORDER_STATUSES)})`
-		);
-
-	if ((openOrders?.n ?? 0) > 0) {
-		return {
-			ok: false,
-			error: `Filial tem ${openOrders?.n} pedido(s) em andamento. Conclua ou cancele antes de deletar.`,
-		};
-	}
-
-	try {
-		await db.delete(branch).where(eq(branch.id, id));
-	} catch (error) {
-		return { ok: false, error: zodErrorMessage(error) };
-	}
-
-	await logUserActivity({
-		actorUserId: session.user.id,
-		action: "branch.deleted",
-		targetId: id,
-		targetType: "branch",
-		metadata: { name: target.name },
-	});
-	revalidatePath(BRANCHES_PATH);
-	revalidatePath("/dashboard/stock");
-	revalidatePath("/dashboard/tools", "layout");
-	return { ok: true, data: undefined };
-}
-
 export async function fetchBranchesTablePage({
 	filters,
 	cursor,
