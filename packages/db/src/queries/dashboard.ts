@@ -1,11 +1,11 @@
 import { sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { orderStatusEnum } from "../schema/orders";
 import {
 	ACTIVE_ORDER_STATUSES,
 	REVENUE_ORDER_STATUSES,
 	sqlStatusList,
-} from "../order-status-groups";
-import type { orderStatusEnum } from "../schema/orders";
+} from "./order-status-groups";
 
 type AnyDb = NodePgDatabase<Record<string, unknown>>;
 

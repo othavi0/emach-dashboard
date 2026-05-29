@@ -81,6 +81,8 @@ O mesmo bypass do column mapper devolve nomes **literais do Postgres em snake_ca
 
 Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `consentLog`. Cópia do schema TS no repo `emach-ecommerce` é sincronizada **automaticamente por CI** — workflow `sync-db-schema.yml` abre PR no ecommerce sempre que `packages/db/src/{schema,queries,sql/triggers.sql}` muda na `main` (direção unidirecional dashboard → ecommerce).
 
+**⚠️ Superfície de sync = só `schema/`, `queries/`, `sql/triggers.sql`.** Um arquivo dentro dessa superfície **não pode importar de fora dela** (ex: `src/` raiz) — o ecommerce recebe a cópia mas não o irmão não-sincronizado e o `check-types` lá quebra com `TS2307 Cannot find module`. Incidente #88: `queries/dashboard.ts` importava `../order-status-groups` (raiz de `src/`). Helpers compartilhados por queries vivem **em `queries/`**.
+
 **Atenção pós-refactor de variants:** `stock_level`, `stock_movement`, `order_item` referenciam `tool_variant.id` (não mais `tool.id`). Ecomerce envia `variantId` em pedidos e movimentos. `tool_variant` traz SKU vendável; `tool` é o produto-pai (info comum).
 
 Mudanças nessas tabelas exigem coordenação de deploy.

@@ -2,7 +2,7 @@ import { db } from "@emach/db";
 import {
 	ACTIVE_ORDER_STATUSES,
 	sqlStatusList,
-} from "@emach/db/order-status-groups";
+} from "@emach/db/queries/order-status-groups";
 import { toDate } from "@emach/db/utils";
 import { sql } from "drizzle-orm";
 import { cache } from "react";
