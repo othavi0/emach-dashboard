@@ -46,6 +46,19 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 
 ---
 
+## Faixas de CEP por filial (`branch.cep_ranges`)
+
+`branch.cep_ranges` (jsonb) é `Array<{ from: string; to: string; label?: string }>` — CEPs em **8 dígitos** (sem máscara). Editado só no dashboard (form da filial).
+
+Helper compartilhado em `@emach/db/queries/branch-cep`:
+
+- `matchBranchByCep(cep, branches)` — função pura; **primeira filial** (na ordem) cuja faixa cobre o CEP vence.
+- `getBranchByCep(db, cep)` — consulta filiais `active` com faixas e roda o match.
+
+**Semântica:** sugestão **não-autoritativa**. Hoje não há roteamento automático — todo pedido chega para todas as filiais e a primeira que o assume fica com ele. O e-commerce **pode** usar `getBranchByCep` para sugerir filial, sem obrigatoriedade. Sobreposição entre filiais é permitida (resolvida por first-match-wins).
+
+---
+
 ## O que o checkout deve gravar em `order` / `order_item`
 
 ### `order` — campos obrigatórios no INSERT do checkout
