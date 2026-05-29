@@ -66,13 +66,16 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 
 	function addUf(uf: string | null) {
 		const preset = UF_CEP_PRESETS.find((p) => p.uf === uf);
-		if (!preset || value.length >= MAX_RANGES) {
+		if (!preset) {
 			return;
 		}
-		onChange([
-			...value,
-			{ from: preset.from, to: preset.to, label: preset.name },
-		]);
+		const additions = preset.ranges
+			.slice(0, MAX_RANGES - value.length)
+			.map((r) => ({ from: r.from, to: r.to, label: preset.name }));
+		if (additions.length === 0) {
+			return;
+		}
+		onChange([...value, ...additions]);
 	}
 
 	function removeRow(idx: number) {
