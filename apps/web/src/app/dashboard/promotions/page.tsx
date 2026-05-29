@@ -12,6 +12,7 @@ import { asc } from "drizzle-orm";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
+import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { PromotionsFilters } from "./_components/promotions-filters";
 import { PromotionsGrid } from "./_components/promotions-grid";
@@ -64,8 +65,7 @@ function parseDiscount(raw?: string): number | undefined {
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Server Component com múltiplos filtros de searchParams — complexidade necessária
 export default async function PromotionsPage({ searchParams }: PageProps) {
 	const session = await requireCurrentSession();
-	const role = session.user.role ?? "user";
-	const canMutate = role === "admin" || role === "manager";
+	const canMutate = can(session.user.role, "promotions.manage");
 
 	const params = await searchParams;
 	const search = params.search ?? "";
