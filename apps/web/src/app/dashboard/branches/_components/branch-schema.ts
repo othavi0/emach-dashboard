@@ -3,12 +3,35 @@ import { z } from "zod";
 const phoneRegex = /^(\+?55)?\s*\(?\d{2}\)?\s*\d{4,5}-?\d{4}$/;
 const cepDigitsRegex = /^\d{8}$/;
 const ufRegex = /^[A-Z]{2}$/;
-const CEP_RANGE_REGEX = /^\d{5}-?\d{3}$/;
+const CEP_8_DIGITS = /^\d{8}$/;
 
-export const cepRangeSchema = z.object({
-	from: z.string().regex(CEP_RANGE_REGEX, "CEP inválido (00000-000)"),
-	to: z.string().regex(CEP_RANGE_REGEX, "CEP inválido (00000-000)"),
-});
+const cepDigits = z
+	.string()
+	.transform((v) => v.replace(/\D/g, ""))
+	.pipe(z.string().regex(CEP_8_DIGITS, "CEP inválido (8 dígitos)"));
+
+export const cepRangeSchema = z
+	.object({
+		from: cepDigits,
+		to: cepDigits,
+		label: z.string().trim().max(60, "Rótulo muito longo").optional(),
+	})
+	.refine((r) => r.from <= r.to, {
+		message: "CEP inicial deve ser ≤ CEP final",
+		path: ["to"],
+	});
+
+function cepRangesOverlap(ranges: { from: string; to: string }[]): boolean {
+	const sorted = [...ranges].sort((a, b) => a.from.localeCompare(b.from));
+	for (let i = 1; i < sorted.length; i++) {
+		const prev = sorted[i - 1];
+		const cur = sorted[i];
+		if (prev && cur && cur.from <= prev.to) {
+			return true;
+		}
+	}
+	return false;
+}
 
 const optionalTrimmed = z
 	.string()
@@ -81,6 +104,10 @@ export const branchSchema = z
 				"Quando CEP é preenchido, rua, número, cidade e UF são obrigatórios",
 			path: ["cep"],
 		}
-	);
+	)
+	.refine((data) => !(data.cepRanges && cepRangesOverlap(data.cepRanges)), {
+		message: "Faixas de CEP da filial não podem se sobrepor",
+		path: ["cepRanges"],
+	});
 
 export type BranchFormValues = z.infer<typeof branchSchema>;
