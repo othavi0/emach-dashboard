@@ -6,6 +6,8 @@ import { tool } from "@emach/db/schema/tools";
 import { and, eq, gte, inArray, isNull, lte, ne, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+import { type Cursor, decodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
@@ -350,6 +352,245 @@ export async function listPromotions(
 			tools,
 		};
 	});
+}
+
+// ---------------------------------------------------------------------------
+// fetchPromotionsPage — keyset pagination (requires authenticated session)
+// ---------------------------------------------------------------------------
+
+function makePromotionCursor(
+	sort: PromotionSort,
+	last: {
+		createdAt: Date;
+		discountPct: string;
+		endsAt: Date | null;
+		id: string;
+	}
+): Cursor {
+	switch (sort) {
+		case "createdAsc":
+			return {
+				v: 1,
+				sort: "promoCreatedAsc",
+				createdAt: last.createdAt.toISOString(),
+				id: last.id,
+			};
+		case "discountDesc":
+			return {
+				v: 1,
+				sort: "promoDiscountDesc",
+				discountPct: last.discountPct,
+				id: last.id,
+			};
+		case "discountAsc":
+			return {
+				v: 1,
+				sort: "promoDiscountAsc",
+				discountPct: last.discountPct,
+				id: last.id,
+			};
+		case "endsAtAsc":
+			return {
+				v: 1,
+				sort: "promoEndsAtAsc",
+				endsAt: last.endsAt ? last.endsAt.toISOString() : null,
+				id: last.id,
+			};
+		default:
+			return {
+				v: 1,
+				sort: "newest",
+				createdAt: last.createdAt.toISOString(),
+				id: last.id,
+			};
+	}
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: keyset + múltiplos filtros opcionais — complexidade inerente à query paginada
+export async function fetchPromotionsPage({
+	filters,
+	cursor,
+}: {
+	filters: ListPromotionsOptions;
+	cursor: string | null;
+}): Promise<InfiniteResult<PromotionListItem>> {
+	await requireCurrentSession();
+
+	const {
+		type = "all",
+		search,
+		status = "all",
+		toolId,
+		discountMin,
+		discountMax,
+		sort = "createdDesc",
+	} = filters;
+
+	const decoded = cursor ? decodeCursor(cursor) : null;
+
+	const rows = await db.query.promotion.findMany({
+		where: (p, ops) => {
+			const conds: unknown[] = [];
+
+			if (type !== "all") {
+				conds.push(ops.eq(p.type, type));
+			}
+			if (search && search.trim() !== "") {
+				const term = `%${search.trim()}%`;
+				conds.push(
+					ops.or(ops.ilike(p.title, term), ops.ilike(p.code as never, term))
+				);
+			}
+			if (typeof discountMin === "number") {
+				conds.push(ops.gte(p.discountPct, String(discountMin)));
+			}
+			if (typeof discountMax === "number") {
+				conds.push(ops.lte(p.discountPct, String(discountMax)));
+			}
+			if (toolId && UUID_RE.test(toolId)) {
+				conds.push(
+					ops.inArray(
+						p.id,
+						db
+							.select({ pid: promotionTool.promotionId })
+							.from(promotionTool)
+							.where(eq(promotionTool.toolId, toolId))
+					)
+				);
+			}
+			if (status !== "all") {
+				switch (status) {
+					case "expired":
+						conds.push(ops.sql`${p.endsAt} < now()`);
+						break;
+					case "scheduled":
+						conds.push(
+							ops.sql`${p.active} = true AND ${p.startsAt} > now() AND (${p.endsAt} IS NULL OR ${p.endsAt} >= now())`
+						);
+						break;
+					case "active":
+						conds.push(
+							ops.sql`${p.active} = true AND (${p.startsAt} IS NULL OR ${p.startsAt} <= now()) AND (${p.endsAt} IS NULL OR ${p.endsAt} >= now())`
+						);
+						break;
+					case "inactive":
+						conds.push(
+							ops.sql`${p.active} = false AND (${p.endsAt} IS NULL OR ${p.endsAt} >= now())`
+						);
+						break;
+					default:
+						break;
+				}
+			}
+
+			// keyset: predicado por sort (defensivo — o front reseta o cursor ao trocar sort)
+			if (decoded) {
+				const c = decoded;
+				if (sort === "createdDesc" && c.sort === "newest") {
+					conds.push(
+						ops.sql`(${p.createdAt}, ${p.id}) < (${c.createdAt}::timestamp, ${c.id})`
+					);
+				} else if (sort === "createdAsc" && c.sort === "promoCreatedAsc") {
+					conds.push(
+						ops.sql`(${p.createdAt}, ${p.id}) > (${c.createdAt}::timestamp, ${c.id})`
+					);
+				} else if (sort === "discountDesc" && c.sort === "promoDiscountDesc") {
+					conds.push(
+						ops.sql`(${p.discountPct}, ${p.id}) < (${c.discountPct}::numeric, ${c.id})`
+					);
+				} else if (sort === "discountAsc" && c.sort === "promoDiscountAsc") {
+					conds.push(
+						ops.sql`(${p.discountPct}, ${p.id}) > (${c.discountPct}::numeric, ${c.id})`
+					);
+				} else if (sort === "endsAtAsc" && c.sort === "promoEndsAtAsc") {
+					if (c.endsAt === null) {
+						conds.push(ops.sql`(${p.endsAt} IS NULL AND ${p.id} > ${c.id})`);
+					} else {
+						conds.push(
+							ops.sql`(${p.endsAt} > ${c.endsAt}::timestamp OR (${p.endsAt} = ${c.endsAt}::timestamp AND ${p.id} > ${c.id}) OR ${p.endsAt} IS NULL)`
+						);
+					}
+				}
+			}
+
+			return conds.length > 0
+				? ops.and(...(conds as Parameters<typeof ops.and>))
+				: undefined;
+		},
+		orderBy: (p, { asc: qAsc, desc: qDesc, sql: qSql }) => {
+			switch (sort) {
+				case "createdAsc":
+					return [qAsc(p.createdAt), qAsc(p.id)];
+				case "discountDesc":
+					return [qDesc(p.discountPct), qDesc(p.id)];
+				case "discountAsc":
+					return [qAsc(p.discountPct), qAsc(p.id)];
+				case "endsAtAsc":
+					return [qSql`${p.endsAt} ASC NULLS LAST`, qAsc(p.id)];
+				default:
+					return [qDesc(p.createdAt), qDesc(p.id)];
+			}
+		},
+		limit: BATCH_SIZE + 1,
+		with: {
+			createdByUser: { columns: { name: true } },
+			updatedByUser: { columns: { name: true } },
+			promotionTools: {
+				with: {
+					tool: {
+						columns: { id: true, name: true, slug: true },
+						with: {
+							variants: true,
+							images: {
+								columns: { url: true, sortOrder: true },
+								orderBy: (img, { asc: qAsc }) => qAsc(img.sortOrder),
+								limit: 1,
+							},
+						},
+					},
+				},
+			},
+		},
+	});
+
+	return paginate(
+		rows,
+		(row): PromotionListItem => {
+			const tools: PromotionToolItem[] = row.promotionTools.map((pt) => {
+				const defaultVariant = pt.tool.variants.find((v) => v.isDefault);
+				return {
+					id: pt.tool.id,
+					name: pt.tool.name,
+					slug: pt.tool.slug,
+					sku: defaultVariant?.sku ?? null,
+					thumbUrl: pt.tool.images[0]?.url ?? null,
+				};
+			});
+
+			return {
+				id: row.id,
+				title: row.title,
+				description: row.description,
+				type: row.type,
+				code: row.code,
+				discountPct: row.discountPct,
+				active: row.active,
+				startsAt: row.startsAt,
+				endsAt: row.endsAt,
+				createdAt: row.createdAt,
+				updatedAt: row.updatedAt,
+				status: computeStatus({
+					active: row.active,
+					startsAt: row.startsAt,
+					endsAt: row.endsAt,
+				}),
+				createdByName: row.createdByUser?.name ?? null,
+				updatedByName: row.updatedByUser?.name ?? null,
+				tools,
+			};
+		},
+		(last) => makePromotionCursor(sort, last)
+	);
 }
 
 // ---------------------------------------------------------------------------
