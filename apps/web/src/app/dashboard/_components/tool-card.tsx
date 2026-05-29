@@ -16,7 +16,6 @@ const STATUS_BADGE_VARIANT: Record<
 	active: "success",
 	draft: "secondary",
 	discontinued: "outline",
-	out_of_stock: "destructive",
 };
 
 const MAX_VARIANT_CHIPS = 4;

@@ -379,7 +379,7 @@ interface ToolDef {
 	primaryCategorySlug: string;
 	secondaryCategorySlug?: string;
 	slug: string;
-	status: "draft" | "active" | "discontinued" | "out_of_stock";
+	status: "draft" | "active" | "discontinued";
 	supplierIndex: number; // index em SUPPLIER_NAMES
 	variants: VariantDef[];
 	visibleOnSite: boolean;
@@ -724,7 +724,7 @@ const TOOLS: ToolDef[] = [
 		description:
 			"Disco de corte para inox 115×1,0×22,23mm. Pacote com 10 unidades.",
 		model: "DC-115-INOX-10",
-		status: "out_of_stock",
+		status: "active",
 		visibleOnSite: true,
 		supplierIndex: 0,
 		weightKg: "0.120",

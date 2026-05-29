@@ -260,7 +260,7 @@ export async function getReorderTable(
 		JOIN tool_variant tv ON tv.id = sl.variant_id
 		JOIN tool t ON t.id = tv.tool_id
 		WHERE sl.quantity <= sl.reorder_point
-			AND t.status IN ('active','out_of_stock')
+			AND t.status IN ('active')
 			AND b.status = 'active' ${branchFilter}
 		ORDER BY deficit DESC LIMIT 50
 	`);
