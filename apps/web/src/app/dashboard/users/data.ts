@@ -18,7 +18,6 @@ import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
 export interface UserKpis {
 	active: number;
-	branchesCovered: number;
 	pending: number;
 	suspended: number;
 }
@@ -31,14 +30,10 @@ export async function getUserKpis(): Promise<UserKpis> {
 			suspended: sql<number>`count(*) filter (where ${userTable.status} = 'suspended')::int`,
 		})
 		.from(userTable);
-	const [branchesCovered] = await db
-		.select({ n: sql<number>`count(distinct ${userBranch.branchId})::int` })
-		.from(userBranch);
 	return {
 		active: counts?.active ?? 0,
 		pending: counts?.pending ?? 0,
 		suspended: counts?.suspended ?? 0,
-		branchesCovered: branchesCovered?.n ?? 0,
 	};
 }
 

@@ -14,16 +14,8 @@ interface BranchCardProps {
 	canManage: boolean;
 }
 
-function monogramColor(lowStock: number): { bg: string; text: string } {
-	if (lowStock > 0) {
-		return { bg: "bg-amber-950", text: "text-amber-400" };
-	}
-	return { bg: "bg-green-950", text: "text-green-400" };
-}
-
 export function BranchCard({ branch, canManage }: BranchCardProps) {
 	const router = useRouter();
-	const { bg, text } = monogramColor(branch.lowStock);
 	const detailHref = `/dashboard/branches/${branch.id}`;
 	const stockHref = `/dashboard/branches/${branch.id}?tab=stock`;
 	const editHref = `/dashboard/branches/${branch.id}?edit=1`;
@@ -43,9 +35,7 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 			tabIndex={0}
 		>
 			<div className="flex items-start gap-3 px-4 pt-4 pb-3">
-				<div
-					className={`flex size-12 flex-shrink-0 items-center justify-center rounded-[10px] font-bold text-[17px] ${bg} ${text}`}
-				>
+				<div className="flex size-12 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-muted font-bold text-[17px] text-foreground">
 					{getInitials(branch.name)}
 				</div>
 				<div className="min-w-0 flex-1">
@@ -65,25 +55,6 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 							</p>
 						) : null;
 					})()}
-					<div className="mt-1.5">
-						{branch.lowStock === 0 ? (
-							<span className="inline-flex items-center gap-1.5 text-[11px] text-green-500">
-								<span
-									aria-hidden
-									className="size-1.5 rounded-full bg-green-500"
-								/>
-								Estoque OK
-							</span>
-						) : (
-							<span className="inline-flex items-center gap-1.5 text-[11px] text-amber-500">
-								<span
-									aria-hidden
-									className="size-1.5 rounded-full bg-amber-500"
-								/>
-								{branch.lowStock} abaixo do mín.
-							</span>
-						)}
-					</div>
 				</div>
 				{canManage && (
 					<div
@@ -93,14 +64,20 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 					>
 						<Link
 							aria-label={`Ver estoque de ${branch.name}`}
-							className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+							className={`${buttonVariants({
+								size: "icon-sm",
+								variant: "ghost",
+							})} border border-border bg-muted`}
 							href={stockHref}
 						>
 							<Boxes aria-hidden className="size-4" />
 						</Link>
 						<Link
 							aria-label={`Editar ${branch.name}`}
-							className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+							className={`${buttonVariants({
+								size: "icon-sm",
+								variant: "ghost",
+							})} border border-border bg-muted`}
 							href={editHref}
 						>
 							<Pencil aria-hidden className="size-4" />
