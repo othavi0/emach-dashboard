@@ -1,9 +1,5 @@
 "use client";
 
-import { Button } from "@emach/ui/components/button";
-import { Input } from "@emach/ui/components/input";
-import { Label } from "@emach/ui/components/label";
-import { Trash2Icon } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -19,7 +15,6 @@ import {
 	branchSchema,
 	defaultBusinessHours,
 } from "../../_components/branch-schema";
-import { DeleteBranchDialog } from "../../_components/delete-branch-dialog";
 import { updateBranch } from "../../actions";
 import type { BranchDetail } from "../../data";
 
@@ -40,6 +35,7 @@ const FIELD_LABELS: Record<string, string> = {
 	city: "Cidade",
 	state: "UF",
 	responsibleUserId: "Responsável",
+	cepRanges: "Faixas de CEP",
 };
 
 function toFormValues(b: BranchDetail): BranchFormValues {
@@ -69,33 +65,15 @@ export function BranchEditSheet({ branch }: Props) {
 	const [values, setValues] = useState<BranchFormValues>(() =>
 		toFormValues(branch)
 	);
-	const [cepRanges, setCepRanges] = useState<
-		Array<{ from: string; to: string }>
-	>(branch.cepRanges ?? []);
 	const [issues, setIssues] = useState<FormIssue[]>([]);
 	const [submitting, startTransition] = useTransition();
 
 	useEffect(() => {
 		if (open) {
 			setValues(toFormValues(branch));
-			setCepRanges(branch.cepRanges ?? []);
 			setIssues([]);
 		}
 	}, [open, branch]);
-
-	function addRange() {
-		setCepRanges((curr) => [...curr, { from: "", to: "" }]);
-	}
-
-	function removeRange(idx: number) {
-		setCepRanges((curr) => curr.filter((_, i) => i !== idx));
-	}
-
-	function updateRange(idx: number, key: "from" | "to", value: string) {
-		setCepRanges((curr) =>
-			curr.map((r, i) => (i === idx ? { ...r, [key]: value } : r))
-		);
-	}
 
 	const close = () => {
 		const sp = new URLSearchParams(params);
@@ -106,7 +84,7 @@ export function BranchEditSheet({ branch }: Props) {
 
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
-		const parsed = branchSchema.safeParse({ ...values, cepRanges });
+		const parsed = branchSchema.safeParse(values);
 		if (!parsed.success) {
 			setIssues(zodIssuesToFormIssues(parsed.error, FIELD_LABELS));
 			return;
@@ -140,78 +118,6 @@ export function BranchEditSheet({ branch }: Props) {
 				showTeamSection
 				values={values}
 			/>
-
-			{/* Faixas de CEP */}
-			<div className="mt-6 space-y-2">
-				<div className="flex items-center justify-between">
-					<Label>Faixas de CEP atendidas</Label>
-					<Button
-						disabled={submitting || cepRanges.length >= 20}
-						onClick={addRange}
-						size="sm"
-						type="button"
-						variant="outline"
-					>
-						+ Adicionar faixa
-					</Button>
-				</div>
-				<p className="text-muted-foreground text-xs">
-					Usadas para sugerir esta filial automaticamente em pedidos baseado no
-					CEP de entrega. Sobreposição com outras filiais resolve pela primeira
-					na ordem do dashboard.
-				</p>
-				{cepRanges.length === 0 && (
-					<p className="text-muted-foreground text-sm italic">
-						Nenhuma faixa configurada — sugestão por CEP não ativa para esta
-						filial.
-					</p>
-				)}
-				{cepRanges.map((range, idx) => (
-					<div
-						className="flex items-center gap-2"
-						// biome-ignore lint/suspicious/noArrayIndexKey: lista editável sem IDs estáveis; key combina índice + conteúdo
-						key={`range-${idx}-${range.from}-${range.to}`}
-					>
-						<Input
-							disabled={submitting}
-							onChange={(e) => updateRange(idx, "from", e.target.value)}
-							placeholder="01000-000"
-							value={range.from}
-						/>
-						<span className="text-muted-foreground">→</span>
-						<Input
-							disabled={submitting}
-							onChange={(e) => updateRange(idx, "to", e.target.value)}
-							placeholder="09999-999"
-							value={range.to}
-						/>
-						<Button
-							disabled={submitting}
-							onClick={() => removeRange(idx)}
-							size="icon-sm"
-							type="button"
-							variant="ghost"
-						>
-							<Trash2Icon className="size-3.5" />
-						</Button>
-					</div>
-				))}
-			</div>
-
-			<div className="mt-8 border-border border-t pt-6">
-				<div className="flex items-start justify-between gap-4">
-					<div>
-						<h3 className="font-medium text-destructive text-sm">
-							Zona destrutiva
-						</h3>
-						<p className="mt-1 text-muted-foreground text-xs">
-							Remove a filial. Estoque positivo e pedidos abertos bloqueiam a
-							exclusão.
-						</p>
-					</div>
-					<DeleteBranchDialog branchId={branch.id} branchName={branch.name} />
-				</div>
-			</div>
 		</EntityEditSheet>
 	);
 }

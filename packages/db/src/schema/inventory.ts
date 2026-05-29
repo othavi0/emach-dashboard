@@ -47,7 +47,10 @@ export const branch = pgTable(
 		responsibleUserId: text("responsible_user_id").references(() => user.id, {
 			onDelete: "set null",
 		}),
-		cepRanges: jsonb("cep_ranges").$type<Array<{ from: string; to: string }>>(),
+		cepRanges:
+			jsonb("cep_ranges").$type<
+				Array<{ from: string; to: string; label?: string }>
+			>(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()

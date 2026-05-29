@@ -84,7 +84,7 @@ export async function getBranchKpis(): Promise<BranchKpis> {
 export interface BranchDetail {
 	businessHours: BranchBusinessHours | null;
 	cep: string | null;
-	cepRanges: Array<{ from: string; to: string }> | null;
+	cepRanges: Array<{ from: string; to: string; label?: string }> | null;
 	city: string | null;
 	complement: string | null;
 	createdAt: Date;
