@@ -1,23 +1,18 @@
 import { db } from "@emach/db";
 import { tool } from "@emach/db/schema/tools";
 import { buttonVariants } from "@emach/ui/components/button";
-import {
-	Empty,
-	EmptyContent,
-	EmptyDescription,
-	EmptyHeader,
-	EmptyTitle,
-} from "@emach/ui/components/empty";
 import { asc } from "drizzle-orm";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
+import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { PromotionsFilters } from "./_components/promotions-filters";
 import { PromotionsGrid } from "./_components/promotions-grid";
 import {
+	fetchPromotionsPage,
 	getPromotion,
-	listPromotions,
+	type ListPromotionsOptions,
 	type PromotionSort,
 	type PromotionStatus,
 } from "./actions";
@@ -32,6 +27,7 @@ interface PageProps {
 		discountMin?: string;
 		discountMax?: string;
 		view?: string;
+		edit?: string;
 	}>;
 }
 
@@ -61,11 +57,9 @@ function parseDiscount(raw?: string): number | undefined {
 	return Number.isFinite(n) && n >= 0 && n <= 100 ? n : undefined;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Server Component com múltiplos filtros de searchParams — complexidade necessária
 export default async function PromotionsPage({ searchParams }: PageProps) {
 	const session = await requireCurrentSession();
-	const role = session.user.role ?? "user";
-	const canMutate = role === "admin" || role === "manager";
+	const canMutate = can(session.user.role, "promotions.manage");
 
 	const params = await searchParams;
 	const search = params.search ?? "";
@@ -84,32 +78,26 @@ export default async function PromotionsPage({ searchParams }: PageProps) {
 	const discountMax = parseDiscount(params.discountMax);
 	const toolId = params.toolId;
 
-	const [promotions, availableTools, selectedPromotion] = await Promise.all([
-		listPromotions({
-			type: typeFilter,
-			search: search || undefined,
-			status: statusFilter,
-			sort,
-			toolId,
-			discountMin,
-			discountMax,
-		}),
-		db
-			.select({ id: tool.id, name: tool.name })
-			.from(tool)
-			.orderBy(asc(tool.name)),
-		params.view ? getPromotion(params.view) : Promise.resolve(null),
-	]);
+	const filters: ListPromotionsOptions = {
+		type: typeFilter,
+		search: search || undefined,
+		status: statusFilter,
+		sort,
+		toolId,
+		discountMin,
+		discountMax,
+	};
 
-	const hasFilters = Boolean(
-		typeParam ||
-			search ||
-			params.status ||
-			toolId ||
-			discountMin !== undefined ||
-			discountMax !== undefined
-	);
-	const isEmpty = promotions.length === 0;
+	const [page, availableTools, selectedPromotion, editPromotion] =
+		await Promise.all([
+			fetchPromotionsPage({ filters, cursor: null }),
+			db
+				.select({ id: tool.id, name: tool.name })
+				.from(tool)
+				.orderBy(asc(tool.name)),
+			params.view ? getPromotion(params.view) : Promise.resolve(null),
+			params.edit ? getPromotion(params.edit) : Promise.resolve(null),
+		]);
 
 	return (
 		<>
@@ -128,58 +116,17 @@ export default async function PromotionsPage({ searchParams }: PageProps) {
 				title="Promoções"
 			/>
 
-			<PromotionsFilters
-				availableTools={availableTools}
-				initialDiscountMax={params.discountMax ?? ""}
-				initialDiscountMin={params.discountMin ?? ""}
-				initialSearch={search}
-				initialSort={sort}
-				initialStatus={statusFilter}
-				initialToolId={toolId ?? "all"}
-				initialType={typeFilter}
-			/>
+			<PromotionsFilters availableTools={availableTools} />
 
-			{isEmpty ? (
-				<Empty>
-					<EmptyHeader>
-						<EmptyTitle>
-							{hasFilters
-								? "Nenhuma promoção encontrada para os filtros aplicados"
-								: "Nenhuma promoção cadastrada"}
-						</EmptyTitle>
-						{!hasFilters && (
-							<EmptyDescription>
-								Comece cadastrando a primeira promoção ou código promocional.
-							</EmptyDescription>
-						)}
-					</EmptyHeader>
-					<EmptyContent>
-						{hasFilters ? (
-							<Link
-								className={buttonVariants({ variant: "ghost" })}
-								href="/dashboard/promotions"
-							>
-								Limpar filtros
-							</Link>
-						) : (
-							canMutate && (
-								<Link
-									className={buttonVariants({ variant: "default" })}
-									href="/dashboard/promotions/new"
-								>
-									Nova promoção
-								</Link>
-							)
-						)}
-					</EmptyContent>
-				</Empty>
-			) : (
-				<PromotionsGrid
-					canMutate={canMutate}
-					promotions={promotions}
-					selectedPromotion={selectedPromotion}
-				/>
-			)}
+			<PromotionsGrid
+				availableTools={availableTools}
+				canMutate={canMutate}
+				editPromotion={editPromotion}
+				filters={filters}
+				initial={page.items}
+				initialCursor={page.nextCursor}
+				selectedPromotion={selectedPromotion}
+			/>
 		</>
 	);
 }

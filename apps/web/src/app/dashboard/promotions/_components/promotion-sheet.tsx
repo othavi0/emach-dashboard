@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@emach/ui/components/badge";
-import { Button, buttonVariants } from "@emach/ui/components/button";
+import { Button } from "@emach/ui/components/button";
 import {
 	Sheet,
 	SheetContent,
@@ -56,6 +56,18 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 		);
 	}, [router, searchParams]);
 
+	const goEdit = useCallback(
+		(id: string) => {
+			const params = new URLSearchParams(searchParams);
+			params.delete("view");
+			params.set("edit", id);
+			router.replace(`/dashboard/promotions?${params.toString()}`, {
+				scroll: false,
+			});
+		},
+		[router, searchParams]
+	);
+
 	// Auto-close se a promoção solicitada não existe (ex: deletada em paralelo)
 	useEffect(() => {
 		if (open && !promotion) {
@@ -92,7 +104,7 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 				return;
 			}
 			toast.success("Promoção duplicada");
-			router.push(`/dashboard/promotions/${result.data.id}/edit`);
+			goEdit(result.data.id);
 		});
 	}
 
@@ -206,12 +218,13 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 										Ferramentas vinculadas ({promotion.tools.length})
 									</span>
 									{canMutate && (
-										<Link
+										<button
 											className="text-primary text-xs hover:underline"
-											href={`/dashboard/promotions/${promotion.id}/edit`}
+											onClick={() => goEdit(promotion.id)}
+											type="button"
 										>
 											Gerenciar →
-										</Link>
+										</button>
 									)}
 								</div>
 								<ul className="mt-3 flex flex-col">
@@ -306,16 +319,15 @@ export function PromotionSheet({ canMutate, promotion }: PromotionSheetProps) {
 										<Copy className="mr-2 size-4" />
 										Duplicar
 									</Button>
-									<Link
-										className={buttonVariants({
-											size: "sm",
-											className: "flex-1",
-										})}
-										href={`/dashboard/promotions/${promotion.id}/edit`}
+									<Button
+										className="flex-1"
+										onClick={() => goEdit(promotion.id)}
+										size="sm"
+										type="button"
 									>
 										<Pencil className="mr-2 size-4" />
 										Editar
-									</Link>
+									</Button>
 									<Button
 										className="flex-1"
 										onClick={() => setDeleteOpen(true)}

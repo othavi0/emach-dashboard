@@ -35,7 +35,7 @@ export function PromotionCard({ canMutate, promotion }: PromotionCardProps) {
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: card interativo com conteúdo não-interativo interno (h3, badges, chips)
 		<div
-			className="flex cursor-pointer flex-col gap-3 rounded-[10px] border border-border bg-card p-4 shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-colors focus-within:ring-2 focus-within:ring-primary/30 hover:border-border/80"
+			className={`group flex cursor-pointer flex-col gap-3 rounded-[10px] border border-border bg-card p-4 shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${promotion.status === "inactive" || promotion.status === "expired" ? "opacity-70" : ""}`}
 			onClick={openSheet}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {

@@ -60,6 +60,21 @@ export interface ExpiringPromoCursor extends CursorBase {
 	sort: "expiringPromo";
 }
 
+export interface PromoCreatedAscCursor extends CursorBase {
+	createdAt: string;
+	sort: "promoCreatedAsc";
+}
+
+export interface PromoDiscountCursor extends CursorBase {
+	discountPct: string;
+	sort: "promoDiscountAsc" | "promoDiscountDesc";
+}
+
+export interface PromoEndsAtAscCursor extends CursorBase {
+	endsAt: string | null;
+	sort: "promoEndsAtAsc";
+}
+
 export type Cursor =
 	| NewestCursor
 	| NameCursor
@@ -71,7 +86,10 @@ export type Cursor =
 	| NameAscCursor
 	| PendingStockCursor
 	| ActivityCursor
-	| ExpiringPromoCursor;
+	| ExpiringPromoCursor
+	| PromoCreatedAscCursor
+	| PromoDiscountCursor
+	| PromoEndsAtAscCursor;
 
 export function encodeCursor(c: Cursor): string {
 	return Buffer.from(JSON.stringify(c)).toString("base64url");
