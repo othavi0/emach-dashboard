@@ -1,5 +1,6 @@
 "use client";
 
+import { matchBranchByCep } from "@emach/db/queries/branch-cep";
 import { Button } from "@emach/ui/components/button";
 import {
 	Card,
@@ -22,7 +23,6 @@ import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { suggestBranchForCep } from "../_lib/branch-suggestion";
 import {
 	addOrderNote,
 	assignBranch,
@@ -294,7 +294,7 @@ export function OrderActionsPanel({
 		}
 		// Pre-fill com sugestão por CEP apenas em paid (próxima ação = preparing)
 		if (order.status === "paid") {
-			const suggested = suggestBranchForCep(
+			const suggested = matchBranchByCep(
 				order.shippingAddress.zipCode ?? "",
 				branches.map((b) => ({ id: b.id, cepRanges: b.cepRanges ?? null }))
 			);

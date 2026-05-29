@@ -44,6 +44,12 @@ describe("matchBranchByCep", () => {
 		];
 		expect(matchBranchByCep("02000000", list)).toBe("b1");
 	});
+	it("normaliza bounds de range mascarados (com hífen)", () => {
+		const masked: BranchWithCepRanges[] = [
+			{ id: "sp", cepRanges: [{ from: "01000-000", to: "09999-999" }] },
+		];
+		expect(matchBranchByCep("01310-100", masked)).toBe("sp");
+	});
 	it("em sobreposição, primeira filial da lista vence", () => {
 		const overlap: BranchWithCepRanges[] = [
 			{ id: "first", cepRanges: [{ from: "01000000", to: "09999999" }] },
