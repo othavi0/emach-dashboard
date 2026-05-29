@@ -11,6 +11,7 @@ Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte 
 - `drizzle-kit push` pede confirmação TTY em mudanças destrutivas — falha em CI/scripted. Em dev, rodar interativo.
 - **Gotcha unique constraint composta:** declarar colunas do `.on()` na **mesma ordem** que aparecem na definição da tabela — drizzle-kit introspecta colunas de constraint em ordem de `attnum` e gera diff fantasma se divergir.
 - **Gotcha FK > 63 chars:** nome auto-gerado é truncado pelo Postgres e push entra em loop de diff — dar nome explícito via `foreignKey({ ..., name })`.
+- **Gotcha predicado de partial index:** `drizzle-kit push` casa índice por nome + colunas e **não faz diff do `WHERE`**. Mudar só o predicado (ex: `IN ('a','b')` → `IN ('a','b','c')`) reporta "Changes applied" mas é no-op — o índice no banco continua o antigo. Em dev, recriar manualmente: `DROP INDEX <nome>; CREATE [UNIQUE] INDEX ... WHERE (...)` numa transação, depois confirmar com `SELECT indexdef FROM pg_indexes WHERE indexname='<nome>'`. (Incidente #91.)
 - **Drops:** PR explícito + comunicar ao app ecomerce (DB compartilhada).
 - Quando produção entrar no horizonte: gerar baseline `0000` limpo a partir do schema atual e versionar a partir daí.
 
