@@ -6,7 +6,12 @@ import {
 	sqlStatusList,
 } from "@emach/db/queries/order-status-groups";
 import { user as userTable } from "@emach/db/schema/auth";
-import { branch, stockLevel, userBranch } from "@emach/db/schema/inventory";
+import {
+	type BranchBusinessHours,
+	branch,
+	stockLevel,
+	userBranch,
+} from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
 import { toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
@@ -77,6 +82,7 @@ export async function getBranchKpis(): Promise<BranchKpis> {
 }
 
 export interface BranchDetail {
+	businessHours: BranchBusinessHours | null;
 	cep: string | null;
 	cepRanges: Array<{ from: string; to: string }> | null;
 	city: string | null;
@@ -103,6 +109,7 @@ export async function getBranchDetail(
 			id: branch.id,
 			name: branch.name,
 			phone: branch.phone,
+			businessHours: branch.businessHours,
 			cep: branch.cep,
 			cepRanges: branch.cepRanges,
 			street: branch.street,
