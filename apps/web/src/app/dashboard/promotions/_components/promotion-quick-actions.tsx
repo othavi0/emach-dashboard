@@ -9,7 +9,7 @@ import {
 } from "@emach/ui/components/tooltip";
 import { Copy, PauseCircle, Pencil, PlayCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -30,11 +30,19 @@ export function PromotionQuickActions({
 	promotion,
 }: PromotionQuickActionsProps) {
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const [isPending, startTransition] = useTransition();
 	const [deleteOpen, setDeleteOpen] = useState(false);
 
 	if (!canMutate) {
 		return null;
+	}
+
+	function editUrl(id: string): string {
+		const params = new URLSearchParams(searchParams);
+		params.delete("view");
+		params.set("edit", id);
+		return `/dashboard/promotions?${params.toString()}`;
 	}
 
 	function handleToggle() {
@@ -59,11 +67,11 @@ export function PromotionQuickActions({
 				return;
 			}
 			toast.success("Promoção duplicada");
-			router.push(`/dashboard/promotions/${result.data.id}/edit`);
+			router.push(editUrl(result.data.id));
 		});
 	}
 
-	const editHref = `/dashboard/promotions/${promotion.id}/edit`;
+	const editHref = editUrl(promotion.id);
 
 	return (
 		<TooltipProvider>
