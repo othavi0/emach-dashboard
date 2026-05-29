@@ -70,7 +70,9 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 			? "repor"
 			: params.mode === "catalog"
 				? "catalog"
-				: undefined;
+				: params.mode === "esgotado"
+					? "esgotado"
+					: undefined;
 
 	const filters: ToolsFiltersInput = {
 		search,

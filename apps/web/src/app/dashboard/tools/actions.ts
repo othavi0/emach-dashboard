@@ -519,7 +519,7 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 }
 
 export type ToolSort = "newest" | "name";
-export type ToolsListMode = "catalog" | "repor";
+export type ToolsListMode = "catalog" | "repor" | "esgotado";
 
 export interface ToolsFiltersInput {
 	branchId?: string;
@@ -610,6 +610,15 @@ function buildToolsWhereClause(
 				)
 			`);
 		}
+	}
+	if (filters.mode === "esgotado") {
+		whereParts.push(sql`
+			NOT EXISTS (
+				SELECT 1 FROM stock_level sl
+				JOIN tool_variant tv ON tv.id = sl.variant_id
+				WHERE tv.tool_id = t.id AND sl.quantity > 0
+			)
+		`);
 	}
 	if (decoded) {
 		if (filters.sort === "newest" && decoded.sort === "newest") {

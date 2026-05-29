@@ -59,6 +59,9 @@ export function ToolDetailHeader({
 						<Badge variant={STATUS_VARIANT[tool.status] ?? "secondary"}>
 							{STATUS_LABEL[tool.status] ?? tool.status}
 						</Badge>
+						{tool.status === "active" && stockSummary.totalStock === 0 && (
+							<Badge variant="destructive">Esgotado</Badge>
+						)}
 						{defaultVariant && (
 							<>
 								<span>·</span>

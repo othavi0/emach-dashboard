@@ -115,7 +115,11 @@ export function ToolCard({ tool, variant, canMutate, actions }: ToolCardProps) {
 					</div>
 				)}
 				<div className="absolute top-2 right-2">
-					{showReorderHeader ? (
+					{tool.status === "active" && stockIsCritical ? (
+						<Badge className="shadow-sm backdrop-blur-sm" variant="destructive">
+							Esgotado
+						</Badge>
+					) : showReorderHeader ? (
 						<Badge className="shadow-sm backdrop-blur-sm" variant="warning">
 							<AlertTriangleIcon aria-hidden className="size-3" />
 							Repor{tool.reorderCount > 1 ? ` (${tool.reorderCount})` : ""}
