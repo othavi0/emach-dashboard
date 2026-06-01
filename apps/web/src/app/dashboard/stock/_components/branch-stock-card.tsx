@@ -86,7 +86,7 @@ export function BranchStockCard({ onSelect, row }: BranchStockCardProps) {
 			</div>
 
 			{/* Corpo */}
-			<div className="flex flex-col gap-2 px-4 pt-3 pb-4">
+			<div className="flex flex-col gap-2 px-4 pt-3 pb-3">
 				<div>
 					<Link
 						className="line-clamp-2 block font-sans font-semibold text-[14px] text-foreground leading-[1.3] tracking-tight hover:underline"
@@ -100,25 +100,41 @@ export function BranchStockCard({ onSelect, row }: BranchStockCardProps) {
 						{row.voltage ? ` · ${row.voltage}` : ""}
 					</p>
 				</div>
+			</div>
 
-				<hr className="border-border" />
-
-				<div className="flex items-center justify-between gap-3">
-					<div className="flex items-baseline gap-1">
-						<span className="text-muted-foreground text-xs">Qtd:</span>
-						<span
-							className={`font-semibold text-[15px] tabular-nums leading-none ${
-								row.quantity === 0 ? "text-destructive" : "text-primary"
-							}`}
-						>
-							{row.quantity}
-						</span>
-					</div>
-					{(row.minQty > 0 || row.reorderPoint > 0) && (
-						<span className="text-[10px] text-muted-foreground/60 tabular-nums">
-							Mín {row.minQty} · Rep {row.reorderPoint}
-						</span>
-					)}
+			{/* Footer de 3 métricas (espelha o card de filial) */}
+			<div className="grid grid-cols-3 border-border border-t">
+				<div className="flex flex-col items-center border-border border-r py-2.5">
+					<span
+						className={`font-bold text-[18px] tabular-nums ${
+							status === "critical"
+								? "text-destructive"
+								: status === "reorder"
+									? "text-amber-500"
+									: "text-foreground"
+						}`}
+					>
+						{row.quantity}
+					</span>
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+						Qtd
+					</span>
+				</div>
+				<div className="flex flex-col items-center border-border border-r py-2.5">
+					<span className="font-bold text-[18px] text-foreground tabular-nums">
+						{row.minQty > 0 ? row.minQty : "—"}
+					</span>
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+						Mín
+					</span>
+				</div>
+				<div className="flex flex-col items-center py-2.5">
+					<span className="font-bold text-[18px] text-foreground tabular-nums">
+						{row.reorderPoint > 0 ? row.reorderPoint : "—"}
+					</span>
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+						Repor
+					</span>
 				</div>
 			</div>
 		</div>
