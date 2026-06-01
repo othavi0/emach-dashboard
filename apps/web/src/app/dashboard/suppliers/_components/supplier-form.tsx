@@ -1,15 +1,11 @@
 "use client";
 
 import { Button, buttonVariants } from "@emach/ui/components/button";
-import { Input } from "@emach/ui/components/input";
-import { Label } from "@emach/ui/components/label";
 import { Spinner } from "@emach/ui/components/spinner";
-import { Textarea } from "@emach/ui/components/textarea";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import type { ZodError } from "zod";
 
 import {
 	FormErrorPanel,
@@ -18,12 +14,15 @@ import {
 } from "@/components/form-error-panel";
 
 import { createSupplier, updateSupplier } from "../actions";
+import { SupplierFormFields } from "./supplier-form-fields";
 import { type SupplierFormValues, supplierSchema } from "./supplier-schema";
 
 const FIELD_LABELS: Record<string, string> = {
 	name: "Nome",
 	contactEmail: "E-mail",
 	phone: "Telefone",
+	website: "Website",
+	cnpj: "CNPJ",
 	notes: "Observações",
 };
 
@@ -51,19 +50,6 @@ function SubmitLabel({
 	return <>{mode === "create" ? "Criar fornecedor" : "Salvar alterações"}</>;
 }
 
-function zodErrorsToFieldMap(
-	error: ZodError<SupplierFormValues>
-): Partial<Record<keyof SupplierFormValues, string>> {
-	const map: Partial<Record<keyof SupplierFormValues, string>> = {};
-	for (const issue of error.issues) {
-		const key = issue.path[0] as keyof SupplierFormValues | undefined;
-		if (key && !map[key]) {
-			map[key] = issue.message;
-		}
-	}
-	return map;
-}
-
 export function SupplierForm({
 	defaultValues,
 	mode,
@@ -71,31 +57,23 @@ export function SupplierForm({
 }: SupplierFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
-	const [name, setName] = useState(defaultValues.name ?? "");
-	const [contactEmail, setContactEmail] = useState(
-		defaultValues.contactEmail ?? ""
-	);
-	const [phone, setPhone] = useState(defaultValues.phone ?? "");
-	const [notes, setNotes] = useState(defaultValues.notes ?? "");
-	const [errors, setErrors] = useState<
-		Partial<Record<keyof SupplierFormValues, string>>
-	>({});
+	const [values, setValues] = useState<SupplierFormValues>({
+		name: defaultValues.name ?? "",
+		contactEmail: defaultValues.contactEmail ?? "",
+		phone: defaultValues.phone ?? "",
+		website: defaultValues.website ?? "",
+		cnpj: defaultValues.cnpj ?? "",
+		notes: defaultValues.notes ?? "",
+	});
 	const [formIssues, setFormIssues] = useState<FormIssue[]>([]);
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setErrors({});
 		setFormIssues([]);
 
-		const parsed = supplierSchema.safeParse({
-			name,
-			contactEmail,
-			phone,
-			notes,
-		});
+		const parsed = supplierSchema.safeParse(values);
 
 		if (!parsed.success) {
-			setErrors(zodErrorsToFieldMap(parsed.error));
 			const issues = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
 			setFormIssues(issues);
 			toast.error(
@@ -133,71 +111,11 @@ export function SupplierForm({
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas
 				</h2>
-
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="supplier-name">
-						Nome
-						<span className="text-destructive"> *</span>
-					</Label>
-					<Input
-						aria-invalid={errors.name ? true : undefined}
-						aria-required="true"
-						disabled={isPending}
-						id="supplier-name"
-						onChange={(event) => setName(event.target.value)}
-						placeholder="Ex: Bosch Brasil"
-						value={name}
-					/>
-					{errors.name && (
-						<p className="text-destructive text-sm">{errors.name}</p>
-					)}
-				</div>
-
-				<div className="grid gap-4 md:grid-cols-2">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="supplier-email">E-mail (opcional)</Label>
-						<Input
-							disabled={isPending}
-							id="supplier-email"
-							onChange={(event) => setContactEmail(event.target.value)}
-							placeholder="contato@fornecedor.com"
-							type="email"
-							value={contactEmail}
-						/>
-						{errors.contactEmail && (
-							<p className="text-destructive text-sm">{errors.contactEmail}</p>
-						)}
-					</div>
-
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="supplier-phone">Telefone (opcional)</Label>
-						<Input
-							disabled={isPending}
-							id="supplier-phone"
-							onChange={(event) => setPhone(event.target.value)}
-							placeholder="(11) 99999-9999"
-							value={phone}
-						/>
-						{errors.phone && (
-							<p className="text-destructive text-sm">{errors.phone}</p>
-						)}
-					</div>
-				</div>
-
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="supplier-notes">Observações (opcional)</Label>
-					<Textarea
-						disabled={isPending}
-						id="supplier-notes"
-						onChange={(event) => setNotes(event.target.value)}
-						placeholder="Condições comerciais, contato responsável ou instruções internas."
-						rows={5}
-						value={notes}
-					/>
-					{errors.notes && (
-						<p className="text-destructive text-sm">{errors.notes}</p>
-					)}
-				</div>
+				<SupplierFormFields
+					disabled={isPending}
+					onPatch={(p) => setValues((v) => ({ ...v, ...p }))}
+					values={values}
+				/>
 			</section>
 
 			<div className="flex items-center gap-3">
