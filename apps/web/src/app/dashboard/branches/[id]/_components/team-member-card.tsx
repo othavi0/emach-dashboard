@@ -92,7 +92,7 @@ export function TeamMemberCard({ branchId, member }: Props) {
 				<StatusBadge status={member.status} />
 			</div>
 
-			<div className="flex items-center justify-between gap-2 border-border border-t pt-3">
+			<div className="-mx-4 flex items-center justify-between gap-2 border-border border-t px-4 pt-3">
 				<span className="text-muted-foreground text-xs">
 					<span className="font-semibold text-foreground">
 						{ROLE_LABEL[member.role]}
