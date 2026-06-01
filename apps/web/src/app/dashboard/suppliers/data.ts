@@ -15,6 +15,7 @@ export interface SupplierDetail {
 	name: string;
 	notes: string | null;
 	phone: string | null;
+	status: "active" | "archived";
 	toolsActive: number;
 	toolsInactive: number;
 	toolsTotal: number;
@@ -44,6 +45,7 @@ export async function getSupplierDetail(
 	return {
 		id: base.id,
 		name: base.name,
+		status: base.status,
 		contactEmail: base.contactEmail,
 		phone: base.phone,
 		website: base.website,
@@ -165,6 +167,7 @@ export interface SupplierTableRow {
 	id: string;
 	name: string;
 	phone: string | null;
+	status: "active" | "archived";
 	toolsActive: number;
 	toolsTotal: number;
 }
