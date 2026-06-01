@@ -149,7 +149,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 				</div>
 			</section>
 
-			<CustomerFilters filters={filters} />
+			<CustomerFilters />
 
 			{result.items.length === 0 ? (
 				<Empty>
