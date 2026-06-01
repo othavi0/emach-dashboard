@@ -15,6 +15,7 @@ import {
 	type SupplierFormValues,
 	supplierSchema,
 } from "./_components/supplier-schema";
+import type { SupplierToolRow } from "./data";
 
 const SUPPLIERS_PATH = "/dashboard/suppliers";
 const TOOLS_PATH = "/dashboard/tools";
@@ -206,6 +207,7 @@ export async function fetchSuppliersTablePage({
 		return {
 			id: s.id,
 			name: s.name,
+			status: s.status,
 			contactEmail: s.contactEmail,
 			phone: s.phone,
 			createdAt: s.createdAt,
@@ -406,4 +408,61 @@ export async function deleteSupplier(id: string): Promise<ActionResult> {
 	revalidatePath(SUPPLIERS_PATH);
 	revalidatePath(TOOLS_PATH);
 	return { ok: true, data: undefined };
+}
+
+export async function fetchSupplierToolsPage({
+	supplierId,
+	search,
+	cursor,
+}: {
+	supplierId: string;
+	search?: string;
+	cursor: string | null;
+}): Promise<InfiniteResult<SupplierToolRow>> {
+	const decoded = cursor ? decodeCursor(cursor) : null;
+	const conditions = [eq(tool.supplierId, supplierId)];
+
+	if (search?.trim()) {
+		const pattern = `%${search.trim()}%`;
+		conditions.push(
+			sql`(${tool.name} ILIKE ${pattern} OR ${tool.slug} ILIKE ${pattern})`
+		);
+	}
+	if (decoded && decoded.sort === "newest") {
+		conditions.push(
+			sql`(${tool.createdAt}, ${tool.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+		);
+	}
+
+	const rows = await db
+		.select({
+			id: tool.id,
+			name: tool.name,
+			slug: tool.slug,
+			status: tool.status,
+			defaultSku: sql<
+				string | null
+			>`(select sku from tool_variant where tool_id = ${tool.id} and is_default = true limit 1)`,
+			createdAt: tool.createdAt,
+		})
+		.from(tool)
+		.where(and(...conditions))
+		.orderBy(desc(tool.createdAt), desc(tool.id))
+		.limit(BATCH_SIZE + 1);
+
+	const hasMore = rows.length > BATCH_SIZE;
+	const items = (
+		hasMore ? rows.slice(0, BATCH_SIZE) : rows
+	) as SupplierToolRow[];
+	const last = items.at(-1);
+	const nextCursor =
+		hasMore && last
+			? encodeCursor({
+					v: 1,
+					sort: "newest",
+					createdAt: last.createdAt.toISOString(),
+					id: last.id,
+				})
+			: null;
+	return { items, nextCursor };
 }
