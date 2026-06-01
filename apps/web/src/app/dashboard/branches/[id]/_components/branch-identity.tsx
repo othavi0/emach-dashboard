@@ -20,7 +20,9 @@ export function BranchIdentity({
 			avatarFallback={<Building2 aria-hidden className="size-5" />}
 			badges={badges}
 			subtitle={
-				formatBranchAddress(detail) ?? formatPhone(detail.phone) ?? undefined
+				// formatPhone() devolve "" (não null) — o `|| undefined` garante
+				// que "sem endereço e sem telefone" propague undefined, não "".
+				formatBranchAddress(detail) ?? (formatPhone(detail.phone) || undefined)
 			}
 			title={detail.name}
 		/>
