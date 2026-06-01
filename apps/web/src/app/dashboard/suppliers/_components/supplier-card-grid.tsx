@@ -13,14 +13,12 @@ import type { SupplierTableRow } from "../data";
 import { SupplierCard } from "./supplier-card";
 
 interface SupplierCardGridProps {
-	canMutate: boolean;
 	filters: SuppliersFiltersInput;
 	initial: SupplierTableRow[];
 	initialCursor: string | null;
 }
 
 export function SupplierCardGrid({
-	canMutate,
 	filters,
 	initial,
 	initialCursor,
@@ -49,7 +47,7 @@ export function SupplierCardGrid({
 		<div aria-live="polite">
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{items.map((s) => (
-					<SupplierCard canMutate={canMutate} key={s.id} supplier={s} />
+					<SupplierCard key={s.id} supplier={s} />
 				))}
 			</div>
 			<InfiniteSentinel
