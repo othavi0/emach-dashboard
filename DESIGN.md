@@ -294,6 +294,15 @@ O footer de um card é uma faixa que **encosta nas bordas laterais e inferior** 
 
 **Footer de métricas:** `grid grid-cols-N border-t`; cada célula `flex flex-col items-center py-2.5` com `border-r` (último sem); valor `font-bold text-[18px] tabular-nums`, label `text-[9px] uppercase tracking-wider text-muted-foreground` embaixo. O valor pode herdar a cor da role do status (ex: Qtd em `text-destructive` quando zerada/crítica, `text-amber-500` em repor). Footer de valor único (pedido) usa 1 coluna centralizada (valor + label "Total").
 
+### Listagem / scroll infinito (rodapé)
+
+Toda listagem de grid usa `useInfiniteList` + `<InfiniteSentinel>` (`src/components/infinite-sentinel.tsx`), page size `BATCH_SIZE = 20`, auto-load 200px antes do fim.
+
+- **Sem "fim da lista".** Quando acaba, o sentinel renderiza `null` — a ausência de mais cards já comunica o fim. Nunca exibir texto decorativo de rodapé.
+- **Loading:** `skeleton` (prop opcional — grid de placeholders no shape do card, ex: `branch-card-skeleton.tsx`) ou, sem ele, um spinner discreto (`Loader2 animate-spin text-muted-foreground`). Nunca o texto "Carregando…".
+- **Erro:** único caso com botão — mensagem `text-destructive` + `Button variant="outline"` "Tentar de novo".
+- **Sem botão "Carregar mais" permanente** — o auto-scroll já cobre; botão visível junto do observer é redundância.
+
 ### Entity detail page (CRUD pattern)
 
 Página de detalhe de uma entidade (`/dashboard/<recurso>/[id]`) — o padrão default para CRUDs. Canônico: `branches/[id]/page.tsx`. Componentes em `apps/web/src/components/entity/`.
