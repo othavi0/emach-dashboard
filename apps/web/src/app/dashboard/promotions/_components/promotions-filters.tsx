@@ -31,13 +31,12 @@ import { FiltersBar } from "@/components/filters-bar";
 import { MaskedInput } from "@/components/masked-input";
 import { percentageMask } from "@/lib/masks";
 import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
-import type { PromotionSort, PromotionStatus } from "../actions";
+import type { PromotionSort } from "../actions";
 
 const BASE = "/dashboard/promotions";
 const TRACKED = [
 	"search",
 	"type",
-	"status",
 	"sort",
 	"toolId",
 	"discountMin",
@@ -61,15 +60,6 @@ const SORT_OPTIONS: Array<{ value: PromotionSort; label: string }> = [
 	{ value: "endsAtAsc", label: "Fim mais próximo" },
 ];
 
-const STATUS_OPTIONS: Array<{ value: PromotionStatus | "all"; label: string }> =
-	[
-		{ value: "all", label: "Todos" },
-		{ value: "active", label: "Ativa agora" },
-		{ value: "scheduled", label: "Agendada" },
-		{ value: "expired", label: "Expirada" },
-		{ value: "inactive", label: "Inativa" },
-	];
-
 const TYPE_OPTIONS: Array<{
 	value: "all" | "promotion" | "promocode";
 	label: string;
@@ -91,7 +81,6 @@ export function PromotionsFilters({ availableTools }: PromotionsFiltersProps) {
 	});
 
 	const currentType = searchParams.get("type") ?? "all";
-	const currentStatus = searchParams.get("status") ?? "all";
 	const currentSort = searchParams.get("sort") ?? "createdDesc";
 	const currentToolId = searchParams.get("toolId") ?? "all";
 
@@ -166,25 +155,6 @@ export function PromotionsFilters({ availableTools }: PromotionsFiltersProps) {
 						</SelectTrigger>
 						<SelectContent>
 							{TYPE_OPTIONS.map((opt) => (
-								<SelectItem key={opt.value} value={opt.value}>
-									{opt.label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
-
-				<div className="flex flex-col gap-1 md:w-44">
-					<Label className="text-muted-foreground text-xs">Status</Label>
-					<Select
-						onValueChange={(v) => setParam("status", v === "all" ? null : v)}
-						value={currentStatus}
-					>
-						<SelectTrigger>
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{STATUS_OPTIONS.map((opt) => (
 								<SelectItem key={opt.value} value={opt.value}>
 									{opt.label}
 								</SelectItem>

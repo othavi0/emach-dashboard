@@ -3,7 +3,19 @@
 import { db } from "@emach/db";
 import { promotion, promotionTool } from "@emach/db/schema/promotions";
 import { tool } from "@emach/db/schema/tools";
-import { and, eq, gte, inArray, isNull, lte, ne, or } from "drizzle-orm";
+import {
+	type AnyColumn,
+	and,
+	asc,
+	eq,
+	gte,
+	inArray,
+	isNull,
+	lte,
+	ne,
+	or,
+	sql,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { type Cursor, decodeCursor } from "@/lib/cursor";
@@ -34,6 +46,14 @@ export type ActionResult<T = undefined> =
 	| { ok: false; error: string };
 
 export type PromotionStatus = "active" | "scheduled" | "expired" | "inactive";
+
+export interface PromotionStatusCounts {
+	active: number;
+	all: number;
+	expired: number;
+	inactive: number;
+	scheduled: number;
+}
 
 export interface PromotionToolItem {
 	id: string;
@@ -174,6 +194,33 @@ function computeStatus(p: {
 	return "active";
 }
 
+// Predicado SQL de status, compartilhado entre fetchPromotionsPage (filtro da
+// lista) e getPromotionStatusCounts (contagens das tabs) para não divergirem.
+// `cols` são as colunas (p relacional ou a tabela promotion); `sqlTag` é o sql
+// do contexto (ops.sql na query relacional, sql global no select agregado).
+interface PromotionStatusCols {
+	active: AnyColumn;
+	endsAt: AnyColumn;
+	startsAt: AnyColumn;
+}
+
+function promotionStatusCondition(
+	cols: PromotionStatusCols,
+	status: PromotionStatus,
+	sqlTag: typeof sql
+) {
+	switch (status) {
+		case "expired":
+			return sqlTag`${cols.endsAt} < now()`;
+		case "scheduled":
+			return sqlTag`${cols.active} = true AND ${cols.startsAt} > now() AND (${cols.endsAt} IS NULL OR ${cols.endsAt} >= now())`;
+		case "active":
+			return sqlTag`${cols.active} = true AND (${cols.startsAt} IS NULL OR ${cols.startsAt} <= now()) AND (${cols.endsAt} IS NULL OR ${cols.endsAt} >= now())`;
+		default:
+			return sqlTag`${cols.active} = false AND (${cols.endsAt} IS NULL OR ${cols.endsAt} >= now())`;
+	}
+}
+
 // ---------------------------------------------------------------------------
 // listPromotions — requires authenticated session
 // ---------------------------------------------------------------------------
@@ -247,7 +294,6 @@ function makePromotionCursor(
 	}
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: keyset + múltiplos filtros opcionais — complexidade inerente à query paginada
 export async function fetchPromotionsPage({
 	filters,
 	cursor,
@@ -270,6 +316,7 @@ export async function fetchPromotionsPage({
 	const decoded = cursor ? decodeCursor(cursor) : null;
 
 	const rows = await db.query.promotion.findMany({
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: keyset + filtros opcionais — complexidade inerente à query paginada
 		where: (p, ops) => {
 			const conds: unknown[] = [];
 
@@ -300,28 +347,7 @@ export async function fetchPromotionsPage({
 				);
 			}
 			if (status !== "all") {
-				switch (status) {
-					case "expired":
-						conds.push(ops.sql`${p.endsAt} < now()`);
-						break;
-					case "scheduled":
-						conds.push(
-							ops.sql`${p.active} = true AND ${p.startsAt} > now() AND (${p.endsAt} IS NULL OR ${p.endsAt} >= now())`
-						);
-						break;
-					case "active":
-						conds.push(
-							ops.sql`${p.active} = true AND (${p.startsAt} IS NULL OR ${p.startsAt} <= now()) AND (${p.endsAt} IS NULL OR ${p.endsAt} >= now())`
-						);
-						break;
-					case "inactive":
-						conds.push(
-							ops.sql`${p.active} = false AND (${p.endsAt} IS NULL OR ${p.endsAt} >= now())`
-						);
-						break;
-					default:
-						break;
-				}
+				conds.push(promotionStatusCondition(p, status, ops.sql));
 			}
 
 			// keyset: predicado por sort (defensivo — o front reseta o cursor ao trocar sort)
@@ -841,4 +867,40 @@ export async function duplicatePromotion(
 
 	revalidatePath(PROMOTIONS_PATH);
 	return { ok: true, data: { id: newId } };
+}
+
+// ---------------------------------------------------------------------------
+// getPromotionStatusCounts — contagens por status p/ as pill tabs
+// ---------------------------------------------------------------------------
+
+export async function getPromotionStatusCounts(): Promise<PromotionStatusCounts> {
+	await requireCurrentSession();
+
+	const rows = await db
+		.select({
+			all: sql<number>`count(*)::int`,
+			active: sql<number>`count(*) filter (where ${promotionStatusCondition(promotion, "active", sql)})::int`,
+			scheduled: sql<number>`count(*) filter (where ${promotionStatusCondition(promotion, "scheduled", sql)})::int`,
+			expired: sql<number>`count(*) filter (where ${promotionStatusCondition(promotion, "expired", sql)})::int`,
+			inactive: sql<number>`count(*) filter (where ${promotionStatusCondition(promotion, "inactive", sql)})::int`,
+		})
+		.from(promotion);
+
+	return (
+		rows[0] ?? { all: 0, active: 0, scheduled: 0, expired: 0, inactive: 0 }
+	);
+}
+
+// ---------------------------------------------------------------------------
+// getToolOptions — opções {id, name} de ferramentas p/ selects e filtros
+// ---------------------------------------------------------------------------
+
+export async function getToolOptions(): Promise<
+	{ id: string; name: string }[]
+> {
+	await requireCurrentSession();
+	return db
+		.select({ id: tool.id, name: tool.name })
+		.from(tool)
+		.orderBy(asc(tool.name));
 }
