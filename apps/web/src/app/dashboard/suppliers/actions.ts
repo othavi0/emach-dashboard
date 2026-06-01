@@ -2,14 +2,13 @@
 
 import { db } from "@emach/db";
 import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
-import { supplier, tool, toolVariant } from "@emach/db/schema/tools";
-import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { supplier, tool } from "@emach/db/schema/tools";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
-import { requireCurrentSession } from "@/lib/session";
 import { normalizeCnpj } from "@/lib/validation/cnpj";
 import {
 	type SupplierFormValues,
@@ -19,35 +18,6 @@ import type { SupplierToolRow } from "./data";
 
 const SUPPLIERS_PATH = "/dashboard/suppliers";
 const TOOLS_PATH = "/dashboard/tools";
-
-export interface SupplierListItem {
-	contactEmail: string | null;
-	createdAt: Date;
-	id: string;
-	name: string;
-	phone: string | null;
-	toolsCount: number;
-}
-
-export interface LinkedTool {
-	id: string;
-	name: string;
-	sku: string | null;
-	visibleOnSite: boolean;
-}
-
-export interface SupplierDetail {
-	cnpj: string | null;
-	contactEmail: string | null;
-	createdAt: Date;
-	id: string;
-	name: string;
-	notes: string | null;
-	phone: string | null;
-	tools: LinkedTool[];
-	updatedAt: Date;
-	website: string | null;
-}
 
 export type ActionResult<T = undefined> =
 	| { ok: true; data: T }
@@ -82,47 +52,6 @@ function errorMessage(error: unknown): string {
 		return error.message;
 	}
 	return "Erro inesperado";
-}
-
-export async function listSuppliers(params?: {
-	search?: string;
-}): Promise<SupplierListItem[]> {
-	await requireCurrentSession();
-
-	const search = params?.search?.trim();
-	const rows = await db
-		.select({
-			id: supplier.id,
-			name: supplier.name,
-			contactEmail: supplier.contactEmail,
-			phone: supplier.phone,
-			createdAt: supplier.createdAt,
-			toolsCount: sql<number>`count(${tool.id})::int`,
-		})
-		.from(supplier)
-		.leftJoin(tool, eq(tool.supplierId, supplier.id))
-		.where(
-			search
-				? or(
-						ilike(supplier.name, `%${search}%`),
-						ilike(supplier.contactEmail, `%${search}%`),
-						ilike(supplier.phone, `%${search}%`)
-					)
-				: undefined
-		)
-		.groupBy(
-			supplier.id,
-			supplier.name,
-			supplier.contactEmail,
-			supplier.phone,
-			supplier.createdAt
-		)
-		.orderBy(asc(supplier.name));
-
-	return rows.map((row) => ({
-		...row,
-		toolsCount: Number(row.toolsCount ?? 0),
-	}));
 }
 
 type SupplierBaseRow = typeof supplier.$inferSelect;
@@ -216,40 +145,6 @@ export async function fetchSuppliersTablePage({
 		};
 	});
 	return { items, nextCursor: page.nextCursor };
-}
-
-export async function getSupplier(id: string): Promise<SupplierDetail | null> {
-	await requireCurrentSession();
-
-	const [row] = await db
-		.select()
-		.from(supplier)
-		.where(eq(supplier.id, id))
-		.limit(1);
-
-	if (!row) {
-		return null;
-	}
-
-	const linkedTools = await db
-		.select({
-			id: tool.id,
-			name: tool.name,
-			sku: toolVariant.sku,
-			visibleOnSite: tool.visibleOnSite,
-		})
-		.from(tool)
-		.leftJoin(
-			toolVariant,
-			and(eq(toolVariant.toolId, tool.id), eq(toolVariant.isDefault, true))
-		)
-		.where(eq(tool.supplierId, id))
-		.orderBy(asc(tool.name));
-
-	return {
-		...row,
-		tools: linkedTools,
-	};
 }
 
 export async function createSupplier(
@@ -351,40 +246,25 @@ export async function updateSupplier(
 	return { ok: true, data: { id } };
 }
 
-export async function deleteSupplier(id: string): Promise<ActionResult> {
+async function setSupplierStatus(
+	id: string,
+	next: "active" | "archived",
+	action: "archived" | "restored"
+): Promise<ActionResult> {
 	const session = await requireCapability("suppliers.manage");
 
-	const [counts] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(tool)
-		.where(eq(tool.supplierId, id));
-
-	if ((counts?.n ?? 0) > 0) {
-		return {
-			ok: false,
-			error: `Fornecedor tem ${counts?.n} ferramenta(s) vinculada(s). Mova ou exclua antes.`,
-		};
-	}
-
-	const [snapshot] = await db
-		.select({
-			name: supplier.name,
-			contactEmail: supplier.contactEmail,
-			phone: supplier.phone,
-			website: supplier.website,
-			cnpj: supplier.cnpj,
-			notes: supplier.notes,
-		})
+	const [before] = await db
+		.select({ name: supplier.name, status: supplier.status })
 		.from(supplier)
 		.where(eq(supplier.id, id))
 		.limit(1);
 
-	if (!snapshot) {
+	if (!before) {
 		return { ok: false, error: "Fornecedor não encontrado" };
 	}
 
 	try {
-		await db.delete(supplier).where(eq(supplier.id, id));
+		await db.update(supplier).set({ status: next }).where(eq(supplier.id, id));
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}
@@ -394,20 +274,29 @@ export async function deleteSupplier(id: string): Promise<ActionResult> {
 		supplierId: id,
 		actorType: "user",
 		actorUserId: session.user.id,
-		action: "deleted",
-		beforeJson: snapshot,
+		action,
+		beforeJson: { status: before.status },
+		afterJson: { status: next },
 	});
 
 	await logUserActivity({
 		actorUserId: session.user.id,
-		action: "supplier.deleted",
+		action: action === "archived" ? "supplier.archived" : "supplier.restored",
 		targetId: id,
 		targetType: "supplier",
-		metadata: { name: snapshot.name },
+		metadata: { name: before.name },
 	});
 	revalidatePath(SUPPLIERS_PATH);
-	revalidatePath(TOOLS_PATH);
+	revalidatePath(`${SUPPLIERS_PATH}/${id}`);
 	return { ok: true, data: undefined };
+}
+
+export async function archiveSupplier(id: string): Promise<ActionResult> {
+	return setSupplierStatus(id, "archived", "archived");
+}
+
+export async function restoreSupplier(id: string): Promise<ActionResult> {
+	return setSupplierStatus(id, "active", "restored");
 }
 
 export async function fetchSupplierToolsPage({
