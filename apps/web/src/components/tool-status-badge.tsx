@@ -14,6 +14,16 @@ const VARIANT: Record<ToolStatus, "success" | "secondary" | "outline"> = {
 	discontinued: "outline",
 };
 
-export function ToolStatusBadge({ status }: { status: ToolStatus }) {
-	return <Badge variant={VARIANT[status]}>{LABEL[status]}</Badge>;
+export function ToolStatusBadge({
+	status,
+	className,
+}: {
+	status: ToolStatus;
+	className?: string;
+}) {
+	return (
+		<Badge className={className} variant={VARIANT[status]}>
+			{LABEL[status]}
+		</Badge>
+	);
 }

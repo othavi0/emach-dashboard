@@ -332,6 +332,12 @@ export async function fetchSupplierToolsPage({
 			defaultSku: sql<
 				string | null
 			>`(select sku from tool_variant where tool_id = ${tool.id} and is_default = true limit 1)`,
+			imageUrl: sql<
+				string | null
+			>`(select url from tool_image where tool_id = ${tool.id} order by sort_order asc limit 1)`,
+			category: sql<
+				string | null
+			>`(select c.name from tool_category tc join category c on c.id = tc.category_id where tc.tool_id = ${tool.id} and tc.is_primary = true limit 1)`,
 			createdAt: tool.createdAt,
 		})
 		.from(tool)
