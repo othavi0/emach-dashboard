@@ -17,6 +17,7 @@ export const supplierAuditActionEnum = pgEnum("supplier_audit_action", [
 	"created",
 	"profile_updated",
 	"deleted",
+	"archived",
 	"restored",
 ]);
 export type SupplierAuditAction =
