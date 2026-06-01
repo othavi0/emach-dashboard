@@ -1,14 +1,10 @@
 "use server";
 
 import { db } from "@emach/db";
-import {
-	OPEN_ORDER_STATUSES,
-	sqlStatusList,
-} from "@emach/db/queries/order-status-groups";
 import { user } from "@emach/db/schema/auth";
-import { branch, stockLevel, userBranch } from "@emach/db/schema/inventory";
+import { branch, userBranch } from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
-import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
@@ -18,7 +14,7 @@ import {
 	type BranchFormValues,
 	branchSchema,
 } from "./_components/branch-schema";
-import type { BranchTableRow } from "./data";
+import type { BranchOrderRow, BranchTableRow } from "./data";
 
 const BRANCHES_PATH = "/dashboard/branches";
 
@@ -157,6 +153,48 @@ export async function fetchBranchesPage({
 export async function getBranch(id: string): Promise<BranchListItem | null> {
 	const rows = await db.select().from(branch).where(eq(branch.id, id)).limit(1);
 	return rows[0] ?? null;
+}
+
+export async function fetchBranchOrdersPage({
+	branchId,
+	cursor,
+}: {
+	branchId: string;
+	cursor: string | null;
+}): Promise<InfiniteResult<BranchOrderRow>> {
+	await requireCapability("orders.read");
+	const decoded = cursor ? decodeCursor(cursor) : null;
+	const conditions = [sql`${order.branchId} = ${branchId}`];
+	if (decoded && decoded.sort === "newest") {
+		conditions.push(
+			sql`(${order.createdAt}, ${order.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+		);
+	}
+	const rows = await db
+		.select({
+			id: order.id,
+			number: order.number,
+			status: order.status,
+			totalAmount: order.totalAmount,
+			createdAt: order.createdAt,
+		})
+		.from(order)
+		.where(sql.join(conditions, sql` AND `))
+		.orderBy(desc(order.createdAt), desc(order.id))
+		.limit(BATCH_SIZE + 1);
+	const hasMore = rows.length > BATCH_SIZE;
+	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
+	const last = items.at(-1);
+	const nextCursor =
+		hasMore && last
+			? encodeCursor({
+					v: 1,
+					sort: "newest",
+					createdAt: last.createdAt.toISOString(),
+					id: last.id,
+				})
+			: null;
+	return { items, nextCursor };
 }
 
 export async function createBranch(
