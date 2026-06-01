@@ -60,21 +60,31 @@ export function OverviewTab({ detail }: { detail: PromotionDetail }) {
 		},
 	];
 
+	const historico = (
+		<section className="rounded-lg border border-border bg-card p-5">
+			<h3 className={MARKER}>Histórico</h3>
+			<dl className="mt-2 space-y-1 text-sm">
+				<div className="flex justify-between gap-4">
+					<dt className="text-muted-foreground">Criada</dt>
+					<dd className="tabular-nums">
+						{fmtDateTime(detail.createdAt)}
+						{detail.createdByName ? ` · ${detail.createdByName}` : ""}
+					</dd>
+				</div>
+				<div className="flex justify-between gap-4">
+					<dt className="text-muted-foreground">Atualizada</dt>
+					<dd className="tabular-nums">
+						{fmtDateTime(detail.updatedAt)}
+						{detail.updatedByName ? ` · ${detail.updatedByName}` : ""}
+					</dd>
+				</div>
+			</dl>
+		</section>
+	);
+
 	return (
 		<div className="flex flex-col gap-6">
 			<EntityKpisRow items={kpis} />
-
-			{isCoupon && detail.code ? (
-				<section className="rounded-lg border border-border bg-card p-5">
-					<h3 className={MARKER}>Código do cupom</h3>
-					<div className="mt-2 flex items-center gap-2">
-						<code className="rounded bg-muted px-2 py-1 font-mono text-foreground text-sm">
-							{detail.code}
-						</code>
-						<CopyCodeButton code={detail.code} />
-					</div>
-				</section>
-			) : null}
 
 			<section className="rounded-lg border border-border bg-card p-5">
 				<h3 className={MARKER}>Descrição</h3>
@@ -90,25 +100,22 @@ export function OverviewTab({ detail }: { detail: PromotionDetail }) {
 				</p>
 			</section>
 
-			<section className="rounded-lg border border-border bg-card p-5">
-				<h3 className={MARKER}>Histórico</h3>
-				<dl className="mt-2 space-y-1 text-sm">
-					<div className="flex justify-between gap-4">
-						<dt className="text-muted-foreground">Criada</dt>
-						<dd className="tabular-nums">
-							{fmtDateTime(detail.createdAt)}
-							{detail.createdByName ? ` · ${detail.createdByName}` : ""}
-						</dd>
-					</div>
-					<div className="flex justify-between gap-4">
-						<dt className="text-muted-foreground">Atualizada</dt>
-						<dd className="tabular-nums">
-							{fmtDateTime(detail.updatedAt)}
-							{detail.updatedByName ? ` · ${detail.updatedByName}` : ""}
-						</dd>
-					</div>
-				</dl>
-			</section>
+			{isCoupon && detail.code ? (
+				<div className="grid gap-6 sm:grid-cols-2">
+					<section className="rounded-lg border border-border bg-card p-5">
+						<h3 className={MARKER}>Código do cupom</h3>
+						<div className="mt-2 flex items-center gap-2">
+							<code className="rounded bg-muted px-2 py-1 font-mono text-foreground text-sm">
+								{detail.code}
+							</code>
+							<CopyCodeButton code={detail.code} />
+						</div>
+					</section>
+					{historico}
+				</div>
+			) : (
+				historico
+			)}
 		</div>
 	);
 }
