@@ -107,7 +107,7 @@ export function BranchStockCard({ onSelect, row }: BranchStockCardProps) {
 				<div className="flex flex-col items-center border-border border-r py-2.5">
 					<span
 						className={`font-bold text-[18px] tabular-nums ${
-							status === "critical"
+							status === "critical" || row.quantity === 0
 								? "text-destructive"
 								: status === "reorder"
 									? "text-amber-500"
