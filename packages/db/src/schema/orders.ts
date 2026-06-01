@@ -53,6 +53,15 @@ export const refundStatusEnum = pgEnum("refund_status", [
 ]);
 export type RefundStatus = (typeof refundStatusEnum.enumValues)[number];
 
+// Status que contam como solicitação ATIVA de refund (não-terminal).
+// Fonte única: o índice parcial refund_request_one_open_per_order (abaixo) deriva
+// daqui; o ecommerce importa via @emach/db (sync CI). Ver issue #96.
+export const ACTIVE_REFUND_STATUSES = [
+	"requested",
+	"under_review",
+	"approved",
+] as const satisfies readonly RefundStatus[];
+
 // --- Tables ---
 
 export const order = pgTable(
@@ -262,10 +271,14 @@ export const refundRequest = pgTable(
 		),
 		index("refund_request_order_idx").on(table.orderId),
 		// 1 solicitação ATIVA por pedido (parcial: status não-terminal).
-		// Espelha ACTIVE_REFUND_STATUSES do ecommerce: requested + under_review + approved.
+		// Predicado derivado de ACTIVE_REFUND_STATUSES — fonte única (issue #96).
 		uniqueIndex("refund_request_one_open_per_order")
 			.on(table.orderId)
-			.where(sql`${table.status} IN ('requested', 'under_review', 'approved')`),
+			.where(
+				sql.raw(
+					`status IN (${ACTIVE_REFUND_STATUSES.map((s) => `'${s}'`).join(", ")})`
+				)
+			),
 		check(
 			"refund_actor_coherence",
 			sql`(
