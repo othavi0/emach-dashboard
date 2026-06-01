@@ -13,7 +13,7 @@ import { Switch } from "@emach/ui/components/switch";
 
 import { MaskedInput } from "@/components/masked-input";
 import { UfSelect } from "@/components/uf-select";
-import { phoneBrMask } from "@/lib/masks";
+import { phoneBrMask, sanitizeTime24h } from "@/lib/masks";
 
 import type { BranchFormValues } from "./branch-schema";
 import { CepInput, type CepResolved } from "./cep-input";
@@ -250,26 +250,30 @@ export function BranchFormFields({
 								<>
 									<Input
 										aria-label={`Abertura de ${row.label}`}
-										className="px-2 text-center"
+										className="px-2 text-center tabular-nums"
 										disabled={disabled}
+										inputMode="numeric"
+										maxLength={5}
 										onChange={(event) =>
 											patchBusinessHours(row.key, {
-												opensAt: event.target.value || null,
+												opensAt: sanitizeTime24h(event.target.value) || null,
 											})
 										}
-										type="time"
+										placeholder="08:00"
 										value={period.opensAt ?? ""}
 									/>
 									<Input
 										aria-label={`Fechamento de ${row.label}`}
-										className="px-2 text-center"
+										className="px-2 text-center tabular-nums"
 										disabled={disabled}
+										inputMode="numeric"
+										maxLength={5}
 										onChange={(event) =>
 											patchBusinessHours(row.key, {
-												closesAt: event.target.value || null,
+												closesAt: sanitizeTime24h(event.target.value) || null,
 											})
 										}
-										type="time"
+										placeholder="18:00"
 										value={period.closesAt ?? ""}
 									/>
 								</>
