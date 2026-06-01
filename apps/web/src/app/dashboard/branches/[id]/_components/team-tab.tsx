@@ -1,6 +1,5 @@
 import type { BranchTeamRow } from "../../data";
-import { TeamLinkPanel } from "./team-link-panel";
-import { TeamList } from "./team-list";
+import { TeamGrid } from "./team-grid";
 
 interface Props {
 	branchId: string;
@@ -8,10 +7,5 @@ interface Props {
 }
 
 export function TeamTab({ branchId, team }: Props) {
-	return (
-		<div className="flex flex-col gap-6">
-			<TeamLinkPanel branchId={branchId} />
-			<TeamList branchId={branchId} members={team} />
-		</div>
-	);
+	return <TeamGrid branchId={branchId} members={team} />;
 }
