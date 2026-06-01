@@ -71,6 +71,15 @@ O mesmo bypass do column mapper devolve nomes **literais do Postgres em snake_ca
 - **Nunca `SELECT *`** quando tipo declarado tem mapping snake → camel. Ex incidente #23: `ROUND(price * (1 -  / 100))` por `${promo.discountPct}` undefined.
 - Se precisar de tudo: usar `db.select().from(table)` (passa pelo mapper) ou alias coluna por coluna.
 
+## Armadilha: subqueries escalares correlacionadas no `db.select` builder não materializam
+
+`db.select({ campo: sql<T>\`(select ... where x = ${table.col})\` })` — uma **subquery escalar correlacionada** como valor de coluna no query builder **retorna `null` em runtime** (a coluna principal vem, a subquery não). `check-types` não pega (o tipo declarado é `T`), e o SQL inspecionado isoladamente parece válido. Bug silencioso: descoberto quando `defaultSku`/`imageUrl`/`category` em `suppliers/data.ts` vinham `null` apesar de o DB ter os dados (confirmado via `execute_sql` direto). `sql` simples no select (ex: `count(*) filter (...)`, agregados) **funciona** — só a forma `(select ...)` correlacionada falha.
+
+**Regras:**
+
+- Para SKU default / imagem / categoria-primária por tool (ou qualquer subquery escalar por linha): use **`db.execute` raw** (como `dashboard/stock/branch-stock-data.ts`) com `AS "camelCase"`, **ou** um **segundo passo de enriquecimento** via `Map` (como `getToolCardMeta` em `suppliers/data.ts` + merge em `fetchSupplierToolsPage`). Não confie na subquery no `db.select`.
+- **Smoke visual com dado real** (não só layout): um card que cai em fallback (`defaultSku ?? slug`) esconde o `null` — verifique que o valor esperado aparece, não só que a tela renderiza.
+
 ## `db` × `createDb()`
 
 - `db` (singleton em `src/index.ts`) — uso geral em server actions.
