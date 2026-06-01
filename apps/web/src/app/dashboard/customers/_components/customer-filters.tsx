@@ -1,6 +1,5 @@
 "use client";
 
-import { DatePicker } from "@emach/ui/components/date-picker";
 import { Input } from "@emach/ui/components/input";
 import {
 	Select,
@@ -15,26 +14,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
 import { FiltersBar } from "@/components/filters-bar";
-import { formatDateParam, parseDateParam } from "@/lib/date-params";
 import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
-import type { CustomersListFilters } from "../schema";
 import { SORT_OPTIONS } from "../schema";
-
-interface CustomerFiltersProps {
-	filters: CustomersListFilters;
-}
 
 const BASE = "/dashboard/customers";
 const TRACKED = [
 	"q",
 	"status",
 	"clientType",
-	"createdFrom",
-	"createdTo",
-	"lastOrderFrom",
-	"lastOrderTo",
-	"ltvMin",
-	"ltvMax",
 	"sort",
 	"missingDoc",
 	"openOrderInactive",
@@ -55,7 +42,7 @@ const STATUS_LABELS: Record<string, string> = {
 	blocked: "Bloqueado",
 };
 
-export function CustomerFilters({ filters }: CustomerFiltersProps) {
+export function CustomerFilters() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { setParam, clearAll, hasActive } = useFilterState({
@@ -63,14 +50,6 @@ export function CustomerFilters({ filters }: CustomerFiltersProps) {
 		trackedKeys: TRACKED,
 	});
 	const [q, setQ] = useDebouncedParam({ basePath: BASE, key: "q" });
-	const [ltvMin, setLtvMin] = useDebouncedParam({
-		basePath: BASE,
-		key: "ltvMin",
-	});
-	const [ltvMax, setLtvMax] = useDebouncedParam({
-		basePath: BASE,
-		key: "ltvMax",
-	});
 
 	const currentStatus = searchParams.get("status") ?? "all";
 	const currentType = searchParams.get("clientType") ?? "";
@@ -164,71 +143,6 @@ export function CustomerFilters({ filters }: CustomerFiltersProps) {
 						);
 					})}
 				</div>
-			</div>
-
-			<div className="flex flex-col gap-1 md:w-40">
-				<label
-					className="text-muted-foreground text-xs"
-					htmlFor="customers-created-from"
-				>
-					Cadastro de
-				</label>
-				<DatePicker
-					id="customers-created-from"
-					onChange={(d) => setParam("createdFrom", formatDateParam(d) || null)}
-					value={parseDateParam(filters.createdFrom ?? "")}
-				/>
-			</div>
-
-			<div className="flex flex-col gap-1 md:w-40">
-				<label
-					className="text-muted-foreground text-xs"
-					htmlFor="customers-created-to"
-				>
-					Cadastro até
-				</label>
-				<DatePicker
-					id="customers-created-to"
-					min={parseDateParam(filters.createdFrom ?? "")}
-					onChange={(d) => setParam("createdTo", formatDateParam(d) || null)}
-					value={parseDateParam(filters.createdTo ?? "")}
-				/>
-			</div>
-
-			<div className="flex flex-col gap-1 md:w-28">
-				<label
-					className="text-muted-foreground text-xs"
-					htmlFor="customers-ltv-min"
-				>
-					LTV mín
-				</label>
-				<Input
-					id="customers-ltv-min"
-					min={0}
-					onChange={(e) => setLtvMin(e.target.value)}
-					placeholder="0"
-					step={10}
-					type="number"
-					value={ltvMin}
-				/>
-			</div>
-
-			<div className="flex flex-col gap-1 md:w-28">
-				<label
-					className="text-muted-foreground text-xs"
-					htmlFor="customers-ltv-max"
-				>
-					LTV máx
-				</label>
-				<Input
-					id="customers-ltv-max"
-					min={0}
-					onChange={(e) => setLtvMax(e.target.value)}
-					placeholder="Sem limite"
-					step={10}
-					type="number"
-					value={ltvMax}
-				/>
 			</div>
 
 			<div className="flex flex-col gap-1 md:w-52">
