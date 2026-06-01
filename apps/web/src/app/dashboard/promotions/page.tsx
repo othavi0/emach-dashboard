@@ -1,6 +1,12 @@
 import { db } from "@emach/db";
 import { tool } from "@emach/db/schema/tools";
 import { buttonVariants } from "@emach/ui/components/button";
+import {
+	Tabs,
+	TabsCountBadge,
+	TabsList,
+	TabsTrigger,
+} from "@emach/ui/components/tabs";
 import { asc } from "drizzle-orm";
 import Link from "next/link";
 
@@ -11,7 +17,7 @@ import { PromotionsFilters } from "./_components/promotions-filters";
 import { PromotionsGrid } from "./_components/promotions-grid";
 import {
 	fetchPromotionsPage,
-	getPromotion,
+	getPromotionStatusCounts,
 	type ListPromotionsOptions,
 	type PromotionSort,
 	type PromotionStatus,
@@ -26,8 +32,6 @@ interface PageProps {
 		toolId?: string;
 		discountMin?: string;
 		discountMax?: string;
-		view?: string;
-		edit?: string;
 	}>;
 }
 
@@ -49,12 +53,44 @@ const VALID_SORT = new Set<PromotionSort>([
 	"endsAtAsc",
 ]);
 
+const STATUS_TABS: Array<{ value: PromotionStatus | "all"; label: string }> = [
+	{ value: "all", label: "Todas" },
+	{ value: "active", label: "Ativas" },
+	{ value: "scheduled", label: "Agendadas" },
+	{ value: "expired", label: "Expiradas" },
+	{ value: "inactive", label: "Inativas" },
+];
+
 function parseDiscount(raw?: string): number | undefined {
 	if (!raw) {
 		return;
 	}
 	const n = Number(raw);
 	return Number.isFinite(n) && n >= 0 && n <= 100 ? n : undefined;
+}
+
+function buildStatusHref(
+	sp: Record<string, string | undefined>,
+	status: PromotionStatus | "all"
+): string {
+	const params = new URLSearchParams();
+	if (status !== "all") {
+		params.set("status", status);
+	}
+	for (const key of [
+		"search",
+		"type",
+		"sort",
+		"toolId",
+		"discountMin",
+		"discountMax",
+	] as const) {
+		if (sp[key]) {
+			params.set(key, sp[key] as string);
+		}
+	}
+	const qs = params.toString();
+	return qs ? `/dashboard/promotions?${qs}` : "/dashboard/promotions";
 }
 
 export default async function PromotionsPage({ searchParams }: PageProps) {
@@ -88,16 +124,14 @@ export default async function PromotionsPage({ searchParams }: PageProps) {
 		discountMax,
 	};
 
-	const [page, availableTools, selectedPromotion, editPromotion] =
-		await Promise.all([
-			fetchPromotionsPage({ filters, cursor: null }),
-			db
-				.select({ id: tool.id, name: tool.name })
-				.from(tool)
-				.orderBy(asc(tool.name)),
-			params.view ? getPromotion(params.view) : Promise.resolve(null),
-			params.edit ? getPromotion(params.edit) : Promise.resolve(null),
-		]);
+	const [page, availableTools, counts] = await Promise.all([
+		fetchPromotionsPage({ filters, cursor: null }),
+		db
+			.select({ id: tool.id, name: tool.name })
+			.from(tool)
+			.orderBy(asc(tool.name)),
+		getPromotionStatusCounts(),
+	]);
 
 	return (
 		<>
@@ -116,16 +150,28 @@ export default async function PromotionsPage({ searchParams }: PageProps) {
 				title="Promoções"
 			/>
 
+			<Tabs value={statusFilter}>
+				<TabsList scrollable>
+					{STATUS_TABS.map((t) => (
+						<TabsTrigger
+							key={t.value}
+							nativeButton={false}
+							render={<Link href={buildStatusHref(params, t.value)} />}
+							value={t.value}
+						>
+							{t.label}
+							<TabsCountBadge value={counts[t.value]} />
+						</TabsTrigger>
+					))}
+				</TabsList>
+			</Tabs>
+
 			<PromotionsFilters availableTools={availableTools} />
 
 			<PromotionsGrid
-				availableTools={availableTools}
-				canMutate={canMutate}
-				editPromotion={editPromotion}
 				filters={filters}
 				initial={page.items}
 				initialCursor={page.nextCursor}
-				selectedPromotion={selectedPromotion}
 			/>
 		</>
 	);
