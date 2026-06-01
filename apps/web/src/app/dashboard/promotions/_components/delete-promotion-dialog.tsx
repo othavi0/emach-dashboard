@@ -24,12 +24,14 @@ interface DeletePromotionDialogProps {
 	controlled?: { open: boolean; onOpenChange: (next: boolean) => void };
 	promotionId: string;
 	promotionTitle: string;
+	redirectTo?: string;
 }
 
 export function DeletePromotionDialog({
 	promotionId,
 	promotionTitle,
 	controlled,
+	redirectTo,
 }: DeletePromotionDialogProps) {
 	const router = useRouter();
 	const [internalOpen, setInternalOpen] = useState(false);
@@ -44,7 +46,11 @@ export function DeletePromotionDialog({
 			if (result.ok) {
 				toast.success("Promoção removida");
 				setOpen(false);
-				router.refresh();
+				if (redirectTo) {
+					router.push(redirectTo);
+				} else {
+					router.refresh();
+				}
 			} else {
 				toast.error(result.error || "Não foi possível remover a promoção");
 			}
