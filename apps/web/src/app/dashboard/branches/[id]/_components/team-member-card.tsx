@@ -110,7 +110,7 @@ export function TeamMemberCard({ branchId, member }: Props) {
 							<Button
 								onClick={(e) => e.stopPropagation()}
 								size="sm"
-								variant="default"
+								variant="outline"
 							/>
 						}
 					>
