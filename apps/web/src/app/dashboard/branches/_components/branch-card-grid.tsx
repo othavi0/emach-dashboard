@@ -8,6 +8,7 @@ import { useInfiniteList } from "@/lib/use-infinite-list";
 import { type BranchesFiltersInput, fetchBranchesTablePage } from "../actions";
 import type { BranchTableRow } from "../data";
 import { BranchCard } from "./branch-card";
+import { BranchCardGridSkeleton } from "./branch-card-skeleton";
 
 interface BranchCardGridProps {
 	canManage: boolean;
@@ -54,6 +55,7 @@ export function BranchCardGrid({
 				hasMore={hasMore}
 				onLoadMore={loadMore}
 				pending={pending}
+				skeleton={<BranchCardGridSkeleton />}
 			/>
 		</div>
 	);

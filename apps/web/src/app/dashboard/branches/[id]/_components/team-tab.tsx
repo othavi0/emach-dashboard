@@ -1,11 +1,7 @@
-import type { BranchTeamRow } from "../../data";
+import { getBranchTeam } from "../../data";
 import { TeamGrid } from "./team-grid";
 
-interface Props {
-	branchId: string;
-	team: BranchTeamRow[];
-}
-
-export function TeamTab({ branchId, team }: Props) {
+export async function TeamTab({ branchId }: { branchId: string }) {
+	const team = await getBranchTeam(branchId);
 	return <TeamGrid branchId={branchId} members={team} />;
 }

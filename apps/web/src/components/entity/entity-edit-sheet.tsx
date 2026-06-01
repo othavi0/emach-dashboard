@@ -24,6 +24,8 @@ interface Props {
 	submitLabel?: string;
 	submitting?: boolean;
 	title: ReactNode;
+	/** Classe de largura máxima do drawer. Default `sm:max-w-lg`. */
+	widthClassName?: string;
 }
 
 export function EntityEditSheet({
@@ -37,10 +39,13 @@ export function EntityEditSheet({
 	cancelLabel = "Cancelar",
 	onSubmit,
 	children,
+	widthClassName = "sm:max-w-lg",
 }: Props) {
 	return (
 		<Sheet onOpenChange={onOpenChange} open={open}>
-			<SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
+			<SheetContent
+				className={`flex w-full flex-col gap-0 p-0 ${widthClassName}`}
+			>
 				<SheetHeader className="border-border border-b">
 					<SheetTitle>{title}</SheetTitle>
 					{description ? (

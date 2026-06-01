@@ -9,9 +9,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@emach/ui/components/select";
+import { Switch } from "@emach/ui/components/switch";
 
 import { MaskedInput } from "@/components/masked-input";
-import { phoneBrMask } from "@/lib/masks";
+import { UfSelect } from "@/components/uf-select";
+import { phoneBrMask, sanitizeTime24h } from "@/lib/masks";
 
 import type { BranchFormValues } from "./branch-schema";
 import { CepInput, type CepResolved } from "./cep-input";
@@ -29,6 +31,8 @@ const BUSINESS_HOURS_ROWS: Array<{ key: BusinessHoursKey; label: string }> = [
 
 interface Props {
 	branchId?: string;
+	/** 1 = empilhado (drawer); 2 = duas colunas (página de criar). Default 1. */
+	columns?: 1 | 2;
 	disabled?: boolean;
 	onPatch: Patch;
 	showTeamSection: boolean;
@@ -45,6 +49,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 export function BranchFormFields({
 	branchId,
+	columns = 1,
 	values,
 	onPatch,
 	showTeamSection,
@@ -71,11 +76,10 @@ export function BranchFormFields({
 		});
 	};
 
-	return (
-		<div className="flex flex-col gap-6">
-			{/* Identidade */}
-			<section className="flex flex-col gap-3">
-				<SectionHeader>Identidade</SectionHeader>
+	const identitySection = (
+		<section className="flex flex-col gap-3">
+			<SectionHeader>Identidade</SectionHeader>
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr]">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="branch-name">
 						Nome <span className="text-destructive">*</span>
@@ -84,6 +88,7 @@ export function BranchFormFields({
 						disabled={disabled}
 						id="branch-name"
 						onChange={(e) => onPatch({ name: e.target.value })}
+						placeholder="Ex: Filial São Paulo — Paulista"
 						value={values.name}
 					/>
 				</div>
@@ -104,114 +109,36 @@ export function BranchFormFields({
 							<SelectItem value="inactive">Inativa</SelectItem>
 						</SelectContent>
 					</Select>
-					<p className="text-muted-foreground text-xs">
-						Inativa esconde a filial dos pickers de novos pedidos/ajustes
-						(histórico mantido).
-					</p>
 				</div>
-			</section>
+			</div>
+			<p className="text-muted-foreground text-xs">
+				Inativa esconde a filial dos pickers de novos pedidos/ajustes (histórico
+				mantido).
+			</p>
+		</section>
+	);
 
-			{/* Contato */}
-			<section className="flex flex-col gap-3">
-				<SectionHeader>Contato</SectionHeader>
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="branch-phone">Telefone</Label>
-					<MaskedInput
-						disabled={disabled}
-						id="branch-phone"
-						mask={phoneBrMask}
-						onChange={(v) => onPatch({ phone: v })}
-						value={values.phone}
-					/>
-				</div>
-			</section>
+	const contactSection = (
+		<section className="flex flex-col gap-3">
+			<SectionHeader>Contato</SectionHeader>
+			<div className="flex flex-col gap-1.5">
+				<Label htmlFor="branch-phone">Telefone</Label>
+				<MaskedInput
+					disabled={disabled}
+					id="branch-phone"
+					mask={phoneBrMask}
+					onChange={(v) => onPatch({ phone: v })}
+					placeholder="(11) 98765-4321"
+					value={values.phone}
+				/>
+			</div>
+		</section>
+	);
 
-			{/* Horário de funcionamento */}
-			<section className="flex flex-col gap-3">
-				<SectionHeader>Horário de funcionamento</SectionHeader>
-				<div className="flex flex-col gap-3">
-					{BUSINESS_HOURS_ROWS.map((row) => {
-						const period = values.businessHours[row.key];
-						return (
-							<div
-								className="grid gap-3 md:grid-cols-[1fr_140px_120px_120px]"
-								key={row.key}
-							>
-								<div className="flex items-center">
-									<Label htmlFor={`branch-hours-${row.key}-status`}>
-										{row.label}
-									</Label>
-								</div>
-								<Select
-									disabled={disabled}
-									onValueChange={(value) =>
-										patchBusinessHours(
-											row.key,
-											value === "open"
-												? { isOpen: true, opensAt: "08:00", closesAt: "18:00" }
-												: { isOpen: false, opensAt: null, closesAt: null }
-										)
-									}
-									value={period.isOpen ? "open" : "closed"}
-								>
-									<SelectTrigger id={`branch-hours-${row.key}-status`}>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="open">Aberto</SelectItem>
-										<SelectItem value="closed">Fechado</SelectItem>
-									</SelectContent>
-								</Select>
-								<div className="flex flex-col gap-1.5">
-									<Label
-										className="sr-only"
-										htmlFor={`branch-hours-${row.key}-opens`}
-									>
-										Abertura de {row.label}
-									</Label>
-									<Input
-										disabled={disabled || !period.isOpen}
-										id={`branch-hours-${row.key}-opens`}
-										onChange={(event) =>
-											patchBusinessHours(row.key, {
-												opensAt: event.target.value || null,
-											})
-										}
-										type="time"
-										value={period.opensAt ?? ""}
-									/>
-								</div>
-								<div className="flex flex-col gap-1.5">
-									<Label
-										className="sr-only"
-										htmlFor={`branch-hours-${row.key}-closes`}
-									>
-										Fechamento de {row.label}
-									</Label>
-									<Input
-										disabled={disabled || !period.isOpen}
-										id={`branch-hours-${row.key}-closes`}
-										onChange={(event) =>
-											patchBusinessHours(row.key, {
-												closesAt: event.target.value || null,
-											})
-										}
-										type="time"
-										value={period.closesAt ?? ""}
-									/>
-								</div>
-							</div>
-						);
-					})}
-				</div>
-				<p className="text-muted-foreground text-xs">
-					Domingos são tratados como fechado.
-				</p>
-			</section>
-
-			{/* Endereço */}
-			<section className="flex flex-col gap-3">
-				<SectionHeader>Endereço</SectionHeader>
+	const addressSection = (
+		<section className="flex flex-col gap-3">
+			<SectionHeader>Endereço</SectionHeader>
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr]">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="branch-cep">CEP</Label>
 					<CepInput
@@ -228,90 +155,199 @@ export function BranchFormFields({
 						disabled={disabled}
 						id="branch-street"
 						onChange={(e) => onPatch({ street: e.target.value })}
+						placeholder="Preenchida pelo CEP"
 						value={values.street ?? ""}
 					/>
 				</div>
-				<div className="grid grid-cols-[100px_1fr] gap-3">
-					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="branch-number">Nº</Label>
-						<Input
-							disabled={disabled}
-							id="branch-number"
-							onChange={(e) => onPatch({ streetNumber: e.target.value })}
-							value={values.streetNumber ?? ""}
-						/>
-					</div>
-					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="branch-complement">Complemento</Label>
-						<Input
-							disabled={disabled}
-							id="branch-complement"
-							onChange={(e) => onPatch({ complement: e.target.value })}
-							value={values.complement ?? ""}
-						/>
-					</div>
-				</div>
+			</div>
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr]">
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="branch-neighborhood">Bairro</Label>
+					<Label htmlFor="branch-number">Número</Label>
 					<Input
 						disabled={disabled}
-						id="branch-neighborhood"
-						onChange={(e) => onPatch({ neighborhood: e.target.value })}
-						value={values.neighborhood ?? ""}
+						id="branch-number"
+						onChange={(e) => onPatch({ streetNumber: e.target.value })}
+						placeholder="1578"
+						value={values.streetNumber ?? ""}
 					/>
 				</div>
-				<div className="grid grid-cols-[1fr_100px] gap-3">
-					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="branch-city">Cidade</Label>
-						<Input
-							disabled={disabled}
-							id="branch-city"
-							onChange={(e) => onPatch({ city: e.target.value })}
-							value={values.city ?? ""}
-						/>
-					</div>
-					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="branch-state">UF</Label>
-						<Input
-							disabled={disabled}
-							id="branch-state"
-							maxLength={2}
-							onChange={(e) => onPatch({ state: e.target.value.toUpperCase() })}
-							value={values.state ?? ""}
-						/>
-					</div>
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor="branch-complement">Complemento</Label>
+					<Input
+						disabled={disabled}
+						id="branch-complement"
+						onChange={(e) => onPatch({ complement: e.target.value })}
+						placeholder="Conj., sala, bloco…"
+						value={values.complement ?? ""}
+					/>
+				</div>
+			</div>
+			<div className="flex flex-col gap-1.5">
+				<Label htmlFor="branch-neighborhood">Bairro</Label>
+				<Input
+					disabled={disabled}
+					id="branch-neighborhood"
+					onChange={(e) => onPatch({ neighborhood: e.target.value })}
+					placeholder="Bela Vista"
+					value={values.neighborhood ?? ""}
+				/>
+			</div>
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr]">
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor="branch-city">Cidade</Label>
+					<Input
+						disabled={disabled}
+						id="branch-city"
+						onChange={(e) => onPatch({ city: e.target.value })}
+						placeholder="São Paulo"
+						value={values.city ?? ""}
+					/>
+				</div>
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor="branch-state">UF</Label>
+					<UfSelect
+						disabled={disabled}
+						id="branch-state"
+						onChange={(v) => onPatch({ state: v })}
+						value={values.state ?? undefined}
+					/>
+				</div>
+			</div>
+		</section>
+	);
+
+	const hoursSection = (
+		<section className="flex flex-col gap-3">
+			<SectionHeader>Horário de funcionamento</SectionHeader>
+			<div className="flex flex-col">
+				{BUSINESS_HOURS_ROWS.map((row) => {
+					const period = values.businessHours[row.key];
+					return (
+						<div
+							className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_112px_112px] items-center gap-2 border-border border-b py-2.5 last:border-b-0 sm:gap-3"
+							key={row.key}
+						>
+							<Label
+								className="text-foreground"
+								htmlFor={`branch-hours-${row.key}-switch`}
+							>
+								{row.label}
+							</Label>
+							<Switch
+								checked={period.isOpen}
+								disabled={disabled}
+								id={`branch-hours-${row.key}-switch`}
+								onCheckedChange={(checked) =>
+									patchBusinessHours(
+										row.key,
+										checked
+											? { isOpen: true, opensAt: "08:00", closesAt: "18:00" }
+											: { isOpen: false, opensAt: null, closesAt: null }
+									)
+								}
+							/>
+							{period.isOpen ? (
+								<>
+									<Input
+										aria-label={`Abertura de ${row.label}`}
+										className="px-2 text-center tabular-nums"
+										disabled={disabled}
+										inputMode="numeric"
+										maxLength={5}
+										onChange={(event) =>
+											patchBusinessHours(row.key, {
+												opensAt: sanitizeTime24h(event.target.value) || null,
+											})
+										}
+										placeholder="08:00"
+										value={period.opensAt ?? ""}
+									/>
+									<Input
+										aria-label={`Fechamento de ${row.label}`}
+										className="px-2 text-center tabular-nums"
+										disabled={disabled}
+										inputMode="numeric"
+										maxLength={5}
+										onChange={(event) =>
+											patchBusinessHours(row.key, {
+												closesAt: sanitizeTime24h(event.target.value) || null,
+											})
+										}
+										placeholder="18:00"
+										value={period.closesAt ?? ""}
+									/>
+								</>
+							) : (
+								<span className="col-span-2 text-center text-muted-foreground text-xs italic">
+									Fechado
+								</span>
+							)}
+						</div>
+					);
+				})}
+			</div>
+			<p className="text-muted-foreground text-xs">
+				Domingos são tratados como fechado.
+			</p>
+		</section>
+	);
+
+	const cepRangesSection = (
+		<section className="flex flex-col gap-3">
+			<SectionHeader>Faixas de CEP atendidas</SectionHeader>
+			<p className="text-muted-foreground text-xs">
+				Sugestão de qual filial atende cada região. Não restringe pedidos —
+				todos chegam para todas as filiais.
+			</p>
+			<CepRangesEditor
+				disabled={disabled}
+				onChange={(next) => onPatch({ cepRanges: next })}
+				value={values.cepRanges ?? []}
+			/>
+		</section>
+	);
+
+	const teamSection =
+		showTeamSection && branchId ? (
+			<section className="flex flex-col gap-3">
+				<SectionHeader>Equipe</SectionHeader>
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor="branch-responsible">Responsável</Label>
+					<ResponsibleUserSelect
+						branchId={branchId}
+						disabled={disabled}
+						onChange={(v) => onPatch({ responsibleUserId: v })}
+						value={values.responsibleUserId}
+					/>
 				</div>
 			</section>
+		) : null;
 
-			{/* Faixas de CEP */}
-			<section className="flex flex-col gap-3">
-				<SectionHeader>Faixas de CEP atendidas</SectionHeader>
-				<p className="text-muted-foreground text-xs">
-					Sugestão de qual filial atende cada região. Não restringe pedidos —
-					todos chegam para todas as filiais.
-				</p>
-				<CepRangesEditor
-					disabled={disabled}
-					onChange={(next) => onPatch({ cepRanges: next })}
-					value={values.cepRanges ?? []}
-				/>
-			</section>
+	if (columns === 2) {
+		return (
+			<div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-2">
+				<div className="flex flex-col gap-8">
+					{identitySection}
+					{contactSection}
+					{addressSection}
+				</div>
+				<div className="flex flex-col gap-8">
+					{hoursSection}
+					{cepRangesSection}
+					{teamSection}
+				</div>
+			</div>
+		);
+	}
 
-			{/* Equipe (oculto no create) */}
-			{showTeamSection && branchId && (
-				<section className="flex flex-col gap-3">
-					<SectionHeader>Equipe</SectionHeader>
-					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="branch-responsible">Responsável</Label>
-						<ResponsibleUserSelect
-							branchId={branchId}
-							disabled={disabled}
-							onChange={(v) => onPatch({ responsibleUserId: v })}
-							value={values.responsibleUserId}
-						/>
-					</div>
-				</section>
-			)}
+	return (
+		<div className="flex flex-col gap-6">
+			{identitySection}
+			{contactSection}
+			{addressSection}
+			{hoursSection}
+			{cepRangesSection}
+			{teamSection}
 		</div>
 	);
 }

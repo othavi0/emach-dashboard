@@ -3,12 +3,7 @@ import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
-import {
-	getBranchDetail,
-	getBranchDetailKpis,
-	getBranchRecentOrders,
-	getBranchTeam,
-} from "../data";
+import { getBranchDetail, getBranchDetailKpis } from "../data";
 import { BranchEditSheet } from "./_components/branch-edit-sheet";
 import { BranchIdentity } from "./_components/branch-identity";
 import { EditBranchButton } from "./_components/edit-branch-button";
@@ -40,11 +35,9 @@ export default async function BranchDetailPage({
 	const { id } = await params;
 	const sp = await searchParams;
 
-	const [detail, kpis, team, recentOrders] = await Promise.all([
+	const [detail, kpis] = await Promise.all([
 		getBranchDetail(id),
 		getBranchDetailKpis(id),
-		getBranchTeam(id),
-		getBranchRecentOrders(id),
 	]);
 
 	if (!detail) {
@@ -67,16 +60,16 @@ export default async function BranchDetailPage({
 			icon: <Users aria-hidden className="size-3.5" />,
 			badge: (
 				<span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-secondary px-1 font-medium text-secondary-foreground text-xs tabular-nums">
-					{team.length}
+					{kpis.teamSize}
 				</span>
 			),
-			content: <TeamTab branchId={id} team={team} />,
+			content: sp.tab === "team" ? <TeamTab branchId={id} /> : null,
 		},
 		{
 			value: "orders",
 			label: "Pedidos",
 			icon: <ShoppingCart aria-hidden className="size-3.5" />,
-			content: <OrdersTab orders={recentOrders} />,
+			content: sp.tab === "orders" ? <OrdersTab branchId={id} /> : null,
 		},
 		{
 			value: "stock",

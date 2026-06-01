@@ -110,6 +110,7 @@ export function BranchEditSheet({ branch }: Props) {
 			open={open}
 			submitting={submitting}
 			title={`Editar ${branch.name}`}
+			widthClassName="data-[side=right]:sm:max-w-2xl"
 		>
 			<BranchFormFields
 				branchId={branch.id}

@@ -1,7 +1,7 @@
 "use client";
 
 import { buttonVariants } from "@emach/ui/components/button";
-import { Boxes, Pencil } from "lucide-react";
+import { Boxes } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatBranchAddress } from "@/lib/format/branch";
@@ -18,7 +18,6 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 	const router = useRouter();
 	const detailHref = `/dashboard/branches/${branch.id}`;
 	const stockHref = `/dashboard/branches/${branch.id}?tab=stock`;
-	const editHref = `/dashboard/branches/${branch.id}?edit=1`;
 	const primaryHref = canManage ? detailHref : stockHref;
 
 	return (
@@ -57,32 +56,17 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 					})()}
 				</div>
 				{canManage && (
-					<div
-						className="flex shrink-0 items-center gap-1"
+					<Link
+						aria-label={`Ver estoque de ${branch.name}`}
+						className={`${buttonVariants({
+							size: "icon-sm",
+							variant: "ghost",
+						})} shrink-0 border border-border bg-muted`}
+						href={stockHref}
 						onClick={(e) => e.stopPropagation()}
-						onKeyDown={(e) => e.stopPropagation()}
 					>
-						<Link
-							aria-label={`Ver estoque de ${branch.name}`}
-							className={`${buttonVariants({
-								size: "icon-sm",
-								variant: "ghost",
-							})} border border-border bg-muted`}
-							href={stockHref}
-						>
-							<Boxes aria-hidden className="size-4" />
-						</Link>
-						<Link
-							aria-label={`Editar ${branch.name}`}
-							className={`${buttonVariants({
-								size: "icon-sm",
-								variant: "ghost",
-							})} border border-border bg-muted`}
-							href={editHref}
-						>
-							<Pencil aria-hidden className="size-4" />
-						</Link>
-					</div>
+						<Boxes aria-hidden className="size-4" />
+					</Link>
 				)}
 			</div>
 
