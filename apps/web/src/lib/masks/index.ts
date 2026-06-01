@@ -18,3 +18,4 @@ export { ncmMask } from "./ncm";
 export { percentageMask } from "./percentage";
 export { phoneBrMask } from "./phone-br";
 export { skuMask } from "./sku";
+export { sanitizeTime24h, time24hMask } from "./time-24h";
