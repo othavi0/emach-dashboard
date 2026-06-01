@@ -79,10 +79,10 @@ export function EntityKpisRow({ items, iconSize = "sm" }: Props) {
 					</Card>
 				);
 				return (
-					<div key={item.label}>
+					<div className="h-full" key={item.label}>
 						{item.href ? (
 							<Link
-								className="block transition-opacity hover:opacity-80"
+								className="block h-full transition-opacity hover:opacity-80"
 								href={item.href}
 							>
 								{inner}
