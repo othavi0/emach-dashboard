@@ -1,5 +1,3 @@
-import { db } from "@emach/db";
-import { tool } from "@emach/db/schema/tools";
 import { Button } from "@emach/ui/components/button";
 import {
 	DropdownMenu,
@@ -13,7 +11,6 @@ import {
 	TabsList,
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
-import { asc } from "drizzle-orm";
 import { ChevronDown, Plus, Tag, Ticket } from "lucide-react";
 import Link from "next/link";
 
@@ -25,6 +22,7 @@ import { PromotionsGrid } from "./_components/promotions-grid";
 import {
 	fetchPromotionsPage,
 	getPromotionStatusCounts,
+	getToolOptions,
 	type ListPromotionsOptions,
 	type PromotionSort,
 	type PromotionStatus,
@@ -44,12 +42,11 @@ interface PageProps {
 
 export const dynamic = "force-dynamic";
 
-const VALID_STATUS = new Set<PromotionStatus | "all">([
+const VALID_STATUS = new Set<PromotionStatus>([
 	"active",
 	"scheduled",
 	"expired",
 	"inactive",
-	"all",
 ]);
 
 const VALID_SORT = new Set<PromotionSort>([
@@ -60,8 +57,7 @@ const VALID_SORT = new Set<PromotionSort>([
 	"endsAtAsc",
 ]);
 
-const STATUS_TABS: Array<{ value: PromotionStatus | "all"; label: string }> = [
-	{ value: "all", label: "Todas" },
+const STATUS_TABS: Array<{ value: PromotionStatus; label: string }> = [
 	{ value: "active", label: "Ativas" },
 	{ value: "scheduled", label: "Agendadas" },
 	{ value: "expired", label: "Expiradas" },
@@ -78,10 +74,10 @@ function parseDiscount(raw?: string): number | undefined {
 
 function buildStatusHref(
 	sp: Record<string, string | undefined>,
-	status: PromotionStatus | "all"
+	status: PromotionStatus
 ): string {
 	const params = new URLSearchParams();
-	if (status !== "all") {
+	if (status !== "active") {
 		params.set("status", status);
 	}
 	for (const key of [
@@ -110,10 +106,10 @@ export default async function PromotionsPage({ searchParams }: PageProps) {
 	const typeFilter =
 		typeParam === "promotion" || typeParam === "promocode" ? typeParam : "all";
 	const statusFilter = (
-		VALID_STATUS.has(params.status as PromotionStatus | "all")
+		VALID_STATUS.has(params.status as PromotionStatus)
 			? params.status
-			: "all"
-	) as PromotionStatus | "all";
+			: "active"
+	) as PromotionStatus;
 	const sort = (
 		VALID_SORT.has(params.sort as PromotionSort) ? params.sort : "createdDesc"
 	) as PromotionSort;
@@ -133,10 +129,7 @@ export default async function PromotionsPage({ searchParams }: PageProps) {
 
 	const [page, availableTools, counts] = await Promise.all([
 		fetchPromotionsPage({ filters, cursor: null }),
-		db
-			.select({ id: tool.id, name: tool.name })
-			.from(tool)
-			.orderBy(asc(tool.name)),
+		getToolOptions(),
 		getPromotionStatusCounts(),
 	]);
 

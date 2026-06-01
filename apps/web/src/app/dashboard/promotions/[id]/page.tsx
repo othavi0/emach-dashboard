@@ -1,7 +1,4 @@
-import { db } from "@emach/db";
-import { tool } from "@emach/db/schema/tools";
 import { buttonVariants } from "@emach/ui/components/button";
-import { asc } from "drizzle-orm";
 import { Info, Settings2, Wrench } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -10,7 +7,7 @@ import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PromotionEditSheet } from "../_components/promotion-edit-sheet";
-import { getPromotion } from "../actions";
+import { getPromotion, getToolOptions } from "../actions";
 import { OverviewTab } from "./_components/overview-tab";
 import { PromotionHeaderActions } from "./_components/promotion-header-actions";
 import { PromotionIdentity } from "./_components/promotion-identity";
@@ -34,10 +31,7 @@ export default async function PromotionDetailPage({
 
 	const [detail, availableTools] = await Promise.all([
 		getPromotion(id),
-		db
-			.select({ id: tool.id, name: tool.name })
-			.from(tool)
-			.orderBy(asc(tool.name)),
+		getToolOptions(),
 	]);
 
 	if (!detail) {
