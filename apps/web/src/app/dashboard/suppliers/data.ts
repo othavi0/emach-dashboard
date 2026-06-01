@@ -91,9 +91,11 @@ export async function getSupplierDetailKpis(
 }
 
 export interface SupplierToolRow {
+	category: string | null;
 	createdAt: Date;
 	defaultSku: string | null;
 	id: string;
+	imageUrl: string | null;
 	name: string;
 	slug: string;
 	status: "draft" | "active" | "discontinued";
