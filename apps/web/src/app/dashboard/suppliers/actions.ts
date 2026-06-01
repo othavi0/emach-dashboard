@@ -292,11 +292,11 @@ async function setSupplierStatus(
 }
 
 export async function archiveSupplier(id: string): Promise<ActionResult> {
-	return setSupplierStatus(id, "archived", "archived");
+	return await setSupplierStatus(id, "archived", "archived");
 }
 
 export async function restoreSupplier(id: string): Promise<ActionResult> {
-	return setSupplierStatus(id, "active", "restored");
+	return await setSupplierStatus(id, "active", "restored");
 }
 
 export async function fetchSupplierToolsPage({
@@ -329,15 +329,6 @@ export async function fetchSupplierToolsPage({
 			name: tool.name,
 			slug: tool.slug,
 			status: tool.status,
-			defaultSku: sql<
-				string | null
-			>`(select sku from tool_variant where tool_id = ${tool.id} and is_default = true limit 1)`,
-			imageUrl: sql<
-				string | null
-			>`(select url from tool_image where tool_id = ${tool.id} order by sort_order asc limit 1)`,
-			category: sql<
-				string | null
-			>`(select c.name from tool_category tc join category c on c.id = tc.category_id where tc.tool_id = ${tool.id} and tc.is_primary = true limit 1)`,
 			createdAt: tool.createdAt,
 		})
 		.from(tool)
@@ -346,10 +337,28 @@ export async function fetchSupplierToolsPage({
 		.limit(BATCH_SIZE + 1);
 
 	const hasMore = rows.length > BATCH_SIZE;
-	const items = (
-		hasMore ? rows.slice(0, BATCH_SIZE) : rows
-	) as SupplierToolRow[];
-	const last = items.at(-1);
+	const base = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
+
+	// SKU default, imagem e categoria via segundo passo (subqueries escalares
+	// não materializam no db.select builder — ver getToolCardMeta).
+	const { getToolCardMeta } = await import("./data");
+	const meta = await getToolCardMeta(base.map((r) => r.id));
+
+	const items: SupplierToolRow[] = base.map((r) => {
+		const m = meta.get(r.id);
+		return {
+			id: r.id,
+			name: r.name,
+			slug: r.slug ?? "",
+			status: r.status,
+			createdAt: r.createdAt,
+			defaultSku: m?.defaultSku ?? null,
+			imageUrl: m?.imageUrl ?? null,
+			category: m?.category ?? null,
+		};
+	});
+
+	const last = base.at(-1);
 	const nextCursor =
 		hasMore && last
 			? encodeCursor({
