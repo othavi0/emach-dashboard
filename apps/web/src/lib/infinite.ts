@@ -5,7 +5,7 @@ export interface InfiniteResult<T> {
 	nextCursor: string | null;
 }
 
-export const BATCH_SIZE = 24;
+export const BATCH_SIZE = 20;
 
 /**
  * Paginação keyset: recebe `BATCH_SIZE + 1` linhas raw de uma query,
