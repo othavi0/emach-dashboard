@@ -200,16 +200,14 @@ export function PromotionForm({
 				</div>
 			)}
 
-			<section className="flex flex-col gap-6 rounded-md border border-border bg-card p-6">
-				<PromotionFormFields
-					availableTools={availableTools}
-					disabled={isPending}
-					errors={errors}
-					mode={mode}
-					onPatch={onPatch}
-					values={values}
-				/>
-			</section>
+			<PromotionFormFields
+				availableTools={availableTools}
+				disabled={isPending}
+				errors={errors}
+				mode={mode}
+				onPatch={onPatch}
+				values={values}
+			/>
 
 			{/* Botões */}
 			<div className="flex items-center gap-3">

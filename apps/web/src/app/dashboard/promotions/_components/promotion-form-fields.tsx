@@ -28,6 +28,9 @@ import { percentageMask } from "@/lib/masks";
 
 import type { PromotionFormValues } from "./promotion-schema";
 
+const SECTION_MARKER =
+	"font-sans font-semibold text-muted-foreground text-xs uppercase tracking-wider";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -170,183 +173,199 @@ export function PromotionFormFields({
 	}
 
 	return (
-		<div className="flex flex-col gap-6">
-			{/* Tipo */}
-			<div className="flex flex-col gap-2">
-				<Label>
-					Tipo
-					<span className="text-destructive"> *</span>
-				</Label>
-				{mode === "create" ? (
-					<RadioGroup
-						onValueChange={(v: string) => handleTypeChange(v as PromotionType)}
-						value={type}
-					>
-						<div className="flex items-center gap-2">
-							<RadioGroupItem id="type-promotion" value="promotion" />
-							<Label
-								className="cursor-pointer font-normal"
-								htmlFor="type-promotion"
-							>
-								Automática
-							</Label>
-						</div>
-						<div className="flex items-center gap-2">
-							<RadioGroupItem id="type-promocode" value="promocode" />
-							<Label
-								className="cursor-pointer font-normal"
-								htmlFor="type-promocode"
-							>
-								Cupom
-							</Label>
-						</div>
-					</RadioGroup>
-				) : (
-					<p className="text-muted-foreground text-sm">{typeLabel(type)}</p>
-				)}
-			</div>
-
-			{/* Título */}
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="promo-title">
-					Título
-					<span className="text-destructive"> *</span>
-				</Label>
-				<Input
-					disabled={disabled}
-					id="promo-title"
-					onChange={(e) => onPatch({ title: e.target.value })}
-					placeholder="Ex: Desconto de verão"
-					value={values.title}
-				/>
-				{errors.title && (
-					<p className="text-destructive text-sm">{errors.title}</p>
-				)}
-			</div>
-
-			{/* Descrição */}
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="promo-description">Descrição</Label>
-				<Textarea
-					disabled={disabled}
-					id="promo-description"
-					onChange={(e) =>
-						onPatch({
-							description: e.target.value === "" ? null : e.target.value,
-						})
-					}
-					placeholder="Descrição opcional da promoção"
-					rows={3}
-					value={values.description ?? ""}
-				/>
-				{errors.description && (
-					<p className="text-destructive text-sm">{errors.description}</p>
-				)}
-			</div>
-
-			{/* Desconto (%) */}
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="promo-discount">
-					Desconto (%)
-					<span className="text-destructive"> *</span>
-				</Label>
-				<MaskedInput
-					disabled={disabled}
-					id="promo-discount"
-					mask={percentageMask}
-					onChange={(n) => onPatch({ discountPct: n ?? 0 })}
-					placeholder="Ex: 10 ou 10,5"
-					value={values.discountPct}
-				/>
-				{errors.discountPct && (
-					<p className="text-destructive text-sm">{errors.discountPct}</p>
-				)}
-			</div>
-
-			{/* Ativa */}
-			<div className="flex items-center gap-3">
-				<Switch
-					checked={values.active}
-					disabled={disabled}
-					id="promo-active"
-					onCheckedChange={(v) => onPatch({ active: v })}
-				/>
-				<Label className="cursor-pointer" htmlFor="promo-active">
-					Ativa
-				</Label>
-			</div>
-
-			{/* Datas */}
-			<div className="grid gap-4 sm:grid-cols-2">
+		<div className="flex flex-col gap-8">
+			<section className="flex flex-col gap-4">
+				<h3 className={SECTION_MARKER}>Tipo</h3>
+				{/* Tipo */}
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="promo-starts-at">Início</Label>
-					<DatePicker
-						disabled={disabled}
-						id="promo-starts-at"
-						onChange={(d) => onPatch({ startsAt: d ?? null })}
-						value={values.startsAt ?? undefined}
-					/>
-					{errors.startsAt && (
-						<p className="text-destructive text-sm">{errors.startsAt}</p>
+					<Label>
+						Tipo
+						<span className="text-destructive"> *</span>
+					</Label>
+					{mode === "create" ? (
+						<RadioGroup
+							onValueChange={(v: string) =>
+								handleTypeChange(v as PromotionType)
+							}
+							value={type}
+						>
+							<div className="flex items-center gap-2">
+								<RadioGroupItem id="type-promotion" value="promotion" />
+								<Label
+									className="cursor-pointer font-normal"
+									htmlFor="type-promotion"
+								>
+									Automática
+								</Label>
+							</div>
+							<div className="flex items-center gap-2">
+								<RadioGroupItem id="type-promocode" value="promocode" />
+								<Label
+									className="cursor-pointer font-normal"
+									htmlFor="type-promocode"
+								>
+									Cupom
+								</Label>
+							</div>
+						</RadioGroup>
+					) : (
+						<p className="text-muted-foreground text-sm">{typeLabel(type)}</p>
 					)}
 				</div>
+			</section>
 
+			<section className="flex flex-col gap-4">
+				<h3 className={SECTION_MARKER}>Identidade</h3>
+				{/* Título */}
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="promo-ends-at">Fim</Label>
-					<DatePicker
-						disabled={disabled}
-						id="promo-ends-at"
-						min={values.startsAt ?? undefined}
-						onChange={(d) => onPatch({ endsAt: d ?? null })}
-						value={values.endsAt ?? undefined}
-					/>
-					{errors.endsAt && (
-						<p className="text-destructive text-sm">{errors.endsAt}</p>
-					)}
-				</div>
-			</div>
-
-			{/* Código — só quando type === 'promocode' */}
-			{type === "promocode" && (
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="promo-code">
-						Código
+					<Label htmlFor="promo-title">
+						Título
 						<span className="text-destructive"> *</span>
 					</Label>
 					<Input
 						disabled={disabled}
-						id="promo-code"
-						onChange={(e) =>
-							onPatch({ code: e.target.value } as Partial<PromotionFormValues>)
-						}
-						placeholder="Ex: VERAO2025"
-						value={values.code ?? ""}
+						id="promo-title"
+						onChange={(e) => onPatch({ title: e.target.value })}
+						placeholder="Ex: Desconto de verão"
+						value={values.title}
 					/>
-					<p className="text-muted-foreground text-xs">
-						Código usado no checkout para aplicar este desconto
-					</p>
-					{errors.code && (
-						<p className="text-destructive text-sm">{errors.code}</p>
+					{errors.title && (
+						<p className="text-destructive text-sm">{errors.title}</p>
 					)}
 				</div>
-			)}
 
-			{/* Ferramentas */}
-			<div className="flex flex-col gap-2">
-				<Label>
-					Ferramentas
-					<span className="text-destructive"> *</span>
-				</Label>
-				<ToolCombobox
-					availableTools={availableTools}
-					disabled={disabled}
-					onChange={(ids) => onPatch({ toolIds: ids })}
-					selectedIds={values.toolIds}
-				/>
-				{errors.toolIds && (
-					<p className="text-destructive text-sm">{errors.toolIds}</p>
+				{/* Descrição */}
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="promo-description">Descrição</Label>
+					<Textarea
+						disabled={disabled}
+						id="promo-description"
+						onChange={(e) =>
+							onPatch({
+								description: e.target.value === "" ? null : e.target.value,
+							})
+						}
+						placeholder="Descrição opcional da promoção"
+						rows={3}
+						value={values.description ?? ""}
+					/>
+					{errors.description && (
+						<p className="text-destructive text-sm">{errors.description}</p>
+					)}
+				</div>
+
+				{/* Código — só quando type === 'promocode' */}
+				{type === "promocode" && (
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="promo-code">
+							Código
+							<span className="text-destructive"> *</span>
+						</Label>
+						<Input
+							disabled={disabled}
+							id="promo-code"
+							onChange={(e) =>
+								onPatch({
+									code: e.target.value,
+								} as Partial<PromotionFormValues>)
+							}
+							placeholder="Ex: VERAO2025"
+							value={values.code ?? ""}
+						/>
+						<p className="text-muted-foreground text-xs">
+							Código usado no checkout para aplicar este desconto
+						</p>
+						{errors.code && (
+							<p className="text-destructive text-sm">{errors.code}</p>
+						)}
+					</div>
 				)}
-			</div>
+			</section>
+
+			<section className="flex flex-col gap-4">
+				<h3 className={SECTION_MARKER}>Desconto & vigência</h3>
+				{/* Desconto (%) */}
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="promo-discount">
+						Desconto (%)
+						<span className="text-destructive"> *</span>
+					</Label>
+					<MaskedInput
+						disabled={disabled}
+						id="promo-discount"
+						mask={percentageMask}
+						onChange={(n) => onPatch({ discountPct: n ?? 0 })}
+						placeholder="Ex: 10 ou 10,5"
+						value={values.discountPct}
+					/>
+					{errors.discountPct && (
+						<p className="text-destructive text-sm">{errors.discountPct}</p>
+					)}
+				</div>
+
+				{/* Ativa */}
+				<div className="flex items-center gap-3">
+					<Switch
+						checked={values.active}
+						disabled={disabled}
+						id="promo-active"
+						onCheckedChange={(v) => onPatch({ active: v })}
+					/>
+					<Label className="cursor-pointer" htmlFor="promo-active">
+						Ativa
+					</Label>
+				</div>
+
+				{/* Datas */}
+				<div className="grid gap-4 sm:grid-cols-2">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="promo-starts-at">Início</Label>
+						<DatePicker
+							disabled={disabled}
+							id="promo-starts-at"
+							onChange={(d) => onPatch({ startsAt: d ?? null })}
+							value={values.startsAt ?? undefined}
+						/>
+						{errors.startsAt && (
+							<p className="text-destructive text-sm">{errors.startsAt}</p>
+						)}
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="promo-ends-at">Fim</Label>
+						<DatePicker
+							disabled={disabled}
+							id="promo-ends-at"
+							min={values.startsAt ?? undefined}
+							onChange={(d) => onPatch({ endsAt: d ?? null })}
+							value={values.endsAt ?? undefined}
+						/>
+						{errors.endsAt && (
+							<p className="text-destructive text-sm">{errors.endsAt}</p>
+						)}
+					</div>
+				</div>
+			</section>
+
+			<section className="flex flex-col gap-4">
+				<h3 className={SECTION_MARKER}>Ferramentas</h3>
+				{/* Ferramentas */}
+				<div className="flex flex-col gap-2">
+					<Label>
+						Ferramentas
+						<span className="text-destructive"> *</span>
+					</Label>
+					<ToolCombobox
+						availableTools={availableTools}
+						disabled={disabled}
+						onChange={(ids) => onPatch({ toolIds: ids })}
+						selectedIds={values.toolIds}
+					/>
+					{errors.toolIds && (
+						<p className="text-destructive text-sm">{errors.toolIds}</p>
+					)}
+				</div>
+			</section>
 		</div>
 	);
 }
