@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { getInitials } from "@/lib/format/name";
+import { formatRelative } from "@/lib/format/relative";
 import type { UserListRow } from "../data";
 import { ApprovalSheet } from "./approval-sheet";
 import type { BranchLite } from "./types";
@@ -31,28 +32,6 @@ const STATUS_LABEL: Record<UserListRow["status"], string> = {
 	pending: "Pendente",
 	suspended: "Suspenso",
 };
-
-const RELATIVE = new Intl.RelativeTimeFormat("pt-BR", {
-	numeric: "auto",
-	style: "short",
-});
-
-function formatRelative(date: Date): string {
-	const diffMs = date.getTime() - Date.now();
-	const absDays = Math.abs(diffMs) / 86_400_000;
-	if (absDays < 1) {
-		const absHours = Math.abs(diffMs) / 3_600_000;
-		if (absHours < 1) {
-			return RELATIVE.format(Math.round(diffMs / 60_000), "minute");
-		}
-		return RELATIVE.format(Math.round(diffMs / 3_600_000), "hour");
-	}
-	const diffDays = Math.round(diffMs / 86_400_000);
-	if (absDays < 30) {
-		return RELATIVE.format(diffDays, "day");
-	}
-	return RELATIVE.format(Math.round(diffDays / 30), "month");
-}
 
 const MAX_BRANCH_CHIPS = 3;
 

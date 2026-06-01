@@ -136,9 +136,11 @@ export async function getBranchDetailKpis(
 export interface BranchTeamRow {
 	email: string;
 	image: string | null;
+	lastLoginAt: Date | null;
 	linkedAt: Date;
 	name: string;
 	role: "super_admin" | "admin" | "manager" | "user";
+	status: "active" | "pending" | "suspended";
 	userId: string;
 }
 
@@ -151,7 +153,9 @@ export async function getBranchTeam(
 			name: userTable.name,
 			email: userTable.email,
 			role: userTable.role,
+			status: userTable.status,
 			image: userTable.image,
+			lastLoginAt: userTable.lastLoginAt,
 			linkedAt: userBranch.createdAt,
 		})
 		.from(userBranch)

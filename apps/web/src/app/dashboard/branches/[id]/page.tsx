@@ -11,9 +11,11 @@ import {
 } from "../data";
 import { BranchEditSheet } from "./_components/branch-edit-sheet";
 import { BranchIdentity } from "./_components/branch-identity";
+import { EditBranchButton } from "./_components/edit-branch-button";
 import { OrdersTab } from "./_components/orders-tab";
 import { OverviewTab } from "./_components/overview-tab";
 import { StockTab } from "./_components/stock-tab";
+import { TeamLinkPanel } from "./_components/team-link-panel";
 import { TeamTab } from "./_components/team-tab";
 import { AddToolButton } from "./stock/_components/add-tool-button";
 
@@ -64,7 +66,7 @@ export default async function BranchDetailPage({
 			label: "Equipe",
 			icon: <Users aria-hidden className="size-3.5" />,
 			badge: (
-				<span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 font-medium text-muted-foreground text-xs tabular-nums">
+				<span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-secondary px-1 font-medium text-secondary-foreground text-xs tabular-nums">
 					{team.length}
 				</span>
 			),
@@ -93,16 +95,19 @@ export default async function BranchDetailPage({
 		},
 	];
 
+	const headerAction = isStockTab ? (
+		canMutateStock ? (
+			<AddToolButton branchId={id} branchName={detail.name} />
+		) : null
+	) : sp.tab === "team" ? (
+		<TeamLinkPanel branchId={id} />
+	) : !sp.tab || sp.tab === "overview" ? (
+		<EditBranchButton />
+	) : null;
+
 	return (
 		<div className="flex flex-col gap-6 p-6">
-			<BranchIdentity
-				detail={detail}
-				extraAction={
-					isStockTab && canMutateStock ? (
-						<AddToolButton branchId={id} branchName={detail.name} />
-					) : null
-				}
-			/>
+			<BranchIdentity actions={headerAction} detail={detail} />
 			<EntityTabs defaultValue="overview" tabs={tabs} />
 			{sp.edit === "1" ? <BranchEditSheet branch={detail} /> : null}
 		</div>

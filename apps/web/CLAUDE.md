@@ -42,6 +42,16 @@ Reativar: ver `docs/adr/0012-disable-role-based-gates.md`.
 - **Markdown na descrição de tool:** `tool.description` é Markdown puro. Render via `<ToolDescription>` (`react-markdown` + `rehype-sanitize` preset `defaultSchema`).
 - **Ações destrutivas com reason:** padrão é `DestructiveActionDialog` (`apps/web/src/app/dashboard/users/_components/destructive-action-dialog.tsx`). `reasonRequired=true` exige min 10 chars (suspend/delete); `reasonRequired=false` em ações benignas (reactivate). Caller deve usar `useTransition` + `submitting` prop pra cobrir double-submit. Reason persistido em `metadata.reason` via `logUserActivity`.
 
+## Entity detail / CRUD pattern (canônico: `DESIGN.md` §4)
+
+Default ao construir detalhe de entidade (`/dashboard/<recurso>/[id]`) ou listagem de CRUD. Referência: filiais (`branches/[id]`). Adaptar ao domínio é permitido; o esqueleto é fixo. Novas entidades seguem; existentes migram aos poucos.
+
+- **Detalhe:** `EntityIdentityHeader` + `EntityTabs` (sincroniza `?tab=`). A ação primária (Editar / Vincular / Adicionar) vive no `actions` do header e **muda conforme `sp.tab`** — o Server Component decide qual injetar. **Nunca** pôr essa ação no corpo da tab nem fixa em todas as abas.
+- **Cards de listagem:** reusar um dos 4 arquétipos (stat / media / identity / entity — `DESIGN.md` §4), não inventar shell novo. Footer **edge-to-edge** (`border-t` até a borda; `-mx-4 px-4` quando o card tem padding `p-4`).
+- **Mutação:** editar simples = drawer (`Sheet` via `?edit=1`); criar ou form complexo (muitos campos, ex: tool) = página (`/new`); destrutivo = `AlertDialog` controlado (`open` state, `e.preventDefault()` no action + fechar no sucesso, `stopPropagation` se dentro de card clicável). Botão destrutivo **nunca** `variant="default"` (coral) — usar `destructive`/`outline`/`ghost`.
+- **Badge de contagem em tab:** `secondary` (`TabsCountBadge` no Tabs base; `secondary rounded-md` no `EntityTabs`).
+- **Verificação:** `check-types` NÃO pega import de hook client (`useRouter`/`useState`) em Server Component — quebra só em runtime. Smoke visual no browser após mexer em componente de página/tab.
+
 ## Imagens
 
 Helper genérico Storage em `src/lib/storage.ts` (upload/delete/signedUrl para bucket público e privado). Upload de imagem de tool: `uploadToolImage()` em `tools/_components/image-actions.ts`. Anexos de pedido (bucket privado): `orders/_components/attachment-actions.ts` — reaproveitar pattern.
