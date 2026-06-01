@@ -167,7 +167,7 @@ Toda tabela de listagem (`/dashboard/<recurso>` com itens enumeráveis) **deve**
 
 **Manter texto** em ações onde o número/contagem é a informação principal (`Ver 3 filiais`) ou em mutações críticas inline (`Salvar` em threshold dirty). Ícone esconde valor que o usuário precisa ler à distância.
 
-Implementação canônica: `apps/web/src/app/dashboard/suppliers/_components/suppliers-table.tsx` (Editar + Remover) e showcase em `/design#table`.
+Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-table.tsx`, `customers/_components/customer-table.tsx`, `reviews/_components/review-queue-table.tsx`; showcase em `/design#table`. (Suppliers migrou de tabela para o card-grid — ver catálogo de cards.)
 
 **Layout de larguras (dados à esquerda, ações à direita):** `TableActionsHead` e `TableActionsCell` já carregam `w-full` internamente — a coluna de ações absorve toda sobra horizontal e mantém os botões alinhados à direita (`text-right` + `flex justify-end`). Resultado: todas as colunas de dado (ID, Cliente, Status, Total, etc) encolhem ao próprio conteúdo e ficam clusterizadas naturalmente à esquerda. Não use `w-full` em nenhuma coluna de dado — quebra o pattern.
 
