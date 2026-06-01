@@ -59,7 +59,7 @@ Roles dashboard: `user.role` enum `super_admin/admin/manager/user`; `user.status
 |---|---|
 | Server actions, capabilities, forms UX, orders branch-scoping | `apps/web/CLAUDE.md` |
 | Schema workflow, triggers PL/pgSQL, `db.execute` armadilha, sync ecomerce | `packages/db/CLAUDE.md` |
-| Sistema visual (paleta, tipografia, anti-patterns) | `DESIGN.md` |
+| Sistema visual + **entity/CRUD pattern** (paleta, tipografia, cards, tabs, header contextual, drawer/dialog) | `DESIGN.md` |
 | Produto / personality / anti-references | `PRODUCT.md` |
 | Integração DB compartilhada (contrato detalhado) | `docs/integration/admin-ecommerce.md` |
 | Storage buckets | `docs/storage-buckets.md` |
