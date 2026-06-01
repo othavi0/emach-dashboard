@@ -20,7 +20,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@emach/ui/components/radio-group";
 import { Switch } from "@emach/ui/components/switch";
 import { Textarea } from "@emach/ui/components/textarea";
-import { ChevronsUpDown, X } from "lucide-react";
+import { ChevronsUpDown, Tag, Ticket, X } from "lucide-react";
 import { useState } from "react";
 
 import { MaskedInput } from "@/components/masked-input";
@@ -48,6 +48,26 @@ export interface PromotionFormFieldsProps {
 	onPatch: Patch;
 	values: PromotionFormValues;
 }
+
+const TYPE_OPTIONS: Array<{
+	desc: string;
+	icon: typeof Tag;
+	title: string;
+	value: PromotionType;
+}> = [
+	{
+		value: "promotion",
+		icon: Tag,
+		title: "Automática",
+		desc: "Desconto aplicado direto no preço, sem código.",
+	},
+	{
+		value: "promocode",
+		icon: Ticket,
+		title: "Cupom",
+		desc: "Cliente digita um código no checkout para aplicar.",
+	},
+];
 
 function typeLabel(type: PromotionType): string {
 	return type === "promotion" ? "Automática" : "Cupom";
@@ -90,18 +110,18 @@ function ToolCombobox({
 		<div className="flex flex-col gap-2">
 			<Popover onOpenChange={setOpen} open={open}>
 				<PopoverTrigger
-					className="flex h-10 w-full items-center justify-between rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+					className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 					disabled={disabled}
 					render={<button type="button" />}
 				>
-					<span className="text-muted-foreground text-xs">
+					<span className="text-muted-foreground text-sm">
 						{selectedIds.length === 0
 							? "Selecionar ferramentas…"
 							: `${selectedIds.length} ferramenta${selectedIds.length === 1 ? "" : "s"} selecionada${selectedIds.length === 1 ? "" : "s"}`}
 					</span>
 					<ChevronsUpDown className="size-3.5 opacity-50" />
 				</PopoverTrigger>
-				<PopoverContent align="start" className="w-64 p-0">
+				<PopoverContent align="start" className="w-72 p-0">
 					<Command>
 						<CommandInput placeholder="Buscar ferramenta…" />
 						<CommandList>
@@ -149,6 +169,60 @@ function ToolCombobox({
 }
 
 // ---------------------------------------------------------------------------
+// TypeSelector — cartões de rádio que explicam cada tipo
+// ---------------------------------------------------------------------------
+
+function TypeSelector({
+	disabled,
+	onChange,
+	value,
+}: {
+	disabled?: boolean;
+	onChange: (next: PromotionType) => void;
+	value: PromotionType;
+}) {
+	return (
+		<RadioGroup
+			className="grid gap-3 sm:grid-cols-2"
+			onValueChange={(v: string) => onChange(v as PromotionType)}
+			value={value}
+		>
+			{TYPE_OPTIONS.map((opt) => {
+				const selected = value === opt.value;
+				const Icon = opt.icon;
+				return (
+					<Label
+						className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
+							selected
+								? "border-primary bg-primary/5"
+								: "border-border hover:border-input"
+						}`}
+						htmlFor={`type-${opt.value}`}
+						key={opt.value}
+					>
+						<RadioGroupItem
+							className="mt-0.5"
+							disabled={disabled}
+							id={`type-${opt.value}`}
+							value={opt.value}
+						/>
+						<span className="flex min-w-0 flex-col gap-1">
+							<span className="flex items-center gap-1.5 font-medium text-sm">
+								<Icon aria-hidden className="size-4 text-muted-foreground" />
+								{opt.title}
+							</span>
+							<span className="text-muted-foreground text-xs leading-relaxed">
+								{opt.desc}
+							</span>
+						</span>
+					</Label>
+				);
+			})}
+		</RadioGroup>
+	);
+}
+
+// ---------------------------------------------------------------------------
 // PromotionFormFields — campos controlados (values + onPatch)
 // ---------------------------------------------------------------------------
 
@@ -161,6 +235,7 @@ export function PromotionFormFields({
 	values,
 }: PromotionFormFieldsProps) {
 	const type = values.type as PromotionType;
+	const isCoupon = type === "promocode";
 
 	function handleTypeChange(next: PromotionType) {
 		onPatch({
@@ -171,181 +246,174 @@ export function PromotionFormFields({
 
 	return (
 		<div className="flex flex-col gap-6">
-			{/* Tipo */}
-			<div className="flex flex-col gap-2">
-				<Label>
-					Tipo
-					<span className="text-destructive"> *</span>
-				</Label>
-				{mode === "create" ? (
-					<RadioGroup
-						onValueChange={(v: string) => handleTypeChange(v as PromotionType)}
-						value={type}
-					>
-						<div className="flex items-center gap-2">
-							<RadioGroupItem id="type-promotion" value="promotion" />
-							<Label
-								className="cursor-pointer font-normal"
-								htmlFor="type-promotion"
-							>
-								Automática
-							</Label>
-						</div>
-						<div className="flex items-center gap-2">
-							<RadioGroupItem id="type-promocode" value="promocode" />
-							<Label
-								className="cursor-pointer font-normal"
-								htmlFor="type-promocode"
-							>
-								Cupom
-							</Label>
-						</div>
-					</RadioGroup>
-				) : (
-					<p className="text-muted-foreground text-sm">{typeLabel(type)}</p>
-				)}
-			</div>
-
-			{/* Título */}
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="promo-title">
-					Título
-					<span className="text-destructive"> *</span>
-				</Label>
-				<Input
+			{mode === "create" ? (
+				<TypeSelector
 					disabled={disabled}
-					id="promo-title"
-					onChange={(e) => onPatch({ title: e.target.value })}
-					placeholder="Ex: Desconto de verão"
-					value={values.title}
+					onChange={handleTypeChange}
+					value={type}
 				/>
-				{errors.title && (
-					<p className="text-destructive text-sm">{errors.title}</p>
-				)}
-			</div>
-
-			{/* Descrição */}
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="promo-description">Descrição</Label>
-				<Textarea
-					disabled={disabled}
-					id="promo-description"
-					onChange={(e) =>
-						onPatch({
-							description: e.target.value === "" ? null : e.target.value,
-						})
-					}
-					placeholder="Descrição opcional da promoção"
-					rows={3}
-					value={values.description ?? ""}
-				/>
-				{errors.description && (
-					<p className="text-destructive text-sm">{errors.description}</p>
-				)}
-			</div>
-
-			{/* Desconto (%) */}
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="promo-discount">
-					Desconto (%)
-					<span className="text-destructive"> *</span>
-				</Label>
-				<MaskedInput
-					disabled={disabled}
-					id="promo-discount"
-					mask={percentageMask}
-					onChange={(n) => onPatch({ discountPct: n ?? 0 })}
-					placeholder="Ex: 10 ou 10,5"
-					value={values.discountPct}
-				/>
-				{errors.discountPct && (
-					<p className="text-destructive text-sm">{errors.discountPct}</p>
-				)}
-			</div>
-
-			{/* Ativa */}
-			<div className="flex items-center gap-3">
-				<Switch
-					checked={values.active}
-					disabled={disabled}
-					id="promo-active"
-					onCheckedChange={(v) => onPatch({ active: v })}
-				/>
-				<Label className="cursor-pointer" htmlFor="promo-active">
-					Ativa
-				</Label>
-			</div>
-
-			{/* Datas */}
-			<div className="grid gap-4 sm:grid-cols-2">
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="promo-starts-at">Início</Label>
-					<DatePicker
-						disabled={disabled}
-						id="promo-starts-at"
-						onChange={(d) => onPatch({ startsAt: d ?? null })}
-						value={values.startsAt ?? undefined}
-					/>
-					{errors.startsAt && (
-						<p className="text-destructive text-sm">{errors.startsAt}</p>
+			) : (
+				<div className="flex items-center gap-2 text-sm">
+					{isCoupon ? (
+						<Ticket aria-hidden className="size-4 text-muted-foreground" />
+					) : (
+						<Tag aria-hidden className="size-4 text-muted-foreground" />
 					)}
-				</div>
-
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="promo-ends-at">Fim</Label>
-					<DatePicker
-						disabled={disabled}
-						id="promo-ends-at"
-						min={values.startsAt ?? undefined}
-						onChange={(d) => onPatch({ endsAt: d ?? null })}
-						value={values.endsAt ?? undefined}
-					/>
-					{errors.endsAt && (
-						<p className="text-destructive text-sm">{errors.endsAt}</p>
-					)}
-				</div>
-			</div>
-
-			{/* Código — só quando type === 'promocode' */}
-			{type === "promocode" && (
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="promo-code">
-						Código
-						<span className="text-destructive"> *</span>
-					</Label>
-					<Input
-						disabled={disabled}
-						id="promo-code"
-						onChange={(e) =>
-							onPatch({ code: e.target.value } as Partial<PromotionFormValues>)
-						}
-						placeholder="Ex: VERAO2025"
-						value={values.code ?? ""}
-					/>
-					<p className="text-muted-foreground text-xs">
-						Código usado no checkout para aplicar este desconto
-					</p>
-					{errors.code && (
-						<p className="text-destructive text-sm">{errors.code}</p>
-					)}
+					<span className="font-medium">{typeLabel(type)}</span>
 				</div>
 			)}
 
-			{/* Ferramentas */}
-			<div className="flex flex-col gap-2">
-				<Label>
-					Ferramentas
-					<span className="text-destructive"> *</span>
-				</Label>
-				<ToolCombobox
-					availableTools={availableTools}
-					disabled={disabled}
-					onChange={(ids) => onPatch({ toolIds: ids })}
-					selectedIds={values.toolIds}
-				/>
-				{errors.toolIds && (
-					<p className="text-destructive text-sm">{errors.toolIds}</p>
-				)}
+			<div className="grid gap-x-8 gap-y-6 lg:grid-cols-2">
+				{/* Coluna esquerda — identidade e desconto */}
+				<div className="flex flex-col gap-6">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="promo-title">
+							Título
+							<span className="text-destructive"> *</span>
+						</Label>
+						<Input
+							disabled={disabled}
+							id="promo-title"
+							onChange={(e) => onPatch({ title: e.target.value })}
+							placeholder={
+								isCoupon ? "Ex: Cupom boas-vindas" : "Ex: Liquidação de inverno"
+							}
+							value={values.title}
+						/>
+						{errors.title && (
+							<p className="text-destructive text-sm">{errors.title}</p>
+						)}
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="promo-description">Descrição</Label>
+						<Textarea
+							disabled={disabled}
+							id="promo-description"
+							onChange={(e) =>
+								onPatch({
+									description: e.target.value === "" ? null : e.target.value,
+								})
+							}
+							placeholder="Contexto interno — não aparece no site."
+							rows={3}
+							value={values.description ?? ""}
+						/>
+						{errors.description && (
+							<p className="text-destructive text-sm">{errors.description}</p>
+						)}
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="promo-discount">
+							Desconto (%)
+							<span className="text-destructive"> *</span>
+						</Label>
+						<MaskedInput
+							disabled={disabled}
+							id="promo-discount"
+							mask={percentageMask}
+							onChange={(n) => onPatch({ discountPct: n ?? 0 })}
+							placeholder="Ex: 10 ou 10,5"
+							value={values.discountPct}
+						/>
+						{errors.discountPct && (
+							<p className="text-destructive text-sm">{errors.discountPct}</p>
+						)}
+					</div>
+
+					{isCoupon && (
+						<div className="flex flex-col gap-2">
+							<Label htmlFor="promo-code">
+								Código
+								<span className="text-destructive"> *</span>
+							</Label>
+							<Input
+								className="font-mono uppercase"
+								disabled={disabled}
+								id="promo-code"
+								onChange={(e) =>
+									onPatch({
+										code: e.target.value,
+									} as Partial<PromotionFormValues>)
+								}
+								placeholder="VERAO2025"
+								value={values.code ?? ""}
+							/>
+							<p className="text-muted-foreground text-xs">
+								Digitado pelo cliente no checkout para aplicar o desconto.
+							</p>
+							{errors.code && (
+								<p className="text-destructive text-sm">{errors.code}</p>
+							)}
+						</div>
+					)}
+				</div>
+
+				{/* Coluna direita — vigência, publicação e ferramentas */}
+				<div className="flex flex-col gap-6">
+					<div className="grid gap-4 sm:grid-cols-2">
+						<div className="flex flex-col gap-2">
+							<Label htmlFor="promo-starts-at">Início</Label>
+							<DatePicker
+								disabled={disabled}
+								id="promo-starts-at"
+								onChange={(d) => onPatch({ startsAt: d ?? null })}
+								value={values.startsAt ?? undefined}
+							/>
+							{errors.startsAt && (
+								<p className="text-destructive text-sm">{errors.startsAt}</p>
+							)}
+						</div>
+
+						<div className="flex flex-col gap-2">
+							<Label htmlFor="promo-ends-at">Fim</Label>
+							<DatePicker
+								disabled={disabled}
+								id="promo-ends-at"
+								min={values.startsAt ?? undefined}
+								onChange={(d) => onPatch({ endsAt: d ?? null })}
+								value={values.endsAt ?? undefined}
+							/>
+							{errors.endsAt && (
+								<p className="text-destructive text-sm">{errors.endsAt}</p>
+							)}
+						</div>
+					</div>
+
+					<div className="flex flex-col gap-2 rounded-lg border border-border p-4">
+						<div className="flex items-center gap-3">
+							<Switch
+								checked={values.active}
+								disabled={disabled}
+								id="promo-active"
+								onCheckedChange={(v) => onPatch({ active: v })}
+							/>
+							<Label className="cursor-pointer" htmlFor="promo-active">
+								Ativa
+							</Label>
+						</div>
+						<p className="text-muted-foreground text-xs">
+							Inativa não aparece no site, mesmo dentro da vigência.
+						</p>
+					</div>
+
+					<div className="flex flex-col gap-2">
+						<Label>
+							Ferramentas
+							<span className="text-destructive"> *</span>
+						</Label>
+						<ToolCombobox
+							availableTools={availableTools}
+							disabled={disabled}
+							onChange={(ids) => onPatch({ toolIds: ids })}
+							selectedIds={values.toolIds}
+						/>
+						{errors.toolIds && (
+							<p className="text-destructive text-sm">{errors.toolIds}</p>
+						)}
+					</div>
+				</div>
 			</div>
 		</div>
 	);

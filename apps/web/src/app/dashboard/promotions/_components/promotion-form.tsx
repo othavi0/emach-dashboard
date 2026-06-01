@@ -94,9 +94,11 @@ function buildInitialValues(
 function SubmitLabel({
 	isPending,
 	mode,
+	type,
 }: {
 	isPending: boolean;
 	mode: "create" | "edit";
+	type: "promotion" | "promocode";
 }) {
 	if (isPending) {
 		return (
@@ -105,7 +107,10 @@ function SubmitLabel({
 			</>
 		);
 	}
-	return <>{mode === "create" ? "Criar promoção" : "Salvar alterações"}</>;
+	if (mode === "edit") {
+		return <>Salvar alterações</>;
+	}
+	return <>{type === "promocode" ? "Criar cupom" : "Criar promoção"}</>;
 }
 
 // ---------------------------------------------------------------------------
@@ -186,7 +191,7 @@ export function PromotionForm({
 
 	return (
 		<form
-			className="flex w-full max-w-3xl flex-col gap-6"
+			className="flex w-full max-w-4xl flex-col gap-8"
 			onSubmit={handleSubmit}
 		>
 			<FormErrorPanel issues={formIssues} />
@@ -200,21 +205,19 @@ export function PromotionForm({
 				</div>
 			)}
 
-			<section className="flex flex-col gap-6 rounded-md border border-border bg-card p-6">
-				<PromotionFormFields
-					availableTools={availableTools}
-					disabled={isPending}
-					errors={errors}
-					mode={mode}
-					onPatch={onPatch}
-					values={values}
-				/>
-			</section>
+			<PromotionFormFields
+				availableTools={availableTools}
+				disabled={isPending}
+				errors={errors}
+				mode={mode}
+				onPatch={onPatch}
+				values={values}
+			/>
 
 			{/* Botões */}
 			<div className="flex items-center gap-3">
 				<Button disabled={isPending || submitted} type="submit">
-					<SubmitLabel isPending={isPending} mode={mode} />
+					<SubmitLabel isPending={isPending} mode={mode} type={values.type} />
 				</Button>
 				<Button
 					disabled={isPending}
