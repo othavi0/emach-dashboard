@@ -67,12 +67,6 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 		filters.q ||
 			filters.status ||
 			filters.clientType?.length ||
-			filters.createdFrom ||
-			filters.createdTo ||
-			filters.lastOrderFrom ||
-			filters.lastOrderTo ||
-			filters.ltvMin !== undefined ||
-			filters.ltvMax !== undefined ||
 			filters.missingDoc ||
 			filters.openOrderInactive ||
 			filters.unverifiedNew
@@ -149,7 +143,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 				</div>
 			</section>
 
-			<CustomerFilters filters={filters} />
+			<CustomerFilters />
 
 			{result.items.length === 0 ? (
 				<Empty>
