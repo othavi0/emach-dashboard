@@ -167,7 +167,7 @@ Toda tabela de listagem (`/dashboard/<recurso>` com itens enumeráveis) **deve**
 
 **Manter texto** em ações onde o número/contagem é a informação principal (`Ver 3 filiais`) ou em mutações críticas inline (`Salvar` em threshold dirty). Ícone esconde valor que o usuário precisa ler à distância.
 
-Implementação canônica: `apps/web/src/app/dashboard/suppliers/_components/suppliers-table.tsx` (Editar + Remover) e showcase em `/design#table`.
+Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-table.tsx`, `customers/_components/customer-table.tsx`, `reviews/_components/review-queue-table.tsx`; showcase em `/design#table`. (Suppliers migrou de tabela para o card-grid — ver catálogo de cards.)
 
 **Layout de larguras (dados à esquerda, ações à direita):** `TableActionsHead` e `TableActionsCell` já carregam `w-full` internamente — a coluna de ações absorve toda sobra horizontal e mantém os botões alinhados à direita (`text-right` + `flex justify-end`). Resultado: todas as colunas de dado (ID, Cliente, Status, Total, etc) encolhem ao próprio conteúdo e ficam clusterizadas naturalmente à esquerda. Não use `w-full` em nenhuma coluna de dado — quebra o pattern.
 
@@ -270,6 +270,58 @@ Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-
 - `Card`: `bg-card` (#262320), ring `ring-1 ring-foreground/10` (substitui border tradicional), padding interno 16–32px.
 - `Dialog` / `Popover`: mesma elevação que Card, portal `z-50`.
 - Sidebar: `bg-sidebar` (#171612) — mais escuro que background.
+
+### Catálogo de cards de listagem (4 arquétipos)
+
+Cards de grid/listagem seguem 4 arquétipos. Todos compartilham o **shell** e o **footer edge-to-edge** abaixo; o miolo varia por entidade. Adaptar campos ao domínio é esperado — o esqueleto é que é fixo.
+
+**Shell comum:** `rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`. Card inteiro clicável: ou `<Link>` direto (quando não há ações secundárias), ou `<div role="button" tabIndex={0}>` + `onClick`/`onKeyDown` (Enter/Space) quando há ações internas que precisam de `stopPropagation`.
+
+| Arquétipo | Quando | Miolo | Canônico |
+|---|---|---|---|
+| **Stat-card** | Entidade com métricas-resumo (filiais) | Header (avatar quadrado de iniciais + nome + endereço + ações-ícone opcionais) + footer de N métricas | `branches/_components/branch-card.tsx` |
+| **Media-card** | Item com imagem (estoque/produto) | Imagem 16:9 no topo + badge de status absoluto (`top-2 right-2`) + corpo (nome linkado + SKU/meta) + footer de métricas | `stock/_components/branch-stock-card.tsx` |
+| **Identity-card** | Pessoa (equipe, usuário) | Avatar `52px` `rounded-[10px]` + nome + email + status badge no topo; footer com `role · último login` + 1 ação (`outline`/`ghost`) | `branches/[id]/_components/team-member-card.tsx`, `users/_components/user-card.tsx` |
+| **Entity-card** | Registro sem imagem (pedido) | Ícone em avatar quadrado + título (número/id) + data + status badge oficial; footer com valor centralizado + label | `branches/[id]/_components/orders-tab.tsx` |
+
+### Footer edge-to-edge (regra de card)
+
+O footer de um card é uma faixa que **encosta nas bordas laterais e inferior** — a `border-t` (e as divisórias `border-r` entre métricas) vai de ponta a ponta, nunca recuada por padding. Três formas conforme a estrutura do card:
+
+1. **Container sem padding** (`overflow-hidden`, header com padding próprio `px-4 pt-4 pb-3`): footer é filho direto com `border-t` → já é edge-to-edge. Usado em stat/media/entity-card.
+2. **Container com padding** (`p-4`): footer recompõe com `-mx-4 px-4 border-t pt-3` (margem negativa fura o padding, `px-4` devolve o respiro do conteúdo). Usado em identity-card.
+3. **Dentro de shadcn `<Card>`** (`py-4` + `px-4` no `CardContent`): footer usa `-mx-4 -mb-4`; o `overflow-hidden rounded-lg` do `Card` arredonda os cantos inferiores. Usado no card de Operação da Visão geral.
+
+**Footer de métricas:** `grid grid-cols-N border-t`; cada célula `flex flex-col items-center py-2.5` com `border-r` (último sem); valor `font-bold text-[18px] tabular-nums`, label `text-[9px] uppercase tracking-wider text-muted-foreground` embaixo. O valor pode herdar a cor da role do status (ex: Qtd em `text-destructive` quando zerada/crítica, `text-amber-500` em repor). Footer de valor único (pedido) usa 1 coluna centralizada (valor + label "Total").
+
+### Entity detail page (CRUD pattern)
+
+Página de detalhe de uma entidade (`/dashboard/<recurso>/[id]`) — o padrão default para CRUDs. Canônico: `branches/[id]/page.tsx`. Componentes em `apps/web/src/components/entity/`.
+
+- **`EntityIdentityHeader`** no topo: avatar + título (nome da entidade) + subtitle + slot `actions`.
+- **`EntityTabs`** logo abaixo: sincroniza a aba ativa com a URL (`?tab=`); a aba default omite o param. Sub-navegação do tipo `line` ou pill conforme §4 Tabs.
+- **`EntityKpisRow`** no corpo das tabs de overview, quando há métricas.
+- **Ações no header são contextuais por tab** — a ação primária vive no `actions` do header e **muda conforme a aba ativa**, nunca duplicada no corpo da tab. O Server Component (`page.tsx`) lê `sp.tab` e injeta a ação relevante:
+
+  | Tab ativa | Ação no header |
+  |---|---|
+  | overview (default) | Editar entidade |
+  | sub-recurso com vínculo (ex: equipe) | Vincular / Adicionar membro |
+  | sub-recurso com item (ex: estoque) | Adicionar item |
+  | tabs read-only (ex: pedidos) | — (sem ação) |
+
+  Funciona porque trocar de aba faz `router.replace(?tab=)`, re-renderizando o Server Component e atualizando o header. **Não** colocar o botão de ação dentro do corpo da tab.
+- **Badge de contagem na tab:** sempre `secondary` (neutro). Via `<TabsCountBadge>` no `Tabs` base; no `EntityTabs`, badge `secondary` `rounded-md` `h-5 min-w-5`. A hierarquia vem da aba ativa (coral), não do badge.
+
+### Mutações: drawer / página / confirmação destrutiva
+
+A tríade canônica de mutação de entidade:
+
+- **Editar (rápido / poucos campos):** drawer lateral (`Sheet`), aberto pela ação do header via `?edit=1`. Canônico: `branches/[id]/_components/branch-edit-sheet.tsx`.
+- **Criar, ou editar/criar de formulário grande/complexo:** página dedicada (`/new`, `/[id]/edit`). A **complexidade do formulário decide** — entidade com muitos campos (ex: ferramenta com variantes, specs) vai sempre para página, mesmo para editar. Drawer só para formulários enxutos. Canônico: `branches/new/page.tsx`.
+- **Ação destrutiva (excluir, desvincular, cancelar):** `AlertDialog` de confirmação — nunca ação direta. Controlado (`useState` para `open`), `e.preventDefault()` no `AlertDialogAction` + fechar manualmente no sucesso, e `stopPropagation` quando o gatilho vive dentro de um card clicável. Canônico: `users/_components/destructive-action-dialog.tsx`, `branches/[id]/_components/team-member-card.tsx`. **Botão destrutivo nunca usa coral (`default`)** — coral é ação positiva; destrutivo é `destructive`, `outline` ou `ghost` conforme o peso.
+
+**Escopo:** este pattern é **default para entidades/CRUDs novos**; telas existentes migram gradualmente quando forem tocadas (não há migração big-bang). Adaptar ao domínio é permitido — o esqueleto (tabs + header contextual + cards do catálogo + drawer/dialog) é o que se mantém.
 
 ### PendingPanel + ActivityFeed (par de dashboard)
 
@@ -492,6 +544,7 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 
 Mudanças sistêmicas consolidadas, mais recente primeiro:
 
+- **Entity / CRUD pattern + catálogo de cards (2026-06-01)** — consolidado a partir do redesign das tabs de filial (`branches/[id]`). Formalizados: (1) **página de detalhe de entidade** com `EntityIdentityHeader` + `EntityTabs` (sincronizadas com `?tab=`) + **ações de header contextuais por tab** (Editar/Vincular/Adicionar mudam pela aba ativa, nunca duplicadas no corpo); (2) **catálogo de 4 arquétipos de card** (stat / media / identity / entity) com shell comum e **footer edge-to-edge** (faixa `border-t` que encosta nas bordas — 3 técnicas conforme padding do container); (3) **tríade de mutação** editar=drawer (`Sheet`), criar/forms complexos=página, destrutivo=`AlertDialog` controlado; botão destrutivo nunca coral. Badge de contagem em tab de detalhe uniformizado em `secondary`. Default para CRUDs novos; existentes migram aos poucos. Ver §4 (Cards, Entity detail, Mutações).
 - **Padrão de tabs unificado (2026-05-26)** — novo helper `<TabsCountBadge value={N} />` exportado de `@emach/ui/components/tabs` substitui `<Badge variant="secondary" className="ml-1.5 tabular-nums">` manual em filter-tabs. `tabsListVariants` default ganha `gap-1` (já existia em `line`) — propaga gap-1 automático pra todo `<TabsList>`. Filter-tabs em `/orders`, `/users`, `/reviews` migradas; badges agora uniformes em `secondary` (antes `/users` era default/outline e `/reviews` era default/secondary). `PendingPanel` refatorou sub-tabs `<ToggleGroup>` → `<Tabs>` com mesmo padrão — drop intencional da cor por `tab.role` no badge das sub-tabs. Wrapper `min-h-[18rem]` no `<ActivityFeed>` quando pareado com `<PendingPanel compact>` padroniza altura do par em `/orders`, `/customers`, `/dashboard`, `/users`. PendingPanel ganha prop `compact` (`max-h-60 min-h-44`). Hydration mismatch no `FooterContent` do `AppSidebar` corrigido passando `user` via prop do `DashboardLayout` (server) em vez de `authClient.useSession()` no client.
 - **Refinement /impeccable (2026-05-20)** — ring vira hairline (`ring-1 + ring-offset-1`), `--ring` alpha sobe 0.55→0.75. Tipografia: h1 sobe text-3xl→text-4xl, h2 sobe text-xl→text-2xl, weight de serif vira 500 (era 400) pra compensar thinness do Cormorant em dark; display sobe text-4xl→text-5xl. Section bands (`bg-muted/50` com border-y) documentadas pra ritmo vertical em páginas com data zone, aplicado primeiro em `dashboard/page.tsx`.
 - **Re-aproximação Anthropic (2026-05-20)** — coral hue 38 (de copper 45), chroma 0.13 (de 0.15) — agora `oklch(0.65 0.13 38)` ≈ `#cc785c` literal Anthropic. Destructive hue 15 (de 25) — `oklch(0.55 0.20 15)` para preservar 23° de separação do novo primary. **Cormorant Garamond liberada para h1 + h2 de todas as páginas** (era restrita a login + capa de relatório). Adicionado token `--surface-deep` (`oklch(0.11 0.005 70)`) para code/log/featured wells. Documentados componentes `callout-card-coral` e `featured-card-dark`. Mantém dark-only e voz workshop.
@@ -526,6 +579,11 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 | `gap-1` na TabsList? | Default. Não passe `className="gap-1"` manual. |
 | Altura do par PendingPanel+ActivityFeed? | `<PendingPanel compact>` + wrapper `min-h-[18rem]` no ActivityFeed. |
 | Como pego user no AppSidebar? | Prop do `DashboardLayout` (server). **Não** `authClient.useSession()` — hydration mismatch. |
+| Como monto a página de detalhe de uma entidade? | `EntityIdentityHeader` + `EntityTabs` (`?tab=`); ação primária no header, **contextual por tab**. Ver §4 Entity detail. |
+| Onde fica o botão de ação (Editar/Vincular)? | No `actions` do header, mudando pela aba ativa. **Nunca** no corpo da tab. |
+| Footer de card recuado ou edge-to-edge? | Edge-to-edge — `border-t`/divisórias até a borda. `-mx-4 px-4` se o card tem padding. Ver §4. |
+| Editar entidade: drawer ou página? | Drawer (`Sheet`) se poucos campos; página se formulário grande/complexo. Criar = página. |
+| Excluir/desvincular: como? | `AlertDialog` de confirmação (controlado). Botão destrutivo nunca coral. |
 
 ## 12. Origem
 

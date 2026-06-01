@@ -1,11 +1,7 @@
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@emach/ui/components/card";
-import { PackageOpen } from "lucide-react";
+import { PackageOpen, ShoppingCart } from "lucide-react";
 import Link from "next/link";
+import { OrderStatusBadge } from "@/app/dashboard/orders/_components/order-status-badge";
+import type { OrderStatus } from "@/app/dashboard/orders/status-meta";
 
 import type { BranchOrderRow } from "../../data";
 
@@ -18,64 +14,60 @@ const BRL = new Intl.NumberFormat("pt-BR", {
 	currency: "BRL",
 });
 
-const STATUS_LABEL: Record<string, string> = {
-	pending_payment: "Aguardando pagamento",
-	paid: "Pago",
-	preparing: "Preparando",
-	shipped: "Enviado",
-	delivered: "Entregue",
-	canceled: "Cancelado",
-	refunded: "Reembolsado",
-	returned: "Devolvido",
-};
+function OrderCard({ order }: { order: BranchOrderRow }) {
+	return (
+		<Link
+			className="group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			href={`/dashboard/orders/${order.id}`}
+		>
+			<div className="flex items-start gap-3 px-4 pt-4 pb-3">
+				<div className="flex size-[52px] flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-muted text-muted-foreground">
+					<ShoppingCart aria-hidden className="size-5" />
+				</div>
+				<div className="min-w-0 flex-1">
+					<span className="block truncate font-semibold text-[14px] text-foreground leading-tight">
+						{order.number}
+					</span>
+					<p className="truncate text-muted-foreground text-xs">
+						{DT.format(order.createdAt)}
+					</p>
+				</div>
+				<OrderStatusBadge status={order.status as OrderStatus} />
+			</div>
+
+			<div className="flex flex-col items-center border-border border-t py-2.5">
+				<span className="font-bold text-[18px] text-foreground tabular-nums">
+					{BRL.format(Number.parseFloat(order.totalAmount))}
+				</span>
+				<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+					Total
+				</span>
+			</div>
+		</Link>
+	);
+}
 
 export function OrdersTab({ orders }: { orders: BranchOrderRow[] }) {
+	if (orders.length === 0) {
+		return (
+			<div className="flex flex-col items-center gap-2 py-16 text-center">
+				<PackageOpen
+					aria-hidden
+					className="size-12 text-muted-foreground opacity-40"
+				/>
+				<p className="font-medium text-sm">Sem pedidos</p>
+				<p className="text-muted-foreground text-xs">
+					Esta filial ainda não atendeu pedidos.
+				</p>
+			</div>
+		);
+	}
+
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle className="text-base">
-					Pedidos recentes ({orders.length})
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				{orders.length === 0 ? (
-					<div className="flex flex-col items-center gap-2 py-8 text-center">
-						<PackageOpen
-							aria-hidden
-							className="size-12 text-muted-foreground opacity-40"
-						/>
-						<p className="font-medium text-sm">Sem pedidos</p>
-						<p className="text-muted-foreground text-xs">
-							Esta filial ainda não atendeu pedidos.
-						</p>
-					</div>
-				) : (
-					<ul className="flex flex-col gap-2">
-						{orders.map((o) => (
-							<li
-								className="flex items-center justify-between gap-2 rounded-md bg-muted/40 px-3 py-2"
-								key={o.id}
-							>
-								<div className="min-w-0">
-									<Link
-										className="truncate font-medium text-sm hover:underline"
-										href={`/dashboard/orders/${o.id}`}
-									>
-										#{o.number}
-									</Link>
-									<p className="truncate text-muted-foreground text-xs">
-										{STATUS_LABEL[o.status] ?? o.status} ·{" "}
-										{DT.format(o.createdAt)}
-									</p>
-								</div>
-								<span className="text-sm tabular-nums">
-									{BRL.format(Number.parseFloat(o.totalAmount))}
-								</span>
-							</li>
-						))}
-					</ul>
-				)}
-			</CardContent>
-		</Card>
+		<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+			{orders.map((o) => (
+				<OrderCard key={o.id} order={o} />
+			))}
+		</div>
 	);
 }
