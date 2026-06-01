@@ -75,7 +75,9 @@ export function OverviewTab({ detail, kpis }: Props) {
 				<Card>
 					<CardHeader className="flex flex-row items-center justify-between">
 						<CardTitle className="text-sm">Endereço & contato</CardTitle>
-						<Badge variant={detail.status === "active" ? "success" : "secondary"}>
+						<Badge
+							variant={detail.status === "active" ? "success" : "secondary"}
+						>
 							{detail.status === "active" ? "Ativa" : "Inativa"}
 						</Badge>
 					</CardHeader>
@@ -200,22 +202,22 @@ export function OverviewTab({ detail, kpis }: Props) {
 								</p>
 							)}
 						</div>
-						<div className="grid grid-cols-2 gap-4 border-border border-t pt-4">
-							<div>
-								<p className="text-muted-foreground text-xs uppercase tracking-wide">
-									Criada em
-								</p>
-								<p className="mt-1 text-sm tabular-nums">
+						<div className="-mx-4 -mb-4 grid grid-cols-2 border-border border-t">
+							<div className="flex flex-col items-center border-border border-r py-2.5">
+								<span className="font-bold text-[18px] text-foreground tabular-nums">
 									{formatDate(detail.createdAt)}
-								</p>
+								</span>
+								<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+									Criada em
+								</span>
 							</div>
-							<div>
-								<p className="text-muted-foreground text-xs uppercase tracking-wide">
-									Atualizada em
-								</p>
-								<p className="mt-1 text-sm tabular-nums">
+							<div className="flex flex-col items-center py-2.5">
+								<span className="font-bold text-[18px] text-foreground tabular-nums">
 									{formatDate(detail.updatedAt)}
-								</p>
+								</span>
+								<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+									Atualizada em
+								</span>
 							</div>
 						</div>
 					</CardContent>
