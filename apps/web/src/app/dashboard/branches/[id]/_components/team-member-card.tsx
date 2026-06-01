@@ -110,7 +110,7 @@ export function TeamMemberCard({ branchId, member }: Props) {
 							<Button
 								onClick={(e) => e.stopPropagation()}
 								size="sm"
-								variant="ghost"
+								variant="default"
 							/>
 						}
 					>
@@ -136,7 +136,10 @@ export function TeamMemberCard({ branchId, member }: Props) {
 								}}
 							>
 								{unlinking ? (
-									<Loader2 aria-hidden className="mr-1.5 size-3.5 animate-spin" />
+									<Loader2
+										aria-hidden
+										className="mr-1.5 size-3.5 animate-spin"
+									/>
 								) : null}
 								Desvincular
 							</AlertDialogAction>

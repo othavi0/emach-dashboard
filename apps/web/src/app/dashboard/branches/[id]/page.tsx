@@ -11,13 +11,13 @@ import {
 } from "../data";
 import { BranchEditSheet } from "./_components/branch-edit-sheet";
 import { BranchIdentity } from "./_components/branch-identity";
+import { EditBranchButton } from "./_components/edit-branch-button";
 import { OrdersTab } from "./_components/orders-tab";
 import { OverviewTab } from "./_components/overview-tab";
 import { StockTab } from "./_components/stock-tab";
+import { TeamLinkPanel } from "./_components/team-link-panel";
 import { TeamTab } from "./_components/team-tab";
 import { AddToolButton } from "./stock/_components/add-tool-button";
-import { EditBranchButton } from "./_components/edit-branch-button";
-import { TeamLinkPanel } from "./_components/team-link-panel";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -95,15 +95,15 @@ export default async function BranchDetailPage({
 		},
 	];
 
-	const headerAction = isStockTab
-		? canMutateStock
-			? <AddToolButton branchId={id} branchName={detail.name} />
-			: null
-		: sp.tab === "team"
-			? <TeamLinkPanel branchId={id} />
-			: !sp.tab || sp.tab === "overview"
-				? <EditBranchButton />
-				: null;
+	const headerAction = isStockTab ? (
+		canMutateStock ? (
+			<AddToolButton branchId={id} branchName={detail.name} />
+		) : null
+	) : sp.tab === "team" ? (
+		<TeamLinkPanel branchId={id} />
+	) : !sp.tab || sp.tab === "overview" ? (
+		<EditBranchButton />
+	) : null;
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
