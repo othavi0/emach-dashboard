@@ -3,7 +3,7 @@
 import { db } from "@emach/db";
 import { promotion, promotionTool } from "@emach/db/schema/promotions";
 import { tool } from "@emach/db/schema/tools";
-import { and, eq, gte, inArray, isNull, lte, ne, or } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { type Cursor, decodeCursor } from "@/lib/cursor";
@@ -34,6 +34,14 @@ export type ActionResult<T = undefined> =
 	| { ok: false; error: string };
 
 export type PromotionStatus = "active" | "scheduled" | "expired" | "inactive";
+
+export interface PromotionStatusCounts {
+	active: number;
+	all: number;
+	expired: number;
+	inactive: number;
+	scheduled: number;
+}
 
 export interface PromotionToolItem {
 	id: string;
@@ -841,4 +849,26 @@ export async function duplicatePromotion(
 
 	revalidatePath(PROMOTIONS_PATH);
 	return { ok: true, data: { id: newId } };
+}
+
+// ---------------------------------------------------------------------------
+// getPromotionStatusCounts — contagens por status p/ as pill tabs
+// ---------------------------------------------------------------------------
+
+export async function getPromotionStatusCounts(): Promise<PromotionStatusCounts> {
+	await requireCurrentSession();
+
+	const rows = await db
+		.select({
+			all: sql<number>`count(*)::int`,
+			active: sql<number>`count(*) filter (where ${promotion.active} = true and (${promotion.startsAt} is null or ${promotion.startsAt} <= now()) and (${promotion.endsAt} is null or ${promotion.endsAt} >= now()))::int`,
+			scheduled: sql<number>`count(*) filter (where ${promotion.active} = true and ${promotion.startsAt} > now() and (${promotion.endsAt} is null or ${promotion.endsAt} >= now()))::int`,
+			expired: sql<number>`count(*) filter (where ${promotion.endsAt} < now())::int`,
+			inactive: sql<number>`count(*) filter (where ${promotion.active} = false and (${promotion.endsAt} is null or ${promotion.endsAt} >= now()))::int`,
+		})
+		.from(promotion);
+
+	return (
+		rows[0] ?? { all: 0, active: 0, scheduled: 0, expired: 0, inactive: 0 }
+	);
 }
