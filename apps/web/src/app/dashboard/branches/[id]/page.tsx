@@ -66,7 +66,7 @@ export default async function BranchDetailPage({
 			label: "Equipe",
 			icon: <Users aria-hidden className="size-3.5" />,
 			badge: (
-				<span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 font-medium text-muted-foreground text-xs tabular-nums">
+				<span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-secondary px-1 font-medium text-secondary-foreground text-xs tabular-nums">
 					{team.length}
 				</span>
 			),
