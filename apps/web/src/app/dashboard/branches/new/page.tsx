@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import { requireRole } from "@/lib/session";
 import { BranchForm } from "../_components/branch-form";
 
@@ -6,14 +7,10 @@ export default async function NewBranchPage() {
 
 	return (
 		<div className="flex flex-col gap-6">
-			<div>
-				<h1 className="font-medium font-serif text-4xl tracking-tight">
-					Nova filial
-				</h1>
-				<p className="text-muted-foreground text-sm">
-					Cadastre uma filial para permitir ajustes de estoque por localização.
-				</p>
-			</div>
+			<PageHeader
+				description="Cadastre uma filial para permitir ajustes de estoque por localização."
+				title="Nova filial"
+			/>
 
 			<BranchForm defaultValues={{}} mode="create" />
 		</div>
