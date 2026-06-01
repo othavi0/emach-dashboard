@@ -33,6 +33,14 @@ export function OverviewTab({ detail }: { detail: PromotionDetail }) {
 	const remaining = daysRemainingDisplay(detail.status, detail.endsAt);
 	const isCoupon = detail.type === "promocode";
 
+	let terminoHint = "Sem prazo";
+	if (detail.endsAt) {
+		terminoHint =
+			detail.status === "expired"
+				? "Expirada"
+				: `${remaining.value} dias restantes`;
+	}
+
 	const kpis: KpiItem[] = [
 		{
 			icon: Percent,
@@ -52,7 +60,7 @@ export function OverviewTab({ detail }: { detail: PromotionDetail }) {
 			value: detail.startsAt ? fmtDate(detail.startsAt) : "Imediato",
 		},
 		{
-			hint: detail.endsAt ? `${remaining.value} dias restantes` : "Sem prazo",
+			hint: terminoHint,
 			icon: CalendarClock,
 			label: "Término",
 			tone: remaining.tone,
