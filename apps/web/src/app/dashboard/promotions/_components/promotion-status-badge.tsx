@@ -23,6 +23,12 @@ export function PromotionStatusBadge({ status }: PromotionStatusBadgeProps) {
 					{statusLabel(status)}
 				</Badge>
 			);
+		case "expired":
+			return (
+				<Badge className="w-fit" variant="secondary">
+					{statusLabel(status)}
+				</Badge>
+			);
 		default:
 			return (
 				<Badge className="w-fit" variant="outline">
