@@ -1,9 +1,6 @@
-import { db } from "@emach/db";
-import { tool } from "@emach/db/schema/tools";
-import { asc } from "drizzle-orm";
-
 import { requireRole } from "@/lib/session";
 import { PromotionForm } from "../_components/promotion-form";
+import { getToolOptions } from "../actions";
 
 interface PageProps {
 	searchParams: Promise<{ type?: string }>;
@@ -16,10 +13,7 @@ export default async function NewPromotionPage({ searchParams }: PageProps) {
 	const initialType = type === "promocode" ? "promocode" : "promotion";
 	const isCoupon = initialType === "promocode";
 
-	const availableTools = await db
-		.select({ id: tool.id, name: tool.name })
-		.from(tool)
-		.orderBy(asc(tool.name));
+	const availableTools = await getToolOptions();
 
 	return (
 		<div className="flex flex-col gap-6">
