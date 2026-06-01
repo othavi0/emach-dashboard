@@ -37,7 +37,11 @@ const TIMEOUT_MS = 5000;
 
 export function CepInput({ id, value, onChange, onResolve, disabled }: Props) {
 	const [isFetching, setIsFetching] = useState(false);
-	const lastFetchedRef = useRef<string | null>(null);
+	// Inicia com o CEP já preenchido para não re-resolver (e mostrar toast) ao abrir
+	// o form de edição. O auto-resolve só dispara quando o usuário muda o CEP.
+	const lastFetchedRef = useRef<string | null>(
+		value && value.length === 8 ? value : null
+	);
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
