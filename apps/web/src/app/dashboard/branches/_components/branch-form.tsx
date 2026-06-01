@@ -119,14 +119,12 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 	}
 
 	return (
-		<form
-			className="flex w-full max-w-2xl flex-col gap-6"
-			onSubmit={handleSubmit}
-		>
+		<form className="flex w-full flex-col gap-6" onSubmit={handleSubmit}>
 			<FormErrorPanel issues={issues} />
 			<div className="rounded-md border border-border bg-card p-6">
 				<BranchFormFields
 					branchId={branchId}
+					columns={2}
 					disabled={isPending}
 					onPatch={(p) => setValues((prev) => ({ ...prev, ...p }))}
 					showTeamSection={mode === "edit"}
