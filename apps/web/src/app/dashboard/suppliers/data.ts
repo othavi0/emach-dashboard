@@ -5,7 +5,7 @@ import { user as userTable } from "@emach/db/schema/auth";
 import { toolCategory } from "@emach/db/schema/categories";
 import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
 import { supplier, tool } from "@emach/db/schema/tools";
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 
 export interface SupplierDetail {
 	cnpj: string | null;
@@ -97,36 +97,6 @@ export interface SupplierToolRow {
 	name: string;
 	slug: string;
 	status: "draft" | "active" | "discontinued";
-}
-
-export async function getSupplierTools(
-	supplierId: string,
-	search: string
-): Promise<SupplierToolRow[]> {
-	const pattern = `%${search}%`;
-	const rows = await db
-		.select({
-			id: tool.id,
-			name: tool.name,
-			slug: tool.slug,
-			status: tool.status,
-			defaultSku: sql<
-				string | null
-			>`(select sku from tool_variant where tool_id = ${tool.id} and is_default = true limit 1)`,
-			createdAt: tool.createdAt,
-		})
-		.from(tool)
-		.where(
-			search
-				? and(
-						eq(tool.supplierId, supplierId),
-						or(ilike(tool.name, pattern), ilike(tool.slug, pattern))
-					)
-				: eq(tool.supplierId, supplierId)
-		)
-		.orderBy(desc(tool.createdAt))
-		.limit(100);
-	return rows as SupplierToolRow[];
 }
 
 export interface SupplierAuditRow {
