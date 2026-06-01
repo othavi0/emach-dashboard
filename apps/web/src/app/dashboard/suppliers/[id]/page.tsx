@@ -9,7 +9,6 @@ import {
 	getSupplierAuditLog,
 	getSupplierDetail,
 	getSupplierDetailKpis,
-	getSupplierTools,
 } from "../data";
 import { HistoryTab } from "./_components/history-tab";
 import { OverviewTab } from "./_components/overview-tab";
@@ -31,10 +30,9 @@ export default async function SupplierDetailPage({
 	const { id } = await params;
 	const sp = await searchParams;
 
-	const [detail, kpis, tools, audit] = await Promise.all([
+	const [detail, kpis, audit] = await Promise.all([
 		getSupplierDetail(id),
 		getSupplierDetailKpis(id),
-		getSupplierTools(id, sp.q ?? ""),
 		getSupplierAuditLog(id),
 	]);
 
@@ -58,9 +56,7 @@ export default async function SupplierDetailPage({
 					{detail.toolsTotal}
 				</span>
 			),
-			content: (
-				<ToolsTab initialSearch={sp.q ?? ""} supplierId={id} tools={tools} />
-			),
+			content: <ToolsTab search={sp.q} supplierId={id} />,
 		},
 		{
 			value: "history",
