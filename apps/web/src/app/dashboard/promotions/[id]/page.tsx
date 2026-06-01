@@ -1,0 +1,93 @@
+import { db } from "@emach/db";
+import { tool } from "@emach/db/schema/tools";
+import { buttonVariants } from "@emach/ui/components/button";
+import { asc } from "drizzle-orm";
+import { Info, Settings2, Wrench } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import type { EntityTab } from "@/components/entity/entity-tabs";
+import { EntityTabs } from "@/components/entity/entity-tabs";
+import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { PromotionEditSheet } from "../_components/promotion-edit-sheet";
+import { getPromotion } from "../actions";
+import { OverviewTab } from "./_components/overview-tab";
+import { PromotionHeaderActions } from "./_components/promotion-header-actions";
+import { PromotionIdentity } from "./_components/promotion-identity";
+import { ToolsTab } from "./_components/tools-tab";
+
+interface PageProps {
+	params: Promise<{ id: string }>;
+	searchParams: Promise<{ edit?: string; tab?: string }>;
+}
+
+export const dynamic = "force-dynamic";
+
+export default async function PromotionDetailPage({
+	params,
+	searchParams,
+}: PageProps) {
+	await requireCapabilityOrRedirect("promotions.manage");
+
+	const { id } = await params;
+	const sp = await searchParams;
+
+	const [detail, availableTools] = await Promise.all([
+		getPromotion(id),
+		db
+			.select({ id: tool.id, name: tool.name })
+			.from(tool)
+			.orderBy(asc(tool.name)),
+	]);
+
+	if (!detail) {
+		notFound();
+	}
+
+	const isToolsTab = sp.tab === "tools";
+
+	const tabs: EntityTab[] = [
+		{
+			value: "overview",
+			label: "Visão geral",
+			icon: <Info aria-hidden className="size-3.5" />,
+			content: <OverviewTab detail={detail} />,
+		},
+		{
+			value: "tools",
+			label: "Ferramentas",
+			icon: <Wrench aria-hidden className="size-3.5" />,
+			badge: (
+				<span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-secondary px-1 font-medium text-secondary-foreground text-xs tabular-nums">
+					{detail.tools.length}
+				</span>
+			),
+			content: isToolsTab ? <ToolsTab detail={detail} /> : null,
+		},
+	];
+
+	const headerAction = isToolsTab ? (
+		<Link
+			className={buttonVariants({ variant: "default" })}
+			href={`/dashboard/promotions/${id}?tab=tools&edit=1`}
+		>
+			<Settings2 aria-hidden className="mr-1.5 size-4" />
+			Gerenciar ferramentas
+		</Link>
+	) : (
+		<PromotionHeaderActions promotion={detail} />
+	);
+
+	return (
+		<div className="flex flex-col gap-6 p-6">
+			<PromotionIdentity actions={headerAction} detail={detail} />
+			<EntityTabs defaultValue="overview" tabs={tabs} />
+			{sp.edit === "1" ? (
+				<PromotionEditSheet
+					availableTools={availableTools}
+					promotion={detail}
+				/>
+			) : null}
+		</div>
+	);
+}
