@@ -1,6 +1,12 @@
 import { db } from "@emach/db";
 import { tool } from "@emach/db/schema/tools";
-import { buttonVariants } from "@emach/ui/components/button";
+import { Button } from "@emach/ui/components/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@emach/ui/components/dropdown-menu";
 import {
 	Tabs,
 	TabsCountBadge,
@@ -8,6 +14,7 @@ import {
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
 import { asc } from "drizzle-orm";
+import { ChevronDown, Plus, Tag, Ticket } from "lucide-react";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
@@ -138,12 +145,48 @@ export default async function PromotionsPage({ searchParams }: PageProps) {
 			<PageHeader
 				action={
 					canMutate ? (
-						<Link
-							className={buttonVariants({ variant: "default" })}
-							href="/dashboard/promotions/new"
-						>
-							Nova promoção
-						</Link>
+						<DropdownMenu>
+							<DropdownMenuTrigger
+								render={
+									<Button variant="default">
+										<Plus aria-hidden className="size-4" />
+										Criar
+										<ChevronDown aria-hidden className="size-4 opacity-80" />
+									</Button>
+								}
+							/>
+							<DropdownMenuContent align="end" className="min-w-56">
+								<DropdownMenuItem
+									render={
+										<Link href="/dashboard/promotions/new?type=promotion" />
+									}
+								>
+									<Tag aria-hidden className="size-4 text-muted-foreground" />
+									<span className="flex flex-col">
+										Promoção automática
+										<span className="text-muted-foreground text-xs">
+											Desconto direto no preço
+										</span>
+									</span>
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									render={
+										<Link href="/dashboard/promotions/new?type=promocode" />
+									}
+								>
+									<Ticket
+										aria-hidden
+										className="size-4 text-muted-foreground"
+									/>
+									<span className="flex flex-col">
+										Cupom
+										<span className="text-muted-foreground text-xs">
+											Código aplicado no checkout
+										</span>
+									</span>
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					) : null
 				}
 				description="Gerencie promoções automáticas e cupons aplicados a ferramentas específicas."
