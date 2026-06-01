@@ -1,7 +1,7 @@
 "use client";
 
 import { buttonVariants } from "@emach/ui/components/button";
-import { Eye, Pencil } from "lucide-react";
+import { Wrench } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -14,19 +14,19 @@ const MONTH_YEAR = new Intl.DateTimeFormat("pt-BR", {
 });
 
 interface SupplierCardProps {
-	canMutate: boolean;
 	supplier: SupplierTableRow;
 }
 
-export function SupplierCard({ supplier, canMutate }: SupplierCardProps) {
+export function SupplierCard({ supplier }: SupplierCardProps) {
 	const router = useRouter();
 	const detailHref = `/dashboard/suppliers/${supplier.id}`;
-	const editHref = `/dashboard/suppliers/${supplier.id}?edit=1`;
+	const toolsHref = `/dashboard/suppliers/${supplier.id}?tab=tools`;
 	const noTools = supplier.toolsTotal === 0;
+	const isArchived = supplier.status === "archived";
 
 	return (
 		<div
-			className="group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			className={`group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isArchived ? "opacity-70" : ""}`}
 			onClick={() => router.push(detailHref)}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
@@ -45,6 +45,11 @@ export function SupplierCard({ supplier, canMutate }: SupplierCardProps) {
 					<p className="truncate font-semibold text-[15px] text-foreground leading-tight">
 						{supplier.name}
 					</p>
+					{isArchived && (
+						<span className="mt-1 inline-flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground uppercase tracking-wider">
+							Arquivado
+						</span>
+					)}
 					<p className="truncate text-muted-foreground text-xs">
 						{supplier.contactEmail ?? "—"}
 					</p>
@@ -52,34 +57,17 @@ export function SupplierCard({ supplier, canMutate }: SupplierCardProps) {
 						{supplier.phone ?? "—"}
 					</p>
 				</div>
-				<div
-					className="flex shrink-0 items-center gap-1"
+				<Link
+					aria-label={`Ver ferramentas de ${supplier.name}`}
+					className={`${buttonVariants({
+						size: "icon-sm",
+						variant: "ghost",
+					})} shrink-0 border border-border bg-muted`}
+					href={toolsHref}
 					onClick={(e) => e.stopPropagation()}
-					onKeyDown={(e) => e.stopPropagation()}
 				>
-					<Link
-						aria-label={`Ver detalhes de ${supplier.name}`}
-						className={`${buttonVariants({
-							size: "icon-sm",
-							variant: "ghost",
-						})} border border-border bg-muted`}
-						href={detailHref}
-					>
-						<Eye aria-hidden className="size-4" />
-					</Link>
-					{canMutate && (
-						<Link
-							aria-label={`Editar ${supplier.name}`}
-							className={`${buttonVariants({
-								size: "icon-sm",
-								variant: "ghost",
-							})} border border-border bg-muted`}
-							href={editHref}
-						>
-							<Pencil aria-hidden className="size-4" />
-						</Link>
-					)}
-				</div>
+					<Wrench aria-hidden className="size-4" />
+				</Link>
 			</div>
 
 			<div className="grid grid-cols-2 border-border border-t">

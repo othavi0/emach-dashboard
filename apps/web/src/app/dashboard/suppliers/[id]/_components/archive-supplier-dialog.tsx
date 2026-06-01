@@ -13,36 +13,42 @@ import {
 } from "@emach/ui/components/alert-dialog";
 import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
-import { Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { deleteSupplier } from "../actions";
+import { archiveSupplier, restoreSupplier } from "../../actions";
 
-interface DeleteSupplierDialogProps {
+interface Props {
+	status: "active" | "archived";
 	supplierId: string;
 	supplierName: string;
 }
 
-export function DeleteSupplierDialog({
+export function ArchiveSupplierDialog({
+	status,
 	supplierId,
 	supplierName,
-}: DeleteSupplierDialogProps) {
+}: Props) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
+	const isArchived = status === "archived";
 
 	function handleConfirm() {
 		startTransition(async () => {
-			const result = await deleteSupplier(supplierId);
+			const result = isArchived
+				? await restoreSupplier(supplierId)
+				: await archiveSupplier(supplierId);
 			if (result.ok) {
-				toast.success("Fornecedor removido");
+				toast.success(
+					isArchived ? "Fornecedor restaurado" : "Fornecedor arquivado"
+				);
 				setOpen(false);
-				router.push("/dashboard/suppliers");
 				router.refresh();
 			} else {
-				toast.error(result.error || "Não foi possível remover o fornecedor");
+				toast.error(result.error);
 			}
 		});
 	}
@@ -50,19 +56,27 @@ export function DeleteSupplierDialog({
 	return (
 		<AlertDialog onOpenChange={setOpen} open={open}>
 			<AlertDialogTrigger
-				aria-label={`Remover fornecedor ${supplierName}`}
-				render={<Button size="icon-sm" variant="destructive" />}
+				render={
+					<Button size="sm" variant={isArchived ? "secondary" : "outline"} />
+				}
 			>
-				<Trash2 aria-hidden className="size-3.5" />
+				{isArchived ? (
+					<ArchiveRestore aria-hidden className="mr-1.5 size-3.5" />
+				) : (
+					<Archive aria-hidden className="mr-1.5 size-3.5" />
+				)}
+				{isArchived ? "Restaurar" : "Arquivar"}
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						Remover fornecedor <strong>{supplierName}</strong>?
+						{isArchived ? "Restaurar" : "Arquivar"} fornecedor{" "}
+						<strong>{supplierName}</strong>?
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						Esta ação não pode ser desfeita. As ferramentas vinculadas serão
-						mantidas, mas ficarão sem fornecedor definido.
+						{isArchived
+							? "O fornecedor volta a aparecer como ativo."
+							: "Ele deixa de aparecer como ativo; as ferramentas vinculadas continuam intactas. Você pode restaurar depois."}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
@@ -76,10 +90,12 @@ export function DeleteSupplierDialog({
 					>
 						{isPending ? (
 							<>
-								<Spinner /> Removendo…
+								<Spinner /> {isArchived ? "Restaurando…" : "Arquivando…"}
 							</>
+						) : isArchived ? (
+							"Restaurar"
 						) : (
-							"Remover"
+							"Arquivar"
 						)}
 					</AlertDialogAction>
 				</AlertDialogFooter>
