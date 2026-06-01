@@ -33,6 +33,9 @@ export const supplier = pgTable(
 		notes: text("notes"),
 		website: text("website"),
 		cnpj: text("cnpj"),
+		status: text("status", { enum: ["active", "archived"] })
+			.default("active")
+			.notNull(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()
@@ -40,6 +43,11 @@ export const supplier = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("supplier_status_created_idx").on(
+			table.status,
+			table.createdAt.desc(),
+			table.id.desc()
+		),
 		index("supplier_created_idx").on(table.createdAt.desc(), table.id.desc()),
 		uniqueIndex("supplier_cnpj_unique_when_present")
 			.on(table.cnpj)

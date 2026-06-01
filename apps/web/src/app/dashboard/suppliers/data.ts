@@ -5,7 +5,7 @@ import { user as userTable } from "@emach/db/schema/auth";
 import { toolCategory } from "@emach/db/schema/categories";
 import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
 import { supplier, tool } from "@emach/db/schema/tools";
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 
 export interface SupplierDetail {
 	cnpj: string | null;
@@ -15,6 +15,7 @@ export interface SupplierDetail {
 	name: string;
 	notes: string | null;
 	phone: string | null;
+	status: "active" | "archived";
 	toolsActive: number;
 	toolsInactive: number;
 	toolsTotal: number;
@@ -44,6 +45,7 @@ export async function getSupplierDetail(
 	return {
 		id: base.id,
 		name: base.name,
+		status: base.status,
 		contactEmail: base.contactEmail,
 		phone: base.phone,
 		website: base.website,
@@ -89,42 +91,14 @@ export async function getSupplierDetailKpis(
 }
 
 export interface SupplierToolRow {
+	category: string | null;
 	createdAt: Date;
 	defaultSku: string | null;
 	id: string;
+	imageUrl: string | null;
 	name: string;
 	slug: string;
 	status: "draft" | "active" | "discontinued";
-}
-
-export async function getSupplierTools(
-	supplierId: string,
-	search: string
-): Promise<SupplierToolRow[]> {
-	const pattern = `%${search}%`;
-	const rows = await db
-		.select({
-			id: tool.id,
-			name: tool.name,
-			slug: tool.slug,
-			status: tool.status,
-			defaultSku: sql<
-				string | null
-			>`(select sku from tool_variant where tool_id = ${tool.id} and is_default = true limit 1)`,
-			createdAt: tool.createdAt,
-		})
-		.from(tool)
-		.where(
-			search
-				? and(
-						eq(tool.supplierId, supplierId),
-						or(ilike(tool.name, pattern), ilike(tool.slug, pattern))
-					)
-				: eq(tool.supplierId, supplierId)
-		)
-		.orderBy(desc(tool.createdAt))
-		.limit(100);
-	return rows as SupplierToolRow[];
 }
 
 export interface SupplierAuditRow {
@@ -165,6 +139,7 @@ export interface SupplierTableRow {
 	id: string;
 	name: string;
 	phone: string | null;
+	status: "active" | "archived";
 	toolsActive: number;
 	toolsTotal: number;
 }
@@ -192,6 +167,52 @@ export async function getSupplierTableAggregates(
 		if (r.supplierId) {
 			map.set(r.supplierId, { toolsTotal: r.total, toolsActive: r.active });
 		}
+	}
+	return map;
+}
+
+export interface ToolCardMeta {
+	category: string | null;
+	defaultSku: string | null;
+	imageUrl: string | null;
+}
+
+/**
+ * Enriquece tools com SKU default, imagem e categoria primária.
+ * Usa `db.execute` (raw) porque subqueries escalares correlacionadas no
+ * `db.select` builder não materializam (retornam null). Colunas aliasadas
+ * com `AS "camelCase"` para contornar o snake_case do raw execute.
+ */
+export async function getToolCardMeta(
+	toolIds: string[]
+): Promise<Map<string, ToolCardMeta>> {
+	const map = new Map<string, ToolCardMeta>();
+	if (toolIds.length === 0) {
+		return map;
+	}
+	const idList = sql.join(
+		toolIds.map((id) => sql`${id}`),
+		sql`, `
+	);
+	const result = await db.execute<{
+		id: string;
+		defaultSku: string | null;
+		imageUrl: string | null;
+		category: string | null;
+	}>(sql`
+		SELECT t.id,
+			(SELECT sku FROM tool_variant WHERE tool_id = t.id AND is_default = true LIMIT 1) AS "defaultSku",
+			(SELECT url FROM tool_image WHERE tool_id = t.id ORDER BY sort_order ASC LIMIT 1) AS "imageUrl",
+			(SELECT c.name FROM tool_category tc JOIN category c ON c.id = tc.category_id WHERE tc.tool_id = t.id AND tc.is_primary = true LIMIT 1) AS "category"
+		FROM tool t
+		WHERE t.id IN (${idList})
+	`);
+	for (const r of result.rows) {
+		map.set(r.id, {
+			defaultSku: r.defaultSku,
+			imageUrl: r.imageUrl,
+			category: r.category,
+		});
 	}
 	return map;
 }

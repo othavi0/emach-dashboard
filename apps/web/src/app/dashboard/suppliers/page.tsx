@@ -53,7 +53,6 @@ export default async function SuppliersPage({ searchParams }: PageProps) {
 			<SuppliersFilters />
 
 			<SupplierCardGrid
-				canMutate={canMutate}
 				filters={filters}
 				initial={first.items}
 				initialCursor={first.nextCursor}

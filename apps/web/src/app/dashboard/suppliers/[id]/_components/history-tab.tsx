@@ -8,6 +8,7 @@ const ACTION_LABELS: Record<string, string> = {
 	created: "Criado",
 	profile_updated: "Atualizado",
 	deleted: "Removido",
+	archived: "Arquivado",
 	restored: "Restaurado",
 };
 
