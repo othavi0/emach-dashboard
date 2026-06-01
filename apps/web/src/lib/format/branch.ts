@@ -1,3 +1,5 @@
+import type { BranchBusinessHoursPeriod } from "@emach/db/schema/inventory";
+
 export interface BranchAddressLike {
 	city?: string | null;
 	neighborhood?: string | null;
@@ -27,4 +29,13 @@ export function formatCep(raw: string | null | undefined): string | null {
 		return null;
 	}
 	return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
+export function formatBusinessPeriod(
+	p: BranchBusinessHoursPeriod | null | undefined
+): string {
+	if (!(p && p.isOpen && p.opensAt && p.closesAt)) {
+		return "Fechado";
+	}
+	return `${p.opensAt}–${p.closesAt}`;
 }
