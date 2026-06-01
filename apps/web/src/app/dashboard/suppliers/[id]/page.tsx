@@ -1,4 +1,6 @@
-import { Factory, History, Wrench } from "lucide-react";
+import { buttonVariants } from "@emach/ui/components/button";
+import { Factory, History, Pencil, Wrench } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
@@ -10,6 +12,7 @@ import {
 	getSupplierDetail,
 	getSupplierDetailKpis,
 } from "../data";
+import { ArchiveSupplierDialog } from "./_components/archive-supplier-dialog";
 import { HistoryTab } from "./_components/history-tab";
 import { OverviewTab } from "./_components/overview-tab";
 import { SupplierEditSheet } from "./_components/supplier-edit-sheet";
@@ -30,15 +33,42 @@ export default async function SupplierDetailPage({
 	const { id } = await params;
 	const sp = await searchParams;
 
-	const [detail, kpis, audit] = await Promise.all([
+	const [detail, kpis] = await Promise.all([
 		getSupplierDetail(id),
 		getSupplierDetailKpis(id),
-		getSupplierAuditLog(id),
 	]);
 
 	if (!detail) {
 		notFound();
 	}
+
+	const tab = sp.tab ?? "overview";
+	const audit = tab === "history" ? await getSupplierAuditLog(id) : [];
+
+	const headerAction =
+		tab === "tools" ? (
+			<Link
+				className={buttonVariants({ size: "sm" })}
+				href={`/dashboard/tools/new?supplierId=${id}`}
+			>
+				Nova ferramenta
+			</Link>
+		) : tab === "overview" ? (
+			<div className="flex items-center gap-2">
+				<Link
+					className={buttonVariants({ size: "sm", variant: "outline" })}
+					href={`/dashboard/suppliers/${id}?edit=1`}
+				>
+					<Pencil aria-hidden className="mr-1.5 size-3.5" />
+					Editar
+				</Link>
+				<ArchiveSupplierDialog
+					status={detail.status}
+					supplierId={id}
+					supplierName={detail.name}
+				/>
+			</div>
+		) : null;
 
 	const tabs: EntityTab[] = [
 		{
@@ -52,23 +82,24 @@ export default async function SupplierDetailPage({
 			label: "Ferramentas",
 			icon: <Wrench aria-hidden className="size-3.5" />,
 			badge: (
-				<span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 font-medium text-muted-foreground text-xs tabular-nums">
+				<span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-secondary px-1 font-medium text-secondary-foreground text-xs tabular-nums">
 					{detail.toolsTotal}
 				</span>
 			),
-			content: <ToolsTab search={sp.q} supplierId={id} />,
+			content:
+				tab === "tools" ? <ToolsTab search={sp.q} supplierId={id} /> : null,
 		},
 		{
 			value: "history",
 			label: "Histórico",
 			icon: <History aria-hidden className="size-3.5" />,
-			content: <HistoryTab rows={audit} />,
+			content: tab === "history" ? <HistoryTab rows={audit} /> : null,
 		},
 	];
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
-			<SupplierIdentity detail={detail} />
+			<SupplierIdentity actions={headerAction} detail={detail} />
 			<EntityTabs defaultValue="overview" tabs={tabs} />
 			{sp.edit === "1" ? <SupplierEditSheet supplier={detail} /> : null}
 		</div>
