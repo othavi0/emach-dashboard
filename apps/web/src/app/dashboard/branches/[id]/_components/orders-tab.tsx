@@ -3,7 +3,9 @@ import Link from "next/link";
 import { OrderStatusBadge } from "@/app/dashboard/orders/_components/order-status-badge";
 import type { OrderStatus } from "@/app/dashboard/orders/status-meta";
 
+import { fetchBranchOrdersPage } from "../../actions";
 import type { BranchOrderRow } from "../../data";
+import { BranchOrdersInfinite } from "./branch-orders-infinite";
 
 const DT = new Intl.DateTimeFormat("pt-BR", {
 	dateStyle: "short",
@@ -14,7 +16,7 @@ const BRL = new Intl.NumberFormat("pt-BR", {
 	currency: "BRL",
 });
 
-function OrderCard({ order }: { order: BranchOrderRow }) {
+export function OrderCard({ order }: { order: BranchOrderRow }) {
 	return (
 		<Link
 			className="group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -47,8 +49,10 @@ function OrderCard({ order }: { order: BranchOrderRow }) {
 	);
 }
 
-export function OrdersTab({ orders }: { orders: BranchOrderRow[] }) {
-	if (orders.length === 0) {
+export async function OrdersTab({ branchId }: { branchId: string }) {
+	const first = await fetchBranchOrdersPage({ branchId, cursor: null });
+
+	if (first.items.length === 0) {
 		return (
 			<div className="flex flex-col items-center gap-2 py-16 text-center">
 				<PackageOpen
@@ -64,10 +68,10 @@ export function OrdersTab({ orders }: { orders: BranchOrderRow[] }) {
 	}
 
 	return (
-		<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-			{orders.map((o) => (
-				<OrderCard key={o.id} order={o} />
-			))}
-		</div>
+		<BranchOrdersInfinite
+			branchId={branchId}
+			initial={first.items}
+			initialCursor={first.nextCursor}
+		/>
 	);
 }
