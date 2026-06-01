@@ -5,7 +5,7 @@ import { useInfiniteList } from "@/lib/use-infinite-list";
 
 import { fetchCustomersPage } from "../actions";
 import type { CustomerListItem, CustomersListFilters } from "../data";
-import { CustomerTable } from "./customer-table";
+import { CustomerCard } from "./customer-card";
 
 interface CustomersInfiniteProps {
 	filters: CustomersListFilters;
@@ -28,7 +28,11 @@ export function CustomersInfinite({
 
 	return (
 		<div aria-live="polite">
-			<CustomerTable items={items} />
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+				{items.map((item) => (
+					<CustomerCard customer={item} key={item.id} />
+				))}
+			</div>
 			<InfiniteSentinel
 				error={error}
 				hasMore={hasMore}
