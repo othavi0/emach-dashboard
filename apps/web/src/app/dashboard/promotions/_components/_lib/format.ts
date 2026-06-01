@@ -62,3 +62,35 @@ export function statusLabel(status: PromotionStatus): string {
 			return "—";
 	}
 }
+
+export function daysUntil(
+	d: Date | null,
+	now: Date = new Date()
+): number | null {
+	if (!d) {
+		return null;
+	}
+	const MS_PER_DAY = 86_400_000;
+	return Math.ceil((d.getTime() - now.getTime()) / MS_PER_DAY);
+}
+
+export interface RemainingDisplay {
+	tone: "default" | "warning" | "danger";
+	value: string;
+}
+
+export function daysRemainingDisplay(
+	status: PromotionStatus,
+	endsAt: Date | null,
+	now: Date = new Date()
+): RemainingDisplay {
+	if (status === "expired") {
+		return { value: "0", tone: "danger" };
+	}
+	if (!endsAt) {
+		return { value: "—", tone: "default" };
+	}
+	const d = daysUntil(endsAt, now) ?? 0;
+	const clamped = d < 0 ? 0 : d;
+	return { value: String(clamped), tone: clamped <= 7 ? "warning" : "default" };
+}
