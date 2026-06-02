@@ -7,10 +7,10 @@
 
 Duas instâncias **completamente isoladas** Better Auth no mesmo banco:
 
-| Instância | Import | Cookie prefix | trustedOrigins |
-|---|---|---|---|
-| Dashboard (super_admin/admin/manager/user) | `@emach/auth/dashboard` | default | `CORS_ORIGIN` |
-| Ecomerce (clientes BR) | `@emach/auth/ecommerce` | `ecommerce` | `ECOMMERCE_ORIGIN` |
+| Instância                                  | Import                  | Cookie prefix | trustedOrigins     |
+| ------------------------------------------ | ----------------------- | ------------- | ------------------ |
+| Dashboard (super_admin/admin/manager/user) | `@emach/auth/dashboard` | default       | `CORS_ORIGIN`      |
+| Ecomerce (clientes BR)                     | `@emach/auth/ecommerce` | `ecommerce`   | `ECOMMERCE_ORIGIN` |
 
 1. `apps/web` **pode** importar `@emach/db/schema/client` (admin lê dados de cliente). `apps/web` **nunca** importa `@emach/auth/ecommerce`. App ecomerce **nunca** importa `@emach/db/schema/auth`.
 2. `DashboardSession` ≠ `EcommerceSession`. Não existe tipo "Session" genérico.
@@ -57,15 +57,15 @@ Roles dashboard: `user.role` enum `super_admin/admin/manager/user`; `user.status
 
 ## Onde estão os outros mistakes-logs
 
-| Tópico | Arquivo |
-|---|---|
-| Server actions, capabilities, forms UX, orders branch-scoping | `apps/web/CLAUDE.md` |
-| Schema workflow, triggers PL/pgSQL, `db.execute` armadilha, sync ecomerce | `packages/db/CLAUDE.md` |
-| Sistema visual + **entity/CRUD pattern** (paleta, tipografia, cards, tabs, header contextual, drawer/dialog) | `DESIGN.md` |
-| Produto / personality / anti-references | `PRODUCT.md` |
-| Integração DB compartilhada (contrato detalhado) | `docs/integration/admin-ecommerce.md` |
-| Storage buckets | `docs/storage-buckets.md` |
-| Skills locais, MCPs, comandos | `.claude/skills/`, `.mcp.json`, `package.json` |
-| Glossário de domínio | `CONTEXT.md` |
+| Tópico                                                                                                       | Arquivo                                        |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| Server actions, capabilities, forms UX, orders branch-scoping                                                | `apps/web/CLAUDE.md`                           |
+| Schema workflow, triggers PL/pgSQL, `db.execute` armadilha, sync ecomerce                                    | `packages/db/CLAUDE.md`                        |
+| Sistema visual + **entity/CRUD pattern** (paleta, tipografia, cards, tabs, header contextual, drawer/dialog) | `DESIGN.md`                                    |
+| Produto / personality / anti-references                                                                      | `PRODUCT.md`                                   |
+| Integração DB compartilhada (contrato detalhado)                                                             | `docs/integration/admin-ecommerce.md`          |
+| Storage buckets                                                                                              | `docs/storage-buckets.md`                      |
+| Skills locais, MCPs, comandos                                                                                | `.claude/skills/`, `.mcp.json`, `package.json` |
+| Glossário de domínio                                                                                         | `CONTEXT.md`                                   |
 
 Stack / scripts / envs → `package.json`, `packages/env/src/server.ts`.
