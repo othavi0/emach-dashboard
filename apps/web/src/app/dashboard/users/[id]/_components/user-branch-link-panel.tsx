@@ -13,7 +13,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@emach/ui/components/popover";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -47,8 +47,16 @@ export function UserBranchLinkPanel({ userId, options }: Props) {
 			<PopoverTrigger
 				disabled={options.length === 0 || linking}
 				render={
-					<Button disabled={options.length === 0} size="sm" variant="outline">
-						<Plus aria-hidden className="mr-1.5 size-3.5" />
+					<Button
+						disabled={options.length === 0 || linking}
+						size="sm"
+						variant="outline"
+					>
+						{linking ? (
+							<Loader2 aria-hidden className="mr-1.5 size-3.5 animate-spin" />
+						) : (
+							<Plus aria-hidden className="mr-1.5 size-3.5" />
+						)}
 						Vincular filial
 					</Button>
 				}

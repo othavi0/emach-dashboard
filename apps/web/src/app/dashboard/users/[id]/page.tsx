@@ -37,14 +37,19 @@ export default async function UserDetailPage({
 	const actorSession = await requireUserDetailAccessOrRedirect(id);
 	const canDelete = can(actorSession.user.role, "users.delete");
 
-	const [user, availableBranches, kpis, linkedBranches] = await Promise.all([
+	// availableBranches só é usada no painel "Vincular filial" (aba Filiais);
+	// evita varrer todas as filiais nas demais abas.
+	const onBranchesTab = sp.tab === "branches";
+	const [user, kpis, linkedBranches, availableBranches] = await Promise.all([
 		getUserDetail(id),
-		db
-			.select({ id: branch.id, name: branch.name })
-			.from(branch)
-			.orderBy(asc(branch.name)),
 		getUserDetailKpis(id),
 		getUserLinkedBranchesWithStats(id),
+		onBranchesTab
+			? db
+					.select({ id: branch.id, name: branch.name })
+					.from(branch)
+					.orderBy(asc(branch.name))
+			: Promise.resolve([] as { id: string; name: string }[]),
 	]);
 
 	if (!user) {

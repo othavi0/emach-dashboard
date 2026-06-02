@@ -336,6 +336,7 @@ export async function suspendUser(input: unknown): Promise<ActionResult> {
 		metadata: { reason: parsed.data.reason },
 	});
 	revalidatePath(USERS_PATH);
+	revalidatePath(`${USERS_PATH}/${parsed.data.userId}`);
 	return { ok: true, data: undefined };
 }
 
@@ -368,6 +369,7 @@ export async function reactivateUser(input: {
 		targetId: parsed.data.userId,
 	});
 	revalidatePath(USERS_PATH);
+	revalidatePath(`${USERS_PATH}/${parsed.data.userId}`);
 	return { ok: true, data: undefined };
 }
 
