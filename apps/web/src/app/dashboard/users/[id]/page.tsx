@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
-import { requireUserDetailAccessOrRedirect } from "@/lib/permissions";
+import { can, requireUserDetailAccessOrRedirect } from "@/lib/permissions";
 import type { UserRow } from "../_components/types";
 import { UserEditSheet } from "../_components/user-edit-sheet";
 import {
@@ -35,6 +35,7 @@ export default async function UserDetailPage({
 	const { id } = await params;
 	const sp = await searchParams;
 	const actorSession = await requireUserDetailAccessOrRedirect(id);
+	const canDelete = can(actorSession.user.role, "users.delete");
 
 	const [user, availableBranches, kpis, linkedBranches] = await Promise.all([
 		getUserDetail(id),
@@ -88,7 +89,7 @@ export default async function UserDetailPage({
 			value: "security",
 			label: "Segurança",
 			icon: <Lock aria-hidden className="size-3.5" />,
-			content: <SecurityTab user={user} />,
+			content: <SecurityTab canDelete={canDelete} user={user} />,
 		},
 	];
 
@@ -110,7 +111,12 @@ export default async function UserDetailPage({
 			<EntityTabs defaultValue="profile" tabs={tabs} />
 			<UserEditSheet
 				actorRole={actorSession.user.role as UserRow["role"]}
-				user={{ id: user.id, name: user.name, role: user.role }}
+				user={{
+					id: user.id,
+					name: user.name,
+					role: user.role,
+					emailVerified: user.emailVerified,
+				}}
 			/>
 		</div>
 	);
