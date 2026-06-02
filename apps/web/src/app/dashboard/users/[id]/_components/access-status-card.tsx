@@ -1,16 +1,16 @@
 "use client";
 
-import { buttonVariants } from "@emach/ui/components/button";
+import { Button } from "@emach/ui/components/button";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@emach/ui/components/dropdown-menu";
-import { MoreVertical, Pause, Play } from "lucide-react";
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@emach/ui/components/card";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { DestructiveActionDialog } from "../../_components/destructive-action-dialog";
+import { StatusBadge } from "../../_components/status-badge";
 import { reactivateUser, suspendUser } from "../../actions";
 
 interface Props {
@@ -21,7 +21,7 @@ interface Props {
 	};
 }
 
-export function UserActionsMenu({ user }: Props) {
+export function AccessStatusCard({ user }: Props) {
 	const [dialogOpen, setDialogOpen] = useState<"suspend" | "reactivate" | null>(
 		null
 	);
@@ -55,28 +55,39 @@ export function UserActionsMenu({ user }: Props) {
 
 	return (
 		<>
-			<DropdownMenu>
-				<DropdownMenuTrigger
-					aria-label="Mais ações"
-					className={buttonVariants({ size: "sm", variant: "outline" })}
-				>
-					<MoreVertical aria-hidden className="size-3.5" />
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end" side="bottom">
-					{user.status === "active" ? (
-						<DropdownMenuItem onClick={() => setDialogOpen("suspend")}>
-							<Pause className="mr-2 size-3.5" />
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-base">Status de acesso</CardTitle>
+				</CardHeader>
+				<CardContent className="flex flex-col gap-4">
+					<StatusBadge status={user.status} />
+					{user.status === "active" && (
+						<Button
+							className="self-start"
+							onClick={() => setDialogOpen("suspend")}
+							size="sm"
+							variant="outline"
+						>
 							Suspender
-						</DropdownMenuItem>
-					) : null}
-					{user.status === "suspended" ? (
-						<DropdownMenuItem onClick={() => setDialogOpen("reactivate")}>
-							<Play className="mr-2 size-3.5" />
+						</Button>
+					)}
+					{user.status === "suspended" && (
+						<Button
+							className="self-start"
+							onClick={() => setDialogOpen("reactivate")}
+							size="sm"
+							variant="outline"
+						>
 							Reativar
-						</DropdownMenuItem>
-					) : null}
-				</DropdownMenuContent>
-			</DropdownMenu>
+						</Button>
+					)}
+					{user.status === "pending" && (
+						<p className="text-muted-foreground text-sm">
+							Aguardando aprovação
+						</p>
+					)}
+				</CardContent>
+			</Card>
 			<DestructiveActionDialog
 				confirmLabel="Suspender"
 				description={`O usuário ${user.name} perderá acesso imediatamente e todas as sessões ativas serão revogadas.`}

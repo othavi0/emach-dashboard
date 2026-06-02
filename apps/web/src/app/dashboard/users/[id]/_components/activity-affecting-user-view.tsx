@@ -1,12 +1,12 @@
 "use client";
 
-import { EntityAuditLogTable } from "@/components/entity/entity-audit-log-table";
-import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
 import { fetchUserActivityAffectingPage } from "../../actions";
 import type { UserActivityRow } from "../../data";
+import { ActivityTimeline } from "./activity-timeline";
 
+/** Voz passiva: o que aconteceu COM o usuário (ele é o alvo). */
 const ACTION_LABELS: Record<string, string> = {
 	"user.approved": "Foi aprovado",
 	"user.rejected": "Foi rejeitado",
@@ -39,30 +39,20 @@ export function ActivityAffectingUserView({
 	});
 
 	return (
-		<div className="flex flex-col gap-3">
-			<EntityAuditLogTable
-				actionLabels={ACTION_LABELS}
-				emptyMessage="Nenhuma alteração registrada neste usuário"
-				entries={items.map((it) => ({
-					id: it.id,
-					at: it.createdAt,
-					action: it.action,
-					actor: {
-						id: "",
-						name: it.actorName ?? "Usuário deletado",
-						type: "user" as const,
-					},
-					target: undefined,
-					before: null,
-					after: it.metadata,
-				}))}
-			/>
-			<InfiniteSentinel
-				error={error}
-				hasMore={hasMore}
-				onLoadMore={loadMore}
-				pending={pending}
-			/>
-		</div>
+		<ActivityTimeline
+			emptyMessage="Nenhuma alteração registrada neste usuário"
+			entries={items.map((item) => ({
+				action: item.action,
+				createdAt: item.createdAt,
+				id: item.id,
+				metadata: item.metadata,
+				subtitle: item.actorName ? `por ${item.actorName}` : undefined,
+				title: ACTION_LABELS[item.action] ?? item.action,
+			}))}
+			error={error}
+			hasMore={hasMore}
+			onLoadMore={loadMore}
+			pending={pending}
+		/>
 	);
 }

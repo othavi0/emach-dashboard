@@ -1,12 +1,12 @@
 "use client";
 
-import { EntityAuditLogTable } from "@/components/entity/entity-audit-log-table";
-import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
 import { fetchUserActivityByUserPage } from "../../actions";
 import type { UserActivityRow } from "../../data";
+import { ActivityTimeline } from "./activity-timeline";
 
+/** Voz ativa: o que o usuário FEZ (ele é o ator). */
 const ACTION_LABELS: Record<string, string> = {
 	"user.approved": "Aprovou usuário",
 	"user.rejected": "Rejeitou usuário",
@@ -38,28 +38,22 @@ export function ActivityByUserView({ userId, initial, initialCursor }: Props) {
 	});
 
 	return (
-		<div className="flex flex-col gap-3">
-			<EntityAuditLogTable
-				actionLabels={ACTION_LABELS}
-				emptyMessage="Sem ações registradas por este usuário"
-				entries={items.map((it) => ({
-					id: it.id,
-					at: it.createdAt,
-					action: it.action,
-					actor: { id: userId, name: "Este usuário", type: "user" as const },
-					target: it.targetId
-						? { label: `${it.targetType ?? "—"} · ${it.targetId.slice(0, 8)}` }
-						: undefined,
-					before: null,
-					after: it.metadata,
-				}))}
-			/>
-			<InfiniteSentinel
-				error={error}
-				hasMore={hasMore}
-				onLoadMore={loadMore}
-				pending={pending}
-			/>
-		</div>
+		<ActivityTimeline
+			emptyMessage="Sem ações registradas por este usuário"
+			entries={items.map((item) => ({
+				action: item.action,
+				createdAt: item.createdAt,
+				id: item.id,
+				metadata: item.metadata,
+				subtitle: item.targetId
+					? `${item.targetType ?? "—"} · ${item.targetId.slice(0, 8)}`
+					: undefined,
+				title: ACTION_LABELS[item.action] ?? item.action,
+			}))}
+			error={error}
+			hasMore={hasMore}
+			onLoadMore={loadMore}
+			pending={pending}
+		/>
 	);
 }

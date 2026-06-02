@@ -2,15 +2,28 @@ import "server-only";
 
 import { db } from "@emach/db";
 import {
+	account as accountTable,
 	session as sessionTable,
 	user as userTable,
 } from "@emach/db/schema/auth";
 import { branch, userBranch } from "@emach/db/schema/inventory";
 import { userActivityLog } from "@emach/db/schema/user-activity";
-import { and, desc, eq, gt, ilike, lte, or, type SQL, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	gt,
+	ilike,
+	lte,
+	or,
+	type SQL,
+	sql,
+} from "drizzle-orm";
 
 import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { getBranchTableAggregates } from "../branches/data";
 
 // ============================================================================
 // KPIs
@@ -197,6 +210,7 @@ export async function fetchPendingUsersPage(cursor: string | null): Promise<
 
 export interface UserDetail extends UserListRow {
 	emailVerified: boolean;
+	provider: string | null;
 }
 
 export async function getUserDetail(id: string): Promise<UserDetail | null> {
@@ -223,7 +237,123 @@ export async function getUserDetail(id: string): Promise<UserDetail | null> {
 		.leftJoin(branch, eq(branch.id, userBranch.branchId))
 		.where(eq(userTable.id, id))
 		.groupBy(userTable.id);
-	return (row as UserDetail) ?? null;
+	if (!row) {
+		return null;
+	}
+
+	// Subquery escalar correlacionada no db.select builder retorna null em runtime
+	// (armadilha documentada em packages/db/CLAUDE.md). Buscar provider em query separada.
+	const [acc] = await db
+		.select({ providerId: accountTable.providerId })
+		.from(accountTable)
+		.where(eq(accountTable.userId, id))
+		.orderBy(asc(accountTable.createdAt))
+		.limit(1);
+
+	return { ...(row as UserDetail), provider: acc?.providerId ?? null };
+}
+
+// ============================================================================
+// DETAIL KPIS
+// ============================================================================
+
+export interface UserDetailKpis {
+	activeSessions: number;
+	createdAt: Date;
+	lastLoginAt: Date | null;
+	linkedBranches: number;
+}
+
+export async function getUserDetailKpis(
+	userId: string
+): Promise<UserDetailKpis> {
+	const [[branches], [sessions], [u]] = await Promise.all([
+		db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(userBranch)
+			.where(eq(userBranch.userId, userId)),
+		db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(sessionTable)
+			.where(
+				and(
+					eq(sessionTable.userId, userId),
+					gt(sessionTable.expiresAt, new Date())
+				)
+			),
+		db
+			.select({
+				createdAt: userTable.createdAt,
+				lastLoginAt: userTable.lastLoginAt,
+			})
+			.from(userTable)
+			.where(eq(userTable.id, userId)),
+	]);
+	return {
+		activeSessions: sessions?.n ?? 0,
+		createdAt: u?.createdAt ?? new Date(0),
+		lastLoginAt: u?.lastLoginAt ?? null,
+		linkedBranches: branches?.n ?? 0,
+	};
+}
+
+// ============================================================================
+// LINKED BRANCHES WITH STATS
+// ============================================================================
+
+export interface UserLinkedBranch {
+	activeSkus: number;
+	city: string | null;
+	id: string;
+	lowStock: number;
+	name: string;
+	neighborhood: string | null;
+	state: string | null;
+	status: "active" | "inactive";
+	street: string | null;
+	streetNumber: string | null;
+	teamCount: number;
+}
+
+export async function getUserLinkedBranchesWithStats(
+	userId: string
+): Promise<UserLinkedBranch[]> {
+	// Buscar filiais vinculadas ao userId
+	const linkedBranches = await db
+		.select({
+			id: branch.id,
+			name: branch.name,
+			city: branch.city,
+			neighborhood: branch.neighborhood,
+			state: branch.state,
+			street: branch.street,
+			streetNumber: branch.streetNumber,
+			status: branch.status,
+		})
+		.from(branch)
+		.where(
+			sql`${branch.id} IN (SELECT ${userBranch.branchId} FROM ${userBranch} WHERE ${userBranch.userId} = ${userId})`
+		)
+		.orderBy(asc(branch.name));
+
+	if (linkedBranches.length === 0) {
+		return [];
+	}
+
+	const branchIds = linkedBranches.map((b) => b.id);
+	// Reusa a agregação canônica da listagem de filiais (mesmo cálculo de
+	// teamCount/activeSkus/lowStock) em vez de duplicar as queries.
+	const stats = await getBranchTableAggregates(branchIds);
+
+	return linkedBranches.map((b) => {
+		const s = stats.get(b.id);
+		return {
+			...b,
+			teamCount: s?.teamCount ?? 0,
+			activeSkus: s?.activeSkus ?? 0,
+			lowStock: s?.lowStock ?? 0,
+		};
+	});
 }
 
 // ============================================================================
