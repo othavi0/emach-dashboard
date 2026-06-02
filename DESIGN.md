@@ -167,7 +167,7 @@ Toda tabela de listagem (`/dashboard/<recurso>` com itens enumeráveis) **deve**
 
 **Manter texto** em ações onde o número/contagem é a informação principal (`Ver 3 filiais`) ou em mutações críticas inline (`Salvar` em threshold dirty). Ícone esconde valor que o usuário precisa ler à distância.
 
-Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-table.tsx`, `customers/_components/customer-table.tsx`; showcase em `/design#table`. (Suppliers e reviews migraram de tabela para o card-grid — ver catálogo de cards.)
+**Tabela é para coleção aninhada dentro de uma página de detalhe — não para a listagem-raiz de um recurso.** As listagens principais (`/dashboard/orders`, `customers`, `tools`, `suppliers`, `reviews`) migraram para **card-grid** (ver catálogo de cards). Tabela hoje só em sub-recursos densos. Implementação canônica: `apps/web/src/app/dashboard/customers/_components/customer-orders-table.tsx`, `categories/_components/attributes-table.tsx`; showcase em `/design#table`.
 
 **Layout de larguras (dados à esquerda, ações à direita):** `TableActionsHead` e `TableActionsCell` já carregam `w-full` internamente — a coluna de ações absorve toda sobra horizontal e mantém os botões alinhados à direita (`text-right` + `flex justify-end`). Resultado: todas as colunas de dado (ID, Cliente, Status, Total, etc) encolhem ao próprio conteúdo e ficam clusterizadas naturalmente à esquerda. Não use `w-full` em nenhuma coluna de dado — quebra o pattern.
 
@@ -206,6 +206,17 @@ Quando o conteúdo é crítico (usuário precisa ler o nome inteiro), prefira `<
 - `info` — "Em processamento" / "Aguardando NF"
 - `success` — "Pago" / "Entregue" / "Ativo"
 - `outline` — "Arquivado" / categorias secundárias
+
+### Status visual (ícone + cor + label — fonte única)
+
+Status que se repete em vários lugares (badge, histórico, pendências) deve ter **uma fonte única** de ícone + cor + label, nunca redefinida por componente. Pattern em Pedidos:
+
+- **Vocabulário compartilhado:** `apps/web/src/components/status-visual.tsx` — `STATUS_ICONS` (chave→ícone lucide), `TONE_TEXT` (tone→classe `text-*`), `TONE_BADGE_VARIANT` (tone→variant do `<Badge>`). Tipos `StatusIconKey`, `Tone`.
+- **Mapa de dados por status:** `orders/status-meta.ts` → `ORDER_STATUS_META: Record<OrderStatus, { label; iconKey; tone }>`. `ORDER_STATUS_LABELS` deriva dele. Consumido por `OrderStatusBadge`, histórico e pendências — mudar o ícone/cor/label de um status é um ponto só.
+- **`iconKey`/`tone` são strings serializáveis** de propósito: server actions (ex: histórico via `fetchOrderActivityPage`) carregam a chave no payload e o componente client resolve para ícone/cor. Não passe `LucideIcon` por server boundary.
+- Replicar o pattern para outras entidades com status (reviews, estoque): criar o `*_STATUS_META` da entidade reusando `status-visual`.
+
+Regra de color-blindness (§7) continua: status = **ícone + label + cor**, nunca só cor.
 
 ### Alerts
 
@@ -263,7 +274,9 @@ Helper exportado de `@emach/ui/components/tabs`. Wrapper sobre `<Badge variant="
 - Body de `<TabsContent>` em `text-xs/relaxed` por padrão (component baseline).
 - Para sub-tabs internas em painéis (PendingPanel etc.), use `<Tabs>` — **não `<ToggleGroup>`**. ToggleGroup é pra multi-seleção visual; tab é pra seleção única.
 
-Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-list-filters.tsx` (filter com TabsCountBadge), `apps/web/src/app/dashboard/users/page.tsx` (filter com TabsCountBadge), `apps/web/src/app/dashboard/customers/_components/customer-tabs.tsx` (scrollable ~7 abas, sem badge), `apps/web/src/components/pending-panel.tsx` (sub-tabs em painel), `apps/web/src/app/design/page.tsx` (showcase).
+**Tabs split (dois grupos semânticos).** Quando os filtros se dividem em dois grupos de significado distinto, renderize **dois `<TabsList>`** dentro do mesmo `<Tabs>`, num `flex justify-between` — cada lista vira sua própria pílula `bg-muted`, comunicando os grupos por separação espacial. Canônico: Pedidos (`order-list-filters.tsx`) — esquerda = fluxo do operador (Pago/Em preparação/Enviados/Entregues), direita = fora do fluxo (Aguardando pagamento/Devolvidos/Cancelados). Sem tab "Todos": a página abre listando tudo, **sem tab ativa**; clicar numa tab filtra e clicar na ativa de novo volta a "todos" (toggle, via href que remove o param). Use só quando os grupos têm leitura semântica clara — não para quebrar uma lista longa arbitrariamente.
+
+Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-list-filters.tsx` (filter com TabsCountBadge + **tabs split**), `apps/web/src/app/dashboard/users/page.tsx` (filter com TabsCountBadge), `apps/web/src/app/dashboard/customers/_components/customer-tabs.tsx` (scrollable ~7 abas, sem badge), `apps/web/src/components/pending-panel.tsx` (sub-tabs em painel), `apps/web/src/app/design/page.tsx` (showcase).
 
 ### Cards & Containers
 
@@ -279,10 +292,12 @@ Cards de grid/listagem seguem 4 arquétipos. Todos compartilham o **shell** e o 
 
 | Arquétipo | Quando | Miolo | Canônico |
 |---|---|---|---|
-| **Stat-card** | Entidade com métricas-resumo (filiais) | Header (avatar quadrado de iniciais + nome + endereço + ações-ícone opcionais) + footer de N métricas | `branches/_components/branch-card.tsx` |
+| **Stat-card** | Entidade com métricas-resumo (filiais, pedido na listagem) | Header (avatar quadrado de iniciais + nome/nº + meta + status badge) + footer de N métricas | `branches/_components/branch-card.tsx`; `orders/_components/order-card.tsx` (pedido: avatar de iniciais do cliente + nº + 📍 filial + footer Itens · Total · Data) |
 | **Media-card** | Item com imagem (estoque/produto) | Imagem 16:9 no topo + badge de status absoluto (`top-2 right-2`) + corpo (nome linkado + SKU/meta) + footer de métricas | `stock/_components/branch-stock-card.tsx` |
 | **Identity-card** | Pessoa (equipe, usuário) | Avatar `52px` `rounded-[10px]` + nome + email + status badge no topo; footer com `role · último login` + 1 ação (`outline`/`ghost`) | `branches/[id]/_components/team-member-card.tsx`, `users/_components/user-card.tsx` |
-| **Entity-card** | Registro sem imagem (pedido) | Ícone em avatar quadrado + título (número/id) + data + status badge oficial; footer com valor centralizado + label | `branches/[id]/_components/orders-tab.tsx` |
+| **Entity-card** | Registro sem imagem em coleção **aninhada** (pedidos na aba de uma filial) | Ícone em avatar quadrado + título (número/id) + data + status badge; footer com valor centralizado + label | `branches/[id]/_components/orders-tab.tsx` |
+
+A **listagem-raiz de pedidos** usa o **Stat-card** (`order-card.tsx`, footer de 3 métricas); o **Entity-card** (footer de 1 métrica) fica para a versão compacta dentro de coleções aninhadas.
 
 ### Footer edge-to-edge (regra de card)
 
@@ -292,7 +307,7 @@ O footer de um card é uma faixa que **encosta nas bordas laterais e inferior** 
 2. **Container com padding** (`p-4`): footer recompõe com `-mx-4 px-4 border-t pt-3` (margem negativa fura o padding, `px-4` devolve o respiro do conteúdo). Usado em identity-card.
 3. **Dentro de shadcn `<Card>`** (`py-4` + `px-4` no `CardContent`): footer usa `-mx-4 -mb-4`; o `overflow-hidden rounded-lg` do `Card` arredonda os cantos inferiores. Usado no card de Operação da Visão geral.
 
-**Footer de métricas:** `grid grid-cols-N border-t`; cada célula `flex flex-col items-center py-2.5` com `border-r` (último sem); valor `font-bold text-[18px] tabular-nums`, label `text-[9px] uppercase tracking-wider text-muted-foreground` embaixo. O valor pode herdar a cor da role do status (ex: Qtd em `text-destructive` quando zerada/crítica, `text-amber-500` em repor). Footer de valor único (pedido) usa 1 coluna centralizada (valor + label "Total").
+**Footer de métricas:** `grid grid-cols-N border-t`; cada célula `flex flex-col items-center py-2.5` com `border-r` (último sem); valor `font-bold text-[18px] tabular-nums`, label `text-[9px] uppercase tracking-wider text-muted-foreground` embaixo. O valor pode herdar a cor da role do status (ex: Qtd em `text-destructive` quando zerada/crítica, `text-amber-500` em repor; Total do pedido em `text-primary`). Footer de valor único usa 1 coluna centralizada (valor + label "Total") — é o caso do entity-card de pedido **aninhado**; já a **listagem-raiz** de pedidos usa 3 colunas (Itens · Total · Data).
 
 ### Listagem / scroll infinito (rodapé)
 
@@ -351,6 +366,7 @@ Regras:
 - **Wrapper `min-h-[18rem]` no ActivityFeed** sempre que pareado com `<PendingPanel compact>`. Sem wrapper, ActivityFeed cresce com conteúdo e desequilibra o par. Padrão único em todas as 4 rotas.
 - **`compact` no PendingPanel** pra esse par (`max-h-60 min-h-44` na área scrollável). Default (sem `compact`) é `max-h-[28rem] min-h-72` — usado em telas standalone fora do par.
 - **Sub-tabs do PendingPanel são Tabs reais** (não ToggleGroup). Carregam `<TabsCountBadge>` no contador. Drop intencional: a cor por `tab.role` no badge das sub-tabs (warning/success/info) **não** é aplicada; uniformidade > sinalização redundante. Sinalização de severidade fica nos badges do header do painel ou no `row.badge` dos itens (continua usando `BADGE_COLORS` por role).
+- **Ícone de status nas linhas (opcional).** `PendingRow` aceita `iconKey`/`tone` (de `status-visual`) → ícone de status colorido à esquerda da linha. `ActivityEvent` aceita `iconKey`/`tone`/`accentLabel` → o ícone vira o do status e o `accentLabel` (nome do status) é renderizado colorido após o `primary` (ex: `#EM-2026-0014 → Em preparação`). Campos **opcionais**: consumidores que não os passam mantêm o ícone+cor por `kind` (`KIND_META`). Canônico: Pedidos (`orders/pending-data.ts` preenche ambos a partir de `ORDER_STATUS_META`).
 
 ### Callout coral (`callout-card-coral`)
 
@@ -553,6 +569,7 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 
 Mudanças sistêmicas consolidadas, mais recente primeiro:
 
+- **Pedidos: card-grid + tabs split + status visual (2026-06-02)** — (1) listagem-raiz de `/dashboard/orders` migrou de tabela (`order-table.tsx`, removido) para **card-grid** (stat-card `order-card.tsx`: avatar de iniciais + nº + 📍 filial + footer Itens · Total · Data). Regra reforçada: tabela é para coleção aninhada em detalhe, não para listagem-raiz. (2) **Tabs split** — barra de filtros de status dividida em dois `<TabsList>` (`justify-between`): fluxo do operador à esquerda, exceções à direita; sem tab "Todos" (abre listando tudo, toggle na tab ativa). (3) **Status visual com fonte única** — novo `components/status-visual.tsx` (ícone/tone) + `ORDER_STATUS_META` em `status-meta.ts`; `OrderStatusBadge` refatorado pra consumir, e histórico (`ActivityFeed`) + pendências (`PendingPanel`) ganham ícone+cor por status (`iconKey`/`tone`/`accentLabel`, opcionais — outros módulos intactos). Label "Aguardando pgto" → "Aguardando pagamento" em todo o sistema. Ver §4 (Status visual, Tabs split, Cards, PendingPanel+ActivityFeed).
 - **Entity / CRUD pattern + catálogo de cards (2026-06-01)** — consolidado a partir do redesign das tabs de filial (`branches/[id]`). Formalizados: (1) **página de detalhe de entidade** com `EntityIdentityHeader` + `EntityTabs` (sincronizadas com `?tab=`) + **ações de header contextuais por tab** (Editar/Vincular/Adicionar mudam pela aba ativa, nunca duplicadas no corpo); (2) **catálogo de 4 arquétipos de card** (stat / media / identity / entity) com shell comum e **footer edge-to-edge** (faixa `border-t` que encosta nas bordas — 3 técnicas conforme padding do container); (3) **tríade de mutação** editar=drawer (`Sheet`), criar/forms complexos=página, destrutivo=`AlertDialog` controlado; botão destrutivo nunca coral. Badge de contagem em tab de detalhe uniformizado em `secondary`. Default para CRUDs novos; existentes migram aos poucos. Ver §4 (Cards, Entity detail, Mutações).
 - **Padrão de tabs unificado (2026-05-26)** — novo helper `<TabsCountBadge value={N} />` exportado de `@emach/ui/components/tabs` substitui `<Badge variant="secondary" className="ml-1.5 tabular-nums">` manual em filter-tabs. `tabsListVariants` default ganha `gap-1` (já existia em `line`) — propaga gap-1 automático pra todo `<TabsList>`. Filter-tabs em `/orders`, `/users`, `/reviews` migradas; badges agora uniformes em `secondary` (antes `/users` era default/outline e `/reviews` era default/secondary). `PendingPanel` refatorou sub-tabs `<ToggleGroup>` → `<Tabs>` com mesmo padrão — drop intencional da cor por `tab.role` no badge das sub-tabs. Wrapper `min-h-[18rem]` no `<ActivityFeed>` quando pareado com `<PendingPanel compact>` padroniza altura do par em `/orders`, `/customers`, `/dashboard`, `/users`. PendingPanel ganha prop `compact` (`max-h-60 min-h-44`). Hydration mismatch no `FooterContent` do `AppSidebar` corrigido passando `user` via prop do `DashboardLayout` (server) em vez de `authClient.useSession()` no client.
 - **Refinement /impeccable (2026-05-20)** — ring vira hairline (`ring-1 + ring-offset-1`), `--ring` alpha sobe 0.55→0.75. Tipografia: h1 sobe text-3xl→text-4xl, h2 sobe text-xl→text-2xl, weight de serif vira 500 (era 400) pra compensar thinness do Cormorant em dark; display sobe text-4xl→text-5xl. Section bands (`bg-muted/50` com border-y) documentadas pra ritmo vertical em páginas com data zone, aplicado primeiro em `dashboard/page.tsx`.
