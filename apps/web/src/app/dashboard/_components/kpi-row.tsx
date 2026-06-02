@@ -1,6 +1,15 @@
 import { fetchKpis } from "../dashboard-data";
 import { KpiCard } from "./kpi-card";
 
+// Idade legível: horas até 1 dia, depois dias. "386h" lê pior que "16 dias".
+function formatAge(hours: number): string {
+	if (hours < 24) {
+		return `${hours}h`;
+	}
+	const days = Math.round(hours / 24);
+	return `${days} dia${days === 1 ? "" : "s"}`;
+}
+
 export async function KpiRow({ branchId }: { branchId: string | null }) {
 	const k = await fetchKpis(branchId);
 	return (
@@ -16,7 +25,7 @@ export async function KpiRow({ branchId }: { branchId: string | null }) {
 				sub={
 					k.oldestPendingReviewHours == null
 						? undefined
-						: `mais antiga: ${k.oldestPendingReviewHours}h`
+						: `mais antiga: ${formatAge(k.oldestPendingReviewHours)}`
 				}
 				tone={k.pendingReviews > 0 ? "warning" : "default"}
 				value={k.pendingReviews}
