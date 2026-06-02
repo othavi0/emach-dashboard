@@ -1,8 +1,5 @@
-"use client";
-
 import { Badge } from "@emach/ui/components/badge";
-import { AlertTriangleIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import {
 	TOOL_STATUS_LABELS,
@@ -18,8 +15,6 @@ const STATUS_BADGE_VARIANT: Record<
 	discontinued: "outline",
 };
 
-const MAX_VARIANT_CHIPS = 4;
-
 export interface ToolCardBranchSummary {
 	branchId: string;
 	branchName: string;
@@ -32,25 +27,15 @@ export interface ToolCardData {
 	imageUrl: string | null;
 	name: string;
 	primaryCategoryName: string | null;
-	reorderCount: number;
 	sku: string | null;
-	slug: string | null;
 	status: ToolStatusValue;
-	supplierName: string | null;
 	totalStock: number;
 	variantCount: number;
 	variantSummaries: string[];
-	visibleOnSite: boolean;
-	voltage: string | null;
 }
 
-export type ToolCardVariant = "catalog" | "stock-overview";
-
 interface ToolCardProps {
-	actions?: React.ReactNode;
-	canMutate: boolean;
 	tool: ToolCardData;
-	variant: ToolCardVariant;
 }
 
 function formatMeta(tool: ToolCardData): string {
@@ -58,35 +43,23 @@ function formatMeta(tool: ToolCardData): string {
 	if (tool.sku) {
 		parts.push(`SKU ${tool.sku}`);
 	}
-	if (tool.voltage) {
-		parts.push(tool.voltage);
+	const voltages = tool.variantSummaries.filter((v) => v.trim().length > 0);
+	if (voltages.length > 0) {
+		parts.push(voltages.join("/"));
 	}
-	if (tool.supplierName) {
-		parts.push(tool.supplierName);
-	}
-	return parts.join(" · ");
+	return parts.join(" · ") || "—";
 }
 
-export function ToolCard({ tool, variant, canMutate, actions }: ToolCardProps) {
-	const router = useRouter();
-	const showVariantsBlock =
-		tool.variantCount > 1 && tool.variantSummaries.length > 0;
-	const showReorderHeader =
-		variant === "stock-overview" && tool.reorderCount > 0;
+export function ToolCard({ tool }: ToolCardProps) {
 	const stockIsCritical = tool.totalStock === 0;
+	const isDimmed = tool.status === "draft" || tool.status === "discontinued";
 
 	return (
-		<div
-			className="group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm"
-			onClick={() => router.push(`/dashboard/tools/${tool.id}`)}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					router.push(`/dashboard/tools/${tool.id}`);
-				}
-			}}
-			role="button"
-			tabIndex={0}
+		<Link
+			className={`group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+				isDimmed ? "opacity-70" : ""
+			}`}
+			href={`/dashboard/tools/${tool.id}`}
 		>
 			{/* Imagem com badges sobrepostos */}
 			<div className="relative overflow-hidden">
@@ -119,11 +92,6 @@ export function ToolCard({ tool, variant, canMutate, actions }: ToolCardProps) {
 						<Badge className="shadow-sm backdrop-blur-sm" variant="destructive">
 							Esgotado
 						</Badge>
-					) : showReorderHeader ? (
-						<Badge className="shadow-sm backdrop-blur-sm" variant="warning">
-							<AlertTriangleIcon aria-hidden className="size-3" />
-							Repor{tool.reorderCount > 1 ? ` (${tool.reorderCount})` : ""}
-						</Badge>
 					) : (
 						<Badge
 							className="shadow-sm backdrop-blur-sm"
@@ -136,77 +104,46 @@ export function ToolCard({ tool, variant, canMutate, actions }: ToolCardProps) {
 			</div>
 
 			{/* Corpo */}
-			<div className="flex flex-col gap-2 px-4 pt-3 pb-4">
-				{/* Nome + meta */}
-				<div className="flex flex-col gap-1">
-					<span className="line-clamp-2 font-semibold text-[14px] text-foreground leading-[1.3] tracking-tight">
-						{tool.name}
+			<div className="flex flex-col gap-1 px-4 pt-3 pb-3">
+				<span className="line-clamp-2 font-semibold text-[14px] text-foreground leading-[1.3] tracking-tight">
+					{tool.name}
+				</span>
+				<p className="line-clamp-1 text-muted-foreground text-xs">
+					{formatMeta(tool)}
+				</p>
+			</div>
+
+			{/* Footer de 3 métricas (espelha o card de estoque de filial) */}
+			<div className="grid grid-cols-3 border-border border-t">
+				<div className="flex flex-col items-center border-border border-r py-2.5">
+					<span
+						className={`font-bold text-[18px] tabular-nums ${
+							stockIsCritical ? "text-destructive" : "text-primary"
+						}`}
+					>
+						{tool.totalStock}
 					</span>
-					<p className="line-clamp-1 text-muted-foreground text-xs">
-						{formatMeta(tool) || "—"}
-					</p>
-					{variant === "catalog" && (
-						<div className="mt-0.5 flex items-center gap-1.5">
-							<span
-								className={`size-[5px] flex-shrink-0 rounded-full ${
-									tool.visibleOnSite
-										? "bg-green-500/60"
-										: "bg-muted-foreground/30"
-								}`}
-							/>
-							<p className="text-[10px] text-muted-foreground">
-								{tool.visibleOnSite ? "Visível no site" : "Oculto no site"}
-							</p>
-						</div>
-					)}
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+						Estoque
+					</span>
 				</div>
-
-				{/* Slot de variantes — sempre presente para altura uniforme */}
-				<div className="flex min-h-[20px] flex-wrap gap-1">
-					{showVariantsBlock && (
-						<>
-							{tool.variantSummaries.slice(0, MAX_VARIANT_CHIPS).map((v) => (
-								<span
-									className="rounded border border-border/50 bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
-									key={v}
-									title={v}
-								>
-									{v}
-								</span>
-							))}
-							{tool.variantSummaries.length > MAX_VARIANT_CHIPS && (
-								<span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-									+{tool.variantSummaries.length - MAX_VARIANT_CHIPS}
-								</span>
-							)}
-						</>
-					)}
+				<div className="flex flex-col items-center border-border border-r py-2.5">
+					<span className="font-bold text-[18px] text-foreground tabular-nums">
+						{tool.variantCount}
+					</span>
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+						Variantes
+					</span>
 				</div>
-
-				<hr className="border-border" />
-
-				{/* Rodapé */}
-				<div className="flex items-center justify-between gap-3">
-					<div className="flex items-baseline gap-1">
-						<span className="text-muted-foreground text-xs">Estoque:</span>
-						<span
-							className={`font-semibold text-[15px] tabular-nums leading-none ${
-								stockIsCritical ? "text-destructive" : "text-primary"
-							}`}
-						>
-							{tool.totalStock}
-						</span>
-					</div>
-					{canMutate && actions ? (
-						<div
-							className="flex shrink-0 items-center gap-1.5"
-							onClick={(e) => e.stopPropagation()}
-						>
-							{actions}
-						</div>
-					) : null}
+				<div className="flex flex-col items-center py-2.5">
+					<span className="font-bold text-[18px] text-foreground tabular-nums">
+						{tool.branches.length}
+					</span>
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
+						Filiais
+					</span>
 				</div>
 			</div>
-		</div>
+		</Link>
 	);
 }
