@@ -13,18 +13,29 @@ import Link from "next/link";
 import { useRef } from "react";
 
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
+import {
+	STATUS_ICONS,
+	type StatusIconKey,
+	TONE_TEXT,
+	type Tone,
+} from "@/components/status-visual";
 import type { InfiniteResult } from "@/lib/infinite";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
 export type ActivityKind = "order" | "review" | "stock" | "customer" | "user";
 
 export interface ActivityEvent {
+	/** Trecho colorido (nome do status) renderizado após o primary. */
+	accentLabel?: string;
 	at: Date;
 	href?: string;
+	/** Sobrescreve o ícone/cor do kind por um status específico. */
+	iconKey?: StatusIconKey;
 	id: string;
 	kind: ActivityKind;
 	primary: string;
 	secondary?: string;
+	tone?: Tone;
 }
 
 interface ActivityFeedProps {
@@ -98,7 +109,12 @@ export function ActivityFeed({
 						<ul className="flex flex-col">
 							{items.map((event) => {
 								const meta = KIND_META[event.kind];
-								const Icon = meta.icon;
+								const Icon = event.iconKey
+									? STATUS_ICONS[event.iconKey]
+									: meta.icon;
+								const iconColor = event.tone
+									? TONE_TEXT[event.tone]
+									: meta.color;
 								const rowClassName =
 									"-mx-2 flex w-full min-w-0 items-start gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted";
 								const inner = (
@@ -108,11 +124,21 @@ export function ActivityFeed({
 										</span>
 										<Icon
 											aria-hidden="true"
-											className={`mt-0.5 size-3.5 shrink-0 ${meta.color}`}
+											className={`mt-0.5 size-3.5 shrink-0 ${iconColor}`}
 										/>
 										<div className="flex min-w-0 flex-1 flex-col">
 											<span className="truncate text-foreground">
 												{event.primary}
+												{event.accentLabel && (
+													<>
+														<span className="text-muted-foreground"> → </span>
+														<span
+															className={`font-medium ${event.tone ? TONE_TEXT[event.tone] : ""}`}
+														>
+															{event.accentLabel}
+														</span>
+													</>
+												)}
 											</span>
 											{event.secondary && (
 												<span className="truncate text-muted-foreground text-xs">

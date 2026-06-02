@@ -1,6 +1,7 @@
 export type { OrderStatus } from "@emach/db/schema/orders";
 
 import type { OrderStatus as DbOrderStatus } from "@emach/db/schema/orders";
+import type { StatusIconKey, Tone } from "@/components/status-visual";
 
 // Fluxo ativo do operador interno (grupo da esquerda na barra de tabs).
 export const ORDER_FLOW_TABS = [
@@ -55,14 +56,35 @@ export const ALL_ORDERS_TAB = {
 	statuses: null,
 } as const;
 
-export const ORDER_STATUS_LABELS: Record<DbOrderStatus, string> = {
-	pending_payment: "Aguardando pgto",
-	payment_failed: "Pagamento falhou",
-	paid: "Pago",
-	preparing: "Em preparação",
-	shipped: "Enviado",
-	delivered: "Entregue",
-	returned: "Devolvido",
-	canceled: "Cancelado",
-	refunded: "Reembolsado",
+// Fonte única de status: label + ícone + cor. Consumida por badge, histórico e
+// pendências. iconKey/tone são strings serializáveis (ver components/status-visual).
+export const ORDER_STATUS_META: Record<
+	DbOrderStatus,
+	{ iconKey: StatusIconKey; label: string; tone: Tone }
+> = {
+	pending_payment: {
+		label: "Aguardando pagamento",
+		iconKey: "clock",
+		tone: "warning",
+	},
+	payment_failed: {
+		label: "Pagamento falhou",
+		iconKey: "ban",
+		tone: "destructive",
+	},
+	paid: { label: "Pago", iconKey: "check", tone: "success" },
+	preparing: { label: "Em preparação", iconKey: "package", tone: "info" },
+	shipped: { label: "Enviado", iconKey: "truck", tone: "info" },
+	delivered: { label: "Entregue", iconKey: "checkCheck", tone: "success" },
+	returned: { label: "Devolvido", iconKey: "undo", tone: "warning" },
+	canceled: { label: "Cancelado", iconKey: "xCircle", tone: "destructive" },
+	refunded: { label: "Reembolsado", iconKey: "rotate", tone: "destructive" },
 };
+
+export const ORDER_STATUS_LABELS: Record<DbOrderStatus, string> =
+	Object.fromEntries(
+		Object.entries(ORDER_STATUS_META).map(([status, meta]) => [
+			status,
+			meta.label,
+		])
+	) as Record<DbOrderStatus, string>;

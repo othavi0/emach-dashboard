@@ -12,6 +12,12 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
+import {
+	STATUS_ICONS,
+	type StatusIconKey,
+	TONE_TEXT,
+	type Tone,
+} from "@/components/status-visual";
 import type { InfiniteResult } from "@/lib/infinite";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
@@ -27,9 +33,12 @@ export interface PendingRow {
 	aging?: { level: "ok" | "warn" | "late"; label: string };
 	badge?: { label: string; role: PendingRole };
 	href: string;
+	/** Ícone de status à esquerda da linha (opcional). */
+	iconKey?: StatusIconKey;
 	id: string;
 	primary: string;
 	secondary?: string;
+	tone?: Tone;
 }
 
 export interface PendingTab {
@@ -90,44 +99,55 @@ function PendingTabContent({
 			ref={scrollRef}
 		>
 			<ul className="flex flex-col">
-				{items.map((row) => (
-					<li key={row.id}>
-						<Link
-							className="-mx-2 flex w-full min-w-0 items-center gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted"
-							href={row.href}
-						>
-							<div className="flex min-w-0 flex-1 flex-col">
-								<span className="truncate text-foreground">{row.primary}</span>
-								{row.secondary && (
-									<span className="truncate text-muted-foreground text-xs">
-										{row.secondary}
+				{items.map((row) => {
+					const StatusIcon = row.iconKey ? STATUS_ICONS[row.iconKey] : null;
+					return (
+						<li key={row.id}>
+							<Link
+								className="-mx-2 flex w-full min-w-0 items-center gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted"
+								href={row.href}
+							>
+								{StatusIcon && (
+									<StatusIcon
+										aria-hidden
+										className={`size-3.5 shrink-0 ${row.tone ? TONE_TEXT[row.tone] : "text-muted-foreground"}`}
+									/>
+								)}
+								<div className="flex min-w-0 flex-1 flex-col">
+									<span className="truncate text-foreground">
+										{row.primary}
+									</span>
+									{row.secondary && (
+										<span className="truncate text-muted-foreground text-xs">
+											{row.secondary}
+										</span>
+									)}
+								</div>
+								{row.badge && (
+									<span
+										className={cn(
+											"max-w-[45%] shrink-0 truncate font-mono text-xs",
+											BADGE_COLORS[row.badge.role]
+										)}
+									>
+										{row.badge.label}
 									</span>
 								)}
-							</div>
-							{row.badge && (
-								<span
-									className={cn(
-										"max-w-[45%] shrink-0 truncate font-mono text-xs",
-										BADGE_COLORS[row.badge.role]
-									)}
-								>
-									{row.badge.label}
-								</span>
-							)}
-							{row.aging && row.aging.level !== "ok" && (
-								<span
-									className={
-										row.aging.level === "late"
-											? "rounded-md bg-destructive/15 px-2 py-0.5 font-medium text-[11px] text-destructive"
-											: "rounded-md bg-amber-100 px-2 py-0.5 font-medium text-[11px] text-amber-900 dark:bg-amber-900/30 dark:text-amber-200"
-									}
-								>
-									{row.aging.label}
-								</span>
-							)}
-						</Link>
-					</li>
-				))}
+								{row.aging && row.aging.level !== "ok" && (
+									<span
+										className={
+											row.aging.level === "late"
+												? "rounded-md bg-destructive/15 px-2 py-0.5 font-medium text-[11px] text-destructive"
+												: "rounded-md bg-amber-100 px-2 py-0.5 font-medium text-[11px] text-amber-900 dark:bg-amber-900/30 dark:text-amber-200"
+										}
+									>
+										{row.aging.label}
+									</span>
+								)}
+							</Link>
+						</li>
+					);
+				})}
 			</ul>
 			<InfiniteSentinel
 				error={error}

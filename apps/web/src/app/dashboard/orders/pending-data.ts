@@ -13,10 +13,10 @@ import { decodeCursorAs } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 import { formatAgingLabel, getAgingLevel } from "./_lib/aging";
-import { ORDER_STATUS_LABELS } from "./status-meta";
+import { ORDER_STATUS_META } from "./status-meta";
 
 const PENDING_ORDER_BADGE: Record<string, NonNullable<PendingRow["badge"]>> = {
-	pending_payment: { label: "Aguardando pgto", role: "warning" },
+	pending_payment: { label: "Aguardando pagamento", role: "warning" },
 	paid: { label: "Pago", role: "warning" },
 	preparing: { label: "Preparando", role: "info" },
 	shipped: { label: "Enviado", role: "info" },
@@ -85,6 +85,7 @@ export async function fetchPendingOrdersPage({
 		(r): PendingRow => {
 			const enteredAt = r.entered_at ? toDate(r.entered_at) : null;
 			const level = getAgingLevel(r.status, enteredAt);
+			const meta = ORDER_STATUS_META[r.status];
 			return {
 				id: r.id,
 				href: `/dashboard/orders/${r.id}`,
@@ -93,6 +94,8 @@ export async function fetchPendingOrdersPage({
 					label: r.status,
 					role: "info",
 				},
+				iconKey: meta.iconKey,
+				tone: meta.tone,
 				aging: enteredAt
 					? { level, label: formatAgingLabel(enteredAt) }
 					: undefined,
@@ -135,13 +138,19 @@ export async function fetchOrderActivityPage(
 
 	return paginate(
 		rows,
-		(r): ActivityEvent => ({
-			id: r.id,
-			kind: "order" as const,
-			at: r.createdAt,
-			primary: `#${r.orderNumber} → ${ORDER_STATUS_LABELS[r.toStatus]}`,
-			href: `/dashboard/orders/${r.orderId}`,
-		}),
+		(r): ActivityEvent => {
+			const meta = ORDER_STATUS_META[r.toStatus];
+			return {
+				id: r.id,
+				kind: "order" as const,
+				at: r.createdAt,
+				primary: `#${r.orderNumber}`,
+				accentLabel: meta.label,
+				iconKey: meta.iconKey,
+				tone: meta.tone,
+				href: `/dashboard/orders/${r.orderId}`,
+			};
+		},
 		(last) => ({
 			v: 1,
 			sort: "newest",
