@@ -9,7 +9,7 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
 import { requireCapability } from "@/lib/permissions";
-import { ReviewQueueTable } from "./_components/review-queue-table";
+import { ReviewCard } from "./_components/review-card";
 import { ReviewsFilters } from "./_components/reviews-filters";
 import { getReviewsTabCounts, listReviews } from "./data";
 import { reviewsListFiltersSchema } from "./schema";
@@ -33,7 +33,7 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
 	const currentTab =
 		REVIEW_TABS.find((tab) => tab.key === filters.tab) ?? REVIEW_TABS[0];
 	const hasFilters =
-		filters.tab !== "all" ||
+		filters.tab !== "pending" ||
 		filters.rating !== undefined ||
 		Boolean(filters.q) ||
 		Boolean(filters.from) ||
@@ -88,7 +88,11 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
 					) : null}
 				</Empty>
 			) : (
-				<ReviewQueueTable reviews={reviews} />
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+					{reviews.map((review) => (
+						<ReviewCard key={review.id} review={review} />
+					))}
+				</div>
 			)}
 		</>
 	);

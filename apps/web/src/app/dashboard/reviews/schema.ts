@@ -7,9 +7,7 @@ const isoDate = z
 
 export const reviewsListFiltersSchema = z
 	.object({
-		tab: z
-			.enum(["all", "pending", "approved", "rejected", "spam"])
-			.default("all"),
+		tab: z.enum(["pending", "approved", "rejected", "spam"]).default("pending"),
 		rating: z.coerce.number().int().min(1).max(5).optional(),
 		q: z.string().trim().max(100).optional(),
 		from: isoDate,
