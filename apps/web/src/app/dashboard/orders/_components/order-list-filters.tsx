@@ -27,7 +27,7 @@ import type {
 	OrderListFilters as OrderListFilterState,
 	OrderStatus,
 } from "../data";
-import { ORDER_TABS } from "../status-meta";
+import { ORDER_EXCEPTION_TABS, ORDER_FLOW_TABS } from "../status-meta";
 
 interface OrderListFiltersProps {
 	branches: BranchOption[];
@@ -90,26 +90,35 @@ export function OrderFiltersPanel({
 	const [to, setTo] = useDebouncedParam({ basePath: BASE, key: "to" });
 	const currentBranch = searchParams.get("branchId") ?? BRANCH_ALL;
 
+	const renderTab = (tab: {
+		key: string;
+		label: string;
+		statuses: readonly OrderStatus[];
+	}) => {
+		const count = tabCount(counts, tab.key, tab.statuses);
+		const isActive = currentTab === tab.key;
+		// Clicar na tab ativa volta a "Todos" (remove o filtro de status).
+		const href = buildTabHref(filters, isActive ? "all" : tab.key);
+		return (
+			<TabsTrigger
+				key={tab.key}
+				nativeButton={false}
+				render={<Link href={href} />}
+				value={tab.key}
+			>
+				<span>{tab.label}</span>
+				{(isActive || count > 0) && <TabsCountBadge value={count} />}
+			</TabsTrigger>
+		);
+	};
+
 	return (
 		<div className="flex flex-col gap-3">
 			<Tabs value={currentTab}>
-				<TabsList scrollable>
-					{ORDER_TABS.map((tab) => {
-						const count = tabCount(counts, tab.key, tab.statuses);
-						const isActive = currentTab === tab.key;
-						return (
-							<TabsTrigger
-								key={tab.key}
-								nativeButton={false}
-								render={<Link href={buildTabHref(filters, tab.key)} />}
-								value={tab.key}
-							>
-								<span>{tab.label}</span>
-								{(isActive || count > 0) && <TabsCountBadge value={count} />}
-							</TabsTrigger>
-						);
-					})}
-				</TabsList>
+				<div className="flex flex-wrap items-center justify-between gap-2">
+					<TabsList scrollable>{ORDER_FLOW_TABS.map(renderTab)}</TabsList>
+					<TabsList scrollable>{ORDER_EXCEPTION_TABS.map(renderTab)}</TabsList>
+				</div>
 			</Tabs>
 
 			<FiltersBar hasActive={hasActive} onClear={clearAll}>

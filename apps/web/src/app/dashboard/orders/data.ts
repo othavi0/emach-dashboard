@@ -22,7 +22,7 @@ import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 import { createSignedUrl, ORDER_DOCUMENTS_BUCKET } from "@/lib/storage";
-import { ORDER_TABS } from "./status-meta";
+import { ALL_ORDERS_TAB, ORDER_TABS } from "./status-meta";
 
 export const ORDERS_PAGE_SIZE = 20;
 
@@ -178,7 +178,7 @@ function normalizeDateParam(value?: string): string | undefined {
 }
 
 function resolveTab(tab?: string) {
-	return ORDER_TABS.find((item) => item.key === tab) ?? ORDER_TABS[0];
+	return ORDER_TABS.find((item) => item.key === tab) ?? ALL_ORDERS_TAB;
 }
 
 function formatActorLabel(entry: {
@@ -191,7 +191,9 @@ function formatActorLabel(entry: {
 	return entry.actorUserName ?? "Usuário";
 }
 
-export function getOrderTab(tab?: string): (typeof ORDER_TABS)[number] {
+export function getOrderTab(
+	tab?: string
+): (typeof ORDER_TABS)[number] | typeof ALL_ORDERS_TAB {
 	return resolveTab(tab);
 }
 
@@ -483,10 +485,12 @@ export async function getOrdersTabCounts(): Promise<Record<string, number>> {
 		SELECT
 			(SELECT COUNT(*)::int FROM "order") AS all_count,
 			(SELECT COUNT(*)::int FROM "order" WHERE status = 'pending_payment') AS pending_payment,
+			(SELECT COUNT(*)::int FROM "order" WHERE status = 'payment_failed') AS payment_failed,
 			(SELECT COUNT(*)::int FROM "order" WHERE status = 'paid') AS paid,
 			(SELECT COUNT(*)::int FROM "order" WHERE status = 'preparing') AS preparing,
 			(SELECT COUNT(*)::int FROM "order" WHERE status = 'shipped') AS shipped,
 			(SELECT COUNT(*)::int FROM "order" WHERE status = 'delivered') AS delivered,
+			(SELECT COUNT(*)::int FROM "order" WHERE status = 'returned') AS returned,
 			(SELECT COUNT(*)::int FROM "order" WHERE status IN ('canceled', 'refunded')) AS canceled
 	`);
 
@@ -494,10 +498,12 @@ export async function getOrdersTabCounts(): Promise<Record<string, number>> {
 		result.rows[0] ?? {
 			all_count: 0,
 			pending_payment: 0,
+			payment_failed: 0,
 			paid: 0,
 			preparing: 0,
 			shipped: 0,
 			delivered: 0,
+			returned: 0,
 			canceled: 0,
 		}
 	);
