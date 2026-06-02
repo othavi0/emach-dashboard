@@ -6,10 +6,8 @@ import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
 import { fetchToolsPage, type ToolsFiltersInput } from "../actions";
-import { ToolCardActions } from "./tool-card-actions";
 
 interface ToolsInfiniteProps {
-	canMutate: boolean;
 	filters: ToolsFiltersInput;
 	initial: ToolCardData[];
 	initialCursor: string | null;
@@ -19,7 +17,6 @@ export function ToolsInfinite({
 	initial,
 	initialCursor,
 	filters,
-	canMutate,
 }: ToolsInfiniteProps) {
 	const resetKey = JSON.stringify(filters);
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
@@ -31,14 +28,7 @@ export function ToolsInfinite({
 
 	return (
 		<div aria-live="polite">
-			<ToolCardGrid
-				canMutate={canMutate}
-				renderActions={(tool) => (
-					<ToolCardActions toolId={tool.id} toolName={tool.name} />
-				)}
-				tools={items}
-				variant="catalog"
-			/>
+			<ToolCardGrid tools={items} />
 			<InfiniteSentinel
 				error={error}
 				hasMore={hasMore}
