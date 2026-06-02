@@ -5,9 +5,9 @@ import { Boxes } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatBranchAddress } from "@/lib/format/branch";
-import { getInitials } from "@/lib/format/name";
 
 import type { BranchTableRow } from "../data";
+import { BranchStatsCard } from "./branch-stats-card";
 
 interface BranchCardProps {
 	branch: BranchTableRow;
@@ -21,41 +21,10 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 	const primaryHref = canManage ? detailHref : stockHref;
 
 	return (
-		<div
-			className={`group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${branch.status === "inactive" ? "opacity-70" : ""}`}
-			onClick={() => router.push(primaryHref)}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					router.push(primaryHref);
-				}
-			}}
-			role="button"
-			tabIndex={0}
-		>
-			<div className="flex items-start gap-3 px-4 pt-4 pb-3">
-				<div className="flex size-12 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-muted font-bold text-[17px] text-foreground">
-					{getInitials(branch.name)}
-				</div>
-				<div className="min-w-0 flex-1">
-					<p className="font-semibold text-[15px] text-foreground leading-tight">
-						{branch.name}
-					</p>
-					{branch.status === "inactive" && (
-						<span className="mt-1 inline-flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground uppercase tracking-wider">
-							Inativa
-						</span>
-					)}
-					{(() => {
-						const addr = formatBranchAddress(branch);
-						return addr ? (
-							<p className="line-clamp-1 text-muted-foreground text-xs">
-								{addr}
-							</p>
-						) : null;
-					})()}
-				</div>
-				{canManage && (
+		<BranchStatsCard
+			address={formatBranchAddress(branch)}
+			headerAction={
+				canManage ? (
 					<Link
 						aria-label={`Ver estoque de ${branch.name}`}
 						className={`${buttonVariants({
@@ -67,39 +36,16 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 					>
 						<Boxes aria-hidden className="size-4" />
 					</Link>
-				)}
-			</div>
-
-			<div className="grid grid-cols-3 border-border border-t">
-				<div className="flex flex-col items-center border-border border-r py-3">
-					<span className="font-bold text-[20px] text-foreground tabular-nums">
-						{branch.teamCount}
-					</span>
-					<span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-						Equipe
-					</span>
-				</div>
-				<div className="flex flex-col items-center border-border border-r py-3">
-					<span className="font-bold text-[20px] text-foreground tabular-nums">
-						{branch.activeSkus}
-					</span>
-					<span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-						SKUs ativos
-					</span>
-				</div>
-				<div className="flex flex-col items-center py-3">
-					<span
-						className={`font-bold text-[20px] tabular-nums ${
-							branch.lowStock > 0 ? "text-amber-500" : "text-foreground"
-						}`}
-					>
-						{branch.lowStock}
-					</span>
-					<span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-						Abaixo mín.
-					</span>
-				</div>
-			</div>
-		</div>
+				) : undefined
+			}
+			name={branch.name}
+			onActivate={() => router.push(primaryHref)}
+			stats={[
+				{ label: "Equipe", value: branch.teamCount },
+				{ label: "SKUs ativos", value: branch.activeSkus },
+				{ amber: true, label: "Abaixo mín.", value: branch.lowStock },
+			]}
+			status={branch.status}
+		/>
 	);
 }
