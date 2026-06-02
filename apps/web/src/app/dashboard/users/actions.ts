@@ -239,12 +239,19 @@ export async function updateUser(
 		}
 
 		await db.transaction(async (tx) => {
-			const update: { name?: string; role?: UpdateUserInput["role"] } = {};
+			const update: {
+				name?: string;
+				role?: UpdateUserInput["role"];
+				emailVerified?: boolean;
+			} = {};
 			if (parsed.data.name) {
 				update.name = parsed.data.name;
 			}
 			if (parsed.data.role) {
 				update.role = parsed.data.role;
+			}
+			if (parsed.data.emailVerified !== undefined) {
+				update.emailVerified = parsed.data.emailVerified;
 			}
 			if (Object.keys(update).length > 0) {
 				await tx
@@ -271,6 +278,9 @@ export async function updateUser(
 	}
 	if (parsed.data.role !== undefined) {
 		changes.role = parsed.data.role;
+	}
+	if (parsed.data.emailVerified !== undefined) {
+		changes.emailVerified = parsed.data.emailVerified;
 	}
 
 	await logUserActivity({
@@ -326,6 +336,7 @@ export async function suspendUser(input: unknown): Promise<ActionResult> {
 		metadata: { reason: parsed.data.reason },
 	});
 	revalidatePath(USERS_PATH);
+	revalidatePath(`${USERS_PATH}/${parsed.data.userId}`);
 	return { ok: true, data: undefined };
 }
 
@@ -358,6 +369,7 @@ export async function reactivateUser(input: {
 		targetId: parsed.data.userId,
 	});
 	revalidatePath(USERS_PATH);
+	revalidatePath(`${USERS_PATH}/${parsed.data.userId}`);
 	return { ok: true, data: undefined };
 }
 

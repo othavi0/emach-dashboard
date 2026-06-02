@@ -2,6 +2,7 @@
 
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
+import { Switch } from "@emach/ui/components/switch";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ interface Props {
 		id: string;
 		name: string;
 		role: UserRow["role"];
+		emailVerified: boolean;
 	};
 }
 
@@ -36,6 +38,7 @@ export function UserEditSheet({ user, actorRole }: Props) {
 
 	const [name, setName] = useState(user.name);
 	const [role, setRole] = useState<UserRow["role"]>(user.role);
+	const [emailVerified, setEmailVerified] = useState(user.emailVerified);
 	const [issues, setIssues] = useState<FormIssue[]>([]);
 	const [submitting, startTransition] = useTransition();
 
@@ -43,6 +46,7 @@ export function UserEditSheet({ user, actorRole }: Props) {
 		if (open) {
 			setName(user.name);
 			setRole(user.role);
+			setEmailVerified(user.emailVerified);
 			setIssues([]);
 		}
 	}, [open, user]);
@@ -60,10 +64,15 @@ export function UserEditSheet({ user, actorRole }: Props) {
 			userId: user.id,
 			name,
 			role,
+			emailVerified,
 		});
 		if (!parsed.success) {
 			setIssues(
-				zodIssuesToFormIssues(parsed.error, { name: "Nome", role: "Cargo" })
+				zodIssuesToFormIssues(parsed.error, {
+					name: "Nome",
+					role: "Cargo",
+					emailVerified: "E-mail verificado",
+				})
 			);
 			return;
 		}
@@ -80,7 +89,7 @@ export function UserEditSheet({ user, actorRole }: Props) {
 
 	return (
 		<EntityEditSheet
-			description="Atualize nome e cargo. Filiais são geridas na aba Filiais."
+			description="Atualize nome, cargo e verificação de e-mail. Filiais são geridas na aba Filiais."
 			issues={issues}
 			onOpenChange={(v) => !v && close()}
 			onSubmit={handleSubmit}
@@ -100,6 +109,14 @@ export function UserEditSheet({ user, actorRole }: Props) {
 				<div className="flex flex-col gap-1.5">
 					<Label>Cargo</Label>
 					<RoleSelect allowedRoles={allowed} onChange={setRole} value={role} />
+				</div>
+				<div className="flex items-center justify-between gap-2">
+					<Label htmlFor="email-verified">E-mail verificado</Label>
+					<Switch
+						checked={emailVerified}
+						id="email-verified"
+						onCheckedChange={setEmailVerified}
+					/>
 				</div>
 			</div>
 		</EntityEditSheet>
