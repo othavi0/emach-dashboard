@@ -12,6 +12,8 @@ import type { PendingRow } from "@/components/pending-panel";
 import { decodeCursorAs } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
+import { ORDER_STATUS_LABELS, type OrderStatus } from "./orders/status-meta";
+import { REVIEW_STATUS_LABELS, type ReviewStatus } from "./reviews/status-meta";
 
 export interface DashboardCounts {
 	orders: number;
@@ -219,6 +221,7 @@ export async function fetchDashboardActivity(
 			? sql`WHERE (${sql.raw(col)}, ${sql.raw(idExpr)}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
 			: sql``;
 	const result = await db.execute<{
+		aux: string | null;
 		created_at: string;
 		href: string | null;
 		id: string;
@@ -230,7 +233,7 @@ export async function fetchDashboardActivity(
 			SELECT 'stock-' || sm.id AS id, 'stock'::text AS kind, sm.created_at,
 				CASE WHEN sm.delta > 0 THEN '+' || sm.delta || ' un. ' || COALESCE(tv.sku, 'variante')
 					ELSE sm.delta || ' un. ' || COALESCE(tv.sku, 'variante') END AS primary,
-				COALESCE(b.name, '—') AS secondary, NULL::text AS href
+				COALESCE(b.name, '—') AS secondary, NULL::text AS href, NULL::text AS aux
 			FROM stock_movement sm
 			LEFT JOIN tool_variant tv ON tv.id = sm.variant_id
 			LEFT JOIN branch b ON b.id = sm.branch_id
@@ -240,8 +243,9 @@ export async function fetchDashboardActivity(
 		UNION ALL
 		(
 			SELECT 'order-' || osh.id AS id, 'order'::text AS kind, osh.created_at,
-				'#' || o.number || ' → ' || osh.to_status::text AS primary,
-				NULL::text AS secondary, '/dashboard/orders/' || o.id AS href
+				'#' || o.number AS primary,
+				NULL::text AS secondary, '/dashboard/orders/' || o.id AS href,
+				osh.to_status::text AS aux
 			FROM order_status_history osh
 			JOIN "order" o ON o.id = osh.order_id
 			${keyset("osh.created_at", "'order-' || osh.id")}
@@ -251,7 +255,8 @@ export async function fetchDashboardActivity(
 		(
 			SELECT 'review-' || r.id AS id, 'review'::text AS kind, r.created_at,
 				'Review ' || r.rating || '★ · ' || COALESCE(t.name, 'ferramenta') AS primary,
-				r.status::text AS secondary, '/dashboard/reviews/' || r.id AS href
+				NULL::text AS secondary, '/dashboard/reviews/' || r.id AS href,
+				r.status::text AS aux
 			FROM review r
 			LEFT JOIN tool t ON t.id = r.tool_id
 			${keyset("r.created_at", "'review-' || r.id")}
@@ -262,14 +267,26 @@ export async function fetchDashboardActivity(
 	`);
 	return paginate(
 		result.rows,
-		(r): ActivityEvent => ({
-			id: r.id,
-			kind: r.kind,
-			at: toDate(r.created_at),
-			primary: r.primary,
-			secondary: r.secondary ?? undefined,
-			href: r.href ?? undefined,
-		}),
+		(r): ActivityEvent => {
+			// Traduz status crus (to_status de pedido, status de review) pelos
+			// mapas canônicos no boundary — sem duplicar rótulos em SQL.
+			let primary = r.primary;
+			let secondary = r.secondary ?? undefined;
+			if (r.kind === "order" && r.aux) {
+				const label = ORDER_STATUS_LABELS[r.aux as OrderStatus] ?? r.aux;
+				primary = `${r.primary} → ${label}`;
+			} else if (r.kind === "review" && r.aux) {
+				secondary = REVIEW_STATUS_LABELS[r.aux as ReviewStatus] ?? r.aux;
+			}
+			return {
+				id: r.id,
+				kind: r.kind,
+				at: toDate(r.created_at),
+				primary,
+				secondary,
+				href: r.href ?? undefined,
+			};
+		},
 		(last) => ({
 			v: 1,
 			sort: "newest",
