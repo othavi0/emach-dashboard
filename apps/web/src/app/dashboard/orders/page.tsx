@@ -160,7 +160,6 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 					filters={pageFilters}
 					initial={result.items}
 					initialCursor={result.nextCursor}
-					tableFilters={filters}
 				/>
 			)}
 		</>
