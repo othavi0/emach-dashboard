@@ -38,6 +38,8 @@ export const customersListFiltersSchema = z
 		openOrderInactive: z.coerce.boolean().optional(),
 		unverifiedNew: z.coerce.boolean().optional(),
 		sort: z.enum(SORT_OPTIONS).default("createdDesc"),
+		// CSV de IDs (export de selecionados). Quando presente, exporta só estes.
+		ids: z.string().max(20_000).optional(),
 	})
 	.superRefine((d, ctx) => {
 		if (d.createdFrom && d.createdTo && d.createdTo < d.createdFrom) {

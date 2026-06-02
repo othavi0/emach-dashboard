@@ -11,6 +11,9 @@ const MAX_ROWS = 50_000;
 const MAX_BYTES = 50 * 1024 * 1024;
 const BOM = "﻿";
 
+const CSV_NEEDS_QUOTING = /[",\n\r]/;
+const CSV_QUOTE = /"/g;
+
 const COLUMNS = [
 	"number",
 	"created_at",
@@ -31,8 +34,8 @@ function escapeCsvField(value: unknown): string {
 		return "";
 	}
 	const str = value instanceof Date ? value.toISOString() : String(value);
-	if (/[",\n\r]/.test(str)) {
-		return `"${str.replace(/"/g, '""')}"`;
+	if (CSV_NEEDS_QUOTING.test(str)) {
+		return `"${str.replace(CSV_QUOTE, '""')}"`;
 	}
 	return str;
 }
@@ -72,27 +75,43 @@ export async function GET(req: Request) {
 	const filters = parsed.data;
 
 	const conditions = [] as ReturnType<typeof sql>[];
+
+	// Export de selecionados: IDs explícitos substituem os filtros de listagem.
+	const selectedIds = filters.ids
+		? filters.ids
+				.split(",")
+				.map((s) => s.trim())
+				.filter(Boolean)
+		: [];
+	if (selectedIds.length > 0) {
+		const placeholders = sql.join(
+			selectedIds.map((id) => sql`${id}`),
+			sql`, `
+		);
+		conditions.push(sql`o.id IN (${placeholders})`);
+	}
+
 	const tab = ORDER_TABS.find((t) => t.key === filters.tab);
-	if (tab?.statuses) {
+	if (selectedIds.length === 0 && tab?.statuses) {
 		const placeholders = sql.join(
 			tab.statuses.map((s) => sql`${s}`),
 			sql`, `
 		);
 		conditions.push(sql`o.status IN (${placeholders})`);
 	}
-	if (filters.q) {
+	if (selectedIds.length === 0 && filters.q) {
 		const like = `%${filters.q.replace(/[%_]/g, (m) => `\\${m}`)}%`;
 		conditions.push(
 			sql`(o.number ILIKE ${like} OR c.name ILIKE ${like} OR c.email ILIKE ${like} OR c.document ILIKE ${like})`
 		);
 	}
-	if (filters.branchId) {
+	if (selectedIds.length === 0 && filters.branchId) {
 		conditions.push(sql`o.branch_id = ${filters.branchId}`);
 	}
-	if (filters.from) {
+	if (selectedIds.length === 0 && filters.from) {
 		conditions.push(sql`o.created_at >= ${filters.from}::date`);
 	}
-	if (filters.to) {
+	if (selectedIds.length === 0 && filters.to) {
 		conditions.push(
 			sql`o.created_at < (${filters.to}::date + INTERVAL '1 day')`
 		);
