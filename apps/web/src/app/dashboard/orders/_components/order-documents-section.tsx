@@ -78,9 +78,26 @@ const NFE_STATUS_VARIANT: Record<
 	processando: "info",
 };
 
+// Rótulos PT para os status conhecidos do gateway (Asaas). Texto livre — valor
+// não mapeado cai no cru, para nunca esconder um estado inesperado.
+const NFE_STATUS_LABELS: Record<string, string> = {
+	authorized: "Autorizada",
+	autorizada: "Autorizada",
+	canceled: "Cancelada",
+	cancelada: "Cancelada",
+	rejected: "Rejeitada",
+	rejeitada: "Rejeitada",
+	pending: "Pendente",
+	pendente: "Pendente",
+	processing: "Processando",
+	processando: "Processando",
+};
+
 function NfeStatusBadge({ status }: { status: string }) {
-	const variant = NFE_STATUS_VARIANT[status.toLowerCase()] ?? "secondary";
-	return <Badge variant={variant}>{status}</Badge>;
+	const key = status.toLowerCase();
+	const variant = NFE_STATUS_VARIANT[key] ?? "secondary";
+	const label = NFE_STATUS_LABELS[key] ?? status;
+	return <Badge variant={variant}>{label}</Badge>;
 }
 
 // ─── Empty state chip ─────────────────────────────────────────────────────────
