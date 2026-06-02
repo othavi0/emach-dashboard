@@ -63,6 +63,7 @@ export function AccessStatusCard({ user }: Props) {
 					<StatusBadge status={user.status} />
 					{user.status === "active" && (
 						<Button
+							className="self-start"
 							onClick={() => setDialogOpen("suspend")}
 							size="sm"
 							variant="outline"
@@ -72,6 +73,7 @@ export function AccessStatusCard({ user }: Props) {
 					)}
 					{user.status === "suspended" && (
 						<Button
+							className="self-start"
 							onClick={() => setDialogOpen("reactivate")}
 							size="sm"
 							variant="outline"
