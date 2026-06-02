@@ -47,7 +47,7 @@ function buildTabHref(
 	filters: ReviewsFiltersProps["filters"]
 ): string {
 	const params = new URLSearchParams();
-	if (tabKey !== "all") {
+	if (tabKey !== "pending") {
 		params.set("tab", tabKey);
 	}
 	if (filters.rating) {
@@ -67,7 +67,7 @@ function buildTabHref(
 }
 
 export function ReviewsFilters({ counts, filters }: ReviewsFiltersProps) {
-	const currentTab = filters.tab || "all";
+	const currentTab = filters.tab || "pending";
 	const { searchParams, setParam, clearAll, hasActive } = useFilterState({
 		basePath: BASE,
 		trackedKeys: TRACKED,

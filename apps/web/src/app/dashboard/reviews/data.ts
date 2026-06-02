@@ -129,7 +129,7 @@ export async function listReviews({
 
 /**
  * Contagem de reviews por status, restrita pelos demais filtros ativos
- * (nota, busca, período). Retorna sempre a chave `all` (total).
+ * (nota, busca, período). Chaveada por status (pending/approved/rejected/spam).
  */
 export async function getReviewsTabCounts(
 	filters: ReviewFilters = {}
@@ -149,13 +149,9 @@ export async function getReviewsTabCounts(
 	`);
 
 	const counts: Record<string, number> = {};
-	let all = 0;
 	for (const row of result.rows) {
-		const n = Number(row.count);
-		counts[row.status] = n;
-		all += n;
+		counts[row.status] = Number(row.count);
 	}
-	counts.all = all;
 	return counts;
 }
 
