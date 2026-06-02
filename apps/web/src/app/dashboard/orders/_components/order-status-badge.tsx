@@ -1,51 +1,15 @@
 import { Badge } from "@emach/ui/components/badge";
-import {
-	BanIcon,
-	CheckCheckIcon,
-	CheckIcon,
-	ClockIcon,
-	PackageIcon,
-	RotateCcwIcon,
-	TruckIcon,
-	Undo2Icon,
-	XCircleIcon,
-} from "lucide-react";
 
-import { ORDER_STATUS_LABELS, type OrderStatus } from "../status-meta";
-
-const STATUS_VARIANTS: Record<
-	OrderStatus,
-	"destructive" | "info" | "success" | "warning"
-> = {
-	pending_payment: "warning",
-	payment_failed: "destructive",
-	paid: "success",
-	preparing: "info",
-	shipped: "info",
-	delivered: "success",
-	returned: "warning",
-	canceled: "destructive",
-	refunded: "destructive",
-};
-
-const STATUS_ICONS: Record<OrderStatus, typeof ClockIcon> = {
-	pending_payment: ClockIcon,
-	payment_failed: BanIcon,
-	paid: CheckIcon,
-	preparing: PackageIcon,
-	shipped: TruckIcon,
-	delivered: CheckCheckIcon,
-	returned: Undo2Icon,
-	canceled: XCircleIcon,
-	refunded: RotateCcwIcon,
-};
+import { STATUS_ICONS, TONE_BADGE_VARIANT } from "@/components/status-visual";
+import { ORDER_STATUS_META, type OrderStatus } from "../status-meta";
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-	const Icon = STATUS_ICONS[status];
+	const meta = ORDER_STATUS_META[status];
+	const Icon = STATUS_ICONS[meta.iconKey];
 	return (
-		<Badge variant={STATUS_VARIANTS[status]}>
+		<Badge variant={TONE_BADGE_VARIANT[meta.tone]}>
 			<Icon aria-hidden="true" />
-			{ORDER_STATUS_LABELS[status]}
+			{meta.label}
 		</Badge>
 	);
 }
