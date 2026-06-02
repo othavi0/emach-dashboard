@@ -4,7 +4,9 @@
 
 **Goal:** Alinhar `/dashboard/users/[id]` ao padrão `entity detail` das filiais — header com ação contextual por aba, Visão geral com KPIs+cards, Filiais em cards com stats, Segurança refeita, Atividade em timeline e drawer de edição mais completo.
 
-**Architecture:** Reescrita das abas e do header reaproveitando os componentes `entity/*` e os espelhos do fluxo de filiais (`branches/[id]`). Toda mutação sensível permanece nas server actions existentes (guard-rails P0). Apenas `updateUser` é estendida (avatar + e-mail verificado); demais actions são reusadas sem mudança. Um bucket de Storage novo (`user-avatars`) é criado para o upload de avatar.
+**Architecture:** Reescrita das abas e do header reaproveitando os componentes `entity/*` e os espelhos do fluxo de filiais (`branches/[id]`). Toda mutação sensível permanece nas server actions existentes (guard-rails P0). Apenas `updateUser` é estendida (e-mail verificado); demais actions são reusadas sem mudança.
+
+> **Escopo ajustado (2026-06-02):** upload de avatar foi **cortado** desta iteração (evita criar bucket novo). O avatar exibido continua vindo de `user.image` (OAuth), apenas não é editável. **Task 1 abaixo está marcada como pulada.**
 
 **Tech Stack:** Next 16 (RSC), React 19, Drizzle, Better Auth, Supabase Storage, Tailwind, shadcn/ui (`@emach/ui`), Zod, sonner.
 
@@ -29,7 +31,6 @@
 - `apps/web/src/app/dashboard/users/[id]/_components/user-branch-link-panel.tsx` — Popover+Command de vincular filial (espelha `TeamLinkPanel`).
 - `apps/web/src/app/dashboard/users/[id]/_components/edit-user-button.tsx` — botão de header que abre o drawer (espelha `EditBranchButton`).
 - `apps/web/src/app/dashboard/users/[id]/_components/access-status-card.tsx` — card Suspender/Reativar da Segurança.
-- `apps/web/src/app/dashboard/users/_components/avatar-actions.ts` — upload/delete de avatar (espelha `tools/_components/image-actions.ts`).
 
 **Modificados:**
 - `apps/web/src/app/dashboard/users/[id]/page.tsx` — recebe `searchParams`, ação de header por aba, remove `UserActionsMenu`.
@@ -38,11 +39,10 @@
 - `apps/web/src/app/dashboard/users/[id]/_components/branches-tab.tsx` — grid de `UserBranchCard` + empty state.
 - `apps/web/src/app/dashboard/users/[id]/_components/security-tab.tsx` — 5 cards (status, e-mail, reset, sessões, zona de perigo).
 - `apps/web/src/app/dashboard/users/[id]/_components/activity-affecting-user-view.tsx` + `activity-by-user-view.tsx` — timeline com ícones.
-- `apps/web/src/app/dashboard/users/_components/user-edit-sheet.tsx` — avatar + nome + cargo + toggle e-mail verificado.
+- `apps/web/src/app/dashboard/users/_components/user-edit-sheet.tsx` — nome + cargo + toggle e-mail verificado.
 - `apps/web/src/app/dashboard/users/data.ts` — `getUserDetailKpis`, `getUserLinkedBranchesWithStats`, `provider` em `getUserDetail`.
-- `apps/web/src/app/dashboard/users/actions.ts` — `updateUser` seta `image`/`emailVerified`.
-- `apps/web/src/app/dashboard/users/schema.ts` — `updateUserSchema` + `image`/`emailVerified`.
-- `apps/web/src/lib/supabase-server.ts` — constante `USER_AVATARS_BUCKET`.
+- `apps/web/src/app/dashboard/users/actions.ts` — `updateUser` seta `emailVerified`.
+- `apps/web/src/app/dashboard/users/schema.ts` — `updateUserSchema` + `emailVerified`.
 
 **Removidos:**
 - `apps/web/src/app/dashboard/users/[id]/_components/user-actions-menu.tsx`
@@ -50,110 +50,11 @@
 
 ---
 
-## Task 1: Bucket de avatar + helper de upload
+## Task 1: ~~Bucket de avatar + helper de upload~~ — PULADA
 
-**Files:**
-- Modify: `apps/web/src/lib/supabase-server.ts` (adicionar constante)
-- Create: `apps/web/src/app/dashboard/users/_components/avatar-actions.ts`
-- Modify: `docs/storage-buckets.md` (documentar bucket)
-- DB: criar bucket `user-avatars` (SQL via Supabase)
-
-- [ ] **Step 1: Criar o bucket no Supabase**
-
-Rodar via MCP Supabase (`execute_sql`, project `wrxohbzepoyscsacjzvd`) ou Dashboard:
-
-```sql
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('user-avatars', 'user-avatars', true, 2097152,
-        ARRAY['image/png', 'image/jpeg', 'image/webp'])
-ON CONFLICT (id) DO NOTHING;
-```
-
-Verificar: `SELECT id, public, file_size_limit FROM storage.buckets WHERE id='user-avatars';` → 1 linha, `public=true`.
-
-- [ ] **Step 2: Adicionar a constante do bucket**
-
-Em `apps/web/src/lib/supabase-server.ts`, ao lado de `TOOL_IMAGES_BUCKET`, adicionar:
-
-```ts
-export const USER_AVATARS_BUCKET = "user-avatars";
-```
-
-(Ler o arquivo antes para confirmar o nome exato da constante existente e o padrão de export.)
-
-- [ ] **Step 3: Criar as server actions de avatar**
-
-Criar `apps/web/src/app/dashboard/users/_components/avatar-actions.ts` (espelha `tools/_components/image-actions.ts`, trocando bucket e a action de auditoria):
-
-```ts
-"use server";
-
-import { logUserActivity } from "@/lib/activity";
-import { requireCurrentSession } from "@/lib/session";
-import { requireCapabilityWithContext } from "@/lib/permissions";
-import {
-	extractPublicUrlPath,
-	removeStorageObject,
-	uploadToPublicBucket,
-} from "@/lib/storage";
-import { USER_AVATARS_BUCKET } from "@/lib/supabase-server";
-
-const MAX_SIZE_BYTES = 2 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-
-export async function uploadUserAvatar(
-	formData: FormData
-): Promise<{ url: string }> {
-	const session = await requireCurrentSession();
-	await requireCapabilityWithContext("users.manage", {});
-
-	const { url } = await uploadToPublicBucket({
-		bucket: USER_AVATARS_BUCKET,
-		formData,
-		maxSizeBytes: MAX_SIZE_BYTES,
-		allowedTypes: ALLOWED_TYPES,
-	});
-
-	await logUserActivity({
-		actorUserId: session.user.id,
-		action: "user.avatar_uploaded",
-		targetType: "user",
-		metadata: { url },
-	});
-	return { url };
-}
-
-export async function deleteUserAvatar(url: string): Promise<void> {
-	const session = await requireCurrentSession();
-	await requireCapabilityWithContext("users.manage", {});
-
-	const path = extractPublicUrlPath(url, USER_AVATARS_BUCKET);
-	if (!path) {
-		return;
-	}
-	await removeStorageObject(USER_AVATARS_BUCKET, path);
-	await logUserActivity({
-		actorUserId: session.user.id,
-		action: "user.avatar_deleted",
-		targetType: "user",
-		metadata: { path },
-	});
-}
-```
-
-- [ ] **Step 4: Documentar o bucket**
-
-Adicionar seção `## user-avatars` em `docs/storage-buckets.md` (espelhar a seção `tool-images`: público, 2 MB, PNG/JPEG/WEBP; URL salva em `user.image`; upload server-side via `avatar-actions.ts`).
-
-- [ ] **Step 5: Verificar tipos e commitar**
-
-```bash
-cd /home/othavio/Projects/emach/emach-dashboard && bun check-types && bun check
-git add apps/web/src/lib/supabase-server.ts apps/web/src/app/dashboard/users/_components/avatar-actions.ts docs/storage-buckets.md
-git commit -m "feat: bucket e actions de avatar de usuario"
-```
-
-Expected: `check-types` e `check` sem erros.
+> **Cortada nesta iteração** (decisão 2026-06-02): avatar não é editável; sem bucket novo.
+> Não criar bucket `user-avatars`, `avatar-actions.ts` nem `USER_AVATARS_BUCKET`.
+> Começar a execução pela Task 2.
 
 ---
 
@@ -265,7 +166,7 @@ git commit -m "feat: queries de kpis e filiais com stats do usuario"
 
 ---
 
-## Task 3: Schema + action `updateUser` (avatar + e-mail verificado)
+## Task 3: Schema + action `updateUser` (e-mail verificado)
 
 **Files:**
 - Modify: `apps/web/src/app/dashboard/users/schema.ts`
@@ -281,22 +182,18 @@ import { describe, expect, it } from "vitest";
 import { updateUserSchema } from "../../schema";
 
 describe("updateUserSchema", () => {
-	it("aceita image e emailVerified opcionais", () => {
-		const r = updateUserSchema.safeParse({
-			userId: "abc",
-			image: "https://x/y.png",
-			emailVerified: true,
-		});
+	it("aceita emailVerified opcional", () => {
+		const r = updateUserSchema.safeParse({ userId: "abc", emailVerified: true });
 		expect(r.success).toBe(true);
 	});
 
-	it("aceita image null para remover avatar", () => {
-		const r = updateUserSchema.safeParse({ userId: "abc", image: null });
+	it("aceita payload sem emailVerified", () => {
+		const r = updateUserSchema.safeParse({ userId: "abc", name: "Fulano" });
 		expect(r.success).toBe(true);
 	});
 
-	it("rejeita image que não é URL nem null", () => {
-		const r = updateUserSchema.safeParse({ userId: "abc", image: "not-a-url" });
+	it("rejeita emailVerified não-booleano", () => {
+		const r = updateUserSchema.safeParse({ userId: "abc", emailVerified: "sim" });
 		expect(r.success).toBe(false);
 	});
 });
@@ -305,7 +202,7 @@ describe("updateUserSchema", () => {
 - [ ] **Step 2: Rodar o teste e confirmar que falha**
 
 Run: `cd apps/web && bun vitest run src/app/dashboard/users/_components/__tests__/update-user-schema.test.ts`
-Expected: FAIL (schema ainda não aceita `image`/`emailVerified`).
+Expected: FAIL (schema ainda não aceita `emailVerified`).
 
 - [ ] **Step 3: Estender `updateUserSchema`**
 
@@ -316,12 +213,9 @@ export const updateUserSchema = z.object({
 	userId: z.string().min(1),
 	name: z.string().min(2).max(100).optional(),
 	role: z.enum(ROLES).optional(),
-	image: z.url().nullish(),
 	emailVerified: z.boolean().optional(),
 });
 ```
-
-> `z.url().nullish()` aceita string-URL, `null` (remover avatar) e `undefined` (não mexer). Se a versão de Zod do projeto usar `z.string().url()`, ajustar para `z.string().url().nullish()` — conferir imports/uso de `z` no arquivo.
 
 - [ ] **Step 4: Rodar o teste e confirmar que passa**
 
@@ -330,31 +224,29 @@ Expected: PASS (3 testes).
 
 - [ ] **Step 5: Estender a action `updateUser`**
 
-Em `actions.ts`, dentro do `db.transaction` de `updateUser`, ampliar o objeto `update` e o log. O tipo `update` passa a incluir os campos novos; setar quando presentes (`!== undefined`; `image` pode ser `null`):
+Em `actions.ts`, dentro do `db.transaction` de `updateUser`, ampliar o objeto `update` e o log. O tipo `update` ganha `emailVerified`; setar quando presente (`!== undefined`):
 
 ```ts
 const update: {
 	name?: string;
 	role?: UpdateUserInput["role"];
-	image?: string | null;
 	emailVerified?: boolean;
 } = {};
 if (parsed.data.name) { update.name = parsed.data.name; }
 if (parsed.data.role) { update.role = parsed.data.role; }
-if (parsed.data.image !== undefined) { update.image = parsed.data.image; }
 if (parsed.data.emailVerified !== undefined) {
 	update.emailVerified = parsed.data.emailVerified;
 }
 ```
 
-E no `changes` (metadata do `user.updated`), registrar `image`/`emailVerified` quando `!== undefined`. A revogação de sessões permanece **apenas** quando `roleChanged` (não revogar por troca de avatar/verificação).
+E no `changes` (metadata do `user.updated`), registrar `emailVerified` quando `!== undefined`. A revogação de sessões permanece **apenas** quando `roleChanged` (não revogar por troca de verificação).
 
 - [ ] **Step 6: Verificar e commitar**
 
 ```bash
 cd /home/othavio/Projects/emach/emach-dashboard && bun check-types && bun check
 git add apps/web/src/app/dashboard/users/schema.ts apps/web/src/app/dashboard/users/actions.ts apps/web/src/app/dashboard/users/_components/__tests__/update-user-schema.test.ts
-git commit -m "feat: updateUser aceita avatar e email verificado"
+git commit -m "feat: updateUser aceita toggle de email verificado"
 ```
 
 ---
@@ -489,7 +381,7 @@ export default async function UserDetailPage({ params, searchParams }: PageProps
 			<EntityTabs defaultValue="profile" tabs={tabs} />
 			<UserEditSheet
 				actorRole={actorSession.user.role as UserRow["role"]}
-				user={{ id: user.id, name: user.name, role: user.role, image: user.image, emailVerified: user.emailVerified }}
+				user={{ id: user.id, name: user.name, role: user.role, emailVerified: user.emailVerified }}
 			/>
 		</div>
 	);
@@ -646,14 +538,13 @@ git commit -m "refactor: aba seguranca do usuario refeita"
 
 - [ ] **Step 1: Ampliar `UserEditSheet`**
 
-Prop `user` passa a incluir `image: string | null` e `emailVerified: boolean`. Adicionar ao formulário, acima de Nome:
+Prop `user` passa a incluir `emailVerified: boolean` (além de `id`, `name`, `role`). Manter os campos atuais (Nome, Cargo) e adicionar abaixo deles:
 
-- **Avatar:** preview (`Avatar` de `@emach/ui` com `getInitials` fallback) + input `type="file"` (accept `image/png,image/jpeg,image/webp`). Ao selecionar: `FormData` → `uploadUserAvatar(fd)` (de `../avatar-actions`) → guarda a `url` em state local `image`. Botão "Remover" zera `image` para `null`. Mostrar spinner durante upload.
-- **Toggle "e-mail verificado":** `Switch` de `@emach/ui` ligado a state `emailVerified`.
+- **Toggle "e-mail verificado":** `Switch` de `@emach/ui` ligado a state `emailVerified`, com `Label` "E-mail verificado".
 
-No `handleSubmit`, incluir `image` e `emailVerified` no payload do `updateUserSchema.safeParse`. `useEffect` de reset (quando abre) também reseta `image`/`emailVerified` a partir de `user`. Atualizar `description` para "Atualize avatar, nome, cargo e verificação de e-mail. Filiais são geridas na aba Filiais."
+No `handleSubmit`, incluir `emailVerified` no payload do `updateUserSchema.safeParse`. O `useEffect` de reset (quando abre) também reseta `emailVerified` a partir de `user`. Atualizar `description` para "Atualize nome, cargo e verificação de e-mail. Filiais são geridas na aba Filiais."
 
-> Verificar se `Switch` existe em `@emach/ui/components/switch`; se não, usar um checkbox estilizado ou o componente equivalente já usado no projeto (`ugrep -r "components/switch" apps`).
+> Verificar se `Switch` existe em `@emach/ui/components/switch`; se não, usar o componente de toggle/checkbox já usado no projeto (`ugrep -r "components/switch\|components/checkbox" apps`).
 
 - [ ] **Step 2: Verificar e smoke**
 
@@ -661,13 +552,13 @@ No `handleSubmit`, incluir `image` e `emailVerified` no payload do `updateUserSc
 cd /home/othavio/Projects/emach/emach-dashboard && bun check-types && bun check
 ```
 
-Smoke (3006): aba Perfil → "Editar Usuário" abre drawer com avatar (upload troca a imagem), nome, cargo e toggle de verificação; salvar reflete no header/Perfil.
+Smoke (3006): aba Perfil → "Editar Usuário" abre drawer com nome, cargo e toggle de verificação; salvar reflete no header/Perfil.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add apps/web/src/app/dashboard/users/_components/user-edit-sheet.tsx
-git commit -m "feat: drawer de edicao com avatar e verificacao"
+git commit -m "feat: drawer de edicao com toggle de verificacao"
 ```
 
 ---
@@ -747,7 +638,7 @@ Expected: ambos sem erros.
 
 - [ ] **Step 3: Smoke visual das 5 abas (porta 3006)**
 
-Percorrer no browser (Brave "Notbook", porta **3006**): Perfil (KPIs+cards), Filiais (cards+vincular/desvincular), Atividade (timeline), Sessões (lista), Segurança (5 cards). Header: ação correta por aba, sem `⋮`. Drawer abre com avatar/nome/cargo/toggle. Confirmar nenhum erro no console (`nextjs_call 3006 get_errors` se necessário).
+Percorrer no browser (Brave "Notbook", porta **3006**): Perfil (KPIs+cards), Filiais (cards+vincular/desvincular), Atividade (timeline), Sessões (lista), Segurança (5 cards). Header: ação correta por aba, sem `⋮`. Drawer abre com nome/cargo/toggle. Confirmar nenhum erro no console (`nextjs_call 3006 get_errors` se necessário).
 
 - [ ] **Step 4: Commit final (se houver ajustes de smoke)**
 
@@ -759,7 +650,7 @@ git add -A && git commit -m "chore: ajustes de smoke do detalhe de usuario"
 
 ## Self-Review (preenchido pelo autor do plano)
 
-- **Cobertura do spec:** A→Task4; B→Task5; C→Task6; D→Task7; E→Task9; F→Task8; G→Tasks 1–3. Header/ação por aba (A) coberto. Bucket de avatar (gap descoberto na infra) coberto na Task 1.
+- **Cobertura do spec:** A→Task4; B→Task5; C→Task6; D→Task7; E→Task9; F→Task8; G→Tasks 2–3 (Task 1 pulada). Header/ação por aba (A) coberto. Avatar (e Task 1/bucket) **cortado** desta iteração; drawer fica com nome+cargo+verificação.
 - **Placeholders:** queries de stats (Task 2.2) e corpos de componentes-espelho referenciam o arquivo-fonte exato a copiar em vez de reescrever 100+ linhas — decisão consciente dado o forte padrão de referência; trechos críticos (SQL de provider/KPIs, schema, diff de action) estão completos.
 - **Consistência de tipos:** `UserLinkedBranch` (Task 2) usado em Tasks 4/5/6; `UserDetailKpis` (Task 2) em Tasks 4/5; `updateUserSchema` com `image`/`emailVerified` (Task 3) consumido em Tasks 7/8. `UserDetail.provider` (Task 2) usado em Task 5. Prop `user` da Segurança ajustada em Tasks 4 e 7 — conferir alinhamento ao executar Task 7.
 </content>
