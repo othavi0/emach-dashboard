@@ -710,18 +710,15 @@ export async function fetchToolsPage({
 	const all = rows.rows.map((r) => ({
 		id: r.id,
 		name: r.name,
-		slug: r.slug,
 		imageUrl: r.image_url,
 		sku: r.default_sku,
-		voltage: r.default_voltage,
 		variantCount: Number(r.variant_count ?? 0),
-		variantSummaries: r.variant_voltages ?? [],
+		variantSummaries: (r.variant_voltages ?? []).filter(
+			(v): v is string => typeof v === "string"
+		),
 		primaryCategoryName: r.primary_category_name,
-		supplierName: r.supplier_name,
 		status: r.status as ToolStatusValue,
-		visibleOnSite: r.visible_on_site,
 		totalStock: Number(r.total_stock ?? 0),
-		reorderCount: Number(r.reorder_count ?? 0),
 		branches: (r.branches_breakdown ?? []).map((b) => ({
 			branchId: b.branch_id,
 			branchName: b.branch_name,

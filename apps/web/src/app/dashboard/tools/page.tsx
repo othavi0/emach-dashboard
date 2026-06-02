@@ -153,7 +153,6 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 				</Empty>
 			) : (
 				<ToolsInfinite
-					canMutate={canMutate}
 					filters={filters}
 					initial={first.items}
 					initialCursor={first.nextCursor}
