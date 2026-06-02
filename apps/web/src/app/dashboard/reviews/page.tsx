@@ -9,8 +9,8 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
 import { requireCapability } from "@/lib/permissions";
-import { ReviewCard } from "./_components/review-card";
 import { ReviewsFilters } from "./_components/reviews-filters";
+import { ReviewsInfinite } from "./_components/reviews-infinite";
 import { getReviewsTabCounts, listReviews } from "./data";
 import { reviewsListFiltersSchema } from "./schema";
 import { REVIEW_TABS } from "./status-meta";
@@ -69,7 +69,7 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
 				}}
 			/>
 
-			{reviews.length === 0 ? (
+			{reviews.items.length === 0 ? (
 				<Empty>
 					<EmptyHeader>
 						<EmptyTitle>Nenhuma avaliação encontrada</EmptyTitle>
@@ -88,11 +88,11 @@ export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
 					) : null}
 				</Empty>
 			) : (
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-					{reviews.map((review) => (
-						<ReviewCard key={review.id} review={review} />
-					))}
-				</div>
+				<ReviewsInfinite
+					filters={filters}
+					initial={reviews.items}
+					initialCursor={reviews.nextCursor}
+				/>
 			)}
 		</>
 	);

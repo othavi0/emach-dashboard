@@ -5,15 +5,42 @@ import { review } from "@emach/db/schema/reviews";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
-import { type ModerateReviewInput, moderateReviewSchema } from "./schema";
+import { listReviews, type ReviewListItem } from "./data";
+import {
+	type ModerateReviewInput,
+	moderateReviewSchema,
+	type ReviewsListFiltersParsed,
+} from "./schema";
+import { REVIEW_TABS } from "./status-meta";
 
 export type ActionResult<T = undefined> =
 	| { ok: true; data: T }
 	| { ok: false; error: string };
 
 const REVIEWS_PATH = "/dashboard/reviews";
+
+/** Página keyset da listagem (usada pela página inicial e pelo scroll infinito). */
+export async function fetchReviewsPage({
+	filters,
+	cursor,
+}: {
+	cursor: string | null;
+	filters: ReviewsListFiltersParsed;
+}): Promise<InfiniteResult<ReviewListItem>> {
+	await requireCapability("reviews.read");
+	const tab = REVIEW_TABS.find((t) => t.key === filters.tab) ?? REVIEW_TABS[0];
+	return listReviews({
+		status: tab.status,
+		rating: filters.rating,
+		q: filters.q,
+		from: filters.from,
+		to: filters.to,
+		cursor,
+	});
+}
 
 export async function moderateReview(
 	input: ModerateReviewInput
