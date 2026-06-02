@@ -108,7 +108,12 @@ export function SecurityTab({ user, canDelete }: Props) {
 						Envia um e-mail com link para o usuário trocar a senha. Você não
 						terá acesso à senha nova.
 					</p>
-					<Button disabled={pending} onClick={sendReset} variant="outline">
+					<Button
+						className="self-start"
+						disabled={pending}
+						onClick={sendReset}
+						variant="outline"
+					>
 						<KeyRound className="size-3.5" />
 						Enviar e-mail de reset
 					</Button>
@@ -123,7 +128,12 @@ export function SecurityTab({ user, canDelete }: Props) {
 						Revoga todas as sessões ativas — o usuário será forçado a logar de
 						novo em todos os dispositivos.
 					</p>
-					<Button disabled={pending} onClick={forceLogout} variant="outline">
+					<Button
+						className="self-start"
+						disabled={pending}
+						onClick={forceLogout}
+						variant="outline"
+					>
 						<LogOut className="size-3.5" />
 						Forçar logout em tudo
 					</Button>
