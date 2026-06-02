@@ -5,6 +5,8 @@ export type { ReviewStatus } from "@emach/db/schema/reviews";
 
 import type { ReviewStatus } from "@emach/db/schema/reviews";
 import { type SQL, sql } from "drizzle-orm";
+import { decodeCursorAs } from "@/lib/cursor";
+import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 
 export interface ReviewListItem {
 	bodyPreview: string;
@@ -44,6 +46,7 @@ export interface ReviewFilters {
 }
 
 export interface ListReviewsParams extends ReviewFilters {
+	cursor?: string | null;
 	status?: ReviewStatus | null;
 }
 
@@ -73,11 +76,18 @@ function buildReviewConditions({ from, q, rating, to }: ReviewFilters): SQL[] {
 
 export async function listReviews({
 	status,
+	cursor,
 	...filters
-}: ListReviewsParams = {}): Promise<ReviewListItem[]> {
+}: ListReviewsParams = {}): Promise<InfiniteResult<ReviewListItem>> {
 	const conditions = buildReviewConditions(filters);
 	if (status) {
 		conditions.push(sql`r.status = ${status}`);
+	}
+	if (cursor) {
+		const decoded = decodeCursorAs(cursor, "newest");
+		conditions.push(
+			sql`(r.created_at, r.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+		);
 	}
 	const whereClause = conditions.length
 		? sql` WHERE ${sql.join(conditions, sql` AND `)}`
@@ -86,7 +96,7 @@ export async function listReviews({
 	const rows = await db.execute<{
 		body: string;
 		client_name: string;
-		created_at: Date;
+		created_at: string;
 		id: string;
 		image_url: string | null;
 		rating: number;
@@ -98,7 +108,7 @@ export async function listReviews({
 			r.rating,
 			r.body,
 			r.status,
-			r.created_at,
+			r.created_at::text AS created_at,
 			c.name AS client_name,
 			t.name AS tool_name,
 			(
@@ -111,20 +121,32 @@ export async function listReviews({
 		FROM review r
 		JOIN client c ON c.id = r.client_id
 		JOIN tool t ON t.id = r.tool_id${whereClause}
-		ORDER BY r.created_at DESC
+		ORDER BY r.created_at DESC, r.id DESC
+		LIMIT ${BATCH_SIZE + 1}
 	`);
 
-	return rows.rows.map((row) => ({
-		id: row.id,
-		toolName: row.tool_name,
-		clientName: row.client_name,
-		rating: row.rating,
-		status: row.status,
-		createdAt: toDate(row.created_at),
-		imageUrl: row.image_url,
-		bodyPreview:
-			row.body.length > 80 ? `${row.body.slice(0, 77).trimEnd()}...` : row.body,
-	}));
+	return paginate(
+		rows.rows,
+		(row) => ({
+			id: row.id,
+			toolName: row.tool_name,
+			clientName: row.client_name,
+			rating: row.rating,
+			status: row.status,
+			createdAt: toDate(row.created_at),
+			imageUrl: row.image_url,
+			bodyPreview:
+				row.body.length > 80
+					? `${row.body.slice(0, 77).trimEnd()}...`
+					: row.body,
+		}),
+		(last) => ({
+			v: 1,
+			sort: "newest",
+			createdAt: last.created_at,
+			id: last.id,
+		})
+	);
 }
 
 /**
