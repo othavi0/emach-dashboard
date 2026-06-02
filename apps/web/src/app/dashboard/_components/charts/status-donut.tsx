@@ -3,6 +3,8 @@
 import {
 	type ChartConfig,
 	ChartContainer,
+	ChartLegend,
+	ChartLegendContent,
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@emach/ui/components/chart";
@@ -45,6 +47,10 @@ export function StatusDonut({
 						<Cell fill={PALETTE[i % PALETTE.length]} key={entry.key} />
 					))}
 				</Pie>
+				<ChartLegend
+					content={<ChartLegendContent nameKey="key" />}
+					verticalAlign="bottom"
+				/>
 			</PieChart>
 		</ChartContainer>
 	);
