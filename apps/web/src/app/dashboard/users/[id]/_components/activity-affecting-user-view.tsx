@@ -1,7 +1,22 @@
 "use client";
 
-import { EntityAuditLogTable } from "@/components/entity/entity-audit-log-table";
+import type { LucideIcon } from "lucide-react";
+import {
+	Activity,
+	Building2,
+	CheckCircle2,
+	KeyRound,
+	Monitor,
+	MonitorOff,
+	Pause,
+	Pencil,
+	Play,
+	Trash2,
+	XCircle,
+} from "lucide-react";
+
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
+import { formatRelative } from "@/lib/format/relative";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
 import { fetchUserActivityAffectingPage } from "../../actions";
@@ -20,6 +35,22 @@ const ACTION_LABELS: Record<string, string> = {
 	"user.branch_linked": "Filial vinculada",
 	"user.branch_unlinked": "Filial desvinculada",
 };
+
+const ACTION_ICONS: Record<string, LucideIcon> = {
+	"user.approved": CheckCircle2,
+	"user.rejected": XCircle,
+	"user.updated": Pencil,
+	"user.suspended": Pause,
+	"user.reactivated": Play,
+	"user.deleted": Trash2,
+	"user.password_reset_triggered": KeyRound,
+	"user.session_revoked": Monitor,
+	"user.all_sessions_revoked": MonitorOff,
+	"user.branch_linked": Building2,
+	"user.branch_unlinked": Building2,
+};
+
+const FALLBACK_ICON = Activity;
 
 interface Props {
 	initial: (UserActivityRow & { actorName: string | null })[];
@@ -40,23 +71,54 @@ export function ActivityAffectingUserView({
 
 	return (
 		<div className="flex flex-col gap-3">
-			<EntityAuditLogTable
-				actionLabels={ACTION_LABELS}
-				emptyMessage="Nenhuma alteração registrada neste usuário"
-				entries={items.map((it) => ({
-					id: it.id,
-					at: it.createdAt,
-					action: it.action,
-					actor: {
-						id: "",
-						name: it.actorName ?? "Usuário deletado",
-						type: "user" as const,
-					},
-					target: undefined,
-					before: null,
-					after: it.metadata,
-				}))}
-			/>
+			{items.length === 0 ? (
+				<p className="py-8 text-center text-muted-foreground text-sm">
+					Nenhuma alteração registrada neste usuário
+				</p>
+			) : (
+				<ul className="divide-y">
+					{items.map((item) => {
+						const Icon = ACTION_ICONS[item.action] ?? FALLBACK_ICON;
+						const label = ACTION_LABELS[item.action] ?? item.action;
+						const hasMetadata =
+							item.metadata !== null &&
+							item.metadata !== undefined &&
+							Object.keys(item.metadata).length > 0;
+
+						return (
+							<li className="flex items-start gap-3 py-3" key={item.id}>
+								<div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
+									<Icon className="size-4 text-muted-foreground" />
+								</div>
+								<div className="flex min-w-0 flex-1 flex-col gap-1">
+									<p className="text-sm">
+										{label}
+										{item.actorName ? (
+											<span className="text-muted-foreground">
+												{" · por "}
+												{item.actorName}
+											</span>
+										) : null}
+									</p>
+									<p className="text-muted-foreground text-xs">
+										{formatRelative(new Date(item.createdAt))}
+									</p>
+									{hasMetadata ? (
+										<details className="mt-1">
+											<summary className="cursor-pointer select-none text-muted-foreground text-xs">
+												Detalhes
+											</summary>
+											<pre className="mt-1 overflow-x-auto rounded bg-muted p-2 text-xs">
+												{JSON.stringify(item.metadata, null, 2)}
+											</pre>
+										</details>
+									) : null}
+								</div>
+							</li>
+						);
+					})}
+				</ul>
+			)}
 			<InfiniteSentinel
 				error={error}
 				hasMore={hasMore}
