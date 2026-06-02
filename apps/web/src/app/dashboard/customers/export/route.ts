@@ -82,35 +82,51 @@ export async function GET(req: Request) {
 
 	const conditions: ReturnType<typeof sql>[] = [];
 
-	if (filters.q?.trim()) {
-		const like = `%${filters.q.trim().replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
-		conditions.push(
-			sql`(c.name ILIKE ${like} OR c.email ILIKE ${like} OR c.document ILIKE ${like})`
-		);
-	}
-	if (filters.status) {
-		conditions.push(sql`c.status = ${filters.status}`);
-	}
-	if (filters.clientType?.length) {
+	// Export de selecionados: IDs explícitos substituem os filtros de listagem.
+	const selectedIds = filters.ids
+		? filters.ids
+				.split(",")
+				.map((s) => s.trim())
+				.filter(Boolean)
+		: [];
+
+	if (selectedIds.length > 0) {
 		const ph = sql.join(
-			filters.clientType.map((s) => sql`${s}`),
+			selectedIds.map((id) => sql`${id}`),
 			sql`, `
 		);
-		conditions.push(sql`c.client_type IN (${ph})`);
-	}
-	if (filters.createdFrom) {
-		conditions.push(sql`c.created_at >= ${filters.createdFrom}::date`);
-	}
-	if (filters.createdTo) {
-		conditions.push(
-			sql`c.created_at < (${filters.createdTo}::date + INTERVAL '1 day')`
-		);
-	}
-	if (filters.ltvMin !== undefined) {
-		conditions.push(sql`COALESCE(stats.ltv, 0) >= ${filters.ltvMin}`);
-	}
-	if (filters.ltvMax !== undefined) {
-		conditions.push(sql`COALESCE(stats.ltv, 0) <= ${filters.ltvMax}`);
+		conditions.push(sql`c.id IN (${ph})`);
+	} else {
+		if (filters.q?.trim()) {
+			const like = `%${filters.q.trim().replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
+			conditions.push(
+				sql`(c.name ILIKE ${like} OR c.email ILIKE ${like} OR c.document ILIKE ${like})`
+			);
+		}
+		if (filters.status) {
+			conditions.push(sql`c.status = ${filters.status}`);
+		}
+		if (filters.clientType?.length) {
+			const ph = sql.join(
+				filters.clientType.map((s) => sql`${s}`),
+				sql`, `
+			);
+			conditions.push(sql`c.client_type IN (${ph})`);
+		}
+		if (filters.createdFrom) {
+			conditions.push(sql`c.created_at >= ${filters.createdFrom}::date`);
+		}
+		if (filters.createdTo) {
+			conditions.push(
+				sql`c.created_at < (${filters.createdTo}::date + INTERVAL '1 day')`
+			);
+		}
+		if (filters.ltvMin !== undefined) {
+			conditions.push(sql`COALESCE(stats.ltv, 0) >= ${filters.ltvMin}`);
+		}
+		if (filters.ltvMax !== undefined) {
+			conditions.push(sql`COALESCE(stats.ltv, 0) <= ${filters.ltvMax}`);
+		}
 	}
 
 	const where = conditions.length

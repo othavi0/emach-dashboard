@@ -16,6 +16,8 @@ export const ordersListFiltersSchema = z
 		branchId: z.string().uuid().optional(),
 		page: z.coerce.number().int().min(1).default(1),
 		pageSize: z.coerce.number().int().min(1).max(100).default(20),
+		// CSV de IDs (export de selecionados). Quando presente, exporta só estes.
+		ids: z.string().max(20_000).optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.from && data.to && data.to < data.from) {
