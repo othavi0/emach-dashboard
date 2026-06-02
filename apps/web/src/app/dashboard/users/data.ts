@@ -6,7 +6,7 @@ import {
 	session as sessionTable,
 	user as userTable,
 } from "@emach/db/schema/auth";
-import { branch, stockLevel, userBranch } from "@emach/db/schema/inventory";
+import { branch, userBranch } from "@emach/db/schema/inventory";
 import { userActivityLog } from "@emach/db/schema/user-activity";
 import {
 	and,
@@ -15,7 +15,6 @@ import {
 	eq,
 	gt,
 	ilike,
-	inArray,
 	lte,
 	or,
 	type SQL,
@@ -24,6 +23,7 @@ import {
 
 import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { getBranchTableAggregates } from "../branches/data";
 
 // ============================================================================
 // KPIs
@@ -267,26 +267,28 @@ export interface UserDetailKpis {
 export async function getUserDetailKpis(
 	userId: string
 ): Promise<UserDetailKpis> {
-	const [branches] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(userBranch)
-		.where(eq(userBranch.userId, userId));
-	const [sessions] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(sessionTable)
-		.where(
-			and(
-				eq(sessionTable.userId, userId),
-				gt(sessionTable.expiresAt, new Date())
-			)
-		);
-	const [u] = await db
-		.select({
-			createdAt: userTable.createdAt,
-			lastLoginAt: userTable.lastLoginAt,
-		})
-		.from(userTable)
-		.where(eq(userTable.id, userId));
+	const [[branches], [sessions], [u]] = await Promise.all([
+		db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(userBranch)
+			.where(eq(userBranch.userId, userId)),
+		db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(sessionTable)
+			.where(
+				and(
+					eq(sessionTable.userId, userId),
+					gt(sessionTable.expiresAt, new Date())
+				)
+			),
+		db
+			.select({
+				createdAt: userTable.createdAt,
+				lastLoginAt: userTable.lastLoginAt,
+			})
+			.from(userTable)
+			.where(eq(userTable.id, userId)),
+	]);
 	return {
 		activeSessions: sessions?.n ?? 0,
 		createdAt: u?.createdAt ?? new Date(0),
@@ -339,39 +341,19 @@ export async function getUserLinkedBranchesWithStats(
 	}
 
 	const branchIds = linkedBranches.map((b) => b.id);
+	// Reusa a agregação canônica da listagem de filiais (mesmo cálculo de
+	// teamCount/activeSkus/lowStock) em vez de duplicar as queries.
+	const stats = await getBranchTableAggregates(branchIds);
 
-	// teamCount — expressões copiadas de getBranchTableAggregates em branches/data.ts
-	const teamRows = await db
-		.select({
-			branchId: userBranch.branchId,
-			n: sql<number>`count(*)::int`,
-		})
-		.from(userBranch)
-		.where(inArray(userBranch.branchId, branchIds))
-		.groupBy(userBranch.branchId);
-
-	// activeSkus + lowStock — expressões copiadas de getBranchTableAggregates em branches/data.ts
-	const stockRows = await db
-		.select({
-			branchId: stockLevel.branchId,
-			active: sql<number>`count(*) filter (where ${stockLevel.quantity} > 0)::int`,
-			low: sql<number>`count(*) filter (where ${stockLevel.quantity} <= coalesce(${stockLevel.minQty}, 0) and coalesce(${stockLevel.minQty}, 0) > 0)::int`,
-		})
-		.from(stockLevel)
-		.where(inArray(stockLevel.branchId, branchIds))
-		.groupBy(stockLevel.branchId);
-
-	const teamMap = new Map(teamRows.map((r) => [r.branchId, r.n]));
-	const stockMap = new Map(
-		stockRows.map((r) => [r.branchId, { active: r.active, low: r.low }])
-	);
-
-	return linkedBranches.map((b) => ({
-		...b,
-		teamCount: teamMap.get(b.id) ?? 0,
-		activeSkus: stockMap.get(b.id)?.active ?? 0,
-		lowStock: stockMap.get(b.id)?.low ?? 0,
-	}));
+	return linkedBranches.map((b) => {
+		const s = stats.get(b.id);
+		return {
+			...b,
+			teamCount: s?.teamCount ?? 0,
+			activeSkus: s?.activeSkus ?? 0,
+			lowStock: s?.lowStock ?? 0,
+		};
+	});
 }
 
 // ============================================================================
