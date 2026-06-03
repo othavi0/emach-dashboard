@@ -27,15 +27,20 @@ Com Resend funcional (key + domínio `emachferramentas.com.br` verificado + `mis
   1. `safeParse` (email válido; role no conjunto permitido por `allowedApprovalRoles(actorRole)`; branchIds).
   2. `await requireCapabilityWithContext("users.invite", { targetBranchIds })` (capability nova; no-op hoje por ADR-0012, mas registrada).
   3. Valida email: se existe user `active`/`suspended` → erro "já existe conta"; se existe `pending` (convite aberto) → caminho de **reenvio** (regenera token + reenvia) em vez de duplicar.
-  4. Cria o usuário (mecanismo Better Auth confirmado no plano — ver §5): `email`, `name=""`, `role`, `status='pending'`, `emailVerified=true`; vincula `userBranch`.
-  5. Gera token de definição de senha (via machinery de `requestPasswordReset`, `redirectTo=/convite`).
-  6. `await sendInviteEmail({ to, inviterName, acceptUrl })`.
+  4. Cria o usuário via `auth.$context` internal adapter (ver §5): `ctx.internalAdapter.createUser({ email, name: "", emailVerified: true })`; depois `db.update(user).set({ role, status: 'pending' })`. **Sem** credential account ainda (sem senha até o aceite). Vincula `userBranch`.
+  5. Gera **token de convite próprio** (random, 7d) — armazenado em colunas `inviteToken` + `inviteTokenExpiresAt` no `user` (push-only) **ou** na tabela `verification` com identifier `invite:<userId>`. Decidir no plano; inclinação: colunas no `user` (o convidado já É um user pending).
+  6. `await sendInviteEmail({ to, inviterName, acceptUrl: <origin>/convite?token=... })`.
   7. `logUserActivity({ action: "user.invited", ... })`; `revalidatePath`.
 
 ### 3.2 Aceitar (`/convite?token=`)
-- Server valida o token (existe, não expirado, não usado). Token inválido → estado "Link expirado" (reusa o padrão de estado do `AuthShell`).
+- Server valida o token de convite (existe no `user` via `inviteToken`, não expirado, `status='pending'`). Token inválido → estado "Link expirado" (reusa o padrão de estado do `AuthShell`).
 - `AuthShell` + `InviteAcceptForm` (client): **nome + senha + confirmar senha** (toggle mostrar/ocultar). Email exibido read-only (do convite).
-- Submit → server: define senha via `resetPassword({ token, newPassword })` + atualiza `name` + `status='active'` → sessão criada → redireciona `/dashboard`.
+- Submit → server action `acceptInvite({ token, name, password })`:
+  1. Revalida token (não expirado, pending).
+  2. `ctx.internalAdapter.createAccount({ accountId: user.id, providerId: "credential", userId: user.id, password: await ctx.password.hash(password) })`.
+  3. `db.update(user).set({ name, status: 'active', inviteToken: null, inviteTokenExpiresAt: null })`.
+  4. `auth.api.signInEmail({ body: { email, password }, headers })` — loga o convidado (cookie via `nextCookies`; `disableSignUp` não afeta sign-in). `logUserActivity({ action: "user.invite_accepted" })`.
+  5. Redireciona `/dashboard`.
 
 ### 3.3 Reset de senha (forgot, agora funcional)
 - `/esqueci-senha`: submit **ativado** → `authClient.requestPasswordReset({ email, redirectTo: <origin>/redefinir-senha })`. Resposta constante (não revela existência do email).
@@ -51,15 +56,16 @@ Pacote novo espelhando o setup react/JSX do `@emach/ui`. Mantém o `@emach/auth`
 - Exporta `sendInviteEmail({ to, inviterName, acceptUrl })` e `sendPasswordResetEmail({ to, url })` — `from = env.EMAIL_FROM` (domínio verificado), `resend.emails.send({ react })`.
 - `RESEND_API_KEY` + `EMAIL_FROM` adicionados ao schema em `packages/env/src/server.ts` (`z.string().min(1)`).
 
-## 5. Better Auth (`packages/auth/src/dashboard.ts`)
+## 5. Better Auth (`packages/auth/src/dashboard.ts`) — mecanismo resolvido
 
-- `emailAndPassword.disableSignUp: true` — sem self-cadastro (convite-only). **Verificar:** que o caminho de criação do convite (§3.1.4) funciona com signup público desligado — provável **admin plugin** (`admin.createUser`) que cria server-side independente do `disableSignUp`. Confirmar API exata no plano via docs Better Auth (v1.6.11).
+Confirmado via docs/issues Better Auth (v1.6.x):
+
+- **Sem admin plugin.** Criação do usuário no convite e da credencial no aceite usam o **internal context**: `const ctx = await authDashboard.$context` → `ctx.internalAdapter.createUser(...)`, `ctx.internalAdapter.createAccount({ providerId: "credential", password: await ctx.password.hash(pw) })`. (Padrão documentado em issue oficial; `admin.setUserPassword` foi descartado porque exige sessão.) ⚠️ Verificar em runtime que `authDashboard.$context` resolve dentro de server action Next (há relato de "No auth context found" em certos ambientes — testar cedo).
+- `emailAndPassword.disableSignUp: true` — sem self-cadastro. Bloqueia só o endpoint de **sign-up**; **não** afeta `signInEmail` (usado no aceite) nem o `internalAdapter` (server-side). Convite-only garantido.
 - `emailAndPassword.sendResetPassword: async ({ user, url }) => sendPasswordResetEmail({ to: user.email, url })`.
 - `emailAndPassword.revokeSessionsOnPasswordReset: true`.
-- `requireEmailVerification` **não setado** (verificação removida); sem `emailVerification` block.
-- `resetPasswordTokenExpiresIn` mantém default (1h) para reset; o **token do convite** usa expiração própria de 7 dias — confirmar se reusa o token de reset (1h é curto pra convite) ou um token dedicado. **Provável:** token de convite dedicado (7d) + token de reset (1h) separados. Decidir no plano.
-
-> ⚠️ Ponto a resolver no plano: se o convite reusa o token de `requestPasswordReset` (1h) ele expira rápido demais pra um convite. Opções: (a) configurar expiração maior, (b) token de convite próprio numa coluna/tabela. Inclinação: token de convite dedicado.
+- `requireEmailVerification` **não setado** (verificação removida); sem bloco `emailVerification`.
+- **Token de reset** (forgot password) mantém o default do Better Auth (1h — apropriado para segurança). **Token de convite é NOSSO** (7d), totalmente desacoplado do reset — sem conflito de TTL.
 
 ## 6. Remoções / cleanup
 
