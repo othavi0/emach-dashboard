@@ -10,6 +10,15 @@ import { authClient } from "@/lib/auth-client";
 
 const DASHBOARD_ROUTE = "/dashboard";
 const LOGIN_ROUTE = "/login";
+const AUTH_ROUTES = [
+	"/login",
+	"/esqueci-senha",
+	"/pending",
+	"/suspended",
+	"/redefinir-senha",
+	"/convite",
+	"/verificar-email",
+];
 
 export default function AppHeader() {
 	const pathname = usePathname();
@@ -17,8 +26,9 @@ export default function AppHeader() {
 	const { data: session, isPending } = authClient.useSession();
 
 	const isDashboardRoute = pathname.startsWith(DASHBOARD_ROUTE);
+	const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
-	if (isDashboardRoute) {
+	if (isDashboardRoute || isAuthRoute) {
 		return null;
 	}
 

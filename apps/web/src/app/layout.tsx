@@ -20,7 +20,7 @@ const fontSans = Inter({
 
 export const metadata: Metadata = {
 	title: "emach dashboard",
-	description: "Dashboard de gestao de estoque e ecommerce da E-mach.",
+	description: "Dashboard de gestão de estoque e e-commerce da E-mach.",
 };
 
 export default function RootLayout({
