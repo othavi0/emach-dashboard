@@ -17,6 +17,7 @@ import {
 import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
 import { Textarea } from "@emach/ui/components/textarea";
+import { TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -143,7 +144,30 @@ function formatIssuePath(path: ReadonlyArray<PropertyKey>): string {
 	return `${headLabel} · ${path.slice(1).map(String).join(".")}`;
 }
 
-const EMPTY_VALUES: ToolFormValues = {
+// Estado do form permite numéricos de frete vazios (undefined) antes do
+// preenchimento; a validação Zod exige presença e positividade no submit.
+type ToolFormState = Omit<
+	ToolFormValues,
+	"weightKg" | "lengthCm" | "widthCm" | "heightCm"
+> & {
+	weightKg?: number;
+	lengthCm?: number;
+	widthCm?: number;
+	heightCm?: number;
+};
+
+// Tetos de cotação do SuperFrete: 30 kg e 100 cm por lado. Acima disso a loja
+// não cota automaticamente e o frete real pode sair mais caro que o cobrado.
+function exceedsShippingQuoteLimit(values: ToolFormState): boolean {
+	return (
+		(values.weightKg ?? 0) > 30 ||
+		(values.lengthCm ?? 0) > 100 ||
+		(values.widthCm ?? 0) > 100 ||
+		(values.heightCm ?? 0) > 100
+	);
+}
+
+const EMPTY_VALUES: ToolFormState = {
 	name: "",
 	description: "",
 	model: "",
@@ -177,6 +201,7 @@ const EMPTY_VALUES: ToolFormValues = {
 	attributeAssignments: [],
 };
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: form coeso de ferramenta com muitos campos controlados (identidade, variantes, categorias, specs, dimensões de frete, fiscal, imagens, publicação) — será refatorado em sub-componentes.
 export function ToolForm({
 	mode,
 	toolId,
@@ -189,7 +214,7 @@ export function ToolForm({
 }: ToolFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
-	const [values, setValues] = useState<ToolFormValues>({
+	const [values, setValues] = useState<ToolFormState>({
 		...EMPTY_VALUES,
 		...defaultValues,
 		variants:
@@ -250,9 +275,9 @@ export function ToolForm({
 		}));
 	}, [suggestedDefinitions, mode]);
 
-	function update<K extends keyof ToolFormValues>(
+	function update<K extends keyof ToolFormState>(
 		key: K,
-		value: ToolFormValues[K]
+		value: ToolFormState[K]
 	) {
 		setValues((prev) => ({ ...prev, [key]: value }));
 	}
@@ -335,6 +360,8 @@ export function ToolForm({
 		event.preventDefault();
 		startTransition(submit);
 	}
+
+	const exceedsShippingLimit = exceedsShippingQuoteLimit(values);
 
 	return (
 		<form className="flex w-full flex-col gap-6" onSubmit={handleSubmit}>
@@ -553,49 +580,82 @@ export function ToolForm({
 						Dimensões físicas
 					</h2>
 					<p className="text-muted-foreground text-xs">
-						Usado para cálculo de frete e ficha técnica no site.
+						Obrigatório — a loja usa peso e medidas para cotar o frete no
+						checkout. Cotação do SuperFrete cobre até 30 kg e 100 cm por lado.
 					</p>
 				</div>
 				<div className="grid gap-4 md:grid-cols-5">
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="weightKg">Peso (kg)</Label>
+						<Label htmlFor="weightKg">
+							Peso (kg)
+							<span className="text-destructive"> *</span>
+						</Label>
 						<MaskedInput
+							aria-invalid={errors.weightKg ? true : undefined}
+							aria-required="true"
 							id="weightKg"
 							mask={decimalMask}
 							onChange={(v) => update("weightKg", v)}
 							placeholder="Ex: 2,5"
 							value={values.weightKg}
 						/>
+						{errors.weightKg && (
+							<p className="text-destructive text-xs">{errors.weightKg}</p>
+						)}
 					</div>
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="lengthCm">Comprimento (cm)</Label>
+						<Label htmlFor="lengthCm">
+							Comprimento (cm)
+							<span className="text-destructive"> *</span>
+						</Label>
 						<MaskedInput
+							aria-invalid={errors.lengthCm ? true : undefined}
+							aria-required="true"
 							id="lengthCm"
 							mask={decimalMask}
 							onChange={(v) => update("lengthCm", v)}
 							placeholder="Ex: 30"
 							value={values.lengthCm}
 						/>
+						{errors.lengthCm && (
+							<p className="text-destructive text-xs">{errors.lengthCm}</p>
+						)}
 					</div>
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="widthCm">Largura (cm)</Label>
+						<Label htmlFor="widthCm">
+							Largura (cm)
+							<span className="text-destructive"> *</span>
+						</Label>
 						<MaskedInput
+							aria-invalid={errors.widthCm ? true : undefined}
+							aria-required="true"
 							id="widthCm"
 							mask={decimalMask}
 							onChange={(v) => update("widthCm", v)}
 							placeholder="Ex: 10"
 							value={values.widthCm}
 						/>
+						{errors.widthCm && (
+							<p className="text-destructive text-xs">{errors.widthCm}</p>
+						)}
 					</div>
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="heightCm">Altura (cm)</Label>
+						<Label htmlFor="heightCm">
+							Altura (cm)
+							<span className="text-destructive"> *</span>
+						</Label>
 						<MaskedInput
+							aria-invalid={errors.heightCm ? true : undefined}
+							aria-required="true"
 							id="heightCm"
 							mask={decimalMask}
 							onChange={(v) => update("heightCm", v)}
 							placeholder="Ex: 20"
 							value={values.heightCm}
 						/>
+						{errors.heightCm && (
+							<p className="text-destructive text-xs">{errors.heightCm}</p>
+						)}
 					</div>
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="powerWatts">Potência (W)</Label>
@@ -608,6 +668,18 @@ export function ToolForm({
 						/>
 					</div>
 				</div>
+				{exceedsShippingLimit && (
+					<div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3">
+						<TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" />
+						<p className="text-foreground text-xs leading-relaxed">
+							Esta ferramenta excede os limites de cotação do SuperFrete (máx.
+							30 kg e 100 cm por lado). A loja não conseguirá cotar o frete
+							automaticamente para itens assim — o custo real do envio pode sair{" "}
+							<strong>mais caro do que o cliente pagou</strong>. Trate o frete
+							desses itens manualmente.
+						</p>
+					</div>
+				)}
 			</section>
 
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
