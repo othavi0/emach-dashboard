@@ -1,33 +1,14 @@
-import { OrderStatusBadge } from "../../_components/order-status-badge";
+import { Badge } from "@emach/ui/components/badge";
 import type { OrderDetail, OrderStatus } from "../../data";
+import {
+	formatCurrency as currencyFmt,
+	formatDocument,
+} from "../_lib/format-address";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-	style: "currency",
-	currency: "BRL",
-});
-
 function formatCurrency(value: number): string {
-	return currencyFormatter.format(value);
-}
-
-const NON_DIGITS_RE = /\D/g;
-const CPF_MASK_RE = /(\d{3})(\d{3})(\d{3})(\d{2})/;
-const CNPJ_MASK_RE = /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/;
-
-function formatDocument(doc: string | null): string {
-	if (!doc) {
-		return "—";
-	}
-	const digits = doc.replace(NON_DIGITS_RE, "");
-	if (digits.length === 11) {
-		return digits.replace(CPF_MASK_RE, "$1.$2.$3-$4");
-	}
-	if (digits.length === 14) {
-		return digits.replace(CNPJ_MASK_RE, "$1.$2.$3/$4-$5");
-	}
-	return doc;
+	return currencyFmt.format(value);
 }
 
 // ─── SLA helpers ──────────────────────────────────────────────────────────────
@@ -117,7 +98,11 @@ export function OrderSummaryCard({ order }: Props) {
 					</span>
 					<span className="flex items-center gap-2 text-sm">
 						{order.paymentMethod ?? "—"}
-						<OrderStatusBadge status={order.status} />
+						{order.paidAt ? (
+							<Badge variant="success">Pago</Badge>
+						) : (
+							<Badge variant="secondary">Não pago</Badge>
+						)}
 					</span>
 				</div>
 
