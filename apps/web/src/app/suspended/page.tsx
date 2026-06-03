@@ -1,6 +1,8 @@
+import { Ban } from "lucide-react";
 import { redirect } from "next/navigation";
 
-import { StatusCard } from "@/app/pending/_components/status-card";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthStatusPanel } from "@/components/auth/auth-status-panel";
 import { getCurrentSession, getUserStatus } from "@/lib/session";
 
 export default async function SuspendedPage() {
@@ -17,10 +19,13 @@ export default async function SuspendedPage() {
 	}
 
 	return (
-		<StatusCard
-			description="Sua conta foi suspensa. Fale com seu administrador para mais informações."
-			icon="🚫"
-			title="Acesso suspenso"
-		/>
+		<AuthShell>
+			<AuthStatusPanel
+				description="Sua conta foi suspensa. Fale com seu administrador para mais informações."
+				icon={<Ban aria-hidden className="size-5" />}
+				title="Acesso suspenso"
+				tone="destructive"
+			/>
+		</AuthShell>
 	);
 }
