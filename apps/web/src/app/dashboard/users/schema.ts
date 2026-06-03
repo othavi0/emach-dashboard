@@ -2,18 +2,30 @@ import { z } from "zod";
 
 const ROLES = ["super_admin", "admin", "manager", "user"] as const;
 
-export const approveUserSchema = z
+export const inviteUserSchema = z
 	.object({
-		userId: z.string().min(1),
+		email: z
+			.string()
+			.email("Email inválido")
+			.transform((v) => v.trim().toLowerCase()),
 		role: z.enum(ROLES),
 		branchIds: z.array(z.string().min(1)),
 	})
-	.refine((data) => data.role === "super_admin" || data.branchIds.length >= 1, {
+	.refine((d) => d.role === "super_admin" || d.branchIds.length >= 1, {
 		message: "Selecione ao menos 1 filial",
 		path: ["branchIds"],
 	});
+export type InviteUserInput = z.infer<typeof inviteUserSchema>;
 
-export type ApproveUserInput = z.infer<typeof approveUserSchema>;
+export const inviteIdSchema = z.object({ userId: z.string().min(1) });
+export type InviteIdInput = z.infer<typeof inviteIdSchema>;
+
+export const acceptInviteSchema = z.object({
+	token: z.string().min(1),
+	name: z.string().min(2, "Informe seu nome").max(100),
+	password: z.string().min(8, "Mínimo 8 caracteres").max(128),
+});
+export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
 
 export const updateUserSchema = z.object({
 	userId: z.string().min(1),
@@ -57,14 +69,3 @@ export const deleteUserSchema = z.object({
 });
 export type DeleteUserInput = z.infer<typeof deleteUserSchema>;
 
-export const rejectUserSchema = z.object({
-	userId: z.string().min(1),
-	reason: z.string().min(1).optional(),
-});
-export type RejectUserInput = z.infer<typeof rejectUserSchema>;
-
-export const bulkRejectSchema = z.object({
-	userIds: z.array(z.string().min(1)).min(1),
-	reason: z.string().min(1).optional(),
-});
-export type BulkRejectInput = z.infer<typeof bulkRejectSchema>;
