@@ -6,6 +6,7 @@ import { branch } from "@emach/db/schema/inventory";
 import {
 	type OrderStatus,
 	order,
+	orderEvent,
 	orderNote,
 	orderStatusHistory,
 } from "@emach/db/schema/orders";
@@ -39,6 +40,8 @@ import {
 	capForStatus,
 	type RefundOrderInput,
 	refundOrderSchema,
+	type TogglePinNoteInput,
+	togglePinNoteSchema,
 	type UpdateOrderStatusInput,
 	type UpdateTrackingCodeInput,
 	updateOrderStatusSchema,
@@ -150,6 +153,45 @@ export async function lockOrderAndAuthorize(
 	return { status: locked.status, branchId: locked.branchId, session };
 }
 
+async function insertOrderEvent(
+	tx: OrderTx,
+	args: {
+		orderId: string;
+		eventType: "tracking_set" | "branch_assigned";
+		metadata: Record<string, unknown>;
+		actorUserId: string | null;
+	}
+): Promise<void> {
+	await tx.insert(orderEvent).values({
+		id: crypto.randomUUID(),
+		orderId: args.orderId,
+		eventType: args.eventType,
+		metadata: args.metadata,
+		actorType: args.actorUserId ? "user" : "system",
+		actorUserId: args.actorUserId,
+	});
+}
+
+/** Monta o objeto de update do pedido para uma transição de status. */
+function buildOrderStatusUpdate(
+	toStatus: OrderStatus,
+	trackingCode: string | undefined,
+	branchId: string | undefined
+): Record<string, unknown> {
+	const updates: Record<string, unknown> = { status: toStatus };
+	const tsField = STATUS_TIMESTAMP_MAP[toStatus];
+	if (tsField) {
+		updates[tsField] = new Date();
+	}
+	if (toStatus === "shipped" && trackingCode) {
+		updates.shippingTrackingCode = trackingCode;
+	}
+	if (toStatus === "preparing" && branchId) {
+		updates.branchId = branchId;
+	}
+	return updates;
+}
+
 export async function updateOrderStatus(
 	input: UpdateOrderStatusInput
 ): Promise<ActionResult> {
@@ -191,17 +233,7 @@ export async function updateOrderStatus(
 				);
 			}
 
-			const updates: Record<string, unknown> = { status: toStatus };
-			const tsField = STATUS_TIMESTAMP_MAP[toStatus];
-			if (tsField) {
-				updates[tsField] = new Date();
-			}
-			if (toStatus === "shipped" && trackingCode) {
-				updates.shippingTrackingCode = trackingCode;
-			}
-			if (toStatus === "preparing" && branchId) {
-				updates.branchId = branchId;
-			}
+			const updates = buildOrderStatusUpdate(toStatus, trackingCode, branchId);
 
 			await tx.update(order).set(updates).where(eq(order.id, orderId));
 
@@ -214,6 +246,15 @@ export async function updateOrderStatus(
 				actorUserId: session.user.id,
 				reason: reason ?? null,
 			});
+
+			if (toStatus === "shipped" && trackingCode) {
+				await insertOrderEvent(tx, {
+					orderId,
+					eventType: "tracking_set",
+					metadata: { trackingCode },
+					actorUserId: session.user.id,
+				});
+			}
 
 			// Stock returns: only for "returned" status.
 			// Canceled orders (especially unpaid ones) never debited stock, so we
@@ -278,6 +319,7 @@ export async function addOrderNote(
 				orderId,
 				authorId: locked.session.user.id,
 				body,
+				statusAtCreation: locked.status as OrderStatus,
 			});
 		});
 
@@ -292,6 +334,56 @@ export async function addOrderNote(
 			return { ok: false, error: "Pedido não encontrado" };
 		}
 		return { ok: false, error: "Erro ao adicionar nota" };
+	}
+}
+
+export async function togglePinNote(
+	input: TogglePinNoteInput
+): Promise<ActionResult> {
+	const parsed = togglePinNoteSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+
+	const { noteId, pinned } = parsed.data;
+
+	const [existing] = await db
+		.select({ orderId: orderNote.orderId })
+		.from(orderNote)
+		.where(eq(orderNote.id, noteId))
+		.limit(1);
+
+	if (!existing) {
+		return { ok: false, error: "Nota não encontrada" };
+	}
+
+	try {
+		await db.transaction(async (tx) => {
+			const locked = await lockOrderAndAuthorize(
+				tx,
+				"orders.add_note",
+				existing.orderId
+			);
+			if (!locked) {
+				throw new Error("Pedido não encontrado");
+			}
+			await tx
+				.update(orderNote)
+				.set({ pinned })
+				.where(eq(orderNote.id, noteId));
+		});
+
+		revalidatePath(`${ORDERS_PATH}/${existing.orderId}`);
+		return { ok: true, data: undefined };
+	} catch (error) {
+		logger.error("togglePinNote", error);
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para alterar este pedido." };
+		}
+		return { ok: false, error: "Erro ao fixar nota" };
 	}
 }
 
@@ -323,11 +415,11 @@ export async function assignBranch(
 				.where(eq(branch.id, branchId))
 				.limit(1);
 
-			await tx.insert(orderNote).values({
-				id: crypto.randomUUID(),
+			await insertOrderEvent(tx, {
 				orderId,
-				authorId: null,
-				body: `Filial reatribuída para: ${branchRow?.name ?? branchId}`,
+				eventType: "branch_assigned",
+				metadata: { branchId, branchName: branchRow?.name ?? branchId },
+				actorUserId: null,
 			});
 		});
 
@@ -371,11 +463,11 @@ export async function updateTrackingCode(
 				.set({ shippingTrackingCode: trackingCode })
 				.where(eq(order.id, orderId));
 
-			await tx.insert(orderNote).values({
-				id: crypto.randomUUID(),
+			await insertOrderEvent(tx, {
 				orderId,
-				authorId: null,
-				body: `Código de rastreio atualizado: ${trackingCode}`,
+				eventType: "tracking_set",
+				metadata: { trackingCode },
+				actorUserId: locked.session.user.id,
 			});
 		});
 

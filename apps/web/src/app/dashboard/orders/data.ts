@@ -12,9 +12,11 @@ export type { OrderStatus } from "@emach/db/schema/orders";
 import {
 	type OrderStatus,
 	orderAttachment,
+	orderEvent,
 	orderItem,
 	orderNote,
 	orderStatusHistory,
+	refundRequest,
 } from "@emach/db/schema/orders";
 import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getUserBranchScope } from "@/lib/branch-scope";
@@ -95,10 +97,33 @@ export interface OrderNoteItem {
 	body: string;
 	createdAt: Date;
 	id: string;
+	pinned: boolean;
+	statusAtCreation: OrderStatus | null;
+}
+
+export interface OrderRefundItem {
+	amount: number;
+	asaasRefundRef: string | null;
+	id: string;
+	reasonCategory: string;
+	reasonText: string | null;
+	rejectionReason: string | null;
+	requestedAt: Date;
+	resolvedAt: Date | null;
+	status: string;
+}
+
+export interface OrderEventItem {
+	actorLabel: string;
+	createdAt: Date;
+	eventType: string;
+	id: string;
+	metadata: Record<string, unknown> | null;
 }
 
 export interface OrderAttachmentItem {
 	createdAt: Date;
+	description: string | null;
 	fileName: string;
 	fileSize: number | null;
 	id: string;
@@ -126,14 +151,18 @@ export interface OrderDetail {
 	branchId: string | null;
 	branchName: string | null;
 	canceledAt: Date | null;
+	clientDocument: string | null;
 	clientEmail: string;
 	clientId: string;
 	clientName: string;
 	clientPhone: string | null;
+	clientType: string | null;
 	createdAt: Date;
 	/** Observação preenchida pelo CLIENTE no checkout (ex.: "deixar com porteiro"). */
 	customerNotes: string | null;
 	deliveredAt: Date | null;
+	discountAmount: number;
+	events: OrderEventItem[];
 	history: OrderHistoryItem[];
 	id: string;
 	items: OrderDetailItem[];
@@ -152,6 +181,8 @@ export interface OrderDetail {
 	paymentProviderRef: string | null;
 	/** Asaas payment receipt URL. Read-only in admin. */
 	paymentReceiptUrl: string | null;
+	preparingAt: Date | null;
+	refundRequests: OrderRefundItem[];
 	shippedAt: Date | null;
 	shippingAddress: ShippingAddressSnapshot;
 	shippingAmount: number;
@@ -603,37 +634,42 @@ export async function getOrderReviewsOverview(
 }
 
 export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
-	const [base, items, history, notes, attachmentRows] = await Promise.all([
-		db.execute<{
-			branch_id: string | null;
-			branch_name: string | null;
-			canceled_at: Date | null;
-			client_email: string;
-			client_id: string;
-			client_name: string;
-			client_phone: string | null;
-			created_at: Date;
-			delivered_at: Date | null;
-			id: string;
-			nfe_number: string | null;
-			customer_notes: string | null;
-			nfe_status: string | null;
-			nfe_url: string | null;
-			nfe_xml_url: string | null;
-			number: string;
-			paid_at: Date | null;
-			payment_method: string | null;
-			payment_provider_ref: string | null;
-			payment_receipt_url: string | null;
-			shipping_address: ShippingAddressSnapshot;
-			shipping_amount: string;
-			shipping_method: string | null;
-			shipping_tracking_code: string | null;
-			shipped_at: Date | null;
-			status: OrderStatus;
-			subtotal_amount: string;
-			total_amount: string;
-		}>(sql`
+	const [base, items, history, notes, attachmentRows, refundRows, eventRows] =
+		await Promise.all([
+			db.execute<{
+				branch_id: string | null;
+				branch_name: string | null;
+				canceled_at: Date | null;
+				client_email: string;
+				client_id: string;
+				client_name: string;
+				client_phone: string | null;
+				created_at: Date;
+				delivered_at: Date | null;
+				id: string;
+				nfe_number: string | null;
+				customer_notes: string | null;
+				nfe_status: string | null;
+				nfe_url: string | null;
+				nfe_xml_url: string | null;
+				number: string;
+				paid_at: Date | null;
+				payment_method: string | null;
+				payment_provider_ref: string | null;
+				payment_receipt_url: string | null;
+				shipping_address: ShippingAddressSnapshot;
+				shipping_amount: string;
+				shipping_method: string | null;
+				shipping_tracking_code: string | null;
+				shipped_at: Date | null;
+				status: OrderStatus;
+				subtotal_amount: string;
+				total_amount: string;
+				discount_amount: string;
+				client_document: string | null;
+				client_type: string | null;
+				preparing_at: Date | null;
+			}>(sql`
 			SELECT
 				o.id,
 				o.number,
@@ -643,11 +679,13 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				o.subtotal_amount,
 				o.shipping_amount,
 				o.total_amount,
+				o.discount_amount,
 				o.shipping_address,
 				o.shipping_method,
 				o.shipping_tracking_code,
 				o.created_at,
 				o.paid_at,
+				o.preparing_at,
 				o.shipped_at,
 				o.delivered_at,
 				o.canceled_at,
@@ -662,6 +700,8 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				c.name AS client_name,
 				c.email AS client_email,
 				c.phone AS client_phone,
+				c.document AS client_document,
+				c.client_type AS client_type,
 				b.name AS branch_name
 			FROM "order" o
 			JOIN client c ON c.id = o.client_id
@@ -669,52 +709,83 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			WHERE o.id = ${id}
 			LIMIT 1
 		`),
-		db
-			.select()
-			.from(orderItem)
-			.where(eq(orderItem.orderId, id))
-			.orderBy(asc(orderItem.name)),
-		db
-			.select({
-				actorType: orderStatusHistory.actorType,
-				actorUserName: user.name,
-				createdAt: orderStatusHistory.createdAt,
-				fromStatus: orderStatusHistory.fromStatus,
-				id: orderStatusHistory.id,
-				reason: orderStatusHistory.reason,
-				toStatus: orderStatusHistory.toStatus,
-			})
-			.from(orderStatusHistory)
-			.leftJoin(user, eq(orderStatusHistory.actorUserId, user.id))
-			.where(eq(orderStatusHistory.orderId, id))
-			.orderBy(desc(orderStatusHistory.createdAt)),
-		db
-			.select({
-				authorName: user.name,
-				body: orderNote.body,
-				createdAt: orderNote.createdAt,
-				id: orderNote.id,
-			})
-			.from(orderNote)
-			.leftJoin(user, eq(orderNote.authorId, user.id))
-			.where(eq(orderNote.orderId, id))
-			.orderBy(desc(orderNote.createdAt)),
-		db
-			.select({
-				id: orderAttachment.id,
-				fileUrl: orderAttachment.fileUrl,
-				fileName: orderAttachment.fileName,
-				fileSize: orderAttachment.fileSize,
-				mimeType: orderAttachment.mimeType,
-				label: orderAttachment.label,
-				createdAt: orderAttachment.createdAt,
-				uploaderName: user.name,
-			})
-			.from(orderAttachment)
-			.leftJoin(user, eq(orderAttachment.uploadedBy, user.id))
-			.where(eq(orderAttachment.orderId, id))
-			.orderBy(desc(orderAttachment.createdAt)),
-	]);
+			db
+				.select()
+				.from(orderItem)
+				.where(eq(orderItem.orderId, id))
+				.orderBy(asc(orderItem.name)),
+			db
+				.select({
+					actorType: orderStatusHistory.actorType,
+					actorUserName: user.name,
+					createdAt: orderStatusHistory.createdAt,
+					fromStatus: orderStatusHistory.fromStatus,
+					id: orderStatusHistory.id,
+					reason: orderStatusHistory.reason,
+					toStatus: orderStatusHistory.toStatus,
+				})
+				.from(orderStatusHistory)
+				.leftJoin(user, eq(orderStatusHistory.actorUserId, user.id))
+				.where(eq(orderStatusHistory.orderId, id))
+				.orderBy(desc(orderStatusHistory.createdAt)),
+			db
+				.select({
+					authorName: user.name,
+					body: orderNote.body,
+					createdAt: orderNote.createdAt,
+					id: orderNote.id,
+					pinned: orderNote.pinned,
+					statusAtCreation: orderNote.statusAtCreation,
+				})
+				.from(orderNote)
+				.leftJoin(user, eq(orderNote.authorId, user.id))
+				.where(eq(orderNote.orderId, id))
+				.orderBy(desc(orderNote.createdAt)),
+			db
+				.select({
+					id: orderAttachment.id,
+					fileUrl: orderAttachment.fileUrl,
+					fileName: orderAttachment.fileName,
+					description: orderAttachment.description,
+					fileSize: orderAttachment.fileSize,
+					mimeType: orderAttachment.mimeType,
+					label: orderAttachment.label,
+					createdAt: orderAttachment.createdAt,
+					uploaderName: user.name,
+				})
+				.from(orderAttachment)
+				.leftJoin(user, eq(orderAttachment.uploadedBy, user.id))
+				.where(eq(orderAttachment.orderId, id))
+				.orderBy(desc(orderAttachment.createdAt)),
+			db
+				.select({
+					id: refundRequest.id,
+					reasonCategory: refundRequest.reasonCategory,
+					reasonText: refundRequest.reasonText,
+					status: refundRequest.status,
+					amount: refundRequest.amount,
+					asaasRefundRef: refundRequest.asaasRefundRef,
+					rejectionReason: refundRequest.rejectionReason,
+					requestedAt: refundRequest.requestedAt,
+					resolvedAt: refundRequest.resolvedAt,
+				})
+				.from(refundRequest)
+				.where(eq(refundRequest.orderId, id))
+				.orderBy(desc(refundRequest.requestedAt)),
+			db
+				.select({
+					id: orderEvent.id,
+					eventType: orderEvent.eventType,
+					metadata: orderEvent.metadata,
+					actorType: orderEvent.actorType,
+					actorUserName: user.name,
+					createdAt: orderEvent.createdAt,
+				})
+				.from(orderEvent)
+				.leftJoin(user, eq(orderEvent.actorUserId, user.id))
+				.where(eq(orderEvent.orderId, id))
+				.orderBy(desc(orderEvent.createdAt)),
+		]);
 
 	const row = base.rows[0];
 	if (!row) {
@@ -729,6 +800,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			fileSize: att.fileSize,
 			mimeType: att.mimeType,
 			label: att.label,
+			description: att.description,
 			createdAt: att.createdAt,
 			uploaderName: att.uploaderName ?? "Sistema",
 			url: await createSignedUrl(ORDER_DOCUMENTS_BUCKET, att.fileUrl),
@@ -745,6 +817,9 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		customerNotes: row.customer_notes,
 		clientEmail: row.client_email,
 		clientPhone: row.client_phone,
+		clientDocument: row.client_document,
+		clientType: row.client_type,
+		discountAmount: Number(row.discount_amount),
 		branchId: row.branch_id,
 		branchName: row.branch_name,
 		paymentMethod: row.payment_method,
@@ -762,6 +837,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		shippingTrackingCode: row.shipping_tracking_code,
 		createdAt: toDate(row.created_at),
 		paidAt: toDate(row.paid_at),
+		preparingAt: toDate(row.preparing_at),
 		shippedAt: toDate(row.shipped_at),
 		deliveredAt: toDate(row.delivered_at),
 		canceledAt: toDate(row.canceled_at),
@@ -799,6 +875,29 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			body: note.body,
 			createdAt: note.createdAt,
 			authorName: note.authorName ?? "Sistema",
+			pinned: note.pinned,
+			statusAtCreation: note.statusAtCreation,
+		})),
+		refundRequests: refundRows.map((r) => ({
+			id: r.id,
+			reasonCategory: r.reasonCategory,
+			reasonText: r.reasonText,
+			status: r.status,
+			amount: Number(r.amount),
+			asaasRefundRef: r.asaasRefundRef,
+			rejectionReason: r.rejectionReason,
+			requestedAt: r.requestedAt,
+			resolvedAt: r.resolvedAt,
+		})),
+		events: eventRows.map((e) => ({
+			id: e.id,
+			eventType: e.eventType,
+			metadata: (e.metadata ?? null) as Record<string, unknown> | null,
+			actorLabel: formatActorLabel({
+				actorType: e.actorType,
+				actorUserName: e.actorUserName,
+			}),
+			createdAt: e.createdAt,
 		})),
 	};
 }
