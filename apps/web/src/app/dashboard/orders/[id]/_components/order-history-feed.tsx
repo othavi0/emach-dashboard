@@ -258,12 +258,6 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 
 	return (
 		<div className="flex flex-col gap-4">
-			{/* Upload form at the top */}
-			<AttachmentUploadForm
-				onSuccess={() => router.refresh()}
-				orderId={order.id}
-			/>
-
 			{/* Filter chips */}
 			<div className="flex flex-wrap gap-2">
 				{FILTER_CHIPS.map((chip) => {
@@ -353,6 +347,20 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 					</div>
 				</div>
 			)}
+
+			{/* Anexar evidência — ação secundária, ao fim da sessão */}
+			<div className="mt-2 border-border border-t pt-4">
+				<p className="font-medium text-sm">Anexar evidência</p>
+				<p className="mt-0.5 mb-3 text-muted-foreground text-xs">
+					Suba comprovantes, fotos de defeito ou documentos do pedido (PDF ou
+					imagem). O anexo passa a constar no histórico acima e fica disponível
+					para a equipe.
+				</p>
+				<AttachmentUploadForm
+					onSuccess={() => router.refresh()}
+					orderId={order.id}
+				/>
+			</div>
 		</div>
 	);
 }
