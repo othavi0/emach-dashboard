@@ -37,6 +37,8 @@ export const user = pgTable("user", {
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
 	lastLoginAt: timestamp("last_login_at"),
+	inviteToken: text("invite_token").unique(),
+	inviteTokenExpiresAt: timestamp("invite_token_expires_at"),
 });
 
 export const session = pgTable(
