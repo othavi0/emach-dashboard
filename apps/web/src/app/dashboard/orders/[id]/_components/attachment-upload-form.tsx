@@ -3,6 +3,7 @@
 import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
 import { Spinner } from "@emach/ui/components/spinner";
+import { Textarea } from "@emach/ui/components/textarea";
 import { UploadIcon } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -17,6 +18,7 @@ export function AttachmentUploadForm({
 }) {
 	const fileRef = useRef<HTMLInputElement>(null);
 	const [label, setLabel] = useState("");
+	const [description, setDescription] = useState("");
 	const [fileName, setFileName] = useState<string | null>(null);
 	const [isPending, startTransition] = useTransition();
 	const [errors, setErrors] = useState<string[]>([]);
@@ -41,6 +43,9 @@ export function AttachmentUploadForm({
 		if (label.trim()) {
 			formData.set("label", label.trim());
 		}
+		if (description.trim()) {
+			formData.set("description", description.trim());
+		}
 
 		startTransition(async () => {
 			const result = await addOrderAttachment(formData);
@@ -50,6 +55,7 @@ export function AttachmentUploadForm({
 			}
 			toast.success("Anexo enviado");
 			setLabel("");
+			setDescription("");
 			setFileName(null);
 			if (fileRef.current) {
 				fileRef.current.value = "";
@@ -100,6 +106,13 @@ export function AttachmentUploadForm({
 				onChange={(e) => setLabel(e.target.value)}
 				placeholder="Rótulo (ex: foto defeito, NF de devolução)"
 				value={label}
+			/>
+
+			<Textarea
+				name="description"
+				onChange={(e) => setDescription(e.target.value)}
+				placeholder="Observação (opcional) — ex: produto chegou quebrado; João da loja confirmou avaria na entrega"
+				value={description}
 			/>
 
 			<Button

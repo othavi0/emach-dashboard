@@ -32,6 +32,7 @@ const ORDERS_PATH = "/dashboard/orders";
 const addAttachmentSchema = z.object({
 	orderId: z.string().uuid("orderId inválido"),
 	label: z.string().trim().max(200).optional(),
+	description: z.string().trim().max(2000).optional(),
 });
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -62,10 +63,12 @@ export async function addOrderAttachment(
 	// Validate non-file fields first
 	const rawOrderId = formData.get("orderId");
 	const rawLabel = formData.get("label");
+	const rawDescription = formData.get("description");
 
 	const parsed = addAttachmentSchema.safeParse({
 		orderId: rawOrderId,
 		label: rawLabel ?? undefined,
+		description: rawDescription ?? undefined,
 	});
 
 	if (!parsed.success) {
@@ -75,7 +78,7 @@ export async function addOrderAttachment(
 		};
 	}
 
-	const { orderId, label } = parsed.data;
+	const { orderId, label, description } = parsed.data;
 
 	// Upload first — keep the DB lock duration minimal
 	let uploadResult: Awaited<ReturnType<typeof uploadToPrivateBucket>>;
@@ -118,6 +121,7 @@ export async function addOrderAttachment(
 				fileSize: uploadResult.fileSize,
 				mimeType: uploadResult.mimeType,
 				label: label ?? null,
+				description: description ?? null,
 				uploadedBy: auth.session.user.id,
 			});
 		});
