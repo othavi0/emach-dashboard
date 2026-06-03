@@ -37,6 +37,10 @@ const optionalInt = z
 	.nonnegative("Deve ser maior ou igual a zero")
 	.optional()
 	.or(z.nan().transform(() => undefined));
+// Peso e dimensões são obrigatórios: a loja consome esses dados para cotar frete.
+const requiredPositiveNumber = z
+	.number({ error: "Campo obrigatório" })
+	.positive("Deve ser maior que zero");
 
 export const toolVariantSchema = z.object({
 	id: z.string().optional(),
@@ -89,10 +93,10 @@ export const toolFormSchema = z
 		ncm: optionalString,
 		cest: optionalString,
 		powerWatts: optionalInt,
-		weightKg: optionalNumber,
-		lengthCm: optionalNumber,
-		widthCm: optionalNumber,
-		heightCm: optionalNumber,
+		weightKg: requiredPositiveNumber,
+		lengthCm: requiredPositiveNumber,
+		widthCm: requiredPositiveNumber,
+		heightCm: requiredPositiveNumber,
 		categoryIds: z
 			.array(z.string().min(1))
 			.min(1, "Selecione ao menos uma categoria"),
