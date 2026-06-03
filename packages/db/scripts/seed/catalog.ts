@@ -372,7 +372,9 @@ interface ToolDef {
 		valueBool?: boolean;
 	}[];
 	description: string;
+	heightCm?: string;
 	imageCount: number;
+	lengthCm?: string;
 	model: string;
 	name: string;
 	powerWatts?: number;
@@ -384,6 +386,16 @@ interface ToolDef {
 	variants: VariantDef[];
 	visibleOnSite: boolean;
 	weightKg?: string;
+	widthCm?: string;
+}
+
+// Peso/dimensões de demonstração (aleatórios plausíveis) para tools sem valor
+// explícito — peso e dimensões são NOT NULL (consumidos pela loja para frete).
+function randomWeightKg(): string {
+	return (0.5 + Math.random() * 24.5).toFixed(3); // 0,5–25 kg
+}
+function randomDimCm(): string {
+	return (10 + Math.random() * 70).toFixed(2); // 10–80 cm
 }
 
 const TOOLS: ToolDef[] = [
@@ -876,7 +888,10 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 			visibleOnSite: toolDef.visibleOnSite,
 			supplierId,
 			powerWatts: toolDef.powerWatts ?? null,
-			weightKg: toolDef.weightKg ?? null,
+			weightKg: toolDef.weightKg ?? randomWeightKg(),
+			lengthCm: toolDef.lengthCm ?? randomDimCm(),
+			widthCm: toolDef.widthCm ?? randomDimCm(),
+			heightCm: toolDef.heightCm ?? randomDimCm(),
 		});
 		ctx.toolIds.push(toolId);
 		ctx.variantIdsByTool[toolId] = [];

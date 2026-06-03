@@ -50,13 +50,6 @@ function toNumericString(value: number | null | undefined): string | null {
 	return value.toFixed(2);
 }
 
-function toWeightString(value: number | undefined): string | null {
-	if (typeof value !== "number" || Number.isNaN(value)) {
-		return null;
-	}
-	return value.toFixed(3);
-}
-
 function toInt(value: number | undefined): number | null {
 	if (typeof value !== "number" || Number.isNaN(value)) {
 		return null;
@@ -81,10 +74,10 @@ function normalizeToolPayload(input: ToolFormValues) {
 		ncm: nullableText(input.ncm),
 		cest: nullableText(input.cest),
 		powerWatts: toInt(input.powerWatts),
-		weightKg: toWeightString(input.weightKg),
-		lengthCm: toNumericString(input.lengthCm),
-		widthCm: toNumericString(input.widthCm),
-		heightCm: toNumericString(input.heightCm),
+		weightKg: input.weightKg.toFixed(3),
+		lengthCm: input.lengthCm.toFixed(2),
+		widthCm: input.widthCm.toFixed(2),
+		heightCm: input.heightCm.toFixed(2),
 		visibleOnSite: input.visibleOnSite,
 		supplierId: nullableText(input.supplierId),
 	};
