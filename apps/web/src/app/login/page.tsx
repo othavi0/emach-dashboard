@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
-import AuthCard from "@/components/auth-card";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { LoginForm } from "@/components/auth/login-form";
 import { getCurrentSession, getUserStatus } from "@/lib/session";
 
 export default async function LoginPage() {
@@ -18,8 +19,8 @@ export default async function LoginPage() {
 	}
 
 	return (
-		<main className="flex flex-1 items-center justify-center px-6 py-12">
-			<AuthCard />
-		</main>
+		<AuthShell>
+			<LoginForm />
+		</AuthShell>
 	);
 }
