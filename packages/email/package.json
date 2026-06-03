@@ -1,0 +1,23 @@
+{
+  "name": "@emach/email",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./send": "./src/send.tsx"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@emach/env": "workspace:*",
+    "@react-email/components": "^1.0.12",
+    "react": "catalog:",
+    "resend": "^6.12.4"
+  },
+  "devDependencies": {
+    "@emach/config": "workspace:*",
+    "@types/react": "catalog:",
+    "typescript": "^6.0.3"
+  }
+}
