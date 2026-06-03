@@ -1,0 +1,7 @@
+# Carrega o apps/web/.env no env do shell para que o `claude` lançado neste
+# projeto herde RESEND_API_KEY no process.env — necessário porque a interpolação
+# ${RESEND_API_KEY} do .mcp.json (plugin Resend) NÃO é alimentada pelo `env` do
+# settings.json na v2.1.159, só pelo env do OS. Ver issue #113.
+# .env continua a fonte única (gitignored); este arquivo não carrega segredo.
+[env]
+_.file = "apps/web/.env"

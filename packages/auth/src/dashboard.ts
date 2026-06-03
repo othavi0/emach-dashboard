@@ -1,5 +1,6 @@
 import { createDb } from "@emach/db";
 import { account, session, user, verification } from "@emach/db/schema/auth";
+import { sendPasswordResetEmail } from "@emach/email/send";
 import { env } from "@emach/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -17,6 +18,11 @@ export const authDashboard = betterAuth({
 	trustedOrigins: [env.CORS_ORIGIN],
 	emailAndPassword: {
 		enabled: true,
+		disableSignUp: true,
+		revokeSessionsOnPasswordReset: true,
+		sendResetPassword: async ({ user: target, url }) => {
+			await sendPasswordResetEmail({ to: target.email, url });
+		},
 	},
 	user: {
 		additionalFields: {
