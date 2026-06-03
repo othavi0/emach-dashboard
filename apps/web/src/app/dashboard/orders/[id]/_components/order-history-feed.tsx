@@ -1,0 +1,374 @@
+"use client";
+
+import {
+	ExternalLinkIcon,
+	FileIcon,
+	MessageSquareIcon,
+	NotepadTextIcon,
+	PackageIcon,
+	TruckIcon,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import type {
+	OrderAttachmentItem,
+	OrderDetail,
+	OrderEventItem,
+	OrderHistoryItem,
+	OrderNoteItem,
+	OrderRefundItem,
+} from "../../data";
+import {
+	ORDER_STATUS_LABELS,
+	ORDER_STATUS_META,
+} from "../../status-meta";
+import {
+	STATUS_ICONS,
+	TONE_TEXT,
+	type StatusIconKey,
+	type Tone,
+} from "@/components/status-visual";
+import { AttachmentUploadForm } from "./attachment-upload-form";
+
+// ─── Formatters ───────────────────────────────────────────────────────────────
+
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
+	day: "2-digit",
+	hour: "2-digit",
+	minute: "2-digit",
+	month: "2-digit",
+	year: "numeric",
+});
+
+function formatDateTime(value: Date): string {
+	return DATE_TIME_FORMATTER.format(value);
+}
+
+function formatBytes(bytes: number | null): string {
+	if (bytes === null) {
+		return "";
+	}
+	if (bytes < 1024) {
+		return `${bytes} B`;
+	}
+	if (bytes < 1024 * 1024) {
+		return `${(bytes / 1024).toFixed(1)} KB`;
+	}
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatCurrency(amount: number): string {
+	return new Intl.NumberFormat("pt-BR", {
+		currency: "BRL",
+		style: "currency",
+	}).format(amount);
+}
+
+// ─── Feed item type ───────────────────────────────────────────────────────────
+
+type FeedCategory = "documents" | "financeiro" | "notes" | "status";
+
+interface FeedItem {
+	category: FeedCategory;
+	createdAt: Date;
+	detail?: string;
+	iconKey: StatusIconKey;
+	id: string;
+	link?: { href: string; label: string };
+	reason?: string;
+	subtitle?: string;
+	title: string;
+	tone: Tone;
+}
+
+// ─── Normalization helpers ────────────────────────────────────────────────────
+
+function normalizeHistory(items: OrderHistoryItem[]): FeedItem[] {
+	return items.map((h) => {
+		const meta = ORDER_STATUS_META[h.toStatus];
+		return {
+			category: "status" as FeedCategory,
+			createdAt: h.createdAt,
+			iconKey: meta.iconKey,
+			id: `status-${h.id}`,
+			reason: h.reason ?? undefined,
+			subtitle: h.actorLabel,
+			title: `${ORDER_STATUS_LABELS[h.fromStatus]} → ${ORDER_STATUS_LABELS[h.toStatus]}`,
+			tone: meta.tone,
+		};
+	});
+}
+
+function normalizeNotes(items: OrderNoteItem[]): FeedItem[] {
+	return items.map((n) => ({
+		category: "notes" as FeedCategory,
+		createdAt: n.createdAt,
+		detail: n.body,
+		iconKey: "clock" as StatusIconKey,
+		id: `notes-${n.id}`,
+		title: `Nota interna · ${n.authorName}`,
+		tone: "info" as Tone,
+	}));
+}
+
+function normalizeAttachments(items: OrderAttachmentItem[]): FeedItem[] {
+	return items.map((a) => {
+		const sizeLabel = formatBytes(a.fileSize);
+		const subtitleParts = [a.uploaderName, sizeLabel].filter(Boolean);
+		return {
+			category: "documents" as FeedCategory,
+			createdAt: a.createdAt,
+			iconKey: "package" as StatusIconKey,
+			id: `documents-${a.id}`,
+			link:
+				a.url != null
+					? { href: a.url, label: a.label ?? a.fileName }
+					: undefined,
+			subtitle: subtitleParts.join(" · "),
+			title: "Anexo adicionado",
+			tone: "info" as Tone,
+		};
+	});
+}
+
+function normalizeEvents(items: OrderEventItem[]): FeedItem[] {
+	return items.map((e) => {
+		const m = e.metadata as {
+			branchId?: string;
+			branchName?: string;
+			trackingCode?: string;
+		} | null;
+
+		if (e.eventType === "tracking_set") {
+			const code = m?.trackingCode ?? "";
+			return {
+				category: "documents" as FeedCategory,
+				createdAt: e.createdAt,
+				iconKey: "truck" as StatusIconKey,
+				id: `events-${e.id}`,
+				subtitle: code ? `${e.actorLabel} · ${code}` : e.actorLabel,
+				title: "Rastreio definido",
+				tone: "info" as Tone,
+			};
+		}
+
+		// branch_assigned (and any other future types)
+		const branchLabel = m?.branchName ?? m?.branchId ?? "";
+		return {
+			category: "status" as FeedCategory,
+			createdAt: e.createdAt,
+			iconKey: "package" as StatusIconKey,
+			id: `events-${e.id}`,
+			subtitle: branchLabel
+				? `${e.actorLabel} · ${branchLabel}`
+				: e.actorLabel,
+			title: "Filial atribuída",
+			tone: "info" as Tone,
+		};
+	});
+}
+
+function normalizeRefunds(items: OrderRefundItem[]): FeedItem[] {
+	return items.map((r) => {
+		const statusLabel =
+			r.status === "approved"
+				? "aprovado"
+				: r.status === "rejected"
+					? "rejeitado"
+					: r.status === "pending"
+						? "pendente"
+						: r.status;
+		const subtitle = `${r.reasonCategory} · ${formatCurrency(r.amount)} · ${statusLabel}`;
+		return {
+			category: "financeiro" as FeedCategory,
+			createdAt: r.requestedAt,
+			detail: r.reasonText ?? undefined,
+			iconKey: "rotate" as StatusIconKey,
+			id: `financeiro-${r.id}`,
+			subtitle,
+			title: "Reembolso solicitado",
+			tone: "destructive" as Tone,
+		};
+	});
+}
+
+// ─── Tone → bg color class ────────────────────────────────────────────────────
+
+const TONE_DOT: Record<Tone, string> = {
+	destructive: "bg-destructive",
+	info: "bg-info",
+	success: "bg-success",
+	warning: "bg-warning",
+};
+
+// For notes (category="notes") we use a secondary neutral dot
+const CATEGORY_DOT: Partial<Record<FeedCategory, string>> = {
+	notes: "bg-secondary",
+};
+
+function dotClass(item: FeedItem): string {
+	return CATEGORY_DOT[item.category] ?? TONE_DOT[item.tone];
+}
+
+// ─── Category icon fallback (when iconKey maps to an order-status icon we want
+//     to replace with a more semantic icon for notes/documents) ─────────────────
+
+function CategoryIcon({ item }: { item: FeedItem }) {
+	// For notes, prefer a note icon over the generic clock
+	if (item.category === "notes") {
+		return (
+			<NotepadTextIcon
+				aria-hidden="true"
+				className={`size-3.5 ${TONE_TEXT[item.tone]}`}
+			/>
+		);
+	}
+	if (item.category === "documents" && item.iconKey === "package") {
+		return (
+			<FileIcon
+				aria-hidden="true"
+				className={`size-3.5 ${TONE_TEXT[item.tone]}`}
+			/>
+		);
+	}
+	const Icon = STATUS_ICONS[item.iconKey];
+	return (
+		<Icon
+			aria-hidden="true"
+			className={`size-3.5 ${TONE_TEXT[item.tone]}`}
+		/>
+	);
+}
+
+// ─── Filter chips ─────────────────────────────────────────────────────────────
+
+type FilterKey = "all" | FeedCategory;
+
+const FILTER_CHIPS: { key: FilterKey; label: string }[] = [
+	{ key: "all", label: "Tudo" },
+	{ key: "status", label: "Status" },
+	{ key: "notes", label: "Notas" },
+	{ key: "documents", label: "Documentos" },
+	{ key: "financeiro", label: "Financeiro" },
+];
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
+	const router = useRouter();
+	const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
+
+	// Normalize all sources
+	const allItems: FeedItem[] = [
+		...normalizeHistory(order.history),
+		...normalizeNotes(order.notes),
+		...normalizeAttachments(order.attachments),
+		...normalizeEvents(order.events),
+		...normalizeRefunds(order.refundRequests),
+	].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+	const filtered =
+		activeFilter === "all"
+			? allItems
+			: allItems.filter((item) => item.category === activeFilter);
+
+	return (
+		<div className="flex flex-col gap-4">
+			{/* Upload form at the top */}
+			<AttachmentUploadForm
+				onSuccess={() => router.refresh()}
+				orderId={order.id}
+			/>
+
+			{/* Filter chips */}
+			<div className="flex flex-wrap gap-2">
+				{FILTER_CHIPS.map((chip) => {
+					const isActive = activeFilter === chip.key;
+					return (
+						<button
+							className={
+								isActive
+									? "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-secondary text-secondary-foreground transition-colors"
+									: "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border border-border text-muted-foreground hover:bg-muted transition-colors"
+							}
+							key={chip.key}
+							onClick={() => setActiveFilter(chip.key)}
+							type="button"
+						>
+							{chip.label}
+						</button>
+					);
+				})}
+			</div>
+
+			{/* Timeline */}
+			{filtered.length === 0 ? (
+				<p className="text-muted-foreground text-sm">
+					Nenhum evento nesta categoria.
+				</p>
+			) : (
+				<div className="relative">
+					{/* Left rail */}
+					<div className="absolute top-0 left-[7px] h-full w-px bg-border" />
+
+					<div className="space-y-4">
+						{filtered.map((item) => (
+							<div className="flex gap-3" key={item.id}>
+								{/* Dot + icon stack */}
+								<div className="relative z-10 mt-1 flex shrink-0 flex-col items-center">
+									<div
+										className={`flex size-4 items-center justify-center rounded-full ${dotClass(item)}`}
+									>
+										<CategoryIcon item={item} />
+									</div>
+								</div>
+
+								{/* Content */}
+								<div className="min-w-0 flex-1 border-b border-border pb-4 last:border-b-0 last:pb-0">
+									<div className="flex items-start justify-between gap-3">
+										<p className="font-medium text-sm">{item.title}</p>
+										<span className="shrink-0 font-mono text-muted-foreground text-xs tabular-nums">
+											{formatDateTime(item.createdAt)}
+										</span>
+									</div>
+
+									{item.subtitle && (
+										<p className="mt-0.5 text-muted-foreground text-sm">
+											{item.subtitle}
+										</p>
+									)}
+
+									{item.detail && (
+										<p className="mt-1 text-muted-foreground text-sm">
+											{item.detail}
+										</p>
+									)}
+
+									{item.reason && (
+										<div className="mt-2 rounded-md border-l-2 border-border bg-muted/50 px-3 py-2">
+											<p className="text-muted-foreground text-xs leading-relaxed">
+												{item.reason}
+											</p>
+										</div>
+									)}
+
+									{item.link && (
+										<a
+											className="mt-1.5 inline-flex items-center gap-1.5 text-primary text-sm hover:underline"
+											href={item.link.href}
+											rel="noopener noreferrer"
+											target="_blank"
+										>
+											<ExternalLinkIcon aria-hidden="true" className="size-3" />
+											{item.link.label}
+										</a>
+									)}
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+}
