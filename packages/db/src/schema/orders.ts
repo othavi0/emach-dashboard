@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+	boolean,
 	check,
 	index,
 	integer,
@@ -52,6 +53,14 @@ export const refundStatusEnum = pgEnum("refund_status", [
 	"rejected",
 ]);
 export type RefundStatus = (typeof refundStatusEnum.enumValues)[number];
+
+// Tipos de evento operacional auditável que não são transição de status.
+// Aditivo: novos valores entram no fim (mesma regra do orderStatusEnum).
+export const orderEventTypeEnum = pgEnum("order_event_type", [
+	"tracking_set",
+	"branch_assigned",
+]);
+export type OrderEventType = (typeof orderEventTypeEnum.enumValues)[number];
 
 // Status que contam como solicitação ATIVA de refund (não-terminal).
 // Fonte única: o índice parcial refund_request_one_open_per_order (abaixo) deriva
@@ -207,6 +216,11 @@ export const orderNote = pgTable(
 			onDelete: "set null",
 		}),
 		body: text("body").notNull(),
+		// Status do pedido no instante em que a nota foi escrita — contexto de leitura,
+		// não muda o escopo (a nota continua vinculada ao pedido). Nullable: notas
+		// antigas / criadas pelo storefront podem não ter.
+		statusAtCreation: orderStatusEnum("status_at_creation"),
+		pinned: boolean("pinned").default(false).notNull(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
 	(table) => [
@@ -226,6 +240,7 @@ export const orderAttachment = pgTable(
 		fileSize: integer("file_size"),
 		mimeType: text("mime_type"),
 		label: text("label"),
+		description: text("description"),
 		uploadedBy: text("uploaded_by").references(() => user.id, {
 			onDelete: "set null",
 		}),
@@ -235,6 +250,33 @@ export const orderAttachment = pgTable(
 		index("order_attachment_order_created_idx").on(
 			table.orderId,
 			table.createdAt.desc()
+		),
+	]
+);
+
+export const orderEvent = pgTable(
+	"order_event",
+	{
+		id: text("id").primaryKey(),
+		orderId: text("order_id")
+			.notNull()
+			.references(() => order.id, { onDelete: "cascade" }),
+		eventType: orderEventTypeEnum("event_type").notNull(),
+		metadata: jsonb("metadata"),
+		actorType: actorTypeEnum("actor_type").notNull(),
+		actorUserId: text("actor_user_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(table) => [
+		index("order_event_order_idx").on(table.orderId, table.createdAt.desc()),
+		check(
+			"order_event_actor_coherence",
+			sql`(
+				(${table.actorType} = 'user'   AND ${table.actorUserId} IS NOT NULL)
+				OR (${table.actorType} = 'system' AND ${table.actorUserId} IS NULL)
+			)`
 		),
 	]
 );
@@ -299,6 +341,7 @@ export const orderRelations = relations(order, ({ one, many }) => ({
 	notes: many(orderNote),
 	attachments: many(orderAttachment),
 	refundRequests: many(refundRequest),
+	events: many(orderEvent),
 }));
 
 export const orderItemRelations = relations(orderItem, ({ one }) => ({
@@ -364,6 +407,14 @@ export const refundRequestRelations = relations(refundRequest, ({ one }) => ({
 	}),
 }));
 
+export const orderEventRelations = relations(orderEvent, ({ one }) => ({
+	order: one(order, { fields: [orderEvent.orderId], references: [order.id] }),
+	actorUser: one(user, {
+		fields: [orderEvent.actorUserId],
+		references: [user.id],
+	}),
+}));
+
 // --- Types ---
 
 export type Order = typeof order.$inferSelect;
@@ -378,3 +429,5 @@ export type OrderAttachment = typeof orderAttachment.$inferSelect;
 export type NewOrderAttachment = typeof orderAttachment.$inferInsert;
 export type RefundRequest = typeof refundRequest.$inferSelect;
 export type NewRefundRequest = typeof refundRequest.$inferInsert;
+export type OrderEvent = typeof orderEvent.$inferSelect;
+export type NewOrderEvent = typeof orderEvent.$inferInsert;

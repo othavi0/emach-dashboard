@@ -23,17 +23,18 @@ import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { CancelOrderDialog } from "../../_components/cancel-order-dialog";
+import { RefundDialog } from "../../_components/refund-dialog";
+import { StockReturnDialog } from "../../_components/stock-return-dialog";
 import {
 	addOrderNote,
 	assignBranch,
 	updateOrderStatus,
 	updateTrackingCode,
-} from "../actions";
-import type { BranchOption, OrderDetail, OrderStatus } from "../data";
-import { ORDER_STATUS_LABELS } from "../status-meta";
-import { CancelOrderDialog } from "./cancel-order-dialog";
-import { RefundDialog } from "./refund-dialog";
-import { StockReturnDialog } from "./stock-return-dialog";
+} from "../../actions";
+import type { BranchOption, OrderDetail, OrderStatus } from "../../data";
+import { ORDER_STATUS_LABELS } from "../../status-meta";
+import { OrderProgress } from "./order-progress";
 
 const PRIMARY_TRANSITION: Partial<Record<OrderStatus, OrderStatus>> = {
 	pending_payment: "canceled",
@@ -270,7 +271,7 @@ function PrimaryActionContent({
 	);
 }
 
-interface OrderActionsPanelProps {
+interface OrderActionColumnProps {
 	branches: BranchOption[];
 	canAddNote: boolean;
 	canCancel: boolean;
@@ -279,14 +280,14 @@ interface OrderActionsPanelProps {
 	order: OrderDetail;
 }
 
-export function OrderActionsPanel({
+export function OrderActionColumn({
 	branches,
 	canAddNote,
 	canCancel,
 	canRefund,
 	canUpdateStatus,
 	order,
-}: OrderActionsPanelProps) {
+}: OrderActionColumnProps) {
 	const router = useRouter();
 	const [branchId, setBranchId] = useState(() => {
 		if (order.branchId) {
@@ -375,46 +376,43 @@ export function OrderActionsPanel({
 		showCancelException || showReturnException || showRefundException;
 
 	return (
-		<Card>
-			{/* ── Próxima ação ── */}
-			<CardHeader>
-				<CardTitle>Ações</CardTitle>
-				<CardDescription>
-					Fluxo principal, exceções e notas internas do pedido.
-				</CardDescription>
-			</CardHeader>
+		<div className="flex flex-col gap-4">
+			{/* ── Progresso ── */}
+			<OrderProgress order={order} />
 
-			<CardContent className="space-y-3">
-				<p className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
-					Próxima ação
-				</p>
-				<PrimaryActionContent
-					branches={branches}
-					branchId={branchId}
-					canDoPrimaryTransition={canDoPrimaryTransition}
-					isPending={isPending}
-					isTerminal={isTerminal}
-					nextStatus={nextStatus}
-					onAssignBranch={handleAssignBranch}
-					onPrimaryStatusUpdate={handlePrimaryStatusUpdate}
-					onTrackingUpdate={handleTrackingUpdate}
-					order={order}
-					setBranchId={setBranchId}
-					setStatusReason={setStatusReason}
-					setTrackingCode={setTrackingCode}
-					statusReason={statusReason}
-					trackingCode={trackingCode}
-				/>
-			</CardContent>
+			{/* ── Próxima ação ── */}
+			<Card>
+				<CardHeader>
+					<CardTitle>Próxima ação</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-3">
+					<PrimaryActionContent
+						branches={branches}
+						branchId={branchId}
+						canDoPrimaryTransition={canDoPrimaryTransition}
+						isPending={isPending}
+						isTerminal={isTerminal}
+						nextStatus={nextStatus}
+						onAssignBranch={handleAssignBranch}
+						onPrimaryStatusUpdate={handlePrimaryStatusUpdate}
+						onTrackingUpdate={handleTrackingUpdate}
+						order={order}
+						setBranchId={setBranchId}
+						setStatusReason={setStatusReason}
+						setTrackingCode={setTrackingCode}
+						statusReason={statusReason}
+						trackingCode={trackingCode}
+					/>
+				</CardContent>
+			</Card>
 
 			{/* ── Exceções ── */}
 			{hasExceptions && (
-				<>
-					<div className="mx-6 border-border border-t" />
-					<CardContent className="space-y-3 pt-4">
-						<p className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
-							Exceções
-						</p>
+				<Card>
+					<CardHeader>
+						<CardTitle>Exceções</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-3">
 						<p className="text-muted-foreground text-xs">
 							Cancelamento, devolução e reembolso fora do fluxo principal.
 						</p>
@@ -442,20 +440,24 @@ export function OrderActionsPanel({
 							)}
 						</div>
 					</CardContent>
-				</>
+				</Card>
 			)}
 
 			{/* ── Nota interna ── */}
 			{canAddNote && (
-				<>
-					<div className="mx-6 border-border border-t" />
-					<CardContent className="space-y-3 pt-4">
-						<p className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
-							Nota interna
-						</p>
+				<Card>
+					<CardHeader>
+						<CardTitle>Nota interna</CardTitle>
+						<CardDescription>
+							Anotação avulsa sobre o pedido, visível em qualquer status. Para
+							justificar uma mudança de status, use a Observação da transição
+							acima.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-3">
 						<Textarea
 							onChange={(event) => setNoteBody(event.target.value)}
-							placeholder="Ex: aguardar coleta da transportadora"
+							placeholder="Ex: cliente pediu urgência na entrega"
 							value={noteBody}
 						/>
 						<Button
@@ -473,8 +475,8 @@ export function OrderActionsPanel({
 							)}
 						</Button>
 					</CardContent>
-				</>
+				</Card>
 			)}
-		</Card>
+		</div>
 	);
 }
