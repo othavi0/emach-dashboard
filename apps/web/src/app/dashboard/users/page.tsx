@@ -156,10 +156,14 @@ export default async function UsersPage({ searchParams }: PageProps) {
 
 function formatActivityAction(action: string, actorName: string): string {
 	switch (action) {
-		case "user.approved":
-			return `${actorName} aprovou usuário`;
-		case "user.rejected":
-			return `${actorName} rejeitou usuário`;
+		case "user.invited":
+			return `${actorName} convidou usuário`;
+		case "user.invite_resent":
+			return `${actorName} reenviou convite`;
+		case "user.invite_revoked":
+			return `${actorName} revogou convite`;
+		case "user.invite_accepted":
+			return `${actorName} aceitou convite`;
 		case "user.updated":
 			return `${actorName} atualizou usuário`;
 		case "user.suspended":
