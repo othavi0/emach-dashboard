@@ -11,6 +11,7 @@ import Link from "next/link";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { InviteDialog } from "./_components/invite-dialog";
 import { UsersCardGrid } from "./_components/users-card-grid";
 import { UsersFilters } from "./_components/users-filters";
 import { UsersPendingCard } from "./_components/users-pending-card";
@@ -91,7 +92,13 @@ export default async function UsersPage({ searchParams }: PageProps) {
 	return (
 		<div className="flex flex-col gap-6">
 			<PageHeader
-				description="Equipe interna do Emach — aprovação, cargos e filiais."
+				action={
+					<InviteDialog
+						actorRole={actorSession.user.role as UserListRow["role"]}
+						branches={branches}
+					/>
+				}
+				description="Equipe interna do Emach — convites, cargos e filiais."
 				title="Usuários"
 			/>
 			<section className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
