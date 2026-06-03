@@ -1,7 +1,9 @@
+import { Clock } from "lucide-react";
 import { redirect } from "next/navigation";
 
+import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthStatusPanel } from "@/components/auth/auth-status-panel";
 import { getCurrentSession, getUserStatus } from "@/lib/session";
-import { StatusCard } from "./_components/status-card";
 
 export default async function PendingPage() {
 	const session = await getCurrentSession();
@@ -17,10 +19,13 @@ export default async function PendingPage() {
 	}
 
 	return (
-		<StatusCard
-			description="Um administrador vai revisar seu cadastro em breve. Você terá acesso após a aprovação."
-			icon="⏳"
-			title="Conta aguardando aprovação"
-		/>
+		<AuthShell>
+			<AuthStatusPanel
+				description="Um administrador vai revisar seu cadastro. Você terá acesso após a aprovação."
+				icon={<Clock aria-hidden className="size-5" />}
+				title="Conta aguardando aprovação"
+				tone="warning"
+			/>
+		</AuthShell>
 	);
 }
