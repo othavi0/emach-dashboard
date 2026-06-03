@@ -5,7 +5,6 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@emach/ui/components/dropdown-menu";
 import { ChevronDownIcon, PrinterIcon } from "lucide-react";
@@ -65,18 +64,6 @@ export function PrintMenu({ order }: PrintMenuProps) {
 					}
 				>
 					Lista de separação
-				</DropdownMenuItem>
-				<DropdownMenuSeparator />
-				<DropdownMenuItem
-					render={
-						<Link
-							href={`/dashboard/orders/${order.id}/print`}
-							rel="noopener noreferrer"
-							target="_blank"
-						/>
-					}
-				>
-					Pedido completo
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

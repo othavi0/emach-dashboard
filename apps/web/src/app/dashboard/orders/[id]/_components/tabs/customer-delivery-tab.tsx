@@ -8,7 +8,11 @@ import {
 import Link from "next/link";
 
 import type { OrderDetail } from "../../../data";
-import { formatAddress, formatCurrency } from "../../_lib/format-address";
+import {
+	formatAddress,
+	formatCurrency,
+	formatDocument,
+} from "../../_lib/format-address";
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
 	return (
@@ -56,7 +60,9 @@ export function CustomerDeliveryTab({ order }: { order: OrderDetail }) {
 					<Row label="E-mail">{order.clientEmail}</Row>
 					<Row label="Telefone">{order.clientPhone ?? "—"}</Row>
 					<Row label="CPF / CNPJ">
-						<span className="font-mono">{order.clientDocument ?? "—"}</span>
+						<span className="font-mono">
+							{formatDocument(order.clientDocument)}
+						</span>
 					</Row>
 					<Link
 						className="text-primary text-sm hover:underline"
