@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+	boolean,
 	check,
 	index,
 	integer,
@@ -215,6 +216,11 @@ export const orderNote = pgTable(
 			onDelete: "set null",
 		}),
 		body: text("body").notNull(),
+		// Status do pedido no instante em que a nota foi escrita — contexto de leitura,
+		// não muda o escopo (a nota continua vinculada ao pedido). Nullable: notas
+		// antigas / criadas pelo storefront podem não ter.
+		statusAtCreation: orderStatusEnum("status_at_creation"),
+		pinned: boolean("pinned").default(false).notNull(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
 	(table) => [

@@ -40,6 +40,8 @@ import {
 	capForStatus,
 	type RefundOrderInput,
 	refundOrderSchema,
+	type TogglePinNoteInput,
+	togglePinNoteSchema,
 	type UpdateOrderStatusInput,
 	type UpdateTrackingCodeInput,
 	updateOrderStatusSchema,
@@ -170,6 +172,26 @@ async function insertOrderEvent(
 	});
 }
 
+/** Monta o objeto de update do pedido para uma transição de status. */
+function buildOrderStatusUpdate(
+	toStatus: OrderStatus,
+	trackingCode: string | undefined,
+	branchId: string | undefined
+): Record<string, unknown> {
+	const updates: Record<string, unknown> = { status: toStatus };
+	const tsField = STATUS_TIMESTAMP_MAP[toStatus];
+	if (tsField) {
+		updates[tsField] = new Date();
+	}
+	if (toStatus === "shipped" && trackingCode) {
+		updates.shippingTrackingCode = trackingCode;
+	}
+	if (toStatus === "preparing" && branchId) {
+		updates.branchId = branchId;
+	}
+	return updates;
+}
+
 export async function updateOrderStatus(
 	input: UpdateOrderStatusInput
 ): Promise<ActionResult> {
@@ -211,17 +233,7 @@ export async function updateOrderStatus(
 				);
 			}
 
-			const updates: Record<string, unknown> = { status: toStatus };
-			const tsField = STATUS_TIMESTAMP_MAP[toStatus];
-			if (tsField) {
-				updates[tsField] = new Date();
-			}
-			if (toStatus === "shipped" && trackingCode) {
-				updates.shippingTrackingCode = trackingCode;
-			}
-			if (toStatus === "preparing" && branchId) {
-				updates.branchId = branchId;
-			}
+			const updates = buildOrderStatusUpdate(toStatus, trackingCode, branchId);
 
 			await tx.update(order).set(updates).where(eq(order.id, orderId));
 
@@ -307,6 +319,7 @@ export async function addOrderNote(
 				orderId,
 				authorId: locked.session.user.id,
 				body,
+				statusAtCreation: locked.status as OrderStatus,
 			});
 		});
 
@@ -321,6 +334,56 @@ export async function addOrderNote(
 			return { ok: false, error: "Pedido não encontrado" };
 		}
 		return { ok: false, error: "Erro ao adicionar nota" };
+	}
+}
+
+export async function togglePinNote(
+	input: TogglePinNoteInput
+): Promise<ActionResult> {
+	const parsed = togglePinNoteSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+
+	const { noteId, pinned } = parsed.data;
+
+	const [existing] = await db
+		.select({ orderId: orderNote.orderId })
+		.from(orderNote)
+		.where(eq(orderNote.id, noteId))
+		.limit(1);
+
+	if (!existing) {
+		return { ok: false, error: "Nota não encontrada" };
+	}
+
+	try {
+		await db.transaction(async (tx) => {
+			const locked = await lockOrderAndAuthorize(
+				tx,
+				"orders.add_note",
+				existing.orderId
+			);
+			if (!locked) {
+				throw new Error("Pedido não encontrado");
+			}
+			await tx
+				.update(orderNote)
+				.set({ pinned })
+				.where(eq(orderNote.id, noteId));
+		});
+
+		revalidatePath(`${ORDERS_PATH}/${existing.orderId}`);
+		return { ok: true, data: undefined };
+	} catch (error) {
+		logger.error("togglePinNote", error);
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para alterar este pedido." };
+		}
+		return { ok: false, error: "Erro ao fixar nota" };
 	}
 }
 

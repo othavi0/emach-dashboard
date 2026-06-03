@@ -113,6 +113,13 @@ export const addOrderNoteSchema = z.object({
 
 export type AddOrderNoteInput = z.infer<typeof addOrderNoteSchema>;
 
+export const togglePinNoteSchema = z.object({
+	noteId: z.string().uuid(),
+	pinned: z.boolean(),
+});
+
+export type TogglePinNoteInput = z.infer<typeof togglePinNoteSchema>;
+
 export const assignBranchSchema = z.object({
 	orderId: z.string().uuid(),
 	branchId: z.string().uuid(),

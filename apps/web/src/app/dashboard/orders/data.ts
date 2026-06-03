@@ -97,6 +97,8 @@ export interface OrderNoteItem {
 	body: string;
 	createdAt: Date;
 	id: string;
+	pinned: boolean;
+	statusAtCreation: OrderStatus | null;
 }
 
 export interface OrderRefundItem {
@@ -732,6 +734,8 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 					body: orderNote.body,
 					createdAt: orderNote.createdAt,
 					id: orderNote.id,
+					pinned: orderNote.pinned,
+					statusAtCreation: orderNote.statusAtCreation,
 				})
 				.from(orderNote)
 				.leftJoin(user, eq(orderNote.authorId, user.id))
@@ -871,6 +875,8 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			body: note.body,
 			createdAt: note.createdAt,
 			authorName: note.authorName ?? "Sistema",
+			pinned: note.pinned,
+			statusAtCreation: note.statusAtCreation,
 		})),
 		refundRequests: refundRows.map((r) => ({
 			id: r.id,

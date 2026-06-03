@@ -1,14 +1,22 @@
 "use client";
 
-import { ExternalLinkIcon, FileIcon, NotepadTextIcon } from "lucide-react";
+import {
+	ExternalLinkIcon,
+	FileIcon,
+	NotepadTextIcon,
+	PinIcon,
+	PinOffIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import {
 	STATUS_ICONS,
 	type StatusIconKey,
 	TONE_TEXT,
 	type Tone,
 } from "@/components/status-visual";
+import { togglePinNote } from "../../actions";
 import type {
 	OrderAttachmentItem,
 	OrderDetail,
@@ -65,6 +73,9 @@ interface FeedItem {
 	iconKey: StatusIconKey;
 	id: string;
 	link?: { href: string; label: string };
+	/** Só em notas: id da nota + estado de fixação, para o toggle de pin. */
+	noteId?: string;
+	pinned?: boolean;
 	reason?: string;
 	subtitle?: string;
 	title: string;
@@ -90,15 +101,23 @@ function normalizeHistory(items: OrderHistoryItem[]): FeedItem[] {
 }
 
 function normalizeNotes(items: OrderNoteItem[]): FeedItem[] {
-	return items.map((n) => ({
-		category: "notes" as FeedCategory,
-		createdAt: n.createdAt,
-		detail: n.body,
-		iconKey: "clock" as StatusIconKey,
-		id: `notes-${n.id}`,
-		title: `Nota interna · ${n.authorName}`,
-		tone: "info" as Tone,
-	}));
+	return items.map((n) => {
+		const statusLabel = n.statusAtCreation
+			? ORDER_STATUS_LABELS[n.statusAtCreation]
+			: null;
+		return {
+			category: "notes" as FeedCategory,
+			createdAt: n.createdAt,
+			detail: n.body,
+			iconKey: "clock" as StatusIconKey,
+			id: `notes-${n.id}`,
+			noteId: n.id,
+			pinned: n.pinned,
+			subtitle: statusLabel ? `${n.authorName} · ${statusLabel}` : n.authorName,
+			title: "Nota interna",
+			tone: "info" as Tone,
+		};
+	});
 }
 
 function normalizeAttachments(items: OrderAttachmentItem[]): FeedItem[] {
@@ -242,6 +261,18 @@ const FILTER_CHIPS: { key: FilterKey; label: string }[] = [
 export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 	const router = useRouter();
 	const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
+	const [isPending, startTransition] = useTransition();
+
+	function handleTogglePin(noteId: string, pinned: boolean) {
+		startTransition(async () => {
+			const result = await togglePinNote({ noteId, pinned });
+			if (result.ok) {
+				router.refresh();
+			} else {
+				toast.error(result.error);
+			}
+		});
+	}
 
 	// Normalize all sources
 	const allItems: FeedItem[] = [
@@ -252,13 +283,56 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 		...normalizeRefunds(order.refundRequests),
 	].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-	const filtered =
+	// Notas fixadas vivem numa seção própria no topo, fora da cronologia.
+	const pinnedNotes = allItems.filter(
+		(item) => item.category === "notes" && item.pinned
+	);
+
+	const filtered = (
 		activeFilter === "all"
 			? allItems
-			: allItems.filter((item) => item.category === activeFilter);
+			: allItems.filter((item) => item.category === activeFilter)
+	).filter((item) => !(item.category === "notes" && item.pinned));
 
 	return (
 		<div className="flex flex-col gap-4">
+			{/* Notas fixadas */}
+			{pinnedNotes.length > 0 && (
+				<div className="flex flex-col gap-2">
+					<p className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest">
+						Notas fixadas
+					</p>
+					{pinnedNotes.map((item) => (
+						<div
+							className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2"
+							key={`pin-${item.id}`}
+						>
+							<NotepadTextIcon
+								aria-hidden="true"
+								className="mt-0.5 size-3.5 shrink-0 text-primary"
+							/>
+							<div className="min-w-0 flex-1">
+								<p className="text-foreground text-sm">{item.detail}</p>
+								<p className="mt-0.5 text-muted-foreground text-xs">
+									{item.subtitle} · {formatDateTime(item.createdAt)}
+								</p>
+							</div>
+							{item.noteId ? (
+								<button
+									aria-label="Desafixar nota"
+									className="shrink-0 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+									disabled={isPending}
+									onClick={() => handleTogglePin(item.noteId as string, false)}
+									type="button"
+								>
+									<PinOffIcon aria-hidden="true" className="size-3.5" />
+								</button>
+							) : null}
+						</div>
+					))}
+				</div>
+			)}
+
 			{/* Filter chips */}
 			<div className="flex flex-wrap gap-2">
 				{FILTER_CHIPS.map((chip) => {
@@ -306,9 +380,24 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 								<div className="min-w-0 flex-1 border-border border-b pb-4 last:border-b-0 last:pb-0">
 									<div className="flex items-start justify-between gap-3">
 										<p className="font-medium text-sm">{item.title}</p>
-										<span className="shrink-0 font-mono text-muted-foreground text-xs tabular-nums">
-											{formatDateTime(item.createdAt)}
-										</span>
+										<div className="flex shrink-0 items-center gap-2">
+											{item.noteId ? (
+												<button
+													aria-label="Fixar nota"
+													className="text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
+													disabled={isPending}
+													onClick={() =>
+														handleTogglePin(item.noteId as string, true)
+													}
+													type="button"
+												>
+													<PinIcon aria-hidden="true" className="size-3.5" />
+												</button>
+											) : null}
+											<span className="font-mono text-muted-foreground text-xs tabular-nums">
+												{formatDateTime(item.createdAt)}
+											</span>
+										</div>
 									</div>
 
 									{item.subtitle && (

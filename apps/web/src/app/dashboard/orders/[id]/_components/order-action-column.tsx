@@ -5,6 +5,7 @@ import { Button } from "@emach/ui/components/button";
 import {
 	Card,
 	CardContent,
+	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "@emach/ui/components/card";
@@ -447,11 +448,16 @@ export function OrderActionColumn({
 				<Card>
 					<CardHeader>
 						<CardTitle>Nota interna</CardTitle>
+						<CardDescription>
+							Anotação avulsa sobre o pedido, visível em qualquer status. Para
+							justificar uma mudança de status, use a Observação da transição
+							acima.
+						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-3">
 						<Textarea
 							onChange={(event) => setNoteBody(event.target.value)}
-							placeholder="Ex: aguardar coleta da transportadora"
+							placeholder="Ex: cliente pediu urgência na entrega"
 							value={noteBody}
 						/>
 						<Button
