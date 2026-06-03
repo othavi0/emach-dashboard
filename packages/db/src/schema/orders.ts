@@ -234,6 +234,7 @@ export const orderAttachment = pgTable(
 		fileSize: integer("file_size"),
 		mimeType: text("mime_type"),
 		label: text("label"),
+		description: text("description"),
 		uploadedBy: text("uploaded_by").references(() => user.id, {
 			onDelete: "set null",
 		}),

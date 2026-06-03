@@ -121,6 +121,7 @@ export interface OrderEventItem {
 
 export interface OrderAttachmentItem {
 	createdAt: Date;
+	description: string | null;
 	fileName: string;
 	fileSize: number | null;
 	id: string;
@@ -741,6 +742,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 					id: orderAttachment.id,
 					fileUrl: orderAttachment.fileUrl,
 					fileName: orderAttachment.fileName,
+					description: orderAttachment.description,
 					fileSize: orderAttachment.fileSize,
 					mimeType: orderAttachment.mimeType,
 					label: orderAttachment.label,
@@ -794,6 +796,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			fileSize: att.fileSize,
 			mimeType: att.mimeType,
 			label: att.label,
+			description: att.description,
 			createdAt: att.createdAt,
 			uploaderName: att.uploaderName ?? "Sistema",
 			url: await createSignedUrl(ORDER_DOCUMENTS_BUCKET, att.fileUrl),

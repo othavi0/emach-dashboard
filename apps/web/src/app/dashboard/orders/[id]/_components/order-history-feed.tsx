@@ -108,6 +108,7 @@ function normalizeAttachments(items: OrderAttachmentItem[]): FeedItem[] {
 		return {
 			category: "documents" as FeedCategory,
 			createdAt: a.createdAt,
+			detail: a.description ?? undefined,
 			iconKey: "package" as StatusIconKey,
 			id: `documents-${a.id}`,
 			link:
@@ -349,7 +350,7 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 			)}
 
 			{/* Anexar evidência — ação secundária, ao fim da sessão */}
-			<div className="mt-2 border-border border-t pt-4">
+			<div className="-mx-4 mt-2 border-border border-t px-4 pt-4">
 				<p className="font-medium text-sm">Anexar evidência</p>
 				<p className="mt-0.5 mb-3 text-muted-foreground text-xs">
 					Suba comprovantes, fotos de defeito ou documentos do pedido (PDF ou
