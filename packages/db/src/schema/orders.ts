@@ -53,6 +53,14 @@ export const refundStatusEnum = pgEnum("refund_status", [
 ]);
 export type RefundStatus = (typeof refundStatusEnum.enumValues)[number];
 
+// Tipos de evento operacional auditável que não são transição de status.
+// Aditivo: novos valores entram no fim (mesma regra do orderStatusEnum).
+export const orderEventTypeEnum = pgEnum("order_event_type", [
+	"tracking_set",
+	"branch_assigned",
+]);
+export type OrderEventType = (typeof orderEventTypeEnum.enumValues)[number];
+
 // Status que contam como solicitação ATIVA de refund (não-terminal).
 // Fonte única: o índice parcial refund_request_one_open_per_order (abaixo) deriva
 // daqui; o ecommerce importa via @emach/db (sync CI). Ver issue #96.
@@ -239,6 +247,33 @@ export const orderAttachment = pgTable(
 	]
 );
 
+export const orderEvent = pgTable(
+	"order_event",
+	{
+		id: text("id").primaryKey(),
+		orderId: text("order_id")
+			.notNull()
+			.references(() => order.id, { onDelete: "cascade" }),
+		eventType: orderEventTypeEnum("event_type").notNull(),
+		metadata: jsonb("metadata"),
+		actorType: actorTypeEnum("actor_type").notNull(),
+		actorUserId: text("actor_user_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(table) => [
+		index("order_event_order_idx").on(table.orderId, table.createdAt.desc()),
+		check(
+			"order_event_actor_coherence",
+			sql`(
+				(${table.actorType} = 'user'   AND ${table.actorUserId} IS NOT NULL)
+				OR (${table.actorType} = 'system' AND ${table.actorUserId} IS NULL)
+			)`
+		),
+	]
+);
+
 export const refundRequest = pgTable(
 	"refund_request",
 	{
@@ -299,6 +334,7 @@ export const orderRelations = relations(order, ({ one, many }) => ({
 	notes: many(orderNote),
 	attachments: many(orderAttachment),
 	refundRequests: many(refundRequest),
+	events: many(orderEvent),
 }));
 
 export const orderItemRelations = relations(orderItem, ({ one }) => ({
@@ -364,6 +400,14 @@ export const refundRequestRelations = relations(refundRequest, ({ one }) => ({
 	}),
 }));
 
+export const orderEventRelations = relations(orderEvent, ({ one }) => ({
+	order: one(order, { fields: [orderEvent.orderId], references: [order.id] }),
+	actorUser: one(user, {
+		fields: [orderEvent.actorUserId],
+		references: [user.id],
+	}),
+}));
+
 // --- Types ---
 
 export type Order = typeof order.$inferSelect;
@@ -378,3 +422,5 @@ export type OrderAttachment = typeof orderAttachment.$inferSelect;
 export type NewOrderAttachment = typeof orderAttachment.$inferInsert;
 export type RefundRequest = typeof refundRequest.$inferSelect;
 export type NewRefundRequest = typeof refundRequest.$inferInsert;
+export type OrderEvent = typeof orderEvent.$inferSelect;
+export type NewOrderEvent = typeof orderEvent.$inferInsert;
