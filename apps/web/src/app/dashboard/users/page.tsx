@@ -135,7 +135,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
 						render={<Link href={buildStatusHref(sp, "pending")} />}
 						value="pending"
 					>
-						Pendentes
+						Convidados
 						<TabsCountBadge value={kpis.pending} />
 					</TabsTrigger>
 					<TabsTrigger
@@ -149,9 +149,6 @@ export default async function UsersPage({ searchParams }: PageProps) {
 				</TabsList>
 			</Tabs>
 			<UsersCardGrid
-				// Better Auth infere additionalFields como string; cast pro enum estrito.
-				actorRole={actorSession.user.role as UserListRow["role"]}
-				branches={branches}
 				filters={filters}
 				initialCursor={page.nextCursor}
 				initialItems={page.items}

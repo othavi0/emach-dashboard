@@ -8,7 +8,7 @@ import {
 
 import type { PendingRow } from "@/components/pending-panel";
 
-import { BulkPendingSelection } from "./bulk-pending-selection";
+import { InvitePendingList } from "./invite-pending-list";
 
 interface Props {
 	count: number;
@@ -20,11 +20,11 @@ export function UsersPendingCard({ initial, count }: Props) {
 	return (
 		<Card>
 			<CardHeader className="flex flex-row items-center justify-between gap-2">
-				<CardTitle className="text-base">Aprovações</CardTitle>
+				<CardTitle className="text-base">Convites pendentes</CardTitle>
 				<Badge variant={count > 0 ? "warning" : "default"}>{count}</Badge>
 			</CardHeader>
 			<CardContent>
-				<BulkPendingSelection initial={initial} />
+				<InvitePendingList initial={initial} />
 			</CardContent>
 		</Card>
 	);
