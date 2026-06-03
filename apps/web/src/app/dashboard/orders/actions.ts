@@ -6,6 +6,7 @@ import { branch } from "@emach/db/schema/inventory";
 import {
 	type OrderStatus,
 	order,
+	orderEvent,
 	orderNote,
 	orderStatusHistory,
 } from "@emach/db/schema/orders";
@@ -150,6 +151,25 @@ export async function lockOrderAndAuthorize(
 	return { status: locked.status, branchId: locked.branchId, session };
 }
 
+async function insertOrderEvent(
+	tx: OrderTx,
+	args: {
+		orderId: string;
+		eventType: "tracking_set" | "branch_assigned";
+		metadata: Record<string, unknown>;
+		actorUserId: string | null;
+	}
+): Promise<void> {
+	await tx.insert(orderEvent).values({
+		id: crypto.randomUUID(),
+		orderId: args.orderId,
+		eventType: args.eventType,
+		metadata: args.metadata,
+		actorType: args.actorUserId ? "user" : "system",
+		actorUserId: args.actorUserId,
+	});
+}
+
 export async function updateOrderStatus(
 	input: UpdateOrderStatusInput
 ): Promise<ActionResult> {
@@ -214,6 +234,15 @@ export async function updateOrderStatus(
 				actorUserId: session.user.id,
 				reason: reason ?? null,
 			});
+
+			if (toStatus === "shipped" && trackingCode) {
+				await insertOrderEvent(tx, {
+					orderId,
+					eventType: "tracking_set",
+					metadata: { trackingCode },
+					actorUserId: session.user.id,
+				});
+			}
 
 			// Stock returns: only for "returned" status.
 			// Canceled orders (especially unpaid ones) never debited stock, so we
@@ -323,11 +352,11 @@ export async function assignBranch(
 				.where(eq(branch.id, branchId))
 				.limit(1);
 
-			await tx.insert(orderNote).values({
-				id: crypto.randomUUID(),
+			await insertOrderEvent(tx, {
 				orderId,
-				authorId: null,
-				body: `Filial reatribuída para: ${branchRow?.name ?? branchId}`,
+				eventType: "branch_assigned",
+				metadata: { branchId, branchName: branchRow?.name ?? branchId },
+				actorUserId: null,
 			});
 		});
 
@@ -371,11 +400,11 @@ export async function updateTrackingCode(
 				.set({ shippingTrackingCode: trackingCode })
 				.where(eq(order.id, orderId));
 
-			await tx.insert(orderNote).values({
-				id: crypto.randomUUID(),
+			await insertOrderEvent(tx, {
 				orderId,
-				authorId: null,
-				body: `Código de rastreio atualizado: ${trackingCode}`,
+				eventType: "tracking_set",
+				metadata: { trackingCode },
+				actorUserId: locked.session.user.id,
 			});
 		});
 
