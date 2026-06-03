@@ -32,9 +32,14 @@ export function RevenueArea({
 					stroke="var(--color-revenue)"
 					type="monotone"
 				/>
+				{/* isAnimationActive=false: a animação de desenho do recharts
+				    conflita com strokeDasharray e renderiza os traços em
+				    segmentos parciais no primeiro load. Sem ela, a linha
+				    tracejada aparece inteira enquanto a Area faz o reveal. */}
 				<Line
 					dataKey="movingAvg"
 					dot={false}
+					isAnimationActive={false}
 					stroke="var(--color-movingAvg)"
 					strokeDasharray="4 4"
 					type="monotone"
