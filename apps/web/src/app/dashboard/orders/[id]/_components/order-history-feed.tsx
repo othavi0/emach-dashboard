@@ -1,15 +1,14 @@
 "use client";
 
-import {
-	ExternalLinkIcon,
-	FileIcon,
-	MessageSquareIcon,
-	NotepadTextIcon,
-	PackageIcon,
-	TruckIcon,
-} from "lucide-react";
+import { ExternalLinkIcon, FileIcon, NotepadTextIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+	STATUS_ICONS,
+	type StatusIconKey,
+	TONE_TEXT,
+	type Tone,
+} from "@/components/status-visual";
 import type {
 	OrderAttachmentItem,
 	OrderDetail,
@@ -18,16 +17,7 @@ import type {
 	OrderNoteItem,
 	OrderRefundItem,
 } from "../../data";
-import {
-	ORDER_STATUS_LABELS,
-	ORDER_STATUS_META,
-} from "../../status-meta";
-import {
-	STATUS_ICONS,
-	TONE_TEXT,
-	type StatusIconKey,
-	type Tone,
-} from "@/components/status-visual";
+import { ORDER_STATUS_LABELS, ORDER_STATUS_META } from "../../status-meta";
 import { AttachmentUploadForm } from "./attachment-upload-form";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -121,9 +111,9 @@ function normalizeAttachments(items: OrderAttachmentItem[]): FeedItem[] {
 			iconKey: "package" as StatusIconKey,
 			id: `documents-${a.id}`,
 			link:
-				a.url != null
-					? { href: a.url, label: a.label ?? a.fileName }
-					: undefined,
+				a.url == null
+					? undefined
+					: { href: a.url, label: a.label ?? a.fileName },
 			subtitle: subtitleParts.join(" · "),
 			title: "Anexo adicionado",
 			tone: "info" as Tone,
@@ -159,25 +149,22 @@ function normalizeEvents(items: OrderEventItem[]): FeedItem[] {
 			createdAt: e.createdAt,
 			iconKey: "package" as StatusIconKey,
 			id: `events-${e.id}`,
-			subtitle: branchLabel
-				? `${e.actorLabel} · ${branchLabel}`
-				: e.actorLabel,
+			subtitle: branchLabel ? `${e.actorLabel} · ${branchLabel}` : e.actorLabel,
 			title: "Filial atribuída",
 			tone: "info" as Tone,
 		};
 	});
 }
 
+const REFUND_STATUS_LABELS: Record<string, string> = {
+	approved: "aprovado",
+	rejected: "rejeitado",
+	pending: "pendente",
+};
+
 function normalizeRefunds(items: OrderRefundItem[]): FeedItem[] {
 	return items.map((r) => {
-		const statusLabel =
-			r.status === "approved"
-				? "aprovado"
-				: r.status === "rejected"
-					? "rejeitado"
-					: r.status === "pending"
-						? "pendente"
-						: r.status;
+		const statusLabel = REFUND_STATUS_LABELS[r.status] ?? r.status;
 		const subtitle = `${r.reasonCategory} · ${formatCurrency(r.amount)} · ${statusLabel}`;
 		return {
 			category: "financeiro" as FeedCategory,
@@ -233,10 +220,7 @@ function CategoryIcon({ item }: { item: FeedItem }) {
 	}
 	const Icon = STATUS_ICONS[item.iconKey];
 	return (
-		<Icon
-			aria-hidden="true"
-			className={`size-3.5 ${TONE_TEXT[item.tone]}`}
-		/>
+		<Icon aria-hidden="true" className={`size-3.5 ${TONE_TEXT[item.tone]}`} />
 	);
 }
 
@@ -288,8 +272,8 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 						<button
 							className={
 								isActive
-									? "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-secondary text-secondary-foreground transition-colors"
-									: "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border border-border text-muted-foreground hover:bg-muted transition-colors"
+									? "inline-flex items-center rounded-full bg-secondary px-3 py-1 font-medium text-secondary-foreground text-xs transition-colors"
+									: "inline-flex items-center rounded-full border border-border px-3 py-1 font-medium text-muted-foreground text-xs transition-colors hover:bg-muted"
 							}
 							key={chip.key}
 							onClick={() => setActiveFilter(chip.key)}
@@ -324,7 +308,7 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 								</div>
 
 								{/* Content */}
-								<div className="min-w-0 flex-1 border-b border-border pb-4 last:border-b-0 last:pb-0">
+								<div className="min-w-0 flex-1 border-border border-b pb-4 last:border-b-0 last:pb-0">
 									<div className="flex items-start justify-between gap-3">
 										<p className="font-medium text-sm">{item.title}</p>
 										<span className="shrink-0 font-mono text-muted-foreground text-xs tabular-nums">
@@ -345,7 +329,7 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 									)}
 
 									{item.reason && (
-										<div className="mt-2 rounded-md border-l-2 border-border bg-muted/50 px-3 py-2">
+										<div className="mt-2 rounded-md border-border border-l-2 bg-muted/50 px-3 py-2">
 											<p className="text-muted-foreground text-xs leading-relaxed">
 												{item.reason}
 											</p>

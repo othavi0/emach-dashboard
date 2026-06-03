@@ -15,7 +15,6 @@ import {
 } from "@emach/ui/components/table";
 
 import type { OrderDetail } from "../../../data";
-import { formatCurrency } from "../../_lib/format-address";
 import { AsaasBlock } from "../asaas-block";
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
