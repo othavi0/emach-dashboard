@@ -163,6 +163,32 @@
 		}
 	}
 
+	/* Tooltip de chart (recharts): fade in/out na posição do cursor em vez
+	   de deslizar a caixa da posição anterior. recharts anima só `transform`
+	   (o slide) e alterna `visibility`. Forçamos visibility=visible pra que o
+	   opacity possa animar nos dois sentidos; pointer-events:none mantém o
+	   gráfico interativo por baixo. O selector de atributo lê o `visibility`
+	   inline que o recharts seta. Reduced-motion acima zera a duração → vira
+	   toggle instantâneo. */
+	.recharts-tooltip-wrapper {
+		visibility: visible !important;
+		pointer-events: none !important;
+		opacity: 0;
+		/* !important: sobrescreve a transição de `transform` que o recharts
+		   aplica inline (a origem do slide); sem isso o deslize persiste. */
+		transition: opacity 150ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+	}
+	.recharts-tooltip-wrapper[style*="visibility: visible"] {
+		opacity: 1;
+	}
+	/* O !important acima vence o bloco global de reduced-motion (que usa `*`,
+	   menor especificidade). Reafirma a invariante aqui no mesmo alvo. */
+	@media (prefers-reduced-motion: reduce) {
+		.recharts-tooltip-wrapper {
+			transition-duration: 0.001ms !important;
+		}
+	}
+
 	/* Scrollbar — warm dark, primary accent on active. */
 
 	/* Firefox */
