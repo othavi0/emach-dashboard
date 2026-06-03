@@ -136,7 +136,7 @@ function VConnector({ done }: { done: boolean }) {
 	return (
 		<div
 			aria-hidden="true"
-			className={`ml-[15px] h-6 w-0.5 transition-colors ${done ? "bg-success" : "bg-border"}`}
+			className={`h-6 w-0.5 transition-colors ${done ? "bg-success" : "bg-border"}`}
 		/>
 	);
 }
