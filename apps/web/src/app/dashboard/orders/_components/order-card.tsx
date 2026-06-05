@@ -56,7 +56,7 @@ export function OrderCard({ item }: { item: OrderListItem }) {
 			href={`/dashboard/orders/${item.id}`}
 		>
 			<div className="flex items-start gap-3 px-4 pt-4 pb-3">
-				<div className="flex size-[46px] flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-muted font-bold text-[15px] text-foreground">
+				<div className="flex size-12 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-muted font-bold text-[17px] text-foreground">
 					{getInitials(item.clientName)}
 				</div>
 				<div className="min-w-0 flex-1">

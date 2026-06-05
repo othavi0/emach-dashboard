@@ -105,7 +105,7 @@ export function ToolCard({ tool }: ToolCardProps) {
 
 			{/* Corpo */}
 			<div className="flex flex-col gap-1 px-4 pt-3 pb-3">
-				<span className="line-clamp-2 font-semibold text-[14px] text-foreground leading-[1.3] tracking-tight">
+				<span className="line-clamp-2 font-semibold text-[15px] text-foreground leading-[1.3] tracking-tight">
 					{tool.name}
 				</span>
 				<p className="line-clamp-1 text-muted-foreground text-xs">

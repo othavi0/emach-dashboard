@@ -63,7 +63,7 @@ export function UserCard({ user }: UserCardProps) {
 					)}
 				</div>
 				<div className="min-w-0 flex-1">
-					<span className="block truncate font-semibold text-[14px] text-foreground leading-tight">
+					<span className="block truncate font-semibold text-[15px] text-foreground leading-tight">
 						{user.name || "—"}
 					</span>
 					<p className="truncate text-muted-foreground text-xs">{user.email}</p>
@@ -99,7 +99,7 @@ export function UserCard({ user }: UserCardProps) {
 			</div>
 
 			{/* Footer */}
-			<div className="flex items-center justify-between gap-2 border-border border-t pt-3">
+			<div className="-mx-4 flex items-center justify-between gap-2 border-border border-t px-4 pt-3">
 				<span className="text-muted-foreground text-xs">
 					<span className="font-semibold text-foreground">
 						{ROLE_LABEL[user.role]}

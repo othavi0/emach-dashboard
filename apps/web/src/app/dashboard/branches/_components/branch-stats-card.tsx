@@ -76,13 +76,13 @@ export function BranchStatsCard({
 			<div className="grid grid-cols-3 border-border border-t">
 				{stats.map((stat, i) => (
 					<div
-						className={`flex flex-col items-center py-3 ${
+						className={`flex flex-col items-center py-2.5 ${
 							i < 2 ? "border-border border-r" : ""
 						}`}
 						key={stat.label}
 					>
 						<span
-							className={`font-bold text-[20px] tabular-nums ${
+							className={`font-bold text-[18px] tabular-nums ${
 								stat.amber && stat.value > 0
 									? "text-amber-500"
 									: "text-foreground"
@@ -90,7 +90,7 @@ export function BranchStatsCard({
 						>
 							{stat.value}
 						</span>
-						<span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+						<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 							{stat.label}
 						</span>
 					</div>
