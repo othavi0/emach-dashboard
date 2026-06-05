@@ -12,6 +12,7 @@ export * from "./promotions";
 export * from "./reviews";
 export * from "./shared-enums";
 export * from "./stock-movements";
+export * from "./store-settings";
 export * from "./supplier-audit";
 export * from "./tools";
 export * from "./user-activity";

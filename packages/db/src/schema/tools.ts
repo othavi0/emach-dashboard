@@ -78,6 +78,11 @@ export const tool = pgTable(
 		supplierId: text("supplier_id").references(() => supplier.id, {
 			onDelete: "set null",
 		}),
+		// Frete por-produto p/ itens > 30kg (teto SuperFrete). Null = "a combinar".
+		overweightShippingAmount: numeric("overweight_shipping_amount", {
+			precision: 10,
+			scale: 2,
+		}),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()
@@ -106,6 +111,10 @@ export const tool = pgTable(
 		check(
 			"power_watts_positive",
 			sql`${table.powerWatts} IS NULL OR ${table.powerWatts} >= 0`
+		),
+		check(
+			"overweight_shipping_non_negative",
+			sql`${table.overweightShippingAmount} IS NULL OR ${table.overweightShippingAmount} >= 0`
 		),
 	]
 );
