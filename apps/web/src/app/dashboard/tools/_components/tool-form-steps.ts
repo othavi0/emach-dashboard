@@ -53,7 +53,7 @@ export const TOOL_STEPS: ToolStep[] = [
 	},
 ];
 
-export const STEP_FIELDS: Record<ToolStepId, (keyof ToolFormValues)[]> = {
+export const STEP_FIELDS = {
 	identity: [
 		"name",
 		"description",
@@ -80,7 +80,19 @@ export const STEP_FIELDS: Record<ToolStepId, (keyof ToolFormValues)[]> = {
 		"hsCode",
 	],
 	publish: ["images", "status", "visibleOnSite"],
-};
+} satisfies Record<ToolStepId, (keyof ToolFormValues)[]>;
+
+// Garante em tempo de compilação que todo campo do schema está coberto por algum
+// passo. Um campo `required` novo que não entre em STEP_FIELDS deixaria de
+// bloquear qualquer passo (só pegaria no submit final) — aqui quebra o build.
+type _UncoveredField = Exclude<
+	keyof ToolFormValues,
+	(typeof STEP_FIELDS)[ToolStepId][number]
+>;
+const _stepFieldsAreExhaustive: _UncoveredField extends never
+	? true
+	: ["faltam campos em STEP_FIELDS:", _UncoveredField] = true;
+void _stepFieldsAreExhaustive;
 
 export const FIELD_LABELS: Record<string, string> = {
 	name: "Nome",
