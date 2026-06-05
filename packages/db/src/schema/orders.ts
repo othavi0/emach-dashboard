@@ -16,6 +16,7 @@ import {
 import { user } from "./auth";
 import { client } from "./client";
 import { branch } from "./inventory";
+import { promotion } from "./promotions";
 import { actorTypeEnum } from "./shared-enums";
 import { tool, toolVariant } from "./tools";
 
@@ -97,6 +98,9 @@ export const order = pgTable(
 		})
 			.notNull()
 			.default("0"),
+		couponId: text("coupon_id").references(() => promotion.id, {
+			onDelete: "set null",
+		}),
 		shippingAmount: numeric("shipping_amount", {
 			precision: 12,
 			scale: 2,
