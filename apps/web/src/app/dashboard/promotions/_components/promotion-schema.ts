@@ -42,6 +42,11 @@ const promotionVariantSchema = z
 	.object({
 		type: z.literal("promotion"),
 		code: z.string().nullish(),
+		// Aceitam apenas null/ausente: o form pode carregar essas chaves (resíduo
+		// ao alternar de cupom→automática). Declará-las evita que .strict() rejeite
+		// o submit; qualquer valor não-nulo continua barrado.
+		maxRedemptions: z.null().optional(),
+		minOrderAmount: z.null().optional(),
 		...promotionBaseFields,
 	})
 	.strict()

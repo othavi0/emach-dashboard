@@ -77,4 +77,14 @@ describe("promotionSchema", () => {
 		});
 		expect(r.success).toBe(false);
 	});
+	it("promotion aceita maxRedemptions/minOrderAmount null (resíduo ao alternar de cupom)", () => {
+		const r = promotionSchema.safeParse({
+			...base,
+			type: "promotion",
+			code: null,
+			maxRedemptions: null,
+			minOrderAmount: null,
+		});
+		expect(r.success).toBe(true);
+	});
 });
