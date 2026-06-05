@@ -59,7 +59,7 @@ export default async function PromotionDetailPage({
 	const headerAction = isToolsTab ? (
 		<Link
 			className={buttonVariants({ variant: "default" })}
-			href={`/dashboard/promotions/${id}?tab=tools&edit=1`}
+			href={`/dashboard/promotions/${id}/edit`}
 		>
 			<Settings2 aria-hidden className="mr-1.5 size-4" />
 			Gerenciar ferramentas
