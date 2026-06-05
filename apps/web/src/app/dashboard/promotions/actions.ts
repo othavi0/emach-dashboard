@@ -164,24 +164,50 @@ export async function countToolsWithActivePromotion(
 	}
 
 	const now = new Date();
-	const filters = [
+	const activeWindow = [
 		eq(promotion.type, "promotion"),
 		eq(promotion.active, true),
 		or(isNull(promotion.startsAt), lte(promotion.startsAt, now)),
 		or(isNull(promotion.endsAt), gte(promotion.endsAt, now)),
-		inArray(promotionTool.toolId, toolIds),
 	];
-	if (excludeId) {
-		filters.push(ne(promotion.id, excludeId));
+	const exclude = excludeId ? [ne(promotion.id, excludeId)] : [];
+
+	// Uma promoção global ativa cobre todas as ferramentas — não há linha em
+	// promotion_tool, então o join abaixo não a veria. Checa antes.
+	const globalActive = await db
+		.select({ id: promotion.id })
+		.from(promotion)
+		.where(and(...activeWindow, eq(promotion.appliesToAll, true), ...exclude))
+		.limit(1);
+	if (globalActive.length > 0) {
+		return toolIds.length;
 	}
 
 	const rows = await db
 		.selectDistinct({ toolId: promotionTool.toolId })
 		.from(promotion)
 		.innerJoin(promotionTool, eq(promotion.id, promotionTool.promotionId))
-		.where(and(...filters));
+		.where(
+			and(...activeWindow, inArray(promotionTool.toolId, toolIds), ...exclude)
+		);
 
 	return rows.length;
+}
+
+// Campos exclusivos de cupom (promocode). Em promoção automática são sempre
+// null. Centralizado para create/update não divergirem.
+function buildCouponFields(data: PromotionFormValues): {
+	maxRedemptions: number | null;
+	minOrderAmount: string | null;
+} {
+	if (data.type === "promocode") {
+		return {
+			maxRedemptions: data.maxRedemptions ?? null,
+			minOrderAmount:
+				data.minOrderAmount == null ? null : String(data.minOrderAmount),
+		};
+	}
+	return { maxRedemptions: null, minOrderAmount: null };
 }
 
 function computeStatus(p: {
@@ -338,9 +364,15 @@ export async function fetchPromotionsPage({
 				);
 			}
 			if (typeof discountMin === "number") {
+				// O filtro de desconto é em % (percentageMask na UI); só se aplica a
+				// promoções percentuais — um R$ 50 não casa "desconto 10–50%".
+				conds.push(ops.eq(p.discountType, "percent"));
 				conds.push(ops.gte(p.discountValue, String(discountMin)));
 			}
 			if (typeof discountMax === "number") {
+				if (typeof discountMin !== "number") {
+					conds.push(ops.eq(p.discountType, "percent"));
+				}
 				conds.push(ops.lte(p.discountValue, String(discountMax)));
 			}
 			if (toolId && UUID_RE.test(toolId)) {
@@ -369,11 +401,19 @@ export async function fetchPromotionsPage({
 					conds.push(
 						ops.sql`(${p.createdAt}, ${p.id}) > (${c.createdAt}::timestamp, ${c.id})`
 					);
-				} else if (sort === "discountDesc" && c.sort === "promoDiscountDesc") {
+				} else if (
+					sort === "discountDesc" &&
+					c.sort === "promoDiscountDesc" &&
+					c.discountValue != null
+				) {
 					conds.push(
 						ops.sql`(${p.discountValue}, ${p.id}) < (${c.discountValue}::numeric, ${c.id})`
 					);
-				} else if (sort === "discountAsc" && c.sort === "promoDiscountAsc") {
+				} else if (
+					sort === "discountAsc" &&
+					c.sort === "promoDiscountAsc" &&
+					c.discountValue != null
+				) {
 					conds.push(
 						ops.sql`(${p.discountValue}, ${p.id}) > (${c.discountValue}::numeric, ${c.id})`
 					);
@@ -588,16 +628,7 @@ export async function createPromotion(
 				await assertCodeUnique(tx, data.code);
 			}
 
-			const couponFields =
-				data.type === "promocode"
-					? {
-							maxRedemptions: data.maxRedemptions ?? null,
-							minOrderAmount:
-								data.minOrderAmount == null
-									? null
-									: String(data.minOrderAmount),
-						}
-					: { maxRedemptions: null, minOrderAmount: null };
+			const couponFields = buildCouponFields(data);
 
 			await tx.insert(promotion).values({
 				id: newId,
@@ -674,16 +705,7 @@ export async function updatePromotion(
 				await assertCodeUnique(tx, data.code, id);
 			}
 
-			const couponFields =
-				data.type === "promocode"
-					? {
-							maxRedemptions: data.maxRedemptions ?? null,
-							minOrderAmount:
-								data.minOrderAmount == null
-									? null
-									: String(data.minOrderAmount),
-						}
-					: { maxRedemptions: null, minOrderAmount: null };
+			const couponFields = buildCouponFields(data);
 
 			await tx
 				.update(promotion)
