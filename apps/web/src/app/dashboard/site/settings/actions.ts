@@ -10,6 +10,7 @@ import { asc, eq, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { logUserActivity } from "@/lib/activity";
+import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import {
 	type ShippingSettingsFormValues,
@@ -101,6 +102,7 @@ export async function updateShippingSettings(
 				set: payload,
 			});
 	} catch (error) {
+		logger.error("updateShippingSettings falhou", error);
 		return { ok: false, error: zodErrorMessage(error) };
 	}
 
