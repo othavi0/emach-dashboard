@@ -39,7 +39,7 @@ export function ReviewCard({ review }: { review: ReviewListItem }) {
 
 			{/* Corpo */}
 			<div className="flex flex-col gap-1 px-4 pt-3 pb-3">
-				<span className="line-clamp-2 font-semibold text-[14px] text-foreground leading-[1.3] tracking-tight">
+				<span className="line-clamp-2 font-semibold text-[15px] text-foreground leading-[1.3] tracking-tight">
 					{review.toolName}
 				</span>
 				<span className="text-muted-foreground text-xs">
