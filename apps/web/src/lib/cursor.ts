@@ -66,7 +66,7 @@ export interface PromoCreatedAscCursor extends CursorBase {
 }
 
 export interface PromoDiscountCursor extends CursorBase {
-	discountPct: string;
+	discountValue: string;
 	sort: "promoDiscountAsc" | "promoDiscountDesc";
 }
 
