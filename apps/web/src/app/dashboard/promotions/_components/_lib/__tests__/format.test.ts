@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { daysRemainingDisplay, daysUntil } from "../format";
+import { daysRemainingDisplay, daysUntil, formatDiscount } from "../format";
 
 const NOW = new Date("2026-06-01T12:00:00Z");
+
+describe("formatDiscount", () => {
+	it("formata percent com sufixo %", () => {
+		expect(formatDiscount("percent", "10")).toBe("10,00%");
+	});
+	it("formata fixed em R$", () => {
+		expect(formatDiscount("fixed", "50")).toMatch(/R\$\s?50,00/);
+	});
+});
 
 describe("daysUntil", () => {
 	it("retorna null para data nula", () => {

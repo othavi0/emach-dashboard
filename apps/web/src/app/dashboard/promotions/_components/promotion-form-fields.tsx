@@ -20,12 +20,13 @@ import {
 import { RadioGroup, RadioGroupItem } from "@emach/ui/components/radio-group";
 import { Switch } from "@emach/ui/components/switch";
 import { Textarea } from "@emach/ui/components/textarea";
-import { ChevronsUpDown, Tag, Ticket, X } from "lucide-react";
-import { useState } from "react";
+import { AlertCircle, ChevronsUpDown, Tag, Ticket, X } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
 
 import { MaskedInput } from "@/components/masked-input";
-import { percentageMask } from "@/lib/masks";
+import { brlMask, integerMask, percentageMask } from "@/lib/masks";
 
+import { countToolsWithActivePromotion } from "../actions";
 import type { PromotionFormValues } from "./promotion-schema";
 
 // ---------------------------------------------------------------------------
@@ -44,6 +45,7 @@ export interface PromotionFormFieldsProps {
 	availableTools: ToolOption[];
 	disabled?: boolean;
 	errors: Record<string, string>;
+	excludePromotionId?: string;
 	mode: "create" | "edit";
 	onPatch: Patch;
 	values: PromotionFormValues;
@@ -230,6 +232,7 @@ export function PromotionFormFields({
 	availableTools,
 	disabled,
 	errors,
+	excludePromotionId,
 	mode,
 	onPatch,
 	values,
@@ -237,12 +240,45 @@ export function PromotionFormFields({
 	const type = values.type as PromotionType;
 	const isCoupon = type === "promocode";
 
+	// Aviso não-bloqueante: ferramentas com promoção ativa
+	const [conflictCount, setConflictCount] = useState(0);
+	const [, startTransition] = useTransition();
+
+	useEffect(() => {
+		if (values.appliesToAll || values.toolIds.length === 0) {
+			setConflictCount(0);
+			return;
+		}
+		let cancelled = false;
+		startTransition(() => {
+			countToolsWithActivePromotion(values.toolIds, excludePromotionId).then(
+				(count) => {
+					if (!cancelled) {
+						setConflictCount(count);
+					}
+				}
+			);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [values.toolIds, values.appliesToAll, excludePromotionId]);
+
 	function handleTypeChange(next: PromotionType) {
 		onPatch({
 			type: next,
 			code: next === "promocode" ? (values.code ?? "") : null,
+			// limpar campos só-cupom ao voltar para promoção automática
+			...(next === "promotion"
+				? { maxRedemptions: null, minOrderAmount: null }
+				: {}),
 		} as Partial<PromotionFormValues>);
 	}
+
+	const discountMask =
+		values.discountType === "percent" ? percentageMask : brlMask;
+	const discountLabel =
+		values.discountType === "percent" ? "Desconto (%)" : "Desconto (R$)";
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -304,21 +340,60 @@ export function PromotionFormFields({
 						)}
 					</div>
 
+					{/* Tipo de desconto */}
+					<div className="flex flex-col gap-3">
+						<Label>
+							Tipo de desconto
+							<span className="text-destructive"> *</span>
+						</Label>
+						<RadioGroup
+							className="flex gap-4"
+							onValueChange={(v) =>
+								onPatch({
+									discountType: v as "percent" | "fixed",
+								})
+							}
+							value={values.discountType}
+						>
+							<Label
+								className="flex cursor-pointer items-center gap-2"
+								htmlFor="discount-type-percent"
+							>
+								<RadioGroupItem
+									disabled={disabled}
+									id="discount-type-percent"
+									value="percent"
+								/>
+								Percentual %
+							</Label>
+							<Label
+								className="flex cursor-pointer items-center gap-2"
+								htmlFor="discount-type-fixed"
+							>
+								<RadioGroupItem
+									disabled={disabled}
+									id="discount-type-fixed"
+									value="fixed"
+								/>
+								Valor fixo R$
+							</Label>
+						</RadioGroup>
+					</div>
+
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="promo-discount">
-							Desconto (%)
+						<Label htmlFor="promo-discount-value">
+							{discountLabel}
 							<span className="text-destructive"> *</span>
 						</Label>
 						<MaskedInput
 							disabled={disabled}
-							id="promo-discount"
-							mask={percentageMask}
-							onChange={(n) => onPatch({ discountPct: n ?? 0 })}
-							placeholder="Ex: 10 ou 10,5"
-							value={values.discountPct}
+							id="promo-discount-value"
+							mask={discountMask}
+							onChange={(n) => onPatch({ discountValue: n ?? 0 })}
+							value={values.discountValue}
 						/>
-						{errors.discountPct && (
-							<p className="text-destructive text-sm">{errors.discountPct}</p>
+						{errors.discountValue && (
+							<p className="text-destructive text-sm">{errors.discountValue}</p>
 						)}
 					</div>
 
@@ -348,6 +423,66 @@ export function PromotionFormFields({
 							)}
 						</div>
 					)}
+
+					{isCoupon && (
+						<>
+							<div className="flex flex-col gap-2">
+								<Label htmlFor="promo-max-redemptions">
+									Limite de resgates
+								</Label>
+								<MaskedInput
+									disabled={disabled}
+									id="promo-max-redemptions"
+									mask={integerMask}
+									onChange={(n) =>
+										onPatch({
+											maxRedemptions: n ?? null,
+										} as Partial<PromotionFormValues>)
+									}
+									value={
+										(values as { maxRedemptions?: number | null })
+											.maxRedemptions ?? undefined
+									}
+								/>
+								<p className="text-muted-foreground text-xs">
+									Vazio = ilimitado
+								</p>
+								{errors.maxRedemptions && (
+									<p className="text-destructive text-sm">
+										{errors.maxRedemptions}
+									</p>
+								)}
+							</div>
+
+							<div className="flex flex-col gap-2">
+								<Label htmlFor="promo-min-order-amount">
+									Valor mínimo do pedido
+								</Label>
+								<MaskedInput
+									disabled={disabled}
+									id="promo-min-order-amount"
+									mask={brlMask}
+									onChange={(n) =>
+										onPatch({
+											minOrderAmount: n ?? null,
+										} as Partial<PromotionFormValues>)
+									}
+									value={
+										(values as { minOrderAmount?: number | null })
+											.minOrderAmount ?? undefined
+									}
+								/>
+								<p className="text-muted-foreground text-xs">
+									Vazio = sem mínimo
+								</p>
+								{errors.minOrderAmount && (
+									<p className="text-destructive text-sm">
+										{errors.minOrderAmount}
+									</p>
+								)}
+							</div>
+						</>
+					)}
 				</div>
 
 				{/* Coluna direita — vigência, publicação e ferramentas */}
@@ -361,6 +496,7 @@ export function PromotionFormFields({
 								onChange={(d) => onPatch({ startsAt: d ?? null })}
 								value={values.startsAt ?? undefined}
 							/>
+							<p className="text-muted-foreground text-xs">Vazio = imediato</p>
 							{errors.startsAt && (
 								<p className="text-destructive text-sm">{errors.startsAt}</p>
 							)}
@@ -375,6 +511,7 @@ export function PromotionFormFields({
 								onChange={(d) => onPatch({ endsAt: d ?? null })}
 								value={values.endsAt ?? undefined}
 							/>
+							<p className="text-muted-foreground text-xs">Vazio = sem prazo</p>
 							{errors.endsAt && (
 								<p className="text-destructive text-sm">{errors.endsAt}</p>
 							)}
@@ -398,21 +535,76 @@ export function PromotionFormFields({
 						</p>
 					</div>
 
-					<div className="flex flex-col gap-2">
+					{/* Escopo: Todas / Específicas */}
+					<div className="flex flex-col gap-3">
 						<Label>
 							Ferramentas
 							<span className="text-destructive"> *</span>
 						</Label>
-						<ToolCombobox
-							availableTools={availableTools}
-							disabled={disabled}
-							onChange={(ids) => onPatch({ toolIds: ids })}
-							selectedIds={values.toolIds}
-						/>
-						{errors.toolIds && (
-							<p className="text-destructive text-sm">{errors.toolIds}</p>
-						)}
+						<RadioGroup
+							className="flex gap-4"
+							onValueChange={(v) => {
+								const all = v === "true";
+								if (all) {
+									onPatch({ appliesToAll: true, toolIds: [] });
+								} else {
+									onPatch({ appliesToAll: false });
+								}
+							}}
+							value={String(values.appliesToAll)}
+						>
+							<Label
+								className="flex cursor-pointer items-center gap-2"
+								htmlFor="scope-all"
+							>
+								<RadioGroupItem
+									disabled={disabled}
+									id="scope-all"
+									value="true"
+								/>
+								Todas as ferramentas
+							</Label>
+							<Label
+								className="flex cursor-pointer items-center gap-2"
+								htmlFor="scope-specific"
+							>
+								<RadioGroupItem
+									disabled={disabled}
+									id="scope-specific"
+									value="false"
+								/>
+								Ferramentas específicas
+							</Label>
+						</RadioGroup>
 					</div>
+
+					{!values.appliesToAll && (
+						<div className="flex flex-col gap-2">
+							<ToolCombobox
+								availableTools={availableTools}
+								disabled={disabled}
+								onChange={(ids) => onPatch({ toolIds: ids })}
+								selectedIds={values.toolIds}
+							/>
+							{errors.toolIds && (
+								<p className="text-destructive text-sm">{errors.toolIds}</p>
+							)}
+							{conflictCount > 0 && (
+								<div className="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-muted-foreground text-xs">
+									<AlertCircle
+										aria-hidden
+										className="mt-0.5 size-3.5 shrink-0"
+									/>
+									<span>
+										{conflictCount === 1
+											? "1 desta já tem promoção"
+											: `${conflictCount} destas já têm promoção`}{" "}
+										— o site aplica o maior desconto.
+									</span>
+								</div>
+							)}
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

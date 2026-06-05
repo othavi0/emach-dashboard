@@ -6,8 +6,7 @@ import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
-import { PromotionEditSheet } from "../_components/promotion-edit-sheet";
-import { getPromotion, getToolOptions } from "../actions";
+import { getPromotion } from "../actions";
 import { OverviewTab } from "./_components/overview-tab";
 import { PromotionHeaderActions } from "./_components/promotion-header-actions";
 import { PromotionIdentity } from "./_components/promotion-identity";
@@ -15,7 +14,7 @@ import { ToolsTab } from "./_components/tools-tab";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
-	searchParams: Promise<{ edit?: string; tab?: string }>;
+	searchParams: Promise<{ tab?: string }>;
 }
 
 export const dynamic = "force-dynamic";
@@ -29,10 +28,7 @@ export default async function PromotionDetailPage({
 	const { id } = await params;
 	const sp = await searchParams;
 
-	const [detail, availableTools] = await Promise.all([
-		getPromotion(id),
-		getToolOptions(),
-	]);
+	const detail = await getPromotion(id);
 
 	if (!detail) {
 		notFound();
@@ -63,7 +59,7 @@ export default async function PromotionDetailPage({
 	const headerAction = isToolsTab ? (
 		<Link
 			className={buttonVariants({ variant: "default" })}
-			href={`/dashboard/promotions/${id}?tab=tools&edit=1`}
+			href={`/dashboard/promotions/${id}/edit`}
 		>
 			<Settings2 aria-hidden className="mr-1.5 size-4" />
 			Gerenciar ferramentas
@@ -76,12 +72,6 @@ export default async function PromotionDetailPage({
 		<div className="flex flex-col gap-6 p-6">
 			<PromotionIdentity actions={headerAction} detail={detail} />
 			<EntityTabs defaultValue="overview" tabs={tabs} />
-			{sp.edit === "1" ? (
-				<PromotionEditSheet
-					availableTools={availableTools}
-					promotion={detail}
-				/>
-			) : null}
 		</div>
 	);
 }

@@ -19,6 +19,11 @@ const NUMBER_FMT = new Intl.NumberFormat("pt-BR", {
 	maximumFractionDigits: 2,
 });
 
+const BRL_FMT = new Intl.NumberFormat("pt-BR", {
+	style: "currency",
+	currency: "BRL",
+});
+
 export function fmtDate(d: Date): string {
 	return DATE_FMT.format(d);
 }
@@ -43,8 +48,11 @@ export function formatJanela(
 	return "Sem janela definida";
 }
 
-export function formatDesconto(discountPct: string): string {
-	const num = Number(discountPct);
+export function formatDiscount(type: string, value: string): string {
+	const num = Number(value);
+	if (type === "fixed") {
+		return BRL_FMT.format(num);
+	}
 	return `${NUMBER_FMT.format(num)}%`;
 }
 

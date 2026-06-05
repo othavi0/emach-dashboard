@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { PromotionListItem } from "../actions";
 import {
 	daysRemainingDisplay,
-	formatDesconto,
+	formatDiscount,
 	formatJanela,
 } from "./_lib/format";
 import { PromotionStatusBadge } from "./promotion-status-badge";
@@ -51,7 +51,7 @@ export function PromotionCard({ promotion }: { promotion: PromotionListItem }) {
 
 			<div className="px-4 pb-3">
 				<span className="font-medium text-[32px] text-primary tabular-nums leading-none">
-					{formatDesconto(promotion.discountPct)}
+					{formatDiscount(promotion.discountType, promotion.discountValue)}
 				</span>
 				<p className="mt-1 text-[11px] text-muted-foreground">
 					{formatJanela(promotion.startsAt, promotion.endsAt)}
@@ -61,11 +61,11 @@ export function PromotionCard({ promotion }: { promotion: PromotionListItem }) {
 			<div className="mt-auto grid grid-cols-2 border-border border-t">
 				<div className="flex flex-col items-center border-border border-r py-2.5">
 					<span
-						className={`font-bold text-[18px] tabular-nums ${promotion.tools.length === 0 ? "text-warning" : "text-foreground"}`}
+						className={`font-bold text-[18px] tabular-nums ${!promotion.appliesToAll && promotion.tools.length === 0 ? "text-warning" : "text-foreground"}`}
 					>
-						{promotion.tools.length}
+						{promotion.appliesToAll ? "Todas" : promotion.tools.length}
 					</span>
-					<span className={METRIC_LABEL}>Ferramentas</span>
+					<span className={METRIC_LABEL}>Alcance</span>
 				</div>
 				<div className="flex flex-col items-center py-2.5">
 					<span

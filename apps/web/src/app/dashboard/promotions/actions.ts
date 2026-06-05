@@ -65,13 +65,18 @@ export interface PromotionToolItem {
 
 export interface PromotionListItem {
 	active: boolean;
+	appliesToAll: boolean;
 	code: string | null;
 	createdAt: Date;
 	createdByName: string | null;
 	description: string | null;
-	discountPct: string;
+	discountType: string;
+	discountValue: string;
 	endsAt: Date | null;
 	id: string;
+	maxRedemptions: number | null;
+	minOrderAmount: string | null;
+	redemptionCount: number;
 	startsAt: Date | null;
 	status: PromotionStatus;
 	title: string;
@@ -144,36 +149,65 @@ async function assertCodeUnique(tx: Tx, code: string, excludeId?: string) {
 	}
 }
 
-async function assertNoStackingConflict(
-	tx: Tx,
+/**
+ * Retorna quantas das ferramentas informadas têm ≥1 promoção do tipo
+ * 'promotion' ativa e dentro do período de validade.
+ * Usado pela UI como aviso não-bloqueante antes de salvar/ativar.
+ * Exportado como server action para ser chamável de Client Components.
+ */
+export async function countToolsWithActivePromotion(
 	toolIds: string[],
 	excludeId?: string
-) {
+): Promise<number> {
+	if (toolIds.length === 0) {
+		return 0;
+	}
+
 	const now = new Date();
-	const filters = [
+	const activeWindow = [
 		eq(promotion.type, "promotion"),
 		eq(promotion.active, true),
 		or(isNull(promotion.startsAt), lte(promotion.startsAt, now)),
 		or(isNull(promotion.endsAt), gte(promotion.endsAt, now)),
-		inArray(promotionTool.toolId, toolIds),
 	];
-	if (excludeId) {
-		filters.push(ne(promotion.id, excludeId));
+	const exclude = excludeId ? [ne(promotion.id, excludeId)] : [];
+
+	// Uma promoção global ativa cobre todas as ferramentas — não há linha em
+	// promotion_tool, então o join abaixo não a veria. Checa antes.
+	const globalActive = await db
+		.select({ id: promotion.id })
+		.from(promotion)
+		.where(and(...activeWindow, eq(promotion.appliesToAll, true), ...exclude))
+		.limit(1);
+	if (globalActive.length > 0) {
+		return toolIds.length;
 	}
 
-	const overlapping = await tx
-		.select({ toolName: tool.name })
+	const rows = await db
+		.selectDistinct({ toolId: promotionTool.toolId })
 		.from(promotion)
 		.innerJoin(promotionTool, eq(promotion.id, promotionTool.promotionId))
-		.innerJoin(tool, eq(promotionTool.toolId, tool.id))
-		.where(and(...filters))
-		.limit(1);
-
-	if (overlapping.length > 0 && overlapping[0]) {
-		conflict(
-			`Já existe promoção ativa para a ferramenta ${overlapping[0].toolName}`
+		.where(
+			and(...activeWindow, inArray(promotionTool.toolId, toolIds), ...exclude)
 		);
+
+	return rows.length;
+}
+
+// Campos exclusivos de cupom (promocode). Em promoção automática são sempre
+// null. Centralizado para create/update não divergirem.
+function buildCouponFields(data: PromotionFormValues): {
+	maxRedemptions: number | null;
+	minOrderAmount: string | null;
+} {
+	if (data.type === "promocode") {
+		return {
+			maxRedemptions: data.maxRedemptions ?? null,
+			minOrderAmount:
+				data.minOrderAmount == null ? null : String(data.minOrderAmount),
+		};
 	}
+	return { maxRedemptions: null, minOrderAmount: null };
 }
 
 function computeStatus(p: {
@@ -250,7 +284,7 @@ function makePromotionCursor(
 	sort: PromotionSort,
 	last: {
 		createdAt: Date;
-		discountPct: string;
+		discountValue: string;
 		endsAt: Date | null;
 		id: string;
 	}
@@ -267,14 +301,14 @@ function makePromotionCursor(
 			return {
 				v: 1,
 				sort: "promoDiscountDesc",
-				discountPct: last.discountPct,
+				discountValue: last.discountValue,
 				id: last.id,
 			};
 		case "discountAsc":
 			return {
 				v: 1,
 				sort: "promoDiscountAsc",
-				discountPct: last.discountPct,
+				discountValue: last.discountValue,
 				id: last.id,
 			};
 		case "endsAtAsc":
@@ -330,10 +364,16 @@ export async function fetchPromotionsPage({
 				);
 			}
 			if (typeof discountMin === "number") {
-				conds.push(ops.gte(p.discountPct, String(discountMin)));
+				// O filtro de desconto é em % (percentageMask na UI); só se aplica a
+				// promoções percentuais — um R$ 50 não casa "desconto 10–50%".
+				conds.push(ops.eq(p.discountType, "percent"));
+				conds.push(ops.gte(p.discountValue, String(discountMin)));
 			}
 			if (typeof discountMax === "number") {
-				conds.push(ops.lte(p.discountPct, String(discountMax)));
+				if (typeof discountMin !== "number") {
+					conds.push(ops.eq(p.discountType, "percent"));
+				}
+				conds.push(ops.lte(p.discountValue, String(discountMax)));
 			}
 			if (toolId && UUID_RE.test(toolId)) {
 				conds.push(
@@ -361,13 +401,21 @@ export async function fetchPromotionsPage({
 					conds.push(
 						ops.sql`(${p.createdAt}, ${p.id}) > (${c.createdAt}::timestamp, ${c.id})`
 					);
-				} else if (sort === "discountDesc" && c.sort === "promoDiscountDesc") {
+				} else if (
+					sort === "discountDesc" &&
+					c.sort === "promoDiscountDesc" &&
+					c.discountValue != null
+				) {
 					conds.push(
-						ops.sql`(${p.discountPct}, ${p.id}) < (${c.discountPct}::numeric, ${c.id})`
+						ops.sql`(${p.discountValue}, ${p.id}) < (${c.discountValue}::numeric, ${c.id})`
 					);
-				} else if (sort === "discountAsc" && c.sort === "promoDiscountAsc") {
+				} else if (
+					sort === "discountAsc" &&
+					c.sort === "promoDiscountAsc" &&
+					c.discountValue != null
+				) {
 					conds.push(
-						ops.sql`(${p.discountPct}, ${p.id}) > (${c.discountPct}::numeric, ${c.id})`
+						ops.sql`(${p.discountValue}, ${p.id}) > (${c.discountValue}::numeric, ${c.id})`
 					);
 				} else if (sort === "endsAtAsc" && c.sort === "promoEndsAtAsc") {
 					if (c.endsAt === null) {
@@ -389,9 +437,9 @@ export async function fetchPromotionsPage({
 				case "createdAsc":
 					return [qAsc(p.createdAt), qAsc(p.id)];
 				case "discountDesc":
-					return [qDesc(p.discountPct), qDesc(p.id)];
+					return [qDesc(p.discountValue), qDesc(p.id)];
 				case "discountAsc":
-					return [qAsc(p.discountPct), qAsc(p.id)];
+					return [qAsc(p.discountValue), qAsc(p.id)];
 				case "endsAtAsc":
 					return [qSql`${p.endsAt} ASC NULLS LAST`, qAsc(p.id)];
 				default:
@@ -440,7 +488,12 @@ export async function fetchPromotionsPage({
 				description: row.description,
 				type: row.type,
 				code: row.code,
-				discountPct: row.discountPct,
+				discountType: row.discountType,
+				discountValue: row.discountValue,
+				appliesToAll: row.appliesToAll,
+				maxRedemptions: row.maxRedemptions,
+				redemptionCount: row.redemptionCount,
+				minOrderAmount: row.minOrderAmount,
 				active: row.active,
 				startsAt: row.startsAt,
 				endsAt: row.endsAt,
@@ -517,7 +570,12 @@ export async function getPromotion(
 		description: row.description,
 		type: row.type,
 		code: row.code,
-		discountPct: row.discountPct,
+		discountType: row.discountType,
+		discountValue: row.discountValue,
+		appliesToAll: row.appliesToAll,
+		maxRedemptions: row.maxRedemptions,
+		redemptionCount: row.redemptionCount,
+		minOrderAmount: row.minOrderAmount,
 		active: row.active,
 		startsAt: row.startsAt,
 		endsAt: row.endsAt,
@@ -569,9 +627,8 @@ export async function createPromotion(
 			if (data.type === "promocode" && data.code) {
 				await assertCodeUnique(tx, data.code);
 			}
-			if (data.type === "promotion" && data.toolIds.length > 0) {
-				await assertNoStackingConflict(tx, data.toolIds);
-			}
+
+			const couponFields = buildCouponFields(data);
 
 			await tx.insert(promotion).values({
 				id: newId,
@@ -579,7 +636,10 @@ export async function createPromotion(
 				description: data.description ?? null,
 				type: data.type,
 				code: data.type === "promocode" ? (data.code ?? null) : null,
-				discountPct: String(data.discountPct),
+				discountType: data.discountType,
+				discountValue: String(data.discountValue),
+				appliesToAll: data.appliesToAll,
+				...couponFields,
 				active: data.active,
 				startsAt: data.startsAt ?? null,
 				endsAt: data.endsAt ?? null,
@@ -587,7 +647,7 @@ export async function createPromotion(
 				updatedBy: session.user.id,
 			});
 
-			if (data.toolIds.length > 0) {
+			if (!data.appliesToAll && data.toolIds.length > 0) {
 				await tx.insert(promotionTool).values(
 					data.toolIds.map((toolId) => ({
 						promotionId: newId,
@@ -644,9 +704,8 @@ export async function updatePromotion(
 			if (data.type === "promocode" && data.code) {
 				await assertCodeUnique(tx, data.code, id);
 			}
-			if (data.type === "promotion" && data.toolIds.length > 0) {
-				await assertNoStackingConflict(tx, data.toolIds, id);
-			}
+
+			const couponFields = buildCouponFields(data);
 
 			await tx
 				.update(promotion)
@@ -655,7 +714,10 @@ export async function updatePromotion(
 					description: data.description ?? null,
 					type: data.type,
 					code: data.type === "promocode" ? (data.code ?? null) : null,
-					discountPct: String(data.discountPct),
+					discountType: data.discountType,
+					discountValue: String(data.discountValue),
+					appliesToAll: data.appliesToAll,
+					...couponFields,
 					active: data.active,
 					startsAt: data.startsAt ?? null,
 					endsAt: data.endsAt ?? null,
@@ -663,9 +725,10 @@ export async function updatePromotion(
 				})
 				.where(eq(promotion.id, id));
 
+			// Sempre limpa tools existentes; reinserir só se !appliesToAll
 			await tx.delete(promotionTool).where(eq(promotionTool.promotionId, id));
 
-			if (data.toolIds.length > 0) {
+			if (!data.appliesToAll && data.toolIds.length > 0) {
 				await tx.insert(promotionTool).values(
 					data.toolIds.map((toolId) => ({
 						promotionId: id,
@@ -749,17 +812,6 @@ export async function togglePromotionActive(
 
 			const nextActive = !row.active;
 
-			if (nextActive && row.type === "promotion") {
-				const tools = await tx
-					.select({ toolId: promotionTool.toolId })
-					.from(promotionTool)
-					.where(eq(promotionTool.promotionId, id));
-				const toolIds = tools.map((t) => t.toolId);
-				if (toolIds.length > 0) {
-					await assertNoStackingConflict(tx, toolIds, id);
-				}
-			}
-
 			await tx
 				.update(promotion)
 				.set({ active: nextActive, updatedBy: session.user.id })
@@ -839,7 +891,12 @@ export async function duplicatePromotion(
 				description: p.description,
 				type: p.type,
 				code: null,
-				discountPct: p.discountPct,
+				discountType: p.discountType,
+				discountValue: p.discountValue,
+				appliesToAll: p.appliesToAll,
+				maxRedemptions: p.maxRedemptions,
+				minOrderAmount: p.minOrderAmount,
+				redemptionCount: 0,
 				active: false,
 				startsAt: null,
 				endsAt: null,
@@ -847,15 +904,19 @@ export async function duplicatePromotion(
 				updatedBy: session.user.id,
 			});
 
-			const tools = await tx
-				.select({ toolId: promotionTool.toolId })
-				.from(promotionTool)
-				.where(eq(promotionTool.promotionId, id));
+			if (!p.appliesToAll) {
+				const tools = await tx
+					.select({ toolId: promotionTool.toolId })
+					.from(promotionTool)
+					.where(eq(promotionTool.promotionId, id));
 
-			if (tools.length > 0) {
-				await tx
-					.insert(promotionTool)
-					.values(tools.map((t) => ({ promotionId: newId, toolId: t.toolId })));
+				if (tools.length > 0) {
+					await tx
+						.insert(promotionTool)
+						.values(
+							tools.map((t) => ({ promotionId: newId, toolId: t.toolId }))
+						);
+				}
 			}
 		});
 	} catch (error) {
