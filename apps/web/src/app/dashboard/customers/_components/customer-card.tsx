@@ -142,15 +142,15 @@ export function CustomerCard({ customer }: CustomerCardProps) {
 			</div>
 
 			<div className="grid grid-cols-3 border-border border-t">
-				<div className="flex flex-col items-center border-border border-r py-3">
-					<span className="font-bold text-[20px] text-foreground tabular-nums">
+				<div className="flex flex-col items-center border-border border-r py-2.5">
+					<span className="font-bold text-[18px] text-foreground tabular-nums">
 						{NUMBER_FORMATTER.format(customer.ordersCount)}
 					</span>
-					<span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 						Pedidos
 					</span>
 				</div>
-				<div className="flex flex-col items-center border-border border-r py-3">
+				<div className="flex flex-col items-center border-border border-r py-2.5">
 					<span className="font-bold text-[13px] text-foreground">
 						{customer.lastOrderAt ? (
 							<Tooltip>
@@ -167,15 +167,15 @@ export function CustomerCard({ customer }: CustomerCardProps) {
 							"—"
 						)}
 					</span>
-					<span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 						Último pedido
 					</span>
 				</div>
-				<div className="flex flex-col items-center py-3">
+				<div className="flex flex-col items-center py-2.5">
 					<span className="font-bold text-[13px] text-foreground">
 						{SINCE_FORMATTER.format(customer.createdAt)}
 					</span>
-					<span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 						Cliente desde
 					</span>
 				</div>
