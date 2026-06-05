@@ -9,7 +9,7 @@ import {
 } from "@emach/ui/components/empty";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { formatDesconto } from "../../_components/_lib/format";
+import { formatDiscount } from "../../_components/_lib/format";
 import type { PromotionDetail } from "../../actions";
 
 export function ToolsTab({ detail }: { detail: PromotionDetail }) {
@@ -25,7 +25,7 @@ export function ToolsTab({ detail }: { detail: PromotionDetail }) {
 				<EmptyContent>
 					<Link
 						className={buttonVariants({ variant: "default" })}
-						href={`/dashboard/promotions/${detail.id}?tab=tools&edit=1`}
+						href={`/dashboard/promotions/${detail.id}/edit`}
 					>
 						Gerenciar ferramentas
 					</Link>
@@ -34,7 +34,7 @@ export function ToolsTab({ detail }: { detail: PromotionDetail }) {
 		);
 	}
 
-	const discountLabel = `−${formatDesconto(detail.discountPct)}`;
+	const discountLabel = `−${formatDiscount(detail.discountType, detail.discountValue)}`;
 
 	return (
 		<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
