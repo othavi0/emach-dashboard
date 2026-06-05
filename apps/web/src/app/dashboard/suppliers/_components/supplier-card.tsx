@@ -71,9 +71,9 @@ export function SupplierCard({ supplier }: SupplierCardProps) {
 			</div>
 
 			<div className="grid grid-cols-2 border-border border-t">
-				<div className="flex flex-col items-center justify-center border-border border-r py-3">
+				<div className="flex flex-col items-center justify-center border-border border-r py-2.5">
 					<span
-						className={`font-bold text-[20px] tabular-nums ${
+						className={`font-bold text-[18px] tabular-nums ${
 							noTools ? "text-amber-500" : "text-foreground"
 						}`}
 					>
@@ -82,15 +82,15 @@ export function SupplierCard({ supplier }: SupplierCardProps) {
 							/{supplier.toolsTotal}
 						</span>
 					</span>
-					<span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 						Ferramentas
 					</span>
 				</div>
-				<div className="flex flex-col items-center justify-center py-3">
+				<div className="flex flex-col items-center justify-center py-2.5">
 					<span className="font-semibold text-[15px] text-foreground tabular-nums">
 						{MONTH_YEAR.format(supplier.createdAt)}
 					</span>
-					<span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 						Adicionado
 					</span>
 				</div>
