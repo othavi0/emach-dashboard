@@ -99,7 +99,7 @@ export function UserCard({ user }: UserCardProps) {
 			</div>
 
 			{/* Footer */}
-			<div className="flex items-center justify-between gap-2 border-border border-t pt-3">
+			<div className="-mx-4 flex items-center justify-between gap-2 border-border border-t px-4 pt-3">
 				<span className="text-muted-foreground text-xs">
 					<span className="font-semibold text-foreground">
 						{ROLE_LABEL[user.role]}
