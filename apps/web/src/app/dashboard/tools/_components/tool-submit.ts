@@ -7,32 +7,8 @@ import {
 } from "@/components/form-error-panel";
 import { createTool, updateTool } from "../actions";
 import type { ToolFormState } from "./tool-form-state";
+import { FIELD_LABELS } from "./tool-form-steps";
 import { type ToolFormValues, toolFormSchema } from "./tool-schema";
-
-const FIELD_LABELS: Record<string, string> = {
-	name: "Nome",
-	description: "Descrição",
-	model: "Modelo comercial",
-	invoiceModel: "Modelo da fábrica",
-	manufacturerName: "Marca / fabricante",
-	status: "Status",
-	hsCode: "HS Code",
-	ncm: "NCM",
-	cest: "CEST",
-	powerWatts: "Potência (W)",
-	weightKg: "Peso (kg)",
-	lengthCm: "Comprimento (cm)",
-	widthCm: "Largura (cm)",
-	heightCm: "Altura (cm)",
-	categoryIds: "Categorias",
-	primaryCategoryId: "Categoria principal",
-	supplierId: "Fornecedor",
-	visibleOnSite: "Visível no site",
-	images: "Imagens",
-	variants: "Variantes",
-	attributeValues: "Especificações técnicas",
-	attributeAssignments: "Atributos vinculados",
-};
 
 export interface ParsedResult {
 	data?: ToolFormValues;
@@ -66,5 +42,13 @@ export function persistTool(
 	data: ToolFormValues,
 	toolId?: string
 ) {
-	return mode === "create" ? createTool(data) : updateTool(toolId ?? "", data);
+	if (mode === "create") {
+		return createTool(data);
+	}
+	// Guard: editar sem id seria um updateTool("") silencioso (no-op que toasta
+	// sucesso). Falha alto — indica ToolFormProvider sem toolId em modo edição.
+	if (!toolId) {
+		throw new Error("persistTool: toolId obrigatório em modo edição");
+	}
+	return updateTool(toolId, data);
 }

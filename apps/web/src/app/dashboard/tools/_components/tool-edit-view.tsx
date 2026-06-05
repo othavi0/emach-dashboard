@@ -47,6 +47,9 @@ export function ToolEditView({
 		setErrors(parsed.fieldErrors);
 		setIssues(parsed.issues);
 		if (!(parsed.ok && parsed.data)) {
+			toast.error(
+				`${parsed.issues.length} erro${parsed.issues.length === 1 ? "" : "s"} — veja detalhes acima`
+			);
 			requestAnimationFrame(() =>
 				errorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
 			);
@@ -67,7 +70,10 @@ export function ToolEditView({
 
 	return (
 		<div className="flex flex-col gap-6 lg:grid lg:grid-cols-[200px_1fr] lg:gap-10">
-			<nav className="hidden lg:sticky lg:top-6 lg:flex lg:h-fit lg:flex-col lg:gap-1">
+			<nav
+				aria-label="Seções do formulário"
+				className="hidden lg:sticky lg:top-6 lg:flex lg:h-fit lg:flex-col lg:gap-1"
+			>
 				{TOOL_STEPS.map((s) => (
 					<a
 						className="rounded-md px-3 py-1.5 text-muted-foreground text-xs hover:bg-muted hover:text-foreground"
