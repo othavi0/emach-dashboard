@@ -3,7 +3,7 @@
 import { Button, buttonVariants } from "@emach/ui/components/button";
 import { Copy, PauseCircle, PlayCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { DeletePromotionDialog } from "../../_components/delete-promotion-dialog";
@@ -19,14 +19,8 @@ export function PromotionHeaderActions({
 	promotion: PromotionDetail;
 }) {
 	const router = useRouter();
-	const pathname = usePathname();
-	const params = useSearchParams();
 	const [isPending, startTransition] = useTransition();
 	const [deleteOpen, setDeleteOpen] = useState(false);
-
-	const editParams = new URLSearchParams(params);
-	editParams.set("edit", "1");
-	const editHref = `${pathname}?${editParams.toString()}`;
 
 	function handleToggle() {
 		startTransition(async () => {
@@ -48,13 +42,16 @@ export function PromotionHeaderActions({
 				return;
 			}
 			toast.success("Promoção duplicada");
-			router.push(`/dashboard/promotions/${res.data.id}?edit=1`);
+			router.push(`/dashboard/promotions/${res.data.id}/edit`);
 		});
 	}
 
 	return (
 		<>
-			<Link className={buttonVariants({ variant: "default" })} href={editHref}>
+			<Link
+				className={buttonVariants({ variant: "default" })}
+				href={`/dashboard/promotions/${promotion.id}/edit`}
+			>
 				Editar
 			</Link>
 			<Button
