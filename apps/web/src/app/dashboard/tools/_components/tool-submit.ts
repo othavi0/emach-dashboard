@@ -61,7 +61,7 @@ export function parseToolForm(values: ToolFormState): ParsedResult {
 	};
 }
 
-export async function persistTool(
+export function persistTool(
 	mode: "create" | "edit",
 	data: ToolFormValues,
 	toolId?: string
