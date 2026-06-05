@@ -23,7 +23,8 @@ export async function seedMarketing(tx: Tx, ctx: SeedContext): Promise<void> {
 			description: "Desconto especial em ferramentas elétricas selecionadas.",
 			type: "promotion",
 			code: null,
-			discountPct: "15.00",
+			discountType: "percent",
+			discountValue: "15.00",
 			active: true,
 			startsAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), // 7 dias atrás
 			endsAt: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000), // daqui 14 dias
@@ -36,7 +37,8 @@ export async function seedMarketing(tx: Tx, ctx: SeedContext): Promise<void> {
 			description: "Prepare-se para o maior evento do ano.",
 			type: "promotion",
 			code: null,
-			discountPct: "30.00",
+			discountType: "percent",
+			discountValue: "30.00",
 			active: false,
 			startsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), // daqui 30 dias
 			endsAt: new Date(now.getTime() + 33 * 24 * 60 * 60 * 1000), // daqui 33 dias
@@ -49,7 +51,8 @@ export async function seedMarketing(tx: Tx, ctx: SeedContext): Promise<void> {
 			description: "Cupom exclusivo para primeiros pedidos.",
 			type: "promocode",
 			code: "BEMVINDO10",
-			discountPct: "10.00",
+			discountType: "percent",
+			discountValue: "10.00",
 			active: true,
 			startsAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30 dias atrás
 			endsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000), // daqui 60 dias
@@ -62,7 +65,8 @@ export async function seedMarketing(tx: Tx, ctx: SeedContext): Promise<void> {
 			description: "Cupom comemorativo de aniversário — edição encerrada.",
 			type: "promocode",
 			code: "ANIV2025",
-			discountPct: "20.00",
+			discountType: "percent",
+			discountValue: "20.00",
 			active: false,
 			startsAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000), // 60 dias atrás
 			endsAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // 30 dias atrás (expirado)

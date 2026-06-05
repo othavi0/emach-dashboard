@@ -329,11 +329,7 @@ export async function getTools(
 			dv.sku  AS variant_sku,
 			dv.voltage AS variant_voltage,
 			dv.price_amount::text AS variant_price,
-			CASE
-				WHEN active_promo.discount_pct IS NOT NULL
-				THEN ROUND(dv.price_amount * (1 - active_promo.discount_pct / 100), 2)::text
-				ELSE NULL
-			END AS discounted_amount,
+			active_promo.final_price::text AS discounted_amount,
 			active_promo.id AS active_promotion_id,
 			(SELECT COUNT(*) > 1 FROM tool_variant tv2 WHERE tv2.tool_id = t.id) AS has_other_variants,
 			(SELECT url FROM tool_image WHERE tool_id = t.id ORDER BY sort_order ASC LIMIT 1) AS primary_image_url,
@@ -351,15 +347,22 @@ export async function getTools(
 		FROM tool t
 		INNER JOIN tool_variant dv ON dv.tool_id = t.id AND dv.is_default = true
 		LEFT JOIN LATERAL (
-			SELECT p.id, p.discount_pct
+			SELECT p.id,
+				CASE
+					WHEN p.discount_type = 'fixed'
+						THEN GREATEST(dv.price_amount - p.discount_value, 0)
+					ELSE ROUND(dv.price_amount * (1 - p.discount_value / 100), 2)
+				END AS final_price
 			FROM promotion p
-			INNER JOIN promotion_tool pt ON pt.promotion_id = p.id
-			WHERE pt.tool_id = t.id
-			  AND p.type = 'promotion'
+			WHERE p.type = 'promotion'
 			  AND p.active = true
 			  AND (p.starts_at IS NULL OR p.starts_at <= now())
 			  AND (p.ends_at IS NULL OR p.ends_at > now())
-			ORDER BY p.discount_pct DESC, p.created_at DESC
+			  AND (
+			    p.applies_to_all = true
+			    OR EXISTS (SELECT 1 FROM promotion_tool pt WHERE pt.promotion_id = p.id AND pt.tool_id = t.id)
+			  )
+			ORDER BY final_price ASC
 			LIMIT 1
 		) active_promo ON true
 		LEFT JOIN LATERAL (
@@ -380,15 +383,22 @@ export async function getTools(
 		FROM tool t
 		INNER JOIN tool_variant dv ON dv.tool_id = t.id AND dv.is_default = true
 		LEFT JOIN LATERAL (
-			SELECT p.id
+			SELECT p.id,
+				CASE
+					WHEN p.discount_type = 'fixed'
+						THEN GREATEST(dv.price_amount - p.discount_value, 0)
+					ELSE ROUND(dv.price_amount * (1 - p.discount_value / 100), 2)
+				END AS final_price
 			FROM promotion p
-			INNER JOIN promotion_tool pt ON pt.promotion_id = p.id
-			WHERE pt.tool_id = t.id
-			  AND p.type = 'promotion'
+			WHERE p.type = 'promotion'
 			  AND p.active = true
 			  AND (p.starts_at IS NULL OR p.starts_at <= now())
 			  AND (p.ends_at IS NULL OR p.ends_at > now())
-			ORDER BY p.discount_pct DESC, p.created_at DESC
+			  AND (
+			    p.applies_to_all = true
+			    OR EXISTS (SELECT 1 FROM promotion_tool pt WHERE pt.promotion_id = p.id AND pt.tool_id = t.id)
+			  )
+			ORDER BY final_price ASC
 			LIMIT 1
 		) active_promo ON true
 		WHERE ${where}
@@ -529,20 +539,33 @@ export async function getToolBySlug(
 		`),
 		db.execute<Promotion>(sql`
 			SELECT p.id, p.title, p.description, p.type, p.code,
-			       p.discount_pct AS "discountPct",
+			       p.discount_type AS "discountType",
+			       p.discount_value AS "discountValue",
+			       p.applies_to_all AS "appliesToAll",
+			       p.max_redemptions AS "maxRedemptions",
+			       p.redemption_count AS "redemptionCount",
+			       p.min_order_amount AS "minOrderAmount",
 			       p.active,
 			       p.starts_at AS "startsAt",
 			       p.ends_at AS "endsAt",
 			       p.created_at AS "createdAt",
 			       p.updated_at AS "updatedAt"
 			FROM promotion p
-			INNER JOIN promotion_tool pt ON pt.promotion_id = p.id
-			WHERE pt.tool_id = ${toolId}
-			  AND p.type = 'promotion'
+			WHERE p.type = 'promotion'
 			  AND p.active = true
 			  AND (p.starts_at IS NULL OR p.starts_at <= now())
 			  AND (p.ends_at IS NULL OR p.ends_at > now())
-			ORDER BY p.discount_pct DESC, p.created_at DESC
+			  AND (
+			    p.applies_to_all = true
+			    OR EXISTS (SELECT 1 FROM promotion_tool pt WHERE pt.promotion_id = p.id AND pt.tool_id = ${toolId})
+			  )
+			ORDER BY
+				CASE
+					WHEN p.discount_type = 'fixed'
+						THEN (SELECT price_amount FROM tool_variant WHERE tool_id = ${toolId} AND is_default = true LIMIT 1) - p.discount_value
+					ELSE (SELECT price_amount FROM tool_variant WHERE tool_id = ${toolId} AND is_default = true LIMIT 1) * (1 - p.discount_value / 100)
+				END ASC,
+				p.created_at DESC
 			LIMIT 1
 		`),
 		db.execute<{ variant_id: string; in_stock: boolean }>(sql`
@@ -733,7 +756,12 @@ export async function getActivePromotions(
 ): Promise<PromotionWithTools[]> {
 	const promosRes = await db.execute<Promotion>(sql`
 		SELECT id, title, description, type, code,
-		       discount_pct AS "discountPct",
+		       discount_type AS "discountType",
+		       discount_value AS "discountValue",
+		       applies_to_all AS "appliesToAll",
+		       max_redemptions AS "maxRedemptions",
+		       redemption_count AS "redemptionCount",
+		       min_order_amount AS "minOrderAmount",
 		       active,
 		       starts_at AS "startsAt",
 		       ends_at AS "endsAt",
@@ -768,7 +796,11 @@ export async function getActivePromotions(
 				dv.sku AS variant_sku,
 				dv.voltage AS variant_voltage,
 				dv.price_amount::text AS variant_price,
-				ROUND(dv.price_amount * (1 - ${promo.discountPct}::numeric / 100), 2)::text AS discounted_amount,
+				CASE
+					WHEN ${promo.discountType}::text = 'fixed'
+						THEN GREATEST(dv.price_amount - ${promo.discountValue}::numeric, 0)::text
+					ELSE ROUND(dv.price_amount * (1 - ${promo.discountValue}::numeric / 100), 2)::text
+				END AS discounted_amount,
 				${promo.id}::text AS active_promotion_id,
 				(SELECT COUNT(*) > 1 FROM tool_variant tv2 WHERE tv2.tool_id = t.id) AS has_other_variants,
 				(SELECT url FROM tool_image WHERE tool_id = t.id ORDER BY sort_order ASC LIMIT 1) AS primary_image_url,
