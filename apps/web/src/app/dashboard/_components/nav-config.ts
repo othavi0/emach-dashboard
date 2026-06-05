@@ -115,11 +115,15 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				icon: Bell,
 				disabled: true,
 			},
+		],
+	},
+	{
+		label: "Sistema",
+		items: [
 			{
 				label: "Configurações",
 				href: "/dashboard/site/settings" as Route,
 				icon: Settings,
-				disabled: true,
 			},
 		],
 	},

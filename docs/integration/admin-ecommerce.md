@@ -22,7 +22,7 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `supplier`            | Dashboard        | E-commerce  | Fornecedores. E-commerce lê para exibir informações de fabricante.                               |
 | `category`            | Dashboard        | Ambos       | Árvore de categorias. E-commerce lê para navegação de catálogo.                                  |
 | `tool_category`       | Dashboard        | Ambos       | Vínculo tool ↔ categoria. E-commerce lê para filtrar por categoria.                              |
-| `tool`                | Dashboard        | Ambos       | Produto-pai. E-commerce lê para exibir catálogo.                                                 |
+| `tool`                | Dashboard        | Ambos       | Produto-pai. E-commerce lê para exibir catálogo. `overweight_shipping_amount` (numeric, nullable): frete fixo p/ item > 30kg — null = "a combinar" (acima do teto SuperFrete). |
 | `tool_variant`        | Dashboard        | Ambos       | Variante vendável (SKU, preço, voltagem). E-commerce lê para carrinho e checkout.                |
 | `tool_image`          | Dashboard        | Ambos       | Imagens do produto. E-commerce exibe na vitrine.                                                 |
 | `attribute_definition`| Dashboard        | Ambos       | Specs técnicas dinâmicas. E-commerce lê para exibir ficha técnica.                              |
@@ -32,6 +32,7 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `stock_level`         | Dashboard        | Ambos       | Quantidade por variante × filial. E-commerce lê para exibir disponibilidade.                     |
 | `stock_movement`      | Shared           | Dashboard   | Dashboard escreve ajustes manuais (actor `user`). E-commerce escreve débitos de venda (`saida_venda`, actor `system`) na transição para `paid`. |
 | `user_branch`         | Dashboard        | Dashboard   | Escopo de staff × filial. E-commerce não usa.                                                    |
+| `store_settings`      | Dashboard        | E-commerce  | Singleton (`id='singleton'`) de configurações da loja: origem do despacho (`shipping_origin_branch_id` → `branch`) e política de seguro de frete. E-commerce lê via `getShippingSettings`. |
 | `promotion`           | Dashboard        | Ambos       | Promoções e cupons. E-commerce aplica desconto no checkout.                                      |
 | `promotion_tool`      | Dashboard        | Ambos       | Vínculo promoção ↔ tool. E-commerce lê para calcular preço final.                               |
 | `order`               | Shared           | Ambos       | Pedido. **E-commerce:** cria a linha e conduz o status até `paid` (campos de checkout, `paymentMethod`, `paymentProviderRef`, campos Asaas/NF-e, `notes`). **Admin:** assume de `paid` em diante — status, carimbos de tempo (`preparingAt`, `shippedAt`, `deliveredAt`, `canceledAt`, `returnedAt`, `refundedAt`), `branchId`, `shippingTrackingCode`. |
@@ -56,6 +57,25 @@ Helper compartilhado em `@emach/db/queries/branch-cep`:
 - `getBranchByCep(db, cep)` — consulta filiais `active` com faixas e roda o match.
 
 **Semântica:** sugestão **não-autoritativa**. Hoje não há roteamento automático — todo pedido chega para todas as filiais e a primeira que o assume fica com ele. O e-commerce **pode** usar `getBranchByCep` para sugerir filial, sem obrigatoriedade. Sobreposição entre filiais é permitida (resolvida por first-match-wins).
+
+---
+
+## Configurações de frete (`store_settings` + `getShippingSettings`)
+
+Singleton (`store_settings`, `id='singleton'`) editado só no dashboard (`/dashboard/site/settings`, aba Frete). Define a **origem do despacho** e a **política de seguro** da cotação da loja.
+
+Helper compartilhado em `@emach/db/queries/store-settings`:
+
+- `getShippingSettings(db)` → `{ originBranchId, originCep, insurancePolicy, insuranceCapAmount }`. Sem linha singleton → DEFAULTS (`originCep: null`, `insurancePolicy: 'none'`, `insuranceCapAmount: 3000`), espelhando o comportamento atual do storefront.
+
+**Contrato para o e-commerce:**
+
+- `originCep` (CEP da filial de origem, ou `null`) substitui o `getOriginBranchCep()` baseado em `env.DEFAULT_BRANCH_ID`. Quando `null`, o storefront mantém o fallback atual.
+- `insurancePolicy`: `'none'` (sem seguro, `insurance_value: 0` na cotação SuperFrete) ou `'cart_value'` (declara o valor do carrinho até `insuranceCapAmount`).
+- Item com `tool.overweight_shipping_amount` não-nulo e peso/dimensão acima do teto SuperFrete (30kg / 100cm): cobra esse valor fixo no lugar da cotação automática; nulo → "Frete a combinar".
+- **Frete grátis** não vive aqui: é só via cupom/promoção (`promotion`). O `R$ 299` hardcoded no storefront é bug a remover (issue separado no emach-ecommerce).
+
+A troca efetiva no storefront (`getOriginBranchCep` → `getShippingSettings`, aplicar política/cap, remover frete grátis hardcoded) é trabalho do repo emach-ecommerce, após o schema/query sincronizarem via CI (ADR-0009).
 
 ---
 
