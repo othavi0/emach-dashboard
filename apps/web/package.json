@@ -16,6 +16,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@emach/auth": "workspace:*",
     "@emach/db": "workspace:*",
+    "@emach/email": "workspace:*",
     "@emach/env": "workspace:*",
     "@emach/ui": "workspace:*",
     "@supabase/supabase-js": "^2.105.1",

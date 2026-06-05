@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import type { DashboardSession } from "@emach/auth/dashboard";
 import { authDashboard } from "@emach/auth/dashboard";
 import { db } from "@emach/db";
@@ -11,21 +12,25 @@ import { userBranch } from "@emach/db/schema/inventory";
 import { orderNote, orderStatusHistory } from "@emach/db/schema/orders";
 import { promotion } from "@emach/db/schema/promotions";
 import { stockMovement } from "@emach/db/schema/stock-movements";
-import { and, eq, inArray } from "drizzle-orm";
+import { sendInviteEmail } from "@emach/email/send";
+import { env } from "@emach/env/server";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
 import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
 import { requireCapabilityWithContext } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 
+import { allowedApprovalRoles } from "./_lib/approval-roles";
 import {
-	type ApproveUserInput,
-	approveUserSchema,
+	acceptInviteSchema,
 	branchLinkSchema,
-	bulkRejectSchema,
 	deleteUserSchema,
-	rejectUserSchema,
+	type InviteUserInput,
+	inviteIdSchema,
+	inviteUserSchema,
 	revokeSessionSchema,
 	suspendUserSchema,
 	triggerPasswordResetSchema,
@@ -40,10 +45,19 @@ export type ActionResult<T = undefined> =
 	| { ok: true; data: T }
 	| { ok: false; error: string };
 
-export async function approveUser(
-	input: ApproveUserInput
+const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function makeInviteToken(): { token: string; expiresAt: Date } {
+	return {
+		token: randomBytes(32).toString("base64url"),
+		expiresAt: new Date(Date.now() + INVITE_TTL_MS),
+	};
+}
+
+export async function inviteUser(
+	input: InviteUserInput
 ): Promise<ActionResult> {
-	const parsed = approveUserSchema.safeParse(input);
+	const parsed = inviteUserSchema.safeParse(input);
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -52,52 +66,87 @@ export async function approveUser(
 	}
 
 	const session = await requireCapabilityWithContext("users.approve", {
-		targetUserId: parsed.data.userId,
 		targetBranchIds: parsed.data.branchIds,
 	});
 
-	if (parsed.data.role === "super_admin" || parsed.data.role === "admin") {
-		await requireCapabilityWithContext("users.update_role", {
-			targetUserId: parsed.data.userId,
-		});
+	const actorRole = session.user.role as
+		| "super_admin"
+		| "admin"
+		| "manager"
+		| "user";
+	if (!allowedApprovalRoles(actorRole).includes(parsed.data.role)) {
+		return { ok: false, error: "Você não pode atribuir esse cargo" };
 	}
+
+	const { email, role, branchIds } = parsed.data;
+
+	const [existing] = await db
+		.select({ id: userTable.id, status: userTable.status })
+		.from(userTable)
+		.where(eq(userTable.email, email))
+		.limit(1);
+
+	if (existing && existing.status !== "pending") {
+		return { ok: false, error: "Já existe uma conta com esse email" };
+	}
+
+	const { token, expiresAt } = makeInviteToken();
 
 	try {
-		await db.transaction(async (tx) => {
-			await tx
+		let userId: string;
+		if (existing) {
+			// Convite aberto pro mesmo email → regenera (reenvio implícito).
+			userId = existing.id;
+			await db
 				.update(userTable)
-				.set({ role: parsed.data.role, status: "active" })
-				.where(eq(userTable.id, parsed.data.userId));
-			if (parsed.data.branchIds.length > 0) {
-				await tx
-					.delete(userBranch)
-					.where(eq(userBranch.userId, parsed.data.userId));
-				await tx.insert(userBranch).values(
-					parsed.data.branchIds.map((branchId) => ({
-						userId: parsed.data.userId,
-						branchId,
-					}))
-				);
-			}
+				.set({ role, inviteToken: token, inviteTokenExpiresAt: expiresAt })
+				.where(eq(userTable.id, userId));
+		} else {
+			const ctx = await authDashboard.$context;
+			const created = await ctx.internalAdapter.createUser({
+				email,
+				name: "",
+				emailVerified: true,
+			});
+			userId = created.id;
+			await db
+				.update(userTable)
+				.set({ role, inviteToken: token, inviteTokenExpiresAt: expiresAt })
+				.where(eq(userTable.id, userId));
+		}
+
+		// Revincula filiais (idempotente).
+		await db.delete(userBranch).where(eq(userBranch.userId, userId));
+		if (branchIds.length > 0) {
+			await db
+				.insert(userBranch)
+				.values(branchIds.map((branchId) => ({ userId, branchId })));
+		}
+
+		await sendInviteEmail({
+			to: email,
+			inviterName: session.user.name,
+			acceptUrl: `${env.BETTER_AUTH_URL}/convite?token=${token}`,
+		});
+
+		await logUserActivity({
+			actorUserId: session.user.id,
+			action: "user.invited",
+			targetType: "user",
+			targetId: userId,
+			metadata: { email, role, branchIds, resend: Boolean(existing) },
 		});
 	} catch (error) {
-		logger.error("approveUser falhou", error);
-		return { ok: false, error: "Não foi possível aprovar" };
+		logger.error("inviteUser falhou", error);
+		return { ok: false, error: "Não foi possível enviar o convite" };
 	}
 
-	await logUserActivity({
-		actorUserId: session.user.id,
-		action: "user.approved",
-		targetType: "user",
-		targetId: parsed.data.userId,
-		metadata: { role: parsed.data.role, branchIds: parsed.data.branchIds },
-	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
 }
 
-export async function rejectUser(input: unknown): Promise<ActionResult> {
-	const parsed = rejectUserSchema.safeParse(input);
+export async function resendInvite(input: unknown): Promise<ActionResult> {
+	const parsed = inviteIdSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
@@ -108,100 +157,137 @@ export async function rejectUser(input: unknown): Promise<ActionResult> {
 
 	const [target] = await db
 		.select({
-			status: userTable.status,
 			email: userTable.email,
-			name: userTable.name,
+			status: userTable.status,
 		})
 		.from(userTable)
 		.where(eq(userTable.id, parsed.data.userId))
 		.limit(1);
 
-	if (!target) {
-		return { ok: false, error: "User não encontrado" };
+	if (!target || target.status !== "pending") {
+		return { ok: false, error: "Convite não encontrado" };
 	}
-	if (target.status !== "pending") {
-		return { ok: false, error: "Só pendentes podem ser rejeitados" };
-	}
+
+	const { token, expiresAt } = makeInviteToken();
 
 	try {
-		await db.delete(userTable).where(eq(userTable.id, parsed.data.userId));
+		await db
+			.update(userTable)
+			.set({ inviteToken: token, inviteTokenExpiresAt: expiresAt })
+			.where(eq(userTable.id, parsed.data.userId));
+
+		await sendInviteEmail({
+			to: target.email,
+			inviterName: session.user.name,
+			acceptUrl: `${env.BETTER_AUTH_URL}/convite?token=${token}`,
+		});
+
+		await logUserActivity({
+			actorUserId: session.user.id,
+			action: "user.invite_resent",
+			targetType: "user",
+			targetId: parsed.data.userId,
+			metadata: { email: target.email },
+		});
 	} catch (error) {
-		logger.error("rejectUser falhou", error);
-		return { ok: false, error: "Não foi possível rejeitar" };
+		logger.error("resendInvite falhou", error);
+		return { ok: false, error: "Não foi possível reenviar o convite" };
 	}
 
-	await logUserActivity({
-		actorUserId: session.user.id,
-		action: "user.rejected",
-		targetType: "user",
-		targetId: parsed.data.userId,
-		metadata: {
-			rejectedEmail: target.email,
-			rejectedName: target.name,
-			...(parsed.data.reason ? { reason: parsed.data.reason } : {}),
-		},
-	});
 	revalidatePath(USERS_PATH);
 	return { ok: true, data: undefined };
 }
 
-export async function bulkRejectUsers(
-	input: unknown
-): Promise<ActionResult<{ rejected: number; skipped: number }>> {
-	const parsed = bulkRejectSchema.safeParse(input);
+export async function revokeInvite(input: unknown): Promise<ActionResult> {
+	const parsed = inviteIdSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
 
-	const session = await requireCapabilityWithContext("users.approve", {});
+	const session = await requireCapabilityWithContext("users.approve", {
+		targetUserId: parsed.data.userId,
+	});
 
-	const targets = await db
-		.select({
-			id: userTable.id,
-			email: userTable.email,
-			name: userTable.name,
-			status: userTable.status,
-		})
+	const [target] = await db
+		.select({ email: userTable.email, status: userTable.status })
 		.from(userTable)
-		.where(inArray(userTable.id, parsed.data.userIds));
+		.where(eq(userTable.id, parsed.data.userId))
+		.limit(1);
 
-	const validIds = targets
-		.filter((t) => t.status === "pending")
-		.map((t) => t.id);
-	const skipped = parsed.data.userIds.length - validIds.length;
-
-	if (validIds.length === 0) {
-		return { ok: true, data: { rejected: 0, skipped } };
+	if (!target || target.status !== "pending") {
+		return { ok: false, error: "Só convites pendentes podem ser revogados" };
 	}
 
 	try {
-		await db.delete(userTable).where(inArray(userTable.id, validIds));
+		await db.delete(userTable).where(eq(userTable.id, parsed.data.userId));
+		await logUserActivity({
+			actorUserId: session.user.id,
+			action: "user.invite_revoked",
+			targetType: "user",
+			targetId: parsed.data.userId,
+			metadata: { email: target.email },
+		});
 	} catch (error) {
-		logger.error("bulkRejectUsers falhou", error);
-		return { ok: false, error: "Falha ao rejeitar em massa" };
+		logger.error("revokeInvite falhou", error);
+		return { ok: false, error: "Não foi possível revogar o convite" };
 	}
 
-	await Promise.all(
-		targets
-			.filter((t) => validIds.includes(t.id))
-			.map((t) =>
-				logUserActivity({
-					actorUserId: session.user.id,
-					action: "user.rejected",
-					targetType: "user",
-					targetId: t.id,
-					metadata: {
-						rejectedEmail: t.email,
-						rejectedName: t.name,
-						bulk: true,
-						...(parsed.data.reason ? { reason: parsed.data.reason } : {}),
-					},
-				})
-			)
-	);
+	revalidatePath(USERS_PATH);
+	return { ok: true, data: undefined };
+}
+
+export async function acceptInvite(input: unknown): Promise<ActionResult> {
+	const parsed = acceptInviteSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "validação",
+		};
+	}
+
+	const { getInviteByToken } = await import("./data");
+	const invite = await getInviteByToken(parsed.data.token);
+	if (!invite) {
+		return { ok: false, error: "Convite inválido ou expirado" };
+	}
+
+	try {
+		const ctx = await authDashboard.$context;
+		await ctx.internalAdapter.createAccount({
+			accountId: invite.userId,
+			providerId: "credential",
+			userId: invite.userId,
+			password: await ctx.password.hash(parsed.data.password),
+		});
+
+		await db
+			.update(userTable)
+			.set({
+				name: parsed.data.name,
+				status: "active",
+				inviteToken: null,
+				inviteTokenExpiresAt: null,
+			})
+			.where(eq(userTable.id, invite.userId));
+
+		await authDashboard.api.signInEmail({
+			body: { email: invite.email, password: parsed.data.password },
+			headers: await headers(),
+		});
+
+		await logUserActivity({
+			actorUserId: invite.userId,
+			action: "user.invite_accepted",
+			targetType: "user",
+			targetId: invite.userId,
+		});
+	} catch (error) {
+		logger.error("acceptInvite falhou", error);
+		return { ok: false, error: "Não foi possível concluir o cadastro" };
+	}
 
 	revalidatePath(USERS_PATH);
-	return { ok: true, data: { rejected: validIds.length, skipped } };
+	return { ok: true, data: undefined };
 }
 
 export async function updateUser(
@@ -647,10 +733,14 @@ export async function fetchUserActivityFeedPage(
 
 function humanizeActivityAction(action: string, actorName: string): string {
 	switch (action) {
-		case "user.approved":
-			return `${actorName} aprovou usuário`;
-		case "user.rejected":
-			return `${actorName} rejeitou usuário`;
+		case "user.invited":
+			return `${actorName} convidou usuário`;
+		case "user.invite_resent":
+			return `${actorName} reenviou convite`;
+		case "user.invite_revoked":
+			return `${actorName} revogou convite`;
+		case "user.invite_accepted":
+			return `${actorName} aceitou convite`;
 		case "user.updated":
 			return `${actorName} atualizou usuário`;
 		case "user.suspended":

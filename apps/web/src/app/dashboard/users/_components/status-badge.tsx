@@ -3,7 +3,7 @@ import { Ban, CheckCircle2, Clock } from "lucide-react";
 
 const META = {
 	active: { label: "Ativo", icon: CheckCircle2, variant: "success" as const },
-	pending: { label: "Pendente", icon: Clock, variant: "warning" as const },
+	pending: { label: "Convidado", icon: Clock, variant: "warning" as const },
 	suspended: { label: "Suspenso", icon: Ban, variant: "destructive" as const },
 };
 

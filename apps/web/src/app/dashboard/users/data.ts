@@ -568,3 +568,31 @@ export async function getRecentUserActivity(limit = 8) {
 		.orderBy(desc(userActivityLog.createdAt))
 		.limit(limit);
 }
+
+export interface InviteByToken {
+	email: string;
+	userId: string;
+}
+
+export async function getInviteByToken(
+	token: string
+): Promise<InviteByToken | null> {
+	const [row] = await db
+		.select({
+			userId: userTable.id,
+			email: userTable.email,
+			status: userTable.status,
+			expiresAt: userTable.inviteTokenExpiresAt,
+		})
+		.from(userTable)
+		.where(eq(userTable.inviteToken, token))
+		.limit(1);
+
+	if (!row || row.status !== "pending") {
+		return null;
+	}
+	if (!row.expiresAt || row.expiresAt.getTime() < Date.now()) {
+		return null;
+	}
+	return { userId: row.userId, email: row.email };
+}
