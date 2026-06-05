@@ -148,12 +148,13 @@ function formatIssuePath(path: ReadonlyArray<PropertyKey>): string {
 // preenchimento; a validação Zod exige presença e positividade no submit.
 type ToolFormState = Omit<
 	ToolFormValues,
-	"weightKg" | "lengthCm" | "widthCm" | "heightCm"
+	"weightKg" | "lengthCm" | "widthCm" | "heightCm" | "overweightShippingAmount"
 > & {
 	weightKg?: number;
 	lengthCm?: number;
 	widthCm?: number;
 	heightCm?: number;
+	overweightShippingAmount?: number;
 };
 
 // Tetos de cotação do SuperFrete: 30 kg e 100 cm por lado. Acima disso a loja
@@ -182,6 +183,7 @@ const EMPTY_VALUES: ToolFormState = {
 	lengthCm: undefined,
 	widthCm: undefined,
 	heightCm: undefined,
+	overweightShippingAmount: undefined,
 	categoryIds: [],
 	primaryCategoryId: "",
 	supplierId: "",
@@ -669,15 +671,33 @@ export function ToolForm({
 					</div>
 				</div>
 				{exceedsShippingLimit && (
-					<div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3">
-						<TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" />
-						<p className="text-foreground text-xs leading-relaxed">
-							Esta ferramenta excede os limites de cotação do SuperFrete (máx.
-							30 kg e 100 cm por lado). A loja não conseguirá cotar o frete
-							automaticamente para itens assim — o custo real do envio pode sair{" "}
-							<strong>mais caro do que o cliente pagou</strong>. Trate o frete
-							desses itens manualmente.
-						</p>
+					<div className="flex flex-col gap-3 rounded-md border border-warning/40 bg-warning/10 p-3">
+						<div className="flex items-start gap-2">
+							<TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" />
+							<p className="text-foreground text-xs leading-relaxed">
+								Esta ferramenta excede os limites de cotação do SuperFrete (máx.
+								30 kg e 100 cm por lado). A loja não conseguirá cotar o frete
+								automaticamente para itens assim — o custo real do envio pode
+								sair <strong>mais caro do que o cliente pagou</strong>. Defina
+								um frete fixo abaixo ou trate manualmente.
+							</p>
+						</div>
+						<div className="flex max-w-xs flex-col gap-2">
+							<Label htmlFor="overweightShippingAmount">
+								Frete para item pesado (R$)
+							</Label>
+							<MaskedInput
+								id="overweightShippingAmount"
+								mask={decimalMask}
+								onChange={(v) => update("overweightShippingAmount", v)}
+								placeholder="Ex: 250,00"
+								value={values.overweightShippingAmount}
+							/>
+							<p className="text-muted-foreground text-xs">
+								Cobrado no lugar da cotação automática. Em branco = "Frete a
+								combinar" na loja.
+							</p>
+						</div>
 					</div>
 				)}
 			</section>
