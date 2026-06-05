@@ -14,6 +14,12 @@ export type ToolFormState = Omit<
 	overweightShippingAmount?: number;
 };
 
+export type ToolPatch = (
+	next:
+		| Partial<ToolFormState>
+		| ((prev: ToolFormState) => Partial<ToolFormState>)
+) => void;
+
 export const EMPTY_TOOL_VALUES: ToolFormState = {
 	name: "",
 	description: "",
@@ -64,8 +70,11 @@ export function useToolFormState(defaultValues: Partial<ToolFormState>) {
 		Partial<Record<keyof ToolFormValues, string>>
 	>({});
 
-	const patch = useCallback((next: Partial<ToolFormState>) => {
-		setValues((prev) => ({ ...prev, ...next }));
+	const patch = useCallback<ToolPatch>((next) => {
+		setValues((prev) => ({
+			...prev,
+			...(typeof next === "function" ? next(prev) : next),
+		}));
 	}, []);
 
 	return { values, setValues, patch, errors, setErrors };
