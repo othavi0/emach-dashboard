@@ -108,11 +108,10 @@ export const FIELD_LABELS: Record<string, string> = {
 	overweightShippingAmount: "Sobretaxa de frete",
 };
 
-export function getStepIssues(
-	values: unknown,
+export function filterStepIssues(
+	result: ReturnType<typeof toolFormSchema.safeParse>,
 	stepId: ToolStepId
 ): FormIssue[] {
-	const result = toolFormSchema.safeParse(values);
 	if (result.success) {
 		return [];
 	}
@@ -127,4 +126,24 @@ export function getStepIssues(
 		{ issues: scoped } as Parameters<typeof zodIssuesToFormIssues>[0],
 		FIELD_LABELS
 	);
+}
+
+export function stepHasErrors(
+	result: ReturnType<typeof toolFormSchema.safeParse>,
+	stepId: ToolStepId
+): boolean {
+	if (result.success) {
+		return false;
+	}
+	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
+	return result.error.issues.some(
+		(issue) => issue.path.length > 0 && fields.has(String(issue.path[0]))
+	);
+}
+
+export function getStepIssues(
+	values: unknown,
+	stepId: ToolStepId
+): FormIssue[] {
+	return filterStepIssues(toolFormSchema.safeParse(values), stepId);
 }
