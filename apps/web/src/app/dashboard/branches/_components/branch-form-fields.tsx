@@ -222,7 +222,7 @@ export function BranchFormFields({
 			<SectionHeader>
 				<span className="inline-flex items-center gap-1.5">
 					Horário de funcionamento
-					<HelpTooltip text="Exibido na página da filial no site. Domingo é sempre fechado." />
+					<HelpTooltip text="Exibido na página da filial no site." />
 				</span>
 			</SectionHeader>
 			<div className="flex flex-col">
@@ -292,6 +292,9 @@ export function BranchFormFields({
 					);
 				})}
 			</div>
+			<p className="text-muted-foreground text-xs">
+				Domingos são tratados como fechado.
+			</p>
 		</section>
 	);
 
