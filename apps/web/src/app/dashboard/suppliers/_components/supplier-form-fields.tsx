@@ -4,6 +4,7 @@ import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import { Textarea } from "@emach/ui/components/textarea";
 
+import { HelpTooltip } from "@/components/help-tooltip";
 import type { SupplierFormValues } from "./supplier-schema";
 
 type Patch = (next: Partial<SupplierFormValues>) => void;
@@ -56,7 +57,13 @@ export function SupplierFormFields({ values, onPatch, disabled }: Props) {
 
 			<div className="grid gap-4 md:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="supplier-website">Website (opcional)</Label>
+					<Label
+						className="flex items-center gap-1.5"
+						htmlFor="supplier-website"
+					>
+						Website (opcional)
+						<HelpTooltip text="URL completa, começando com https://." />
+					</Label>
 					<Input
 						disabled={disabled}
 						id="supplier-website"
@@ -67,7 +74,14 @@ export function SupplierFormFields({ values, onPatch, disabled }: Props) {
 					/>
 				</div>
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="supplier-cnpj">CNPJ (opcional)</Label>
+					<Label className="flex items-center gap-1.5" htmlFor="supplier-cnpj">
+						CNPJ (opcional)
+						<HelpTooltip
+							body="Só os dígitos são salvos; a máscara é apenas visual."
+							example="12.345.678/0001-90 → 12345678000190"
+							title="CNPJ"
+						/>
+					</Label>
 					<Input
 						disabled={disabled}
 						id="supplier-cnpj"
@@ -75,9 +89,6 @@ export function SupplierFormFields({ values, onPatch, disabled }: Props) {
 						placeholder="00.000.000/0000-00"
 						value={values.cnpj ?? ""}
 					/>
-					<p className="text-muted-foreground text-xs">
-						Só dígitos são salvos.
-					</p>
 				</div>
 			</div>
 

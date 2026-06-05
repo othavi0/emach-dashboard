@@ -36,22 +36,23 @@ export function IdentityFields({
 	}, [mode, existingSlug, values.name]);
 
 	function toggleCategory(catId: string, checked: boolean) {
-		if (checked) {
-			const next = [...values.categoryIds, catId];
-			onPatch({
-				categoryIds: next,
-				primaryCategoryId: next.length === 1 ? catId : values.primaryCategoryId,
-			});
-		} else {
-			const next = values.categoryIds.filter((c) => c !== catId);
-			onPatch({
+		onPatch((prev) => {
+			if (checked) {
+				const next = [...prev.categoryIds, catId];
+				return {
+					categoryIds: next,
+					primaryCategoryId: next.length === 1 ? catId : prev.primaryCategoryId,
+				};
+			}
+			const next = prev.categoryIds.filter((c) => c !== catId);
+			return {
 				categoryIds: next,
 				primaryCategoryId:
-					values.primaryCategoryId === catId
+					prev.primaryCategoryId === catId
 						? (next[0] ?? "")
-						: values.primaryCategoryId,
-			});
-		}
+						: prev.primaryCategoryId,
+			};
+		});
 	}
 
 	return (

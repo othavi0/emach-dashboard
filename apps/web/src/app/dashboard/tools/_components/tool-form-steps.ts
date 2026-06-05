@@ -53,7 +53,7 @@ export const TOOL_STEPS: ToolStep[] = [
 	},
 ];
 
-export const STEP_FIELDS: Record<ToolStepId, (keyof ToolFormValues)[]> = {
+export const STEP_FIELDS = {
 	identity: [
 		"name",
 		"description",
@@ -80,7 +80,19 @@ export const STEP_FIELDS: Record<ToolStepId, (keyof ToolFormValues)[]> = {
 		"hsCode",
 	],
 	publish: ["images", "status", "visibleOnSite"],
-};
+} satisfies Record<ToolStepId, (keyof ToolFormValues)[]>;
+
+// Garante em tempo de compilação que todo campo do schema está coberto por algum
+// passo. Um campo `required` novo que não entre em STEP_FIELDS deixaria de
+// bloquear qualquer passo (só pegaria no submit final) — aqui quebra o build.
+type _UncoveredField = Exclude<
+	keyof ToolFormValues,
+	(typeof STEP_FIELDS)[ToolStepId][number]
+>;
+const _stepFieldsAreExhaustive: _UncoveredField extends never
+	? true
+	: ["faltam campos em STEP_FIELDS:", _UncoveredField] = true;
+void _stepFieldsAreExhaustive;
 
 export const FIELD_LABELS: Record<string, string> = {
 	name: "Nome",
@@ -108,11 +120,10 @@ export const FIELD_LABELS: Record<string, string> = {
 	overweightShippingAmount: "Sobretaxa de frete",
 };
 
-export function getStepIssues(
-	values: unknown,
+export function filterStepIssues(
+	result: ReturnType<typeof toolFormSchema.safeParse>,
 	stepId: ToolStepId
 ): FormIssue[] {
-	const result = toolFormSchema.safeParse(values);
 	if (result.success) {
 		return [];
 	}
@@ -127,4 +138,24 @@ export function getStepIssues(
 		{ issues: scoped } as Parameters<typeof zodIssuesToFormIssues>[0],
 		FIELD_LABELS
 	);
+}
+
+export function stepHasErrors(
+	result: ReturnType<typeof toolFormSchema.safeParse>,
+	stepId: ToolStepId
+): boolean {
+	if (result.success) {
+		return false;
+	}
+	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
+	return result.error.issues.some(
+		(issue) => issue.path.length > 0 && fields.has(String(issue.path[0]))
+	);
+}
+
+export function getStepIssues(
+	values: unknown,
+	stepId: ToolStepId
+): FormIssue[] {
+	return filterStepIssues(toolFormSchema.safeParse(values), stepId);
 }

@@ -11,6 +11,7 @@ import {
 } from "@emach/ui/components/select";
 import { Switch } from "@emach/ui/components/switch";
 
+import { HelpTooltip } from "@/components/help-tooltip";
 import { MaskedInput } from "@/components/masked-input";
 import { UfSelect } from "@/components/uf-select";
 import { phoneBrMask, sanitizeTime24h } from "@/lib/masks";
@@ -218,7 +219,12 @@ export function BranchFormFields({
 
 	const hoursSection = (
 		<section className="flex flex-col gap-3">
-			<SectionHeader>Horário de funcionamento</SectionHeader>
+			<SectionHeader>
+				<span className="inline-flex items-center gap-1.5">
+					Horário de funcionamento
+					<HelpTooltip text="Exibido na página da filial no site." />
+				</span>
+			</SectionHeader>
 			<div className="flex flex-col">
 				{BUSINESS_HOURS_ROWS.map((row) => {
 					const period = values.businessHours[row.key];
@@ -312,7 +318,13 @@ export function BranchFormFields({
 			<section className="flex flex-col gap-3">
 				<SectionHeader>Equipe</SectionHeader>
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="branch-responsible">Responsável</Label>
+					<Label
+						className="flex items-center gap-1.5"
+						htmlFor="branch-responsible"
+					>
+						Responsável
+						<HelpTooltip text="Usuário responsável por esta filial." />
+					</Label>
 					<ResponsibleUserSelect
 						branchId={branchId}
 						disabled={disabled}

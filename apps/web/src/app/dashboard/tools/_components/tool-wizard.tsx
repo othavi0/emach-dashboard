@@ -3,57 +3,46 @@
 import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Check } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
+import { useState } from "react";
 
-import { FormErrorPanel, type FormIssue } from "@/components/form-error-panel";
-import { FiscalFields } from "./fields/fiscal-fields";
-import { IdentityFields } from "./fields/identity-fields";
-import { LogisticsFields } from "./fields/logistics-fields";
-import { PublishFields } from "./fields/publish-fields";
-import { SpecFields } from "./fields/spec-fields";
-import type { ToolFieldGroupProps } from "./fields/types";
-import { VariantFields } from "./fields/variant-fields";
-import { useToolFormContext } from "./tool-form-context";
+import { FormErrorPanel } from "@/components/form-error-panel";
 import { type ToolFormState, useToolFormState } from "./tool-form-state";
-import { getStepIssues, TOOL_STEPS, type ToolStepId } from "./tool-form-steps";
-import { parseToolForm, persistTool } from "./tool-submit";
-
-const STEP_COMPONENT: Record<
-	ToolStepId,
-	React.ComponentType<ToolFieldGroupProps>
-> = {
-	identity: IdentityFields,
-	variants: VariantFields,
-	specs: SpecFields,
-	logistics: LogisticsFields,
-	fiscal: FiscalFields,
-	publish: PublishFields,
-};
+import {
+	getStepIssues,
+	stepHasErrors,
+	TOOL_STEPS,
+	type ToolStepId,
+} from "./tool-form-steps";
+import { toolFormSchema } from "./tool-schema";
+import { TOOL_SECTION_COMPONENTS } from "./tool-sections";
+import { useToolSubmit } from "./use-tool-submit";
 
 export function ToolWizard({
 	defaultValues,
 }: {
 	defaultValues?: Partial<ToolFormState>;
 }) {
-	const router = useRouter();
-	const { toolId } = useToolFormContext();
 	const { values, patch, errors, setErrors } = useToolFormState(
 		defaultValues ?? {}
 	);
+	const { submit, isPending, issues, setIssues, errorRef } = useToolSubmit({
+		mode: "create",
+		values,
+		setErrors,
+	});
 	const [active, setActive] = useState(0);
-	const [issues, setIssues] = useState<FormIssue[]>([]);
-	const [isPending, startTransition] = useTransition();
-	const errorRef = useRef<HTMLDivElement | null>(null);
 
 	// active é controlado por setActive com clamp — nunca sai dos bounds
 	// biome-ignore lint/style/noNonNullAssertion: array constante não-vazio, índice clamped
 	const step = TOOL_STEPS[Math.min(active, TOOL_STEPS.length - 1)]!;
-	const Fields = STEP_COMPONENT[step.id];
+	const Fields = TOOL_SECTION_COMPONENTS[step.id];
+
+	// parse único por render — React Compiler memoiza sobre `values`;
+	// evita 6× safeParse no loop do stepper (um por stepDone)
+	const parsed = toolFormSchema.safeParse(values);
 
 	function stepDone(stepId: ToolStepId): boolean {
-		return getStepIssues(values, stepId).length === 0;
+		return !stepHasErrors(parsed, stepId);
 	}
 
 	function next() {
@@ -63,32 +52,6 @@ export function ToolWizard({
 			return;
 		}
 		setActive((i) => Math.min(i + 1, TOOL_STEPS.length - 1));
-	}
-
-	function submit() {
-		const parsed = parseToolForm(values);
-		setErrors(parsed.fieldErrors);
-		setIssues(parsed.issues);
-		if (!(parsed.ok && parsed.data)) {
-			toast.error(
-				`${parsed.issues.length} erro${parsed.issues.length === 1 ? "" : "s"} — veja detalhes acima`
-			);
-			requestAnimationFrame(() =>
-				errorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-			);
-			return;
-		}
-		const data = parsed.data;
-		startTransition(async () => {
-			const res = await persistTool("create", data, toolId);
-			if (res.ok) {
-				toast.success("Ferramenta criada com sucesso");
-				router.push("/dashboard/tools");
-				router.refresh();
-			} else {
-				toast.error(res.error || "Falha ao salvar");
-			}
-		});
 	}
 
 	return (
