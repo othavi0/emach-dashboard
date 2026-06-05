@@ -3,30 +3,12 @@
 import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
 
-import { FormErrorPanel, type FormIssue } from "@/components/form-error-panel";
-import { FiscalFields } from "./fields/fiscal-fields";
-import { IdentityFields } from "./fields/identity-fields";
-import { LogisticsFields } from "./fields/logistics-fields";
-import { PublishFields } from "./fields/publish-fields";
-import { SpecFields } from "./fields/spec-fields";
-import type { ToolFieldGroupProps } from "./fields/types";
-import { VariantFields } from "./fields/variant-fields";
-import { useToolFormContext } from "./tool-form-context";
+import { FormErrorPanel } from "@/components/form-error-panel";
 import { type ToolFormState, useToolFormState } from "./tool-form-state";
-import { TOOL_STEPS, type ToolStepId } from "./tool-form-steps";
-import { parseToolForm, persistTool } from "./tool-submit";
-
-const SECTION: Record<ToolStepId, React.ComponentType<ToolFieldGroupProps>> = {
-	identity: IdentityFields,
-	variants: VariantFields,
-	specs: SpecFields,
-	logistics: LogisticsFields,
-	fiscal: FiscalFields,
-	publish: PublishFields,
-};
+import { TOOL_STEPS } from "./tool-form-steps";
+import { TOOL_SECTION_COMPONENTS } from "./tool-sections";
+import { useToolSubmit } from "./use-tool-submit";
 
 export function ToolEditView({
 	defaultValues,
@@ -34,39 +16,14 @@ export function ToolEditView({
 	defaultValues?: Partial<ToolFormState>;
 }) {
 	const router = useRouter();
-	const { toolId } = useToolFormContext();
 	const { values, patch, errors, setErrors } = useToolFormState(
 		defaultValues ?? {}
 	);
-	const [issues, setIssues] = useState<FormIssue[]>([]);
-	const [isPending, startTransition] = useTransition();
-	const errorRef = useRef<HTMLDivElement | null>(null);
-
-	function submit() {
-		const parsed = parseToolForm(values);
-		setErrors(parsed.fieldErrors);
-		setIssues(parsed.issues);
-		if (!(parsed.ok && parsed.data)) {
-			toast.error(
-				`${parsed.issues.length} erro${parsed.issues.length === 1 ? "" : "s"} — veja detalhes acima`
-			);
-			requestAnimationFrame(() =>
-				errorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-			);
-			return;
-		}
-		const data = parsed.data;
-		startTransition(async () => {
-			const res = await persistTool("edit", data, toolId);
-			if (res.ok) {
-				toast.success("Ferramenta atualizada com sucesso");
-				router.push("/dashboard/tools");
-				router.refresh();
-			} else {
-				toast.error(res.error || "Falha ao salvar");
-			}
-		});
-	}
+	const { submit, isPending, issues, errorRef } = useToolSubmit({
+		mode: "edit",
+		values,
+		setErrors,
+	});
 
 	return (
 		<div className="flex flex-col gap-6 lg:grid lg:grid-cols-[200px_1fr] lg:gap-10">
@@ -87,7 +44,7 @@ export function ToolEditView({
 			<div className="flex flex-col gap-6">
 				<FormErrorPanel issues={issues} ref={errorRef} />
 				{TOOL_STEPS.map((s) => {
-					const Fields = SECTION[s.id];
+					const Fields = TOOL_SECTION_COMPONENTS[s.id];
 					return (
 						<section
 							className="flex scroll-mt-6 flex-col gap-2 rounded-md border border-border bg-card p-6"
