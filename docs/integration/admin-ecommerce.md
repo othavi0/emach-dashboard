@@ -214,6 +214,46 @@ O e-commerce preenche `order.notes` no INSERT do pedido e não deve escrever em 
 
 ---
 
+## Aplicação de cupom no checkout (`promotion` tipo `promocode`)
+
+> Status: **a implementar no e-commerce** (Sub-projeto 2). Hoje o checkout do site **não aplica
+> nenhum cupom** — o dashboard apenas armazena. O dashboard é dono de `promotion`/`promotion_tool`
+> e define os campos; o enforcement do cupom vive no checkout (aqui).
+
+Modelo (após o redesenho de 2026-06-05): `promotion` tem `type` (`promotion` automática |
+`promocode` cupom), `discount_type` (`percent` | `fixed`), `discount_value` (numeric),
+`applies_to_all` (bool), `max_redemptions` (int, nullable = ilimitado), `redemption_count` (int),
+`min_order_amount` (numeric, nullable = sem mínimo). Os campos `max_redemptions`/`min_order_amount`
+só existem em `promocode` (CHECK `promo_no_coupon_fields`).
+
+Algoritmo na validação do cupom (carrinho/checkout):
+
+1. Resolver `promotion` por `code` + `type='promocode'` + `active=true` + dentro da vigência
+   (`starts_at`/`ends_at` são nullable → vazio significa "imediato"/"sem prazo").
+2. **Escopo:** `applies_to_all=true` → vale para o carrinho todo; senão só itens cujo `tool` ∈
+   `promotion_tool`. _(Decisão aberta do Sub-projeto 2: o desconto de cupom específico incide no
+   carrinho todo ou só nos itens elegíveis.)_
+3. **Mínimo:** rejeitar se o subtotal elegível < `min_order_amount` (quando não-nulo).
+4. **Limite:** rejeitar se `redemption_count >= max_redemptions` (quando não-nulo).
+5. **Cálculo:** `percent` → percentual sobre a base elegível; `fixed` → abate `discount_value`
+   em reais (clamp em ≥ 0).
+
+Na confirmação do pedido (transição para `paid`):
+
+- Incrementar `redemption_count` de forma **idempotente**: `SELECT ... FOR UPDATE` na `promotion`
+  + re-check do limite na mesma transação (mesmo padrão do débito de estoque em `stock_movement`).
+  O contador nunca pode ultrapassar `max_redemptions` sob disparo concorrente.
+- Persistir o cupom aplicado no pedido (campo a definir no Sub-projeto 2 — ex.: `order.coupon_id`
+  + `order.discount_amount`).
+- Qualquer write automático: `actor_type='system'`, sem `actor_id` (CHECK `actor_coherence`).
+
+A promoção **automática** (`type='promotion'`) **não** passa por aqui — já é aplicada no preço de
+listagem por `packages/db/src/queries/catalog.ts`, que escolhe o **maior desconto efetivo** entre
+a promoção global (`applies_to_all`) e a específica. Cupom e promoção automática nunca somam: o
+catálogo decide a vitrine; o cupom decide o checkout.
+
+---
+
 ## Regra de sincronização do schema TS
 
 As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **automatizada por CI** — o workflow `sync-db-schema.yml` espelha `packages/db/src/{schema,queries,sql/triggers.sql}` para o repo `emach-ecommerce` via Pull Request automático sempre que esses arquivos mudam na `main`. Direção unidirecional: dashboard → ecommerce. Ver ADR-0009.
