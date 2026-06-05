@@ -551,6 +551,12 @@ export async function getToolBySlug(
 			       p.created_at AS "createdAt",
 			       p.updated_at AS "updatedAt"
 			FROM promotion p
+			CROSS JOIN LATERAL (
+				SELECT price_amount
+				FROM tool_variant
+				WHERE tool_id = ${toolId} AND is_default = true
+				LIMIT 1
+			) dv
 			WHERE p.type = 'promotion'
 			  AND p.active = true
 			  AND (p.starts_at IS NULL OR p.starts_at <= now())
@@ -562,8 +568,8 @@ export async function getToolBySlug(
 			ORDER BY
 				CASE
 					WHEN p.discount_type = 'fixed'
-						THEN (SELECT price_amount FROM tool_variant WHERE tool_id = ${toolId} AND is_default = true LIMIT 1) - p.discount_value
-					ELSE (SELECT price_amount FROM tool_variant WHERE tool_id = ${toolId} AND is_default = true LIMIT 1) * (1 - p.discount_value / 100)
+						THEN GREATEST(dv.price_amount - p.discount_value, 0)
+					ELSE ROUND(dv.price_amount * (1 - p.discount_value / 100), 2)
 				END ASC,
 				p.created_at DESC
 			LIMIT 1
@@ -779,14 +785,20 @@ export async function getActivePromotions(
 	const result: PromotionWithTools[] = [];
 	for (const promo of promosRes.rows) {
 		coerceDates(promo, PROMOTION_DATE_KEYS);
-		const toolIdsRes = await db.execute<{ tool_id: string }>(sql`
-			SELECT tool_id FROM promotion_tool WHERE promotion_id = ${promo.id}
-		`);
-		const toolIds = toolIdsRes.rows.map((r) => r.tool_id);
 
-		if (toolIds.length === 0) {
-			result.push({ ...promo, tools: [] });
-			continue;
+		// Escopo das tools: applies_to_all → todas as visíveis; senão, as vinculadas
+		// em promotion_tool (vazio = promoção inerte → tools:[]).
+		let toolScope = sql`true`;
+		if (!promo.appliesToAll) {
+			const toolIdsRes = await db.execute<{ tool_id: string }>(sql`
+				SELECT tool_id FROM promotion_tool WHERE promotion_id = ${promo.id}
+			`);
+			const toolIds = toolIdsRes.rows.map((r) => r.tool_id);
+			if (toolIds.length === 0) {
+				result.push({ ...promo, tools: [] });
+				continue;
+			}
+			toolScope = sql`t.id = ANY(${arrayLiteral(toolIds, "text[]")})`;
 		}
 
 		const toolsRes = await db.execute<ToolListRow>(sql`
@@ -819,7 +831,7 @@ export async function getActivePromotions(
 			INNER JOIN tool_variant dv ON dv.tool_id = t.id AND dv.is_default = true
 			LEFT JOIN tool_category tc ON tc.tool_id = t.id AND tc.is_primary = true
 			LEFT JOIN category pc ON pc.id = tc.category_id
-			WHERE t.id = ANY(${arrayLiteral(toolIds, "text[]")})
+			WHERE ${toolScope}
 			  AND t.visible_on_site = true
 			  AND ${STOREFRONT_STATUS_SQL}
 			ORDER BY t.created_at DESC

@@ -98,10 +98,6 @@ export function OverviewTab({ detail }: { detail: PromotionDetail }) {
 		});
 	}
 
-	const hasRules =
-		isCoupon &&
-		(detail.minOrderAmount != null || detail.maxRedemptions != null);
-
 	const resumo = (
 		<section className="rounded-lg border border-border bg-card p-5">
 			<h3 className={MARKER}>Resumo</h3>
@@ -114,19 +110,11 @@ export function OverviewTab({ detail }: { detail: PromotionDetail }) {
 					<span>{executionMessage(detail.status)}</span>
 				</div>
 
-				{hasRules ? (
+				{isCoupon && detail.minOrderAmount != null ? (
 					<div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground text-xs">
-						{detail.minOrderAmount == null ? null : (
-							<span>
-								Pedido mínimo: {formatDiscount("fixed", detail.minOrderAmount)}
-							</span>
-						)}
-						{detail.maxRedemptions == null ? null : (
-							<span>
-								Limite: {detail.redemptionCount} / {detail.maxRedemptions}{" "}
-								resgates
-							</span>
-						)}
+						<span>
+							Pedido mínimo: {formatDiscount("fixed", detail.minOrderAmount)}
+						</span>
 					</div>
 				) : null}
 
