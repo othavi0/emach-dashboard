@@ -7,7 +7,13 @@ import { useState } from "react";
 
 import { FormErrorPanel } from "@/components/form-error-panel";
 import { type ToolFormState, useToolFormState } from "./tool-form-state";
-import { getStepIssues, TOOL_STEPS, type ToolStepId } from "./tool-form-steps";
+import {
+	getStepIssues,
+	stepHasErrors,
+	TOOL_STEPS,
+	type ToolStepId,
+} from "./tool-form-steps";
+import { toolFormSchema } from "./tool-schema";
 import { TOOL_SECTION_COMPONENTS } from "./tool-sections";
 import { useToolSubmit } from "./use-tool-submit";
 
@@ -31,8 +37,12 @@ export function ToolWizard({
 	const step = TOOL_STEPS[Math.min(active, TOOL_STEPS.length - 1)]!;
 	const Fields = TOOL_SECTION_COMPONENTS[step.id];
 
+	// parse único por render — React Compiler memoiza sobre `values`;
+	// evita 6× safeParse no loop do stepper (um por stepDone)
+	const parsed = toolFormSchema.safeParse(values);
+
 	function stepDone(stepId: ToolStepId): boolean {
-		return getStepIssues(values, stepId).length === 0;
+		return !stepHasErrors(parsed, stepId);
 	}
 
 	function next() {
