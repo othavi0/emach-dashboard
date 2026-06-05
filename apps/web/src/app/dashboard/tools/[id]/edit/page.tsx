@@ -11,7 +11,8 @@ import { notFound } from "next/navigation";
 
 import { requireCapability } from "@/lib/permissions";
 import { buildDefinitionsByCategory } from "../../_components/attribute-helpers";
-import { ToolForm } from "../../_components/tool-form";
+import { ToolEditView } from "../../_components/tool-edit-view";
+import { ToolFormProvider } from "../../_components/tool-form-context";
 import type {
 	AttributeValueInput,
 	ToolFormValues,
@@ -199,24 +200,28 @@ export default async function EditToolPage({ params }: PageProps) {
 					Atualize os dados da ferramenta.
 				</p>
 			</div>
-
-			<ToolForm
-				allDefinitions={allDefinitions}
-				categories={categories}
-				defaultValues={toFormValues(
-					row,
-					images,
-					toolCats,
-					variants,
-					attrValues,
-					attributeAssignments
-				)}
-				definitionsByCategory={definitionsByCategory}
-				existingSlug={row.slug ?? undefined}
-				mode="edit"
-				suppliers={suppliers}
-				toolId={id}
-			/>
+			<ToolFormProvider
+				value={{
+					allDefinitions,
+					categories,
+					definitionsByCategory,
+					suppliers,
+					mode: "edit",
+					existingSlug: row.slug ?? undefined,
+					toolId: id,
+				}}
+			>
+				<ToolEditView
+					defaultValues={toFormValues(
+						row,
+						images,
+						toolCats,
+						variants,
+						attrValues,
+						attributeAssignments
+					)}
+				/>
+			</ToolFormProvider>
 		</div>
 	);
 }
