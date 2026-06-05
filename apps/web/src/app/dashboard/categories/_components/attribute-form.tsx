@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import type { ZodError } from "zod";
 
 import { FormErrorPanel } from "@/components/form-error-panel";
+import { HelpTooltip } from "@/components/help-tooltip";
 
 import {
 	createCategoryAttribute,
@@ -196,9 +197,12 @@ export function AttributeForm({
 			</div>
 
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="slug">
-					Slug
-					<span className="text-destructive"> *</span>
+				<Label className="flex items-center gap-1.5" htmlFor="slug">
+					<span>
+						Slug
+						<span className="text-destructive"> *</span>
+					</span>
+					<HelpTooltip text="Gerado do rótulo; vira a chave técnica do atributo." />
 				</Label>
 				<Input
 					aria-invalid={errors.slug ? true : undefined}
@@ -227,9 +231,15 @@ export function AttributeForm({
 
 			<div className="grid gap-3 md:grid-cols-2">
 				<div className="flex flex-col gap-2">
-					<Label htmlFor="inputType">
-						Tipo de campo
-						<span className="text-destructive"> *</span>
+					<Label className="flex items-center gap-1.5" htmlFor="inputType">
+						<span>
+							Tipo de campo
+							<span className="text-destructive"> *</span>
+						</span>
+						<HelpTooltip
+							body="Texto e número são livres. Lista (select) exige opções; cor exige swatches; faixa numérica pede unidade."
+							title="Tipo de campo"
+						/>
 					</Label>
 					<Select
 						onValueChange={(v) =>
@@ -295,8 +305,9 @@ export function AttributeForm({
 
 			{showOptions && (
 				<section className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3">
-					<h3 className="font-semibold text-xs uppercase tracking-wide">
+					<h3 className="flex items-center gap-1.5 font-semibold text-xs uppercase tracking-wide">
 						Opções da lista
+						<HelpTooltip text="Cada opção tem rótulo visível e um slug técnico (gerado do rótulo)." />
 					</h3>
 					{values.options.map((opt, index) => (
 						<div className="grid grid-cols-[2fr_2fr_auto] gap-2" key={index}>
