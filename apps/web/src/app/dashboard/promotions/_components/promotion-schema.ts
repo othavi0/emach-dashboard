@@ -9,11 +9,7 @@ const promotionBaseFields = {
 		.string()
 		.trim()
 		.max(120, "Título não pode ultrapassar 120 caracteres")
-		.refine((v) => v.length > 0, "Título obrigatório")
-		.refine(
-			(v) => v.length === 0 || v.length >= 2,
-			"Título deve ter no mínimo 2 caracteres"
-		),
+		.refine((v) => v.length >= 2, "Título deve ter no mínimo 2 caracteres"),
 
 	description: z
 		.string()
@@ -22,10 +18,11 @@ const promotionBaseFields = {
 		.optional()
 		.nullable(),
 
-	discountPct: z
-		.number()
-		.gt(0, "Desconto deve ser entre 0,01% e 100%")
-		.max(100, "Desconto deve ser entre 0,01% e 100%"),
+	discountType: z.enum(["percent", "fixed"]),
+
+	discountValue: z.number().gt(0, "Valor do desconto deve ser maior que zero"),
+
+	appliesToAll: z.boolean(),
 
 	active: z.boolean(),
 
@@ -33,19 +30,26 @@ const promotionBaseFields = {
 
 	endsAt: z.date().optional().nullable(),
 
-	toolIds: z.array(z.string()).min(1, "Selecione ao menos uma ferramenta"),
+	toolIds: z.array(z.string()),
 };
 
 // ---------------------------------------------------------------------------
 // Discriminated union: 'promotion' variant — code must be absent / null
+// Uses .strict() to reject extra fields (e.g. maxRedemptions, minOrderAmount)
 // ---------------------------------------------------------------------------
 
 const promotionVariantSchema = z
 	.object({
 		type: z.literal("promotion"),
 		code: z.string().nullish(),
+		// Aceitam apenas null/ausente: o form pode carregar essas chaves (resíduo
+		// ao alternar de cupom→automática). Declará-las evita que .strict() rejeite
+		// o submit; qualquer valor não-nulo continua barrado.
+		maxRedemptions: z.null().optional(),
+		minOrderAmount: z.null().optional(),
 		...promotionBaseFields,
 	})
+	.strict()
 	.refine((data) => data.code == null, {
 		message: "Promoções automáticas não aceitam código",
 		path: ["code"],
@@ -63,9 +67,12 @@ const promocodeVariantSchema = z.object({
 		.min(1, "Código obrigatório para promocode")
 		.max(50, "Código não pode ultrapassar 50 caracteres")
 		.regex(
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: ASCII printable range 0x20–0x7E intentional
 			/^[\x20-\x7E]+$/,
 			"Código deve conter apenas caracteres ASCII imprimíveis"
 		),
+	maxRedemptions: z.number().int().min(1).optional().nullable(),
+	minOrderAmount: z.number().min(0).optional().nullable(),
 	...promotionBaseFields,
 });
 
@@ -76,6 +83,24 @@ const promocodeVariantSchema = z.object({
 export const promotionSchema = z
 	.discriminatedUnion("type", [promotionVariantSchema, promocodeVariantSchema])
 	.superRefine((data, ctx) => {
+		// percent desconto: máx 100%
+		if (data.discountType === "percent" && data.discountValue > 100) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Percentual não pode passar de 100%",
+				path: ["discountValue"],
+			});
+		}
+
+		// toolIds exigido quando appliesToAll=false
+		if (!data.appliesToAll && data.toolIds.length < 1) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Selecione ao menos uma ferramenta",
+				path: ["toolIds"],
+			});
+		}
+
 		// Cross-field: endsAt must be after startsAt when both are set
 		if (
 			data.startsAt != null &&
@@ -86,16 +111,6 @@ export const promotionSchema = z
 				code: "custom",
 				message: "Data de fim deve ser posterior à data de início",
 				path: ["endsAt"],
-			});
-		}
-
-		// Cross-field: toolIds min 1 (belt-and-suspenders — array().min(1) above
-		// covers per-field, but keep here in case callers use superRefine output)
-		if (!data.toolIds || data.toolIds.length < 1) {
-			ctx.addIssue({
-				code: "custom",
-				message: "Selecione ao menos uma ferramenta",
-				path: ["toolIds"],
 			});
 		}
 	});

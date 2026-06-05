@@ -3,6 +3,7 @@ import {
 	boolean,
 	check,
 	index,
+	integer,
 	numeric,
 	pgTable,
 	primaryKey,
@@ -21,10 +22,15 @@ export const promotion = pgTable(
 		description: text("description"),
 		type: text("type").notNull().default("promotion"),
 		code: text("code").unique(),
-		discountPct: numeric("discount_pct", {
-			precision: 5,
+		discountType: text("discount_type").notNull().default("percent"),
+		discountValue: numeric("discount_value", {
+			precision: 12,
 			scale: 2,
 		}).notNull(),
+		appliesToAll: boolean("applies_to_all").notNull().default(false),
+		maxRedemptions: integer("max_redemptions"),
+		redemptionCount: integer("redemption_count").notNull().default(0),
+		minOrderAmount: numeric("min_order_amount", { precision: 12, scale: 2 }),
 		active: boolean("active").default(false).notNull(),
 		startsAt: timestamp("starts_at"),
 		endsAt: timestamp("ends_at"),
@@ -52,9 +58,19 @@ export const promotion = pgTable(
 			sql`${table.type} IN ('promotion', 'promocode')`
 		),
 		check(
-			"discount_pct_range",
-			sql`${table.discountPct} > 0 AND ${table.discountPct} <= 100`
+			"valid_discount_type",
+			sql`${table.discountType} IN ('percent', 'fixed')`
 		),
+		check(
+			"discount_coherent",
+			sql`(${table.discountType} = 'percent' AND ${table.discountValue} > 0 AND ${table.discountValue} <= 100)
+   OR (${table.discountType} = 'fixed' AND ${table.discountValue} > 0)`
+		),
+		check(
+			"promo_no_coupon_fields",
+			sql`${table.type} = 'promocode' OR (${table.maxRedemptions} IS NULL AND ${table.minOrderAmount} IS NULL)`
+		),
+		check("redemption_count_non_negative", sql`${table.redemptionCount} >= 0`),
 		check(
 			"ends_after_starts",
 			sql`${table.endsAt} IS NULL OR ${table.startsAt} IS NULL OR ${table.endsAt} > ${table.startsAt}`
