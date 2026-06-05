@@ -82,7 +82,7 @@ export const STEP_FIELDS: Record<ToolStepId, (keyof ToolFormValues)[]> = {
 	publish: ["images", "status", "visibleOnSite"],
 };
 
-const FIELD_LABELS: Record<string, string> = {
+export const FIELD_LABELS: Record<string, string> = {
 	name: "Nome",
 	description: "Descrição",
 	model: "Modelo comercial",

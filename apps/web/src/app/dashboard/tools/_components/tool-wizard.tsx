@@ -70,6 +70,9 @@ export function ToolWizard({
 		setErrors(parsed.fieldErrors);
 		setIssues(parsed.issues);
 		if (!(parsed.ok && parsed.data)) {
+			toast.error(
+				`${parsed.issues.length} erro${parsed.issues.length === 1 ? "" : "s"} — veja detalhes acima`
+			);
 			requestAnimationFrame(() =>
 				errorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
 			);
@@ -90,7 +93,10 @@ export function ToolWizard({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<ol className="flex flex-wrap gap-1 rounded-md bg-muted p-1 ring-1 ring-border/60">
+			<ol
+				aria-label="Etapas do cadastro"
+				className="flex flex-wrap gap-1 rounded-md bg-muted p-1 ring-1 ring-border/60"
+			>
 				{TOOL_STEPS.map((s, i) => {
 					const done = i !== active && stepDone(s.id);
 					const isActive = i === active;
