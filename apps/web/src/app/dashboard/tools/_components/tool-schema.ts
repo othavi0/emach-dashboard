@@ -97,6 +97,7 @@ export const toolFormSchema = z
 		lengthCm: requiredPositiveNumber,
 		widthCm: requiredPositiveNumber,
 		heightCm: requiredPositiveNumber,
+		overweightShippingAmount: optionalNumber,
 		categoryIds: z
 			.array(z.string().min(1))
 			.min(1, "Selecione ao menos uma categoria"),
