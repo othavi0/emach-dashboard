@@ -6,7 +6,8 @@ import { asc } from "drizzle-orm";
 
 import { requireCapability } from "@/lib/permissions";
 import { buildDefinitionsByCategory } from "../_components/attribute-helpers";
-import { ToolForm } from "../_components/tool-form";
+import { ToolFormProvider } from "../_components/tool-form-context";
+import { ToolWizard } from "../_components/tool-wizard";
 
 export default async function NewToolPage() {
 	await requireCapability("tools.create");
@@ -44,18 +45,20 @@ export default async function NewToolPage() {
 					Nova ferramenta
 				</h1>
 				<p className="text-muted-foreground text-sm">
-					Preencha os dados abaixo para cadastrar uma nova ferramenta.
+					Seis passos guiados. Você pode pular entre eles a qualquer momento.
 				</p>
 			</div>
-
-			<ToolForm
-				allDefinitions={allDefinitions}
-				categories={categories}
-				defaultValues={{}}
-				definitionsByCategory={definitionsByCategory}
-				mode="create"
-				suppliers={suppliers}
-			/>
+			<ToolFormProvider
+				value={{
+					allDefinitions,
+					categories,
+					definitionsByCategory,
+					suppliers,
+					mode: "create",
+				}}
+			>
+				<ToolWizard />
+			</ToolFormProvider>
 		</div>
 	);
 }
