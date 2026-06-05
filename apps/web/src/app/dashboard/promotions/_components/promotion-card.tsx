@@ -10,7 +10,7 @@ import {
 import { PromotionStatusBadge } from "./promotion-status-badge";
 
 const METRIC_LABEL =
-	"text-[10px] text-muted-foreground uppercase tracking-wider";
+	"text-[9px] text-muted-foreground uppercase tracking-wider";
 
 export function PromotionCard({ promotion }: { promotion: PromotionListItem }) {
 	const isCoupon = promotion.type === "promocode";
@@ -59,17 +59,17 @@ export function PromotionCard({ promotion }: { promotion: PromotionListItem }) {
 			</div>
 
 			<div className="mt-auto grid grid-cols-2 border-border border-t">
-				<div className="flex flex-col items-center border-border border-r py-3">
+				<div className="flex flex-col items-center border-border border-r py-2.5">
 					<span
-						className={`font-bold text-[20px] tabular-nums ${promotion.tools.length === 0 ? "text-warning" : "text-foreground"}`}
+						className={`font-bold text-[18px] tabular-nums ${promotion.tools.length === 0 ? "text-warning" : "text-foreground"}`}
 					>
 						{promotion.tools.length}
 					</span>
 					<span className={METRIC_LABEL}>Ferramentas</span>
 				</div>
-				<div className="flex flex-col items-center py-3">
+				<div className="flex flex-col items-center py-2.5">
 					<span
-						className={`font-bold text-[20px] tabular-nums ${remainingTone}`}
+						className={`font-bold text-[18px] tabular-nums ${remainingTone}`}
 					>
 						{remaining.value}
 					</span>
