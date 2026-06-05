@@ -1,22 +1,51 @@
-import { requireRole } from "@/lib/session";
+import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PromotionForm } from "../_components/promotion-form";
+import type { PromotionFormValues } from "../_components/promotion-schema";
 import { getToolOptions } from "../actions";
 
 interface PageProps {
 	searchParams: Promise<{ type?: string }>;
 }
 
+const COUPON_DEFAULTS: PromotionFormValues = {
+	type: "promocode",
+	title: "",
+	description: null,
+	discountType: "percent",
+	discountValue: 0,
+	appliesToAll: false,
+	active: true,
+	startsAt: null,
+	endsAt: null,
+	code: "",
+	toolIds: [],
+	maxRedemptions: null,
+	minOrderAmount: null,
+};
+
+const PROMOTION_DEFAULTS: PromotionFormValues = {
+	type: "promotion",
+	title: "",
+	description: null,
+	discountType: "percent",
+	discountValue: 0,
+	appliesToAll: false,
+	active: true,
+	startsAt: null,
+	endsAt: null,
+	code: null,
+	toolIds: [],
+};
+
 export default async function NewPromotionPage({ searchParams }: PageProps) {
-	await requireRole("admin");
+	await requireCapabilityOrRedirect("promotions.manage");
 
 	const { type } = await searchParams;
-	const initialType = type === "promocode" ? "promocode" : "promotion";
-	const isCoupon = initialType === "promocode";
-
+	const isCoupon = type === "promocode";
 	const availableTools = await getToolOptions();
 
 	return (
-		<div className="flex flex-col gap-6">
+		<div className="flex flex-col gap-6 p-6">
 			<div>
 				<h1 className="font-medium font-serif text-4xl tracking-tight">
 					{isCoupon ? "Novo cupom" : "Nova promoção"}
@@ -30,7 +59,7 @@ export default async function NewPromotionPage({ searchParams }: PageProps) {
 
 			<PromotionForm
 				availableTools={availableTools}
-				defaultValues={{ type: initialType }}
+				initialValues={isCoupon ? COUPON_DEFAULTS : PROMOTION_DEFAULTS}
 				mode="create"
 			/>
 		</div>

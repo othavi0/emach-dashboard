@@ -22,12 +22,16 @@ import {
 	promotionSchema,
 } from "./promotion-schema";
 
-const FIELD_LABELS: Record<string, string> = {
+export const FIELD_LABELS: Record<string, string> = {
 	title: "Título",
 	description: "Descrição",
 	type: "Tipo",
 	code: "Código",
-	discountPct: "Desconto",
+	discountType: "Tipo de desconto",
+	discountValue: "Desconto",
+	appliesToAll: "Ferramentas",
+	maxRedemptions: "Limite de resgates",
+	minOrderAmount: "Valor mínimo do pedido",
 	startsAt: "Início",
 	endsAt: "Fim",
 	toolIds: "Ferramentas",
@@ -45,7 +49,7 @@ interface ToolOption {
 
 export interface PromotionFormProps {
 	availableTools: ToolOption[];
-	defaultValues?: Partial<PromotionFormValues>;
+	initialValues?: PromotionFormValues;
 	mode: "create" | "edit";
 	promotionId?: string;
 }
@@ -67,25 +71,19 @@ function zodErrorsToFieldMap(
 	return map;
 }
 
-function buildInitialValues(
-	defaultValues?: Partial<PromotionFormValues>
-): PromotionFormValues {
-	const type =
-		(defaultValues?.type as "promotion" | "promocode") ?? "promotion";
-	const base = {
-		title: defaultValues?.title ?? "",
-		description: defaultValues?.description ?? null,
-		discountPct: defaultValues?.discountPct ?? 0,
-		active: defaultValues?.active ?? true,
-		startsAt: defaultValues?.startsAt ?? null,
-		endsAt: defaultValues?.endsAt ?? null,
-		toolIds: defaultValues?.toolIds ?? [],
-	};
-	if (type === "promocode") {
-		return { type: "promocode", code: defaultValues?.code ?? "", ...base };
-	}
-	return { type: "promotion", code: null, ...base };
-}
+const CREATE_DEFAULTS: PromotionFormValues = {
+	type: "promotion",
+	title: "",
+	description: null,
+	discountType: "percent",
+	discountValue: 0,
+	appliesToAll: false,
+	active: true,
+	startsAt: null,
+	endsAt: null,
+	code: null,
+	toolIds: [],
+};
 
 // ---------------------------------------------------------------------------
 // SubmitLabel
@@ -119,14 +117,14 @@ function SubmitLabel({
 
 export function PromotionForm({
 	availableTools,
-	defaultValues,
+	initialValues,
 	mode,
 	promotionId,
 }: PromotionFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
-	const [values, setValues] = useState<PromotionFormValues>(() =>
-		buildInitialValues(defaultValues)
+	const [values, setValues] = useState<PromotionFormValues>(
+		initialValues ?? CREATE_DEFAULTS
 	);
 
 	const [errors, setErrors] = useState<Record<string, string>>({});
@@ -159,32 +157,28 @@ export function PromotionForm({
 		}
 
 		startTransition(async () => {
-			let result: { ok: boolean; error?: string };
-
 			if (mode === "create") {
-				result = await createPromotion(parsed.data);
+				const result = await createPromotion(parsed.data);
+				if (result.ok) {
+					toast.success("Promoção criada com sucesso");
+					setSubmitted(true);
+					router.push(`/dashboard/promotions/${result.data.id}`);
+				} else {
+					setServerError(result.error || "Não foi possível criar a promoção");
+				}
 			} else {
 				if (!promotionId) {
 					setServerError("ID da promoção não fornecido");
 					return;
 				}
-				result = await updatePromotion(promotionId, parsed.data);
-			}
-
-			if (result.ok) {
-				toast.success(
-					mode === "create"
-						? "Promoção criada com sucesso"
-						: "Promoção atualizada com sucesso"
-				);
-				setSubmitted(true);
-				router.push("/dashboard/promotions");
-				router.refresh();
-			} else {
-				setServerError(
-					(result as { ok: false; error: string }).error ||
-						"Não foi possível salvar a promoção"
-				);
+				const result = await updatePromotion(promotionId, parsed.data);
+				if (result.ok) {
+					toast.success("Promoção atualizada com sucesso");
+					setSubmitted(true);
+					router.push(`/dashboard/promotions/${promotionId}`);
+				} else {
+					setServerError(result.error || "Não foi possível salvar a promoção");
+				}
 			}
 		});
 	}
@@ -209,6 +203,7 @@ export function PromotionForm({
 				availableTools={availableTools}
 				disabled={isPending}
 				errors={errors}
+				excludePromotionId={mode === "edit" ? promotionId : undefined}
 				mode={mode}
 				onPatch={onPatch}
 				values={values}
