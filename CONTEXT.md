@@ -20,13 +20,14 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 
 | Contexto            | Cobre                                          | Tabelas núcleo                                                  |
 | ------------------- | ---------------------------------------------- | --------------------------------------------------------------- |
-| Identity & Access   | Autenticação dual e autorização                | `user`, `session`, `client`, `clientSession`                    |
-| Catalog             | O que se vende e como se descreve              | `tool`, `toolVariant`, `toolImage`, `category`, `attributeDefinition`, `supplier` |
+| Identity & Access   | Autenticação dual e autorização                | `user`, `session`, `client`, `clientSession`, `clientAddress`, `userActivityLog` |
+| Catalog             | O que se vende e como se descreve              | `tool`, `toolVariant`, `toolImage`, `category`, `attributeDefinition`, `supplier`, `supplierAuditLog` |
 | Inventory           | Quanto existe e onde                           | `branch`, `stockLevel`, `stockMovement`, `userBranch`           |
-| Sales               | Pedidos e seu ciclo de vida                    | `order`, `orderItem`, `orderStatusHistory`, `orderNote`, `orderAttachment` |
+| Sales               | Pedidos e seu ciclo de vida                    | `order`, `orderItem`, `orderStatusHistory`, `orderNote`, `orderAttachment`, `orderEvent`, `refundRequest` |
 | Marketing           | Descontos                                      | `promotion`, `promotionTool`                                    |
 | Voice of customer   | Avaliações de produto                          | `review`                                                        |
 | Compliance (LGPD)   | Consentimento e auditoria de dados pessoais    | `consentLog`, `clientAuditLog`, `clientExportLog`               |
+| Configurações       | Settings operacionais da loja (frete)          | `storeSettings`                                                  |
 
 ---
 
@@ -36,12 +37,14 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 
 - **User (Staff / Usuário interno)** — funcionário da Emach com acesso ao dashboard. Tabela `user`. Tem `role` e `status`. Em código, `User` significa **sempre** staff — nunca cliente final.
 - **Client (Cliente)** — comprador final brasileiro, dono dos pedidos. Tabela `client`. Identificado por `document` (CPF/CNPJ normalizado, só dígitos). Autentica pela instância **ecommerce** do Better Auth; o dashboard apenas **lê** dados de Client, nunca cria sessão de Client.
-- **Client type (B2C / B2B)** — `clientType`: rótulo de **segmentação** do Client (pessoa física × jurídica), apenas para filtro e relatório. Não dirige preço, regra fiscal nem fluxo — não há precificação por tipo. Nullable porque o cadastro nem sempre o captura.
+- **Client type (B2C / B2B)** — `clientType`: rótulo de **segmentação** do Client (pessoa física × jurídica), apenas para filtro e relatório. Não dirige preço, regra fiscal nem fluxo — não há precificação por tipo. **Derivado automaticamente** do `document` por trigger (`derive_client_type`: CPF → `b2c`, CNPJ → `b2b`); override manual é respeitado. `null` apenas quando `document` é nulo.
+- **Client Address (Endereço do cliente)** — endereço cadastrado de um Client (tabela `client_address`), com um default por cliente. **Distinto** do `shipping_address` do Order (snapshot JSONB congelado no checkout).
 - **Role** — papel hierárquico do staff: `super_admin` > `admin` > `manager` > `user`. Agrega um conjunto de Capabilities. `client` **não** tem role.
 - **Capability** — permissão granular (`tools.create`, `orders.refund`, `reviews.moderate`, …). É a unidade real de autorização; `role` só mapeia para um conjunto de Capabilities. Server actions sensíveis começam com `requireCapability(cap)`.
 - **Branch-scoping** — restrição de uma ação às filiais do staff. `userBranch` liga staff↔filial; `requireCapabilityWithContext` valida que o alvo está no escopo. `super_admin` ignora o escopo.
 - **Actor** — quem causou uma mutação auditável: `user` (um membro do staff) ou `system` (automação sem usuário humano — inclui as escritas do app e-commerce, como o débito de estoque por venda). Enum `actor_type`.
 - **User status** — `pending` (convidado, aguardando aceite) → `active` → `suspended`. O acesso é **convite-only** (ADR-0013): admin convida, o user nasce `pending` com `inviteToken`, e vira `active` ao aceitar (definir nome + senha). Não há mais auto-cadastro.
+- **User Activity Log** — trilha de atividade do staff no dashboard (tabela `user_activity_log`): `action`, `targetType`, `targetId`, `metadata`. Sobrevive ao delete do ator via snapshot do nome em `metadata` (ADR-0011). **Distinto** do Client Audit Log (que rastreia mutações de dados de Client).
 - **Convite (Invitation)** — mecanismo de onboarding de staff. Um admin convida (email + cargo + filiais); cria-se o `user` em `pending` com `inviteToken`/`inviteTokenExpiresAt` (7 dias, single-use) na própria linha de `user` — **não há tabela `invite`**. O aceite em `/convite?token=…` cria a credential, seta `active` e loga. Ver ADR-0013.
 
 ### Catálogo
@@ -49,9 +52,9 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 - **Tool** — qualquer item vendável do catálogo. **Termo de arte**: cobre ferramenta, equipamento e acessório indistintamente — não é só "ferramenta" no sentido literal. É o registro "pai", que **não** carrega SKU, preço nem voltagem (isso vive na Tool Variant). No site e-commerce aparece como "produto"; no domínio do admin o termo canônico é **Tool**. A distinção ferramenta/equipamento, quando importa para navegação, é modelada como Category — não como tipo de Tool.
 - **Tool Variant (Variante)** — variação concreta vendável de uma Tool (ex.: 127V vs 220V). Tabela `toolVariant`. **Carrega SKU, preço, custo e voltagem.** Toda Tool tem **≥1 variante**; exatamente uma é a Default Variant.
 - **Default Variant** — a variante exibida quando nenhuma é escolhida. Uma por Tool (`isDefault=true`, partial unique index).
-- **Tool status** — ciclo de vida **editorial** do catálogo: `draft` (em cadastro) | `active` (publicável) | `discontinued` (saiu de linha) | `out_of_stock`. `out_of_stock` é um **rótulo manual** posto pelo staff — não é derivado do Stock Level real; uma Tool pode estar `active` com zero estoque ou `out_of_stock` com estoque.
+- **Tool status** — ciclo de vida **editorial** do catálogo: `draft` (em cadastro) | `active` (publicável) | `discontinued` (saiu de linha). Enum `tool_status`, garantido pelo CHECK `valid_tool_status`. **Não existe valor `out_of_stock`** — disponibilidade é sempre derivada do Stock Level (variante × filial), nunca um status editorial.
 - **Visible on site** — chave manual de vitrine (`visibleOnSite`), independente do Tool status. Uma Tool aparece no site e-commerce quando `status='active'` **e** `visibleOnSite=true` — as duas condições juntas.
-- **Supplier (Fornecedor)** — de quem a Emach compra a Tool.
+- **Supplier (Fornecedor)** — de quem a Emach compra a Tool. Tem `status` (`active`/`archived`): arquivar é soft-delete que **preserva a proveniência** das Tools associadas. Mutações trilhadas em `supplier_audit_log`.
 - **Category (Categoria)** — nó da árvore de classificação do catálogo. `parentId` + `path`/`depth` materializados por trigger PL/pgSQL (anti-ciclo, profundidade máxima 5). Uma Tool pertence a N categorias via `toolCategory`; exatamente uma é a Primary Category. Regra de domínio: **toda Tool deve ter ≥1 Category real** (uma primary), garantida na validação Zod do form de Tool.
 - **Primary Category** — a categoria principal de uma Tool (`isPrimary=true`); determina quais atributos dinâmicos a Tool exibe.
 - **Attribute Definition** — definição de uma especificação técnica dinâmica (ex.: "Rotação", "Cor"). Tabela `attributeDefinition`. Tem `inputType` (`text`/`number`/`select`/`boolean`/`numeric_range`/`color`), `unit`, `options`. Pertence **obrigatoriamente** a uma Category — não existe atributo global.
@@ -61,7 +64,7 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 
 ### Estoque
 
-- **Branch (Filial)** — local físico que mantém estoque. Uma é a default.
+- **Branch (Filial)** — local físico que mantém estoque. Tem `status` (`active`/`inactive`), responsável (`responsibleUserId`), faixas de CEP de atendimento (`cepRanges`) e horário de funcionamento (`businessHours`). Não há filial "default" no schema.
 - **Stock Level** — quantidade de uma **Tool Variant** em uma **Branch**. PK `(variantId, branchId)`. Tem `minQty` e `reorderPoint`; CHECK `quantity >= 0` é o guard anti-oversell.
 - **Stock Movement (Movimento de estoque)** — registro imutável de toda alteração de Stock Level. `reason` ∈ `entrada_compra` | `saida_venda` | `ajuste_inventario` | `perda` | `outro`. Trilha de auditoria por variante; `delta != 0`.
 - **Stock Adjustment (Ajuste de estoque)** — a única escrita de estoque que o admin faz diretamente: o staff informa a **quantidade-alvo** (não um delta) e o sistema calcula o `delta`, gerando um Stock Movement com Actor `user`. O débito de venda (`saida_venda`) não é um Adjustment — acontece no e-commerce.
@@ -76,6 +79,8 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 - **Order Note** — anotação interna do staff sobre um pedido. **Distinto de `order.notes`** (observação do cliente no checkout). Tabela `order_note`; apenas o admin escreve; nunca exposta ao cliente.
 - **`order.notes`** — campo `text` na tabela `order`, preenchido pelo **cliente** durante o checkout (ex.: "deixar com o porteiro"). Imutável após a criação do pedido. Completamente distinto de Order Note (tabela de anotações do staff).
 - **Order Attachment** — arquivo anexado ao pedido pelo staff (ex.: documento de despacho, autorização de devolução). Tabela `order_attachment`. Nunca criado pelo e-commerce; visível apenas no dashboard.
+- **Order Event** — evento operacional auditável de um Order que **não** é transição de status. Tabela `order_event`, tipos `tracking_set` | `branch_assigned`. Complementa o Order Status History (que cobre só transições de `status`).
+- **Refund Request (Solicitação de reembolso)** — pedido de estorno de um Order. Tabela `refund_request`, ciclo próprio `requested → under_review → approved → refunded | rejected`. Motivo categorizado (`refund_reason`: `defeito`/`item_errado`/`avaria_transporte`/`arrependimento`/`outro`) + texto livre. **No máximo uma ativa por Order** (índice parcial `refund_request_one_open_per_order`, derivado de `ACTIVE_REFUND_STATUSES`). Guarda snapshot do valor no momento da solicitação.
 - **Comprovante de pagamento** — URL do comprovante emitido pelo gateway Asaas (`order.payment_receipt_url`). Preenchido pelo e-commerce após confirmação de pagamento; o dashboard apenas exibe. O dashboard nunca chama o Asaas diretamente. Ver ADR-0008.
 - **returned** — status que cobre **dois cenários**: (a) devolução pelo cliente após entrega (`delivered → returned`); (b) falha de entrega pela transportadora, com o pedido retornando ao centro de distribuição (`shipped → returned`). Não há status separado para falha de entrega. O campo `reason` em `order_status_history` distingue os dois casos. Ver ADR-0005.
 
@@ -92,7 +97,7 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 ### Compliance / LGPD
 
 - **Consent (Consentimento)** — registro LGPD de aceite ou revogação de `tos` / `privacy` / `marketing_email` / `cookies` por um Client. Tabela `consentLog`, versionado (`version`).
-- **Client Audit Log** — trilha de toda mutação de dados de Client feita pelo staff (`profile_updated`, `status_changed`, `exported`, …).
+- **Client Audit Log** — trilha de toda mutação de dados de Client feita pelo staff. Enum `client_audit_action` (8 ações): `profile_updated`, `status_changed`, `type_changed`, `notes_updated`, `session_revoked`, `sessions_revoked_all`, `password_reset_link_generated`, `exported`.
 - **Client Export** — exportação CSV/LGPD de clientes; cada export é registrado em `clientExportLog` (filtros, contagem, bytes, truncamento).
 - **Right to be forgotten** — direito do Client à anonimização dos seus dados pessoais sob a LGPD. Ainda **não implementado** — não há script nem server action (gap registrado em `packages/db/CLAUDE.md`).
 
@@ -127,7 +132,7 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 ## Ambiguidades resolvidas
 
 - **Review sem Order** — resolvido (issue #36): `review.order_id` é NOT NULL e a coluna `verified_purchase` foi removida. `canCreateReview` é o único caminho de criação; a feature de avaliação editorial (review sem pedido) foi eliminada.
-- **`out_of_stock` × estoque real** — `Tool.status` tem o valor `out_of_stock`, mas estoque é calculado por variante × filial. Resolvido: `out_of_stock` é um rótulo manual e intencional, desacoplado do Stock Level — não é um status derivado.
+- **`out_of_stock` × estoque real** — historicamente `tool_status` teve um valor `out_of_stock`, ambíguo com o estoque calculado por variante × filial. Resolvido: o valor foi **removido do enum** (`tool_status` = `draft`/`active`/`discontinued`); disponibilidade é sempre derivada do Stock Level, nunca um status editorial.
 - **Lead** — o schema de `consent_log` antecipava um ator `lead` (enum `consent_actor`, coluna `leadId`). Resolvido: Lead não é um conceito do domínio — todo contato é um Client registrado. Os artefatos de schema **já foram removidos** — hoje `consent_log.client_id` é `NOT NULL` e não há enum `consent_actor`. Ver ADR-0003.
 - **Catch-all de categoria** — historicamente existiam duas categorias-raiz catch-all vazias (`sem-categoria` no seed, `geral` resquício de migration). Issue #39 confirmou **0 attribute definitions e 0 tools** sob elas. Issue #41 removeu ambas do seed e do banco: toda Tool tem uma Category real, sem fallback.
 - **`paymentStatus`** — `order` tem dois campos de estado (`status` e `paymentStatus`) com `paid`/`refunded` sobrepostos. Resolvido: o Order passa a ter um eixo único `status`; o campo `paymentStatus` e seu enum são removidos. Ver ADR-0005.
