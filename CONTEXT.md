@@ -41,7 +41,8 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 - **Capability** — permissão granular (`tools.create`, `orders.refund`, `reviews.moderate`, …). É a unidade real de autorização; `role` só mapeia para um conjunto de Capabilities. Server actions sensíveis começam com `requireCapability(cap)`.
 - **Branch-scoping** — restrição de uma ação às filiais do staff. `userBranch` liga staff↔filial; `requireCapabilityWithContext` valida que o alvo está no escopo. `super_admin` ignora o escopo.
 - **Actor** — quem causou uma mutação auditável: `user` (um membro do staff) ou `system` (automação sem usuário humano — inclui as escritas do app e-commerce, como o débito de estoque por venda). Enum `actor_type`.
-- **User status** — `pending` (recém-criado, precisa aprovação) → `active` → `suspended`.
+- **User status** — `pending` (convidado, aguardando aceite) → `active` → `suspended`. O acesso é **convite-only** (ADR-0013): admin convida, o user nasce `pending` com `inviteToken`, e vira `active` ao aceitar (definir nome + senha). Não há mais auto-cadastro.
+- **Convite (Invitation)** — mecanismo de onboarding de staff. Um admin convida (email + cargo + filiais); cria-se o `user` em `pending` com `inviteToken`/`inviteTokenExpiresAt` (7 dias, single-use) na própria linha de `user` — **não há tabela `invite`**. O aceite em `/convite?token=…` cria a credential, seta `active` e loga. Ver ADR-0013.
 
 ### Catálogo
 
@@ -143,7 +144,9 @@ Decisões arquiteturais ficam em `docs/adr/`:
 - **ADR-0007** — Débito de estoque ocorre na transição para `paid`, não na criação do pedido.
 - **ADR-0008** — Documentos do Asaas chegam ao dashboard pelo banco de dados; o dashboard nunca chama a API do Asaas.
 - **ADR-0009** — O schema do e-commerce sincroniza do dashboard via CI (PR automático); o dashboard é a fonte de verdade.
-- **ADR-0010** — Signup de staff é público (aprovação manual no dashboard), sem flow de invitation.
+- **ADR-0010** — ~~Signup de staff é público (aprovação manual), sem flow de invitation.~~ **Superado por ADR-0013.**
 - **ADR-0011** — Audit log de user sobrevive ao delete: FK `set null` + snapshot do nome em `metadata`.
+- **ADR-0012** — Gates role-based desligados; roles mantidos como rótulo (religar antes de produção).
+- **ADR-0013** — Auth de staff é convite-only (substitui ADR-0010); sem signup público.
 
 Se um output contradiz um ADR existente, sinalize explicitamente em vez de sobrescrever em silêncio.
