@@ -114,7 +114,7 @@ Display e h1/h2 em **serif weight 400** com `tracking-tight` (-0.025em). Sans 40
 | `success` | Confirmar conclusão: "marcar como entregue", "aprovar review" |
 | `link` | Inline link textual |
 
-Todos compartilham focus state idêntico: `focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring`. Variants destructive/warning/info/success substituem ring color pela própria role (`ring-destructive/40` etc) — focus combina com a ação.
+Todos compartilham focus state idêntico: `focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-transparent` (hairline com halo, sem border flip — consistente com §7). Variants destructive/warning/info/success substituem ring color pela própria role (`ring-destructive/40` etc) — focus combina com a ação.
 
 Sizes: `xs / sm / default / lg / icon / icon-xs / icon-sm / icon-lg`.
 
@@ -363,7 +363,7 @@ A tríade canônica de mutação de entidade:
 
 - **Editar (rápido / poucos campos):** drawer lateral (`Sheet`), aberto pela ação do header via `?edit=1`. Canônico: `branches/[id]/_components/branch-edit-sheet.tsx`.
 - **Criar, ou editar/criar de formulário grande/complexo:** página dedicada (`/new`, `/[id]/edit`). A **complexidade do formulário decide** — entidade com muitos campos (ex: ferramenta com variantes, specs) vai sempre para página, mesmo para editar. Drawer só para formulários enxutos. Canônico: `branches/new/page.tsx`.
-  - **Wizard multi-step** para o caso mais pesado (ferramenta): `tools/_components/tool-wizard.tsx` divide o form em passos com stepper (validação por passo, check verde ao concluir). O **edit** da mesma entidade troca o stepper por um **rail de seções** (scrollspy por âncoras) — quem edita vai direto ao campo. Wizard e edit-view compartilham **fonte única** — `tool-sections.ts` (`ToolStepId → Component`) + `use-tool-submit.ts` — para não duplicar campos; só o estado de stepper vive no wizard. Detalhe em `apps/web/CLAUDE.md`.
+  - **Wizard multi-step** para o caso mais pesado (ferramenta): `tools/_components/tool-wizard.tsx` divide o form em passos com stepper (validação por passo, check verde ao concluir). O **edit** da mesma entidade troca o stepper por um **rail de seções** (scrollspy por âncoras) — quem edita vai direto ao campo. Wizard e edit-view compartilham **fonte única** — `tool-form-steps.ts` (`ToolStepId`, `TOOL_STEPS`, `STEP_FIELDS`) + `tool-sections.ts` (`TOOL_SECTION_COMPONENTS`: step → Component) + `use-tool-submit.ts` — para não duplicar campos; só o estado de stepper vive no wizard. Detalhe em `apps/web/CLAUDE.md`.
 - **Ação destrutiva (excluir, desvincular, cancelar):** `AlertDialog` de confirmação — nunca ação direta. Controlado (`useState` para `open`), `e.preventDefault()` no `AlertDialogAction` + fechar manualmente no sucesso, e `stopPropagation` quando o gatilho vive dentro de um card clicável. Canônico: `users/_components/destructive-action-dialog.tsx`, `branches/[id]/_components/team-member-card.tsx`. **Botão destrutivo nunca usa coral (`default`)** — coral é ação positiva; destrutivo é `destructive`, `outline` ou `ghost` conforme o peso.
 
 **Escopo:** este pattern é **default para entidades/CRUDs novos**; telas existentes migram gradualmente quando forem tocadas (não há migração big-bang). Adaptar ao domínio é permitido — o esqueleto (tabs + header contextual + cards do catálogo + drawer/dialog) é o que se mantém.
@@ -490,13 +490,17 @@ Implementação canônica: `apps/web/src/app/dashboard/page.tsx`.
 
 ### Border Radius
 
+Base `--radius: 0.5rem` (8px) em `globals.css`; os tokens derivam via `calc()` (sm −4px, md −2px, lg =base, xl +4px).
+
 | Token | Px | Componentes |
 |---|---|---|
-| `rounded-sm` | 6 | Checkbox, Kbd, Skeleton |
-| `rounded-md` | 8 | Button, Input, Textarea, Select, Tooltip, Item, Badge, DropdownMenu items, Tabs, Toggle, Combobox, Field, InputGroup, InputOTP, Sidebar items, form sections, code blocks |
-| `rounded-lg` | 12 | Card, Dialog, AlertDialog, Alert, Popover, HoverCard, Command, Drawer, Empty, callout-card-coral, featured-card-dark |
-| `rounded-xl` | 16 | Hero containers (raro) |
+| `rounded-sm` | 4 | Checkbox, Kbd, Skeleton |
+| `rounded-md` | 6 | Button, Input, Textarea, Select, Tooltip, Item, Badge, DropdownMenu items, Tabs, Toggle, Combobox, Field, InputGroup, InputOTP, Sidebar items, form sections, code blocks |
+| `rounded-lg` | 8 | Card, Dialog, AlertDialog, Alert, Popover, HoverCard, Command, Drawer, Empty, callout-card-coral, featured-card-dark |
+| `rounded-xl` | 12 | Hero containers (raro) |
 | `rounded-full` | ∞ | Slider track/thumb, Progress, ScrollArea, avatares, pill badges |
+
+Alguns cards de listagem usam `rounded-[10px]` hardcoded (entre `lg` e `xl`) — exceção documentada no shell do §4, não erro.
 
 Exceção: `Calendar` mantém `rounded-none` em `range_middle` — semântica de intervalo.
 
@@ -529,7 +533,7 @@ WCAG **AAA** target. Não-negociável para equipe interna em sessão longa.
 - **`ring-1 ring-ring ring-offset-1 ring-offset-transparent`** — hairline coral 1px com halo transparente 1px. **Sem `border-ring`** — border flip + ring criava efeito duplo (duas linhas paralelas).
 - Cor da ring acompanha role da ação (destructive ring em button destructive, etc) via `focus-visible:ring-destructive/40` etc.
 - `--ring` em 75% alpha pra hairline ter presença visual real.
-- `outline` fallback no `:focus-visible` global (1px sólido + offset 2px) garante visibilidade mesmo se classe Tailwind falhar.
+- `outline` fallback no `:focus-visible` global (1px sólido + offset 1px) garante visibilidade mesmo se classe Tailwind falhar.
 
 ### Reduced motion
 
@@ -622,7 +626,7 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 | Posso usar cool gray? | Apenas em `--info` (teal) e chart-3. Em chrome geral, não. |
 | Qual a linha base de body? | `text-sm leading-relaxed` (14px / 1.625) |
 | Como faço focus state? | `focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-transparent` (sem border flip — single hairline com halo) |
-| Qual radius pra card novo? | `rounded-lg` (12px). Botões/inputs `rounded-md` (8px). |
+| Qual radius pra card novo? | `rounded-lg` (8px; alguns cards de listagem `rounded-[10px]`). Botões/inputs `rounded-md` (6px). |
 | Qual o contraste mínimo? | AAA: 7:1 body, 4.5:1 large text, 3:1 non-text UI. |
 | Onde uso `bg-surface-deep`? | Code blocks, log/terminal viewers, featured-card-dark. **Não** em card normal. |
 | Quando uso `callout-card-coral`? | Empty state de módulo vazio, onboarding, banner crítico. Máx 1 por página. |
