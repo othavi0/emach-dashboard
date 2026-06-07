@@ -90,7 +90,8 @@ A troca efetiva no storefront (`getOriginBranchCep` → `getShippingSettings`, a
 | `client_id`            | FK → `client.id`                                                 | Sim         | Cliente autenticado que fez a compra.                                                                 |
 | `status`               | `order_status` enum                                              | Sim         | **Sempre `pending_payment` na criação.** Nunca criar pedido em outro status.                         |
 | `subtotal_amount`      | `numeric(12,2)` em BRL                                           | Sim         | Soma dos `line_total` dos itens antes de desconto e frete.                                            |
-| `discount_amount`      | `numeric(12,2)` em BRL                                           | Sim         | Desconto total aplicado (default `0`).                                                                |
+| `discount_amount`      | `numeric(12,2)` em BRL                                           | Sim         | **Apenas o desconto de cupom** (default `0`). A economia da promoção automática **não** entra aqui — já está embutida no `subtotal_amount`. Ver "Semântica de desconto" abaixo. |
+| `coupon_id`            | FK → `promotion.id` (`onDelete: set null`)                      | Não         | Cupom (`promotion` tipo `promocode`) aplicado no checkout. Nulo se nenhum cupom. Ver "Aplicação de cupom" abaixo. |
 | `shipping_amount`      | `numeric(12,2)` em BRL                                           | Sim         | Custo de frete (default `0`).                                                                         |
 | `total_amount`         | `numeric(12,2)` em BRL                                           | Sim         | `subtotal - discount + shipping`.                                                                     |
 | `shipping_address`     | `jsonb` com shape `ShippingAddress`                              | Sim         | Snapshot do endereço no momento da compra. Ver shape abaixo.                                          |
@@ -116,6 +117,18 @@ Shape esperado de `shipping_address` (JSONB):
   "country": "BR"
 }
 ```
+
+#### Semântica de desconto (`discount_amount` × auto-promo)
+
+`order.discount_amount` captura **apenas o desconto de cupom** (`promotion` tipo `promocode`).
+A economia da **promoção automática** (`type='promotion'`) **não** é somada aqui: ela já está
+embutida no `order.subtotal_amount`, porque o `order_item.unit_price` gravado é o preço **pós
+auto-promo**. A invariante `subtotal − discount + shipping = total` fecha numericamente.
+
+> ⚠️ Para relatórios de margem/desconto no dashboard: ler `discount_amount` como "desconto total
+> concedido" **subconta** — ignora a economia da auto-promo. Para o total realmente concedido,
+> derivar a economia de auto-promo comparando `order_item.unit_price` com o preço de catálogo da
+> tool na data do pedido. Não somar via `discount_amount`. (issue #124)
 
 ### `order_item` — campos obrigatórios no INSERT do checkout
 
@@ -236,9 +249,9 @@ O e-commerce preenche `order.notes` no INSERT do pedido e não deve escrever em 
 
 ## Aplicação de cupom no checkout (`promotion` tipo `promocode`)
 
-> Status: **a implementar no e-commerce** (Sub-projeto 2). Hoje o checkout do site **não aplica
-> nenhum cupom** — o dashboard apenas armazena. O dashboard é dono de `promotion`/`promotion_tool`
-> e define os campos; o enforcement do cupom vive no checkout (aqui).
+> Status: **implementado no e-commerce** (PR ecommerce#58). O checkout aplica o cupom e grava
+> `order.coupon_id` + `order.discount_amount`. O dashboard é dono de `promotion`/`promotion_tool`
+> e define os campos; o enforcement do cupom vive no checkout (ecommerce).
 
 Modelo (após o redesenho de 2026-06-05): `promotion` tem `type` (`promotion` automática |
 `promocode` cupom), `discount_type` (`percent` | `fixed`), `discount_value` (numeric),
@@ -263,8 +276,8 @@ Na confirmação do pedido (transição para `paid`):
 - Incrementar `redemption_count` de forma **idempotente**: `SELECT ... FOR UPDATE` na `promotion`
   + re-check do limite na mesma transação (mesmo padrão do débito de estoque em `stock_movement`).
   O contador nunca pode ultrapassar `max_redemptions` sob disparo concorrente.
-- Persistir o cupom aplicado no pedido (campo a definir no Sub-projeto 2 — ex.: `order.coupon_id`
-  + `order.discount_amount`).
+- Persistir o cupom aplicado no pedido: `order.coupon_id` (FK → `promotion.id`, `set null`) +
+  o valor abatido em `order.discount_amount`.
 - Qualquer write automático: `actor_type='system'`, sem `actor_id` (CHECK `actor_coherence`).
 
 A promoção **automática** (`type='promotion'`) **não** passa por aqui — já é aplicada no preço de
