@@ -48,7 +48,7 @@ jobs:
             PR automatico do workflow sync-db-schema (repo dashboard).
 
             Espelha packages/db/src/{schema,queries,sql/triggers.sql} do dashboard,
-            que e a fonte de verdade do schema (ADR-0007). Nao editar estes arquivos
+            que e a fonte de verdade do schema (ADR-0009). Nao editar estes arquivos
             diretamente neste repo - mudancas nascem no dashboard.
 
             Commit de origem: ${{ github.sha }}
