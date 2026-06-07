@@ -128,7 +128,7 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 
 - **Review sem Order** — resolvido (issue #36): `review.order_id` é NOT NULL e a coluna `verified_purchase` foi removida. `canCreateReview` é o único caminho de criação; a feature de avaliação editorial (review sem pedido) foi eliminada.
 - **`out_of_stock` × estoque real** — `Tool.status` tem o valor `out_of_stock`, mas estoque é calculado por variante × filial. Resolvido: `out_of_stock` é um rótulo manual e intencional, desacoplado do Stock Level — não é um status derivado.
-- **Lead** — o schema de `consent_log` antecipa um ator `lead` (enum `consent_actor`, coluna `leadId`). Resolvido: Lead não é um conceito do domínio — todo contato é um Client registrado. Esses artefatos de schema são código morto a remover. Ver ADR-0003.
+- **Lead** — o schema de `consent_log` antecipava um ator `lead` (enum `consent_actor`, coluna `leadId`). Resolvido: Lead não é um conceito do domínio — todo contato é um Client registrado. Os artefatos de schema **já foram removidos** — hoje `consent_log.client_id` é `NOT NULL` e não há enum `consent_actor`. Ver ADR-0003.
 - **Catch-all de categoria** — historicamente existiam duas categorias-raiz catch-all vazias (`sem-categoria` no seed, `geral` resquício de migration). Issue #39 confirmou **0 attribute definitions e 0 tools** sob elas. Issue #41 removeu ambas do seed e do banco: toda Tool tem uma Category real, sem fallback.
 - **`paymentStatus`** — `order` tem dois campos de estado (`status` e `paymentStatus`) com `paid`/`refunded` sobrepostos. Resolvido: o Order passa a ter um eixo único `status`; o campo `paymentStatus` e seu enum são removidos. Ver ADR-0005.
 
