@@ -10,12 +10,24 @@ import { eq } from "drizzle-orm";
 const db = createDb();
 const schema = { account, session, user, verification };
 
+const isProd = env.NODE_ENV === "production";
+
+// Em produção a URL é fixa e determinística (segurança: evita inferir host
+// arbitrário da request — vetor de host-header injection; a doc do Better Auth
+// recomenda baseURL explícito em prod). Em dev o host é derivado da request e
+// validado contra `localhost:*`, permitindo rodar em qualquer porta sem editar
+// o .env (útil quando a 3001 está ocupada por outro projeto). Dashboard é
+// email/senha apenas — sem OAuth, então não há redirect URIs a registrar.
+const dashboardBaseURL = isProd
+	? env.BETTER_AUTH_URL
+	: { allowedHosts: ["localhost:*"], protocol: "http" as const };
+
 export const authDashboard = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema,
 	}),
-	trustedOrigins: [env.CORS_ORIGIN],
+	trustedOrigins: isProd ? [env.CORS_ORIGIN] : ["http://localhost:*"],
 	emailAndPassword: {
 		enabled: true,
 		disableSignUp: true,
@@ -41,7 +53,7 @@ export const authDashboard = betterAuth({
 		},
 	},
 	secret: env.BETTER_AUTH_SECRET,
-	baseURL: env.BETTER_AUTH_URL,
+	baseURL: dashboardBaseURL,
 	plugins: [nextCookies()],
 	databaseHooks: {
 		session: {
