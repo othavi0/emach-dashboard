@@ -1,5 +1,7 @@
 # Signup público de staff com aprovação manual
 
+> **Status: Superseded por [ADR-0013](0013-auth-convite-only.md) (2026-06-05).** O signup público foi removido em favor de convite-only (PR #116) — `/sign-up` não existe mais e `disableSignUp: true` está ativo. O texto abaixo fica como registro histórico da decisão original.
+
 O dashboard usa Better Auth com `emailAndPassword.enabled=true` em `packages/auth/src/dashboard.ts`, o que significa que qualquer pessoa com a URL `/sign-up` cria conta — a conta cai em `status='pending'` (default em `additionalFields.status`) e fica invisível ao dashboard até um admin aprovar via `/dashboard/users`. Avaliamos três caminhos: (a) invite-only com link de token para set-password, (b) signup público com allowlist de domínio (`@emach.com.br`), e (c) manter o público com aprovação manual. Decidimos manter o público — é o caminho que **não requer escrever um flow de invitation** (token, expiração, página `/accept-invite`, reenvio) num momento em que ainda não temos um processo formal de onboarding de staff e o volume esperado é baixo (poucas dezenas de funcionários, não milhares).
 
 Aceitamos os riscos: a página `/sign-up` é pública e indexável, e o admin precisará periodicamente rejeitar contas de spam. Para mitigar, mantemos `rejectUser` como DELETE físico (libera email pra reuso, mantém tabela limpa) e adicionamos bulk-reject no card de pending. Não removemos a possibilidade de virar invite-only depois — é uma mudança aditiva (toggle no `authDashboard` + nova rota).
