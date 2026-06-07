@@ -7,12 +7,12 @@ import {
 	storeSettings,
 } from "../schema/store-settings";
 
-export type ShippingSettings = {
+export interface ShippingSettings {
+	insuranceCapAmount: number;
+	insurancePolicy: ShippingInsurancePolicy;
 	originBranchId: string | null;
 	originCep: string | null;
-	insurancePolicy: ShippingInsurancePolicy;
-	insuranceCapAmount: number;
-};
+}
 
 const DEFAULTS: ShippingSettings = {
 	originBranchId: null,
