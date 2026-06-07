@@ -5,12 +5,6 @@ import {
 	HoverCardContent,
 	HoverCardTrigger,
 } from "@emach/ui/components/hover-card";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@emach/ui/components/tooltip";
 import { CircleHelp } from "lucide-react";
 
 interface ShortProps {
@@ -35,20 +29,18 @@ export function HelpTooltip(props: HelpTooltipProps) {
 
 	if ("text" in props && props.text) {
 		return (
-			<TooltipProvider>
-				<Tooltip>
-					<TooltipTrigger
-						aria-label={ariaLabel}
-						className={TRIGGER_CLASS}
-						render={<button type="button" />}
-					>
-						<CircleHelp aria-hidden className="size-3.5" />
-					</TooltipTrigger>
-					<TooltipContent className="max-w-[240px] text-xs leading-relaxed">
-						{props.text}
-					</TooltipContent>
-				</Tooltip>
-			</TooltipProvider>
+			<HoverCard>
+				<HoverCardTrigger
+					aria-label={ariaLabel}
+					className={TRIGGER_CLASS}
+					render={<button type="button" />}
+				>
+					<CircleHelp aria-hidden className="size-3.5" />
+				</HoverCardTrigger>
+				<HoverCardContent className="w-auto max-w-[240px] leading-relaxed">
+					{props.text}
+				</HoverCardContent>
+			</HoverCard>
 		);
 	}
 
