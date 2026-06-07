@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const ASCII_PRINTABLE_REGEX = /^[\x20-\x7E]+$/;
+
 // ---------------------------------------------------------------------------
 // Base fields shared by both promotion variants
 // ---------------------------------------------------------------------------
@@ -67,8 +69,7 @@ const promocodeVariantSchema = z.object({
 		.min(1, "Código obrigatório para promocode")
 		.max(50, "Código não pode ultrapassar 50 caracteres")
 		.regex(
-			// biome-ignore lint/suspicious/noControlCharactersInRegex: ASCII printable range 0x20–0x7E intentional
-			/^[\x20-\x7E]+$/,
+			ASCII_PRINTABLE_REGEX,
 			"Código deve conter apenas caracteres ASCII imprimíveis"
 		),
 	maxRedemptions: z.number().int().min(1).optional().nullable(),

@@ -184,6 +184,14 @@ function TreeRow({
 	} = useSortable({ id: node.id });
 	const hasChildren = node.children.length > 0;
 	const isOpen = expanded.has(node.id);
+	let toggleIcon: React.ReactNode = <span className="inline-block size-4" />;
+	if (hasChildren) {
+		toggleIcon = isOpen ? (
+			<ChevronDown aria-hidden className="size-4" />
+		) : (
+			<ChevronRight aria-hidden className="size-4" />
+		);
+	}
 
 	return (
 		<div
@@ -216,15 +224,7 @@ function TreeRow({
 					onClick={() => onToggle(node.id)}
 					type="button"
 				>
-					{hasChildren ? (
-						isOpen ? (
-							<ChevronDown aria-hidden className="size-4" />
-						) : (
-							<ChevronRight aria-hidden className="size-4" />
-						)
-					) : (
-						<span className="inline-block size-4" />
-					)}
+					{toggleIcon}
 				</button>
 				<Link
 					className="font-medium text-sm hover:underline"

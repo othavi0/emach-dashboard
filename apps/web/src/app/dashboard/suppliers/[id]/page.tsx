@@ -45,15 +45,18 @@ export default async function SupplierDetailPage({
 	const tab = sp.tab ?? "overview";
 	const audit = tab === "history" ? await getSupplierAuditLog(id) : [];
 
-	const headerAction =
-		tab === "tools" ? (
+	let headerAction: React.ReactNode = null;
+	if (tab === "tools") {
+		headerAction = (
 			<Link
 				className={buttonVariants({ size: "sm" })}
 				href={`/dashboard/tools/new?supplierId=${id}`}
 			>
 				Nova ferramenta
 			</Link>
-		) : tab === "overview" ? (
+		);
+	} else if (tab === "overview") {
+		headerAction = (
 			<div className="flex items-center gap-2">
 				<Link
 					className={buttonVariants({ size: "sm", variant: "outline" })}
@@ -68,7 +71,8 @@ export default async function SupplierDetailPage({
 					supplierName={detail.name}
 				/>
 			</div>
-		) : null;
+		);
+	}
 
 	const tabs: EntityTab[] = [
 		{

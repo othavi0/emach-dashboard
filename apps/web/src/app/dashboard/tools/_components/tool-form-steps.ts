@@ -92,7 +92,8 @@ type _UncoveredField = Exclude<
 const _stepFieldsAreExhaustive: _UncoveredField extends never
 	? true
 	: ["faltam campos em STEP_FIELDS:", _UncoveredField] = true;
-void _stepFieldsAreExhaustive;
+
+export type { _stepFieldsAreExhaustive as _ };
 
 export const FIELD_LABELS: Record<string, string> = {
 	name: "Nome",

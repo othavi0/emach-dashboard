@@ -228,6 +228,7 @@ function TypeSelector({
 // PromotionFormFields — campos controlados (values + onPatch)
 // ---------------------------------------------------------------------------
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: componente de form com múltiplos campos condicionais (coupon vs discount, datas, ferramentas); complexidade inerente ao domínio
 export function PromotionFormFields({
 	availableTools,
 	disabled,

@@ -79,6 +79,8 @@ function buildTransitionPath(target: OrderStatus): OrderStatus[] {
 				"returned",
 				"refunded",
 			];
+		default:
+			return [];
 	}
 }
 
@@ -235,6 +237,7 @@ interface ItemDef {
 // seedSales
 // ---------------------------------------------------------------------------
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: script de seed com múltiplas inserções sequenciais de pedidos/movimentos — complexidade inerente ao domínio de bootstrap
 export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 	const staffUserId = ctx.staffUserIds[0];
 	if (!staffUserId) {

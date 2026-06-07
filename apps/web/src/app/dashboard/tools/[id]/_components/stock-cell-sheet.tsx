@@ -213,22 +213,18 @@ export function StockCellSheet({
 	}
 
 	const st = status();
-	const statusBadgeClass =
-		st === "critical"
-			? "bg-destructive/15 text-destructive"
-			: st === "reorder"
-				? "bg-warning/15 text-warning"
-				: st === "ok"
-					? "bg-success/15 text-success"
-					: "bg-muted text-muted-foreground";
-	const statusLabel =
-		st === "critical"
-			? "Crítico"
-			: st === "reorder"
-				? "Repor"
-				: st === "ok"
-					? "OK"
-					: "Sem limites";
+	let statusBadgeClass = "bg-muted text-muted-foreground";
+	let statusLabel = "Sem limites";
+	if (st === "critical") {
+		statusBadgeClass = "bg-destructive/15 text-destructive";
+		statusLabel = "Crítico";
+	} else if (st === "reorder") {
+		statusBadgeClass = "bg-warning/15 text-warning";
+		statusLabel = "Repor";
+	} else if (st === "ok") {
+		statusBadgeClass = "bg-success/15 text-success";
+		statusLabel = "OK";
+	}
 
 	return (
 		<Sheet onOpenChange={(open) => !open && onClose()} open={true}>

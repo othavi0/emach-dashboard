@@ -66,8 +66,7 @@ function StarRating({ rating }: { rating: number }) {
 					className={
 						i < clamped ? "size-3.5 fill-current" : "size-3.5 opacity-30"
 					}
-					// biome-ignore lint/suspicious/noArrayIndexKey: static star list, no id
-					key={i}
+					key={`star-${i}`}
 				/>
 			))}
 		</span>

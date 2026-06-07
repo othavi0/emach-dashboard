@@ -17,12 +17,12 @@ export function PromotionCard({ promotion }: { promotion: PromotionListItem }) {
 	const dimmed =
 		promotion.status === "inactive" || promotion.status === "expired";
 	const remaining = daysRemainingDisplay(promotion.status, promotion.endsAt);
-	const remainingTone =
-		remaining.tone === "danger"
-			? "text-destructive"
-			: remaining.tone === "warning"
-				? "text-amber-500"
-				: "text-foreground";
+	let remainingTone = "text-foreground";
+	if (remaining.tone === "danger") {
+		remainingTone = "text-destructive";
+	} else if (remaining.tone === "warning") {
+		remainingTone = "text-amber-500";
+	}
 
 	return (
 		<Link

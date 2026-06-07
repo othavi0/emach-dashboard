@@ -42,6 +42,7 @@ function executionMessage(status: PromotionStatus): string {
 	}
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: componente de overview com múltiplos estados condicionais de promoção; complexidade inerente ao domínio
 export function OverviewTab({ detail }: { detail: PromotionDetail }) {
 	const remaining = daysRemainingDisplay(detail.status, detail.endsAt);
 	const isCoupon = detail.type === "promocode";

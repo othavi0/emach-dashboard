@@ -761,6 +761,7 @@ const TOOLS: ToolDef[] = [
 // Main function
 // ---------------------------------------------------------------------------
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: script de seed com múltiplas inserções sequenciais de entidades relacionadas — complexidade inerente ao domínio de bootstrap
 export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 	// --- 1. Categorias ---
 	// Inserir em ordem topológica (pais antes de filhos).
@@ -973,7 +974,7 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 		// Um atributo é elegível se sua categoryId está no caminho do root até a primary.
 		const pathCategoryIds = new Set<string>();
 		for (const [catId, catPath] of Object.entries(pathById)) {
-			if (primaryPath === catPath || primaryPath.startsWith(catPath + "/")) {
+			if (primaryPath === catPath || primaryPath.startsWith(`${catPath}/`)) {
 				pathCategoryIds.add(catId);
 			}
 		}

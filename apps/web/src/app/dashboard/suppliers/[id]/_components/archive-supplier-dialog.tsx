@@ -35,6 +35,8 @@ export function ArchiveSupplierDialog({
 	const [open, setOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
 	const isArchived = status === "archived";
+	const actionLabel = isArchived ? "Restaurar" : "Arquivar";
+	const pendingLabel = isArchived ? "Restaurando…" : "Arquivando…";
 
 	function handleConfirm() {
 		startTransition(async () => {
@@ -90,12 +92,10 @@ export function ArchiveSupplierDialog({
 					>
 						{isPending ? (
 							<>
-								<Spinner /> {isArchived ? "Restaurando…" : "Arquivando…"}
+								<Spinner /> {pendingLabel}
 							</>
-						) : isArchived ? (
-							"Restaurar"
 						) : (
-							"Arquivar"
+							actionLabel
 						)}
 					</AlertDialogAction>
 				</AlertDialogFooter>

@@ -88,15 +88,16 @@ export default async function BranchDetailPage({
 		},
 	];
 
-	const headerAction = isStockTab ? (
-		canMutateStock ? (
+	let headerAction: React.ReactNode = null;
+	if (isStockTab) {
+		headerAction = canMutateStock ? (
 			<AddToolButton branchId={id} branchName={detail.name} />
-		) : null
-	) : sp.tab === "team" ? (
-		<TeamLinkPanel branchId={id} />
-	) : !sp.tab || sp.tab === "overview" ? (
-		<EditBranchButton />
-	) : null;
+		) : null;
+	} else if (sp.tab === "team") {
+		headerAction = <TeamLinkPanel branchId={id} />;
+	} else if (!sp.tab || sp.tab === "overview") {
+		headerAction = <EditBranchButton />;
+	}
 
 	return (
 		<div className="flex flex-col gap-6 p-6">

@@ -128,6 +128,14 @@ function EditableRow({ variant, toolId }: EditableRowProps) {
 	const dirty = isDirty(initial, state);
 
 	function handleSave() {
+		let costAmountValue: string | null | undefined;
+		if (state.costAmount === initial.costAmount) {
+			costAmountValue = undefined;
+		} else if (state.costAmount === "") {
+			costAmountValue = null;
+		} else {
+			costAmountValue = state.costAmount;
+		}
 		startTransition(async () => {
 			const result = await updateToolVariant({
 				variantId: variant.id,
@@ -140,12 +148,7 @@ function EditableRow({ variant, toolId }: EditableRowProps) {
 					state.priceAmount === initial.priceAmount
 						? undefined
 						: state.priceAmount,
-				costAmount:
-					state.costAmount === initial.costAmount
-						? undefined
-						: state.costAmount === ""
-							? null
-							: state.costAmount,
+				costAmount: costAmountValue,
 			});
 			if (result.ok) {
 				toast.success("Variante atualizada");
@@ -172,6 +175,21 @@ function EditableRow({ variant, toolId }: EditableRowProps) {
 				toast.error(result.error);
 			}
 		});
+	}
+
+	let saveControl: React.ReactNode = null;
+	if (dirty) {
+		saveControl = (
+			<Button disabled={pending} onClick={handleSave} size="sm">
+				{pending ? "Salvando…" : "Salvar"}
+			</Button>
+		);
+	} else if (savedTick) {
+		saveControl = (
+			<span className="inline-flex items-center gap-1 text-success text-xs">
+				<CheckCircle2 className="size-3.5" /> Salvo
+			</span>
+		);
 	}
 
 	return (
@@ -231,17 +249,7 @@ function EditableRow({ variant, toolId }: EditableRowProps) {
 					type="radio"
 				/>
 			</TableCell>
-			<TableCell className="text-right">
-				{dirty ? (
-					<Button disabled={pending} onClick={handleSave} size="sm">
-						{pending ? "Salvando…" : "Salvar"}
-					</Button>
-				) : savedTick ? (
-					<span className="inline-flex items-center gap-1 text-success text-xs">
-						<CheckCircle2 className="size-3.5" /> Salvo
-					</span>
-				) : null}
-			</TableCell>
+			<TableCell className="text-right">{saveControl}</TableCell>
 		</TableRow>
 	);
 }

@@ -132,6 +132,7 @@ export function RefundDialog({
 				</DialogHeader>
 
 				<div className="space-y-3">
+					{/* biome-ignore lint/a11y/noLabelWithoutControl: label envolve Checkbox (controle aninhado válido em HTML); biome não reconhece componente shadcn como controle nativo */}
 					<label className="flex items-start gap-3">
 						<Checkbox
 							checked={creditStock}

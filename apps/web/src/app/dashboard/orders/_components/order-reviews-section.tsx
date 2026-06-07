@@ -74,6 +74,7 @@ export function OrderReviewsSection({ rows }: OrderReviewsSectionProps) {
 					>
 						{row.thumbUrl ? (
 							// biome-ignore lint/performance/noImgElement: Supabase public URL
+							// biome-ignore lint/correctness/useImageSize: thumb Supabase, dimensões via CSS
 							<img
 								alt=""
 								className="h-12 w-12 rounded object-cover"
@@ -102,7 +103,11 @@ function ReviewStateDetail({ row }: { row: OrderReviewRow }) {
 	if (row.review) {
 		return (
 			<div className="flex flex-wrap items-center gap-2 text-sm">
-				<span aria-label={`${row.review.rating} de 5`} className="tabular-nums">
+				<span
+					aria-label={`${row.review.rating} de 5`}
+					className="tabular-nums"
+					role="img"
+				>
 					{"★".repeat(row.review.rating)}
 					{"☆".repeat(5 - row.review.rating)}
 				</span>

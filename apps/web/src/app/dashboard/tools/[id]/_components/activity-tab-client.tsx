@@ -71,6 +71,56 @@ export function ActivityTabClient({
 		setReasons([...ALL_REASONS]);
 	}
 
+	let listContent: React.ReactNode;
+	if (items.length === 0 && pending) {
+		listContent = (
+			<div className="flex items-center justify-center rounded-md border border-border py-12">
+				<Spinner />
+			</div>
+		);
+	} else if (items.length === 0) {
+		listContent = (
+			<div className="flex flex-col items-center gap-2 rounded-md border border-border py-12 text-center">
+				<p className="text-muted-foreground text-sm">
+					{isFiltered
+						? "Sem movimentações pra esses filtros."
+						: "Sem movimentações registradas."}
+				</p>
+				{isFiltered && (
+					<Button onClick={resetFilters} size="sm" variant="ghost">
+						Limpar filtros
+					</Button>
+				)}
+			</div>
+		);
+	} else {
+		listContent = (
+			<>
+				<ActivityTimeline rows={items} />
+				{hasMore && (
+					<Button
+						className="self-center"
+						disabled={pending}
+						onClick={loadMore}
+						size="sm"
+						variant="outline"
+					>
+						{pending ? (
+							<>
+								<Spinner /> Carregando…
+							</>
+						) : (
+							"Carregar mais"
+						)}
+					</Button>
+				)}
+				{error && (
+					<p className="text-center text-destructive text-sm">{error}</p>
+				)}
+			</>
+		);
+	}
+
 	return (
 		<div className="flex flex-col gap-4">
 			<ActivityFilters
@@ -83,48 +133,7 @@ export function ActivityTabClient({
 				reasons={reasons}
 			/>
 
-			{items.length === 0 && pending ? (
-				<div className="flex items-center justify-center rounded-md border border-border py-12">
-					<Spinner />
-				</div>
-			) : items.length === 0 ? (
-				<div className="flex flex-col items-center gap-2 rounded-md border border-border py-12 text-center">
-					<p className="text-muted-foreground text-sm">
-						{isFiltered
-							? "Sem movimentações pra esses filtros."
-							: "Sem movimentações registradas."}
-					</p>
-					{isFiltered && (
-						<Button onClick={resetFilters} size="sm" variant="ghost">
-							Limpar filtros
-						</Button>
-					)}
-				</div>
-			) : (
-				<>
-					<ActivityTimeline rows={items} />
-					{hasMore && (
-						<Button
-							className="self-center"
-							disabled={pending}
-							onClick={loadMore}
-							size="sm"
-							variant="outline"
-						>
-							{pending ? (
-								<>
-									<Spinner /> Carregando…
-								</>
-							) : (
-								"Carregar mais"
-							)}
-						</Button>
-					)}
-					{error && (
-						<p className="text-center text-destructive text-sm">{error}</p>
-					)}
-				</>
-			)}
+			{listContent}
 		</div>
 	);
 }

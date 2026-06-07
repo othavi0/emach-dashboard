@@ -25,6 +25,7 @@ interface PageProps {
 	params: Promise<{ id: string }>;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: mapeamento de dados DB → form com múltiplos campos opcionais; complexidade inerente à transformação
 function toFormValues(
 	row: typeof tool.$inferSelect,
 	images: (typeof toolImage.$inferSelect)[],

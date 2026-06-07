@@ -34,7 +34,7 @@ export function formatCep(raw: string | null | undefined): string | null {
 export function formatBusinessPeriod(
 	p: BranchBusinessHoursPeriod | null | undefined
 ): string {
-	if (!(p && p.isOpen && p.opensAt && p.closesAt)) {
+	if (!(p?.isOpen && p.opensAt && p.closesAt)) {
 		return "Fechado";
 	}
 	return `${p.opensAt}–${p.closesAt}`;

@@ -31,8 +31,15 @@ function stockStatus(row: BranchStockRow): StockStatus {
 
 export function BranchStockCard({ onSelect, row }: BranchStockCardProps) {
 	const status = stockStatus(row);
+	let quantityColor = "text-foreground";
+	if (status === "critical" || row.quantity === 0) {
+		quantityColor = "text-destructive";
+	} else if (status === "reorder") {
+		quantityColor = "text-amber-500";
+	}
 
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: card clicável (padrão DESIGN.md §4) — div role=button com onKeyDown
 		<div
 			className="group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			onClick={() => onSelect(row)}
@@ -106,13 +113,7 @@ export function BranchStockCard({ onSelect, row }: BranchStockCardProps) {
 			<div className="grid grid-cols-3 border-border border-t">
 				<div className="flex flex-col items-center border-border border-r py-2.5">
 					<span
-						className={`font-bold text-[18px] tabular-nums ${
-							status === "critical" || row.quantity === 0
-								? "text-destructive"
-								: status === "reorder"
-									? "text-amber-500"
-									: "text-foreground"
-						}`}
+						className={`font-bold text-[18px] tabular-nums ${quantityColor}`}
 					>
 						{row.quantity}
 					</span>

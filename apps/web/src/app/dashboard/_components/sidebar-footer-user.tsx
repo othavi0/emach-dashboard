@@ -20,12 +20,12 @@ import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { getInitials } from "@/lib/format/name";
 
-export type FooterUser = {
+export interface FooterUser {
 	email: string;
 	id: string;
 	name: string;
 	role?: string | null;
-};
+}
 
 export function getSidebarProfileHref(userId: string): string {
 	return `/dashboard/users/${userId}`;

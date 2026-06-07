@@ -108,6 +108,7 @@ export function ToolReviewsSection({
 									<span
 										aria-label={`${r.rating} de 5`}
 										className="tabular-nums"
+										role="img"
 									>
 										{"★".repeat(r.rating)}
 										{"☆".repeat(5 - r.rating)}
