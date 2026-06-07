@@ -230,6 +230,15 @@ Regra de color-blindness (§7) continua: status = **ícone + label + cor**, nunc
   - **Invalid:** `border-destructive` + `ring-1 ring-destructive/20`.
 - `Checkbox` / `RadioGroup` / `Switch`: bg coral quando checked.
 
+### Help tooltip (`HelpTooltip`)
+
+Ajuda contextual de campo de formulário. `apps/web/src/components/help-tooltip.tsx` — gatilho `CircleHelp` (`size-4`, `text-muted-foreground` → `hover/focus:text-info`) dentro do `<Label>`/`<h3>` (container em `flex items-center gap-1.5`). Sobre `HoverCard` do base-ui (fecha no Esc nativo — WCAG 1.4.13). Union de dois modos:
+
+- **Curto** (`text`) — uma frase de desambiguação. `HoverCardContent` `max-w-[240px]`.
+- **Rico** (`title` + `body` + `example?`) — `w-72`; título `font-semibold`, body `text-muted-foreground`, e `example` opcional num well `bg-surface-deep` `font-mono text-[11px] text-info`.
+
+Regra: converter `<p>` verboso de helper em tooltip; **manter visível** caveat comportamental (ex: "faixas de CEP não restringem pedidos"). Em uso: tools (identity/logistics/publish), branches, suppliers, categories/attributes. Detalhe de uso em `apps/web/CLAUDE.md`.
+
 ### Tabs
 
 `packages/ui/src/components/tabs.tsx`. Sobre `@base-ui/react`. 2 variants × 2 orientations × scrollable opcional.
@@ -354,6 +363,7 @@ A tríade canônica de mutação de entidade:
 
 - **Editar (rápido / poucos campos):** drawer lateral (`Sheet`), aberto pela ação do header via `?edit=1`. Canônico: `branches/[id]/_components/branch-edit-sheet.tsx`.
 - **Criar, ou editar/criar de formulário grande/complexo:** página dedicada (`/new`, `/[id]/edit`). A **complexidade do formulário decide** — entidade com muitos campos (ex: ferramenta com variantes, specs) vai sempre para página, mesmo para editar. Drawer só para formulários enxutos. Canônico: `branches/new/page.tsx`.
+  - **Wizard multi-step** para o caso mais pesado (ferramenta): `tools/_components/tool-wizard.tsx` divide o form em passos com stepper. Wizard (criar) e edit-view compartilham **fonte única** — `tool-sections.ts` (`ToolStepId → Component`) + `use-tool-submit.ts` — para não duplicar campos. Só o estado de stepper vive no wizard. Detalhe em `apps/web/CLAUDE.md`.
 - **Ação destrutiva (excluir, desvincular, cancelar):** `AlertDialog` de confirmação — nunca ação direta. Controlado (`useState` para `open`), `e.preventDefault()` no `AlertDialogAction` + fechar manualmente no sucesso, e `stopPropagation` quando o gatilho vive dentro de um card clicável. Canônico: `users/_components/destructive-action-dialog.tsx`, `branches/[id]/_components/team-member-card.tsx`. **Botão destrutivo nunca usa coral (`default`)** — coral é ação positiva; destrutivo é `destructive`, `outline` ou `ghost` conforme o peso.
 
 **Escopo:** este pattern é **default para entidades/CRUDs novos**; telas existentes migram gradualmente quando forem tocadas (não há migração big-bang). Adaptar ao domínio é permitido — o esqueleto (tabs + header contextual + cards do catálogo + drawer/dialog) é o que se mantém.
@@ -580,6 +590,9 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 
 Mudanças sistêmicas consolidadas, mais recente primeiro:
 
+- **Form de ferramenta: wizard + HelpTooltip (2026-06-05)** — (PRs #121–123) o form mais pesado do sistema (ferramenta) migrou para **wizard multi-step** com stepper; wizard (criar) e edit-view passam a compartilhar fonte única de seções/submit (`tool-sections.ts` + `use-tool-submit.ts`). Introduzido o componente **`HelpTooltip`** (ajuda contextual `ⓘ` em label/h3, sobre HoverCard, modos curto/rico) — retrofitado em tools, branches, suppliers, categories/attributes. Ver §4 (Help tooltip, Mutações) e `apps/web/CLAUDE.md`.
+- **Telas de auth: login redesign + convite-only (2026-06-03)** — (PRs #112, #116) família de telas de auth redesenhada; login com **hero serif** (Cormorant, único lugar fora de h1/h2 onde a serif aparece em corpo grande). Fluxo de signup público trocado por **convite-only** com e-mail de convite. Sem mudança de token — aplica o sistema existente; serif-hero formalizado como uso legítimo da Cormorant além de h1/h2.
+- **Detalhe de pedido no Entity pattern (2026-06-03)** — (PR #115) `/dashboard/orders/[id]` migrou para o Entity/CRUD pattern (`EntityIdentityHeader` + `EntityTabs` + ações contextuais por tab) com aba de auditoria. Aplicação do pattern de 06-01, sem mudança de sistema — referência de que pedidos seguem o mesmo esqueleto das demais entidades.
 - **Seleção em massa em listagens (2026-06-02)** — padrão genérico de bulk actions em card-grid (Fase 1): "modo seleção" (botão liga → card vira toggle com ring coral, barra flutuante), seleção só dos carregados. 4 peças reutilizáveis (`useBulkSelection` + `components/bulk/{SelectableItem,BulkActionBar,SelectionToolbar}`), plugadas em pedidos e clientes com a ação "Exportar selecionados" (export route aceita `?ids=`). `SelectableItem` intercepta o clique no capture pra coexistir com cards navegáveis. Fase 2 (futuro): mutações em lote. Ver §4 Seleção em massa.
 - **Pedidos: card-grid + tabs split + status visual (2026-06-02)** — (1) listagem-raiz de `/dashboard/orders` migrou de tabela (`order-table.tsx`, removido) para **card-grid** (stat-card `order-card.tsx`: avatar de iniciais + nº + 📍 filial + footer Itens · Total · Data). Regra reforçada: tabela é para coleção aninhada em detalhe, não para listagem-raiz. (2) **Tabs split** — barra de filtros de status dividida em dois `<TabsList>` (`justify-between`): fluxo do operador à esquerda, exceções à direita; sem tab "Todos" (abre listando tudo, toggle na tab ativa). (3) **Status visual com fonte única** — novo `components/status-visual.tsx` (ícone/tone) + `ORDER_STATUS_META` em `status-meta.ts`; `OrderStatusBadge` refatorado pra consumir, e histórico (`ActivityFeed`) + pendências (`PendingPanel`) ganham ícone+cor por status (`iconKey`/`tone`/`accentLabel`, opcionais — outros módulos intactos). Label "Aguardando pgto" → "Aguardando pagamento" em todo o sistema. Ver §4 (Status visual, Tabs split, Cards, PendingPanel+ActivityFeed).
 - **Entity / CRUD pattern + catálogo de cards (2026-06-01)** — consolidado a partir do redesign das tabs de filial (`branches/[id]`). Formalizados: (1) **página de detalhe de entidade** com `EntityIdentityHeader` + `EntityTabs` (sincronizadas com `?tab=`) + **ações de header contextuais por tab** (Editar/Vincular/Adicionar mudam pela aba ativa, nunca duplicadas no corpo); (2) **catálogo de 4 arquétipos de card** (stat / media / identity / entity) com shell comum e **footer edge-to-edge** (faixa `border-t` que encosta nas bordas — 3 técnicas conforme padding do container); (3) **tríade de mutação** editar=drawer (`Sheet`), criar/forms complexos=página, destrutivo=`AlertDialog` controlado; botão destrutivo nunca coral. Badge de contagem em tab de detalhe uniformizado em `secondary`. Default para CRUDs novos; existentes migram aos poucos. Ver §4 (Cards, Entity detail, Mutações).
@@ -622,6 +635,8 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 | Footer de card recuado ou edge-to-edge? | Edge-to-edge — `border-t`/divisórias até a borda. `-mx-4 px-4` se o card tem padding. Ver §4. |
 | Editar entidade: drawer ou página? | Drawer (`Sheet`) se poucos campos; página se formulário grande/complexo. Criar = página. |
 | Excluir/desvincular: como? | `AlertDialog` de confirmação (controlado). Botão destrutivo nunca coral. |
+| Ajuda contextual num campo? | `<HelpTooltip text="…" />` (curto) ou `<HelpTooltip title body example />` (rico), dentro do `<Label>`. Ver §4 Help tooltip. |
+| Form muito complexo (ferramenta)? | Wizard multi-step (`tool-wizard.tsx`); seções/submit compartilhados com o edit-view. Ver §4 Mutações. |
 
 ## 12. Origem
 
