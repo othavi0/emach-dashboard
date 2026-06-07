@@ -15,7 +15,7 @@ Dashboard interno + base para futuro ecomerce BR. Monorepo Bun + Turborepo. Auth
 - **Env validation:** `@t3-oss/env-core` + Zod (`packages/env`)
 - **Lint/format:** Biome 2.4.13 + Ultracite 7.6 (`bun fix`)
 - **Storage:** Supabase Storage (`tool-images` bucket) para imagens de produtos
-- **Design system:** Industrial neutrals warm-dark + copper, dark-mode único (ver `DESIGN.md`)
+- **Design system:** Editorial-workshop warm-dark + coral, serif (Cormorant) em h1/h2, dark-mode único, AAA (ver `DESIGN.md`)
 
 ## Getting Started
 
@@ -92,7 +92,7 @@ emach-dashboard/
 │   ├── clean.sh
 │   └── validate-bts.mjs
 ├── CLAUDE.md                        # Guia canônico para Claude Code (e Codex via AGENTS.md)
-├── DESIGN.md                        # Sistema visual industrial dark + copper
+├── DESIGN.md                        # Sistema visual editorial-workshop dark + coral + serif
 ├── PRODUCT.md                       # Register product + personality + anti-references
 └── .mcp.json                        # MCP servers: context7, supabase, shadcn, ...
 ```
