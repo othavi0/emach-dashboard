@@ -9,7 +9,7 @@ Armazena imagens de produto das ferramentas. Bucket **público** — leitura dir
 1. Supabase Dashboard → Storage → **New bucket**
 2. Nome: `tool-images`
 3. Public: **ON**
-4. File size limit: **5 MB**
+4. File size limit: **5 MB** (folga do bucket; o app valida **2 MB pós-compressão** — ver Arquitetura de acesso)
 5. Allowed MIME types: `image/png`, `image/jpeg`, `image/webp`
 
 > A CLI `supabase storage` (v2.91.x) só tem `cp/ls/mv/rm` — não cria bucket. Use Dashboard ou SQL.
@@ -39,7 +39,7 @@ Salvar a URL resultante em `tool_image.url` (uma linha por imagem, `sort_order` 
 
 Upload e delete acontecem **server-side** via server actions em `apps/web/src/app/dashboard/tools/_components/image-actions.ts` usando `supabaseAdmin` (`apps/web/src/lib/supabase-server.ts`) com `SUPABASE_SERVICE_ROLE_KEY`. Bucket RLS permanece fechado para `anon` — apenas leitura pública via URL direta.
 
-Validações de tipo e tamanho (5 MB, JPG/PNG/WEBP) acontecem tanto no client (`tool-image-gallery.tsx`) quanto no server (`image-actions.ts`) — defesa em camadas.
+Validações de tipo e tamanho (**2 MB pós-compressão** via `MAX_SIZE_BYTES`, JPG/PNG/WEBP) acontecem tanto no client (`tool-image-gallery.tsx`) quanto no server (`image-actions.ts`) — defesa em camadas. O bucket aceita até 5 MB (folga), mas o enforcement efetivo é 2 MB.
 
 ### Cleanup de storage
 
