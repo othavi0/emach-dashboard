@@ -27,7 +27,10 @@
       "!**/.source",
       "!**/convex/_generated",
       "!packages/db/src/migrations",
-      "!**/.superpowers"
+      "!**/.superpowers",
+      "!**/.agents",
+      "!**/.claude",
+      "!**/.github/skills"
     ]
   },
   "formatter": {
