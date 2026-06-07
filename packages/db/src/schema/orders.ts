@@ -92,12 +92,23 @@ export const order = pgTable(
 			precision: 12,
 			scale: 2,
 		}).notNull(),
+		// Captura APENAS o desconto de cupom (promotion type='promocode').
+		// A economia da promoção AUTOMÁTICA (type='promotion') NÃO entra aqui:
+		// já está embutida no subtotalAmount, porque o unit_price de cada
+		// order_item é o preço pós-auto-promo. A invariante
+		// subtotal − discount + shipping = total fecha, mas relatório de margem
+		// que ler discountAmount como "desconto total concedido" SUBCONTA — para
+		// o total realmente concedido, derivar a economia de auto-promo comparando
+		// order_item.unit_price com o preço de catálogo na data do pedido. (issue #124)
 		discountAmount: numeric("discount_amount", {
 			precision: 12,
 			scale: 2,
 		})
 			.notNull()
 			.default("0"),
+		// Cupom aplicado no checkout (escrito pelo ecommerce). set null: se a
+		// promotion for deletada, o pedido preserva o histórico monetário em
+		// discountAmount mas perde o vínculo.
 		couponId: text("coupon_id").references(() => promotion.id, {
 			onDelete: "set null",
 		}),
