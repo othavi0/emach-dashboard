@@ -81,8 +81,9 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 
 ### Marketing
 
-- **Promotion (Promoção)** — desconto percentual aplicado a um conjunto de Tools (`promotionTool`). `type='promotion'`. **Descontos nunca empilham**: quando mais de uma Promotion ou Promocode cobre a mesma Tool, vale apenas o de maior percentual — no máximo um desconto por Tool. Ver ADR-0002.
-- **Promocode (Cupom)** — uma Promotion com `type='promocode'` e `code` preenchido. **Não existe tabela `coupon`** — cupom é uma variação de Promotion.
+- **Promotion (Promoção)** — desconto aplicado a um conjunto de Tools (`promotionTool`) ou a todas (`appliesToAll`). `type='promotion'`. O desconto é **percentual ou fixo** (`discountType` `percent`|`fixed` + `discountValue`). **Descontos nunca empilham**: quando mais de uma cobre a mesma Tool, vale o de **maior desconto efetivo** (menor preço resultante) — no máximo um por Tool. Ver ADR-0002.
+- **Promocode (Cupom)** — uma Promotion com `type='promocode'` e `code` preenchido. **Não existe tabela `coupon`** — cupom é uma variação de Promotion. Campos só de cupom: `maxRedemptions`/`redemptionCount` e `minOrderAmount`. Aplicado no checkout pelo e-commerce, que grava `order.couponId` + `order.discountAmount` (só o desconto de cupom; a economia de auto-promo já está no `subtotalAmount`).
+- **Store Settings (Configurações da loja)** — singleton `storeSettings` com a configuração operacional da loja que o storefront lê (ex.: origem da cotação de frete, política de seguro). Editado em `/dashboard/site/settings`; exposto ao e-commerce via `getShippingSettings` (superfície de sync, ADR-0009). Frete excedente de peso por Tool fica em `tool.overweightShippingAmount`.
 
 ### Voz do cliente
 
