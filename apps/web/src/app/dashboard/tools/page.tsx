@@ -65,14 +65,14 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 	const sort: ToolSort =
 		sortParam && VALID_SORTS.includes(sortParam) ? sortParam : "newest";
 
-	const mode: ToolsListMode | undefined =
-		params.mode === "repor"
-			? "repor"
-			: params.mode === "catalog"
-				? "catalog"
-				: params.mode === "esgotado"
-					? "esgotado"
-					: undefined;
+	let mode: ToolsListMode | undefined;
+	if (params.mode === "repor") {
+		mode = "repor";
+	} else if (params.mode === "catalog") {
+		mode = "catalog";
+	} else if (params.mode === "esgotado") {
+		mode = "esgotado";
+	}
 
 	const filters: ToolsFiltersInput = {
 		search,

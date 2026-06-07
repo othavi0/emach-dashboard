@@ -9,7 +9,10 @@
  * Fontes: Correios (busca de faixa de CEP por UF) + Wikipedia (CEP).
  */
 
-export type CepRange = { from: string; to: string };
+export interface CepRange {
+	from: string;
+	to: string;
+}
 
 export const BRASIL_PRESET: CepRange & { label: string } = {
 	from: "00000000",

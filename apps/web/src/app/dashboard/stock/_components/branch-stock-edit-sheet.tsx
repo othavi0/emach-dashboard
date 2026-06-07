@@ -118,6 +118,44 @@ function zodErrorsToMap(error: {
 	return map;
 }
 
+function MovementsList({ movements }: { movements: StockMovementRow[] }) {
+	return (
+		<ul className="flex flex-col gap-2.5">
+			{movements.map((m) => (
+				<li className="flex items-start gap-3 text-xs" key={m.id}>
+					<span
+						className={`flex-shrink-0 rounded px-1.5 py-0.5 font-mono font-semibold tabular-nums ${
+							m.delta >= 0
+								? "bg-success/15 text-success"
+								: "bg-destructive/15 text-destructive"
+						}`}
+					>
+						{m.delta >= 0 ? "+" : ""}
+						{m.delta}
+					</span>
+					<div className="min-w-0 flex-1">
+						<p className="text-foreground">
+							{m.reason
+								? (REASON_LABEL_FULL[m.reason] ?? m.reason)
+								: "Sem motivo"}
+							{m.reasonNote ? (
+								<span className="ml-1 text-muted-foreground">
+									— {m.reasonNote}
+								</span>
+							) : null}
+						</p>
+						<p className="text-muted-foreground">
+							{m.actorName ?? "Sistema"}
+							{" · "}
+							{formatRelative(m.createdAt)}
+						</p>
+					</div>
+				</li>
+			))}
+		</ul>
+	);
+}
+
 // ─── Componente ────────────────────────────────────────────────────────────
 
 interface BranchStockEditSheetProps {
@@ -128,6 +166,7 @@ interface BranchStockEditSheetProps {
 	row: BranchStockRow | null;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sheet de edição de estoque com múltiplos estados (carregando, editando limites, histórico); complexidade inerente ao domínio
 export function BranchStockEditSheet({
 	branchId,
 	branchName,
@@ -155,6 +194,7 @@ export function BranchStockEditSheet({
 	const [isLoadingMovements, startMovementsTransition] = useTransition();
 	const [reservedQty, setReservedQty] = useState<number | null>(null);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: dependência intencional em row?.variantId — effect só re-executa quando a variante muda, não em cada mutação de row
 	useEffect(() => {
 		if (!row) {
 			setMovements([]);
@@ -241,8 +281,31 @@ export function BranchStockEditSheet({
 	const status = resolveStatus(row);
 	const statusLabel = STATUS_LABEL[status];
 	const hasLimits = row.minQty > 0 || row.reorderPoint > 0;
+	let quantityColor = "text-foreground";
+	if (row.quantity === 0 || status === "critical") {
+		quantityColor = "text-destructive";
+	} else if (status === "reorder") {
+		quantityColor = "text-warning";
+	}
 	const limitsDirty =
 		minQty !== row.minQty || reorderPoint !== row.reorderPoint;
+
+	let movementsContent: React.ReactNode;
+	if (isLoadingMovements) {
+		movementsContent = (
+			<div className="flex justify-center py-4">
+				<Spinner />
+			</div>
+		);
+	} else if (movements.length === 0) {
+		movementsContent = (
+			<p className="text-muted-foreground text-sm italic">
+				Nenhum movimento registrado.
+			</p>
+		);
+	} else {
+		movementsContent = <MovementsList movements={movements} />;
+	}
 
 	return (
 		<Sheet
@@ -313,15 +376,7 @@ export function BranchStockEditSheet({
 					<div className="flex items-end justify-between gap-4">
 						<div>
 							<span
-								className={`font-bold text-[36px] tabular-nums leading-none ${
-									row.quantity === 0
-										? "text-destructive"
-										: status === "critical"
-											? "text-destructive"
-											: status === "reorder"
-												? "text-warning"
-												: "text-foreground"
-								}`}
+								className={`font-bold text-[36px] tabular-nums leading-none ${quantityColor}`}
 							>
 								{row.quantity}
 							</span>
@@ -500,49 +555,7 @@ export function BranchStockEditSheet({
 				{/* Histórico */}
 				<div className="px-6 py-5">
 					<p className="mb-3 font-medium text-sm">Últimos movimentos</p>
-					{isLoadingMovements ? (
-						<div className="flex justify-center py-4">
-							<Spinner />
-						</div>
-					) : movements.length === 0 ? (
-						<p className="text-muted-foreground text-sm italic">
-							Nenhum movimento registrado.
-						</p>
-					) : (
-						<ul className="flex flex-col gap-2.5">
-							{movements.map((m) => (
-								<li className="flex items-start gap-3 text-xs" key={m.id}>
-									<span
-										className={`flex-shrink-0 rounded px-1.5 py-0.5 font-mono font-semibold tabular-nums ${
-											m.delta >= 0
-												? "bg-success/15 text-success"
-												: "bg-destructive/15 text-destructive"
-										}`}
-									>
-										{m.delta >= 0 ? "+" : ""}
-										{m.delta}
-									</span>
-									<div className="min-w-0 flex-1">
-										<p className="text-foreground">
-											{m.reason
-												? (REASON_LABEL_FULL[m.reason] ?? m.reason)
-												: "Sem motivo"}
-											{m.reasonNote ? (
-												<span className="ml-1 text-muted-foreground">
-													— {m.reasonNote}
-												</span>
-											) : null}
-										</p>
-										<p className="text-muted-foreground">
-											{m.actorName ?? "Sistema"}
-											{" · "}
-											{formatRelative(m.createdAt)}
-										</p>
-									</div>
-								</li>
-							))}
-						</ul>
-					)}
+					{movementsContent}
 				</div>
 			</SheetContent>
 		</Sheet>

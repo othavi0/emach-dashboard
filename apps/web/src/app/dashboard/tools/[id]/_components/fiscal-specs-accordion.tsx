@@ -17,7 +17,10 @@ interface FiscalSpecsAccordionProps {
 
 function formatAttributeValue(a: ToolDetailAttribute): string {
 	if (a.inputType === "boolean") {
-		return a.valueBool === null ? "—" : a.valueBool ? "Sim" : "Não";
+		if (a.valueBool === null) {
+			return "—";
+		}
+		return a.valueBool ? "Sim" : "Não";
 	}
 	if (a.inputType === "numeric_range") {
 		const lo = a.valueNumeric ?? "—";

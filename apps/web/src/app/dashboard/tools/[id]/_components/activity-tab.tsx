@@ -14,7 +14,7 @@ const DEFAULT_REASONS = [
 	"outro",
 ];
 
-async function fetchActiveBranches() {
+function fetchActiveBranches() {
 	return db
 		.select({ id: branch.id, name: branch.name })
 		.from(branch)

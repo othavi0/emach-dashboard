@@ -59,6 +59,7 @@ export function TeamMemberCard({ branchId, member }: Props) {
 	}
 
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: card clicável (padrão DESIGN.md §4) — div role=button com onKeyDown
 		<div
 			className="group flex cursor-pointer flex-col gap-3 rounded-[10px] border border-border bg-card p-4 shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			onClick={() => router.push(`/dashboard/users/${member.userId}`)}
@@ -132,7 +133,7 @@ export function TeamMemberCard({ branchId, member }: Props) {
 								disabled={unlinking}
 								onClick={(e) => {
 									e.preventDefault();
-									void handleUnlink();
+									handleUnlink().catch(() => undefined);
 								}}
 							>
 								{unlinking ? (

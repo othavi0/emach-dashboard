@@ -41,7 +41,7 @@ const TYPE_LABELS: Record<string, string> = {
 export function CustomerProfileForm({
 	customer,
 	editMode,
-	canEdit,
+	canEdit: _canEdit,
 }: CustomerProfileFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();

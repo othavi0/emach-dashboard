@@ -69,7 +69,6 @@ function parseSearchParams(req: Request): RawSearchParams {
 	return out;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: streaming CSV with filter assembly + audit emission inline for single-pass throughput
 export async function GET(req: Request) {
 	const session = await requireCapability("customers.export");
 

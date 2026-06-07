@@ -80,6 +80,7 @@ export function CustomerCard({ customer }: CustomerCardProps) {
 		: null;
 
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: card clicável (padrão DESIGN.md §4) — div role=button com onKeyDown
 		<div
 			aria-label={`Ver cliente ${customer.name}`}
 			className={`group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${customer.status === "blocked" ? "opacity-70" : ""}`}
@@ -110,6 +111,8 @@ export function CustomerCard({ customer }: CustomerCardProps) {
 						{customer.email}
 					</p>
 				</div>
+				{/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: stopPropagation para isolar link de edição do card clicável (padrão DESIGN.md §4) */}
+				{/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation para isolar link de edição do card clicável (padrão DESIGN.md §4) */}
 				<div
 					className="flex shrink-0 items-center gap-1"
 					onClick={(e) => e.stopPropagation()}

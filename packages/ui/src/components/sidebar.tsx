@@ -89,6 +89,7 @@ function SidebarProvider({
 			}
 
 			// cookie em vez de localStorage: lido no server → sem flash de hydration
+			// biome-ignore lint/suspicious/noDocumentCookie: cookie intencional (lido no server para evitar flash de hydration — localStorage não funciona SSR)
 			document.cookie = `sidebar_state=${openState}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 		},
 		[setOpenProp, open]

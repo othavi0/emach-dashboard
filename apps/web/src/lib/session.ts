@@ -1,4 +1,5 @@
 import { authDashboard, type DashboardSession } from "@emach/auth/dashboard";
+// biome-ignore lint/style/noExportedImports: importado localmente para uso no return type de getUserStatus; re-exportado para consumidores
 import type { UserStatus } from "@emach/db/schema/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";

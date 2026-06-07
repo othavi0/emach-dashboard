@@ -9,6 +9,7 @@ describe("formatDiscount", () => {
 		expect(formatDiscount("percent", "10")).toBe("10,00%");
 	});
 	it("formata fixed em R$", () => {
+		// biome-ignore lint/performance/useTopLevelRegex: regex inline em teste unitário, não em hot path
 		expect(formatDiscount("fixed", "50")).toMatch(/R\$\s?50,00/);
 	});
 });

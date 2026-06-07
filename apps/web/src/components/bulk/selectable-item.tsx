@@ -41,6 +41,7 @@ export function SelectableItem({
 	}
 
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: card clicável (padrão DESIGN.md §4) — div role=button com onKeyDown
 		<div
 			aria-pressed={selected}
 			className={`relative rounded-[10px] ${selected ? "ring-2 ring-primary" : ""}`}

@@ -16,7 +16,11 @@ import { MaskedInput } from "@/components/masked-input";
 import { cepMask } from "@/lib/masks";
 import { BRASIL_PRESET, UF_CEP_PRESETS } from "./cep-presets";
 
-export type CepRangeValue = { from: string; to: string; label?: string };
+export interface CepRangeValue {
+	from: string;
+	label?: string;
+	to: string;
+}
 
 interface Props {
 	disabled?: boolean;
@@ -82,6 +86,58 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 		onChange(value.filter((_, i) => i !== idx));
 	}
 
+	function renderRow(row: CepRangeValue, idx: number) {
+		return (
+			<li
+				className="flex flex-col gap-2 rounded-md border border-border p-3"
+				key={`cep-${idx}-${row.from}`}
+			>
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor={`cep-label-${idx}`}>Rótulo (opcional)</Label>
+					<Input
+						disabled={disabled}
+						id={`cep-label-${idx}`}
+						onChange={(e) => patchRow(idx, { label: e.target.value })}
+						placeholder="Ex.: SP capital zona oeste"
+						value={row.label ?? ""}
+					/>
+				</div>
+				<div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor={`cep-from-${idx}`}>De</Label>
+						<MaskedInput
+							disabled={disabled}
+							id={`cep-from-${idx}`}
+							mask={cepMask}
+							onChange={(v) => patchRow(idx, { from: v ?? "" })}
+							value={row.from}
+						/>
+					</div>
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor={`cep-to-${idx}`}>Até</Label>
+						<MaskedInput
+							disabled={disabled}
+							id={`cep-to-${idx}`}
+							mask={cepMask}
+							onChange={(v) => patchRow(idx, { to: v ?? "" })}
+							value={row.to}
+						/>
+					</div>
+					<Button
+						aria-label="Remover faixa"
+						disabled={disabled}
+						onClick={() => removeRow(idx)}
+						size="icon"
+						type="button"
+						variant="ghost"
+					>
+						<Trash2 className="size-4" />
+					</Button>
+				</div>
+			</li>
+		);
+	}
+
 	return (
 		<div className="flex flex-col gap-3">
 			{value.length === 0 ? (
@@ -89,58 +145,7 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 					Nenhuma faixa configurada. A filial não será sugerida por CEP.
 				</p>
 			) : (
-				<ul className="flex flex-col gap-3">
-					{value.map((row, idx) => (
-						<li
-							className="flex flex-col gap-2 rounded-md border border-border p-3"
-							// biome-ignore lint/suspicious/noArrayIndexKey: lista controlada sem IDs estáveis; sem reordenação, só add/remove
-							key={idx}
-						>
-							<div className="flex flex-col gap-1.5">
-								<Label htmlFor={`cep-label-${idx}`}>Rótulo (opcional)</Label>
-								<Input
-									disabled={disabled}
-									id={`cep-label-${idx}`}
-									onChange={(e) => patchRow(idx, { label: e.target.value })}
-									placeholder="Ex.: SP capital zona oeste"
-									value={row.label ?? ""}
-								/>
-							</div>
-							<div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
-								<div className="flex flex-col gap-1.5">
-									<Label htmlFor={`cep-from-${idx}`}>De</Label>
-									<MaskedInput
-										disabled={disabled}
-										id={`cep-from-${idx}`}
-										mask={cepMask}
-										onChange={(v) => patchRow(idx, { from: v ?? "" })}
-										value={row.from}
-									/>
-								</div>
-								<div className="flex flex-col gap-1.5">
-									<Label htmlFor={`cep-to-${idx}`}>Até</Label>
-									<MaskedInput
-										disabled={disabled}
-										id={`cep-to-${idx}`}
-										mask={cepMask}
-										onChange={(v) => patchRow(idx, { to: v ?? "" })}
-										value={row.to}
-									/>
-								</div>
-								<Button
-									aria-label="Remover faixa"
-									disabled={disabled}
-									onClick={() => removeRow(idx)}
-									size="icon"
-									type="button"
-									variant="ghost"
-								>
-									<Trash2 className="size-4" />
-								</Button>
-							</div>
-						</li>
-					))}
-				</ul>
+				<ul className="flex flex-col gap-3">{value.map(renderRow)}</ul>
 			)}
 			<div className="flex flex-wrap items-center gap-2">
 				<Button

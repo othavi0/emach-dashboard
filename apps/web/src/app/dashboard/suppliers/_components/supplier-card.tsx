@@ -25,6 +25,7 @@ export function SupplierCard({ supplier }: SupplierCardProps) {
 	const isArchived = supplier.status === "archived";
 
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: card clicável (padrão DESIGN.md §4) — div role=button com onKeyDown
 		<div
 			className={`group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isArchived ? "opacity-70" : ""}`}
 			onClick={() => router.push(detailHref)}

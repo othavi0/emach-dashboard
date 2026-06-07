@@ -40,6 +40,7 @@ export function OverviewTab({
 					<div className="grid grid-cols-4 gap-2">
 						{images.slice(0, 8).map((img) => (
 							// biome-ignore lint/performance/noImgElement: Supabase public URL
+							// biome-ignore lint/correctness/useImageSize: thumb Supabase, dimensões via CSS
 							<img
 								alt=""
 								className="aspect-square w-full rounded-md object-cover"

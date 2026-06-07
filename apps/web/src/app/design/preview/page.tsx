@@ -8,13 +8,13 @@ import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 
-type Palette = {
+interface Palette {
+	hex: string;
 	id: string;
 	name: string;
 	tagline: string;
-	hex: string;
 	tokens: Record<string, string>;
-};
+}
 
 const SHARED_TOKENS: Record<string, string> = {
 	"--background": "oklch(0.16 0.005 70)",
@@ -93,18 +93,24 @@ const ROLES = [
 		label: "Aviso",
 		bg: "oklch(0.78 0.15 85)",
 		fg: "oklch(0.16 0.005 70)",
+		alertTitle: "Estoque mínimo atingido",
+		alertBody: "Variante DCD771-220V abaixo do mínimo na filial Centro.",
 	},
 	{
 		id: "info",
 		label: "Info",
 		bg: "oklch(0.65 0.10 200)",
 		fg: "oklch(0.99 0 0)",
+		alertTitle: "Pedido atualizado",
+		alertBody: "Status alterado para 'Em separação' por João.",
 	},
 	{
 		id: "success",
 		label: "OK",
 		bg: "oklch(0.62 0.13 155)",
 		fg: "oklch(0.99 0 0)",
+		alertTitle: "Movimento registrado",
+		alertBody: "+12 unidades em DCD771-127V (filial Sul).",
 	},
 ];
 
@@ -226,19 +232,9 @@ function PaletteColumn({ palette }: { palette: Palette }) {
 								style={{ background: r.bg }}
 							/>
 							<div className="flex flex-col gap-0.5">
-								<strong className="font-medium">
-									{r.id === "warning"
-										? "Estoque mínimo atingido"
-										: r.id === "info"
-											? "Pedido atualizado"
-											: "Movimento registrado"}
-								</strong>
+								<strong className="font-medium">{r.alertTitle}</strong>
 								<span style={{ color: "var(--muted-foreground)" }}>
-									{r.id === "warning"
-										? "Variante DCD771-220V abaixo do mínimo na filial Centro."
-										: r.id === "info"
-											? "Status alterado para 'Em separação' por João."
-											: "+12 unidades em DCD771-127V (filial Sul)."}
+									{r.alertBody}
 								</span>
 							</div>
 						</div>

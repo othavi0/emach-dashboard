@@ -39,6 +39,7 @@ export function ToolDetailHeader({
 			<div className="flex items-center gap-4">
 				{cover ? (
 					// biome-ignore lint/performance/noImgElement: Supabase public URL
+					// biome-ignore lint/correctness/useImageSize: thumb Supabase, dimensões via CSS
 					<img
 						alt=""
 						className="size-14 flex-shrink-0 rounded-md object-cover"

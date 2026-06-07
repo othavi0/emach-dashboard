@@ -550,6 +550,7 @@ interface ToolPageRow extends Record<string, unknown> {
 	visible_on_site: boolean;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: construção de cláusula WHERE com múltiplos filtros opcionais e cursor de paginação; complexidade inerente ao domínio
 function buildToolsWhereClause(
 	filters: ToolsFiltersInput,
 	decoded: ReturnType<typeof decodeCursor> | null
