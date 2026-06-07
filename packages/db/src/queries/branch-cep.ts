@@ -2,7 +2,11 @@ import { and, eq, isNotNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { branch } from "../schema/inventory";
 
-export type CepRange = { from: string; to: string; label?: string };
+export interface CepRange {
+	from: string;
+	label?: string;
+	to: string;
+}
 
 export interface BranchWithCepRanges {
 	cepRanges: CepRange[] | null | undefined;
