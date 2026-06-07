@@ -28,7 +28,7 @@ Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte 
 - ID: `text("id").primaryKey()`, preencher com `crypto.randomUUID()` no caller.
 - FK: explicitar `onDelete: "cascade" | "restrict" | "set null"`. Default = `restrict` por integridade.
 - Money: `numeric(10, 2)` para preço/custo de produto; `numeric(12, 2)` em totais de pedido. **Nunca `real`/`double`**.
-- Auditoria: `actorType pgEnum('actor_type', ['user','system'])` + `actorId` (FK user). CHECK `actor_coherence` garante coerência.
+- Auditoria: `actorType pgEnum('actor_type', ['user','system'])` + FK do ator (user). **Nome da coluna varia por tabela:** `stockMovement.actorId`; as demais (`orderStatusHistory`, `clientAuditLog`, `supplierAuditLog`, `userActivityLog`) usam `actorUserId`. CHECK `actor_coherence` garante coerência.
 - "No máximo 1 marcado": `uniqueIndex(...).on(parentId).where(sql\`${isDefault} = true\`)` — ex `tool_variant.isDefault` (1 default por tool).
 - `unique()` em colunas de busca natural (sku, barcode, slug, document).
 
@@ -58,7 +58,7 @@ Sintoma: `Intl.DateTimeFormat.format(value)` lança `RangeError: Invalid time va
   ```
 
 - `db.query.X.findMany` (relational) e `db.select().from(...)` (query builder) **não** sofrem do bug — devolvem `Date`. Sem coerção.
-- Retornos de objetos inteiros: helper `coerceDates(obj, [...keys])` em `queries/catalog.ts`.
+- Retornos de objetos inteiros: `coerceDates(obj, [...keys])` — função **interna** de `queries/catalog.ts` (não exportada). Para reuso fora dali, mover para `utils.ts` com export. `@emach/db/utils` exporta só `toDate`.
 - **Colunas `::date` (date-only) → off-by-one no display:** `db.execute` devolve `'YYYY-MM-DD'` (string). `new Date('2026-05-01')` parseia como **meia-noite UTC**, então `format()` em fuso negativo (dev BR = UTC-3) mostra o **dia anterior**. Para séries de data exibidas (eixo de gráfico), parsear como meia-noite **local** — helper `localDate(s)` em `queries/dashboard.ts` (`new Date(\`${s}T00:00:00\`)`). `toDate` não resolve isso (date-only não tem hora). Manifesta em dev BR; em prod Vercel-UTC fica correto, mas é latente.
 
 ## Armadilha: `db.execute<T>` devolve colunas em snake_case
