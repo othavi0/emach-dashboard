@@ -9,6 +9,7 @@ import {
 	primaryKey,
 	text,
 	timestamp,
+	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -32,6 +33,7 @@ export const promotion = pgTable(
 		redemptionCount: integer("redemption_count").notNull().default(0),
 		minOrderAmount: numeric("min_order_amount", { precision: 12, scale: 2 }),
 		active: boolean("active").default(false).notNull(),
+		featured: boolean("featured").notNull().default(false),
 		startsAt: timestamp("starts_at"),
 		endsAt: timestamp("ends_at"),
 		createdBy: text("created_by").references(() => user.id, {
@@ -53,6 +55,10 @@ export const promotion = pgTable(
 		index("promotion_active_ends_idx")
 			.on(table.endsAt)
 			.where(sql`active = true`),
+		// Só uma promoção pode ser destaque no home por vez.
+		uniqueIndex("promotion_single_featured_idx")
+			.on(table.featured)
+			.where(sql`${table.featured} = true`),
 		check(
 			"valid_promotion_type",
 			sql`${table.type} IN ('promotion', 'promocode')`
@@ -71,6 +77,10 @@ export const promotion = pgTable(
 			sql`${table.type} = 'promocode' OR (${table.maxRedemptions} IS NULL AND ${table.minOrderAmount} IS NULL)`
 		),
 		check("redemption_count_non_negative", sql`${table.redemptionCount} >= 0`),
+		check(
+			"featured_only_promotion",
+			sql`${table.featured} = false OR ${table.type} = 'promotion'`
+		),
 		check(
 			"ends_after_starts",
 			sql`${table.endsAt} IS NULL OR ${table.startsAt} IS NULL OR ${table.endsAt} > ${table.startsAt}`
