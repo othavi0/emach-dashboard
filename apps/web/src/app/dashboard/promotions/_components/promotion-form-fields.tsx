@@ -536,6 +536,27 @@ export function PromotionFormFields({
 						</p>
 					</div>
 
+					{!isCoupon && (
+						<div className="flex flex-col gap-2 rounded-lg border border-border p-4">
+							<div className="flex items-center gap-3">
+								<Switch
+									checked={values.featured}
+									disabled={disabled}
+									id="promo-featured"
+									onCheckedChange={(v) => onPatch({ featured: v })}
+								/>
+								<Label className="cursor-pointer" htmlFor="promo-featured">
+									Destaque no home
+								</Label>
+							</div>
+							<p className="text-muted-foreground text-xs">
+								Aparece em destaque no topo da home, com contador regressivo até o
+								fim da vigência. Só uma promoção pode ser destaque — marcar esta
+								desmarca a anterior.
+							</p>
+						</div>
+					)}
+
 					{/* Escopo: Todas / Específicas */}
 					<div className="flex flex-col gap-3">
 						<Label>

@@ -1,4 +1,4 @@
-import { Tag, Ticket } from "lucide-react";
+import { Star, Tag, Ticket } from "lucide-react";
 import Link from "next/link";
 
 import type { PromotionListItem } from "../actions";
@@ -45,6 +45,12 @@ export function PromotionCard({ promotion }: { promotion: PromotionListItem }) {
 						{isCoupon ? "Cupom" : "Automática"}
 						{isCoupon && promotion.code ? ` · ${promotion.code}` : ""}
 					</p>
+					{promotion.featured && (
+						<span className="mt-1 inline-flex items-center gap-1 font-medium text-[10px] text-primary uppercase tracking-wide">
+							<Star aria-hidden className="size-3 fill-current" />
+							Destaque no home
+						</span>
+					)}
 				</div>
 				<PromotionStatusBadge status={promotion.status} />
 			</div>
