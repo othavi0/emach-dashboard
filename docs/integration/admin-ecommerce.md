@@ -263,10 +263,14 @@ Algoritmo na validação do cupom (carrinho/checkout):
 
 1. Resolver `promotion` por `code` + `type='promocode'` + `active=true` + dentro da vigência
    (`starts_at`/`ends_at` são nullable → vazio significa "imediato"/"sem prazo").
-2. **Escopo:** `applies_to_all=true` → vale para o carrinho todo; senão só itens cujo `tool` ∈
-   `promotion_tool`. _(Decisão aberta do Sub-projeto 2: o desconto de cupom específico incide no
-   carrinho todo ou só nos itens elegíveis.)_
-3. **Mínimo:** rejeitar se o subtotal elegível < `min_order_amount` (quando não-nulo).
+2. **Escopo:** `applies_to_all=true` → todo o carrinho elegível; senão só itens cujo `tool` ∈
+   `promotion_tool`. Em ambos os casos "elegível" **exclui** itens com auto-promoção ativa — cupom e
+   promoção automática **não empilham** (ADR-0002). O desconto incide **apenas sobre o subtotal
+   elegível** (escopo ∩ sem auto-promo). Comportamento travado pelos testes `restringe escopo a
+   promotion_tool do cupom` e `pedido mínimo usa o subtotal elegível, não o total do carrinho` no
+   `emach-ecommerce` (`apps/web/src/lib/coupons/validate-coupon.ts`, commit `60dde43`).
+3. **Mínimo:** rejeitar se o **subtotal elegível** (o mesmo do passo 2, não o total do carrinho) <
+   `min_order_amount` (quando não-nulo).
 4. **Limite:** rejeitar se `redemption_count >= max_redemptions` (quando não-nulo).
 5. **Cálculo:** `percent` → percentual sobre a base elegível; `fixed` → abate `discount_value`
    em reais (clamp em ≥ 0).
@@ -295,7 +299,9 @@ Quando qualquer arquivo em `packages/db/src/schema/` for alterado:
 
 1. Editar o schema no dashboard e fazer merge na `main` — o workflow dispara sozinho e abre um PR no `emach-ecommerce`.
 2. Revisar e mergear o PR de sync no e-commerce; o CI dele roda no PR e pega quebra de código local contra o schema novo.
-3. Rodar `bun db:sync` em ambos os repositórios (o banco é o mesmo — mas os dois precisam estar em sync com o schema em memória).
+3. Aplicar o schema em **ambos** os lados (o banco é o mesmo, mas cada repo precisa estar em sync com seu schema em memória). **O comando difere por repositório:**
+   - **Dashboard:** `bun db:sync` (= `drizzle-kit push` + `db:apply-triggers`).
+   - **Ecommerce:** `bun db:push` + `bun --cwd packages/db db:apply-triggers` — **não há `db:sync` lá** (índices são partial-unique declarados no schema TS, sem `_indexes.sql`). Rodar após mergear o PR de sync.
 4. Para drops ou renames de colunas: coordenar o deploy — um app pode gravar em coluna que o outro ainda não viu ou já não vê.
 
 A fonte de verdade é sempre o dashboard (este repositório). O e-commerce **nunca altera o schema** de forma unilateral — mudanças começam aqui e propagam. Ver ADR-0006 e ADR-0009.
