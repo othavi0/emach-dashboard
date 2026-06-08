@@ -28,6 +28,8 @@ const promotionBaseFields = {
 
 	active: z.boolean(),
 
+	featured: z.boolean(),
+
 	startsAt: z.date().optional().nullable(),
 
 	endsAt: z.date().optional().nullable(),
