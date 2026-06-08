@@ -119,6 +119,9 @@ export interface CategoryNode {
 	name: string;
 	parentId: string | null;
 	path: string;
+	// Produtos visíveis na subárvore (categoria + descendentes), coerente com o
+	// filtro de categoria de getTools (c.id = root.id OR c.path LIKE root.path || '%').
+	productCount: number;
 	slug: string;
 	sortOrder: number;
 }
@@ -659,21 +662,46 @@ export async function getToolBySlug(
 // ---------------------------------------------------------------------------
 
 export async function getCategoryTree(db: AnyDb): Promise<CategoryNode[]> {
-	const result = await db.execute<{
-		id: string;
-		slug: string;
-		name: string;
-		parent_id: string | null;
-		path: string;
-		depth: number;
-		sort_order: number;
-		is_active: boolean;
-	}>(sql`
-		SELECT id, slug, name, parent_id, path, depth, sort_order, is_active
-		FROM category
-		WHERE is_active = true
-		ORDER BY depth ASC, sort_order ASC, name ASC
-	`);
+	const [result, countResult] = await Promise.all([
+		db.execute<{
+			id: string;
+			slug: string;
+			name: string;
+			parent_id: string | null;
+			path: string;
+			depth: number;
+			sort_order: number;
+			is_active: boolean;
+		}>(sql`
+			SELECT id, slug, name, parent_id, path, depth, sort_order, is_active
+			FROM category
+			WHERE is_active = true
+			ORDER BY depth ASC, sort_order ASC, name ASC
+		`),
+		// Contagem por subárvore: para cada categoria root, conta tools visíveis
+		// distintos ligados à própria categoria OU a qualquer descendente.
+		// Mesma semântica de visibilidade/escopo que buildToolListWhere de getTools.
+		db.execute<{ category_id: string; product_count: number | string }>(sql`
+			SELECT root.id AS category_id,
+			       COUNT(DISTINCT t.id) AS product_count
+			FROM category root
+			JOIN category c
+			  ON (c.id = root.id OR c.path LIKE root.path || '%')
+			JOIN tool_category tc ON tc.category_id = c.id
+			JOIN tool t
+			  ON t.id = tc.tool_id
+			 AND t.visible_on_site = true
+			 AND ${STOREFRONT_STATUS_SQL}
+			JOIN tool_variant dv ON dv.tool_id = t.id AND dv.is_default = true
+			WHERE root.is_active = true
+			GROUP BY root.id
+		`),
+	]);
+
+	const countById = new Map<string, number>();
+	for (const row of countResult.rows) {
+		countById.set(row.category_id, Number(row.product_count) || 0);
+	}
 
 	const byId = new Map<string, CategoryNode>();
 	for (const row of result.rows) {
@@ -686,6 +714,7 @@ export async function getCategoryTree(db: AnyDb): Promise<CategoryNode[]> {
 			depth: row.depth,
 			sortOrder: row.sort_order,
 			isActive: row.is_active,
+			productCount: countById.get(row.id) ?? 0,
 			children: [],
 		});
 	}
