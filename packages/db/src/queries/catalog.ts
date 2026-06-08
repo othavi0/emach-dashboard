@@ -877,6 +877,99 @@ export async function getActivePromotions(
 }
 
 // ---------------------------------------------------------------------------
+// 5b. getFeaturedPromotion — a promoção destacada no home (≤1), ativa e vigente
+// ---------------------------------------------------------------------------
+
+export async function getFeaturedPromotion(
+	db: AnyDb
+): Promise<PromotionWithTools | null> {
+	const promosRes = await db.execute<Promotion>(sql`
+		SELECT id, title, description, type, code,
+		       discount_type AS "discountType",
+		       discount_value AS "discountValue",
+		       applies_to_all AS "appliesToAll",
+		       max_redemptions AS "maxRedemptions",
+		       redemption_count AS "redemptionCount",
+		       min_order_amount AS "minOrderAmount",
+		       active, featured,
+		       starts_at AS "startsAt",
+		       ends_at AS "endsAt",
+		       created_at AS "createdAt",
+		       updated_at AS "updatedAt"
+		FROM promotion
+		WHERE featured = true
+		  AND type = 'promotion'
+		  AND active = true
+		  AND (starts_at IS NULL OR starts_at <= now())
+		  AND (ends_at IS NULL OR ends_at > now())
+		ORDER BY ends_at ASC NULLS LAST
+		LIMIT 1
+	`);
+
+	const promo = promosRes.rows[0];
+	if (!promo) {
+		return null;
+	}
+	coerceDates(promo, PROMOTION_DATE_KEYS);
+
+	let toolScope = sql`true`;
+	if (!promo.appliesToAll) {
+		const toolIdsRes = await db.execute<{ tool_id: string }>(sql`
+			SELECT tool_id FROM promotion_tool WHERE promotion_id = ${promo.id}
+		`);
+		const toolIds = toolIdsRes.rows.map((r) => r.tool_id);
+		if (toolIds.length === 0) {
+			return null;
+		}
+		toolScope = sql`t.id = ANY(${arrayLiteral(toolIds, "text[]")})`;
+	}
+
+	const toolsRes = await db.execute<ToolListRow>(sql`
+		SELECT
+			t.id, t.slug, t.name, t.status,
+			dv.id AS variant_id,
+			dv.sku AS variant_sku,
+			dv.voltage AS variant_voltage,
+			dv.price_amount::text AS variant_price,
+			CASE
+				WHEN ${promo.discountType}::text = 'fixed'
+					THEN GREATEST(dv.price_amount - ${promo.discountValue}::numeric, 0)::text
+				ELSE ROUND(dv.price_amount * (1 - ${promo.discountValue}::numeric / 100), 2)::text
+			END AS discounted_amount,
+			${promo.id}::text AS active_promotion_id,
+			(SELECT COUNT(*) > 1 FROM tool_variant tv2 WHERE tv2.tool_id = t.id) AS has_other_variants,
+			(SELECT url FROM tool_image WHERE tool_id = t.id ORDER BY sort_order ASC LIMIT 1) AS primary_image_url,
+			COALESCE((
+				SELECT SUM(sl.quantity) > 0
+				FROM stock_level sl
+				JOIN tool_variant tv ON tv.id = sl.variant_id
+				WHERE tv.tool_id = t.id
+			), false) AS in_stock,
+			(SELECT AVG(r.rating)::numeric(3,2)::text FROM review r WHERE r.tool_id = t.id AND r.status = ${APPROVED}) AS avg_rating,
+			(SELECT COUNT(*)::int FROM review r WHERE r.tool_id = t.id AND r.status = ${APPROVED}) AS review_count,
+			pc.id AS cat_id,
+			pc.slug AS cat_slug,
+			pc.name AS cat_name
+		FROM tool t
+		INNER JOIN tool_variant dv ON dv.tool_id = t.id AND dv.is_default = true
+		LEFT JOIN tool_category tc ON tc.tool_id = t.id AND tc.is_primary = true
+		LEFT JOIN category pc ON pc.id = tc.category_id
+		WHERE ${toolScope}
+		  AND t.visible_on_site = true
+		  AND ${STOREFRONT_STATUS_SQL}
+		ORDER BY t.created_at DESC
+		LIMIT ${TOOLS_PER_PROMO}
+	`);
+
+	const tools = toolsRes.rows.map(rowToToolListItem);
+	if (tools.length === 0) {
+		return null;
+	}
+
+	return { ...promo, tools };
+}
+
+// ---------------------------------------------------------------------------
 // 6. getRecentTools
 // ---------------------------------------------------------------------------
 
