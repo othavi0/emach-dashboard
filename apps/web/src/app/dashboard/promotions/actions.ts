@@ -73,6 +73,7 @@ export interface PromotionListItem {
 	discountType: string;
 	discountValue: string;
 	endsAt: Date | null;
+	featured: boolean;
 	id: string;
 	maxRedemptions: number | null;
 	minOrderAmount: string | null;
@@ -495,6 +496,7 @@ export async function fetchPromotionsPage({
 				redemptionCount: row.redemptionCount,
 				minOrderAmount: row.minOrderAmount,
 				active: row.active,
+				featured: row.featured,
 				startsAt: row.startsAt,
 				endsAt: row.endsAt,
 				createdAt: row.createdAt,
@@ -577,6 +579,7 @@ export async function getPromotion(
 		redemptionCount: row.redemptionCount,
 		minOrderAmount: row.minOrderAmount,
 		active: row.active,
+		featured: row.featured,
 		startsAt: row.startsAt,
 		endsAt: row.endsAt,
 		createdAt: row.createdAt,
@@ -630,6 +633,14 @@ export async function createPromotion(
 
 			const couponFields = buildCouponFields(data);
 
+			const isFeatured = data.type === "promotion" && data.featured === true;
+			if (isFeatured) {
+				await tx
+					.update(promotion)
+					.set({ featured: false })
+					.where(eq(promotion.featured, true));
+			}
+
 			await tx.insert(promotion).values({
 				id: newId,
 				title: data.title,
@@ -641,6 +652,7 @@ export async function createPromotion(
 				appliesToAll: data.appliesToAll,
 				...couponFields,
 				active: data.active,
+				featured: isFeatured,
 				startsAt: data.startsAt ?? null,
 				endsAt: data.endsAt ?? null,
 				createdBy: session.user.id,
@@ -707,6 +719,14 @@ export async function updatePromotion(
 
 			const couponFields = buildCouponFields(data);
 
+			const isFeatured = data.type === "promotion" && data.featured === true;
+			if (isFeatured) {
+				await tx
+					.update(promotion)
+					.set({ featured: false })
+					.where(and(eq(promotion.featured, true), ne(promotion.id, id)));
+			}
+
 			await tx
 				.update(promotion)
 				.set({
@@ -719,6 +739,7 @@ export async function updatePromotion(
 					appliesToAll: data.appliesToAll,
 					...couponFields,
 					active: data.active,
+					featured: isFeatured,
 					startsAt: data.startsAt ?? null,
 					endsAt: data.endsAt ?? null,
 					updatedBy: session.user.id,
