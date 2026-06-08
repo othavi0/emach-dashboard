@@ -79,6 +79,7 @@ const CREATE_DEFAULTS: PromotionFormValues = {
 	discountValue: 0,
 	appliesToAll: false,
 	active: true,
+	featured: false,
 	startsAt: null,
 	endsAt: null,
 	code: null,
