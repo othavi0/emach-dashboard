@@ -1,10 +1,13 @@
 import { Badge } from "@emach/ui/components/badge";
-import { Tabs, TabsList, TabsTrigger } from "@emach/ui/components/tabs";
 
+import { type EntityTab, EntityTabs } from "@/components/entity/entity-tabs";
 import { PageHeader } from "@/components/page-header";
 import { requireCurrentSession } from "@/lib/session";
 import { ShippingPreviewRail } from "./_components/shipping-preview-rail";
 import { ShippingSettingsForm } from "./_components/shipping-settings-form";
+import { SocialPreviewRail } from "./_components/social-preview-rail";
+import type { SocialState } from "./_components/social-schema";
+import { SocialSettingsForm } from "./_components/social-settings-form";
 import {
 	getOrCreateShippingSettings,
 	listOriginBranchOptions,
@@ -12,20 +15,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const SECTION_TABS: Array<{ value: string; label: string; soon?: boolean }> = [
-	{ value: "frete", label: "Frete" },
-	{ value: "redes", label: "Redes sociais", soon: true },
-	{ value: "local", label: "Localização", soon: true },
-];
+const GRID = "grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]";
 
-interface PageProps {
-	searchParams: Promise<{ tab?: string }>;
-}
-
-export default async function SettingsPage({ searchParams }: PageProps) {
+export default async function SettingsPage() {
 	await requireCurrentSession();
-	const { tab } = await searchParams;
-	const activeTab = tab === "redes" || tab === "local" ? tab : "frete";
 
 	const [settings, originOptions] = await Promise.all([
 		getOrCreateShippingSettings(),
@@ -36,43 +29,82 @@ export default async function SettingsPage({ searchParams }: PageProps) {
 		originOptions.find((o) => o.id === settings.shippingOriginBranchId)?.name ??
 		null;
 
+	// Mapeia as colunas planas do singleton para o shape que o form/preview consome.
+	const socialState: SocialState = {
+		instagram: {
+			url: settings.socialInstagramUrl ?? "",
+			visible: settings.socialInstagramVisible,
+		},
+		linkedin: {
+			url: settings.socialLinkedinUrl ?? "",
+			visible: settings.socialLinkedinVisible,
+		},
+		facebook: {
+			url: settings.socialFacebookUrl ?? "",
+			visible: settings.socialFacebookVisible,
+		},
+		x: { url: settings.socialXUrl ?? "", visible: settings.socialXVisible },
+		youtube: {
+			url: settings.socialYoutubeUrl ?? "",
+			visible: settings.socialYoutubeVisible,
+		},
+	};
+
+	const tabs: EntityTab[] = [
+		{
+			value: "frete",
+			label: "Frete",
+			content: (
+				<div className={GRID}>
+					<ShippingSettingsForm
+						originOptions={originOptions}
+						settings={{
+							originBranchId: settings.shippingOriginBranchId,
+							insurancePolicy: settings.shippingInsurancePolicy,
+							insuranceCapAmount: Number(settings.shippingInsuranceCapAmount),
+						}}
+					/>
+					<ShippingPreviewRail
+						insuranceCapAmount={Number(settings.shippingInsuranceCapAmount)}
+						insurancePolicy={settings.shippingInsurancePolicy}
+						originLabel={originLabel}
+					/>
+				</div>
+			),
+		},
+		{
+			value: "redes",
+			label: "Contato / Redes",
+			content: (
+				<div className={GRID}>
+					<SocialSettingsForm settings={socialState} />
+					<SocialPreviewRail state={socialState} />
+				</div>
+			),
+		},
+		{
+			value: "local",
+			label: "Localização",
+			badge: (
+				<Badge className="ml-1" variant="secondary">
+					Em breve
+				</Badge>
+			),
+			content: (
+				<div className="rounded-md border border-border border-dashed bg-muted/40 p-8 text-center text-muted-foreground text-sm">
+					Localização da cotação — em breve.
+				</div>
+			),
+		},
+	];
+
 	return (
 		<>
 			<PageHeader
 				description="Ajustes globais da loja — frete, redes sociais e localização da cotação."
 				title="Configurações"
 			/>
-
-			<Tabs value={activeTab}>
-				<TabsList scrollable>
-					{SECTION_TABS.map((t) => (
-						<TabsTrigger disabled={t.soon} key={t.value} value={t.value}>
-							{t.label}
-							{t.soon ? (
-								<Badge className="ml-2" variant="secondary">
-									Em breve
-								</Badge>
-							) : null}
-						</TabsTrigger>
-					))}
-				</TabsList>
-			</Tabs>
-
-			<div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-				<ShippingSettingsForm
-					originOptions={originOptions}
-					settings={{
-						originBranchId: settings.shippingOriginBranchId,
-						insurancePolicy: settings.shippingInsurancePolicy,
-						insuranceCapAmount: Number(settings.shippingInsuranceCapAmount),
-					}}
-				/>
-				<ShippingPreviewRail
-					insuranceCapAmount={Number(settings.shippingInsuranceCapAmount)}
-					insurancePolicy={settings.shippingInsurancePolicy}
-					originLabel={originLabel}
-				/>
-			</div>
+			<EntityTabs defaultValue="frete" tabs={tabs} />
 		</>
 	);
 }

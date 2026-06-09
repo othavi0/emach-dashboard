@@ -1,5 +1,12 @@
 import { sql } from "drizzle-orm";
-import { check, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	check,
+	numeric,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 
 import { branch } from "./inventory";
 
@@ -24,6 +31,27 @@ export const storeSettings = pgTable(
 		})
 			.notNull()
 			.default("3000.00"),
+		// Redes sociais — URL completa do perfil + flag de exibição no storefront.
+		// `visible` default false: a rede só aparece no site após ter link e ser
+		// ligada explicitamente.
+		socialInstagramUrl: text("social_instagram_url"),
+		socialInstagramVisible: boolean("social_instagram_visible")
+			.notNull()
+			.default(false),
+		socialLinkedinUrl: text("social_linkedin_url"),
+		socialLinkedinVisible: boolean("social_linkedin_visible")
+			.notNull()
+			.default(false),
+		socialFacebookUrl: text("social_facebook_url"),
+		socialFacebookVisible: boolean("social_facebook_visible")
+			.notNull()
+			.default(false),
+		socialXUrl: text("social_x_url"),
+		socialXVisible: boolean("social_x_visible").notNull().default(false),
+		socialYoutubeUrl: text("social_youtube_url"),
+		socialYoutubeVisible: boolean("social_youtube_visible")
+			.notNull()
+			.default(false),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()
