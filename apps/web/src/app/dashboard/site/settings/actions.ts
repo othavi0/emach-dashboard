@@ -16,6 +16,10 @@ import {
 	type ShippingSettingsFormValues,
 	shippingSettingsSchema,
 } from "./_components/shipping-schema";
+import {
+	type SocialSettingsFormValues,
+	socialSettingsSchema,
+} from "./_components/social-schema";
 
 const SETTINGS_PATH = "/dashboard/site/settings";
 const SINGLETON_ID = "singleton";
@@ -115,6 +119,63 @@ export async function updateShippingSettings(
 			insurancePolicy: payload.shippingInsurancePolicy,
 			originBranchId: payload.shippingOriginBranchId,
 		},
+	});
+	revalidatePath(SETTINGS_PATH);
+	return { ok: true, data: { id: SINGLETON_ID } };
+}
+
+export async function updateSocialSettings(
+	input: SocialSettingsFormValues
+): Promise<ActionResult<{ id: string }>> {
+	const session = await requireCapability("site.update_settings");
+
+	const parsed = socialSettingsSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: zodErrorMessage(parsed.error) };
+	}
+	const d = parsed.data;
+
+	// Sem URL → força oculto (defesa-em-profundidade; o form já desabilita o switch).
+	const payload = {
+		socialInstagramUrl: d.instagramUrl ?? null,
+		socialInstagramVisible: Boolean(d.instagramUrl) && d.instagramVisible,
+		socialLinkedinUrl: d.linkedinUrl ?? null,
+		socialLinkedinVisible: Boolean(d.linkedinUrl) && d.linkedinVisible,
+		socialFacebookUrl: d.facebookUrl ?? null,
+		socialFacebookVisible: Boolean(d.facebookUrl) && d.facebookVisible,
+		socialXUrl: d.xUrl ?? null,
+		socialXVisible: Boolean(d.xUrl) && d.xVisible,
+		socialYoutubeUrl: d.youtubeUrl ?? null,
+		socialYoutubeVisible: Boolean(d.youtubeUrl) && d.youtubeVisible,
+	};
+
+	try {
+		await db
+			.insert(storeSettings)
+			.values({ id: SINGLETON_ID, ...payload })
+			.onConflictDoUpdate({
+				target: storeSettings.id,
+				set: payload,
+			});
+	} catch (error) {
+		logger.error("updateSocialSettings falhou", error);
+		return { ok: false, error: zodErrorMessage(error) };
+	}
+
+	const visibleNetworks = [
+		payload.socialInstagramVisible && "instagram",
+		payload.socialLinkedinVisible && "linkedin",
+		payload.socialFacebookVisible && "facebook",
+		payload.socialXVisible && "x",
+		payload.socialYoutubeVisible && "youtube",
+	].filter(Boolean);
+
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "settings.social.updated",
+		targetId: SINGLETON_ID,
+		targetType: "store_settings",
+		metadata: { visible: visibleNetworks },
 	});
 	revalidatePath(SETTINGS_PATH);
 	return { ok: true, data: { id: SINGLETON_ID } };
