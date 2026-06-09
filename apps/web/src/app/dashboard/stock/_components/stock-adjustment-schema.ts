@@ -89,23 +89,3 @@ export const stockAdjustmentUiSchema = z
 	);
 
 export type StockAdjustmentUiInput = z.infer<typeof stockAdjustmentUiSchema>;
-
-export const addToolToBranchStockSchema = z.object({
-	branchId: z.string().min(1, "Filial obrigatória"),
-	variantId: z.string().min(1, "Variante obrigatória"),
-	initialQty: z
-		.int("Quantidade deve ser inteira")
-		.min(0, "Quantidade não pode ser negativa")
-		.max(999_999, "Quantidade excede o limite"),
-	minQty: z.int().min(0).max(999_999),
-	reorderPoint: z.int().min(0).max(999_999),
-	reasonNote: z
-		.string()
-		.trim()
-		.max(500, "Observação não pode exceder 500 caracteres")
-		.optional(),
-});
-
-export type AddToolToBranchStockInput = z.infer<
-	typeof addToolToBranchStockSchema
->;
