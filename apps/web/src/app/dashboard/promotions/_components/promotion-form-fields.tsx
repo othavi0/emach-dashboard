@@ -550,9 +550,9 @@ export function PromotionFormFields({
 								</Label>
 							</div>
 							<p className="text-muted-foreground text-xs">
-								Aparece em destaque no topo da home, com contador regressivo até o
-								fim da vigência. Só uma promoção pode ser destaque — marcar esta
-								desmarca a anterior.
+								Aparece em destaque no topo da home, com contador regressivo até
+								o fim da vigência. Só uma promoção pode ser destaque — marcar
+								esta desmarca a anterior.
 							</p>
 						</div>
 					)}
