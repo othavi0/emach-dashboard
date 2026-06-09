@@ -39,7 +39,7 @@ export function ShippingPreviewRail({
 	];
 
 	return (
-		<aside className="flex flex-col gap-3 rounded-md border border-border bg-card p-4">
+		<aside className="flex flex-col gap-3 self-start rounded-md border border-border bg-card p-4">
 			<div className="flex flex-col gap-1">
 				<h2 className="font-medium text-sm">Como o cliente vê</h2>
 				<p className="text-muted-foreground text-xs">
