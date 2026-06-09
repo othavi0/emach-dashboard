@@ -6,34 +6,16 @@ import { branch, stockLevel } from "@emach/db/schema/inventory";
 import { order, orderItem } from "@emach/db/schema/orders";
 import { stockMovement } from "@emach/db/schema/stock-movements";
 
-import { tool, toolVariant } from "@emach/db/schema/tools";
-import {
-	and,
-	asc,
-	desc,
-	eq,
-	gte,
-	ilike,
-	inArray,
-	isNull,
-	lt,
-	or,
-	sql,
-} from "drizzle-orm";
+import { toolVariant } from "@emach/db/schema/tools";
+import { and, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 
 import { revalidatePath } from "next/cache";
 import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
-import { logger } from "@/lib/logger";
 
-import {
-	requireCapability,
-	requireCapabilityWithContext,
-} from "@/lib/permissions";
+import { requireCapability } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import {
-	type AddToolToBranchStockInput,
-	addToolToBranchStockSchema,
 	type STOCK_MOVEMENT_REASONS,
 	type StockAdjustmentInput,
 	stockAdjustmentSchema,
@@ -485,119 +467,4 @@ export async function fetchToolActivityPage(
 			: null;
 
 	return { items, nextCursor };
-}
-
-// ---------------------------------------------------------------------------
-// Add tool to branch stock — search + action
-// ---------------------------------------------------------------------------
-
-export interface VariantNotInBranchRow {
-	toolId: string;
-	toolName: string;
-	variantId: string;
-	variantSku: string;
-	variantVoltage: string | null;
-}
-
-export async function searchVariantsNotInBranch(
-	branchId: string,
-	query: string,
-	limit = 20
-): Promise<VariantNotInBranchRow[]> {
-	await requireCapability("stock.read");
-
-	const cleanQuery = query.trim();
-	const conditions = [
-		isNull(stockLevel.variantId),
-		inArray(tool.status, ["active"]),
-	];
-	if (cleanQuery.length > 0) {
-		const filter = or(
-			ilike(tool.name, `%${cleanQuery}%`),
-			ilike(toolVariant.sku, `%${cleanQuery}%`)
-		);
-		if (filter) {
-			conditions.push(filter);
-		}
-	}
-
-	return await db
-		.select({
-			variantId: toolVariant.id,
-			variantSku: toolVariant.sku,
-			variantVoltage: toolVariant.voltage,
-			toolId: tool.id,
-			toolName: tool.name,
-		})
-		.from(toolVariant)
-		.innerJoin(tool, eq(tool.id, toolVariant.toolId))
-		.leftJoin(
-			stockLevel,
-			and(
-				eq(stockLevel.variantId, toolVariant.id),
-				eq(stockLevel.branchId, branchId)
-			)
-		)
-		.where(and(...conditions))
-		.orderBy(asc(tool.name))
-		.limit(limit);
-}
-
-export async function addToolToBranchStock(
-	input: AddToolToBranchStockInput
-): Promise<ActionResult<undefined>> {
-	const session = await requireCapabilityWithContext("stock.adjust", {
-		targetBranchIds: [input.branchId],
-	});
-
-	const parsed = addToolToBranchStockSchema.safeParse(input);
-	if (!parsed.success) {
-		return {
-			ok: false,
-			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
-		};
-	}
-
-	const { branchId, variantId, initialQty, minQty, reorderPoint, reasonNote } =
-		parsed.data;
-
-	try {
-		await db.transaction(async (tx) => {
-			await tx.insert(stockLevel).values({
-				branchId,
-				variantId,
-				quantity: initialQty,
-				minQty,
-				reorderPoint,
-				updatedAt: new Date(),
-			});
-
-			if (initialQty > 0) {
-				await tx.insert(stockMovement).values({
-					id: crypto.randomUUID(),
-					branchId,
-					variantId,
-					previousQty: 0,
-					newQty: initialQty,
-					delta: initialQty,
-					reason: "entrada_compra",
-					reasonNote: reasonNote ?? null,
-					actorType: "user",
-					actorId: session.user.id,
-				});
-			}
-		});
-	} catch (error) {
-		logger.error("addToolToBranchStock falhou", error);
-		return {
-			ok: false,
-			error:
-				"Não foi possível adicionar — verifique se já está cadastrada nesta filial",
-		};
-	}
-
-	revalidatePath(`/dashboard/branches/${branchId}`);
-	revalidatePath(`/dashboard/branches/${branchId}/stock`);
-	revalidatePath("/dashboard", "layout");
-	return { ok: true, data: undefined };
 }
