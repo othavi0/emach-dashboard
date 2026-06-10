@@ -4,6 +4,7 @@ import { Button } from "@emach/ui/components/button";
 import {
 	Card,
 	CardContent,
+	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@emach/ui/components/card";
@@ -53,40 +54,47 @@ export function AccessStatusCard({ user }: Props) {
 		});
 	};
 
+	let accessDescription = "Aguardando aprovação do convite.";
+	if (user.status === "active") {
+		accessDescription =
+			"Conta ativa — o usuário consegue entrar normalmente. Suspender bloqueia o login sem excluir o cadastro.";
+	} else if (user.status === "suspended") {
+		accessDescription =
+			"Conta suspensa — o usuário não consegue entrar até ser reativado.";
+	}
+
 	return (
 		<>
-			<Card>
-				<CardHeader>
+			<Card className="h-full">
+				<CardHeader className="flex flex-row items-center justify-between">
 					<CardTitle className="text-base">Status de acesso</CardTitle>
-				</CardHeader>
-				<CardContent className="flex flex-col gap-4">
 					<StatusBadge status={user.status} />
-					{user.status === "active" && (
+				</CardHeader>
+				<CardContent className="flex-1">
+					<p className="text-muted-foreground text-sm">{accessDescription}</p>
+				</CardContent>
+				{user.status === "active" && (
+					<CardFooter className="justify-end">
 						<Button
-							className="self-start"
 							onClick={() => setDialogOpen("suspend")}
 							size="sm"
 							variant="outline"
 						>
 							Suspender
 						</Button>
-					)}
-					{user.status === "suspended" && (
+					</CardFooter>
+				)}
+				{user.status === "suspended" && (
+					<CardFooter className="justify-end">
 						<Button
-							className="self-start"
 							onClick={() => setDialogOpen("reactivate")}
 							size="sm"
 							variant="outline"
 						>
 							Reativar
 						</Button>
-					)}
-					{user.status === "pending" && (
-						<p className="text-muted-foreground text-sm">
-							Aguardando aprovação
-						</p>
-					)}
-				</CardContent>
+					</CardFooter>
+				)}
 			</Card>
 			<DestructiveActionDialog
 				confirmLabel="Suspender"
