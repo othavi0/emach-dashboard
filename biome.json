@@ -30,7 +30,8 @@
       "!**/.superpowers",
       "!**/.agents",
       "!**/.claude",
-      "!**/.github/skills"
+      "!**/.github/skills",
+      "!**/graphify-out"
     ]
   },
   "formatter": {
