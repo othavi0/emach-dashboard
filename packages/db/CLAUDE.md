@@ -80,6 +80,12 @@ O mesmo bypass do column mapper devolve nomes **literais do Postgres em snake_ca
 - Para SKU default / imagem / categoria-primária por tool (ou qualquer subquery escalar por linha): use **`db.execute` raw** (como `dashboard/stock/branch-stock-data.ts`) com `AS "camelCase"`, **ou** um **segundo passo de enriquecimento** via `Map` (como `getToolCardMeta` em `suppliers/data.ts` + merge em `fetchSupplierToolsPage`). Não confie na subquery no `db.select`.
 - **Smoke visual com dado real** (não só layout): um card que cai em fallback (`defaultSku ?? slug`) esconde o `null` — verifique que o valor esperado aparece, não só que a tela renderiza.
 
+## Armadilha: `UNION ALL` de blocos dinâmicos + `ORDER BY` externo
+
+Feed multi-fonte que monta os SELECTs condicionalmente (filtro de tipo) e junta com `UNION ALL`: cada subquery tem `(SELECT ... ORDER BY ... LIMIT)` e há um `ORDER BY ... LIMIT` externo. Com **2+ blocos** funciona (o externo aplica ao UNION). Com **1 bloco só** (usuário filtrou para um tipo, ou deep-link `?type=`), o `UNION ALL` some e sobra `(SELECT ... ORDER BY ...) ORDER BY ...` → Postgres rejeita: **`multiple ORDER BY clauses not allowed`**.
+
+**Regra:** sempre envolver o union em derived table — `SELECT * FROM ( <blocos> ) AS feed ORDER BY ... LIMIT ...`. Vale para 1 ou N blocos. Canônico: `branches/[id]/activity-data.ts`. **Smoke do caminho de 1 bloco** (não só o default com todos): o erro só aparece quando a lista de blocos colapsa para um — testar o filtro/deep-link de tipo único, não confiar no estado inicial.
+
 ## `db` × `createDb()`
 
 - `db` (singleton em `src/index.ts`) — uso geral em server actions.

@@ -10,18 +10,20 @@ import {
 } from "@emach/ui/components/sheet";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
-import { ExternalLink } from "lucide-react";
+import { ArrowRight, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { MaskedInput } from "@/components/masked-input";
 import { integerMask } from "@/lib/masks";
 
 import {
 	adjustStock,
+	fetchVariantBranchMovementsPage,
 	getReservedQtyByVariantBranch,
-	getStockMovementsByVariantBranch,
 	type StockMovementRow,
 	updateStockThresholds,
 } from "../actions";
@@ -118,41 +120,119 @@ function zodErrorsToMap(error: {
 	return map;
 }
 
-function MovementsList({ movements }: { movements: StockMovementRow[] }) {
+// ─── Movimento (linha) ───────────────────────────────────────────────────────
+
+function MovementRow({ m }: { m: StockMovementRow }) {
 	return (
-		<ul className="flex flex-col gap-2.5">
-			{movements.map((m) => (
-				<li className="flex items-start gap-3 text-xs" key={m.id}>
-					<span
-						className={`flex-shrink-0 rounded px-1.5 py-0.5 font-mono font-semibold tabular-nums ${
-							m.delta >= 0
-								? "bg-success/15 text-success"
-								: "bg-destructive/15 text-destructive"
-						}`}
-					>
-						{m.delta >= 0 ? "+" : ""}
-						{m.delta}
-					</span>
-					<div className="min-w-0 flex-1">
-						<p className="text-foreground">
-							{m.reason
-								? (REASON_LABEL_FULL[m.reason] ?? m.reason)
-								: "Sem motivo"}
-							{m.reasonNote ? (
-								<span className="ml-1 text-muted-foreground">
-									— {m.reasonNote}
-								</span>
-							) : null}
-						</p>
-						<p className="text-muted-foreground">
-							{m.actorName ?? "Sistema"}
-							{" · "}
-							{formatRelative(m.createdAt)}
-						</p>
-					</div>
-				</li>
-			))}
-		</ul>
+		<li className="flex items-start gap-3 px-4 py-2.5 text-xs">
+			<span
+				className={`flex-shrink-0 rounded px-1.5 py-0.5 font-mono font-semibold tabular-nums ${
+					m.delta >= 0
+						? "bg-success/15 text-success"
+						: "bg-destructive/15 text-destructive"
+				}`}
+			>
+				{m.delta >= 0 ? "+" : ""}
+				{m.delta}
+			</span>
+			<div className="min-w-0 flex-1">
+				<p className="text-foreground">
+					{m.reason ? (REASON_LABEL_FULL[m.reason] ?? m.reason) : "Sem motivo"}
+					{m.reasonNote ? (
+						<span className="ml-1 text-muted-foreground">— {m.reasonNote}</span>
+					) : null}
+				</p>
+				<p className="text-muted-foreground">
+					{m.actorName ?? "Sistema"}
+					{" · "}
+					{formatRelative(m.createdAt)}
+				</p>
+			</div>
+		</li>
+	);
+}
+
+// ─── Card de movimentos (scroll interno + lazy load) ─────────────────────────
+
+interface MovementsCardProps {
+	branchId: string;
+	toolId: string;
+	variantId: string;
+}
+
+function MovementsCard({ branchId, toolId, variantId }: MovementsCardProps) {
+	const [items, setItems] = useState<StockMovementRow[]>([]);
+	const [cursor, setCursor] = useState<string | null>(null);
+	const [loaded, setLoaded] = useState(false);
+	const [pending, startTransition] = useTransition();
+	const scrollRef = useRef<HTMLDivElement>(null);
+
+	// key={variantId} no caller remonta este card por variante → carrega a 1ª página.
+	useEffect(() => {
+		startTransition(async () => {
+			const r = await fetchVariantBranchMovementsPage(
+				variantId,
+				branchId,
+				null
+			);
+			setItems(r.items);
+			setCursor(r.nextCursor);
+			setLoaded(true);
+		});
+	}, [variantId, branchId]);
+
+	const loadMore = useCallback(() => {
+		if (!cursor) {
+			return;
+		}
+		const current = cursor;
+		startTransition(async () => {
+			const r = await fetchVariantBranchMovementsPage(
+				variantId,
+				branchId,
+				current
+			);
+			setItems((prev) => [...prev, ...r.items]);
+			setCursor(r.nextCursor);
+		});
+	}, [cursor, variantId, branchId]);
+
+	return (
+		<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-border bg-card">
+			<div className="border-border border-b px-4 py-3">
+				<p className="font-medium text-sm">Movimentos recentes</p>
+				<p className="text-muted-foreground text-xs">
+					desta ferramenta nesta filial
+				</p>
+			</div>
+			<div className="min-h-0 flex-1 overflow-y-auto" ref={scrollRef}>
+				{loaded && items.length === 0 ? (
+					<p className="px-4 py-6 text-center text-muted-foreground text-xs italic">
+						Nenhum movimento registrado.
+					</p>
+				) : (
+					<ul className="divide-y divide-border">
+						{items.map((m) => (
+							<MovementRow key={m.id} m={m} />
+						))}
+					</ul>
+				)}
+				<InfiniteSentinel
+					error={null}
+					hasMore={cursor !== null}
+					onLoadMore={loadMore}
+					pending={pending}
+					root={scrollRef}
+				/>
+			</div>
+			<Link
+				className="flex items-center gap-1 border-border border-t px-4 py-3 font-medium text-primary text-xs transition-colors hover:bg-muted"
+				href={`/dashboard/branches/${branchId}?tab=activity&type=stock&toolId=${toolId}`}
+			>
+				Ver atividade completa da filial
+				<ArrowRight className="size-3" />
+			</Link>
+		</div>
 	);
 }
 
@@ -166,7 +246,7 @@ interface BranchStockEditSheetProps {
 	row: BranchStockRow | null;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sheet de edição de estoque com múltiplos estados (carregando, editando limites, histórico); complexidade inerente ao domínio
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sheet de edição de estoque com múltiplos estados (ajuste, limites, reservado, histórico); complexidade inerente ao domínio
 export function BranchStockEditSheet({
 	branchId,
 	branchName,
@@ -190,14 +270,11 @@ export function BranchStockEditSheet({
 	);
 	const [isUpdatingLimits, startLimitsTransition] = useTransition();
 
-	const [movements, setMovements] = useState<StockMovementRow[]>([]);
-	const [isLoadingMovements, startMovementsTransition] = useTransition();
 	const [reservedQty, setReservedQty] = useState<number | null>(null);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: dependência intencional em row?.variantId — effect só re-executa quando a variante muda, não em cada mutação de row
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reinicia os campos só quando a variante muda
 	useEffect(() => {
 		if (!row) {
-			setMovements([]);
 			setReservedQty(null);
 			return;
 		}
@@ -209,15 +286,13 @@ export function BranchStockEditSheet({
 		setErrors({});
 		setReservedQty(null);
 
-		startMovementsTransition(async () => {
-			const [data, reserved] = await Promise.all([
-				getStockMovementsByVariantBranch(row.variantId, branchId),
-				getReservedQtyByVariantBranch(row.variantId, branchId),
-			]);
-			setMovements(data);
+		startAdjustTransition(async () => {
+			const reserved = await getReservedQtyByVariantBranch(
+				row.variantId,
+				branchId
+			);
 			setReservedQty(reserved);
 		});
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [row?.variantId, branchId]);
 
 	function handleAdjustSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -280,32 +355,16 @@ export function BranchStockEditSheet({
 
 	const status = resolveStatus(row);
 	const statusLabel = STATUS_LABEL[status];
-	const hasLimits = row.minQty > 0 || row.reorderPoint > 0;
 	let quantityColor = "text-foreground";
 	if (row.quantity === 0 || status === "critical") {
 		quantityColor = "text-destructive";
 	} else if (status === "reorder") {
 		quantityColor = "text-warning";
 	}
+	const available =
+		reservedQty === null ? null : Math.max(0, row.quantity - reservedQty);
 	const limitsDirty =
 		minQty !== row.minQty || reorderPoint !== row.reorderPoint;
-
-	let movementsContent: React.ReactNode;
-	if (isLoadingMovements) {
-		movementsContent = (
-			<div className="flex justify-center py-4">
-				<Spinner />
-			</div>
-		);
-	} else if (movements.length === 0) {
-		movementsContent = (
-			<p className="text-muted-foreground text-sm italic">
-				Nenhum movimento registrado.
-			</p>
-		);
-	} else {
-		movementsContent = <MovementsList movements={movements} />;
-	}
 
 	return (
 		<Sheet
@@ -316,9 +375,9 @@ export function BranchStockEditSheet({
 			}}
 			open={row !== null}
 		>
-			<SheetContent className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-[580px]">
+			<SheetContent className="flex w-full flex-col gap-0 overflow-hidden p-0 data-[side=right]:sm:max-w-4xl">
 				{/* Header */}
-				<SheetHeader className="border-border border-b px-6 py-5">
+				<SheetHeader className="flex-none border-border border-b px-6 py-5">
 					<div className="flex items-start gap-3">
 						<div className="size-14 flex-shrink-0 overflow-hidden rounded-[8px] bg-muted">
 							{row.imageUrl ? (
@@ -368,196 +427,211 @@ export function BranchStockEditSheet({
 					</div>
 				</SheetHeader>
 
-				{/* Estoque atual */}
-				<div className="border-border border-b px-6 py-5">
+				{/* Estoque atual — painel de métricas */}
+				<div className="flex-none border-border border-b px-6 py-5">
 					<p className="mb-3 text-muted-foreground text-xs uppercase tracking-wide">
 						Estoque atual
 					</p>
-					<div className="flex items-end justify-between gap-4">
-						<div>
-							<span
-								className={`font-bold text-[36px] tabular-nums leading-none ${quantityColor}`}
-							>
-								{row.quantity}
-							</span>
-							<span className="ml-2 text-muted-foreground text-sm">unid.</span>
-						</div>
-						<div className="text-right text-muted-foreground text-xs tabular-nums">
-							{hasLimits ? (
-								<>
-									<p>Mínimo: {row.minQty}</p>
-									<p>Reposição: {row.reorderPoint}</p>
-								</>
-							) : (
-								<p className="italic">Sem limites</p>
-							)}
-						</div>
+					<div className="grid grid-cols-4 gap-2">
+						<StatCard
+							colorClass={quantityColor}
+							label="Atual"
+							value={row.quantity}
+						/>
+						<StatCard label="Mínimo" value={row.minQty} />
+						<StatCard label="Reposição" value={row.reorderPoint} />
+						<StatCard
+							colorClass={
+								available !== null && available <= 0
+									? "text-destructive"
+									: "text-success"
+							}
+							label="Disponível"
+							value={available ?? "—"}
+						/>
 					</div>
-					{reservedQty !== null && (
-						<div className="mt-3 flex items-center gap-4 border-border border-t pt-3 text-xs">
-							<div className="flex items-baseline gap-1.5">
-								<span className="text-muted-foreground">Reservado:</span>
-								<span
-									className={`font-semibold tabular-nums ${
-										reservedQty > 0 ? "text-warning" : "text-foreground"
-									}`}
-								>
-									{reservedQty}
-								</span>
-							</div>
-							<div className="flex items-baseline gap-1.5">
-								<span className="text-muted-foreground">Disponível:</span>
-								<span
-									className={`font-semibold tabular-nums ${
-										row.quantity - reservedQty <= 0
-											? "text-destructive"
-											: "text-success"
-									}`}
-								>
-									{Math.max(0, row.quantity - reservedQty)}
-								</span>
-							</div>
-							{reservedQty > 0 && (
-								<span className="text-muted-foreground/70 italic">
-									em pedidos pagos/em preparo
-								</span>
-							)}
-						</div>
-					)}
+					{reservedQty !== null && reservedQty > 0 ? (
+						<p className="mt-3 text-muted-foreground text-xs">
+							<span className="font-semibold text-warning tabular-nums">
+								{reservedQty}
+							</span>{" "}
+							reservado{reservedQty === 1 ? "" : "s"} em pedidos pagos/em
+							preparo.
+						</p>
+					) : null}
 				</div>
 
-				{/* Ajustar quantidade */}
-				{canMutate && (
-					<div className="border-border border-b px-6 py-5">
-						<p className="mb-3 font-medium text-sm">Ajustar quantidade</p>
-						<form className="flex flex-col gap-3" onSubmit={handleAdjustSubmit}>
-							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="sheet-new-qty">
-									Nova quantidade
-									<span className="text-destructive"> *</span>
-								</Label>
-								<MaskedInput
-									disabled={isAdjusting}
-									id="sheet-new-qty"
-									mask={integerMask}
-									onChange={setNewQty}
-									placeholder={`Atual: ${row.quantity}`}
-									value={newQty}
-								/>
-								{errors.newQty && (
-									<p className="text-destructive text-xs">{errors.newQty}</p>
-								)}
-							</div>
-
-							<div className="flex flex-col gap-1.5">
-								<Label>Motivo</Label>
-								<div className="grid grid-cols-2 gap-2">
-									{STOCK_MOVEMENT_REASONS_UI.map((r) => (
-										<Button
-											disabled={isAdjusting}
-											key={r}
-											onClick={() => setReason(r)}
-											size="sm"
-											type="button"
-											variant={reason === r ? "default" : "outline"}
-										>
-											{REASON_LABEL_UI[r]}
-										</Button>
-									))}
-								</div>
-							</div>
-
-							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="sheet-reason-note">
-									Observação
-									{reason === "outro" && (
+				{/* Corpo: duas colunas */}
+				{canMutate ? (
+					<div className="grid min-h-0 flex-1 grid-cols-2">
+						{/* Esquerda — ajustar quantidade */}
+						<div className="overflow-y-auto border-border border-r px-6 py-5">
+							<p className="mb-3 font-medium text-sm">Ajustar quantidade</p>
+							<form
+								className="flex flex-col gap-3"
+								onSubmit={handleAdjustSubmit}
+							>
+								<div className="flex flex-col gap-1.5">
+									<Label htmlFor="sheet-new-qty">
+										Nova quantidade
 										<span className="text-destructive"> *</span>
+									</Label>
+									<MaskedInput
+										disabled={isAdjusting}
+										id="sheet-new-qty"
+										mask={integerMask}
+										onChange={setNewQty}
+										placeholder={`Atual: ${row.quantity}`}
+										value={newQty}
+									/>
+									{errors.newQty && (
+										<p className="text-destructive text-xs">{errors.newQty}</p>
 									)}
-								</Label>
-								<Textarea
+								</div>
+
+								<div className="flex flex-col gap-1.5">
+									<Label>Motivo</Label>
+									<div className="grid grid-cols-2 gap-2">
+										{STOCK_MOVEMENT_REASONS_UI.map((r) => (
+											<Button
+												disabled={isAdjusting}
+												key={r}
+												onClick={() => setReason(r)}
+												size="sm"
+												type="button"
+												variant={reason === r ? "default" : "outline"}
+											>
+												{REASON_LABEL_UI[r]}
+											</Button>
+										))}
+									</div>
+								</div>
+
+								<div className="flex flex-col gap-1.5">
+									<Label htmlFor="sheet-reason-note">
+										Observação
+										{reason === "outro" && (
+											<span className="text-destructive"> *</span>
+										)}
+									</Label>
+									<Textarea
+										disabled={isAdjusting}
+										id="sheet-reason-note"
+										onChange={(e) => setReasonNote(e.target.value)}
+										placeholder="NF #1234, fornecedor X…"
+										rows={2}
+										value={reasonNote}
+									/>
+									{errors.reasonNote && (
+										<p className="text-destructive text-xs">
+											{errors.reasonNote}
+										</p>
+									)}
+								</div>
+
+								<Button
+									className="self-start"
 									disabled={isAdjusting}
-									id="sheet-reason-note"
-									onChange={(e) => setReasonNote(e.target.value)}
-									placeholder="NF #1234, fornecedor X…"
-									rows={2}
-									value={reasonNote}
-								/>
-								{errors.reasonNote && (
-									<p className="text-destructive text-xs">
-										{errors.reasonNote}
-									</p>
-								)}
-							</div>
-
-							<Button
-								className="self-start"
-								disabled={isAdjusting}
-								size="sm"
-								type="submit"
-							>
-								{isAdjusting ? (
-									<>
-										<Spinner /> Salvando…
-									</>
-								) : (
-									"Salvar ajuste"
-								)}
-							</Button>
-						</form>
-					</div>
-				)}
-
-				{/* Limites de alerta */}
-				{canMutate && (
-					<div className="border-border border-b px-6 py-5">
-						<p className="mb-3 font-medium text-sm">Limites de alerta</p>
-						<div className="grid grid-cols-2 gap-3">
-							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="sheet-min-qty">Mínimo</Label>
-								<MaskedInput
-									disabled={isUpdatingLimits}
-									id="sheet-min-qty"
-									mask={integerMask}
-									onChange={setMinQty}
-									value={minQty}
-								/>
-							</div>
-							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="sheet-reorder-point">Reposição</Label>
-								<MaskedInput
-									disabled={isUpdatingLimits}
-									id="sheet-reorder-point"
-									mask={integerMask}
-									onChange={setReorderPoint}
-									value={reorderPoint}
-								/>
-							</div>
+									size="sm"
+									type="submit"
+								>
+									{isAdjusting ? (
+										<>
+											<Spinner /> Salvando…
+										</>
+									) : (
+										"Salvar ajuste"
+									)}
+								</Button>
+							</form>
 						</div>
-						<Button
-							className="mt-3"
-							disabled={isUpdatingLimits || !limitsDirty}
-							onClick={handleLimitsSubmit}
-							size="sm"
-							type="button"
-							variant="outline"
-						>
-							{isUpdatingLimits ? (
-								<>
-									<Spinner /> Salvando…
-								</>
-							) : (
-								"Salvar limites"
-							)}
-						</Button>
+
+						{/* Direita — limites + movimentos */}
+						<div className="flex min-h-0 flex-col gap-4 p-4">
+							<div className="flex-none rounded-[10px] border border-border bg-card p-4">
+								<p className="mb-3 font-medium text-sm">Limites de alerta</p>
+								<div className="grid grid-cols-2 gap-3">
+									<div className="flex flex-col gap-1.5">
+										<Label htmlFor="sheet-min-qty">Mínimo</Label>
+										<MaskedInput
+											disabled={isUpdatingLimits}
+											id="sheet-min-qty"
+											mask={integerMask}
+											onChange={setMinQty}
+											value={minQty}
+										/>
+									</div>
+									<div className="flex flex-col gap-1.5">
+										<Label htmlFor="sheet-reorder-point">Reposição</Label>
+										<MaskedInput
+											disabled={isUpdatingLimits}
+											id="sheet-reorder-point"
+											mask={integerMask}
+											onChange={setReorderPoint}
+											value={reorderPoint}
+										/>
+									</div>
+								</div>
+								<Button
+									className="mt-3"
+									disabled={isUpdatingLimits || !limitsDirty}
+									onClick={handleLimitsSubmit}
+									size="sm"
+									type="button"
+									variant="outline"
+								>
+									{isUpdatingLimits ? (
+										<>
+											<Spinner /> Salvando…
+										</>
+									) : (
+										"Salvar limites"
+									)}
+								</Button>
+							</div>
+
+							<MovementsCard
+								branchId={branchId}
+								key={row.variantId}
+								toolId={row.toolId}
+								variantId={row.variantId}
+							/>
+						</div>
+					</div>
+				) : (
+					<div className="min-h-0 flex-1 p-4">
+						<MovementsCard
+							branchId={branchId}
+							key={row.variantId}
+							toolId={row.toolId}
+							variantId={row.variantId}
+						/>
 					</div>
 				)}
-
-				{/* Histórico */}
-				<div className="px-6 py-5">
-					<p className="mb-3 font-medium text-sm">Últimos movimentos</p>
-					{movementsContent}
-				</div>
 			</SheetContent>
 		</Sheet>
+	);
+}
+
+function StatCard({
+	label,
+	value,
+	colorClass = "text-foreground",
+}: {
+	colorClass?: string;
+	label: string;
+	value: number | string;
+}) {
+	return (
+		<div className="rounded-[9px] border border-border bg-card px-2 py-2.5 text-center">
+			<div
+				className={`font-bold text-[22px] tabular-nums leading-none ${colorClass}`}
+			>
+				{value}
+			</div>
+			<div className="mt-1.5 text-[9.5px] text-muted-foreground uppercase tracking-wider">
+				{label}
+			</div>
+		</div>
 	);
 }

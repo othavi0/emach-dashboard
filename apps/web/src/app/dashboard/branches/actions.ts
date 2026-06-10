@@ -14,9 +14,22 @@ import {
 	type BranchFormValues,
 	branchSchema,
 } from "./_components/branch-schema";
+import {
+	type BranchActivityFilters,
+	type BranchActivityRow,
+	fetchBranchActivityPage as fetchBranchActivityPageImpl,
+} from "./[id]/activity-data";
 import type { BranchOrderRow, BranchTableRow } from "./data";
 
 const BRANCHES_PATH = "/dashboard/branches";
+
+/** Wrapper server-action: o feed de atividade da filial pagina pelo client. */
+export async function fetchBranchActivityPage(
+	filters: BranchActivityFilters,
+	cursor: string | null
+): Promise<InfiniteResult<BranchActivityRow>> {
+	return await fetchBranchActivityPageImpl(filters, cursor);
+}
 
 export type BranchListItem = typeof branch.$inferSelect;
 
