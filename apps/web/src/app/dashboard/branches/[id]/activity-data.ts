@@ -217,9 +217,14 @@ export async function fetchBranchActivityPage(
 		blocks.push(buildTeamBlock(ctx));
 	}
 
+	// Derived table: com 1 só bloco não há UNION ALL, e `( SELECT ... ORDER BY ... )
+	// ORDER BY ...` é rejeitado pelo Postgres ("multiple ORDER BY clauses"). Envolver
+	// em `SELECT * FROM (...) AS feed` torna o ORDER BY externo válido para 1 ou N blocos.
 	const unioned = sql.join(blocks, sql` UNION ALL `);
 	const result = await db.execute<BranchActivityDbRow>(sql`
-		${unioned}
+		SELECT * FROM (
+			${unioned}
+		) AS feed
 		ORDER BY created_at DESC, id DESC
 		LIMIT ${ctx.limit}
 	`);
