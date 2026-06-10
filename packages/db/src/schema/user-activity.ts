@@ -14,7 +14,9 @@ export const userActivityLog = pgTable(
 		targetType: text("target_type"),
 		targetId: text("target_id"),
 		metadata: jsonb("metadata").$type<Record<string, unknown>>(),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("user_activity_actor_created_idx").on(

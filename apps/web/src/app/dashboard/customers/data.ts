@@ -237,7 +237,7 @@ export async function listCustomers({
 		orderBy = sql`c.created_at DESC, c.id DESC`;
 		if (decoded?.sort === "newest") {
 			conditions.push(
-				sql`(c.created_at, c.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+				sql`(c.created_at, c.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 			);
 		}
 	} else if (sort === "ltvDesc") {
@@ -252,7 +252,7 @@ export async function listCustomers({
 		if (decoded?.sort === "lastOrderDesc") {
 			if (decoded.lastOrderAt) {
 				conditions.push(
-					sql`(stats.last_order_at IS NULL OR stats.last_order_at < ${decoded.lastOrderAt}::timestamp OR (stats.last_order_at = ${decoded.lastOrderAt}::timestamp AND c.id < ${decoded.id}))`
+					sql`(stats.last_order_at IS NULL OR stats.last_order_at < ${decoded.lastOrderAt}::timestamptz OR (stats.last_order_at = ${decoded.lastOrderAt}::timestamptz AND c.id < ${decoded.id}))`
 				);
 			} else {
 				conditions.push(

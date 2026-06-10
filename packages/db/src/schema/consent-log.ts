@@ -30,8 +30,10 @@ export const consentLog = pgTable(
 		version: text("version").notNull(),
 		ipAddress: text("ip_address"),
 		userAgent: text("user_agent"),
-		grantedAt: timestamp("granted_at").defaultNow().notNull(),
-		revokedAt: timestamp("revoked_at"),
+		grantedAt: timestamp("granted_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		revokedAt: timestamp("revoked_at", { withTimezone: true }),
 	},
 	(table) => [
 		index("consent_log_client_idx").on(

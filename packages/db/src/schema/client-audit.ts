@@ -41,7 +41,9 @@ export const clientAuditLog = pgTable(
 		beforeJson: jsonb("before_json"),
 		afterJson: jsonb("after_json"),
 		reason: text("reason"),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("client_audit_client_created_idx").on(
