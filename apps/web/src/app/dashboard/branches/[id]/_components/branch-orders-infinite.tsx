@@ -5,7 +5,7 @@ import { useInfiniteList } from "@/lib/use-infinite-list";
 
 import { fetchBranchOrdersPage } from "../../actions";
 import type { BranchOrderRow } from "../../data";
-import { OrderCard } from "./orders-tab";
+import { BranchOrderCard } from "./order-card";
 
 interface Props {
 	branchId: string;
@@ -28,7 +28,7 @@ export function BranchOrdersInfinite({
 		<div aria-live="polite">
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{items.map((o) => (
-					<OrderCard key={o.id} order={o} />
+					<BranchOrderCard key={o.id} order={o} />
 				))}
 			</div>
 			<InfiniteSentinel
