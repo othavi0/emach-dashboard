@@ -10,6 +10,7 @@ import { can, requireUserDetailAccessOrRedirect } from "@/lib/permissions";
 import type { UserRow } from "../_components/types";
 import { UserEditSheet } from "../_components/user-edit-sheet";
 import {
+	getUserAffectedActivity,
 	getUserDetail,
 	getUserDetailKpis,
 	getUserLinkedBranchesWithStats,
@@ -40,17 +41,19 @@ export default async function UserDetailPage({
 	// availableBranches só é usada no painel "Vincular filial" (aba Filiais);
 	// evita varrer todas as filiais nas demais abas.
 	const onBranchesTab = sp.tab === "branches";
-	const [user, kpis, linkedBranches, availableBranches] = await Promise.all([
-		getUserDetail(id),
-		getUserDetailKpis(id),
-		getUserLinkedBranchesWithStats(id),
-		onBranchesTab
-			? db
-					.select({ id: branch.id, name: branch.name })
-					.from(branch)
-					.orderBy(asc(branch.name))
-			: Promise.resolve([] as { id: string; name: string }[]),
-	]);
+	const [user, kpis, linkedBranches, availableBranches, recentActivity] =
+		await Promise.all([
+			getUserDetail(id),
+			getUserDetailKpis(id),
+			getUserLinkedBranchesWithStats(id),
+			onBranchesTab
+				? db
+						.select({ id: branch.id, name: branch.name })
+						.from(branch)
+						.orderBy(asc(branch.name))
+				: Promise.resolve([] as { id: string; name: string }[]),
+			getUserAffectedActivity(id, null, 5),
+		]);
 
 	if (!user) {
 		notFound();
@@ -64,7 +67,12 @@ export default async function UserDetailPage({
 			label: "Perfil",
 			icon: <User aria-hidden className="size-3.5" />,
 			content: (
-				<ProfileTab kpis={kpis} linkedBranches={linkedBranches} user={user} />
+				<ProfileTab
+					kpis={kpis}
+					linkedBranches={linkedBranches}
+					recentActivity={recentActivity.items}
+					user={user}
+				/>
 			),
 		},
 		{
