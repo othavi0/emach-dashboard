@@ -1,0 +1,31 @@
+# .graphifyignore — exclusões só para o knowledge graph (sintaxe .gitignore, last-match-wins)
+# node_modules, dist, build, .git, __pycache__, graphify-out etc. já são pulados por
+# default pelo graphify — não precisam estar aqui. Liste só o que é específico deste repo.
+
+# --- Tooling de agente / skills (não é código do produto Emach) ---
+# As skills ficam triplicadas (.agents, .claude, .github) e inflavam ~metade do grafo.
+.agents/
+.claude/
+.superpowers/
+.github/skills/
+
+# --- Caches de build não cobertos pelo default ---
+.turbo/
+
+# --- Manifestos de config (viram json-keys soltas: scripts, compilerOptions,
+#     dependencies — ~16% do grafo, sem valor arquitetural. Deps reais entre
+#     packages continuam capturadas via `import` no AST) ---
+package.json
+turbo.json
+tsconfig.json
+tsconfig.*.json
+tsconfig.base.json
+biome.json
+components.json
+.mcp.json
+skills-lock.json
+bun.lock
+bun.lockb
+
+# Mantidos de propósito (produto/decisões reais):
+#   apps/, packages/, docs/, scripts/, .github/workflows/ (CI sync — ADR-0009)
