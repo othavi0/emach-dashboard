@@ -45,10 +45,12 @@ export const review = pgTable(
 		moderatedBy: text("moderated_by").references(() => user.id, {
 			onDelete: "set null",
 		}),
-		moderatedAt: timestamp("moderated_at"),
+		moderatedAt: timestamp("moderated_at", { withTimezone: true }),
 		moderationNote: text("moderation_note"),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.defaultNow()
 			.$onUpdate(() => new Date())
 			.notNull(),

@@ -118,7 +118,7 @@ export async function fetchOrderActivityPage(
 	const cursorCondition = cursor
 		? (() => {
 				const c = decodeCursorAs(cursor, "newest");
-				return sql`(${orderStatusHistory.createdAt}, ${orderStatusHistory.id}) < (${c.createdAt}::timestamp, ${c.id})`;
+				return sql`(${orderStatusHistory.createdAt}, ${orderStatusHistory.id}) < (${c.createdAt}::timestamptz, ${c.id})`;
 			})()
 		: undefined;
 

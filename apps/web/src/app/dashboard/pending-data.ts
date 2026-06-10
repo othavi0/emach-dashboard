@@ -76,7 +76,7 @@ export async function fetchPendingOrders(
 	await requireCurrentSession();
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
 	const keyset = decoded
-		? sql`AND (o.created_at, o.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+		? sql`AND (o.created_at, o.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		: sql``;
 	const result = await db.execute<{
 		client_name: string;
@@ -125,7 +125,7 @@ export async function fetchPendingReviews(
 	await requireCurrentSession();
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
 	const keyset = decoded
-		? sql`AND (r.created_at, r.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+		? sql`AND (r.created_at, r.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		: sql``;
 	const result = await db.execute<{
 		created_at: string;
@@ -166,7 +166,7 @@ export async function fetchExpiringPromotions(
 	const decoded = cursor ? decodeCursorAs(cursor, "expiringPromo") : null;
 	// ordena por ends_at ASC (mais urgente primeiro) — keyset crescente
 	const keyset = decoded
-		? sql`AND (p.ends_at, p.id) > (${decoded.endsAt}::timestamp, ${decoded.id})`
+		? sql`AND (p.ends_at, p.id) > (${decoded.endsAt}::timestamptz, ${decoded.id})`
 		: sql``;
 	const result = await db.execute<{
 		ends_at: string;
@@ -218,7 +218,7 @@ export async function fetchDashboardActivity(
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
 	const keyset = (col: string, idExpr: string) =>
 		decoded
-			? sql`WHERE (${sql.raw(col)}, ${sql.raw(idExpr)}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+			? sql`WHERE (${sql.raw(col)}, ${sql.raw(idExpr)}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 			: sql``;
 	const result = await db.execute<{
 		aux: string | null;

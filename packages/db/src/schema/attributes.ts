@@ -57,8 +57,10 @@ export const attributeDefinition = pgTable(
 				onDelete: "restrict",
 			}),
 		sortOrder: integer("sort_order").notNull().default(0),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
@@ -82,8 +84,10 @@ export const toolAttributeValue = pgTable(
 		valueNumeric: numeric("value_numeric", { precision: 14, scale: 4 }),
 		valueNumericMax: numeric("value_numeric_max", { precision: 14, scale: 4 }),
 		valueBool: boolean("value_bool"),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
@@ -142,7 +146,9 @@ export const toolAttributeAssignment = pgTable(
 			.references(() => tool.id, { onDelete: "cascade" }),
 		attributeId: text("attribute_id").notNull(),
 		sortOrder: integer("sort_order").notNull().default(0),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		primaryKey({ columns: [table.toolId, table.attributeId] }),

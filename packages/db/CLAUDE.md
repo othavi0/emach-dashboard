@@ -28,6 +28,7 @@ Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte 
 - ID: `text("id").primaryKey()`, preencher com `crypto.randomUUID()` no caller.
 - FK: explicitar `onDelete: "cascade" | "restrict" | "set null"`. Default = `restrict` por integridade.
 - Money: `numeric(10, 2)` para preço/custo de produto; `numeric(12, 2)` em totais de pedido. **Nunca `real`/`double`**.
+- **Timestamp: sempre `timestamp("x", { withTimezone: true })`** (= `timestamptz`). Migrado em 2026-06-10 (todas as 78 colunas). **Nunca declarar `timestamp(...)` sem tz** — coluna naïve quebra paginação por cursor em runtime não-UTC: o cursor é serializado via `new Date(rawString).toISOString()`, que em dev BR (−03) injeta +3h, e o keyset `< ${cursor}::timestamp` passa a reincluir o item-cursor → loop de refetch + duplicate keys. Banco compartilhado: migração coordenada com ecommerce (issue ecommerce#79).
 - Auditoria: `actorType pgEnum('actor_type', ['user','system'])` + FK do ator (user). **Nome da coluna varia por tabela:** `stockMovement.actorId`; as demais (`orderStatusHistory`, `clientAuditLog`, `supplierAuditLog`, `userActivityLog`) usam `actorUserId`. CHECK `actor_coherence` garante coerência.
 - "No máximo 1 marcado": `uniqueIndex(...).on(parentId).where(sql\`${isDefault} = true\`)` — ex `tool_variant.isDefault` (1 default por tool).
 - `unique()` em colunas de busca natural (sku, barcode, slug, document).
@@ -50,7 +51,8 @@ Sintoma: `Intl.DateTimeFormat.format(value)` lança `RangeError: Invalid time va
 
 **Regras:**
 
-- Sempre que tipar coluna timestamp como `Date` no shape público de função que usa `db.execute`: coercer no boundary com `toDate` de `@emach/db/utils`.
+- Sempre que tipar coluna timestamp como `Date` no shape público de função que usa `db.execute`: coercer no boundary com `toDate` de `@emach/db/utils`. (Desde a migração p/ `timestamptz` em 2026-06-10, a string raw vem com offset `+00`, então `toDate` produz o instante correto em qualquer runtime — antes, colunas naïve davam +3h em dev BR.)
+- **Cursor keyset:** comparar com `${cursor}::timestamptz` (não `::timestamp`) — colunas são `timestamptz`. Cursor naïve quebrava a paginação (ver "Convenções de schema").
 
   ```ts
   import { toDate } from "@emach/db/utils";
