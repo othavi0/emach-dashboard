@@ -294,6 +294,73 @@ export async function getStockMovementsByVariantBranch(
 		.limit(limit);
 }
 
+/**
+ * Página de movimentos de uma variante numa filial (keyset por createdAt+id).
+ * Usado pelo scroll interno + lazy load do card "Movimentos recentes" da drawer.
+ */
+export async function fetchVariantBranchMovementsPage(
+	variantId: string,
+	branchId: string,
+	cursor: string | null
+): Promise<InfiniteResult<StockMovementRow>> {
+	await requireCurrentSession();
+
+	const conditions = [
+		eq(stockMovement.variantId, variantId),
+		eq(stockMovement.branchId, branchId),
+	];
+
+	if (cursor) {
+		const c = decodeCursorAs(cursor, "activity");
+		const cursorClause = or(
+			lt(stockMovement.createdAt, new Date(c.createdAt)),
+			and(
+				eq(stockMovement.createdAt, new Date(c.createdAt)),
+				lt(stockMovement.id, c.id)
+			)
+		);
+		if (cursorClause) {
+			conditions.push(cursorClause);
+		}
+	}
+
+	const rows = await db
+		.select({
+			id: stockMovement.id,
+			createdAt: stockMovement.createdAt,
+			branchId: stockMovement.branchId,
+			branchName: branch.name,
+			previousQty: stockMovement.previousQty,
+			newQty: stockMovement.newQty,
+			delta: stockMovement.delta,
+			reason: stockMovement.reason,
+			reasonNote: stockMovement.reasonNote,
+			actorId: stockMovement.actorId,
+			actorName: user.name,
+		})
+		.from(stockMovement)
+		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
+		.leftJoin(user, eq(stockMovement.actorId, user.id))
+		.where(and(...conditions))
+		.orderBy(desc(stockMovement.createdAt), desc(stockMovement.id))
+		.limit(BATCH_SIZE + 1);
+
+	const hasMore = rows.length > BATCH_SIZE;
+	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
+	const last = items.at(-1);
+	const nextCursor =
+		hasMore && last
+			? encodeCursor({
+					v: 1,
+					sort: "activity",
+					id: last.id,
+					createdAt: last.createdAt.toISOString(),
+				})
+			: null;
+
+	return { items, nextCursor };
+}
+
 export async function getReservedQtyByVariantBranch(
 	variantId: string,
 	branchId: string

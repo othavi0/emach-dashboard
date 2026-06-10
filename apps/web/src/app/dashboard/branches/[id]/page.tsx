@@ -1,9 +1,16 @@
-import { Building2, Package, ShoppingCart, Users } from "lucide-react";
+import {
+	Activity,
+	Building2,
+	Package,
+	ShoppingCart,
+	Users,
+} from "lucide-react";
 import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { getBranchDetail, getBranchDetailKpis } from "../data";
+import { ActivityTab } from "./_components/activity-tab";
 import { BranchEditSheet } from "./_components/branch-edit-sheet";
 import { BranchIdentity } from "./_components/branch-identity";
 import { EditBranchButton } from "./_components/edit-branch-button";
@@ -22,6 +29,9 @@ interface PageProps {
 		search?: string;
 		sort?: string;
 		status?: string;
+		type?: string;
+		toolId?: string;
+		period?: string;
 	}>;
 }
 
@@ -83,6 +93,20 @@ export default async function BranchDetailPage({
 					status={sp.status}
 				/>
 			) : null,
+		},
+		{
+			value: "activity",
+			label: "Atividade",
+			icon: <Activity aria-hidden className="size-3.5" />,
+			content:
+				sp.tab === "activity" ? (
+					<ActivityTab
+						branchId={id}
+						period={sp.period}
+						toolId={sp.toolId}
+						type={sp.type}
+					/>
+				) : null,
 		},
 	];
 
