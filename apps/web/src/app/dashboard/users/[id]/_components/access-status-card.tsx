@@ -53,17 +53,25 @@ export function AccessStatusCard({ user }: Props) {
 		});
 	};
 
+	let accessDescription = "Aguardando aprovação do convite.";
+	if (user.status === "active") {
+		accessDescription =
+			"Conta ativa — o usuário consegue entrar normalmente. Suspender bloqueia o login sem excluir o cadastro.";
+	} else if (user.status === "suspended") {
+		accessDescription =
+			"Conta suspensa — o usuário não consegue entrar até ser reativado.";
+	}
+
 	return (
 		<>
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-base">Status de acesso</CardTitle>
-				</CardHeader>
-				<CardContent className="flex flex-col gap-4">
-					<StatusBadge status={user.status} />
+			<Card className="h-full">
+				<CardHeader className="flex flex-row items-center justify-between gap-2">
+					<div className="flex items-center gap-2">
+						<CardTitle className="text-base">Status de acesso</CardTitle>
+						<StatusBadge status={user.status} />
+					</div>
 					{user.status === "active" && (
 						<Button
-							className="self-start"
 							onClick={() => setDialogOpen("suspend")}
 							size="sm"
 							variant="outline"
@@ -73,7 +81,6 @@ export function AccessStatusCard({ user }: Props) {
 					)}
 					{user.status === "suspended" && (
 						<Button
-							className="self-start"
 							onClick={() => setDialogOpen("reactivate")}
 							size="sm"
 							variant="outline"
@@ -81,11 +88,9 @@ export function AccessStatusCard({ user }: Props) {
 							Reativar
 						</Button>
 					)}
-					{user.status === "pending" && (
-						<p className="text-muted-foreground text-sm">
-							Aguardando aprovação
-						</p>
-					)}
+				</CardHeader>
+				<CardContent>
+					<p className="text-muted-foreground text-sm">{accessDescription}</p>
 				</CardContent>
 			</Card>
 			<DestructiveActionDialog
