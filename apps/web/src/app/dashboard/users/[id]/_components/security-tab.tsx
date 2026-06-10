@@ -1,11 +1,10 @@
 "use client";
 
+import { Badge } from "@emach/ui/components/badge";
 import { Button } from "@emach/ui/components/button";
 import {
 	Card,
 	CardContent,
-	CardDescription,
-	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@emach/ui/components/card";
@@ -84,78 +83,91 @@ export function SecurityTab({ user, canDelete }: Props) {
 					user={{ id: user.id, name: user.name, status: user.status }}
 				/>
 				<Card className="h-full">
-					<CardHeader>
+					<CardHeader className="flex flex-row items-center justify-between gap-2">
 						<CardTitle className="text-base">E-mail & verificação</CardTitle>
-					</CardHeader>
-					<CardContent className="flex flex-1 items-center gap-2">
 						{user.emailVerified ? (
-							<>
-								<CheckCircle2 className="size-4 shrink-0 text-success" />
-								<span className="text-sm">E-mail verificado pelo usuário</span>
-							</>
+							<Badge variant="success">
+								<CheckCircle2 className="size-3.5" />
+								Verificado
+							</Badge>
 						) : (
-							<>
-								<AlertCircle className="size-4 shrink-0 text-warning" />
-								<span className="text-sm">
-									E-mail ainda não verificado pelo usuário
-								</span>
-							</>
+							<Badge variant="warning">
+								<AlertCircle className="size-3.5" />
+								Não verificado
+							</Badge>
 						)}
+					</CardHeader>
+					<CardContent>
+						<p className="text-muted-foreground text-sm">
+							{user.emailVerified
+								? "O usuário confirmou o e-mail de cadastro."
+								: "O usuário ainda não confirmou o e-mail de cadastro."}
+						</p>
 					</CardContent>
 				</Card>
 				<Card className="h-full">
-					<CardHeader>
+					<CardHeader className="flex flex-row items-center justify-between gap-2">
 						<CardTitle className="text-base">Reset de senha</CardTitle>
+						<Button
+							disabled={pending}
+							onClick={sendReset}
+							size="sm"
+							variant="outline"
+						>
+							<KeyRound className="size-3.5" />
+							Enviar e-mail de reset
+						</Button>
 					</CardHeader>
-					<CardContent className="flex-1">
+					<CardContent>
 						<p className="text-muted-foreground text-sm">
 							Envia um e-mail com link para o usuário trocar a senha. Você não
 							terá acesso à senha nova.
 						</p>
 					</CardContent>
-					<CardFooter className="justify-end">
-						<Button disabled={pending} onClick={sendReset} variant="outline">
-							<KeyRound className="size-3.5" />
-							Enviar e-mail de reset
-						</Button>
-					</CardFooter>
 				</Card>
 				<Card className="h-full">
-					<CardHeader>
+					<CardHeader className="flex flex-row items-center justify-between gap-2">
 						<CardTitle className="text-base">Sessões</CardTitle>
+						<Button
+							disabled={pending}
+							onClick={forceLogout}
+							size="sm"
+							variant="outline"
+						>
+							<LogOut className="size-3.5" />
+							Forçar logout em tudo
+						</Button>
 					</CardHeader>
-					<CardContent className="flex-1">
+					<CardContent>
 						<p className="text-muted-foreground text-sm">
 							Revoga todas as sessões ativas — o usuário será forçado a logar de
 							novo em todos os dispositivos.
 						</p>
 					</CardContent>
-					<CardFooter className="justify-end">
-						<Button disabled={pending} onClick={forceLogout} variant="outline">
-							<LogOut className="size-3.5" />
-							Forçar logout em tudo
-						</Button>
-					</CardFooter>
 				</Card>
 			</div>
 			{canDelete && (
 				<>
 					<Card className="border-destructive/40">
-						<CardHeader>
+						<CardHeader className="flex flex-row items-center justify-between gap-2">
 							<CardTitle className="text-base text-destructive">
 								Zona de perigo
 							</CardTitle>
-							<CardDescription>
-								Excluir é irreversível: o cadastro do usuário some. O histórico
-								de ações dele permanece com identidade preservada via snapshot.
-							</CardDescription>
-						</CardHeader>
-						<CardFooter className="justify-end border-destructive/30">
-							<Button onClick={() => setOpen(true)} variant="destructive">
+							<Button
+								onClick={() => setOpen(true)}
+								size="sm"
+								variant="destructive"
+							>
 								<Trash2 aria-hidden className="mr-1.5 size-3.5" />
 								Excluir usuário
 							</Button>
-						</CardFooter>
+						</CardHeader>
+						<CardContent>
+							<p className="text-muted-foreground text-sm">
+								Excluir é irreversível: o cadastro do usuário some. O histórico
+								de ações dele permanece com identidade preservada via snapshot.
+							</p>
+						</CardContent>
 					</Card>
 					<DestructiveActionDialog
 						confirmLabel="Excluir definitivamente"

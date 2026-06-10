@@ -4,7 +4,6 @@ import { Button } from "@emach/ui/components/button";
 import {
 	Card,
 	CardContent,
-	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@emach/ui/components/card";
@@ -66,15 +65,12 @@ export function AccessStatusCard({ user }: Props) {
 	return (
 		<>
 			<Card className="h-full">
-				<CardHeader className="flex flex-row items-center justify-between">
-					<CardTitle className="text-base">Status de acesso</CardTitle>
-					<StatusBadge status={user.status} />
-				</CardHeader>
-				<CardContent className="flex-1">
-					<p className="text-muted-foreground text-sm">{accessDescription}</p>
-				</CardContent>
-				{user.status === "active" && (
-					<CardFooter className="justify-end">
+				<CardHeader className="flex flex-row items-center justify-between gap-2">
+					<div className="flex items-center gap-2">
+						<CardTitle className="text-base">Status de acesso</CardTitle>
+						<StatusBadge status={user.status} />
+					</div>
+					{user.status === "active" && (
 						<Button
 							onClick={() => setDialogOpen("suspend")}
 							size="sm"
@@ -82,10 +78,8 @@ export function AccessStatusCard({ user }: Props) {
 						>
 							Suspender
 						</Button>
-					</CardFooter>
-				)}
-				{user.status === "suspended" && (
-					<CardFooter className="justify-end">
+					)}
+					{user.status === "suspended" && (
 						<Button
 							onClick={() => setDialogOpen("reactivate")}
 							size="sm"
@@ -93,8 +87,11 @@ export function AccessStatusCard({ user }: Props) {
 						>
 							Reativar
 						</Button>
-					</CardFooter>
-				)}
+					)}
+				</CardHeader>
+				<CardContent>
+					<p className="text-muted-foreground text-sm">{accessDescription}</p>
+				</CardContent>
 			</Card>
 			<DestructiveActionDialog
 				confirmLabel="Suspender"
