@@ -163,7 +163,7 @@ async function PendingSection() {
 	];
 	return (
 		<section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-			<PendingPanel compact tabs={tabs} />
+			<PendingPanel tabs={tabs} />
 			<div className="relative min-h-[18rem] min-w-0">
 				<div className="absolute inset-0">
 					<ActivityFeed
