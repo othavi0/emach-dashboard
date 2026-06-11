@@ -1,14 +1,9 @@
 import Link from "next/link";
 
+import { formatDate } from "@/lib/format/datetime";
 import type { ReviewListItem } from "../data";
 import { ReviewStatusBadge } from "./review-status-badge";
 import { StarRating } from "./star-rating";
-
-const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-});
 
 export function ReviewCard({ review }: { review: ReviewListItem }) {
 	return (
@@ -53,7 +48,7 @@ export function ReviewCard({ review }: { review: ReviewListItem }) {
 			{/* Rodapé edge-to-edge: estrelas (nota) + data */}
 			<div className="flex items-center justify-between border-border border-t px-4 py-2.5 text-muted-foreground text-xs">
 				<StarRating rating={review.rating} />
-				<span>{DATE_FORMATTER.format(review.createdAt)}</span>
+				<span>{formatDate(review.createdAt)}</span>
 			</div>
 		</Link>
 	);

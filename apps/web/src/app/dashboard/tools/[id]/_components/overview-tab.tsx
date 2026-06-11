@@ -1,11 +1,9 @@
 import { buttonVariants } from "@emach/ui/components/button";
 import { Card, CardContent } from "@emach/ui/components/card";
 import { Separator } from "@emach/ui/components/separator";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import Link from "next/link";
-
 import { ToolDescription } from "@/components/tool-description";
+import { formatDayMonthShortYear } from "@/lib/format/datetime";
 import type {
 	ToolDetailAttribute,
 	ToolDetailCategory,
@@ -134,11 +132,7 @@ export function OverviewTab({
 							</div>
 							<div>
 								<dt className="text-muted-foreground text-xs">Criada</dt>
-								<dd>
-									{format(tool.createdAt, "dd 'de' MMM 'de' yyyy", {
-										locale: ptBR,
-									})}
-								</dd>
+								<dd>{formatDayMonthShortYear(tool.createdAt)}</dd>
 							</div>
 						</dl>
 					</CardContent>

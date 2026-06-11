@@ -9,6 +9,7 @@ import {
 import { CalendarPlus, CheckCircle2, Circle, FolderTree } from "lucide-react";
 import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
 import { ToolDescription } from "@/components/tool-description";
+import { formatDate } from "@/lib/format/datetime";
 import type { SupplierDetail, SupplierDetailKpis } from "../../data";
 
 function formatCnpj(c: string): string {
@@ -18,12 +19,6 @@ function formatCnpj(c: string): string {
 	return `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12, 14)}`;
 }
 
-const DATE_FORMAT = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-});
-
 interface Props {
 	detail: SupplierDetail;
 	kpis: SupplierDetailKpis;
@@ -31,7 +26,7 @@ interface Props {
 
 export function OverviewTab({ detail, kpis }: Props) {
 	const lastAddedAt = toDate(kpis.lastToolAddedAt);
-	const lastAddedLabel = lastAddedAt ? DATE_FORMAT.format(lastAddedAt) : "—";
+	const lastAddedLabel = lastAddedAt ? formatDate(lastAddedAt) : "—";
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -128,7 +123,7 @@ export function OverviewTab({ detail, kpis }: Props) {
 						<div className="-mx-4 -mb-4 grid grid-cols-2 border-border border-t">
 							<div className="flex flex-col items-center border-border border-r py-2.5">
 								<span className="font-bold text-[14px] text-foreground tabular-nums">
-									{DATE_FORMAT.format(detail.createdAt)}
+									{formatDate(detail.createdAt)}
 								</span>
 								<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 									Criado em
@@ -136,7 +131,7 @@ export function OverviewTab({ detail, kpis }: Props) {
 							</div>
 							<div className="flex flex-col items-center py-2.5">
 								<span className="font-bold text-[14px] text-foreground tabular-nums">
-									{DATE_FORMAT.format(detail.updatedAt)}
+									{formatDate(detail.updatedAt)}
 								</span>
 								<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 									Atualizado em

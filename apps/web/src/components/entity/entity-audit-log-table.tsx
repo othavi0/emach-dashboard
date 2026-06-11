@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { Fragment, useState } from "react";
 
+import { formatDateTime } from "@/lib/format/datetime";
+
 export interface AuditEntry {
 	action: string;
 	actor: { id: string | null; name: string; type: "user" | "system" };
@@ -33,11 +35,6 @@ interface Props {
 	emptyMessage?: string;
 	entries: AuditEntry[];
 }
-
-const DATETIME = new Intl.DateTimeFormat("pt-BR", {
-	dateStyle: "short",
-	timeStyle: "short",
-});
 
 function ExpandIcon({
 	expandable,
@@ -86,7 +83,7 @@ function AuditRow({
 				<ExpandIcon expandable={expandable} isOpen={isOpen} />
 			</TableCell>
 			<TableCell className="text-sm tabular-nums">
-				{DATETIME.format(entry.at)}
+				{formatDateTime(entry.at)}
 			</TableCell>
 			<TableCell className="text-sm">
 				{entry.actor.name}

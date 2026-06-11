@@ -11,6 +11,7 @@ import { LogOut, MonitorOff } from "lucide-react";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatDateTime } from "@/lib/format/datetime";
 import { revokeUserSession } from "../../actions";
 
 interface SessionRow {
@@ -20,11 +21,6 @@ interface SessionRow {
 	ipAddress: string | null;
 	userAgent: string | null;
 }
-
-const DT = new Intl.DateTimeFormat("pt-BR", {
-	dateStyle: "short",
-	timeStyle: "short",
-});
 
 export function SessionsList({
 	sessions,
@@ -77,7 +73,7 @@ export function SessionsList({
 										{s.ipAddress ?? "IP desconhecido"}
 									</p>
 									<p className="truncate text-muted-foreground text-xs">
-										{s.userAgent ?? "—"} · expira {DT.format(s.expiresAt)}
+										{s.userAgent ?? "—"} · expira {formatDateTime(s.expiresAt)}
 									</p>
 								</div>
 								<Button

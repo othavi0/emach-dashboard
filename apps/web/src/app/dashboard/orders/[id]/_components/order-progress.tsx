@@ -1,4 +1,5 @@
 import { STATUS_ICONS } from "@/components/status-visual";
+import { formatDayTime } from "@/lib/format/datetime";
 import { OrderStatusBadge } from "../../_components/order-status-badge";
 import type { OrderDetail, OrderStatus } from "../../data";
 import { ORDER_STATUS_META } from "../../status-meta";
@@ -87,18 +88,11 @@ function getStepState(
 	return "upcoming";
 }
 
-const DATE_FMT = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	hour: "2-digit",
-	minute: "2-digit",
-});
-
 function formatTs(date: Date | null | undefined): string | null {
 	if (!date) {
 		return null;
 	}
-	return DATE_FMT.format(date);
+	return formatDayTime(date);
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

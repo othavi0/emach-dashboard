@@ -1,18 +1,5 @@
+import { formatDate, formatDateTime } from "@/lib/format/datetime";
 import type { PromotionStatus } from "../../actions";
-
-const DATE_FMT = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-});
-
-const DATETIME_FMT = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-	hour: "2-digit",
-	minute: "2-digit",
-});
 
 const NUMBER_FMT = new Intl.NumberFormat("pt-BR", {
 	minimumFractionDigits: 2,
@@ -25,11 +12,11 @@ const BRL_FMT = new Intl.NumberFormat("pt-BR", {
 });
 
 export function fmtDate(d: Date): string {
-	return DATE_FMT.format(d);
+	return formatDate(d);
 }
 
 export function fmtDateTime(d: Date): string {
-	return DATETIME_FMT.format(d);
+	return formatDateTime(d);
 }
 
 export function formatJanela(

@@ -6,11 +6,10 @@ import {
 } from "@emach/ui/components/card";
 import type { ChartConfig } from "@emach/ui/components/chart";
 import { Skeleton } from "@emach/ui/components/skeleton";
-import { format } from "date-fns";
 import { Suspense } from "react";
-
 import { ActivityFeed } from "@/components/activity-feed";
 import { PendingPanel, type PendingTab } from "@/components/pending-panel";
+import { formatDateShort } from "@/lib/format/datetime";
 import { requireCurrentSession } from "@/lib/session";
 import { BranchFilter } from "./_components/branch-filter";
 import { NewClientsLine } from "./_components/charts/new-clients-line";
@@ -186,7 +185,7 @@ async function TrendsSection({ branchId }: { branchId: string | null }) {
 		fetchReorderTable(branchId),
 	]);
 	const revenueData = revenue.map((p) => ({
-		day: format(p.day, "dd/MM"),
+		day: formatDateShort(p.day),
 		revenue: p.revenue,
 		movingAvg: p.movingAvg,
 	}));
@@ -239,11 +238,11 @@ async function StrategicSection({ branchId }: { branchId: string | null }) {
 		fetchStockFlow(branchId),
 	]);
 	const clientsData = newClients.map((p) => ({
-		week: format(p.week, "dd/MM"),
+		week: formatDateShort(p.week),
 		count: p.count,
 	}));
 	const flowData = stockFlow.map((p) => ({
-		week: format(p.week, "dd/MM"),
+		week: formatDateShort(p.week),
 		entradas: p.entradas,
 		saidas: p.saidas,
 	}));

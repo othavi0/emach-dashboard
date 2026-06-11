@@ -8,15 +8,10 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
+import { formatDate } from "@/lib/format/datetime";
 import type { ReviewDetail } from "../data";
 import { ReviewStatusBadge } from "./review-status-badge";
 import { StarRating } from "./star-rating";
-
-const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-});
 
 export function ReviewDetailCard({ review }: { review: ReviewDetail }) {
 	return (
@@ -29,7 +24,7 @@ export function ReviewDetailCard({ review }: { review: ReviewDetail }) {
 					<ReviewStatusBadge status={review.status} />
 				</CardTitle>
 				<CardDescription>
-					Recebida em {DATE_FORMATTER.format(review.createdAt)}
+					Recebida em {formatDate(review.createdAt)}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
@@ -96,7 +91,7 @@ export function ReviewDetailCard({ review }: { review: ReviewDetail }) {
 							<p className="font-medium">Última moderação</p>
 							<p className="text-muted-foreground">
 								{review.moderatedByName ?? "Usuário"} •{" "}
-								{DATE_FORMATTER.format(review.moderatedAt)}
+								{formatDate(review.moderatedAt)}
 							</p>
 							{review.moderationNote && (
 								<p className="mt-2">{review.moderationNote}</p>

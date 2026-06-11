@@ -16,22 +16,14 @@ import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { formatDate, formatMonthYearShort } from "@/lib/format/datetime";
 import { getInitials } from "@/lib/format/name";
 import type { CustomerListItem } from "../data";
 
 const NUMBER_FORMATTER = new Intl.NumberFormat("pt-BR");
-const SINCE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
-	month: "short",
-	year: "numeric",
-});
 const RELATIVE_FORMATTER = new Intl.RelativeTimeFormat("pt-BR", {
 	numeric: "auto",
 	style: "short",
-});
-const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
 });
 
 function formatRelativeDate(value: Date) {
@@ -163,7 +155,7 @@ export function CustomerCard({ customer }: CustomerCardProps) {
 									}
 								/>
 								<TooltipContent>
-									{DATE_FORMATTER.format(customer.lastOrderAt)}
+									{formatDate(customer.lastOrderAt)}
 								</TooltipContent>
 							</Tooltip>
 						) : (
@@ -176,7 +168,7 @@ export function CustomerCard({ customer }: CustomerCardProps) {
 				</div>
 				<div className="flex flex-col items-center py-2.5">
 					<span className="font-bold text-[13px] text-foreground">
-						{SINCE_FORMATTER.format(customer.createdAt)}
+						{formatMonthYearShort(customer.createdAt)}
 					</span>
 					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 						Cliente desde
