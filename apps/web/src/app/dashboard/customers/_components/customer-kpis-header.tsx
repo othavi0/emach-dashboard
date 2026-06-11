@@ -5,6 +5,7 @@ import {
 	CardTitle,
 } from "@emach/ui/components/card";
 
+import { formatDate } from "@/lib/format/datetime";
 import type { CustomerKpis } from "../data";
 
 const CURRENCY = new Intl.NumberFormat("pt-BR", {
@@ -12,11 +13,6 @@ const CURRENCY = new Intl.NumberFormat("pt-BR", {
 	style: "currency",
 });
 const COUNT = new Intl.NumberFormat("pt-BR");
-const DATE = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-});
 
 const ORDER_STATUS_LABELS: Record<string, string> = {
 	pending_payment: "Aguardando pagamento",
@@ -87,7 +83,7 @@ export function CustomerKpisHeader({ kpis }: CustomerKpisHeaderProps) {
 					{kpis.lastOrderAt ? (
 						<>
 							<p className="font-medium text-2xl tracking-tight">
-								{DATE.format(kpis.lastOrderAt)}
+								{formatDate(kpis.lastOrderAt)}
 							</p>
 							{kpis.lastOrderStatus && (
 								<p className="text-muted-foreground text-xs">

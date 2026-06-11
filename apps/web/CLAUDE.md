@@ -63,6 +63,10 @@ Helper genérico Storage em `src/lib/storage.ts` (upload/delete/signedUrl para b
 
 Thumbs Supabase: `<img>` puro **com `// biome-ignore lint/performance/noImgElement: Supabase public URL` documentado**. Demais: `<Image>` do Next.
 
+## Datas de exibição
+
+Formatar timestamps **sempre** via `src/lib/format/datetime.ts` (`formatDate`, `formatDateTime`, `formatTime`, `formatDayTime`, `isSameDay`, …) — fuso fixo `America/Sao_Paulo`. **Nunca** `new Intl.DateTimeFormat`/`toLocale*`/`date-fns format` cru em componente: sem `timeZone` fixo, server (Vercel UTC) e client (BR) divergem → hydration mismatch perto da meia-noite (issue #137). Idem `Date.toDateString()` pra comparar dia → usar `isSameDay`. Exceções: moeda/número (`toLocaleString` ok) e colunas date-only (`::date` → `localDate`, ver `packages/db/CLAUDE.md`).
+
 ## Auditoria de mutações DB
 
 Ao inserir em `stockMovement`, `orderStatusHistory`, `clientAuditLog`, `supplierAuditLog`, `userActivityLog`:

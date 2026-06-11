@@ -2,13 +2,10 @@ import { ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { OrderStatusBadge } from "@/app/dashboard/orders/_components/order-status-badge";
 import type { OrderStatus } from "@/app/dashboard/orders/status-meta";
+import { formatDateTime } from "@/lib/format/datetime";
 
 import type { BranchOrderRow } from "../../data";
 
-const DT = new Intl.DateTimeFormat("pt-BR", {
-	dateStyle: "short",
-	timeStyle: "short",
-});
 const BRL = new Intl.NumberFormat("pt-BR", {
 	style: "currency",
 	currency: "BRL",
@@ -29,7 +26,7 @@ export function BranchOrderCard({ order }: { order: BranchOrderRow }) {
 						{order.number}
 					</span>
 					<p className="truncate text-muted-foreground text-xs">
-						{DT.format(order.createdAt)}
+						{formatDateTime(order.createdAt)}
 					</p>
 				</div>
 				<OrderStatusBadge status={order.status as OrderStatus} />

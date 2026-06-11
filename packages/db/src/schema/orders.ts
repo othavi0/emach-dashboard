@@ -126,14 +126,16 @@ export const order = pgTable(
 		shippingMethod: text("shipping_method"),
 		shippingTrackingCode: text("shipping_tracking_code"),
 		notes: text("notes"),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		paidAt: timestamp("paid_at"),
-		shippedAt: timestamp("shipped_at"),
-		deliveredAt: timestamp("delivered_at"),
-		canceledAt: timestamp("canceled_at"),
-		preparingAt: timestamp("preparing_at"),
-		returnedAt: timestamp("returned_at"),
-		refundedAt: timestamp("refunded_at"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		paidAt: timestamp("paid_at", { withTimezone: true }),
+		shippedAt: timestamp("shipped_at", { withTimezone: true }),
+		deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+		canceledAt: timestamp("canceled_at", { withTimezone: true }),
+		preparingAt: timestamp("preparing_at", { withTimezone: true }),
+		returnedAt: timestamp("returned_at", { withTimezone: true }),
+		refundedAt: timestamp("refunded_at", { withTimezone: true }),
 		paymentReceiptUrl: text("payment_receipt_url"),
 		nfeNumber: text("nfe_number"),
 		nfeUrl: text("nfe_url"),
@@ -203,7 +205,9 @@ export const orderStatusHistory = pgTable(
 			onDelete: "set null",
 		}),
 		reason: text("reason"),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("order_status_history_order_idx").on(
@@ -236,7 +240,9 @@ export const orderNote = pgTable(
 		// antigas / criadas pelo storefront podem não ter.
 		statusAtCreation: orderStatusEnum("status_at_creation"),
 		pinned: boolean("pinned").default(false).notNull(),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("order_note_order_idx").on(table.orderId, table.createdAt.desc()),
@@ -259,7 +265,9 @@ export const orderAttachment = pgTable(
 		uploadedBy: text("uploaded_by").references(() => user.id, {
 			onDelete: "set null",
 		}),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("order_attachment_order_created_idx").on(
@@ -282,7 +290,9 @@ export const orderEvent = pgTable(
 		actorUserId: text("actor_user_id").references(() => user.id, {
 			onDelete: "set null",
 		}),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("order_event_order_idx").on(table.orderId, table.createdAt.desc()),
@@ -317,9 +327,13 @@ export const refundRequest = pgTable(
 		actorUserId: text("actor_user_id").references(() => user.id, {
 			onDelete: "set null",
 		}),
-		requestedAt: timestamp("requested_at").defaultNow().notNull(),
-		resolvedAt: timestamp("resolved_at"),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		requestedAt: timestamp("requested_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("refund_request_client_idx").on(

@@ -8,6 +8,7 @@ import { buttonVariants } from "@emach/ui/components/button";
 import { PencilIcon } from "lucide-react";
 import Link from "next/link";
 
+import { formatDate } from "@/lib/format/datetime";
 import type { CustomerDetail } from "../data";
 import { ResetPasswordDialog } from "./reset-password-dialog";
 
@@ -73,13 +74,7 @@ export function CustomerHeader({
 					</h1>
 					<p className="text-muted-foreground text-sm">{customer.email}</p>
 					<p className="text-muted-foreground text-xs">
-						Cadastrado em{" "}
-						{new Intl.DateTimeFormat("pt-BR", {
-							day: "2-digit",
-							month: "2-digit",
-							year: "numeric",
-						}).format(customer.createdAt)}{" "}
-						·{" "}
+						Cadastrado em {formatDate(customer.createdAt)} ·{" "}
 						{Math.floor(
 							(Date.now() - customer.createdAt.getTime()) / 86_400_000
 						)}{" "}

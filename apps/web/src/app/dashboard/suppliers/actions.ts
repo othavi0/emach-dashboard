@@ -76,7 +76,7 @@ export async function fetchSuppliersPage({
 	if (decoded) {
 		if (filters.sort === "newest" && decoded.sort === "newest") {
 			conditions.push(
-				sql`(${supplier.createdAt}, ${supplier.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+				sql`(${supplier.createdAt}, ${supplier.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 			);
 		} else if (filters.sort === "name" && decoded.sort === "name") {
 			conditions.push(
@@ -319,7 +319,7 @@ export async function fetchSupplierToolsPage({
 	}
 	if (decoded && decoded.sort === "newest") {
 		conditions.push(
-			sql`(${tool.createdAt}, ${tool.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+			sql`(${tool.createdAt}, ${tool.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		);
 	}
 

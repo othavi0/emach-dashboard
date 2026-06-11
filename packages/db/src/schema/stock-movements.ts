@@ -48,7 +48,9 @@ export const stockMovement = pgTable(
 		actorId: text("actor_id").references(() => user.id, {
 			onDelete: "set null",
 		}),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("stock_movement_variant_created_idx").on(

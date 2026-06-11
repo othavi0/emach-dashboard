@@ -1,13 +1,7 @@
 import Link from "next/link";
-
 import { ToolStatusBadge } from "@/components/tool-status-badge";
+import { formatDate } from "@/lib/format/datetime";
 import type { SupplierToolRow } from "../../data";
-
-const DATE = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-});
 
 export function SupplierToolCard({ tool }: { tool: SupplierToolRow }) {
 	return (
@@ -63,7 +57,7 @@ export function SupplierToolCard({ tool }: { tool: SupplierToolRow }) {
 				</div>
 				<div className="flex flex-col items-center py-2.5">
 					<span className="font-bold text-[13px] text-foreground tabular-nums">
-						{DATE.format(tool.createdAt)}
+						{formatDate(tool.createdAt)}
 					</span>
 					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 						Criada em

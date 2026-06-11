@@ -396,11 +396,11 @@ export async function fetchPromotionsPage({
 				const c = decoded;
 				if (sort === "createdDesc" && c.sort === "newest") {
 					conds.push(
-						ops.sql`(${p.createdAt}, ${p.id}) < (${c.createdAt}::timestamp, ${c.id})`
+						ops.sql`(${p.createdAt}, ${p.id}) < (${c.createdAt}::timestamptz, ${c.id})`
 					);
 				} else if (sort === "createdAsc" && c.sort === "promoCreatedAsc") {
 					conds.push(
-						ops.sql`(${p.createdAt}, ${p.id}) > (${c.createdAt}::timestamp, ${c.id})`
+						ops.sql`(${p.createdAt}, ${p.id}) > (${c.createdAt}::timestamptz, ${c.id})`
 					);
 				} else if (
 					sort === "discountDesc" &&
@@ -423,7 +423,7 @@ export async function fetchPromotionsPage({
 						conds.push(ops.sql`(${p.endsAt} IS NULL AND ${p.id} > ${c.id})`);
 					} else {
 						conds.push(
-							ops.sql`(${p.endsAt} > ${c.endsAt}::timestamp OR (${p.endsAt} = ${c.endsAt}::timestamp AND ${p.id} > ${c.id}) OR ${p.endsAt} IS NULL)`
+							ops.sql`(${p.endsAt} > ${c.endsAt}::timestamptz OR (${p.endsAt} = ${c.endsAt}::timestamptz AND ${p.id} > ${c.id}) OR ${p.endsAt} IS NULL)`
 						);
 					}
 				}

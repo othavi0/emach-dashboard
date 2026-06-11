@@ -38,7 +38,9 @@ export const supplierAuditLog = pgTable(
 		beforeJson: jsonb("before_json"),
 		afterJson: jsonb("after_json"),
 		reason: text("reason"),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("supplier_audit_supplier_created_idx").on(

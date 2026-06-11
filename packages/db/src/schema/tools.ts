@@ -36,8 +36,10 @@ export const supplier = pgTable(
 		status: text("status", { enum: ["active", "archived"] })
 			.default("active")
 			.notNull(),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
@@ -83,8 +85,10 @@ export const tool = pgTable(
 			precision: 10,
 			scale: 2,
 		}),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
@@ -132,8 +136,10 @@ export const toolVariant = pgTable(
 		costAmount: numeric("cost_amount", { precision: 10, scale: 2 }),
 		isDefault: boolean("is_default").notNull().default(false),
 		sortOrder: integer("sort_order").notNull().default(0),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
@@ -165,7 +171,9 @@ export const toolImage = pgTable(
 			.references(() => tool.id, { onDelete: "cascade" }),
 		url: text("url").notNull(),
 		sortOrder: integer("sort_order").notNull(),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		unique("tool_image_tool_sort_unique").on(table.toolId, table.sortOrder),

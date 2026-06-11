@@ -31,6 +31,7 @@ import {
 } from "@emach/ui/components/tooltip";
 import { ChevronDownIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { formatDateTime } from "@/lib/format/datetime";
 import type { CustomerAuditRow } from "../data";
 
 const ACTION_LABELS: Record<ClientAuditAction, string> = {
@@ -59,14 +60,6 @@ const ACTION_VARIANTS: Record<
 };
 
 const ALL_ACTIONS = Object.keys(ACTION_LABELS) as ClientAuditAction[];
-
-const DATE_TIME = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-	hour: "2-digit",
-	minute: "2-digit",
-});
 
 interface CustomerAuditTableProps {
 	clientId: string;
@@ -199,7 +192,7 @@ export function CustomerAuditTable({
 										)}
 									</TableCell>
 									<TableCell className="text-muted-foreground text-sm">
-										{DATE_TIME.format(entry.createdAt)}
+										{formatDateTime(entry.createdAt)}
 									</TableCell>
 								</TableRow>
 							);

@@ -311,7 +311,7 @@ export async function fetchOrdersPage({
 	}
 	if (decoded && decoded.sort === "newest") {
 		conditions.push(
-			sql`(o.created_at, o.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+			sql`(o.created_at, o.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		);
 	}
 
