@@ -3,17 +3,16 @@ export type { OrderStatus } from "@emach/db/schema/orders";
 import type { OrderStatus as DbOrderStatus } from "@emach/db/schema/orders";
 import type { StatusIconKey, Tone } from "@/components/status-visual";
 
+// Tab default ao abrir /dashboard/orders (fila acionável: a preparar).
+export const DEFAULT_ORDER_TAB = "to_prepare";
+
 // Fluxo ativo do operador interno (grupo da esquerda na barra de tabs).
+// "A preparar" agrega pago (esperando início) + em preparação — a fila de trabalho.
 export const ORDER_FLOW_TABS = [
 	{
-		key: "paid",
-		label: "Pago",
-		statuses: ["paid"] as DbOrderStatus[],
-	},
-	{
-		key: "preparing",
-		label: "Em preparação",
-		statuses: ["preparing"] as DbOrderStatus[],
+		key: "to_prepare",
+		label: "A preparar",
+		statuses: ["paid", "preparing"] as DbOrderStatus[],
 	},
 	{
 		key: "shipped",
@@ -24,6 +23,21 @@ export const ORDER_FLOW_TABS = [
 		key: "delivered",
 		label: "Entregues",
 		statuses: ["delivered"] as DbOrderStatus[],
+	},
+] as const;
+
+// Drill-down por status individual (funil de KPIs / deep-link ?tab=paid). Resolvíveis
+// e rotuláveis, mas NÃO exibidos como chip na barra — ficam agrupados em "A preparar".
+export const ORDER_FUNNEL_TABS = [
+	{
+		key: "paid",
+		label: "Pago",
+		statuses: ["paid"] as DbOrderStatus[],
+	},
+	{
+		key: "preparing",
+		label: "Em preparação",
+		statuses: ["preparing"] as DbOrderStatus[],
 	},
 ] as const;
 
@@ -46,8 +60,13 @@ export const ORDER_EXCEPTION_TABS = [
 	},
 ] as const;
 
-// Lista completa (sem "Todos") — consumida por data/export/KPIs.
-export const ORDER_TABS = [...ORDER_FLOW_TABS, ...ORDER_EXCEPTION_TABS];
+// Lista completa (sem "Todos") — consumida por data/export/KPIs. Inclui as tabs
+// só-funil (paid/preparing) para resolveTab e o mapa de labels do funil.
+export const ORDER_TABS = [
+	...ORDER_FLOW_TABS,
+	...ORDER_FUNNEL_TABS,
+	...ORDER_EXCEPTION_TABS,
+];
 
 // Sentinel: nenhuma tab selecionada = todos os pedidos (sem filtro de status).
 export const ALL_ORDERS_TAB = {
