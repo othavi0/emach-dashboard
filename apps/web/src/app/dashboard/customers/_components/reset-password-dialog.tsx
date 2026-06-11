@@ -13,15 +13,8 @@ import { CheckIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatDateTime } from "@/lib/format/datetime";
 import { generatePasswordResetLink } from "../actions";
-
-const DATE_TIME = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-	hour: "2-digit",
-	minute: "2-digit",
-});
 
 interface ResetPasswordDialogProps {
 	clientId: string;
@@ -128,7 +121,7 @@ export function ResetPasswordDialog({
 						<p className="text-muted-foreground text-xs">
 							Expira em{" "}
 							<span className="font-medium text-foreground">
-								{DATE_TIME.format(result.expiresAt)}
+								{formatDateTime(result.expiresAt)}
 							</span>
 							. Envie ao cliente por canal seguro (não por email automatizado).
 						</p>

@@ -20,18 +20,13 @@ import {
 } from "@emach/ui/components/table";
 import { EyeIcon } from "lucide-react";
 import Link from "next/link";
+import { formatDate } from "@/lib/format/datetime";
 import { ORDER_STATUS_LABELS } from "../../orders/status-meta";
 import type { CustomerOrdersResult } from "../data";
 
 const CURRENCY = new Intl.NumberFormat("pt-BR", {
 	currency: "BRL",
 	style: "currency",
-});
-
-const DATE = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
 });
 
 const ORDER_STATUS_VARIANTS: Record<
@@ -108,7 +103,7 @@ export function CustomerOrdersTable({
 									{CURRENCY.format(order.totalAmount)}
 								</TableCell>
 								<TableCell className="text-muted-foreground text-sm">
-									{DATE.format(order.createdAt)}
+									{formatDate(order.createdAt)}
 								</TableCell>
 								<TableActionsCell>
 									<Link

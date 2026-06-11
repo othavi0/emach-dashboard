@@ -9,6 +9,7 @@ import {
 } from "@emach/ui/components/card";
 import Link from "next/link";
 
+import { formatDate } from "@/lib/format/datetime";
 import type { ToolReviewSummary } from "../_lib/reviews-data";
 
 interface ToolReviewsSectionProps {
@@ -32,12 +33,6 @@ const REVIEW_STATUS_VARIANT: Record<
 	rejected: "destructive",
 	spam: "destructive",
 };
-
-const DATE = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-});
 
 export function ToolReviewsSection({
 	toolId,
@@ -120,7 +115,7 @@ export function ToolReviewsSection({
 										{REVIEW_STATUS_LABEL[r.status] ?? r.status}
 									</Badge>
 									<span className="ml-auto text-muted-foreground text-xs">
-										{r.clientName} · {DATE.format(r.createdAt)}
+										{r.clientName} · {formatDate(r.createdAt)}
 									</span>
 								</div>
 								<p className="line-clamp-2 text-muted-foreground text-sm">

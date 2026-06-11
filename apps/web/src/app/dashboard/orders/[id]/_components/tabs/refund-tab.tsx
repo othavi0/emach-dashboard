@@ -5,18 +5,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@emach/ui/components/card";
+import { formatDate } from "@/lib/format/datetime";
 import type { OrderRefundItem } from "../../../data";
 import { formatCurrency } from "../../_lib/format-address";
 
 interface RefundTabProps {
 	refunds: OrderRefundItem[];
 }
-
-const shortDate = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-});
 
 export function RefundTab({ refunds }: RefundTabProps) {
 	return (
@@ -42,13 +37,13 @@ export function RefundTab({ refunds }: RefundTabProps) {
 							</span>
 							<span>Solicitado em</span>
 							<span className="text-foreground">
-								{shortDate.format(refund.requestedAt)}
+								{formatDate(refund.requestedAt)}
 							</span>
 							{refund.resolvedAt && (
 								<>
 									<span>Resolvido em</span>
 									<span className="text-foreground">
-										{shortDate.format(refund.resolvedAt)}
+										{formatDate(refund.resolvedAt)}
 									</span>
 								</>
 							)}

@@ -19,6 +19,7 @@ import {
 	TONE_TEXT,
 	type Tone,
 } from "@/components/status-visual";
+import { formatDateShort, formatTime, isSameDay } from "@/lib/format/datetime";
 import type { InfiniteResult } from "@/lib/infinite";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
@@ -54,23 +55,11 @@ const KIND_META: Record<ActivityKind, { color: string; icon: LucideIcon }> = {
 	user: { icon: UserCogIcon, color: "text-info" },
 };
 
-const TIME_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
-	hour: "2-digit",
-	minute: "2-digit",
-});
-
-const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-});
-
 function formatWhen(date: Date): string {
-	const now = Date.now();
-	const isToday = new Date(now).toDateString() === date.toDateString();
-	if (isToday) {
-		return TIME_FORMATTER.format(date);
+	if (isSameDay(new Date(), date)) {
+		return formatTime(date);
 	}
-	return DATE_FORMATTER.format(date);
+	return formatDateShort(date);
 }
 
 export function ActivityFeed({

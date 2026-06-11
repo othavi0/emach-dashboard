@@ -16,6 +16,7 @@ import {
 import { Briefcase, CalendarDays, Clock, Monitor } from "lucide-react";
 import Link from "next/link";
 import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
+import { formatDate } from "@/lib/format/datetime";
 import { formatRelative } from "@/lib/format/relative";
 import { RoleBadge } from "../../_components/role-badge";
 import { StatusBadge } from "../../_components/status-badge";
@@ -27,14 +28,6 @@ import type {
 } from "../../data";
 import { ACTION_ICONS, FALLBACK_ACTION_ICON } from "./activity-icons";
 import { ACTIVITY_LABELS_AFFECTING } from "./activity-labels";
-
-function formatDate(date: Date): string {
-	return new Intl.DateTimeFormat("pt-BR", {
-		day: "2-digit",
-		month: "2-digit",
-		year: "numeric",
-	}).format(date);
-}
 
 interface Props {
 	kpis: UserDetailKpis;

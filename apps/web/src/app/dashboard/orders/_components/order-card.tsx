@@ -1,6 +1,7 @@
 import { MapPinIcon } from "lucide-react";
 import Link from "next/link";
 
+import { formatDateTime } from "@/lib/format/datetime";
 import { getInitials } from "@/lib/format/name";
 import type { OrderListItem } from "../data";
 import { OrderStatusBadge } from "./order-status-badge";
@@ -11,14 +12,6 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat("pt-BR", {
 	style: "currency",
 });
 
-const DATE_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	hour: "2-digit",
-	minute: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-});
-
 const RELATIVE_FORMATTER = new Intl.RelativeTimeFormat("pt-BR", {
 	numeric: "auto",
 	style: "short",
@@ -26,10 +19,6 @@ const RELATIVE_FORMATTER = new Intl.RelativeTimeFormat("pt-BR", {
 
 function formatCurrency(value: number) {
 	return CURRENCY_FORMATTER.format(value);
-}
-
-function formatAbsoluteDate(value: Date) {
-	return DATE_FORMATTER.format(value);
 }
 
 function formatRelativeDate(value: Date) {
@@ -94,7 +83,7 @@ export function OrderCard({ item }: { item: OrderListItem }) {
 				<div className="flex flex-col items-center py-2.5">
 					<span
 						className="font-bold text-[13px] text-foreground tabular-nums"
-						title={formatAbsoluteDate(item.createdAt)}
+						title={formatDateTime(item.createdAt)}
 					>
 						{formatRelativeDate(item.createdAt)}
 					</span>
