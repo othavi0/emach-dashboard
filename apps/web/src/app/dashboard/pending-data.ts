@@ -310,7 +310,7 @@ export const fetchDashboardCounts = cache(
 		SELECT
 			(SELECT COUNT(*)::int FROM stock_level
 				WHERE quantity = 0 OR (reorder_point > 0 AND quantity <= reorder_point)) AS stock,
-			(SELECT COUNT(*)::int FROM "order" WHERE status IN (${sqlStatusList(ACTIVE_ORDER_STATUSES)})) AS orders,
+			(SELECT COUNT(*)::int FROM "order" WHERE status = 'paid') AS orders,
 			(SELECT COUNT(*)::int FROM review WHERE status = 'pending') AS reviews,
 			(SELECT COUNT(*)::int FROM promotion
 				WHERE active = true AND ends_at IS NOT NULL

@@ -27,7 +27,12 @@ import type {
 	OrderListFilters as OrderListFilterState,
 	OrderStatus,
 } from "../data";
-import { ORDER_EXCEPTION_TABS, ORDER_FLOW_TABS } from "../status-meta";
+import {
+	ALL_ORDERS_TAB,
+	DEFAULT_ORDER_TAB,
+	ORDER_EXCEPTION_TABS,
+	ORDER_FLOW_TABS,
+} from "../status-meta";
 
 interface OrderListFiltersProps {
 	branches: BranchOption[];
@@ -36,12 +41,16 @@ interface OrderListFiltersProps {
 }
 
 const BASE = "/dashboard/orders";
-const TRACKED = ["tab", "q", "from", "to", "branchId", "page"] as const;
+// "tab" fora do TRACKED de propósito: o botão "Limpar" da barra de busca age só
+// sobre busca/data/filial e mantém a tab atual; o reset de status é o chip "Todos".
+const TRACKED = ["q", "from", "to", "branchId", "page"] as const;
 const BRANCH_ALL = "__all__";
 
 function buildTabHref(filters: OrderListFilterState, tabKey: string): string {
 	const params = new URLSearchParams();
-	if (tabKey && tabKey !== "all") {
+	// Sempre explicitar o tab: a ausência de ?tab agora resolve para o default
+	// ("A preparar"), então "Todos" e os demais precisam do parâmetro na URL.
+	if (tabKey) {
 		params.set("tab", tabKey);
 	}
 	if (filters.q) {
@@ -79,7 +88,7 @@ export function OrderFiltersPanel({
 	counts,
 	filters,
 }: OrderListFiltersProps) {
-	const currentTab = filters.tab ?? "all";
+	const currentTab = filters.tab ?? DEFAULT_ORDER_TAB;
 
 	const { searchParams, setParam, clearAll, hasActive } = useFilterState({
 		basePath: BASE,
@@ -93,12 +102,11 @@ export function OrderFiltersPanel({
 	const renderTab = (tab: {
 		key: string;
 		label: string;
-		statuses: readonly OrderStatus[];
+		statuses: readonly OrderStatus[] | null;
 	}) => {
 		const count = tabCount(counts, tab.key, tab.statuses);
 		const isActive = currentTab === tab.key;
-		// Clicar na tab ativa volta a "Todos" (remove o filtro de status).
-		const href = buildTabHref(filters, isActive ? "all" : tab.key);
+		const href = buildTabHref(filters, tab.key);
 		return (
 			<TabsTrigger
 				key={tab.key}
@@ -116,7 +124,10 @@ export function OrderFiltersPanel({
 		<div className="flex flex-col gap-3">
 			<Tabs value={currentTab}>
 				<div className="flex flex-wrap items-center justify-between gap-2">
-					<TabsList scrollable>{ORDER_FLOW_TABS.map(renderTab)}</TabsList>
+					<TabsList scrollable>
+						{renderTab(ALL_ORDERS_TAB)}
+						{ORDER_FLOW_TABS.map(renderTab)}
+					</TabsList>
 					<TabsList scrollable>{ORDER_EXCEPTION_TABS.map(renderTab)}</TabsList>
 				</div>
 			</Tabs>
