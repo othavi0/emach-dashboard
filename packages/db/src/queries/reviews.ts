@@ -54,7 +54,7 @@ export async function canCreateReview(
 
 	const windowRows = await db.execute<{ expired: boolean }>(sql`
 		SELECT (now() AT TIME ZONE 'UTC') >
-			(${ord.paidAt}::timestamp AT TIME ZONE 'UTC'
+			(${ord.paidAt}::timestamptz AT TIME ZONE 'UTC'
 				+ make_interval(days => ${REVIEW_WINDOW_DAYS}))
 			AS expired
 	`);
