@@ -16,6 +16,7 @@ import {
 	TONE_TEXT,
 	type Tone,
 } from "@/components/status-visual";
+import { formatDateTime } from "@/lib/format/datetime";
 import { togglePinNote } from "../../actions";
 import type {
 	OrderAttachmentItem,
@@ -29,18 +30,6 @@ import { ORDER_STATUS_LABELS, ORDER_STATUS_META } from "../../status-meta";
 import { AttachmentUploadForm } from "./attachment-upload-form";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
-
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	hour: "2-digit",
-	minute: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-});
-
-function formatDateTime(value: Date): string {
-	return DATE_TIME_FORMATTER.format(value);
-}
 
 function formatBytes(bytes: number | null): string {
 	if (bytes === null) {

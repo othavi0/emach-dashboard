@@ -620,7 +620,7 @@ function buildToolsWhereClause(
 	if (decoded) {
 		if (filters.sort === "newest" && decoded.sort === "newest") {
 			whereParts.push(
-				sql`(t.created_at, t.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+				sql`(t.created_at, t.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 			);
 		} else if (filters.sort === "name" && decoded.sort === "name") {
 			whereParts.push(sql`(t.name, t.id) > (${decoded.name}, ${decoded.id})`);

@@ -51,8 +51,10 @@ export const branch = pgTable(
 			jsonb("cep_ranges").$type<
 				Array<{ from: string; to: string; label?: string }>
 			>(),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
@@ -74,7 +76,7 @@ export const stockLevel = pgTable(
 		quantity: integer("quantity").notNull().default(0),
 		minQty: integer("min_qty").notNull().default(0),
 		reorderPoint: integer("reorder_point").notNull().default(0),
-		updatedAt: timestamp("updated_at")
+		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
@@ -115,7 +117,9 @@ export const userBranch = pgTable(
 		branchId: text("branch_id")
 			.notNull()
 			.references(() => branch.id, { onDelete: "cascade" }),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		primaryKey({ columns: [table.userId, table.branchId] }),

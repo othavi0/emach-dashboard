@@ -22,7 +22,9 @@ export const clientExportLog = pgTable(
 		rowCount: integer("row_count").notNull(),
 		bytesWritten: integer("bytes_written").notNull(),
 		truncated: boolean("truncated").default(false).notNull(),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
 	},
 	(table) => [
 		index("client_export_user_created_idx").on(

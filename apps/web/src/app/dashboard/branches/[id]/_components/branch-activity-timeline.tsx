@@ -2,6 +2,11 @@ import { BoxIcon, type LucideIcon, UserCogIcon } from "lucide-react";
 import type { OrderStatus } from "@/app/dashboard/orders/status-meta";
 import { ORDER_STATUS_META } from "@/app/dashboard/orders/status-meta";
 import { STATUS_ICONS, TONE_TEXT } from "@/components/status-visual";
+import {
+	formatDayMonthShort,
+	formatDayMonthShortYear,
+	formatTime,
+} from "@/lib/format/datetime";
 
 import type { BranchActivityRow } from "../activity-data";
 
@@ -18,22 +23,6 @@ const TEAM_ACTION_LABEL: Record<string, string> = {
 	"branch.updated": "Filial atualizada",
 };
 
-const TIME_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
-	hour: "2-digit",
-	minute: "2-digit",
-});
-
-const DAY_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "short",
-});
-
-const DAY_FORMATTER_YEAR = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "short",
-	year: "numeric",
-});
-
 function dayLabel(date: Date, now: Date): string {
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	const yesterday = new Date(today);
@@ -45,8 +34,8 @@ function dayLabel(date: Date, now: Date): string {
 		return "Ontem";
 	}
 	return date.getFullYear() === now.getFullYear()
-		? DAY_FORMATTER.format(date)
-		: DAY_FORMATTER_YEAR.format(date);
+		? formatDayMonthShort(date)
+		: formatDayMonthShortYear(date);
 }
 
 function groupByDay(
@@ -190,7 +179,7 @@ export function BranchActivityTimeline({ rows }: Props) {
 										) : null}
 									</div>
 									<span className="flex-shrink-0 text-muted-foreground text-xs tabular-nums">
-										{TIME_FORMATTER.format(new Date(r.at))}
+										{formatTime(new Date(r.at))}
 									</span>
 								</li>
 							);

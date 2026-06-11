@@ -78,7 +78,7 @@ function keysetClause(
 	cursor: { createdAt: string; id: string } | null
 ) {
 	return cursor
-		? sql`(${sql.raw(createdAtCol)}, ${sql.raw(idExpr)}) < (${cursor.createdAt}::timestamp, ${cursor.id})`
+		? sql`(${sql.raw(createdAtCol)}, ${sql.raw(idExpr)}) < (${cursor.createdAt}::timestamptz, ${cursor.id})`
 		: sql``;
 }
 
@@ -101,7 +101,7 @@ function buildStockBlock(ctx: BlockCtx) {
 		parts.push(sql`tv.tool_id = ${ctx.toolId}`);
 	}
 	if (ctx.cutoffSql) {
-		parts.push(sql`sm.created_at >= ${ctx.cutoffSql}::timestamp`);
+		parts.push(sql`sm.created_at >= ${ctx.cutoffSql}::timestamptz`);
 	}
 	if (ctx.decoded) {
 		parts.push(keysetClause("sm.created_at", "'stock-' || sm.id", ctx.decoded));
@@ -127,7 +127,7 @@ function buildStockBlock(ctx: BlockCtx) {
 function buildOrderBlock(ctx: BlockCtx) {
 	const parts = [sql`o.branch_id = ${ctx.branchId}`];
 	if (ctx.cutoffSql) {
-		parts.push(sql`osh.created_at >= ${ctx.cutoffSql}::timestamp`);
+		parts.push(sql`osh.created_at >= ${ctx.cutoffSql}::timestamptz`);
 	}
 	if (ctx.decoded) {
 		parts.push(
@@ -161,7 +161,7 @@ function buildTeamBlock(ctx: BlockCtx) {
 		)`,
 	];
 	if (ctx.cutoffSql) {
-		parts.push(sql`ual.created_at >= ${ctx.cutoffSql}::timestamp`);
+		parts.push(sql`ual.created_at >= ${ctx.cutoffSql}::timestamptz`);
 	}
 	if (ctx.decoded) {
 		parts.push(

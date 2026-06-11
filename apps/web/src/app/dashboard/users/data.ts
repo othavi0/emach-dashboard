@@ -107,7 +107,7 @@ export async function fetchUsersPage(
 	}
 	if (decoded) {
 		whereParts.push(
-			sql`(${userTable.createdAt}, ${userTable.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+			sql`(${userTable.createdAt}, ${userTable.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		);
 	}
 
@@ -173,7 +173,7 @@ export async function fetchPendingUsersPage(cursor: string | null): Promise<
 			and(
 				eq(userTable.status, "pending"),
 				decoded
-					? sql`(${userTable.createdAt}, ${userTable.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+					? sql`(${userTable.createdAt}, ${userTable.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 					: undefined
 			)
 		)
@@ -530,7 +530,7 @@ export async function getUserActivityFeedPaginated(
 			and(
 				ilike(userActivityLog.action, "user.%"),
 				decoded
-					? sql`(${userActivityLog.createdAt}, ${userActivityLog.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+					? sql`(${userActivityLog.createdAt}, ${userActivityLog.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 					: undefined
 			)
 		)

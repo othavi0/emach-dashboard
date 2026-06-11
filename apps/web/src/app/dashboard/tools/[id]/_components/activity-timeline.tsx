@@ -1,6 +1,11 @@
 import { ArrowDown, ArrowUp, Pencil, X } from "lucide-react";
 
 import type { ToolActivityRow } from "@/app/dashboard/stock/actions";
+import {
+	formatDayMonthShort,
+	formatDayMonthShortYear,
+	formatTime,
+} from "@/lib/format/datetime";
 
 const REASON_LABEL: Record<string, string> = {
 	entrada_compra: "entrada compra",
@@ -48,11 +53,10 @@ function groupByDay(
 		} else if (d >= yesterday) {
 			label = "Ontem";
 		} else {
-			label = d.toLocaleDateString("pt-BR", {
-				day: "2-digit",
-				month: "short",
-				year: d.getFullYear() === now.getFullYear() ? undefined : "numeric",
-			});
+			label =
+				d.getFullYear() === now.getFullYear()
+					? formatDayMonthShort(d)
+					: formatDayMonthShortYear(d);
 		}
 
 		if (!groups.has(label)) {
@@ -63,13 +67,6 @@ function groupByDay(
 	}
 
 	return order.map((label) => ({ label, items: groups.get(label) ?? [] }));
-}
-
-function formatTime(date: Date): string {
-	return new Date(date).toLocaleTimeString("pt-BR", {
-		hour: "2-digit",
-		minute: "2-digit",
-	});
 }
 
 interface Props {

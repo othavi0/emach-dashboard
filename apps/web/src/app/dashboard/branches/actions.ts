@@ -123,7 +123,7 @@ export async function fetchBranchesPage({
 	if (decoded) {
 		if (filters.sort === "newest" && decoded.sort === "newest") {
 			conditions.push(
-				sql`(${branch.createdAt}, ${branch.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+				sql`(${branch.createdAt}, ${branch.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 			);
 		} else if (filters.sort === "name" && decoded.sort === "name") {
 			conditions.push(
@@ -180,7 +180,7 @@ export async function fetchBranchOrdersPage({
 	const conditions = [sql`${order.branchId} = ${branchId}`];
 	if (decoded && decoded.sort === "newest") {
 		conditions.push(
-			sql`(${order.createdAt}, ${order.id}) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+			sql`(${order.createdAt}, ${order.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		);
 	}
 	const rows = await db

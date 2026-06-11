@@ -86,7 +86,7 @@ export async function listReviews({
 	if (cursor) {
 		const decoded = decodeCursorAs(cursor, "newest");
 		conditions.push(
-			sql`(r.created_at, r.id) < (${decoded.createdAt}::timestamp, ${decoded.id})`
+			sql`(r.created_at, r.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		);
 	}
 	const whereClause = conditions.length

@@ -34,16 +34,18 @@ export const promotion = pgTable(
 		minOrderAmount: numeric("min_order_amount", { precision: 12, scale: 2 }),
 		active: boolean("active").default(false).notNull(),
 		featured: boolean("featured").notNull().default(false),
-		startsAt: timestamp("starts_at"),
-		endsAt: timestamp("ends_at"),
+		startsAt: timestamp("starts_at", { withTimezone: true }),
+		endsAt: timestamp("ends_at", { withTimezone: true }),
 		createdBy: text("created_by").references(() => user.id, {
 			onDelete: "set null",
 		}),
 		updatedBy: text("updated_by").references(() => user.id, {
 			onDelete: "set null",
 		}),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
 			.defaultNow()
 			.notNull()
 			.$onUpdate(() => new Date()),

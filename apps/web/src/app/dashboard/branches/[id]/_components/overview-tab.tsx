@@ -12,6 +12,7 @@ import {
 	formatBusinessPeriod,
 	formatCep,
 } from "@/lib/format/branch";
+import { formatDate } from "@/lib/format/datetime";
 import { formatPhone } from "@/lib/format/phone";
 import type { BranchDetail, BranchDetailKpis } from "../../data";
 
@@ -19,14 +20,6 @@ const BRL = new Intl.NumberFormat("pt-BR", {
 	style: "currency",
 	currency: "BRL",
 });
-
-function formatDate(date: Date): string {
-	return new Intl.DateTimeFormat("pt-BR", {
-		day: "2-digit",
-		month: "2-digit",
-		year: "numeric",
-	}).format(date);
-}
 
 function mapsHref(detail: BranchDetail): string | null {
 	const addr = formatBranchAddress(detail);

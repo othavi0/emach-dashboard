@@ -61,7 +61,7 @@ CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1;
 CREATE OR REPLACE FUNCTION update_client_last_seen() RETURNS trigger
 LANGUAGE plpgsql SET search_path = '' AS $$
 DECLARE
-  current_last timestamp;
+  current_last timestamptz;
 BEGIN
   SELECT last_seen_at INTO current_last FROM public.client WHERE id = NEW.user_id;
   IF current_last IS NULL OR NEW.updated_at > current_last + INTERVAL '5 minutes' THEN

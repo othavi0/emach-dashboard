@@ -6,6 +6,7 @@ import {
 	CardTitle,
 } from "@emach/ui/components/card";
 
+import { formatDateTime } from "@/lib/format/datetime";
 import type { CustomerConsentByKind } from "../data";
 
 const KIND_LABELS: Record<string, string> = {
@@ -16,14 +17,6 @@ const KIND_LABELS: Record<string, string> = {
 };
 
 const KIND_ORDER = ["tos", "privacy", "marketing_email", "cookies"] as const;
-
-const DATE_TIME = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-	hour: "2-digit",
-	minute: "2-digit",
-});
 
 interface CustomerConsentListProps {
 	consentByKind: CustomerConsentByKind;
@@ -67,11 +60,11 @@ export function CustomerConsentList({
 												</code>
 											</div>
 											<p className="text-muted-foreground">
-												{DATE_TIME.format(entry.grantedAt)}
+												{formatDateTime(entry.grantedAt)}
 											</p>
 											{entry.revokedAt && (
 												<p className="text-muted-foreground">
-													Revogado em {DATE_TIME.format(entry.revokedAt)}
+													Revogado em {formatDateTime(entry.revokedAt)}
 												</p>
 											)}
 										</div>

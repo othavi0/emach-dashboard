@@ -15,17 +15,10 @@ import {
 	TooltipTrigger,
 } from "@emach/ui/components/tooltip";
 
+import { formatDateTime } from "@/lib/format/datetime";
 import type { CustomerSessionRow } from "../data";
 import { RevokeAllSessionsDialog } from "./revoke-all-sessions-dialog";
 import { RevokeSessionDialog } from "./revoke-session-dialog";
-
-const DATE_TIME = new Intl.DateTimeFormat("pt-BR", {
-	day: "2-digit",
-	month: "2-digit",
-	year: "numeric",
-	hour: "2-digit",
-	minute: "2-digit",
-});
 
 const RELATIVE = new Intl.RelativeTimeFormat("pt-BR", {
 	numeric: "auto",
@@ -103,10 +96,10 @@ export function CustomerSessionsTable({
 					{sessions.map((session) => (
 						<TableRow key={session.id}>
 							<TableCell className="text-muted-foreground text-sm">
-								{DATE_TIME.format(session.createdAt)}
+								{formatDateTime(session.createdAt)}
 							</TableCell>
 							<TableCell className="text-muted-foreground text-sm">
-								{DATE_TIME.format(session.expiresAt)}
+								{formatDateTime(session.expiresAt)}
 							</TableCell>
 							<TableCell className="font-mono text-muted-foreground text-xs">
 								{session.ipAddress ?? "—"}

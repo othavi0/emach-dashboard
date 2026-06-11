@@ -5,13 +5,9 @@ import { Wrench } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { formatMonthYear } from "@/lib/format/datetime";
 import { getInitials } from "@/lib/format/name";
 import type { SupplierTableRow } from "../data";
-
-const MONTH_YEAR = new Intl.DateTimeFormat("pt-BR", {
-	month: "2-digit",
-	year: "numeric",
-});
 
 interface SupplierCardProps {
 	supplier: SupplierTableRow;
@@ -89,7 +85,7 @@ export function SupplierCard({ supplier }: SupplierCardProps) {
 				</div>
 				<div className="flex flex-col items-center justify-center py-2.5">
 					<span className="font-semibold text-[15px] text-foreground tabular-nums">
-						{MONTH_YEAR.format(supplier.createdAt)}
+						{formatMonthYear(supplier.createdAt)}
 					</span>
 					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 						Adicionado
