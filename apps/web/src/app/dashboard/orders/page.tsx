@@ -27,6 +27,7 @@ import {
 	type OrdersPageFiltersInput,
 } from "./data";
 import { ordersListFiltersSchema } from "./schema";
+import { DEFAULT_ORDER_TAB } from "./status-meta";
 
 interface PageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -40,8 +41,11 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 	const parsed = ordersListFiltersSchema.safeParse(raw);
 	const data = parsed.success ? parsed.data : ordersListFiltersSchema.parse({});
 
+	// Sem ?tab na URL → abre na fila acionável ("A preparar"), não em todos.
+	const activeTab = data.tab ?? DEFAULT_ORDER_TAB;
+
 	const filters: OrderListFilters = {
-		tab: data.tab,
+		tab: activeTab,
 		q: data.q,
 		from: data.from,
 		to: data.to,
@@ -50,7 +54,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 	};
 
 	const pageFilters: OrdersPageFiltersInput = {
-		tab: data.tab,
+		tab: activeTab,
 		q: data.q,
 		from: data.from,
 		to: data.to,
@@ -73,8 +77,13 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 			fetchOrdersPage({ filters: pageFilters, cursor: null }),
 		]);
 
+	// O tab default ("A preparar") não conta como filtro ativo — só desvios dele.
 	const hasFilters = Boolean(
-		filters.tab || filters.q || filters.from || filters.to || filters.branchId
+		filters.q ||
+			filters.from ||
+			filters.to ||
+			filters.branchId ||
+			activeTab !== DEFAULT_ORDER_TAB
 	);
 
 	const awaitingCount = (counts.paid ?? 0) + (counts.pending_payment ?? 0);
@@ -110,7 +119,6 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 
 			<section className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<PendingPanel
-					compact
 					emptyMessage="Nenhum pedido aguardando ação."
 					tabs={pendingTabs}
 					title="Pendências de pedidos"
@@ -141,7 +149,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 						<EmptyDescription>
 							{hasFilters
 								? "Ajuste os filtros para ampliar a busca."
-								: "Os pedidos aparecerão aqui conforme forem criados no site ecomerce."}
+								: "Nenhum pedido aguardando preparação. Use a aba “Todos” para ver o histórico completo."}
 						</EmptyDescription>
 					</EmptyHeader>
 					<EmptyContent>

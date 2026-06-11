@@ -52,7 +52,6 @@ export interface PendingTab {
 }
 
 interface PendingPanelProps {
-	compact?: boolean;
 	emptyMessage?: string;
 	tabs: PendingTab[];
 	title?: string;
@@ -67,13 +66,7 @@ const BADGE_COLORS: Record<PendingRole, string> = {
 	warning: "text-warning",
 };
 
-function PendingTabContent({
-	compact,
-	tab,
-}: {
-	compact?: boolean;
-	tab: PendingTab;
-}) {
+function PendingTabContent({ tab }: { tab: PendingTab }) {
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: tab.initial,
@@ -92,10 +85,7 @@ function PendingTabContent({
 	return (
 		<div
 			aria-live="polite"
-			className={cn(
-				"min-w-0 max-w-full overflow-y-auto",
-				compact ? "max-h-60 min-h-44" : "max-h-[28rem] min-h-72"
-			)}
+			className="min-h-0 min-w-0 flex-1 overflow-y-auto"
 			ref={scrollRef}
 		>
 			<ul className="flex flex-col">
@@ -161,7 +151,6 @@ function PendingTabContent({
 }
 
 export function PendingPanel({
-	compact,
 	tabs,
 	title = "Pendências",
 	emptyMessage = "Nada pendente. Bom trabalho.",
@@ -171,7 +160,7 @@ export function PendingPanel({
 	const activeTab = tabs.find((t) => t.id === activeId) ?? tabs[0];
 
 	return (
-		<Card className="min-w-0">
+		<Card className="flex h-full min-w-0 flex-col">
 			<CardHeader className="flex flex-col gap-3 pb-3">
 				<div className="flex min-w-0 flex-row items-baseline justify-between gap-3">
 					<span className="font-semibold text-sm uppercase tracking-wider">
@@ -199,17 +188,13 @@ export function PendingPanel({
 					</TabsList>
 				</Tabs>
 			</CardHeader>
-			<CardContent className="flex min-w-0 flex-col">
+			<CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">
 				{total === 0 || !activeTab ? (
 					<p className="px-2 py-8 text-muted-foreground text-sm">
 						{emptyMessage}
 					</p>
 				) : (
-					<PendingTabContent
-						compact={compact}
-						key={activeTab.id}
-						tab={activeTab}
-					/>
+					<PendingTabContent key={activeTab.id} tab={activeTab} />
 				)}
 			</CardContent>
 		</Card>
