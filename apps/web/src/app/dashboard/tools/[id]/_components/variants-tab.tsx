@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@emach/ui/components/badge";
 import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
 import {
@@ -9,6 +10,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@emach/ui/components/select";
+import { Switch } from "@emach/ui/components/switch";
 import {
 	Table,
 	TableBody,
@@ -17,16 +19,32 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
-import { CheckCircle2 } from "lucide-react";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@emach/ui/components/tooltip";
+import { CheckCircle2, Lock } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+
+import { DeleteToolDialog } from "../../_components/delete-tool-dialog";
+import { DeleteVariantDialog } from "../../_components/delete-variant-dialog";
 import { VOLTAGE_OPTIONS } from "../../_components/tool-schema";
-import { setDefaultToolVariant, updateToolVariant } from "../../actions";
+import {
+	setDefaultToolVariant,
+	setVariantVisibility,
+	updateToolVariant,
+} from "../../actions";
 import type { ToolDetailVariant } from "../_lib/tool-detail-data";
 
 interface VariantsTabProps {
+	canDelete: boolean;
 	canMutate: boolean;
+	orderedVariantIds: string[];
 	toolId: string;
+	toolName: string;
 	variants: ToolDetailVariant[];
 }
 
@@ -55,7 +73,14 @@ function isDirty(initial: RowState, current: RowState): boolean {
 	);
 }
 
-export function VariantsTab({ variants, toolId, canMutate }: VariantsTabProps) {
+export function VariantsTab({
+	variants,
+	toolId,
+	toolName,
+	canMutate,
+	canDelete,
+	orderedVariantIds,
+}: VariantsTabProps) {
 	if (variants.length === 0) {
 		return (
 			<p className="py-12 text-center text-muted-foreground text-sm">
@@ -68,38 +93,89 @@ export function VariantsTab({ variants, toolId, canMutate }: VariantsTabProps) {
 		return <VariantsReadOnly variants={variants} />;
 	}
 
+	const orderedSet = new Set(orderedVariantIds);
+	const toolHasOrders = orderedVariantIds.length > 0;
+
 	return (
-		<Table>
-			<TableHeader>
-				<TableRow>
-					<TableHead>SKU</TableHead>
-					<TableHead>Voltagem</TableHead>
-					<TableHead className="text-right">Preço (R$)</TableHead>
-					<TableHead className="text-right">Custo (R$)</TableHead>
-					<TableHead className="text-center">Padrão</TableHead>
-					<TableHead />
-				</TableRow>
-			</TableHeader>
-			<TableBody>
-				{variants.map((v) => (
-					<EditableRow key={v.id} toolId={toolId} variant={v} />
-				))}
-			</TableBody>
-		</Table>
+		<TooltipProvider delay={200}>
+			<div className="flex flex-col gap-6">
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead>SKU</TableHead>
+							<TableHead>Voltagem</TableHead>
+							<TableHead className="text-right">Preço (R$)</TableHead>
+							<TableHead className="text-right">Custo (R$)</TableHead>
+							<TableHead className="text-center">Padrão</TableHead>
+							<TableHead>Visível no site</TableHead>
+							<TableHead />
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{variants.map((v) => (
+							<EditableRow
+								canDelete={canDelete}
+								hasOrders={orderedSet.has(v.id)}
+								isOnlyVariant={variants.length === 1}
+								key={v.id}
+								toolId={toolId}
+								variant={v}
+							/>
+						))}
+					</TableBody>
+				</Table>
+
+				{canDelete && (
+					<div className="rounded-[10px] border border-destructive/40 bg-destructive/5 p-4">
+						<div className="flex flex-wrap items-center justify-between gap-3">
+							<div>
+								<p className="font-medium text-destructive text-sm">
+									Excluir ferramenta
+								</p>
+								<p className="text-muted-foreground text-xs">
+									Remove a ferramenta e todas as variantes. Não pode ser
+									desfeito.
+								</p>
+							</div>
+							<DeleteToolDialog
+								disabledReason={
+									toolHasOrders
+										? "Esta ferramenta tem pedidos e não pode ser excluída. Oculte-a do site."
+										: null
+								}
+								toolId={toolId}
+								toolName={toolName}
+								triggerLabel="Excluir ferramenta"
+							/>
+						</div>
+					</div>
+				)}
+			</div>
+		</TooltipProvider>
 	);
 }
 
 interface EditableRowProps {
+	canDelete: boolean;
+	hasOrders: boolean;
+	isOnlyVariant: boolean;
 	toolId: string;
 	variant: ToolDetailVariant;
 }
 
-function EditableRow({ variant, toolId }: EditableRowProps) {
+function EditableRow({
+	variant,
+	toolId,
+	canDelete,
+	hasOrders,
+	isOnlyVariant,
+}: EditableRowProps) {
 	const initial = makeRowState(variant);
 	const [state, setState] = useState<RowState>(initial);
 	const [savedTick, setSavedTick] = useState(false);
 	const [pending, startTransition] = useTransition();
 	const [defaultPending, startDefaultTransition] = useTransition();
+	const [visiblePending, startVisibleTransition] = useTransition();
 	const dirty = isDirty(initial, state);
 
 	function handleSave() {
@@ -152,6 +228,28 @@ function EditableRow({ variant, toolId }: EditableRowProps) {
 		});
 	}
 
+	function handleToggleVisibility(visible: boolean) {
+		startVisibleTransition(async () => {
+			const result = await setVariantVisibility({
+				variantId: variant.id,
+				visible,
+			});
+			if (result.ok) {
+				if (result.data.warning === "default_hidden") {
+					toast.warning(
+						"A variante padrão está oculta do site. Defina outra como padrão visível."
+					);
+				} else {
+					toast.success(
+						visible ? "Variante visível no site" : "Variante oculta"
+					);
+				}
+			} else {
+				toast.error(result.error);
+			}
+		});
+	}
+
 	let saveControl: React.ReactNode = null;
 	if (dirty) {
 		saveControl = (
@@ -165,6 +263,23 @@ function EditableRow({ variant, toolId }: EditableRowProps) {
 				<CheckCircle2 className="size-3.5" /> Salvo
 			</span>
 		);
+	}
+
+	let deleteControl: React.ReactNode = null;
+	if (canDelete) {
+		if (isOnlyVariant) {
+			deleteControl = (
+				<DisabledDeleteIcon reason="A ferramenta precisa de ao menos uma variante." />
+			);
+		} else if (hasOrders) {
+			deleteControl = (
+				<DisabledDeleteIcon reason="Tem pedidos — não pode excluir. Oculte do site." />
+			);
+		} else {
+			deleteControl = (
+				<DeleteVariantDialog variantId={variant.id} variantSku={variant.sku} />
+			);
+		}
 	}
 
 	return (
@@ -188,9 +303,9 @@ function EditableRow({ variant, toolId }: EditableRowProps) {
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="_none_">—</SelectItem>
-						{VOLTAGE_OPTIONS.map((v) => (
-							<SelectItem key={v} value={v}>
-								{v}
+						{VOLTAGE_OPTIONS.map((opt) => (
+							<SelectItem key={opt} value={opt}>
+								{opt}
 							</SelectItem>
 						))}
 					</SelectContent>
@@ -224,8 +339,41 @@ function EditableRow({ variant, toolId }: EditableRowProps) {
 					type="radio"
 				/>
 			</TableCell>
-			<TableCell className="text-right">{saveControl}</TableCell>
+			<TableCell>
+				<div className="flex items-center gap-2">
+					<Switch
+						checked={variant.visibleOnSite}
+						disabled={visiblePending}
+						onCheckedChange={handleToggleVisibility}
+						size="sm"
+					/>
+					<Badge variant={variant.visibleOnSite ? "success" : "secondary"}>
+						{variant.visibleOnSite ? "Ativa" : "Oculta"}
+					</Badge>
+				</div>
+			</TableCell>
+			<TableCell className="text-right">
+				<div className="flex items-center justify-end gap-2">
+					{saveControl}
+					{deleteControl}
+				</div>
+			</TableCell>
 		</TableRow>
+	);
+}
+
+function DisabledDeleteIcon({ reason }: { reason: string }) {
+	return (
+		<Tooltip>
+			<TooltipTrigger
+				render={
+					<Button disabled size="icon-sm" variant="ghost">
+						<Lock aria-hidden className="size-3.5 text-muted-foreground" />
+					</Button>
+				}
+			/>
+			<TooltipContent>{reason}</TooltipContent>
+		</Tooltip>
 	);
 }
 
@@ -246,6 +394,7 @@ function VariantsReadOnly({ variants }: { variants: ToolDetailVariant[] }) {
 					<TableHead className="text-right">Preço</TableHead>
 					<TableHead className="text-right">Custo</TableHead>
 					<TableHead className="text-center">Padrão</TableHead>
+					<TableHead>Visível no site</TableHead>
 				</TableRow>
 			</TableHeader>
 			<TableBody>
@@ -268,6 +417,11 @@ function VariantsReadOnly({ variants }: { variants: ToolDetailVariant[] }) {
 							) : (
 								<span className="text-muted-foreground">—</span>
 							)}
+						</TableCell>
+						<TableCell>
+							<Badge variant={v.visibleOnSite ? "success" : "secondary"}>
+								{v.visibleOnSite ? "Ativa" : "Oculta"}
+							</Badge>
 						</TableCell>
 					</TableRow>
 				))}
