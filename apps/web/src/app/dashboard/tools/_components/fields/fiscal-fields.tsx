@@ -6,6 +6,7 @@ import { Label } from "@emach/ui/components/label";
 import { HelpTooltip } from "@/components/help-tooltip";
 import { MaskedInput } from "@/components/masked-input";
 import { cestMask, hsCodeMask, ncmMask } from "@/lib/masks";
+import { FISCAL_HELP, MODEL_HELP } from "./spec-help";
 import type { ToolFieldGroupProps } from "./types";
 
 export function FiscalFields({
@@ -19,7 +20,7 @@ export function FiscalFields({
 				<div className="flex flex-col gap-2">
 					<Label className="flex items-center gap-1.5" htmlFor="model">
 						Modelo comercial
-						<HelpTooltip text="Nome curto pra catálogo e busca interna. Ex: ELT 800." />
+						<HelpTooltip text={MODEL_HELP.model} />
 					</Label>
 					<Input
 						disabled={disabled}
@@ -32,7 +33,7 @@ export function FiscalFields({
 				<div className="flex flex-col gap-2">
 					<Label className="flex items-center gap-1.5" htmlFor="invoiceModel">
 						Modelo da fábrica
-						<HelpTooltip text="Identificação completa usada em invoice e importação. Diferente do modelo comercial (curto, pra catálogo)." />
+						<HelpTooltip text={MODEL_HELP.invoiceModel} />
 					</Label>
 					<Input
 						disabled={disabled}
@@ -57,11 +58,7 @@ export function FiscalFields({
 				<div className="flex flex-col gap-2">
 					<Label className="flex items-center gap-1.5" htmlFor="ncm">
 						NCM
-						<HelpTooltip
-							body="Classifica a mercadoria para impostos e importação. 8 dígitos. Pegue na ficha do fabricante."
-							example="Ex: 8467.21.00"
-							title="Nomenclatura Comum do Mercosul"
-						/>
+						<HelpTooltip {...FISCAL_HELP.ncm} />
 					</Label>
 					<MaskedInput
 						disabled={disabled}
@@ -74,11 +71,7 @@ export function FiscalFields({
 				<div className="flex flex-col gap-2">
 					<Label className="flex items-center gap-1.5" htmlFor="cest">
 						CEST
-						<HelpTooltip
-							body="Identifica mercadorias sujeitas a ICMS-ST. Usado na nota fiscal. 7 dígitos."
-							example="Ex: 21.106.00"
-							title="Código Especificador da Substituição Tributária"
-						/>
+						<HelpTooltip {...FISCAL_HELP.cest} />
 					</Label>
 					<MaskedInput
 						disabled={disabled}
@@ -91,11 +84,7 @@ export function FiscalFields({
 				<div className="flex flex-col gap-2">
 					<Label className="flex items-center gap-1.5" htmlFor="hsCode">
 						HS Code
-						<HelpTooltip
-							body="Código aduaneiro internacional usado em importação/exportação. 6+ dígitos."
-							example="Ex: 8467.21"
-							title="Harmonized System Code"
-						/>
+						<HelpTooltip {...FISCAL_HELP.hsCode} />
 					</Label>
 					<MaskedInput
 						disabled={disabled}

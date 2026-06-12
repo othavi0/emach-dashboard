@@ -1,3 +1,7 @@
+import type { ReactNode } from "react";
+
+import { HelpTooltip } from "@/components/help-tooltip";
+import { FISCAL_HELP, MODEL_HELP } from "../../_components/fields/spec-help";
 import type {
 	ToolDetailAttribute,
 	ToolDetailRow,
@@ -56,8 +60,21 @@ export function ToolSpecs({ tool, attributes }: ToolSpecsProps) {
 		<div className="flex flex-col gap-5">
 			{hasFixedSpecs && (
 				<SpecSection title="Especificações fixas">
-					<SpecField label="Modelo" value={tool.model} />
-					<SpecField label="Modelo NF" value={tool.invoiceModel} />
+					<SpecField
+						help={<HelpTooltip label="Sobre Modelo" text={MODEL_HELP.model} />}
+						label="Modelo"
+						value={tool.model}
+					/>
+					<SpecField
+						help={
+							<HelpTooltip
+								label="Sobre Modelo NF"
+								text={MODEL_HELP.invoiceModel}
+							/>
+						}
+						label="Modelo NF"
+						value={tool.invoiceModel}
+					/>
 					<SpecField label="Fabricante" value={tool.manufacturerName} />
 					<SpecField
 						label="Potência"
@@ -94,9 +111,21 @@ export function ToolSpecs({ tool, attributes }: ToolSpecsProps) {
 
 			{hasFiscal && (
 				<SpecSection title="Classificação fiscal">
-					<SpecField label="HS Code" value={tool.hsCode} />
-					<SpecField label="NCM" value={tool.ncm} />
-					<SpecField label="CEST" value={tool.cest} />
+					<SpecField
+						help={<HelpTooltip label="Sobre HS Code" {...FISCAL_HELP.hsCode} />}
+						label="HS Code"
+						value={tool.hsCode}
+					/>
+					<SpecField
+						help={<HelpTooltip label="Sobre NCM" {...FISCAL_HELP.ncm} />}
+						label="NCM"
+						value={tool.ncm}
+					/>
+					<SpecField
+						help={<HelpTooltip label="Sobre CEST" {...FISCAL_HELP.cest} />}
+						label="CEST"
+						value={tool.cest}
+					/>
 				</SpecSection>
 			)}
 		</div>
@@ -122,10 +151,21 @@ function SpecSection({
 	);
 }
 
-function SpecField({ label, value }: { label: string; value: string | null }) {
+function SpecField({
+	label,
+	value,
+	help,
+}: {
+	label: string;
+	value: string | null;
+	help?: ReactNode;
+}) {
 	return (
 		<div>
-			<dt className="text-muted-foreground text-xs">{label}</dt>
+			<dt className="flex items-center gap-1 text-muted-foreground text-xs">
+				{label}
+				{help}
+			</dt>
 			<dd>{value ?? "—"}</dd>
 		</div>
 	);
