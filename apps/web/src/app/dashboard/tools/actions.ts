@@ -8,8 +8,9 @@ import {
 	toolAttributeValue,
 } from "@emach/db/schema/attributes";
 import { toolCategory } from "@emach/db/schema/categories";
+import { orderItem } from "@emach/db/schema/orders";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
@@ -29,6 +30,7 @@ import {
 	type UpdateVariantInput,
 	updateVariantSchema,
 } from "./_components/tool-schema";
+import { resolveVariantDeletion } from "./_components/variant-deletion";
 
 const TOOLS_PATH = "/dashboard/tools";
 
@@ -490,6 +492,19 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 		.from(toolImage)
 		.where(eq(toolImage.toolId, id));
 
+	const [orderedForTool] = await db
+		.select({ n: sql<number>`count(*)::int` })
+		.from(orderItem)
+		.innerJoin(toolVariant, eq(toolVariant.id, orderItem.variantId))
+		.where(eq(toolVariant.toolId, id));
+	if ((orderedForTool?.n ?? 0) > 0) {
+		return {
+			ok: false,
+			error:
+				"Esta ferramenta tem pedidos e não pode ser excluída. Oculte-a do site (visibilidade) em vez disso.",
+		};
+	}
+
 	try {
 		await db.delete(tool).where(eq(tool.id, id));
 	} catch (error) {
@@ -839,5 +854,125 @@ export async function setDefaultToolVariant(input: {
 	} catch (error) {
 		logger.error("setDefaultToolVariant falhou", error);
 		return { ok: false, error: "Não foi possível marcar como padrão" };
+	}
+}
+
+const setVariantVisibilitySchema = z.object({
+	variantId: z.string().min(1),
+	visible: z.boolean(),
+});
+
+export async function setVariantVisibility(input: {
+	variantId: string;
+	visible: boolean;
+}): Promise<ActionResult<{ warning?: "default_hidden" }>> {
+	const parsed = setVariantVisibilitySchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: "Dados inválidos" };
+	}
+
+	await requireCapability("tools.update");
+
+	try {
+		const { variantId, visible } = parsed.data;
+		const [v] = await db
+			.select({
+				toolId: toolVariant.toolId,
+				isDefault: toolVariant.isDefault,
+			})
+			.from(toolVariant)
+			.where(eq(toolVariant.id, variantId));
+		if (!v) {
+			return { ok: false, error: "Variante não encontrada" };
+		}
+
+		await db
+			.update(toolVariant)
+			.set({ visibleOnSite: visible, updatedAt: new Date() })
+			.where(eq(toolVariant.id, variantId));
+
+		revalidatePath(`/dashboard/tools/${v.toolId}`);
+		revalidatePath(TOOLS_PATH);
+
+		const warning =
+			!visible && v.isDefault ? ("default_hidden" as const) : undefined;
+		return { ok: true, data: { warning } };
+	} catch (error) {
+		logger.error("setVariantVisibility falhou", error);
+		return { ok: false, error: "Não foi possível atualizar a visibilidade" };
+	}
+}
+
+const deleteVariantSchema = z.object({ variantId: z.string().min(1) });
+
+export async function deleteToolVariant(input: {
+	variantId: string;
+}): Promise<ActionResult<{ reassignedDefaultSku?: string }>> {
+	const parsed = deleteVariantSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: "Dados inválidos" };
+	}
+
+	await requireCapability("tools.delete");
+
+	try {
+		const { variantId } = parsed.data;
+		const [v] = await db
+			.select({
+				toolId: toolVariant.toolId,
+				isDefault: toolVariant.isDefault,
+			})
+			.from(toolVariant)
+			.where(eq(toolVariant.id, variantId));
+		if (!v) {
+			return { ok: false, error: "Variante não encontrada" };
+		}
+
+		const [ordered] = await db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(orderItem)
+			.where(eq(orderItem.variantId, variantId));
+
+		const siblings = await db
+			.select({ id: toolVariant.id, sortOrder: toolVariant.sortOrder })
+			.from(toolVariant)
+			.where(eq(toolVariant.toolId, v.toolId))
+			.orderBy(asc(toolVariant.sortOrder));
+
+		const decision = resolveVariantDeletion({
+			variantId,
+			isDefault: v.isDefault,
+			hasOrders: (ordered?.n ?? 0) > 0,
+			siblings,
+		});
+		if (!decision.allowed) {
+			return { ok: false, error: decision.error };
+		}
+
+		await db.transaction(async (tx) => {
+			await tx.delete(toolVariant).where(eq(toolVariant.id, variantId));
+			if (decision.reassignDefaultTo) {
+				await tx
+					.update(toolVariant)
+					.set({ isDefault: true, updatedAt: new Date() })
+					.where(eq(toolVariant.id, decision.reassignDefaultTo));
+			}
+		});
+
+		let reassignedDefaultSku: string | undefined;
+		if (decision.reassignDefaultTo) {
+			const [nd] = await db
+				.select({ sku: toolVariant.sku })
+				.from(toolVariant)
+				.where(eq(toolVariant.id, decision.reassignDefaultTo));
+			reassignedDefaultSku = nd?.sku;
+		}
+
+		revalidatePath(`/dashboard/tools/${v.toolId}`);
+		revalidatePath(TOOLS_PATH);
+		return { ok: true, data: { reassignedDefaultSku } };
+	} catch (error) {
+		logger.error("deleteToolVariant falhou", error);
+		return { ok: false, error: "Não foi possível excluir a variante" };
 	}
 }
