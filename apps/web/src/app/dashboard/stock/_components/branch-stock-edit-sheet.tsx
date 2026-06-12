@@ -10,7 +10,7 @@ import {
 } from "@emach/ui/components/sheet";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
-import { ArrowRight, ExternalLink } from "lucide-react";
+import { ArrowRight, ExternalLink, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -34,27 +34,9 @@ import {
 	type StockMovementReasonUi,
 	stockAdjustmentUiSchema,
 } from "./stock-adjustment-schema";
+import { type StockStatus, stockStatus } from "./stock-status";
 
 // ─── Tipos e constantes ────────────────────────────────────────────────────
-
-type StockStatus = "critical" | "none" | "ok" | "reorder";
-
-function resolveStatus(row: BranchStockRow): StockStatus {
-	if (row.minQty > 0 && row.quantity <= row.minQty) {
-		return "critical";
-	}
-	if (
-		row.reorderPoint > 0 &&
-		row.quantity > row.minQty &&
-		row.quantity <= row.reorderPoint
-	) {
-		return "reorder";
-	}
-	if (row.minQty === 0 && row.reorderPoint === 0) {
-		return "none";
-	}
-	return "ok";
-}
 
 const STATUS_LABEL: Record<StockStatus, string | null> = {
 	critical: "Crítico",
@@ -242,6 +224,7 @@ interface BranchStockEditSheetProps {
 	branchId: string;
 	branchName: string;
 	canMutate: boolean;
+	lead?: "branch" | "tool";
 	onClose: () => void;
 	row: BranchStockRow | null;
 }
@@ -251,6 +234,7 @@ export function BranchStockEditSheet({
 	branchId,
 	branchName,
 	canMutate,
+	lead = "tool",
 	onClose,
 	row,
 }: BranchStockEditSheetProps) {
@@ -353,8 +337,23 @@ export function BranchStockEditSheet({
 		return null;
 	}
 
-	const status = resolveStatus(row);
+	const status = stockStatus({
+		quantity: row.quantity,
+		minQty: row.minQty,
+		reorderPoint: row.reorderPoint,
+	});
 	const statusLabel = STATUS_LABEL[status];
+
+	const fallbackAvatar =
+		lead === "branch" ? (
+			<div className="flex size-full items-center justify-center text-muted-foreground">
+				<Wrench aria-hidden className="size-6" />
+			</div>
+		) : (
+			<div className="flex size-full items-center justify-center font-semibold text-[18px] text-muted-foreground">
+				{row.toolName.slice(0, 2).toUpperCase()}
+			</div>
+		);
 	let quantityColor = "text-foreground";
 	if (row.quantity === 0 || status === "critical") {
 		quantityColor = "text-destructive";
@@ -389,16 +388,14 @@ export function BranchStockEditSheet({
 									src={row.imageUrl}
 								/>
 							) : (
-								<div className="flex size-full items-center justify-center font-semibold text-[18px] text-muted-foreground">
-									{row.toolName.slice(0, 2).toUpperCase()}
-								</div>
+								fallbackAvatar
 							)}
 						</div>
 
 						<div className="min-w-0 flex-1">
 							<div className="flex flex-wrap items-start gap-2">
 								<SheetTitle className="text-[15px] leading-snug">
-									{row.toolName}
+									{lead === "branch" ? branchName : row.toolName}
 								</SheetTitle>
 								{statusLabel && (
 									<span
@@ -409,20 +406,29 @@ export function BranchStockEditSheet({
 								)}
 							</div>
 							<p className="mt-0.5 text-muted-foreground text-xs">
-								SKU {row.sku}
-								{row.voltage ? ` · ${row.voltage}` : ""}
-								{" · "}
-								{branchName}
+								{lead === "branch" ? (
+									<>
+										{row.toolName} · SKU {row.sku}
+										{row.voltage ? ` · ${row.voltage}` : ""}
+									</>
+								) : (
+									<>
+										SKU {row.sku}
+										{row.voltage ? ` · ${row.voltage}` : ""} · {branchName}
+									</>
+								)}
 							</p>
-							<a
-								className="mt-2 inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground"
-								href={`/dashboard/tools/${row.toolId}`}
-								rel="noopener noreferrer"
-								target="_blank"
-							>
-								<ExternalLink aria-hidden className="size-3" />
-								Editar ficha da ferramenta
-							</a>
+							{lead === "tool" && (
+								<a
+									className="mt-2 inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground"
+									href={`/dashboard/tools/${row.toolId}`}
+									rel="noopener noreferrer"
+									target="_blank"
+								>
+									<ExternalLink aria-hidden className="size-3" />
+									Editar ficha da ferramenta
+								</a>
+							)}
 						</div>
 					</div>
 				</SheetHeader>
