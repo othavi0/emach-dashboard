@@ -6,7 +6,7 @@ Drizzle 0.45 + node-postgres + Supabase Postgres. Regras gerais na raiz.
 
 Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte de verdade**.
 
-- **Aplicar no banco:** `bun db:sync` (= `drizzle-kit push` + `db:apply-triggers`). Rodar após editar `src/schema/*.ts` e após todo `git checkout` — banco compartilhado espelha a branch em checkout.
+- **Aplicar no banco:** `bun db:sync` (= `drizzle-kit push` + `db:apply-sql`). Rodar após editar `src/schema/*.ts` e após todo `git checkout` — banco compartilhado espelha a branch em checkout.
 - `bun db:push` sozinho aplica só schema Drizzle (sem triggers/indexes). Prefira `db:sync`.
 - `drizzle-kit push` pede confirmação TTY em mudanças destrutivas — falha em CI/scripted. Em dev, rodar interativo.
 - **Gotcha unique constraint composta:** declarar colunas do `.on()` na **mesma ordem** que aparecem na definição da tabela — drizzle-kit introspecta colunas de constraint em ordem de `attnum` e gera diff fantasma se divergir.
@@ -15,11 +15,13 @@ Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte 
 - **Drops:** PR explícito + comunicar ao app ecomerce (DB compartilhada).
 - Quando produção entrar no horizonte: gerar baseline `0000` limpo a partir do schema atual e versionar a partir daí.
 
-**Drop & recreate em dev** (quando renames ambíguos quebram push sem TTY): `DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres, public;` via pg client, depois `bunx drizzle-kit push && bun db:apply-triggers && bun db:seed-demo`. Só em dev.
+**Drop & recreate em dev** (quando renames ambíguos quebram push sem TTY): `DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres, public;` via pg client, depois `bunx drizzle-kit push && bun db:apply-sql && bun db:seed-demo`. Só em dev.
 
 ## Triggers PL/pgSQL
 
-`src/sql/triggers.sql` contém triggers que Drizzle Kit **não consegue gerar** (anti-ciclo de categoria com path/depth materializados, idempotência de débito de venda em `stock_movement`). Incluídos no `bun db:sync`; isolado via `bun db:apply-triggers` (idempotente).
+`src/sql/triggers.sql` contém triggers que Drizzle Kit **não consegue gerar** (anti-ciclo de categoria com path/depth materializados, idempotência de débito de venda em `stock_movement`). Incluídos no `bun db:sync`; aplicados via `bun db:apply-sql` (idempotente), que roda `triggers.sql` + `rls.sql` em ordem.
+
+`src/sql/rls.sql` é o **RLS deny-all canônico** das 13 tabelas `public` expostas via PostgREST (ADR-0014). `ENABLE ROW LEVEL SECURITY` sem policies — só fecha a porta REST pra `anon`/`authenticated`; acesso server-side (Drizzle, role `postgres` BYPASSRLS) é intocado. Idempotente.
 
 Índices de cursor-based pagination e o partial unique `stock_movement_sale_idempotency` vivem no schema Drizzle (declarados nas tabelas) — `drizzle-kit push` os mantém.
 
@@ -97,9 +99,9 @@ Feed multi-fonte que monta os SELECTs condicionalmente (filtro de tipo) e junta 
 
 ## Schema compartilhado com app ecomerce (ADR-0009)
 
-Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `consentLog`. Cópia do schema TS no repo `emach-ecommerce` é sincronizada **automaticamente por CI** — workflow `sync-db-schema.yml` abre PR no ecommerce sempre que `packages/db/src/{schema,queries,sql/triggers.sql}` muda na `main` (direção unidirecional dashboard → ecommerce).
+Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `consentLog`. Cópia do schema TS no repo `emach-ecommerce` é sincronizada **automaticamente por CI** — workflow `sync-db-schema.yml` abre PR no ecommerce sempre que `packages/db/src/{schema,queries,sql/triggers.sql,sql/rls.sql}` muda na `main` (direção unidirecional dashboard → ecommerce).
 
-**⚠️ Superfície de sync = só `schema/`, `queries/`, `sql/triggers.sql`.** Um arquivo dentro dessa superfície **não pode importar de fora dela** (ex: `src/` raiz) — o ecommerce recebe a cópia mas não o irmão não-sincronizado e o `check-types` lá quebra com `TS2307 Cannot find module`. Incidente #88: `queries/dashboard.ts` importava `../order-status-groups` (raiz de `src/`). Helpers compartilhados por queries vivem **em `queries/`**.
+**⚠️ Superfície de sync = só `schema/`, `queries/`, `sql/triggers.sql`, `sql/rls.sql`.** Um arquivo dentro dessa superfície **não pode importar de fora dela** (ex: `src/` raiz) — o ecommerce recebe a cópia mas não o irmão não-sincronizado e o `check-types` lá quebra com `TS2307 Cannot find module`. Incidente #88: `queries/dashboard.ts` importava `../order-status-groups` (raiz de `src/`). Helpers compartilhados por queries vivem **em `queries/`**.
 
 **Atenção pós-refactor de variants:** `stock_level`, `stock_movement`, `order_item` referenciam `tool_variant.id` (não mais `tool.id`). Ecomerce envia `variantId` em pedidos e movimentos. `tool_variant` traz SKU vendável; `tool` é o produto-pai (info comum).
 

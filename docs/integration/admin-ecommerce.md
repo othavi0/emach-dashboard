@@ -300,8 +300,8 @@ Quando qualquer arquivo em `packages/db/src/schema/` for alterado:
 1. Editar o schema no dashboard e fazer merge na `main` — o workflow dispara sozinho e abre um PR no `emach-ecommerce`.
 2. Revisar e mergear o PR de sync no e-commerce; o CI dele roda no PR e pega quebra de código local contra o schema novo.
 3. Aplicar o schema em **ambos** os lados (o banco é o mesmo, mas cada repo precisa estar em sync com seu schema em memória). **O comando difere por repositório:**
-   - **Dashboard:** `bun db:sync` (= `drizzle-kit push` + `db:apply-triggers`).
-   - **Ecommerce:** `bun db:push` + `bun --cwd packages/db db:apply-triggers` — **não há `db:sync` lá** (índices são partial-unique declarados no schema TS, sem `_indexes.sql`). Rodar após mergear o PR de sync.
+   - **Dashboard:** `bun db:sync` (= `drizzle-kit push` + `db:apply-sql`, que roda `triggers.sql` + `rls.sql`).
+   - **Ecommerce:** `bun db:push` + `bun --cwd packages/db db:apply-triggers` — **não há `db:sync` lá** (índices são partial-unique declarados no schema TS, sem `_indexes.sql`). Rodar após mergear o PR de sync. (O `rls.sql` sincronizado é deny-all idempotente e o RLS já está no banco compartilhado; aplicá-lo pelo ecommerce é opcional — follow-up de simetria lá.)
 4. Para drops ou renames de colunas: coordenar o deploy — um app pode gravar em coluna que o outro ainda não viu ou já não vê.
 
 A fonte de verdade é sempre o dashboard (este repositório). O e-commerce **nunca altera o schema** de forma unilateral — mudanças começam aqui e propagam. Ver ADR-0006 e ADR-0009.
