@@ -71,8 +71,11 @@ export default async function ToolDetailPage({
 			content:
 				current === "variantes" ? (
 					<VariantsTab
+						canDelete={canDelete}
 						canMutate={canMutate}
+						orderedVariantIds={detail.orderedVariantIds}
 						toolId={detail.tool.id}
+						toolName={detail.tool.name}
 						variants={detail.variants}
 					/>
 				) : null,
@@ -127,11 +130,9 @@ export default async function ToolDetailPage({
 			<ToolDetailHeader
 				actions={
 					<ToolDetailActions
-						canDelete={canDelete}
 						canMutate={canMutate}
 						tab={current}
 						toolId={detail.tool.id}
-						toolName={detail.tool.name}
 					/>
 				}
 				detail={detail}
