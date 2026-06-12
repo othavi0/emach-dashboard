@@ -147,6 +147,7 @@ describe("promotion-schema — datas e código", () => {
 		const r = promotionSchema.safeParse({ ...validBase, discountValue: 0 });
 		expect(r.success).toBe(false);
 		if (!r.success) {
+			// biome-ignore lint/performance/useTopLevelRegex: regex inline em teste unitário, não em hot path
 			expect(r.error.issues[0]?.message).toMatch(/maior que zero/i);
 		}
 	});

@@ -7,12 +7,15 @@ describe("featuredConflictMessage", () => {
 		const msg = featuredConflictMessage({
 			endsAt: new Date("2026-08-20T12:00:00Z"),
 		});
+		// biome-ignore lint/performance/useTopLevelRegex: regex inline em teste unitário, não em hot path
 		expect(msg).toMatch(/20\/08\/2026/);
+		// biome-ignore lint/performance/useTopLevelRegex: regex inline em teste unitário, não em hot path
 		expect(msg).toMatch(/remova-o ou aguarde/i);
 	});
 
 	it("sem fim → mensagem de sem prazo", () => {
 		const msg = featuredConflictMessage({ endsAt: null });
+		// biome-ignore lint/performance/useTopLevelRegex: regex inline em teste unitário, não em hot path
 		expect(msg).toMatch(/sem prazo de fim/i);
 	});
 });
