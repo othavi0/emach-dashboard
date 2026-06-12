@@ -135,7 +135,7 @@ export function EstoqueTab({
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="overflow-x-auto rounded-md border border-border">
+			<div className="overflow-x-auto rounded-lg border border-border">
 				<Table>
 					<TableHeader>
 						<TableRow>
