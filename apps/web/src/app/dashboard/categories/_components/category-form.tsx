@@ -9,7 +9,6 @@ import {
 	SelectGroup,
 	SelectItem,
 	SelectTrigger,
-	SelectValue,
 } from "@emach/ui/components/select";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
@@ -20,11 +19,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ZodError } from "zod";
 
-import {
-	FormErrorPanel,
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
+import { FormErrorPanel, type FormIssue } from "@/components/form-error-panel";
 
 import { slugifyLabel } from "../_lib/attribute-schema";
 import { breadcrumbFromPath, buildNameBySlug } from "../_lib/category-tree";
@@ -82,29 +77,28 @@ function zodErrorsToFieldMap(
 	return map;
 }
 
+// Build the panel issue list from a ZodError, remapping slug errors
+// (slug is hidden and derived from name) to a user-facing "Nome" message.
+// Iterates error.issues directly to avoid positional coupling with zodIssuesToFormIssues.
 function buildFormIssues(error: ZodError<CategoryInput>): FormIssue[] {
-	const base = zodIssuesToFormIssues(error, FIELD_LABELS);
-	// Remap slug issues: slug is hidden/derived from name, so surface the error
-	// as "O nome não gera um identificador válido" rather than the raw slug message.
-	let slugRemapped = false;
-	return base
-		.map((issue, i) => {
-			const originalIssue = error.issues[i];
-			if (originalIssue && originalIssue.path[0] === "slug" && !slugRemapped) {
-				slugRemapped = true;
-				return {
-					path: issue.path,
+	let slugSeen = false;
+	return error.issues.flatMap((issue) => {
+		if (issue.path[0] === "slug") {
+			if (slugSeen) {
+				return [];
+			}
+			slugSeen = true;
+			return [
+				{
+					path: "Nome",
 					message:
 						"O nome não gera um identificador válido — use letras ou números.",
-				};
-			}
-			// Suppress duplicate slug issues beyond first
-			if (originalIssue && originalIssue.path[0] === "slug" && slugRemapped) {
-				return null;
-			}
-			return issue;
-		})
-		.filter((issue): issue is FormIssue => issue !== null);
+				},
+			];
+		}
+		const head = String(issue.path[0]);
+		return [{ path: FIELD_LABELS[head] ?? head, message: issue.message }];
+	});
 }
 
 export function CategoryForm({
@@ -259,20 +253,11 @@ export function CategoryForm({
 						value={parentId}
 					>
 						<SelectTrigger id="category-parent">
-							<SelectValue placeholder="Nenhuma (raiz)">
-								{(value) => {
-									if (value === NO_PARENT || value == null || value === "") {
-										return "Nenhuma (raiz)";
-									}
-									const parent = categories.find((c) => c.id === value);
-									if (!parent) {
-										return "Nenhuma (raiz)";
-									}
-									return breadcrumbFromPath(parent.path, nameBySlug).join(
-										" › "
-									);
-								}}
-							</SelectValue>
+							{selectedParent ? (
+								breadcrumbFromPath(selectedParent.path, nameBySlug).join(" › ")
+							) : (
+								<span className="text-muted-foreground">Nenhuma (raiz)</span>
+							)}
 						</SelectTrigger>
 						<SelectContent>
 							<SelectGroup>
