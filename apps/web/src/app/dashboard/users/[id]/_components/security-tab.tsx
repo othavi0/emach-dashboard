@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { DestructiveActionDialog } from "../../_components/destructive-action-dialog";
 import {
@@ -48,9 +48,9 @@ export function SecurityTab({ user, canDelete }: Props) {
 		startTransition(async () => {
 			const res = await triggerPasswordReset({ userId: user.id });
 			if (res.ok) {
-				toast.success("E-mail de reset enviado");
+				notify.success("E-mail de reset enviado");
 			} else {
-				toast.error(res.error);
+				notify.error(res.error);
 			}
 		});
 
@@ -58,9 +58,9 @@ export function SecurityTab({ user, canDelete }: Props) {
 		startTransition(async () => {
 			const res = await forceLogoutAllSessions({ userId: user.id });
 			if (res.ok) {
-				toast.success("Todas as sessões foram revogadas");
+				notify.success("Todas as sessões foram revogadas");
 			} else {
-				toast.error(res.error);
+				notify.error(res.error);
 			}
 		});
 
@@ -68,10 +68,10 @@ export function SecurityTab({ user, canDelete }: Props) {
 		startDeleteTransition(async () => {
 			const res = await deleteUser({ userId: user.id, reason });
 			if (res.ok) {
-				toast.success("Usuário excluído");
+				notify.success("Usuário excluído");
 				router.push("/dashboard/users");
 			} else {
-				toast.error(res.error);
+				notify.error(res.error);
 			}
 		});
 	};

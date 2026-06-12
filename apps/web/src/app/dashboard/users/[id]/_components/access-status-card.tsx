@@ -8,7 +8,7 @@ import {
 	CardTitle,
 } from "@emach/ui/components/card";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { DestructiveActionDialog } from "../../_components/destructive-action-dialog";
 import { StatusBadge } from "../../_components/status-badge";
 import { reactivateUser, suspendUser } from "../../actions";
@@ -33,10 +33,10 @@ export function AccessStatusCard({ user }: Props) {
 		startTransition(async () => {
 			const res = await suspendUser({ userId: user.id, reason });
 			if (res.ok) {
-				toast.success("Usuário suspenso");
+				notify.success("Usuário suspenso");
 				closeDialog();
 			} else {
-				toast.error(res.error);
+				notify.error(res.error);
 			}
 		});
 	};
@@ -45,10 +45,10 @@ export function AccessStatusCard({ user }: Props) {
 		startTransition(async () => {
 			const res = await reactivateUser({ userId: user.id });
 			if (res.ok) {
-				toast.success("Usuário reativado");
+				notify.success("Usuário reativado");
 				closeDialog();
 			} else {
-				toast.error(res.error);
+				notify.error(res.error);
 			}
 		});
 	};

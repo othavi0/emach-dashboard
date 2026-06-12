@@ -5,9 +5,8 @@ import { RotateCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { toast } from "sonner";
-
 import type { PendingRow } from "@/components/pending-panel";
+import { notify } from "@/lib/notify";
 
 import { resendInvite, revokeInvite } from "../actions";
 
@@ -23,9 +22,9 @@ export function InvitePendingList({ initial }: Props) {
 		startTransition(async () => {
 			const res = await resendInvite({ userId: id });
 			if (res.ok) {
-				toast.success("Convite reenviado");
+				notify.success("Convite reenviado");
 			} else {
-				toast.error(res.error);
+				notify.error(res.error);
 			}
 		});
 	}
@@ -34,10 +33,10 @@ export function InvitePendingList({ initial }: Props) {
 		startTransition(async () => {
 			const res = await revokeInvite({ userId: id });
 			if (res.ok) {
-				toast.success("Convite revogado");
+				notify.success("Convite revogado");
 				router.refresh();
 			} else {
-				toast.error(res.error);
+				notify.error(res.error);
 			}
 		});
 	}
