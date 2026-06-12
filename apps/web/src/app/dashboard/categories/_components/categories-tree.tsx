@@ -232,9 +232,12 @@ function TreeRow({
 				>
 					{node.name}
 				</Link>
-				<span className="text-muted-foreground text-xs tabular-nums">
-					{node.productCount} produto{node.productCount === 1 ? "" : "s"}
-				</span>
+				<CountLabel
+					direct={node.productCount}
+					hasChildren={hasChildren}
+					isOpen={isOpen}
+					rollup={node.rollupCount}
+				/>
 				<span className="flex-1" />
 				<Badge variant={node.isActive ? "success" : "outline"}>
 					{node.isActive ? "Ativa" : "Inativa"}
@@ -270,5 +273,46 @@ function TreeRow({
 				/>
 			)}
 		</div>
+	);
+}
+
+function CountLabel({
+	direct,
+	hasChildren,
+	isOpen,
+	rollup,
+}: {
+	direct: number;
+	hasChildren: boolean;
+	isOpen: boolean;
+	rollup: number;
+}) {
+	// Folha (ou rollup == direto): só o número direto.
+	if (!hasChildren || rollup === direct) {
+		return (
+			<span className="text-muted-foreground text-xs tabular-nums">
+				{direct} produto{direct === 1 ? "" : "s"}
+			</span>
+		);
+	}
+	// Recolhido com filhas: total (rollup) + rótulo.
+	if (!isOpen) {
+		return (
+			<span className="text-muted-foreground text-xs tabular-nums">
+				{rollup} produto{rollup === 1 ? "" : "s"}
+				<span className="ml-1 text-muted-foreground/70">
+					· com subcategorias
+				</span>
+			</span>
+		);
+	}
+	// Expandido com filhas: direto + rótulo.
+	return (
+		<span className="text-muted-foreground text-xs tabular-nums">
+			{direct}{" "}
+			<span className="text-muted-foreground/70">
+				direto{direct === 1 ? "" : "s"}
+			</span>
+		</span>
 	);
 }
