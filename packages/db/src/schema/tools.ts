@@ -135,6 +135,7 @@ export const toolVariant = pgTable(
 		priceAmount: numeric("price_amount", { precision: 10, scale: 2 }).notNull(),
 		costAmount: numeric("cost_amount", { precision: 10, scale: 2 }),
 		isDefault: boolean("is_default").notNull().default(false),
+		visibleOnSite: boolean("visible_on_site").notNull().default(true),
 		sortOrder: integer("sort_order").notNull().default(0),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()

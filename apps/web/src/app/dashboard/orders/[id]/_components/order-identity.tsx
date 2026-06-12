@@ -4,7 +4,6 @@ import { getInitials } from "@/lib/format/name";
 import { OrderStatusBadge } from "../../_components/order-status-badge";
 import { ShippingUnverifiedBadge } from "../../_components/shipping-unverified-badge";
 import type { OrderDetail } from "../../data";
-import { PrintMenu } from "./print-menu";
 
 interface OrderIdentityProps {
 	order: OrderDetail;
@@ -13,7 +12,6 @@ interface OrderIdentityProps {
 export function OrderIdentity({ order }: OrderIdentityProps) {
 	return (
 		<EntityIdentityHeader
-			actions={<PrintMenu order={order} />}
 			avatarFallback={getInitials(order.clientName)}
 			badges={
 				<>

@@ -13,6 +13,12 @@ import {
 } from "@emach/ui/components/alert-dialog";
 import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@emach/ui/components/tooltip";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -21,11 +27,18 @@ import { notify } from "@/lib/notify";
 import { deleteTool } from "../actions";
 
 interface DeleteToolDialogProps {
+	disabledReason?: string | null;
 	toolId: string;
 	toolName: string;
+	triggerLabel?: string;
 }
 
-export function DeleteToolDialog({ toolId, toolName }: DeleteToolDialogProps) {
+export function DeleteToolDialog({
+	toolId,
+	toolName,
+	triggerLabel,
+	disabledReason,
+}: DeleteToolDialogProps) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
@@ -48,13 +61,45 @@ export function DeleteToolDialog({ toolId, toolName }: DeleteToolDialogProps) {
 		});
 	}
 
+	const triggerContent = triggerLabel ? (
+		<>
+			<Trash2 aria-hidden className="mr-1.5 size-3.5" />
+			{triggerLabel}
+		</>
+	) : (
+		<Trash2 aria-hidden className="size-3.5" />
+	);
+
+	if (disabledReason) {
+		return (
+			<TooltipProvider delay={200}>
+				<Tooltip>
+					<TooltipTrigger
+						render={
+							<Button disabled size="sm" variant="outline">
+								{triggerContent}
+							</Button>
+						}
+					/>
+					<TooltipContent>{disabledReason}</TooltipContent>
+				</Tooltip>
+			</TooltipProvider>
+		);
+	}
+
+	const triggerButton = triggerLabel ? (
+		<Button size="sm" variant="outline" />
+	) : (
+		<Button size="icon-sm" variant="destructive" />
+	);
+
 	return (
 		<AlertDialog onOpenChange={setOpen} open={open}>
 			<AlertDialogTrigger
 				aria-label={`Remover ferramenta ${toolName}`}
-				render={<Button size="icon-sm" variant="destructive" />}
+				render={triggerButton}
 			>
-				<Trash2 aria-hidden className="size-3.5" />
+				{triggerContent}
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
