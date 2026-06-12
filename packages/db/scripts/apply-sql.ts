@@ -6,21 +6,24 @@ import { Client } from "pg";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 
-async function main() {
-	const sqlPath = resolve(scriptDir, "../src/sql/triggers.sql");
-	const sql = readFileSync(sqlPath, "utf8");
+// SQL canônico aplicado após o push do schema, em ordem. Todos idempotentes.
+const SQL_FILES = ["triggers.sql", "rls.sql"];
 
+async function main() {
 	const client = new Client({ connectionString: env.DATABASE_URL });
 	await client.connect();
 	try {
-		await client.query(sql);
-		console.log("[apply-triggers] OK");
+		for (const file of SQL_FILES) {
+			const sql = readFileSync(resolve(scriptDir, "../src/sql", file), "utf8");
+			await client.query(sql);
+			console.log(`[apply-sql] ${file} OK`);
+		}
 	} finally {
 		await client.end();
 	}
 }
 
 main().catch((err) => {
-	console.error("[apply-triggers] FAIL", err);
+	console.error("[apply-sql] FAIL", err);
 	process.exit(1);
 });

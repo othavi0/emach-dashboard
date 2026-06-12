@@ -11,9 +11,9 @@
   },
   "scripts": {
     "db:push": "drizzle-kit push",
-    "db:sync": "drizzle-kit push && bun run db:apply-triggers",
+    "db:sync": "drizzle-kit push && bun run db:apply-sql",
     "db:studio": "drizzle-kit studio",
-    "db:apply-triggers": "bun run scripts/apply-triggers.ts",
+    "db:apply-sql": "bun run scripts/apply-sql.ts",
     "db:seed-demo": "bun run scripts/seed-demo.ts",
     "db:reset-demo": "bun run scripts/reset-demo.ts",
     "check-types": "tsc --noEmit",
