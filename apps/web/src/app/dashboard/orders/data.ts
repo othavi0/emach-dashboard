@@ -35,6 +35,7 @@ export interface OrderListFilters {
 	q?: string;
 	tab?: string;
 	to?: string;
+	unverifiedShipping?: boolean;
 }
 
 export interface OrderListItem {
@@ -44,6 +45,7 @@ export interface OrderListItem {
 	id: string;
 	itemsCount: number;
 	number: string;
+	shippingUnverified: boolean;
 	status: OrderStatus;
 	totalAmount: number;
 }
@@ -188,6 +190,8 @@ export interface OrderDetail {
 	shippingAmount: number;
 	shippingMethod: string | null;
 	shippingTrackingCode: string | null;
+	/** true = frete não revalidado no checkout (fail-open ecommerce); staff revisa. */
+	shippingUnverified: boolean;
 	status: OrderStatus;
 	subtotalAmount: number;
 	totalAmount: number;
@@ -258,6 +262,7 @@ export interface OrdersPageFiltersInput {
 	q?: string;
 	tab?: string;
 	to?: string;
+	unverifiedShipping?: boolean;
 }
 
 export async function fetchOrdersPage({
@@ -303,6 +308,9 @@ export async function fetchOrdersPage({
 	if (filters.branchId) {
 		conditions.push(sql`o.branch_id = ${filters.branchId}`);
 	}
+	if (filters.unverifiedShipping) {
+		conditions.push(sql`o.shipping_unverified = true`);
+	}
 	if (from) {
 		conditions.push(sql`o.created_at >= ${from}::date`);
 	}
@@ -326,6 +334,7 @@ export async function fetchOrdersPage({
 		id: string;
 		items_count: number;
 		number: string;
+		shipping_unverified: boolean;
 		status: OrderStatus;
 		total_amount: string;
 	}>(sql`
@@ -335,6 +344,7 @@ export async function fetchOrdersPage({
 			o.status,
 			o.total_amount,
 			o.created_at,
+			o.shipping_unverified,
 			c.name AS client_name,
 			b.name AS branch_name,
 			(SELECT COUNT(*) FROM order_item oi WHERE oi.order_id = o.id)::int AS items_count
@@ -355,6 +365,7 @@ export async function fetchOrdersPage({
 		createdAt: toDate(row.created_at),
 		clientName: row.client_name,
 		branchName: row.branch_name,
+		shippingUnverified: row.shipping_unverified,
 	}));
 
 	const hasMore = mapped.length > BATCH_SIZE;
@@ -412,6 +423,9 @@ export async function listOrders(
 	if (filters.branchId) {
 		conditions.push(sql`o.branch_id = ${filters.branchId}`);
 	}
+	if (filters.unverifiedShipping) {
+		conditions.push(sql`o.shipping_unverified = true`);
+	}
 	if (from) {
 		conditions.push(sql`o.created_at >= ${from}::date`);
 	}
@@ -430,6 +444,7 @@ export async function listOrders(
 		id: string;
 		items_count: number;
 		number: string;
+		shipping_unverified: boolean;
 		status: OrderStatus;
 		total_amount: string;
 		total_count: number;
@@ -440,6 +455,7 @@ export async function listOrders(
 			o.status,
 			o.total_amount,
 			o.created_at,
+			o.shipping_unverified,
 			c.name AS client_name,
 			b.name AS branch_name,
 			(SELECT COUNT(*) FROM order_item oi WHERE oi.order_id = o.id)::int AS items_count,
@@ -466,6 +482,7 @@ export async function listOrders(
 			createdAt: toDate(row.created_at),
 			clientName: row.client_name,
 			branchName: row.branch_name,
+			shippingUnverified: row.shipping_unverified,
 		})),
 		page,
 		total,
@@ -661,6 +678,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				shipping_amount: string;
 				shipping_method: string | null;
 				shipping_tracking_code: string | null;
+				shipping_unverified: boolean;
 				shipped_at: Date | null;
 				status: OrderStatus;
 				subtotal_amount: string;
@@ -683,6 +701,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				o.shipping_address,
 				o.shipping_method,
 				o.shipping_tracking_code,
+				o.shipping_unverified,
 				o.created_at,
 				o.paid_at,
 				o.preparing_at,
@@ -835,6 +854,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		shippingAddress: row.shipping_address ?? {},
 		shippingMethod: row.shipping_method,
 		shippingTrackingCode: row.shipping_tracking_code,
+		shippingUnverified: row.shipping_unverified,
 		createdAt: toDate(row.created_at),
 		paidAt: toDate(row.paid_at),
 		preparingAt: toDate(row.preparing_at),

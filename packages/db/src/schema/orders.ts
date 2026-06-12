@@ -60,6 +60,7 @@ export type RefundStatus = (typeof refundStatusEnum.enumValues)[number];
 export const orderEventTypeEnum = pgEnum("order_event_type", [
 	"tracking_set",
 	"branch_assigned",
+	"shipping_reviewed",
 ]);
 export type OrderEventType = (typeof orderEventTypeEnum.enumValues)[number];
 
@@ -125,6 +126,11 @@ export const order = pgTable(
 		shippingAddress: jsonb("shipping_address").notNull(),
 		shippingMethod: text("shipping_method"),
 		shippingTrackingCode: text("shipping_tracking_code"),
+		// true = frete não pôde ser revalidado server-side no checkout (API de
+		// frete indisponível); staff revisa antes de faturar. Escrito pelo
+		// ecommerce no fail-open (issue #143 / ecommerce#97); o dashboard limpa
+		// via markShippingReviewed.
+		shippingUnverified: boolean("shipping_unverified").notNull().default(false),
 		notes: text("notes"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()

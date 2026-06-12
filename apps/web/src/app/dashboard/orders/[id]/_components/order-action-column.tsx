@@ -20,6 +20,7 @@ import {
 } from "@emach/ui/components/select";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
+import { TriangleAlertIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ import { StockReturnDialog } from "../../_components/stock-return-dialog";
 import {
 	addOrderNote,
 	assignBranch,
+	markShippingReviewed,
 	updateOrderStatus,
 	updateTrackingCode,
 } from "../../actions";
@@ -71,6 +73,16 @@ async function runTrackingUpdate(
 		return;
 	}
 	toast.success("Rastreio atualizado");
+	refresh();
+}
+
+async function runMarkShippingReviewed(orderId: string, refresh: Refresh) {
+	const result = await markShippingReviewed({ orderId });
+	if (!result.ok) {
+		toast.error(result.error);
+		return;
+	}
+	toast.success("Frete marcado como revisado");
 	refresh();
 }
 
@@ -345,6 +357,10 @@ export function OrderActionColumn({
 		);
 	}
 
+	function handleMarkShippingReviewed() {
+		startTransition(() => runMarkShippingReviewed(order.id, router.refresh));
+	}
+
 	function handleAddNote() {
 		if (!noteBody.trim()) {
 			toast.error("Escreva uma nota");
@@ -377,6 +393,38 @@ export function OrderActionColumn({
 
 	return (
 		<div className="flex flex-col gap-4">
+			{/* ── Frete a revisar (fail-open do checkout) ── */}
+			{order.shippingUnverified && canUpdateStatus && (
+				<Card className="border-warning/40 bg-warning/5">
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2 text-warning">
+							<TriangleAlertIcon aria-hidden="true" className="size-4" />
+							Frete não verificado
+						</CardTitle>
+						<CardDescription>
+							O frete deste pedido não pôde ser revalidado no checkout. Confira
+							o valor antes de faturar e marque como revisado.
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<Button
+							disabled={isPending}
+							onClick={handleMarkShippingReviewed}
+							size="sm"
+							variant="warning"
+						>
+							{isPending ? (
+								<>
+									<Spinner /> Salvando…
+								</>
+							) : (
+								"Marcar frete como revisado"
+							)}
+						</Button>
+					</CardContent>
+				</Card>
+			)}
+
 			{/* ── Progresso ── */}
 			<OrderProgress order={order} />
 

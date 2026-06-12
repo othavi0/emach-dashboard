@@ -151,6 +151,18 @@ function normalizeEvents(items: OrderEventItem[]): FeedItem[] {
 			};
 		}
 
+		if (e.eventType === "shipping_reviewed") {
+			return {
+				category: "status" as FeedCategory,
+				createdAt: e.createdAt,
+				iconKey: "check" as StatusIconKey,
+				id: `events-${e.id}`,
+				subtitle: e.actorLabel,
+				title: "Frete revisado",
+				tone: "success" as Tone,
+			};
+		}
+
 		// branch_assigned (and any other future types)
 		const branchLabel = m?.branchName ?? m?.branchId ?? "";
 		return {
