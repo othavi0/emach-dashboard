@@ -19,7 +19,7 @@ import {
 } from "@emach/ui/components/table";
 import { CheckCircle2 } from "lucide-react";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { VOLTAGE_OPTIONS } from "../../_components/tool-schema";
 import { setDefaultToolVariant, updateToolVariant } from "../../actions";
 import type { ToolDetailVariant } from "../_lib/tool-detail-data";
@@ -126,11 +126,11 @@ function EditableRow({ variant, toolId }: EditableRowProps) {
 				costAmount: costAmountValue,
 			});
 			if (result.ok) {
-				toast.success("Variante atualizada");
+				notify.success("Variante atualizada");
 				setSavedTick(true);
 				setTimeout(() => setSavedTick(false), 1800);
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}
@@ -145,9 +145,9 @@ function EditableRow({ variant, toolId }: EditableRowProps) {
 				variantId: variant.id,
 			});
 			if (result.ok) {
-				toast.success("Variante padrão atualizada");
+				notify.success("Variante padrão atualizada");
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}

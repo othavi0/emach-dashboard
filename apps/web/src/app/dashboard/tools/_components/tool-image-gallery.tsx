@@ -4,9 +4,8 @@ import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
 import { ArrowDown, ArrowUp, Star, Upload, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import { toast } from "sonner";
-
 import { compressImageForUpload } from "@/lib/image-compression";
+import { notify } from "@/lib/notify";
 
 import { deleteToolImage, uploadToolImage } from "./image-actions";
 
@@ -52,13 +51,13 @@ export function ToolImageGallery({
 			const slotsLeft = max - sorted.length;
 
 			if (slotsLeft <= 0) {
-				toast.error(`Máximo de ${max} imagens atingido`);
+				notify.error(`Máximo de ${max} imagens atingido`);
 				return;
 			}
 
 			const selected = fileArray.slice(0, slotsLeft);
 			if (fileArray.length > slotsLeft) {
-				toast.info(
+				notify.info(
 					`Apenas ${slotsLeft} de ${fileArray.length} arquivos serão enviados (limite ${max})`
 				);
 			}
@@ -71,11 +70,11 @@ export function ToolImageGallery({
 				for (const file of selected) {
 					index += 1;
 					if (!ALLOWED_TYPES.has(file.type)) {
-						toast.error(`${file.name}: formato inválido (JPG/PNG/WEBP)`);
+						notify.error(`${file.name}: formato inválido (JPG/PNG/WEBP)`);
 						continue;
 					}
 					if (file.size > MAX_RAW_INPUT_BYTES) {
-						toast.error(`${file.name}: arquivo bruto excede 15MB`);
+						notify.error(`${file.name}: arquivo bruto excede 15MB`);
 						continue;
 					}
 
@@ -84,12 +83,12 @@ export function ToolImageGallery({
 					try {
 						compressed = await compressImageForUpload(file);
 					} catch {
-						toast.error(`${file.name}: falha ao processar imagem`);
+						notify.error(`${file.name}: falha ao processar imagem`);
 						continue;
 					}
 
 					if (compressed.size > MAX_COMPRESSED_BYTES) {
-						toast.error(`${file.name}: imagem ainda grande após compressão`);
+						notify.error(`${file.name}: imagem ainda grande após compressão`);
 						continue;
 					}
 
@@ -102,14 +101,14 @@ export function ToolImageGallery({
 					} catch (err) {
 						const message =
 							err instanceof Error ? err.message : "erro desconhecido";
-						toast.error(`${file.name}: ${message}`);
+						notify.error(`${file.name}: ${message}`);
 					}
 				}
 
 				if (uploaded.length > 0) {
 					const merged = reindex([...sorted, ...uploaded]);
 					onChange(merged);
-					toast.success(
+					notify.success(
 						uploaded.length === 1
 							? "Imagem enviada"
 							: `${uploaded.length} imagens enviadas`
@@ -193,7 +192,7 @@ export function ToolImageGallery({
 		try {
 			await deleteToolImage(target.url);
 		} catch {
-			toast.error("Não foi possível remover a imagem do storage.");
+			notify.error("Não foi possível remover a imagem do storage.");
 		}
 	}
 
