@@ -917,60 +917,74 @@ export async function deleteToolVariant(input: {
 
 	try {
 		const { variantId } = parsed.data;
-		const [v] = await db
-			.select({
-				toolId: toolVariant.toolId,
-				isDefault: toolVariant.isDefault,
-			})
-			.from(toolVariant)
-			.where(eq(toolVariant.id, variantId));
-		if (!v) {
-			return { ok: false, error: "Variante não encontrada" };
-		}
 
-		const [ordered] = await db
-			.select({ n: sql<number>`count(*)::int` })
-			.from(orderItem)
-			.where(eq(orderItem.variantId, variantId));
+		// Tudo dentro da transação com FOR UPDATE: trava as variantes do tool
+		// para serializar exclusões concorrentes (evita janela de 0 defaults).
+		const outcome = await db.transaction(async (tx) => {
+			const [v] = await tx
+				.select({
+					toolId: toolVariant.toolId,
+					isDefault: toolVariant.isDefault,
+				})
+				.from(toolVariant)
+				.where(eq(toolVariant.id, variantId))
+				.for("update");
+			if (!v) {
+				return { error: "Variante não encontrada", ok: false as const };
+			}
 
-		const siblings = await db
-			.select({ id: toolVariant.id, sortOrder: toolVariant.sortOrder })
-			.from(toolVariant)
-			.where(eq(toolVariant.toolId, v.toolId))
-			.orderBy(asc(toolVariant.sortOrder));
+			const [ordered] = await tx
+				.select({ n: sql<number>`count(*)::int` })
+				.from(orderItem)
+				.where(eq(orderItem.variantId, variantId));
 
-		const decision = resolveVariantDeletion({
-			variantId,
-			isDefault: v.isDefault,
-			hasOrders: (ordered?.n ?? 0) > 0,
-			siblings,
-		});
-		if (!decision.allowed) {
-			return { ok: false, error: decision.error };
-		}
+			const siblings = await tx
+				.select({
+					id: toolVariant.id,
+					sku: toolVariant.sku,
+					sortOrder: toolVariant.sortOrder,
+				})
+				.from(toolVariant)
+				.where(eq(toolVariant.toolId, v.toolId))
+				.orderBy(asc(toolVariant.sortOrder))
+				.for("update");
 
-		await db.transaction(async (tx) => {
+			const decision = resolveVariantDeletion({
+				variantId,
+				isDefault: v.isDefault,
+				hasOrders: (ordered?.n ?? 0) > 0,
+				siblings,
+			});
+			if (!decision.allowed) {
+				return { error: decision.error, ok: false as const };
+			}
+
 			await tx.delete(toolVariant).where(eq(toolVariant.id, variantId));
+
+			let reassignedDefaultSku: string | undefined;
 			if (decision.reassignDefaultTo) {
 				await tx
 					.update(toolVariant)
 					.set({ isDefault: true, updatedAt: new Date() })
 					.where(eq(toolVariant.id, decision.reassignDefaultTo));
+				reassignedDefaultSku = siblings.find(
+					(s) => s.id === decision.reassignDefaultTo
+				)?.sku;
 			}
+
+			return { ok: true as const, reassignedDefaultSku, toolId: v.toolId };
 		});
 
-		let reassignedDefaultSku: string | undefined;
-		if (decision.reassignDefaultTo) {
-			const [nd] = await db
-				.select({ sku: toolVariant.sku })
-				.from(toolVariant)
-				.where(eq(toolVariant.id, decision.reassignDefaultTo));
-			reassignedDefaultSku = nd?.sku;
+		if (!outcome.ok) {
+			return { ok: false, error: outcome.error };
 		}
 
-		revalidatePath(`/dashboard/tools/${v.toolId}`);
+		revalidatePath(`/dashboard/tools/${outcome.toolId}`);
 		revalidatePath(TOOLS_PATH);
-		return { ok: true, data: { reassignedDefaultSku } };
+		return {
+			ok: true,
+			data: { reassignedDefaultSku: outcome.reassignedDefaultSku },
+		};
 	} catch (error) {
 		logger.error("deleteToolVariant falhou", error);
 		return { ok: false, error: "Não foi possível excluir a variante" };

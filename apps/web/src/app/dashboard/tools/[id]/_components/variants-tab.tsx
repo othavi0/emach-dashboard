@@ -267,13 +267,14 @@ function EditableRow({
 
 	let deleteControl: React.ReactNode = null;
 	if (canDelete) {
-		if (isOnlyVariant) {
-			deleteControl = (
-				<DisabledDeleteIcon reason="A ferramenta precisa de ao menos uma variante." />
-			);
-		} else if (hasOrders) {
+		// Mesma ordem do helper resolveVariantDeletion (hasOrders antes de única).
+		if (hasOrders) {
 			deleteControl = (
 				<DisabledDeleteIcon reason="Tem pedidos — não pode excluir. Oculte do site." />
+			);
+		} else if (isOnlyVariant) {
+			deleteControl = (
+				<DisabledDeleteIcon reason="A ferramenta precisa de ao menos uma variante." />
 			);
 		} else {
 			deleteControl = (
