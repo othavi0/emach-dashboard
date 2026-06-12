@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import type { AttributeOptions } from "@emach/db/schema/attributes";
 import {
 	attributeDefinition,
 	toolAttributeValue,
@@ -29,7 +30,12 @@ export type ToolDetailVariant = typeof toolVariant.$inferSelect;
 export interface ToolDetailAttribute {
 	inputType: string;
 	label: string;
+	options: AttributeOptions | null;
 	slug: string;
+	sortOrder: number;
+	sourceCategoryDepth: number;
+	sourceCategoryId: string;
+	sourceCategoryName: string;
 	unit: string | null;
 	valueBool: boolean | null;
 	valueNumeric: number | null;
@@ -119,6 +125,11 @@ export const getToolDetail = cache(
 						label: attributeDefinition.label,
 						inputType: attributeDefinition.inputType,
 						unit: attributeDefinition.unit,
+						options: attributeDefinition.options,
+						sortOrder: attributeDefinition.sortOrder,
+						sourceCategoryId: attributeDefinition.categoryId,
+						sourceCategoryName: category.name,
+						sourceCategoryDepth: category.depth,
 						valueText: toolAttributeValue.valueText,
 						valueNumeric: toolAttributeValue.valueNumeric,
 						valueNumericMax: toolAttributeValue.valueNumericMax,
@@ -129,6 +140,7 @@ export const getToolDetail = cache(
 						attributeDefinition,
 						eq(toolAttributeValue.attributeId, attributeDefinition.id)
 					)
+					.innerJoin(category, eq(attributeDefinition.categoryId, category.id))
 					.where(eq(toolAttributeValue.toolId, id)),
 				db
 					.select({

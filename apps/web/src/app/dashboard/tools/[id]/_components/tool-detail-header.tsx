@@ -1,8 +1,10 @@
+import { Alert, AlertDescription } from "@emach/ui/components/alert";
 import { Badge } from "@emach/ui/components/badge";
-import Link from "next/link";
+import { Eye, EyeOff, TriangleAlert, Wrench } from "lucide-react";
+import type { ReactNode } from "react";
 
+import { EntityIdentityHeader } from "@/components/entity/entity-identity-header";
 import type { ToolDetail } from "../_lib/tool-detail-data";
-import { ToolDetailActions } from "./tool-detail-actions";
 
 const STATUS_LABEL: Record<string, string> = {
 	active: "Ativa",
@@ -20,105 +22,86 @@ const STATUS_VARIANT: Record<
 };
 
 interface ToolDetailHeaderProps {
-	canDelete: boolean;
-	canMutate: boolean;
+	actions?: ReactNode;
 	detail: ToolDetail;
 }
 
-export function ToolDetailHeader({
-	detail,
-	canMutate,
-	canDelete,
-}: ToolDetailHeaderProps) {
+export function ToolDetailHeader({ detail, actions }: ToolDetailHeaderProps) {
 	const { tool, images, stockSummary } = detail;
 	const defaultVariant = detail.variants.find((v) => v.isDefault);
 	const cover = images[0];
+	const hasAlert =
+		stockSummary.criticalCount > 0 || stockSummary.reorderCount > 0;
+
+	const subtitleParts: string[] = [];
+	if (defaultVariant) {
+		subtitleParts.push(`SKU ${defaultVariant.sku}`);
+	}
+	if (tool.supplierName) {
+		subtitleParts.push(tool.supplierName);
+	}
 
 	return (
-		<header className="sticky top-0 z-10 flex flex-col gap-3 border-border border-b bg-background pt-2 pb-4">
-			<div className="flex items-center gap-4">
-				{cover ? (
-					// biome-ignore lint/performance/noImgElement: Supabase public URL
-					// biome-ignore lint/correctness/useImageSize: thumb Supabase, dimensões via CSS
-					<img
-						alt=""
-						className="size-14 flex-shrink-0 rounded-md object-cover"
-						src={cover.url}
-					/>
-				) : (
-					<div className="size-14 flex-shrink-0 rounded-md bg-muted" />
-				)}
-				<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-					<Link
-						className="text-muted-foreground text-xs hover:underline"
-						href="/dashboard/tools"
-					>
-						/ Ferramentas /
-					</Link>
-					<h1 className="truncate font-semibold text-lg">{tool.name}</h1>
-					<div className="flex items-center gap-2 text-muted-foreground text-xs">
+		<div className="flex flex-col gap-3">
+			<EntityIdentityHeader
+				actions={actions}
+				avatarFallback={<Wrench aria-hidden className="size-5" />}
+				avatarUrl={cover?.url}
+				badges={
+					<>
 						<Badge variant={STATUS_VARIANT[tool.status] ?? "secondary"}>
 							{STATUS_LABEL[tool.status] ?? tool.status}
 						</Badge>
 						{tool.status === "active" && stockSummary.totalStock === 0 && (
 							<Badge variant="destructive">Esgotado</Badge>
 						)}
-						{defaultVariant && (
-							<>
-								<span>·</span>
-								<span className="font-mono">SKU: {defaultVariant.sku}</span>
-							</>
+						{tool.visibleOnSite ? (
+							<Badge variant="success">
+								<Eye aria-hidden className="size-3" />
+								Visível no site
+							</Badge>
+						) : (
+							<Badge variant="outline">
+								<EyeOff aria-hidden className="size-3" />
+								Oculta
+							</Badge>
 						)}
-						{tool.supplierName && (
-							<>
-								<span>·</span>
-								<span>{tool.supplierName}</span>
-							</>
-						)}
-						<span>·</span>
-						<span>
-							{tool.visibleOnSite ? (
-								<span className="text-success">● Visível no site</span>
-							) : (
-								<span>○ Oculta</span>
-							)}
-						</span>
-					</div>
-				</div>
-				<ToolDetailActions
-					canDelete={canDelete}
-					canMutate={canMutate}
-					toolId={tool.id}
-					toolName={tool.name}
-				/>
-			</div>
+					</>
+				}
+				subtitle={
+					subtitleParts.length > 0 ? subtitleParts.join(" · ") : undefined
+				}
+				title={tool.name}
+			/>
 
-			{(stockSummary.criticalCount > 0 || stockSummary.reorderCount > 0) && (
-				<div className="rounded-md border border-destructive/40 bg-destructive/15 px-3 py-2 text-destructive text-xs">
-					⚠️{" "}
-					{stockSummary.alerts.length === 1 ? (
-						<>
-							{stockSummary.alerts[0]?.branchName} ·{" "}
-							{stockSummary.alerts[0]?.variantSku} (
-							{stockSummary.alerts[0]?.quantity} ≤{" "}
-							{stockSummary.alerts[0]?.reorderPoint}) abaixo do ponto de
-							reposição
-						</>
-					) : (
-						<>
-							{stockSummary.alerts.length} alertas de reposição —{" "}
-							{stockSummary.alerts
-								.slice(0, 3)
-								.map(
-									(a) => `${a.branchName} (${a.quantity} ≤ ${a.reorderPoint})`
-								)
-								.join(", ")}
-							{stockSummary.alerts.length > 3 &&
-								`, e mais ${stockSummary.alerts.length - 3}`}
-						</>
-					)}
-				</div>
+			{hasAlert && (
+				<Alert variant="destructive">
+					<TriangleAlert aria-hidden />
+					<AlertDescription className="text-destructive/90">
+						{stockSummary.alerts.length === 1 ? (
+							<>
+								{stockSummary.alerts[0]?.branchName} ·{" "}
+								{stockSummary.alerts[0]?.variantSku} (
+								{stockSummary.alerts[0]?.quantity} ≤{" "}
+								{stockSummary.alerts[0]?.reorderPoint}) abaixo do ponto de
+								reposição
+							</>
+						) : (
+							<>
+								{stockSummary.alerts.length} alertas de reposição —{" "}
+								{stockSummary.alerts
+									.slice(0, 3)
+									.map(
+										(a) => `${a.branchName} (${a.quantity} ≤ ${a.reorderPoint})`
+									)
+									.join(", ")}
+								{stockSummary.alerts.length > 3 &&
+									`, e mais ${stockSummary.alerts.length - 3}`}
+							</>
+						)}
+					</AlertDescription>
+				</Alert>
 			)}
-		</header>
+		</div>
 	);
 }
