@@ -2,13 +2,12 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { toast } from "sonner";
-
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
 import {
 	type FormIssue,
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
+import { notify } from "@/lib/notify";
 import { SupplierFormFields } from "../../_components/supplier-form-fields";
 import {
 	type SupplierFormValues,
@@ -78,10 +77,10 @@ export function SupplierEditSheet({ supplier }: Props) {
 		startTransition(async () => {
 			const res = await updateSupplier(supplier.id, parsed.data);
 			if (res.ok) {
-				toast.success("Fornecedor atualizado");
+				notify.success("Fornecedor atualizado");
 				close();
 			} else {
-				toast.error(res.error);
+				notify.error(res.error);
 			}
 		});
 	};
