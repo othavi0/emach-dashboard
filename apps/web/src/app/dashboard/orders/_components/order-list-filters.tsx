@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@emach/ui/components/button";
 import { DatePicker } from "@emach/ui/components/date-picker";
 import { Input } from "@emach/ui/components/input";
 import {
@@ -16,6 +17,7 @@ import {
 	TabsList,
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
+import { TriangleAlertIcon } from "lucide-react";
 import Link from "next/link";
 
 import { FiltersBar } from "@/components/filters-bar";
@@ -43,7 +45,7 @@ interface OrderListFiltersProps {
 const BASE = "/dashboard/orders";
 // "tab" fora do TRACKED de propósito: o botão "Limpar" da barra de busca age só
 // sobre busca/data/filial e mantém a tab atual; o reset de status é o chip "Todos".
-const TRACKED = ["q", "from", "to", "branchId", "page"] as const;
+const TRACKED = ["q", "from", "to", "branchId", "page", "unverified"] as const;
 const BRANCH_ALL = "__all__";
 
 function buildTabHref(filters: OrderListFilterState, tabKey: string): string {
@@ -64,6 +66,9 @@ function buildTabHref(filters: OrderListFilterState, tabKey: string): string {
 	}
 	if (filters.branchId) {
 		params.set("branchId", filters.branchId);
+	}
+	if (filters.unverifiedShipping) {
+		params.set("unverified", "1");
 	}
 	const qs = params.toString();
 	return qs ? `${BASE}?${qs}` : BASE;
@@ -98,6 +103,7 @@ export function OrderFiltersPanel({
 	const [from, setFrom] = useDebouncedParam({ basePath: BASE, key: "from" });
 	const [to, setTo] = useDebouncedParam({ basePath: BASE, key: "to" });
 	const currentBranch = searchParams.get("branchId") ?? BRANCH_ALL;
+	const unverifiedActive = searchParams.get("unverified") === "1";
 
 	const renderTab = (tab: {
 		key: string;
@@ -211,6 +217,20 @@ export function OrderFiltersPanel({
 							</SelectGroup>
 						</SelectContent>
 					</Select>
+				</div>
+
+				<div className="flex flex-col justify-end">
+					<Button
+						aria-pressed={unverifiedActive}
+						onClick={() =>
+							setParam("unverified", unverifiedActive ? null : "1")
+						}
+						type="button"
+						variant={unverifiedActive ? "warning" : "outline"}
+					>
+						<TriangleAlertIcon aria-hidden="true" className="size-4" />
+						Frete a revisar
+					</Button>
 				</div>
 			</FiltersBar>
 		</div>

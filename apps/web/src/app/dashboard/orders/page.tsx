@@ -43,6 +43,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 
 	// Sem ?tab na URL → abre na fila acionável ("A preparar"), não em todos.
 	const activeTab = data.tab ?? DEFAULT_ORDER_TAB;
+	const unverifiedShipping = data.unverified === "1";
 
 	const filters: OrderListFilters = {
 		tab: activeTab,
@@ -51,6 +52,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 		to: data.to,
 		branchId: data.branchId,
 		page: data.page,
+		unverifiedShipping,
 	};
 
 	const pageFilters: OrdersPageFiltersInput = {
@@ -59,6 +61,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 		from: data.from,
 		to: data.to,
 		branchId: data.branchId,
+		unverifiedShipping,
 	};
 
 	const [branches, counts, pendingAwaiting, pendingFlow, activity, result] =
@@ -83,6 +86,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 			filters.from ||
 			filters.to ||
 			filters.branchId ||
+			unverifiedShipping ||
 			activeTab !== DEFAULT_ORDER_TAB
 	);
 
