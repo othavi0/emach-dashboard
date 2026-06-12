@@ -44,8 +44,10 @@ export interface ToolDetailAttribute {
 }
 
 export interface ToolStockRow {
+	branchCity: string | null;
 	branchId: string;
 	branchName: string;
+	branchState: string | null;
 	minQty: number;
 	quantity: number;
 	reorderPoint: number;
@@ -149,6 +151,8 @@ export const getToolDetail = cache(
 						variantVoltage: toolVariant.voltage,
 						branchId: branch.id,
 						branchName: branch.name,
+						branchCity: branch.city,
+						branchState: branch.state,
 						quantity: stockLevel.quantity,
 						minQty: stockLevel.minQty,
 						reorderPoint: stockLevel.reorderPoint,
