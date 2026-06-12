@@ -38,6 +38,8 @@ import {
 	addOrderNoteSchema,
 	assignBranchSchema,
 	capForStatus,
+	type MarkShippingReviewedInput,
+	markShippingReviewedSchema,
 	type RefundOrderInput,
 	refundOrderSchema,
 	type TogglePinNoteInput,
@@ -157,7 +159,7 @@ async function insertOrderEvent(
 	tx: OrderTx,
 	args: {
 		orderId: string;
-		eventType: "tracking_set" | "branch_assigned";
+		eventType: "tracking_set" | "branch_assigned" | "shipping_reviewed";
 		metadata: Record<string, unknown>;
 		actorUserId: string | null;
 	}
@@ -482,6 +484,61 @@ export async function updateTrackingCode(
 			return { ok: false, error: "Pedido não encontrado" };
 		}
 		return { ok: false, error: "Erro ao atualizar rastreio" };
+	}
+}
+
+export async function markShippingReviewed(
+	input: MarkShippingReviewedInput
+): Promise<ActionResult> {
+	const parsed = markShippingReviewedSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+
+	const { orderId } = parsed.data;
+
+	try {
+		await db.transaction(async (tx) => {
+			// Lock the order row, then authorize against the locked branchId —
+			// the lock is held across the check and the mutation below.
+			const locked = await lockOrderAndAuthorize(
+				tx,
+				"orders.update_status",
+				orderId
+			);
+
+			if (!locked) {
+				throw new Error("Pedido não encontrado");
+			}
+
+			await tx
+				.update(order)
+				.set({ shippingUnverified: false })
+				.where(eq(order.id, orderId));
+
+			await insertOrderEvent(tx, {
+				orderId,
+				eventType: "shipping_reviewed",
+				metadata: {},
+				actorUserId: locked.session.user.id,
+			});
+		});
+
+		revalidatePath(ORDERS_PATH);
+		revalidatePath(`${ORDERS_PATH}/${orderId}`);
+		return { ok: true, data: undefined };
+	} catch (error) {
+		logger.error("markShippingReviewed", error);
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para alterar este pedido." };
+		}
+		if (error instanceof Error && error.message === "Pedido não encontrado") {
+			return { ok: false, error: "Pedido não encontrado" };
+		}
+		return { ok: false, error: "Erro ao marcar frete como revisado" };
 	}
 }
 

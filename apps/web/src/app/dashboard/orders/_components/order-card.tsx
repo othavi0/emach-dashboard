@@ -5,6 +5,7 @@ import { formatDateTime } from "@/lib/format/datetime";
 import { getInitials } from "@/lib/format/name";
 import type { OrderListItem } from "../data";
 import { OrderStatusBadge } from "./order-status-badge";
+import { ShippingUnverifiedBadge } from "./shipping-unverified-badge";
 
 const CURRENCY_FORMATTER = new Intl.NumberFormat("pt-BR", {
 	currency: "BRL",
@@ -60,7 +61,10 @@ export function OrderCard({ item }: { item: OrderListItem }) {
 						<span className="truncate">{item.branchName ?? "—"}</span>
 					</p>
 				</div>
-				<OrderStatusBadge status={item.status} />
+				<div className="flex flex-shrink-0 flex-col items-end gap-1">
+					<OrderStatusBadge status={item.status} />
+					{item.shippingUnverified && <ShippingUnverifiedBadge compact />}
+				</div>
 			</div>
 
 			<div className="grid grid-cols-3 border-border border-t">
