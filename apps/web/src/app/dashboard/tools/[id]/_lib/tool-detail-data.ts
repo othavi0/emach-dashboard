@@ -6,6 +6,7 @@ import {
 } from "@emach/db/schema/attributes";
 import { category, toolCategory } from "@emach/db/schema/categories";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
+import { orderItem } from "@emach/db/schema/orders";
 import { supplier, tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { asc, eq } from "drizzle-orm";
 import { cache } from "react";
@@ -78,6 +79,7 @@ export interface ToolDetail {
 	attributes: ToolDetailAttribute[];
 	categories: ToolDetailCategory[];
 	images: ToolDetailImage[];
+	orderedVariantIds: string[];
 	stockRows: ToolStockRow[];
 	stockSummary: ToolStockSummary;
 	tool: ToolDetailRow;
@@ -99,7 +101,7 @@ export const getToolDetail = cache(
 			return null;
 		}
 
-		const [categories, images, variants, attributes, stockRows] =
+		const [categories, images, variants, attributes, stockRows, orderedRows] =
 			await Promise.all([
 				db
 					.select({
@@ -162,6 +164,11 @@ export const getToolDetail = cache(
 					.innerJoin(branch, eq(branch.id, stockLevel.branchId))
 					.where(eq(toolVariant.toolId, id))
 					.orderBy(asc(branch.name), asc(toolVariant.sortOrder)),
+				db
+					.selectDistinct({ variantId: orderItem.variantId })
+					.from(orderItem)
+					.innerJoin(toolVariant, eq(toolVariant.id, orderItem.variantId))
+					.where(eq(toolVariant.toolId, id)),
 			]);
 
 		const stockSummary = computeStockSummary(stockRows);
@@ -170,6 +177,7 @@ export const getToolDetail = cache(
 			tool: { ...row.tool, supplierName: row.supplierName },
 			categories,
 			images,
+			orderedVariantIds: orderedRows.map((r) => r.variantId),
 			variants,
 			attributes: attributes.map((a) => ({
 				...a,
