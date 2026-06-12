@@ -13,13 +13,12 @@ import {
 } from "@emach/ui/components/select";
 import { Spinner } from "@emach/ui/components/spinner";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
-
 import {
 	FormErrorPanel,
 	type FormIssue,
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
+import { notify } from "@/lib/notify";
 import type { OriginBranchOption } from "../actions";
 import { updateShippingSettings } from "../actions";
 import {
@@ -76,7 +75,7 @@ export function ShippingSettingsForm({
 		if (!parsed.success) {
 			const next = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
 			setIssues(next);
-			toast.error(
+			notify.error(
 				`${next.length} ${next.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
 			);
 			return;
@@ -85,9 +84,9 @@ export function ShippingSettingsForm({
 		startTransition(async () => {
 			const result = await updateShippingSettings(parsed.data);
 			if (result.ok) {
-				toast.success("Configurações de frete salvas");
+				notify.success("Configurações de frete salvas");
 			} else {
-				toast.error(result.error || "Não foi possível salvar");
+				notify.error(result.error || "Não foi possível salvar");
 			}
 		});
 	}
