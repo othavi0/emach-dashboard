@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	breadcrumbFromPath,
 	buildCategoryTree,
+	buildNameBySlug,
 	type FlatCategory,
 } from "./category-tree";
 
@@ -90,5 +91,68 @@ describe("breadcrumbFromPath", () => {
 		expect(
 			breadcrumbFromPath("/a/a1", new Map([["a", "Ferramentas"]]))
 		).toEqual(["Ferramentas"]);
+	});
+});
+
+describe("buildCategoryTree → rollupCount", () => {
+	it("soma o direto do nó com o rollup de todas as descendentes", () => {
+		const tree = buildCategoryTree(flat);
+		const a = tree.find((n) => n.id === "a");
+		// a (direto 5) + a0 (0) + a1 (2) = 7
+		expect(a?.rollupCount).toBe(7);
+		// folhas: rollup == direto
+		expect(a?.children.find((n) => n.id === "a1")?.rollupCount).toBe(2);
+		expect(tree.find((n) => n.id === "b")?.rollupCount).toBe(0);
+	});
+
+	it("propaga por mais de um nível", () => {
+		const deep: FlatCategory[] = [
+			{
+				id: "r",
+				name: "R",
+				slug: "r",
+				parentId: null,
+				depth: 0,
+				sortOrder: 0,
+				isActive: true,
+				productCount: 1,
+			},
+			{
+				id: "c",
+				name: "C",
+				slug: "c",
+				parentId: "r",
+				depth: 1,
+				sortOrder: 0,
+				isActive: true,
+				productCount: 2,
+			},
+			{
+				id: "g",
+				name: "G",
+				slug: "g",
+				parentId: "c",
+				depth: 2,
+				sortOrder: 0,
+				isActive: true,
+				productCount: 4,
+			},
+		];
+		const tree = buildCategoryTree(deep);
+		const r = tree.find((n) => n.id === "r");
+		expect(r?.rollupCount).toBe(7); // 1 + 2 + 4
+		expect(r?.children[0]?.rollupCount).toBe(6); // 2 + 4
+	});
+});
+
+describe("buildNameBySlug", () => {
+	it("mapeia slug → nome", () => {
+		const map = buildNameBySlug([
+			{ slug: "a", name: "Ferramentas" },
+			{ slug: "a1", name: "Furadeiras" },
+		]);
+		expect(map.get("a")).toBe("Ferramentas");
+		expect(map.get("a1")).toBe("Furadeiras");
+		expect(map.size).toBe(2);
 	});
 });
