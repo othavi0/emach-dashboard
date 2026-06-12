@@ -291,6 +291,15 @@ catálogo decide a vitrine; o cupom decide o checkout.
 
 ---
 
+## Aplicação de desconto (promoções)
+
+O admin não valida `discountValue` (R$ fixo) contra o preço da ferramenta — um
+desconto fixo pode exceder o preço. O **ecommerce** deve clampar o preço final
+em `max(0, preço - desconto)` ao aplicar promoções/cupons, nunca permitindo
+preço negativo. Desconto percentual já é limitado a 100% no admin.
+
+---
+
 ## Regra de sincronização do schema TS
 
 As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **automatizada por CI** — o workflow `sync-db-schema.yml` espelha `packages/db/src/{schema,queries,sql/triggers.sql}` para o repo `emach-ecommerce` via Pull Request automático sempre que esses arquivos mudam na `main`. Direção unidirecional: dashboard → ecommerce. Ver ADR-0009.
