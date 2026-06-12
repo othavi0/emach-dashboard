@@ -1,65 +1,36 @@
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@emach/ui/components/tooltip";
+import { TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
-
 import { HelpTooltip } from "@/components/help-tooltip";
 import { FISCAL_HELP, MODEL_HELP } from "../../_components/fields/spec-help";
-import type {
-	ToolDetailAttribute,
-	ToolDetailRow,
-} from "../_lib/tool-detail-data";
+import type { AttributeGroup } from "../_lib/attribute-grouping";
+import type { SpecDivergences } from "../_lib/spec-divergence";
+import type { ToolDetailRow } from "../_lib/tool-detail-data";
+import { AttributeValue } from "./attribute-value";
 
 interface ToolSpecsProps {
-	attributes: ToolDetailAttribute[];
+	attributeGroups: AttributeGroup[];
+	divergences: SpecDivergences;
 	tool: ToolDetailRow;
 }
 
-function formatAttributeValue(a: ToolDetailAttribute): string {
-	if (a.inputType === "boolean") {
-		if (a.valueBool === null) {
-			return "—";
-		}
-		return a.valueBool ? "Sim" : "Não";
-	}
-	if (a.inputType === "numeric_range") {
-		const lo = a.valueNumeric ?? "—";
-		const hi = a.valueNumericMax ?? "—";
-		const unit = a.unit ? ` ${a.unit}` : "";
-		return `${lo} – ${hi}${unit}`;
-	}
-	if (a.inputType === "number") {
-		const v = a.valueNumeric ?? "—";
-		const unit = a.unit ? ` ${a.unit}` : "";
-		return `${v}${unit}`;
-	}
-	return a.valueText ?? "—";
-}
-
-/**
- * Specs da ferramenta sempre visíveis (sem accordion) — a equipe interna lê
- * tudo de relance (PRODUCT.md: densidade > respiro). Cada grupo é uma seção
- * com section marker + grid denso.
- */
-export function ToolSpecs({ tool, attributes }: ToolSpecsProps) {
-	const hasFiscal = Boolean(tool.hsCode || tool.ncm || tool.cest);
-	const hasFixedSpecs = Boolean(
-		tool.model ||
-			tool.invoiceModel ||
-			tool.manufacturerName ||
-			tool.powerWatts !== null ||
-			tool.weightKg !== null ||
-			tool.lengthCm !== null ||
-			tool.widthCm !== null ||
-			tool.heightCm !== null
-	);
-	const hasDynamicSpecs = attributes.length > 0;
-
-	if (!(hasFiscal || hasFixedSpecs || hasDynamicSpecs)) {
-		return null;
-	}
+export function ToolSpecs({
+	tool,
+	attributeGroups,
+	divergences,
+}: ToolSpecsProps) {
+	const weightDiverges = divergences.fixed.has("weightKg");
+	const powerDiverges = divergences.fixed.has("powerWatts");
 
 	return (
-		<div className="flex flex-col gap-5">
-			{hasFixedSpecs && (
-				<SpecSection title="Especificações fixas">
+		<TooltipProvider delay={300}>
+			<div className="flex flex-col gap-5">
+				<SpecSection title="Físicas">
 					<SpecField
 						help={<HelpTooltip label="Sobre Modelo" text={MODEL_HELP.model} />}
 						label="Modelo"
@@ -77,10 +48,12 @@ export function ToolSpecs({ tool, attributes }: ToolSpecsProps) {
 					/>
 					<SpecField label="Fabricante" value={tool.manufacturerName} />
 					<SpecField
+						diverges={powerDiverges}
 						label="Potência"
 						value={tool.powerWatts === null ? null : `${tool.powerWatts} W`}
 					/>
 					<SpecField
+						diverges={weightDiverges}
 						label="Peso"
 						value={tool.weightKg === null ? null : `${tool.weightKg} kg`}
 					/>
@@ -95,21 +68,26 @@ export function ToolSpecs({ tool, attributes }: ToolSpecsProps) {
 						}
 					/>
 				</SpecSection>
-			)}
 
-			{hasDynamicSpecs && (
-				<SpecSection title="Especificações técnicas">
-					{attributes.map((a) => (
-						<SpecField
-							key={a.slug}
-							label={a.label}
-							value={formatAttributeValue(a)}
-						/>
-					))}
-				</SpecSection>
-			)}
+				{attributeGroups.map((group) => (
+					<SpecSection
+						key={group.categoryId}
+						title={`Técnicas · ${group.categoryName}`}
+					>
+						{group.attributes.map((a) => (
+							<div key={a.slug}>
+								<dt className="flex items-center gap-1 text-muted-foreground text-xs">
+									{a.label}
+									{divergences.attributeSlugs.has(a.slug) && <DivergenceMark />}
+								</dt>
+								<dd>
+									<AttributeValue attr={a} />
+								</dd>
+							</div>
+						))}
+					</SpecSection>
+				))}
 
-			{hasFiscal && (
 				<SpecSection title="Classificação fiscal">
 					<SpecField
 						help={<HelpTooltip label="Sobre HS Code" {...FISCAL_HELP.hsCode} />}
@@ -127,8 +105,8 @@ export function ToolSpecs({ tool, attributes }: ToolSpecsProps) {
 						value={tool.cest}
 					/>
 				</SpecSection>
-			)}
-		</div>
+			</div>
+		</TooltipProvider>
 	);
 }
 
@@ -136,8 +114,8 @@ function SpecSection({
 	title,
 	children,
 }: {
+	children: ReactNode;
 	title: string;
-	children: React.ReactNode;
 }) {
 	return (
 		<section>
@@ -155,18 +133,38 @@ function SpecField({
 	label,
 	value,
 	help,
+	diverges,
 }: {
+	diverges?: boolean;
+	help?: ReactNode;
 	label: string;
 	value: string | null;
-	help?: ReactNode;
 }) {
 	return (
 		<div>
 			<dt className="flex items-center gap-1 text-muted-foreground text-xs">
 				{label}
 				{help}
+				{diverges && <DivergenceMark />}
 			</dt>
 			<dd>{value ?? "—"}</dd>
 		</div>
+	);
+}
+
+function DivergenceMark() {
+	return (
+		<Tooltip>
+			<TooltipTrigger
+				aria-label="Valor diverge entre cadastro e ficha técnica"
+				render={<span className="inline-flex text-warning" />}
+			>
+				<TriangleAlert aria-hidden className="size-3.5" />
+			</TooltipTrigger>
+			<TooltipContent>
+				Valor diverge entre o cadastro (coluna fixa) e a ficha técnica
+				(atributo).
+			</TooltipContent>
+		</Tooltip>
 	);
 }

@@ -1,9 +1,10 @@
-import { buttonVariants } from "@emach/ui/components/button";
-import { Card, CardContent } from "@emach/ui/components/card";
-import { Separator } from "@emach/ui/components/separator";
 import Link from "next/link";
+import type { ReactNode } from "react";
+
 import { ToolDescription } from "@/components/tool-description";
 import { formatDayMonthShortYear } from "@/lib/format/datetime";
+import { groupAttributesByCategory } from "../_lib/attribute-grouping";
+import { detectSpecDivergences } from "../_lib/spec-divergence";
 import type {
 	ToolDetailAttribute,
 	ToolDetailCategory,
@@ -11,7 +12,14 @@ import type {
 	ToolDetailRow,
 	ToolStockSummary,
 } from "../_lib/tool-detail-data";
+import { ImageCarousel } from "./image-carousel";
+import { SectionCard } from "./section-card";
 import { ToolSpecs } from "./tool-specs";
+
+const BRL = new Intl.NumberFormat("pt-BR", {
+	currency: "BRL",
+	style: "currency",
+});
 
 interface OverviewTabProps {
 	attributes: ToolDetailAttribute[];
@@ -30,39 +38,44 @@ export function OverviewTab({
 }: OverviewTabProps) {
 	const primaryCategory = categories.find((c) => c.isPrimary);
 	const otherCategories = categories.filter((c) => !c.isPrimary);
+	const attributeGroups = groupAttributesByCategory(attributes);
+	const divergences = detectSpecDivergences(tool, attributes);
+	const alertCount = stockSummary.criticalCount + stockSummary.reorderCount;
 
 	return (
-		<div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-			<div className="flex min-w-0 flex-col gap-5">
-				{images.length > 0 ? (
-					<div className="grid grid-cols-4 gap-2">
-						{images.slice(0, 8).map((img) => (
-							// biome-ignore lint/performance/noImgElement: Supabase public URL
-							// biome-ignore lint/correctness/useImageSize: thumb Supabase, dimensões via CSS
-							<img
-								alt=""
-								className="aspect-square w-full rounded-md object-cover"
-								key={img.id}
-								src={img.url}
-							/>
-						))}
-					</div>
-				) : (
-					<div className="aspect-video rounded-md bg-muted" />
-				)}
+		<div className="flex flex-col gap-4">
+			<SectionCard title={`Imagens · ${images.length}`}>
+				<ImageCarousel images={images} />
+			</SectionCard>
 
-				{tool.description && <ToolDescription markdown={tool.description} />}
+			{tool.description && (
+				<SectionCard title="Descrição">
+					<ToolDescription markdown={tool.description} />
+				</SectionCard>
+			)}
 
-				<ToolSpecs attributes={attributes} tool={tool} />
-			</div>
+			<div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+				<SectionCard title="Especificações">
+					<ToolSpecs
+						attributeGroups={attributeGroups}
+						divergences={divergences}
+						tool={tool}
+					/>
+				</SectionCard>
 
-			<aside className="flex flex-col gap-4">
-				<Card>
-					<CardContent className="pt-6">
-						<p className="text-muted-foreground text-xs uppercase tracking-wide">
-							Estoque resumo
-						</p>
-						<p className="mt-1 font-semibold text-2xl tabular-nums">
+				<div className="flex flex-col gap-4">
+					<SectionCard
+						action={
+							<Link
+								className="text-info text-xs hover:underline"
+								href={`/dashboard/tools/${tool.id}?tab=estoque`}
+							>
+								Ver aba →
+							</Link>
+						}
+						title="Estoque"
+					>
+						<p className="font-semibold text-2xl tabular-nums">
 							{stockSummary.totalStock}{" "}
 							<span className="font-normal text-muted-foreground text-sm">
 								unid.
@@ -71,57 +84,61 @@ export function OverviewTab({
 						<p className="mt-1 text-muted-foreground text-xs">
 							em {stockSummary.branchCount}{" "}
 							{stockSummary.branchCount === 1 ? "filial" : "filiais"}
-							{stockSummary.criticalCount + stockSummary.reorderCount > 0 && (
+							{alertCount > 0 && (
 								<>
 									{" · "}
 									<span className="text-destructive">
-										{stockSummary.criticalCount + stockSummary.reorderCount} em
-										alerta
+										{alertCount} em alerta
 									</span>
 								</>
 							)}
 						</p>
-						<Separator className="my-3" />
-						<Link
-							className={buttonVariants({
-								variant: "outline",
-								size: "sm",
-								className: "w-full",
-							})}
-							href={`/dashboard/tools/${tool.id}?tab=estoque`}
-						>
-							Ver na aba Estoque →
-						</Link>
-					</CardContent>
-				</Card>
+					</SectionCard>
 
-				<Card>
-					<CardContent className="pt-6">
-						<p className="text-muted-foreground text-xs uppercase tracking-wide">
-							Metadados
-						</p>
-						<dl className="mt-3 flex flex-col gap-2 text-sm">
-							<div>
-								<dt className="text-muted-foreground text-xs">Categoria</dt>
-								<dd>{primaryCategory?.categoryName ?? "—"}</dd>
+					<SectionCard title="Logística & metadados">
+						<dl className="flex flex-col gap-2 text-sm">
+							<MetaRow label="Frete > 30kg">
+								{tool.overweightShippingAmount === null
+									? "a combinar"
+									: BRL.format(Number(tool.overweightShippingAmount))}
+							</MetaRow>
+							<MetaRow label="Categoria">
+								{primaryCategory?.categoryName ?? "—"}
 								{otherCategories.length > 0 && (
-									<dd className="text-muted-foreground text-xs">
+									<span className="block text-muted-foreground text-xs">
 										+ {otherCategories.map((c) => c.categoryName).join(", ")}
-									</dd>
+									</span>
 								)}
-							</div>
-							<div>
-								<dt className="text-muted-foreground text-xs">Fornecedor</dt>
-								<dd>{tool.supplierName ?? "—"}</dd>
-							</div>
-							<div>
-								<dt className="text-muted-foreground text-xs">Criada</dt>
-								<dd>{formatDayMonthShortYear(tool.createdAt)}</dd>
-							</div>
+							</MetaRow>
+							<MetaRow label="Fornecedor">{tool.supplierName ?? "—"}</MetaRow>
+							<MetaRow label="Visibilidade">
+								{tool.visibleOnSite ? (
+									<span className="text-success">Visível no site</span>
+								) : (
+									<span className="text-muted-foreground">Oculta</span>
+								)}
+							</MetaRow>
+							{tool.slug && (
+								<MetaRow label="Slug">
+									<span className="font-mono text-xs">{tool.slug}</span>
+								</MetaRow>
+							)}
+							<MetaRow label="Criada">
+								{formatDayMonthShortYear(tool.createdAt)}
+							</MetaRow>
 						</dl>
-					</CardContent>
-				</Card>
-			</aside>
+					</SectionCard>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function MetaRow({ label, children }: { children: ReactNode; label: string }) {
+	return (
+		<div>
+			<dt className="text-muted-foreground text-xs">{label}</dt>
+			<dd>{children}</dd>
 		</div>
 	);
 }
