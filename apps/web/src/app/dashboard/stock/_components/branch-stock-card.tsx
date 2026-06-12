@@ -4,33 +4,19 @@ import { Badge } from "@emach/ui/components/badge";
 import Link from "next/link";
 
 import type { BranchStockRow } from "../branch-stock-data";
+import { stockStatus } from "./stock-status";
 
 interface BranchStockCardProps {
 	onSelect: (row: BranchStockRow) => void;
 	row: BranchStockRow;
 }
 
-type StockStatus = "critical" | "none" | "ok" | "reorder";
-
-function stockStatus(row: BranchStockRow): StockStatus {
-	if (row.minQty > 0 && row.quantity <= row.minQty) {
-		return "critical";
-	}
-	if (
-		row.reorderPoint > 0 &&
-		row.quantity > row.minQty &&
-		row.quantity <= row.reorderPoint
-	) {
-		return "reorder";
-	}
-	if (row.minQty === 0 && row.reorderPoint === 0) {
-		return "none";
-	}
-	return "ok";
-}
-
 export function BranchStockCard({ onSelect, row }: BranchStockCardProps) {
-	const status = stockStatus(row);
+	const status = stockStatus({
+		quantity: row.quantity,
+		minQty: row.minQty,
+		reorderPoint: row.reorderPoint,
+	});
 	let quantityColor = "text-foreground";
 	if (status === "critical" || row.quantity === 0) {
 		quantityColor = "text-destructive";

@@ -1,5 +1,5 @@
 import { buttonVariants } from "@emach/ui/components/button";
-import { PackagePlus, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { DeleteToolDialog } from "../../_components/delete-tool-dialog";
@@ -13,9 +13,10 @@ interface ToolDetailActionsProps {
 }
 
 /**
- * Ação contextual do header — a ação primária (coral) muda conforme a aba ativa,
- * seguindo o CRUD pattern canônico (ver `branches/[id]`). Na aba Estoque a
- * primária é "Ajustar estoque"; nas demais é "Editar". Remover é persistente.
+ * Ação contextual do header. "Editar ferramenta" aparece só na Visão geral
+ * (edição é form grande → página `/edit`). O ajuste de estoque agora é feito
+ * pelo drawer dentro da própria aba Estoque, então não há ação no header dela.
+ * Remover é persistente em todas as abas.
  */
 export function ToolDetailActions({
 	tab,
@@ -24,32 +25,17 @@ export function ToolDetailActions({
 	canMutate,
 	canDelete,
 }: ToolDetailActionsProps) {
-	const isStockTab = tab === "estoque";
-
 	return (
 		<>
 			{canDelete && <DeleteToolDialog toolId={toolId} toolName={toolName} />}
 
-			{canMutate && (
+			{canMutate && tab === "visao-geral" && (
 				<Link
-					className={buttonVariants({
-						variant: isStockTab ? "outline" : "default",
-						size: "sm",
-					})}
+					className={buttonVariants({ size: "sm", variant: "default" })}
 					href={`/dashboard/tools/${toolId}/edit`}
 				>
 					<Pencil aria-hidden className="mr-1.5 size-3.5" />
-					Editar
-				</Link>
-			)}
-
-			{canMutate && isStockTab && (
-				<Link
-					className={buttonVariants({ variant: "default", size: "sm" })}
-					href={`/dashboard/tools/${toolId}/stock`}
-				>
-					<PackagePlus aria-hidden className="mr-1.5 size-3.5" />
-					Ajustar estoque
+					Editar ferramenta
 				</Link>
 			)}
 		</>

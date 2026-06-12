@@ -93,6 +93,8 @@ export default async function ToolDetailPage({
 						canMutate={canMutate}
 						stockRows={detail.stockRows}
 						toolId={detail.tool.id}
+						toolImageUrl={detail.images[0]?.url ?? null}
+						toolName={detail.tool.name}
 						variants={detail.variants}
 					/>
 				) : null,
