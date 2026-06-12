@@ -17,12 +17,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@emach/ui/components/tooltip";
 import { CheckCircle2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -75,42 +69,23 @@ export function VariantsTab({ variants, toolId, canMutate }: VariantsTabProps) {
 	}
 
 	return (
-		<TooltipProvider delay={300}>
-			<div className="flex flex-col gap-4">
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>SKU</TableHead>
-							<TableHead>Voltagem</TableHead>
-							<TableHead className="text-right">Preço (R$)</TableHead>
-							<TableHead className="text-right">Custo (R$)</TableHead>
-							<TableHead className="text-center">Padrão</TableHead>
-							<TableHead />
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{variants.map((v) => (
-							<EditableRow key={v.id} toolId={toolId} variant={v} />
-						))}
-					</TableBody>
-				</Table>
-
-				<div className="flex justify-end">
-					<Tooltip>
-						<TooltipTrigger
-							render={
-								<Button disabled size="sm" variant="outline">
-									+ Variante
-								</Button>
-							}
-						/>
-						<TooltipContent>
-							Use "Editar" no header para adicionar/remover variantes.
-						</TooltipContent>
-					</Tooltip>
-				</div>
-			</div>
-		</TooltipProvider>
+		<Table>
+			<TableHeader>
+				<TableRow>
+					<TableHead>SKU</TableHead>
+					<TableHead>Voltagem</TableHead>
+					<TableHead className="text-right">Preço (R$)</TableHead>
+					<TableHead className="text-right">Custo (R$)</TableHead>
+					<TableHead className="text-center">Padrão</TableHead>
+					<TableHead />
+				</TableRow>
+			</TableHeader>
+			<TableBody>
+				{variants.map((v) => (
+					<EditableRow key={v.id} toolId={toolId} variant={v} />
+				))}
+			</TableBody>
+		</Table>
 	);
 }
 
@@ -285,7 +260,14 @@ function VariantsReadOnly({ variants }: { variants: ToolDetailVariant[] }) {
 							{fmt(v.costAmount)}
 						</TableCell>
 						<TableCell className="text-center">
-							{v.isDefault ? "●" : "—"}
+							{v.isDefault ? (
+								<CheckCircle2
+									aria-label="Variante padrão"
+									className="inline size-3.5 text-primary"
+								/>
+							) : (
+								<span className="text-muted-foreground">—</span>
+							)}
 						</TableCell>
 					</TableRow>
 				))}
