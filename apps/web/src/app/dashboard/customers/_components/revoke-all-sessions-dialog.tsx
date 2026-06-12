@@ -14,7 +14,7 @@ import {
 import { Button, buttonVariants } from "@emach/ui/components/button";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { revokeAllClientSessions } from "../actions";
 
@@ -34,12 +34,12 @@ export function RevokeAllSessionsDialog({
 		startTransition(async () => {
 			const result = await revokeAllClientSessions({ clientId });
 			if (result.ok) {
-				toast.success(
+				notify.success(
 					`${result.data.count} sessão(ões) revogada(s) com sucesso`
 				);
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}

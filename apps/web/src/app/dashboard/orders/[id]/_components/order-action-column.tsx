@@ -23,7 +23,7 @@ import { Textarea } from "@emach/ui/components/textarea";
 import { TriangleAlertIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { CancelOrderDialog } from "../../_components/cancel-order-dialog";
 import { RefundDialog } from "../../_components/refund-dialog";
 import { StockReturnDialog } from "../../_components/stock-return-dialog";
@@ -55,10 +55,10 @@ async function runAssignBranch(
 ) {
 	const result = await assignBranch({ orderId, branchId });
 	if (!result.ok) {
-		toast.error(result.error);
+		notify.error(result.error);
 		return;
 	}
-	toast.success("Filial atribuída");
+	notify.success("Filial atribuída");
 	refresh();
 }
 
@@ -69,20 +69,20 @@ async function runTrackingUpdate(
 ) {
 	const result = await updateTrackingCode({ orderId, trackingCode });
 	if (!result.ok) {
-		toast.error(result.error);
+		notify.error(result.error);
 		return;
 	}
-	toast.success("Rastreio atualizado");
+	notify.success("Rastreio atualizado");
 	refresh();
 }
 
 async function runMarkShippingReviewed(orderId: string, refresh: Refresh) {
 	const result = await markShippingReviewed({ orderId });
 	if (!result.ok) {
-		toast.error(result.error);
+		notify.error(result.error);
 		return;
 	}
-	toast.success("Frete marcado como revisado");
+	notify.success("Frete marcado como revisado");
 	refresh();
 }
 
@@ -94,11 +94,11 @@ async function runAddNote(
 ) {
 	const result = await addOrderNote({ orderId, body });
 	if (!result.ok) {
-		toast.error(result.error);
+		notify.error(result.error);
 		return;
 	}
 	setNoteBody("");
-	toast.success("Nota adicionada");
+	notify.success("Nota adicionada");
 	refresh();
 }
 
@@ -123,11 +123,11 @@ async function runPrimaryStatusUpdate(
 		branchId: transitionBranch,
 	});
 	if (!result.ok) {
-		toast.error(result.error);
+		notify.error(result.error);
 		return;
 	}
 	setStatusReason("");
-	toast.success(`Pedido movido para ${ORDER_STATUS_LABELS[nextStatus]}`);
+	notify.success(`Pedido movido para ${ORDER_STATUS_LABELS[nextStatus]}`);
 	refresh();
 }
 
@@ -341,7 +341,7 @@ export function OrderActionColumn({
 
 	function handleAssignBranch() {
 		if (!branchId) {
-			toast.error("Selecione uma filial");
+			notify.error("Selecione uma filial");
 			return;
 		}
 		startTransition(() => runAssignBranch(order.id, branchId, router.refresh));
@@ -349,7 +349,7 @@ export function OrderActionColumn({
 
 	function handleTrackingUpdate() {
 		if (!trackingCode.trim()) {
-			toast.error("Informe um código de rastreio");
+			notify.error("Informe um código de rastreio");
 			return;
 		}
 		startTransition(() =>
@@ -363,7 +363,7 @@ export function OrderActionColumn({
 
 	function handleAddNote() {
 		if (!noteBody.trim()) {
-			toast.error("Escreva uma nota");
+			notify.error("Escreva uma nota");
 			return;
 		}
 		startTransition(() =>

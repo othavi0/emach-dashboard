@@ -15,9 +15,9 @@ import { Button } from "@emach/ui/components/button";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { toast } from "sonner";
 import { BranchStatsCard } from "@/app/dashboard/branches/_components/branch-stats-card";
 import { formatBranchAddress } from "@/lib/format/branch";
+import { notify } from "@/lib/notify";
 import { unlinkUserFromBranch } from "../../actions";
 import type { UserLinkedBranch } from "../../data";
 
@@ -39,11 +39,11 @@ export function UserBranchCard({ userId, branch }: Props) {
 				branchId: branch.id,
 			});
 			if (result.ok) {
-				toast.success("Filial desvinculada");
+				notify.success("Filial desvinculada");
 				setOpen(false);
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		} finally {
 			setUnlinking(false);

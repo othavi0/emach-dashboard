@@ -4,15 +4,13 @@ import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
-
 import type { ZodError } from "zod";
-
 import {
 	FormErrorPanel,
 	type FormIssue,
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
+import { notify } from "@/lib/notify";
 
 import { createPromotion, updatePromotion } from "../actions";
 import { PromotionFormFields } from "./promotion-form-fields";
@@ -151,7 +149,7 @@ export function PromotionForm({
 			);
 			const issues = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
 			setFormIssues(issues);
-			toast.error(
+			notify.error(
 				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
 			);
 			return;
@@ -161,11 +159,13 @@ export function PromotionForm({
 			if (mode === "create") {
 				const result = await createPromotion(parsed.data);
 				if (result.ok) {
-					toast.success("Promoção criada com sucesso");
+					notify.success("Promoção criada com sucesso");
 					setSubmitted(true);
 					router.push(`/dashboard/promotions/${result.data.id}`);
 				} else {
-					setServerError(result.error || "Não foi possível criar a promoção");
+					const msg = result.error || "Não foi possível criar a promoção";
+					setServerError(msg);
+					notify.error(msg);
 				}
 			} else {
 				if (!promotionId) {
@@ -174,21 +174,20 @@ export function PromotionForm({
 				}
 				const result = await updatePromotion(promotionId, parsed.data);
 				if (result.ok) {
-					toast.success("Promoção atualizada com sucesso");
+					notify.success("Promoção atualizada com sucesso");
 					setSubmitted(true);
 					router.push(`/dashboard/promotions/${promotionId}`);
 				} else {
-					setServerError(result.error || "Não foi possível salvar a promoção");
+					const msg = result.error || "Não foi possível salvar a promoção";
+					setServerError(msg);
+					notify.error(msg);
 				}
 			}
 		});
 	}
 
 	return (
-		<form
-			className="flex w-full max-w-4xl flex-col gap-8"
-			onSubmit={handleSubmit}
-		>
+		<form className="flex w-full flex-col gap-8" onSubmit={handleSubmit}>
 			<FormErrorPanel issues={formIssues} />
 			{/* Server-side error banner */}
 			{serverError && (
@@ -211,10 +210,7 @@ export function PromotionForm({
 			/>
 
 			{/* Botões */}
-			<div className="flex items-center gap-3">
-				<Button disabled={isPending || submitted} type="submit">
-					<SubmitLabel isPending={isPending} mode={mode} type={values.type} />
-				</Button>
+			<div className="flex items-center justify-end gap-3 border-border border-t pt-6">
 				<Button
 					disabled={isPending}
 					onClick={() => router.push("/dashboard/promotions")}
@@ -222,6 +218,9 @@ export function PromotionForm({
 					variant="ghost"
 				>
 					Cancelar
+				</Button>
+				<Button disabled={isPending || submitted} type="submit">
+					<SubmitLabel isPending={isPending} mode={mode} type={values.type} />
 				</Button>
 			</div>
 		</form>

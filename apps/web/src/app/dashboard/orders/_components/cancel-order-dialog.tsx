@@ -14,7 +14,7 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { updateOrderStatus } from "../actions";
 
 interface CancelOrderDialogProps {
@@ -30,7 +30,7 @@ export function CancelOrderDialog({ orderId }: CancelOrderDialogProps) {
 	function handleConfirm() {
 		const trimmed = reason.trim();
 		if (!trimmed) {
-			toast.error("Informe o motivo do cancelamento");
+			notify.error("Informe o motivo do cancelamento");
 			return;
 		}
 		startTransition(async () => {
@@ -40,10 +40,10 @@ export function CancelOrderDialog({ orderId }: CancelOrderDialogProps) {
 				reason: trimmed,
 			});
 			if (!result.ok) {
-				toast.error(result.error);
+				notify.error(result.error);
 				return;
 			}
-			toast.success("Pedido cancelado");
+			notify.success("Pedido cancelado");
 			setOpen(false);
 			router.refresh();
 		});

@@ -2,13 +2,12 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { toast } from "sonner";
-
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
 import {
 	type FormIssue,
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
+import { notify } from "@/lib/notify";
 import { BranchFormFields } from "../../_components/branch-form-fields";
 import {
 	type BranchFormValues,
@@ -92,11 +91,11 @@ export function BranchEditSheet({ branch }: Props) {
 		startTransition(async () => {
 			const res = await updateBranch(branch.id, parsed.data);
 			if (res.ok) {
-				toast.success("Filial atualizada");
+				notify.success("Filial atualizada");
 				close();
 				router.refresh();
 			} else {
-				toast.error(res.error);
+				notify.error(res.error);
 			}
 		});
 	};

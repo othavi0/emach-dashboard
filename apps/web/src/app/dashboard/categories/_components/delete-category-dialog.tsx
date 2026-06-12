@@ -16,7 +16,7 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { deleteCategory } from "../actions";
 
@@ -43,7 +43,7 @@ export function DeleteCategoryDialog({
 		startTransition(async () => {
 			const result = await deleteCategory(categoryId);
 			if (result.ok) {
-				toast.success("Categoria removida");
+				notify.success("Categoria removida");
 				setOpen(false);
 				if (redirectTo) {
 					router.push(redirectTo);
@@ -51,7 +51,7 @@ export function DeleteCategoryDialog({
 					router.refresh();
 				}
 			} else {
-				toast.error(result.error || "Não foi possível remover a categoria");
+				notify.error(result.error || "Não foi possível remover a categoria");
 			}
 		});
 	}

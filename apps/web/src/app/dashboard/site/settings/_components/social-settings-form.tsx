@@ -6,13 +6,12 @@ import { Label } from "@emach/ui/components/label";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
-
 import {
 	FormErrorPanel,
 	type FormIssue,
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
+import { notify } from "@/lib/notify";
 import { updateSocialSettings } from "../actions";
 import { SocialIcon } from "./social-icons";
 import {
@@ -66,7 +65,7 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 		if (!parsed.success) {
 			const next = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
 			setIssues(next);
-			toast.error(
+			notify.error(
 				`${next.length} ${next.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
 			);
 			return;
@@ -76,9 +75,9 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 		startTransition(async () => {
 			const result = await updateSocialSettings(values);
 			if (result.ok) {
-				toast.success("Redes sociais salvas");
+				notify.success("Redes sociais salvas");
 			} else {
-				toast.error(result.error || "Não foi possível salvar");
+				notify.error(result.error || "Não foi possível salvar");
 			}
 		});
 	}

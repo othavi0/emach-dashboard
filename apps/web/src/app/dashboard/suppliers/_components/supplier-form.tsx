@@ -5,13 +5,12 @@ import { Spinner } from "@emach/ui/components/spinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
-
 import {
 	FormErrorPanel,
 	type FormIssue,
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
+import { notify } from "@/lib/notify";
 
 import { createSupplier, updateSupplier } from "../actions";
 import { SupplierFormFields } from "./supplier-form-fields";
@@ -76,7 +75,7 @@ export function SupplierForm({
 		if (!parsed.success) {
 			const issues = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
 			setFormIssues(issues);
-			toast.error(
+			notify.error(
 				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
 			);
 			return;
@@ -90,13 +89,13 @@ export function SupplierForm({
 			const result = await action;
 
 			if (result.ok) {
-				toast.success(
+				notify.success(
 					mode === "create" ? "Fornecedor criado" : "Fornecedor atualizado"
 				);
 				router.push("/dashboard/suppliers");
 				router.refresh();
 			} else {
-				toast.error(result.error || "Não foi possível salvar o fornecedor");
+				notify.error(result.error || "Não foi possível salvar o fornecedor");
 			}
 		});
 	}

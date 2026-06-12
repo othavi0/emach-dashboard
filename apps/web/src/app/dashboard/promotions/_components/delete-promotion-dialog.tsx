@@ -16,7 +16,7 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { deletePromotion } from "../actions";
 
@@ -44,7 +44,7 @@ export function DeletePromotionDialog({
 		startTransition(async () => {
 			const result = await deletePromotion(promotionId);
 			if (result.ok) {
-				toast.success("Promoção removida");
+				notify.success("Promoção removida");
 				setOpen(false);
 				if (redirectTo) {
 					router.push(redirectTo);
@@ -52,7 +52,7 @@ export function DeletePromotionDialog({
 					router.refresh();
 				}
 			} else {
-				toast.error(result.error || "Não foi possível remover a promoção");
+				notify.error(result.error || "Não foi possível remover a promoção");
 			}
 		});
 	}

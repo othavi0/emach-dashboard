@@ -8,9 +8,8 @@ import {
 	useState,
 	useTransition,
 } from "react";
-import { toast } from "sonner";
-
 import type { FormIssue } from "@/components/form-error-panel";
+import { notify } from "@/lib/notify";
 import { useToolFormContext } from "./tool-form-context";
 import type { ToolFormState } from "./tool-form-state";
 import type { ToolFormValues } from "./tool-schema";
@@ -41,7 +40,7 @@ export function useToolSubmit({ mode, values, setErrors }: UseToolSubmitArgs) {
 		setErrors(parsed.fieldErrors);
 		setIssues(parsed.issues);
 		if (!(parsed.ok && parsed.data)) {
-			toast.error(
+			notify.error(
 				`${parsed.issues.length} erro${parsed.issues.length === 1 ? "" : "s"} — veja detalhes acima`
 			);
 			requestAnimationFrame(() =>
@@ -53,11 +52,11 @@ export function useToolSubmit({ mode, values, setErrors }: UseToolSubmitArgs) {
 		startTransition(async () => {
 			const res = await persistTool(mode, data, toolId);
 			if (res.ok) {
-				toast.success(SUCCESS_MESSAGE[mode]);
+				notify.success(SUCCESS_MESSAGE[mode]);
 				router.push("/dashboard/tools");
 				router.refresh();
 			} else {
-				toast.error(res.error || "Falha ao salvar");
+				notify.error(res.error || "Falha ao salvar");
 			}
 		});
 	}

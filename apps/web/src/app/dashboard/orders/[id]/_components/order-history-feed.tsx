@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	STATUS_ICONS,
 	type StatusIconKey,
@@ -17,6 +16,7 @@ import {
 	type Tone,
 } from "@/components/status-visual";
 import { formatDateTime } from "@/lib/format/datetime";
+import { notify } from "@/lib/notify";
 import { togglePinNote } from "../../actions";
 import type {
 	OrderAttachmentItem,
@@ -270,7 +270,7 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 			if (result.ok) {
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}

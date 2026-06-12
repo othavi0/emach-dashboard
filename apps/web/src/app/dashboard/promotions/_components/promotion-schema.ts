@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { saoPauloDayKey } from "@/lib/format/date-input";
 
 const ASCII_PRINTABLE_REGEX = /^[\x20-\x7E]+$/;
 
@@ -22,7 +23,9 @@ const promotionBaseFields = {
 
 	discountType: z.enum(["percent", "fixed"]),
 
-	discountValue: z.number().gt(0, "Valor do desconto deve ser maior que zero"),
+	discountValue: z
+		.number()
+		.gt(0, "Informe um valor de desconto maior que zero"),
 
 	appliesToAll: z.boolean(),
 
@@ -68,12 +71,14 @@ const promocodeVariantSchema = z.object({
 	// ASCII printable: 0x20–0x7E, length 1–50
 	code: z
 		.string()
+		.trim()
 		.min(1, "Código obrigatório para promocode")
 		.max(50, "Código não pode ultrapassar 50 caracteres")
 		.regex(
 			ASCII_PRINTABLE_REGEX,
 			"Código deve conter apenas caracteres ASCII imprimíveis"
-		),
+		)
+		.transform((v) => v.toUpperCase()),
 	maxRedemptions: z.number().int().min(1).optional().nullable(),
 	minOrderAmount: z.number().min(0).optional().nullable(),
 	...promotionBaseFields,
@@ -104,15 +109,16 @@ export const promotionSchema = z
 			});
 		}
 
-		// Cross-field: endsAt must be after startsAt when both are set
+		// Cross-field: fim não pode cair em dia anterior ao início (comparação por
+		// dia no fuso SP — permite promoção de 1 dia, com início 00:00 e fim 23:59)
 		if (
 			data.startsAt != null &&
 			data.endsAt != null &&
-			data.endsAt <= data.startsAt
+			saoPauloDayKey(data.endsAt) < saoPauloDayKey(data.startsAt)
 		) {
 			ctx.addIssue({
 				code: "custom",
-				message: "Data de fim deve ser posterior à data de início",
+				message: "Data de fim não pode ser anterior à data de início",
 				path: ["endsAt"],
 			});
 		}
@@ -124,7 +130,10 @@ export const promotionSchema = z
 
 export const createPromotionSchema = promotionSchema.superRefine(
 	(data, ctx) => {
-		if (data.startsAt != null && data.startsAt < new Date()) {
+		if (
+			data.startsAt != null &&
+			saoPauloDayKey(data.startsAt) < saoPauloDayKey(new Date())
+		) {
 			ctx.addIssue({
 				code: "custom",
 				message: "Data de início não pode ser no passado",

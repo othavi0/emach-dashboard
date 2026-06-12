@@ -9,9 +9,8 @@ import {
 } from "@emach/ui/components/card";
 import { LogOut, MonitorOff } from "lucide-react";
 import { useTransition } from "react";
-import { toast } from "sonner";
-
 import { formatDateTime } from "@/lib/format/datetime";
+import { notify } from "@/lib/notify";
 import { revokeUserSession } from "../../actions";
 
 interface SessionRow {
@@ -35,9 +34,9 @@ export function SessionsList({
 		startTransition(async () => {
 			const res = await revokeUserSession({ sessionId });
 			if (res.ok) {
-				toast.success("Sessão revogada");
+				notify.success("Sessão revogada");
 			} else {
-				toast.error(res.error);
+				notify.error(res.error);
 			}
 		});
 	};

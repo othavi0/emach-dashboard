@@ -24,14 +24,13 @@ import { Textarea } from "@emach/ui/components/textarea";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import type { ZodError } from "zod";
-
 import {
 	FormErrorPanel,
 	type FormIssue,
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
+import { notify } from "@/lib/notify";
 
 import { slugifyLabel, validateSlugFormat } from "../_lib/attribute-schema";
 import {
@@ -142,7 +141,7 @@ export function CategoryForm({
 			setErrors(zodErrorsToFieldMap(parsed.error));
 			const issues = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
 			setFormIssues(issues);
-			toast.error(
+			notify.error(
 				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
 			);
 			return;
@@ -155,13 +154,13 @@ export function CategoryForm({
 					: await updateCategory(categoryId ?? "", parsed.data);
 
 			if (result.ok) {
-				toast.success(
+				notify.success(
 					mode === "create" ? "Categoria criada" : "Categoria atualizada"
 				);
 				router.push("/dashboard/categories");
 				router.refresh();
 			} else {
-				toast.error(result.error || "Não foi possível salvar a categoria");
+				notify.error(result.error || "Não foi possível salvar a categoria");
 			}
 		});
 	}

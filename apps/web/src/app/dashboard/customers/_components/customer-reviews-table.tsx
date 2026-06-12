@@ -30,9 +30,8 @@ import {
 import { BanIcon, CheckCircleIcon, StarIcon, XCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
-
 import { moderateReview } from "@/app/dashboard/reviews/actions";
+import { notify } from "@/lib/notify";
 import type { CustomerReviewRow } from "../data";
 
 const REVIEW_STATUS_LABELS: Record<string, string> = {
@@ -106,10 +105,10 @@ export function CustomerReviewsTable({
 		startTransition(async () => {
 			const result = await moderateReview({ reviewId, status: "approved" });
 			if (result.ok) {
-				toast.success("Avaliação aprovada");
+				notify.success("Avaliação aprovada");
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}
@@ -126,7 +125,7 @@ export function CustomerReviewsTable({
 				moderationNote,
 			});
 			if (result.ok) {
-				toast.success(
+				notify.success(
 					pendingAction.status === "spam"
 						? "Avaliação marcada como spam"
 						: "Avaliação rejeitada"
@@ -135,7 +134,7 @@ export function CustomerReviewsTable({
 				setNote("");
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}

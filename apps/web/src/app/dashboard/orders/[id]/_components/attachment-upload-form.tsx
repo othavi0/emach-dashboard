@@ -6,7 +6,7 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
 import { UploadIcon } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { addOrderAttachment } from "../../_components/attachment-actions";
 
 export function AttachmentUploadForm({
@@ -53,7 +53,7 @@ export function AttachmentUploadForm({
 				setErrors([result.error]);
 				return;
 			}
-			toast.success("Anexo enviado");
+			notify.success("Anexo enviado");
 			setLabel("");
 			setDescription("");
 			setFileName(null);

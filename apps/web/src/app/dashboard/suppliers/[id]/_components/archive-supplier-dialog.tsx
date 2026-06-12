@@ -16,7 +16,7 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Archive, ArchiveRestore } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { archiveSupplier, restoreSupplier } from "../../actions";
 
@@ -44,13 +44,13 @@ export function ArchiveSupplierDialog({
 				? await restoreSupplier(supplierId)
 				: await archiveSupplier(supplierId);
 			if (result.ok) {
-				toast.success(
+				notify.success(
 					isArchived ? "Fornecedor restaurado" : "Fornecedor arquivado"
 				);
 				setOpen(false);
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}
