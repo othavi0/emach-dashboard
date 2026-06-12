@@ -31,7 +31,6 @@ import {
 	type AttributeFormValues,
 	attributeFormSchema,
 	slugifyLabel,
-	validateSlugFormat,
 } from "../_lib/attribute-schema";
 
 interface AttributeFormProps {
@@ -193,39 +192,6 @@ export function AttributeForm({
 				/>
 				{errors.label && (
 					<p className="text-destructive text-xs">{errors.label}</p>
-				)}
-			</div>
-
-			<div className="flex flex-col gap-2">
-				<Label className="flex items-center gap-1.5" htmlFor="slug">
-					<span>
-						Slug
-						<span className="text-destructive"> *</span>
-					</span>
-					<HelpTooltip text="Gerado do rótulo; vira a chave técnica do atributo." />
-				</Label>
-				<Input
-					aria-invalid={errors.slug ? true : undefined}
-					aria-required="true"
-					disabled={mode === "create"}
-					id="slug"
-					onBlur={() => {
-						if (mode === "edit") {
-							const err = validateSlugFormat(values.slug);
-							setErrors((prev) => ({ ...prev, slug: err ?? undefined }));
-						}
-					}}
-					onChange={(e) => update("slug", e.target.value)}
-					placeholder="rpm-maximo"
-					value={values.slug}
-				/>
-				<p className="text-muted-foreground text-xs">
-					{mode === "create"
-						? "Gerado automaticamente a partir do rótulo."
-						: "Atenção: alterar o slug pode quebrar referências."}
-				</p>
-				{errors.slug && (
-					<p className="text-destructive text-xs">{errors.slug}</p>
 				)}
 			</div>
 
