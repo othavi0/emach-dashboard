@@ -29,7 +29,7 @@ export function AffixInput({
 			data-slot="affix-input"
 		>
 			{prefix == null ? null : (
-				<div className="flex shrink-0 items-center border-input border-r bg-muted px-2.5 text-muted-foreground">
+				<div className="flex shrink-0 items-stretch border-input border-r bg-muted text-muted-foreground">
 					{prefix}
 				</div>
 			)}
@@ -39,7 +39,7 @@ export function AffixInput({
 				{...rest}
 			/>
 			{suffix == null ? null : (
-				<div className="flex shrink-0 items-center border-input border-l bg-muted px-2.5 text-muted-foreground">
+				<div className="flex shrink-0 items-stretch border-input border-l bg-muted text-muted-foreground">
 					{suffix}
 				</div>
 			)}

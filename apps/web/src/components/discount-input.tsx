@@ -77,8 +77,7 @@ export function DiscountInput({
 		>
 			<SelectTrigger
 				aria-label="Tipo de desconto"
-				className="h-full w-auto rounded-none border-0 bg-transparent px-0 pr-1 focus-visible:ring-0 focus-visible:ring-offset-0"
-				size="sm"
+				className="h-8 w-auto gap-1 rounded-none border-0 bg-transparent px-2.5 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
 			>
 				<SelectValue />
 			</SelectTrigger>

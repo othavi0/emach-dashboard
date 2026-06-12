@@ -34,7 +34,7 @@ export function MoneyInput({ disabled, id, onChange, value }: MoneyInputProps) {
 			inputMode="numeric"
 			onChange={handleChange}
 			placeholder="0,00"
-			prefix="R$"
+			prefix={<span className="flex items-center px-2.5">R$</span>}
 			value={display}
 		/>
 	);
