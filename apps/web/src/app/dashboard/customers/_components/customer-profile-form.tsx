@@ -14,10 +14,9 @@ import { Textarea } from "@emach/ui/components/textarea";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
-
 import { FormErrorPanel, type FormIssue } from "@/components/form-error-panel";
 import { formatDocument } from "@/lib/cpf-cnpj";
+import { notify } from "@/lib/notify";
 import { updateCustomerProfile } from "../actions";
 import type { CustomerDetail } from "../data";
 
@@ -74,11 +73,11 @@ export function CustomerProfileForm({
 			});
 
 			if (result.ok) {
-				toast.success("Perfil atualizado com sucesso");
+				notify.success("Perfil atualizado com sucesso");
 				router.push(`/dashboard/customers/${customer.id}?tab=perfil`);
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 				setIssues([{ path: "Formulário", message: result.error }]);
 			}
 		});

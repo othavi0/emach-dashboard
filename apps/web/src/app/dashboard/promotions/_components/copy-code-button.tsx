@@ -2,7 +2,7 @@
 
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 interface CopyCodeButtonProps {
 	code: string;
@@ -17,10 +17,10 @@ export function CopyCodeButton({ code }: CopyCodeButtonProps) {
 		try {
 			await navigator.clipboard.writeText(code);
 			setCopied(true);
-			toast.success("Código copiado");
+			notify.success("Código copiado");
 			setTimeout(() => setCopied(false), 1500);
 		} catch {
-			toast.error("Não foi possível copiar");
+			notify.error("Não foi possível copiar");
 		}
 	}
 

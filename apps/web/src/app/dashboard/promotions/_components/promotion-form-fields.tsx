@@ -23,8 +23,10 @@ import { Textarea } from "@emach/ui/components/textarea";
 import { AlertCircle, ChevronsUpDown, Tag, Ticket, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
+import { DiscountInput } from "@/components/discount-input";
 import { MaskedInput } from "@/components/masked-input";
-import { brlMask, integerMask, percentageMask } from "@/lib/masks";
+import { MoneyInput } from "@/components/money-input";
+import { integerMask } from "@/lib/masks";
 
 import { countToolsWithActivePromotion } from "../actions";
 import type { PromotionFormValues } from "./promotion-schema";
@@ -225,6 +227,25 @@ function TypeSelector({
 }
 
 // ---------------------------------------------------------------------------
+// Section — card com título
+// ---------------------------------------------------------------------------
+
+function Section({
+	title,
+	children,
+}: {
+	title: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<div className="flex flex-col gap-4 rounded-lg border border-border p-4">
+			<h3 className="font-medium text-sm">{title}</h3>
+			{children}
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
 // PromotionFormFields — campos controlados (values + onPatch)
 // ---------------------------------------------------------------------------
 
@@ -276,11 +297,6 @@ export function PromotionFormFields({
 		} as Partial<PromotionFormValues>);
 	}
 
-	const discountMask =
-		values.discountType === "percent" ? percentageMask : brlMask;
-	const discountLabel =
-		values.discountType === "percent" ? "Desconto (%)" : "Desconto (R$)";
-
 	return (
 		<div className="flex flex-col gap-6">
 			{mode === "create" ? (
@@ -300,13 +316,12 @@ export function PromotionFormFields({
 				</div>
 			)}
 
-			<div className="grid gap-x-8 gap-y-6 lg:grid-cols-2">
-				{/* Coluna esquerda — identidade e desconto */}
-				<div className="flex flex-col gap-6">
+			<div className="grid gap-4 lg:grid-cols-2">
+				{/* Card 1 — Identidade */}
+				<Section title="Identidade">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="promo-title">
-							Título
-							<span className="text-destructive"> *</span>
+							Título<span className="text-destructive"> *</span>
 						</Label>
 						<Input
 							disabled={disabled}
@@ -321,7 +336,6 @@ export function PromotionFormFields({
 							<p className="text-destructive text-sm">{errors.title}</p>
 						)}
 					</div>
-
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="promo-description">Descrição</Label>
 						<Textarea
@@ -340,58 +354,20 @@ export function PromotionFormFields({
 							<p className="text-destructive text-sm">{errors.description}</p>
 						)}
 					</div>
+				</Section>
 
-					{/* Tipo de desconto */}
-					<div className="flex flex-col gap-3">
-						<Label>
-							Tipo de desconto
-							<span className="text-destructive"> *</span>
-						</Label>
-						<RadioGroup
-							className="flex gap-4"
-							onValueChange={(v) =>
-								onPatch({
-									discountType: v as "percent" | "fixed",
-								})
-							}
-							value={values.discountType}
-						>
-							<Label
-								className="flex cursor-pointer items-center gap-2"
-								htmlFor="discount-type-percent"
-							>
-								<RadioGroupItem
-									disabled={disabled}
-									id="discount-type-percent"
-									value="percent"
-								/>
-								Percentual %
-							</Label>
-							<Label
-								className="flex cursor-pointer items-center gap-2"
-								htmlFor="discount-type-fixed"
-							>
-								<RadioGroupItem
-									disabled={disabled}
-									id="discount-type-fixed"
-									value="fixed"
-								/>
-								Valor fixo R$
-							</Label>
-						</RadioGroup>
-					</div>
-
+				{/* Card 2 — Desconto (+ campos de cupom) */}
+				<Section title="Desconto">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="promo-discount-value">
-							{discountLabel}
-							<span className="text-destructive"> *</span>
+							Desconto<span className="text-destructive"> *</span>
 						</Label>
-						<MaskedInput
+						<DiscountInput
 							disabled={disabled}
+							discountType={values.discountType}
+							discountValue={values.discountValue}
 							id="promo-discount-value"
-							mask={discountMask}
-							onChange={(n) => onPatch({ discountValue: n ?? 0 })}
-							value={values.discountValue}
+							onChange={(next) => onPatch(next)}
 						/>
 						{errors.discountValue && (
 							<p className="text-destructive text-sm">{errors.discountValue}</p>
@@ -401,8 +377,7 @@ export function PromotionFormFields({
 					{isCoupon && (
 						<div className="flex flex-col gap-2">
 							<Label htmlFor="promo-code">
-								Código
-								<span className="text-destructive"> *</span>
+								Código<span className="text-destructive"> *</span>
 							</Label>
 							<Input
 								className="font-mono uppercase"
@@ -459,18 +434,17 @@ export function PromotionFormFields({
 								<Label htmlFor="promo-min-order-amount">
 									Valor mínimo do pedido
 								</Label>
-								<MaskedInput
+								<MoneyInput
 									disabled={disabled}
 									id="promo-min-order-amount"
-									mask={brlMask}
 									onChange={(n) =>
 										onPatch({
-											minOrderAmount: n ?? null,
+											minOrderAmount: n,
 										} as Partial<PromotionFormValues>)
 									}
 									value={
 										(values as { minOrderAmount?: number | null })
-											.minOrderAmount ?? undefined
+											.minOrderAmount
 									}
 								/>
 								<p className="text-muted-foreground text-xs">
@@ -484,16 +458,17 @@ export function PromotionFormFields({
 							</div>
 						</>
 					)}
-				</div>
+				</Section>
 
-				{/* Coluna direita — vigência, publicação e ferramentas */}
-				<div className="flex flex-col gap-6">
+				{/* Card 3 — Vigência & publicação */}
+				<Section title="Vigência & publicação">
 					<div className="grid gap-4 sm:grid-cols-2">
 						<div className="flex flex-col gap-2">
 							<Label htmlFor="promo-starts-at">Início</Label>
 							<DatePicker
 								disabled={disabled}
 								id="promo-starts-at"
+								min={mode === "create" ? new Date() : undefined}
 								onChange={(d) => onPatch({ startsAt: d ?? null })}
 								value={values.startsAt ?? undefined}
 							/>
@@ -502,7 +477,6 @@ export function PromotionFormFields({
 								<p className="text-destructive text-sm">{errors.startsAt}</p>
 							)}
 						</div>
-
 						<div className="flex flex-col gap-2">
 							<Label htmlFor="promo-ends-at">Fim</Label>
 							<DatePicker
@@ -519,25 +493,23 @@ export function PromotionFormFields({
 						</div>
 					</div>
 
-					<div className="flex flex-col gap-2 rounded-lg border border-border p-4">
-						<div className="flex items-center gap-3">
-							<Switch
-								checked={values.active}
-								disabled={disabled}
-								id="promo-active"
-								onCheckedChange={(v) => onPatch({ active: v })}
-							/>
-							<Label className="cursor-pointer" htmlFor="promo-active">
-								Ativa
-							</Label>
-						</div>
-						<p className="text-muted-foreground text-xs">
-							Inativa não aparece no site, mesmo dentro da vigência.
-						</p>
+					<div className="flex items-center gap-3">
+						<Switch
+							checked={values.active}
+							disabled={disabled}
+							id="promo-active"
+							onCheckedChange={(v) => onPatch({ active: v })}
+						/>
+						<Label className="cursor-pointer" htmlFor="promo-active">
+							Ativa
+						</Label>
 					</div>
+					<p className="-mt-2 text-muted-foreground text-xs">
+						Inativa não aparece no site, mesmo dentro da vigência.
+					</p>
 
 					{!isCoupon && (
-						<div className="flex flex-col gap-2 rounded-lg border border-border p-4">
+						<>
 							<div className="flex items-center gap-3">
 								<Switch
 									checked={values.featured}
@@ -549,56 +521,48 @@ export function PromotionFormFields({
 									Destaque no home
 								</Label>
 							</div>
-							<p className="text-muted-foreground text-xs">
-								Aparece em destaque no topo da home, com contador regressivo até
-								o fim da vigência. Só uma promoção pode ser destaque — marcar
-								esta desmarca a anterior.
+							<p className="-mt-2 text-muted-foreground text-xs">
+								Aparece em destaque no topo da home. Só uma promoção pode ser
+								destaque por vez — não é possível ativar enquanto houver outro
+								destaque vigente.
 							</p>
-						</div>
+						</>
 					)}
+				</Section>
 
-					{/* Escopo: Todas / Específicas */}
-					<div className="flex flex-col gap-3">
-						<Label>
-							Ferramentas
-							<span className="text-destructive"> *</span>
-						</Label>
-						<RadioGroup
-							className="flex gap-4"
-							onValueChange={(v) => {
-								const all = v === "true";
-								if (all) {
-									onPatch({ appliesToAll: true, toolIds: [] });
-								} else {
-									onPatch({ appliesToAll: false });
-								}
-							}}
-							value={String(values.appliesToAll)}
+				{/* Card 4 — Ferramentas */}
+				<Section title="Ferramentas">
+					<RadioGroup
+						className="flex gap-4"
+						onValueChange={(v) => {
+							const all = v === "true";
+							if (all) {
+								onPatch({ appliesToAll: true, toolIds: [] });
+							} else {
+								onPatch({ appliesToAll: false });
+							}
+						}}
+						value={String(values.appliesToAll)}
+					>
+						<Label
+							className="flex cursor-pointer items-center gap-2"
+							htmlFor="scope-all"
 						>
-							<Label
-								className="flex cursor-pointer items-center gap-2"
-								htmlFor="scope-all"
-							>
-								<RadioGroupItem
-									disabled={disabled}
-									id="scope-all"
-									value="true"
-								/>
-								Todas as ferramentas
-							</Label>
-							<Label
-								className="flex cursor-pointer items-center gap-2"
-								htmlFor="scope-specific"
-							>
-								<RadioGroupItem
-									disabled={disabled}
-									id="scope-specific"
-									value="false"
-								/>
-								Ferramentas específicas
-							</Label>
-						</RadioGroup>
-					</div>
+							<RadioGroupItem disabled={disabled} id="scope-all" value="true" />
+							Todas as ferramentas
+						</Label>
+						<Label
+							className="flex cursor-pointer items-center gap-2"
+							htmlFor="scope-specific"
+						>
+							<RadioGroupItem
+								disabled={disabled}
+								id="scope-specific"
+								value="false"
+							/>
+							Ferramentas específicas
+						</Label>
+					</RadioGroup>
 
 					{!values.appliesToAll && (
 						<div className="flex flex-col gap-2">
@@ -627,7 +591,7 @@ export function PromotionFormFields({
 							)}
 						</div>
 					)}
-				</div>
+				</Section>
 			</div>
 		</div>
 	);

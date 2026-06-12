@@ -16,7 +16,7 @@ import {
 import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { linkUserToBranch } from "../../actions";
 
 interface Props {
@@ -33,11 +33,11 @@ export function UserBranchLinkPanel({ userId, options }: Props) {
 		startTransition(async () => {
 			const res = await linkUserToBranch({ userId, branchId: option.id });
 			if (res.ok) {
-				toast.success("Filial vinculada");
+				notify.success("Filial vinculada");
 				setOpen(false);
 				router.refresh();
 			} else {
-				toast.error(res.error);
+				notify.error(res.error);
 			}
 		});
 	}

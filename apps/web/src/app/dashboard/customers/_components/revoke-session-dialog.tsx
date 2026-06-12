@@ -15,7 +15,7 @@ import { buttonVariants } from "@emach/ui/components/button";
 import { Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { revokeClientSession } from "../actions";
 
@@ -37,10 +37,10 @@ export function RevokeSessionDialog({
 		startTransition(async () => {
 			const result = await revokeClientSession({ clientId, sessionId });
 			if (result.ok) {
-				toast.success("Sessão revogada com sucesso");
+				notify.success("Sessão revogada com sucesso");
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}

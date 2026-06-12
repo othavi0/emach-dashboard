@@ -16,8 +16,8 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 
+import { notify } from "@/lib/notify";
 import { deleteToolVariant } from "../actions";
 
 interface DeleteVariantDialogProps {
@@ -38,7 +38,7 @@ export function DeleteVariantDialog({
 			const result = await deleteToolVariant({ variantId });
 			if (result.ok) {
 				const reassigned = result.data.reassignedDefaultSku;
-				toast.success(
+				notify.success(
 					reassigned
 						? `Variante excluída. Padrão reatribuída para ${reassigned}.`
 						: "Variante excluída"
@@ -46,7 +46,7 @@ export function DeleteVariantDialog({
 				setOpen(false);
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}

@@ -4,7 +4,7 @@ import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { toggleCategoryActive } from "../actions";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
@@ -27,10 +27,10 @@ export function CategoryDetailActions({
 		startTransition(async () => {
 			const result = await toggleCategoryActive(categoryId, !isActive);
 			if (result.ok) {
-				toast.success(isActive ? "Categoria desativada" : "Categoria ativada");
+				notify.success(isActive ? "Categoria desativada" : "Categoria ativada");
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}

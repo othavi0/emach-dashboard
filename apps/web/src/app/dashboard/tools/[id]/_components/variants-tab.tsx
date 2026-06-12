@@ -27,7 +27,7 @@ import {
 } from "@emach/ui/components/tooltip";
 import { CheckCircle2, Lock } from "lucide-react";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { DeleteToolDialog } from "../../_components/delete-tool-dialog";
 import { DeleteVariantDialog } from "../../_components/delete-variant-dialog";
@@ -202,11 +202,11 @@ function EditableRow({
 				costAmount: costAmountValue,
 			});
 			if (result.ok) {
-				toast.success("Variante atualizada");
+				notify.success("Variante atualizada");
 				setSavedTick(true);
 				setTimeout(() => setSavedTick(false), 1800);
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}
@@ -221,9 +221,9 @@ function EditableRow({
 				variantId: variant.id,
 			});
 			if (result.ok) {
-				toast.success("Variante padrão atualizada");
+				notify.success("Variante padrão atualizada");
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}
@@ -236,16 +236,16 @@ function EditableRow({
 			});
 			if (result.ok) {
 				if (result.data.warning === "default_hidden") {
-					toast.warning(
+					notify.warning(
 						"A variante padrão está oculta do site. Defina outra como padrão visível."
 					);
 				} else {
-					toast.success(
+					notify.success(
 						visible ? "Variante visível no site" : "Variante oculta"
 					);
 				}
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}

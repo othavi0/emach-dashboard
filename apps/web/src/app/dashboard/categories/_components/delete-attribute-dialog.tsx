@@ -15,7 +15,7 @@ import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { deleteCategoryAttribute } from "../_lib/attribute-actions";
 
@@ -39,10 +39,10 @@ export function DeleteAttributeDialog({
 		startTransition(async () => {
 			const result = await deleteCategoryAttribute(attributeId, categoryId);
 			if (result.ok) {
-				toast.success("Atributo removido");
+				notify.success("Atributo removido");
 				setOpen(false);
 			} else {
-				toast.error(result.error || "Não foi possível remover o atributo");
+				notify.error(result.error || "Não foi possível remover o atributo");
 			}
 		});
 	}

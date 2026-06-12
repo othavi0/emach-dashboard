@@ -22,7 +22,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { deleteTool } from "../actions";
 
@@ -47,7 +47,7 @@ export function DeleteToolDialog({
 		startTransition(async () => {
 			const result = await deleteTool(toolId);
 			if (result.ok) {
-				toast.success("Ferramenta removida");
+				notify.success("Ferramenta removida");
 				setOpen(false);
 				router.push("/dashboard/tools");
 				router.refresh();
@@ -56,7 +56,7 @@ export function DeleteToolDialog({
 					"error" in result
 						? result.error
 						: "Não foi possível remover a ferramenta";
-				toast.error(message);
+				notify.error(message);
 			}
 		});
 	}
