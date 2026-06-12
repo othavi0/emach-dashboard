@@ -130,11 +130,9 @@ export default async function ToolDetailPage({
 			<ToolDetailHeader
 				actions={
 					<ToolDetailActions
-						canDelete={canDelete}
 						canMutate={canMutate}
 						tab={current}
 						toolId={detail.tool.id}
-						toolName={detail.tool.name}
 					/>
 				}
 				detail={detail}
