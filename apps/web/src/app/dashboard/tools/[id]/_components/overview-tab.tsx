@@ -11,7 +11,7 @@ import type {
 	ToolDetailRow,
 	ToolStockSummary,
 } from "../_lib/tool-detail-data";
-import { FiscalSpecsAccordion } from "./fiscal-specs-accordion";
+import { ToolSpecs } from "./tool-specs";
 
 interface OverviewTabProps {
 	attributes: ToolDetailAttribute[];
@@ -33,7 +33,7 @@ export function OverviewTab({
 
 	return (
 		<div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-			<div className="flex min-w-0 flex-col gap-4">
+			<div className="flex min-w-0 flex-col gap-5">
 				{images.length > 0 ? (
 					<div className="grid grid-cols-4 gap-2">
 						{images.slice(0, 8).map((img) => (
@@ -51,15 +51,9 @@ export function OverviewTab({
 					<div className="aspect-video rounded-md bg-muted" />
 				)}
 
-				{tool.description && (
-					<Card>
-						<CardContent className="pt-6">
-							<ToolDescription markdown={tool.description} />
-						</CardContent>
-					</Card>
-				)}
+				{tool.description && <ToolDescription markdown={tool.description} />}
 
-				<FiscalSpecsAccordion attributes={attributes} tool={tool} />
+				<ToolSpecs attributes={attributes} tool={tool} />
 			</div>
 
 			<aside className="flex flex-col gap-4">
@@ -119,16 +113,6 @@ export function OverviewTab({
 							<div>
 								<dt className="text-muted-foreground text-xs">Fornecedor</dt>
 								<dd>{tool.supplierName ?? "—"}</dd>
-							</div>
-							<div>
-								<dt className="text-muted-foreground text-xs">Visibilidade</dt>
-								<dd>
-									{tool.visibleOnSite ? (
-										<span className="text-success">● No site</span>
-									) : (
-										<span className="text-muted-foreground">○ Oculta</span>
-									)}
-								</dd>
 							</div>
 							<div>
 								<dt className="text-muted-foreground text-xs">Criada</dt>

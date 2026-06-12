@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@emach/ui/components/button";
 import {
 	Table,
 	TableBody,
@@ -9,13 +8,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@emach/ui/components/table";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@emach/ui/components/tooltip";
-import { ArrowLeftRight } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { ToolDetailVariant, ToolStockRow } from "../_lib/tool-detail-data";
@@ -142,131 +134,126 @@ export function EstoqueTab({
 	}
 
 	return (
-		<TooltipProvider delay={300}>
-			<div className="flex flex-col gap-4">
-				<div className="flex items-center justify-end">
-					<Tooltip>
-						<TooltipTrigger
-							render={
-								<Button disabled size="sm" variant="outline">
-									<ArrowLeftRight className="mr-1.5 size-3.5" />
-									Transferir entre filiais
-								</Button>
-							}
-						/>
-						<TooltipContent>
-							Em breve — requer mudança de schema (ADR separada).
-						</TooltipContent>
-					</Tooltip>
-				</div>
-
-				<div className="overflow-x-auto rounded-md border border-border">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead className="w-[180px]">Variante</TableHead>
-								{branches.map((b) => (
-									<TableHead className="text-center" key={b.id}>
-										{b.name}
-									</TableHead>
-								))}
-								<TableHead className="bg-muted/40 text-right">Total</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{variants.map((v) => (
-								<TableRow key={v.id}>
-									<TableCell>
-										<div className="font-mono text-xs">{v.sku}</div>
-										<div className="text-[10px] text-muted-foreground">
-											{v.voltage ?? "—"} {v.isDefault && "· padrão"}
-										</div>
-									</TableCell>
-									{branches.map((b) => {
-										const data = cellMap.get(`${v.id}:${b.id}`);
-										const status = cellStatus(data);
-										return (
-											<TableCell
-												className={`cursor-pointer p-0 text-center ${cellClass(status)}`}
-												key={b.id}
-												onClick={() =>
-													canMutate &&
-													setSelected({
-														variantId: v.id,
-														variantSku: v.sku,
-														variantVoltage: v.voltage,
-														branchId: b.id,
-														branchName: b.name,
-													})
-												}
-											>
-												<div className="py-3">
-													<div className="font-semibold text-lg tabular-nums">
-														{data ? data.quantity : "—"}
-													</div>
-													<div className="text-[10px] text-muted-foreground">
-														{data && data.reorderPoint > 0
-															? `mín ${data.minQty} · rep ${data.reorderPoint}`
-															: "sem limites"}
-													</div>
-												</div>
-											</TableCell>
-										);
-									})}
-									<TableCell className="bg-muted/40 text-right font-semibold tabular-nums">
-										{variantTotals.get(v.id) ?? 0}
-									</TableCell>
-								</TableRow>
+		<div className="flex flex-col gap-4">
+			<div className="overflow-x-auto rounded-md border border-border">
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead className="w-[180px]">Variante</TableHead>
+							{branches.map((b) => (
+								<TableHead className="text-center" key={b.id}>
+									{b.name}
+								</TableHead>
 							))}
-							<TableRow className="bg-muted/40">
-								<TableCell className="text-muted-foreground text-xs uppercase">
-									Total
+							<TableHead className="bg-muted/40 text-right">Total</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{variants.map((v) => (
+							<TableRow key={v.id}>
+								<TableCell>
+									<div className="font-mono text-xs">{v.sku}</div>
+									<div className="text-[10px] text-muted-foreground">
+										{v.voltage ?? "—"} {v.isDefault && "· padrão"}
+									</div>
 								</TableCell>
-								{branches.map((b) => (
-									<TableCell
-										className="text-center font-semibold tabular-nums"
-										key={b.id}
-									>
-										{branchTotals.get(b.id) ?? 0}
-									</TableCell>
-								))}
-								<TableCell className="bg-muted text-right font-semibold tabular-nums">
-									{grandTotal}
+								{branches.map((b) => {
+									const data = cellMap.get(`${v.id}:${b.id}`);
+									const status = cellStatus(data);
+									const open = () =>
+										setSelected({
+											variantId: v.id,
+											variantSku: v.sku,
+											variantVoltage: v.voltage,
+											branchId: b.id,
+											branchName: b.name,
+										});
+									const interactive = canMutate
+										? {
+												"aria-label": `Ajustar estoque de ${v.sku} em ${b.name}`,
+												onClick: open,
+												onKeyDown: (e: React.KeyboardEvent) => {
+													if (e.key === "Enter" || e.key === " ") {
+														e.preventDefault();
+														open();
+													}
+												},
+												role: "button" as const,
+												tabIndex: 0,
+											}
+										: {};
+									return (
+										<TableCell
+											className={`p-0 text-center ${canMutate ? "cursor-pointer" : ""} ${cellClass(status)}`}
+											key={b.id}
+											{...interactive}
+										>
+											<div className="py-3">
+												<div className="font-semibold text-lg tabular-nums">
+													{data ? data.quantity : "—"}
+												</div>
+												<div className="text-[10px] text-muted-foreground">
+													{data && data.reorderPoint > 0
+														? `mín ${data.minQty} · rep ${data.reorderPoint}`
+														: "sem limites"}
+												</div>
+											</div>
+										</TableCell>
+									);
+								})}
+								<TableCell className="bg-muted/40 text-right font-semibold tabular-nums">
+									{variantTotals.get(v.id) ?? 0}
 								</TableCell>
 							</TableRow>
-						</TableBody>
-					</Table>
-				</div>
-
-				<div className="flex flex-wrap gap-3 text-muted-foreground text-xs">
-					<span>
-						<span className="mr-1 inline-block size-2.5 rounded-sm bg-destructive/15 align-middle ring-1 ring-destructive" />
-						Crítico (≤ mín)
-					</span>
-					<span>
-						<span className="mr-1 inline-block size-2.5 rounded-sm bg-warning/15 align-middle ring-1 ring-warning" />
-						Repor (≤ ponto)
-					</span>
-					<span>
-						<span className="mr-1 inline-block size-2.5 rounded-sm border border-border align-middle" />
-						OK
-					</span>
-				</div>
-
-				{selected && (
-					<StockCellSheet
-						branchId={selected.branchId}
-						branchName={selected.branchName}
-						canMutate={canMutate}
-						initial={cellMap.get(`${selected.variantId}:${selected.branchId}`)}
-						onClose={() => setSelected(null)}
-						toolId={toolId}
-						variantId={selected.variantId}
-						variantSku={selected.variantSku}
-						variantVoltage={selected.variantVoltage}
-					/>
-				)}
+						))}
+						<TableRow className="bg-muted/40">
+							<TableCell className="text-muted-foreground text-xs uppercase">
+								Total
+							</TableCell>
+							{branches.map((b) => (
+								<TableCell
+									className="text-center font-semibold tabular-nums"
+									key={b.id}
+								>
+									{branchTotals.get(b.id) ?? 0}
+								</TableCell>
+							))}
+							<TableCell className="bg-muted text-right font-semibold tabular-nums">
+								{grandTotal}
+							</TableCell>
+						</TableRow>
+					</TableBody>
+				</Table>
 			</div>
-		</TooltipProvider>
+
+			<div className="flex flex-wrap gap-3 text-muted-foreground text-xs">
+				<span>
+					<span className="mr-1 inline-block size-2.5 rounded-sm bg-destructive/15 align-middle ring-1 ring-destructive" />
+					Crítico (≤ mín)
+				</span>
+				<span>
+					<span className="mr-1 inline-block size-2.5 rounded-sm bg-warning/15 align-middle ring-1 ring-warning" />
+					Repor (≤ ponto)
+				</span>
+				<span>
+					<span className="mr-1 inline-block size-2.5 rounded-sm border border-border align-middle" />
+					OK
+				</span>
+			</div>
+
+			{selected && (
+				<StockCellSheet
+					branchId={selected.branchId}
+					branchName={selected.branchName}
+					canMutate={canMutate}
+					initial={cellMap.get(`${selected.variantId}:${selected.branchId}`)}
+					onClose={() => setSelected(null)}
+					toolId={toolId}
+					variantId={selected.variantId}
+					variantSku={selected.variantSku}
+					variantVoltage={selected.variantVoltage}
+				/>
+			)}
+		</div>
 	);
 }
