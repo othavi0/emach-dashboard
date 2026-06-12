@@ -5,13 +5,12 @@ import { Spinner } from "@emach/ui/components/spinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
-
 import {
 	FormErrorPanel,
 	type FormIssue,
 	zodIssuesToFormIssues,
 } from "@/components/form-error-panel";
+import { notify } from "@/lib/notify";
 
 import { createBranch, updateBranch } from "../actions";
 import { BranchFormFields } from "./branch-form-fields";
@@ -93,7 +92,7 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 		if (!parsed.success) {
 			const next = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
 			setIssues(next);
-			toast.error(
+			notify.error(
 				`${next.length} ${next.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
 			);
 			return;
@@ -107,13 +106,13 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 			const result = await action;
 
 			if (result.ok) {
-				toast.success(
+				notify.success(
 					mode === "create" ? "Filial criada" : "Filial atualizada"
 				);
 				router.push("/dashboard/branches");
 				router.refresh();
 			} else {
-				toast.error(result.error || "Não foi possível salvar a filial");
+				notify.error(result.error || "Não foi possível salvar a filial");
 			}
 		});
 	}

@@ -16,7 +16,7 @@ import {
 import { Loader2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { linkUserToBranchAction, searchEligibleUsers } from "../../actions";
 
 interface Props {
@@ -60,13 +60,13 @@ export function TeamLinkPanel({ branchId }: Props) {
 				branchId,
 			});
 			if (result.ok) {
-				toast.success(`${user.name} vinculado à filial.`);
+				notify.success(`${user.name} vinculado à filial.`);
 				setOpen(false);
 				setQuery("");
 				setResults([]);
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		} finally {
 			setLinking(false);
