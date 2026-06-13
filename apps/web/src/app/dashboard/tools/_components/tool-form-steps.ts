@@ -160,3 +160,35 @@ export function getStepIssues(
 ): FormIssue[] {
 	return filterStepIssues(toolFormSchema.safeParse(values), stepId);
 }
+
+export function getStepFieldErrors(
+	values: unknown,
+	stepId: ToolStepId
+): Partial<Record<keyof ToolFormValues, string>> {
+	const parsed = toolFormSchema.safeParse(values);
+	if (parsed.success) {
+		return {};
+	}
+	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
+	const out: Partial<Record<keyof ToolFormValues, string>> = {};
+	for (const issue of parsed.error.issues) {
+		const key = issue.path[0] as keyof ToolFormValues | undefined;
+		if (key && fields.has(String(key)) && out[key] === undefined) {
+			out[key] = issue.message;
+		}
+	}
+	return out;
+}
+
+export function firstStepWithError(values: unknown): ToolStepId | null {
+	const parsed = toolFormSchema.safeParse(values);
+	if (parsed.success) {
+		return null;
+	}
+	for (const step of TOOL_STEPS) {
+		if (stepHasErrors(parsed, step.id)) {
+			return step.id;
+		}
+	}
+	return null;
+}
