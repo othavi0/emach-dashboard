@@ -1,14 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-	type Dispatch,
-	type SetStateAction,
-	useRef,
-	useState,
-	useTransition,
-} from "react";
-import type { FormIssue } from "@/components/form-error-panel";
+import { type Dispatch, type SetStateAction, useTransition } from "react";
+import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { useToolFormContext } from "./tool-form-context";
 import type { ToolFormState } from "./tool-form-state";
@@ -22,30 +16,34 @@ const SUCCESS_MESSAGE: Record<"create" | "edit", string> = {
 
 interface UseToolSubmitArgs {
 	mode: "create" | "edit";
+	/** Wizard injeta para navegar até o passo com erro antes de focar. */
+	onValidationFail?: (errorKeys: string[]) => void;
 	setErrors: Dispatch<
 		SetStateAction<Partial<Record<keyof ToolFormValues, string>>>
 	>;
 	values: ToolFormState;
 }
 
-export function useToolSubmit({ mode, values, setErrors }: UseToolSubmitArgs) {
+export function useToolSubmit({
+	mode,
+	values,
+	setErrors,
+	onValidationFail,
+}: UseToolSubmitArgs) {
 	const router = useRouter();
 	const { toolId } = useToolFormContext();
-	const [issues, setIssues] = useState<FormIssue[]>([]);
 	const [isPending, startTransition] = useTransition();
-	const errorRef = useRef<HTMLDivElement | null>(null);
 
 	function submit() {
 		const parsed = parseToolForm(values);
 		setErrors(parsed.fieldErrors);
-		setIssues(parsed.issues);
 		if (!(parsed.ok && parsed.data)) {
-			notify.error(
-				`${parsed.issues.length} erro${parsed.issues.length === 1 ? "" : "s"} — veja detalhes acima`
-			);
-			requestAnimationFrame(() =>
-				errorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-			);
+			notify.error(errorToastMessage(parsed.issues.length));
+			if (onValidationFail) {
+				onValidationFail(Object.keys(parsed.fieldErrors));
+			} else {
+				focusFirstError();
+			}
 			return;
 		}
 		const data = parsed.data;
@@ -61,5 +59,5 @@ export function useToolSubmit({ mode, values, setErrors }: UseToolSubmitArgs) {
 		});
 	}
 
-	return { submit, isPending, issues, setIssues, errorRef };
+	return { submit, isPending };
 }
