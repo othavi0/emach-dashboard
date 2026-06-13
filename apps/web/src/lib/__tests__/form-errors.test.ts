@@ -46,6 +46,14 @@ describe("zodIssuesToFieldErrors", () => {
 		} as unknown as z.ZodError;
 		expect(zodIssuesToFieldErrors(err)._form).toBe("Erro geral do formulário");
 	});
+
+	it("mapeia path[0] symbol para _form sem lançar", () => {
+		const err = {
+			issues: [{ path: [Symbol("x")], message: "via symbol" }],
+		} as unknown as z.ZodError;
+		expect(() => zodIssuesToFieldErrors(err)).not.toThrow();
+		expect(zodIssuesToFieldErrors(err)._form).toBe("via symbol");
+	});
 });
 
 describe("errorToastMessage", () => {
@@ -55,6 +63,18 @@ describe("errorToastMessage", () => {
 		);
 		expect(errorToastMessage({ name: "x", email: "y" })).toBe(
 			"2 erros — corrija os campos destacados"
+		);
+	});
+
+	it("não conta _form como campo destacado", () => {
+		expect(errorToastMessage({ name: "x", _form: "geral" })).toBe(
+			"1 erro — corrija os campos destacados"
+		);
+	});
+
+	it("quando só há _form, mostra a própria mensagem", () => {
+		expect(errorToastMessage({ _form: "Revise o formulário" })).toBe(
+			"Revise o formulário"
 		);
 	});
 });

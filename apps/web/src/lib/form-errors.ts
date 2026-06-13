@@ -14,7 +14,11 @@ export function zodIssuesToFieldErrors<T = Record<string, string>>(
 ): Partial<Record<keyof T & string, string>> & { _form?: string } {
 	const out: Record<string, string> = {};
 	for (const issue of error.issues) {
-		const key = issue.path.length > 0 ? String(issue.path[0]) : "_form";
+		const raw = issue.path[0];
+		// Path vazio ou key symbol (raro/exótico) → erro de nível de formulário.
+		// `String(symbol)` lançaria TypeError, por isso o guard explícito.
+		const key =
+			raw === undefined || typeof raw === "symbol" ? "_form" : String(raw);
 		if (out[key] === undefined) {
 			out[key] = issue.message;
 		}
@@ -22,11 +26,19 @@ export function zodIssuesToFieldErrors<T = Record<string, string>>(
 	return out as Partial<Record<keyof T & string, string>> & { _form?: string };
 }
 
-/** Texto do toast — conta os CAMPOS destacados (chaves), não os issues do Zod. */
+/**
+ * Texto do toast — conta os CAMPOS destacados (chaves), excluindo a chave
+ * `_form` (erro de nível de formulário, que não destaca um campo). Quando só
+ * há `_form`, mostra a própria mensagem em vez de "0 erros".
+ */
 export function errorToastMessage(
 	fieldErrors: Record<string, unknown>
 ): string {
-	const count = Object.keys(fieldErrors).length;
+	const fieldKeys = Object.keys(fieldErrors).filter((k) => k !== "_form");
+	if (fieldKeys.length === 0 && typeof fieldErrors._form === "string") {
+		return fieldErrors._form;
+	}
+	const count = fieldKeys.length;
 	return `${count} ${count === 1 ? "erro" : "erros"} — corrija os campos destacados`;
 }
 
