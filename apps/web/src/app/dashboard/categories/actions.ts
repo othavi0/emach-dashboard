@@ -7,7 +7,7 @@ import {
 } from "@emach/db/schema/attributes";
 import { category, toolCategory } from "@emach/db/schema/categories";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
-import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, like, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -124,6 +124,8 @@ export interface CategoryDetailData {
 	ownAttributeCount: number;
 	parent: { id: string; name: string } | null;
 	productCount: number;
+	/** Produtos diretos + os de toda a subárvore de descendentes. */
+	rollupProductCount: number;
 }
 
 export async function getCategoryDetail(
@@ -177,6 +179,22 @@ export async function getCategoryDetail(
 		.from(attributeDefinition)
 		.where(eq(attributeDefinition.categoryId, id));
 
+	// Rollup: produtos primários da subárvore (self + descendentes), via path
+	// materializado. Paths são slugs (sem % ou _), seguro para LIKE.
+	const [rollupRow] = await db
+		.select({ value: count() })
+		.from(toolCategory)
+		.innerJoin(category, eq(category.id, toolCategory.categoryId))
+		.where(
+			and(
+				eq(toolCategory.isPrimary, true),
+				or(
+					eq(category.path, current.path),
+					like(category.path, `${current.path}/%`)
+				)
+			)
+		);
+
 	return {
 		category: current,
 		parent: parentRow ?? null,
@@ -187,6 +205,7 @@ export async function getCategoryDetail(
 		})),
 		ownAttributeCount: Number(ownAttributeCountRow?.value ?? 0),
 		productCount: Number(productCountRow?.value ?? 0),
+		rollupProductCount: Number(rollupRow?.value ?? 0),
 	};
 }
 

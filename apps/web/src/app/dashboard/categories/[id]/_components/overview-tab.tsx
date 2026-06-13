@@ -21,6 +21,7 @@ interface Props {
 	description: string | null;
 	isActive: boolean;
 	productCount: number;
+	rollupProductCount: number;
 }
 
 export function OverviewTab({
@@ -30,9 +31,18 @@ export function OverviewTab({
 	description,
 	isActive,
 	productCount,
+	rollupProductCount,
 }: Props) {
 	const kpis: KpiItem[] = [
-		{ label: "Produtos", value: productCount, icon: Package },
+		{
+			label: "Produtos",
+			value: rollupProductCount,
+			icon: Package,
+			hint:
+				rollupProductCount === productCount
+					? undefined
+					: `${productCount} ${productCount === 1 ? "direto" : "diretos"}`,
+		},
 		{ label: "Subcategorias", value: childrenCount, icon: FolderTree },
 		{ label: "Atributos", value: attributes.length, icon: SlidersHorizontal },
 		{
