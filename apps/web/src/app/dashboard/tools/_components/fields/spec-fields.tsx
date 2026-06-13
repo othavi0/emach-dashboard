@@ -3,6 +3,7 @@
 import type { AttributeDefinition } from "@emach/db/schema/attributes";
 import { useMemo } from "react";
 
+import { FieldError } from "@/components/field-error";
 import { AttributeAssignmentsEditor } from "../attribute-assignments-editor";
 import { DynamicSpecsEditor } from "../dynamic-specs-editor";
 import { useToolFormContext } from "../tool-form-context";
@@ -13,7 +14,7 @@ import {
 } from "../tool-schema";
 import type { ToolFieldGroupProps } from "./types";
 
-export function SpecFields({ values, onPatch }: ToolFieldGroupProps) {
+export function SpecFields({ values, onPatch, errors }: ToolFieldGroupProps) {
 	const { allDefinitions, definitionsByCategory } = useToolFormContext();
 
 	const suggestedDefinitions = useMemo(
@@ -80,6 +81,7 @@ export function SpecFields({ values, onPatch }: ToolFieldGroupProps) {
 					{filledSpecs} de {MIN_SPECS_ACTIVE} preenchidas
 				</span>
 			</div>
+			<FieldError>{errors.attributeValues}</FieldError>
 			<AttributeAssignmentsEditor
 				allDefinitions={allDefinitions}
 				onChange={updateAssignments}
