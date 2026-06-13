@@ -134,6 +134,7 @@ function SiblingGroup({
 	}
 	return (
 		<DndContext
+			id={`cat-sortable-${nodes[0]?.parentId ?? "root"}`}
 			onDragEnd={(event) => onDragEnd(event, nodes)}
 			sensors={sensors}
 		>
