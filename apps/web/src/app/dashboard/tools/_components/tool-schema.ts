@@ -124,6 +124,17 @@ export const toolFormSchema = z
 				message: `Ativar exige mínimo de ${MIN_IMAGES_ACTIVE} imagens`,
 			});
 		}
+		if (
+			data.status === "active" &&
+			countFilledSpecs(data.attributeValues, data.attributeAssignments) <
+				MIN_SPECS_ACTIVE
+		) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["attributeValues"],
+				message: `Ativar exige ao menos ${MIN_SPECS_ACTIVE} especificações preenchidas. Se a categoria tiver poucos atributos, anexe atributos extras do catálogo.`,
+			});
+		}
 		if (!data.categoryIds.includes(data.primaryCategoryId)) {
 			ctx.addIssue({
 				code: "custom",

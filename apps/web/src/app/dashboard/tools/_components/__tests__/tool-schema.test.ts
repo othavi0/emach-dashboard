@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { AttributeValueInput } from "../tool-schema";
-import { countFilledSpecs, MIN_SPECS_ACTIVE } from "../tool-schema";
+import {
+	countFilledSpecs,
+	MIN_SPECS_ACTIVE,
+	toolFormSchema,
+} from "../tool-schema";
 
 const txt = (s: string): AttributeValueInput => ({ valueText: s });
 const num = (n: number): AttributeValueInput => ({ valueNumeric: n });
@@ -49,5 +53,87 @@ describe("countFilledSpecs", () => {
 
 	it("valueBool false conta como preenchido", () => {
 		expect(countFilledSpecs({ a: bool(false) }, ["a"])).toBe(1);
+	});
+});
+
+function baseTool(overrides: Record<string, unknown> = {}) {
+	return {
+		name: "Furadeira de impacto",
+		status: "active" as const,
+		weightKg: 2,
+		lengthCm: 30,
+		widthCm: 10,
+		heightCm: 10,
+		categoryIds: ["cat-1"],
+		primaryCategoryId: "cat-1",
+		images: [
+			{ url: "https://x/1.jpg", sortOrder: 0 },
+			{ url: "https://x/2.jpg", sortOrder: 1 },
+			{ url: "https://x/3.jpg", sortOrder: 2 },
+		],
+		variants: [
+			{ sku: "SKU-1", priceAmount: 100, isDefault: true, sortOrder: 0 },
+		],
+		attributeAssignments: ["a", "b", "c", "d"],
+		attributeValues: {
+			a: { valueText: "700W" },
+			b: { valueText: "Bivolt" },
+			c: { valueNumeric: 2 },
+			d: { valueBool: true },
+		},
+		...overrides,
+	};
+}
+
+describe("toolFormSchema — regra de specs ao ativar", () => {
+	it("aceita active com 4 specs preenchidas", () => {
+		const r = toolFormSchema.safeParse(baseTool());
+		expect(r.success).toBe(true);
+	});
+
+	it("rejeita active com 3 specs preenchidas", () => {
+		const r = toolFormSchema.safeParse(
+			baseTool({
+				attributeAssignments: ["a", "b", "c"],
+				attributeValues: {
+					a: { valueText: "700W" },
+					b: { valueText: "Bivolt" },
+					c: { valueNumeric: 2 },
+				},
+			})
+		);
+		expect(r.success).toBe(false);
+		if (!r.success) {
+			expect(
+				r.error.issues.some((i) => String(i.path[0]) === "attributeValues")
+			).toBe(true);
+		}
+	});
+
+	it("aceita draft com 0 specs (regra só vale ao ativar)", () => {
+		const r = toolFormSchema.safeParse(
+			baseTool({
+				status: "draft",
+				attributeAssignments: [],
+				attributeValues: {},
+				images: [],
+			})
+		);
+		expect(r.success).toBe(true);
+	});
+
+	it("rejeita active quando há 4 vinculados mas só 3 preenchidos", () => {
+		const r = toolFormSchema.safeParse(
+			baseTool({
+				attributeAssignments: ["a", "b", "c", "d"],
+				attributeValues: {
+					a: { valueText: "700W" },
+					b: { valueText: "Bivolt" },
+					c: { valueNumeric: 2 },
+					d: { valueText: "" },
+				},
+			})
+		);
+		expect(r.success).toBe(false);
 	});
 });
