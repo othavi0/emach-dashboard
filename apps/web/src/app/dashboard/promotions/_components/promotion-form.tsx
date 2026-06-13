@@ -5,11 +5,7 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { ZodError } from "zod";
-import {
-	FormErrorPanel,
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
+import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import { createPromotion, updatePromotion } from "../actions";
@@ -19,22 +15,6 @@ import {
 	type PromotionFormValues,
 	promotionSchema,
 } from "./promotion-schema";
-
-export const FIELD_LABELS: Record<string, string> = {
-	title: "Título",
-	description: "Descrição",
-	type: "Tipo",
-	code: "Código",
-	discountType: "Tipo de desconto",
-	discountValue: "Desconto",
-	appliesToAll: "Ferramentas",
-	maxRedemptions: "Limite de resgates",
-	minOrderAmount: "Valor mínimo do pedido",
-	startsAt: "Início",
-	endsAt: "Fim",
-	toolIds: "Ferramentas",
-	active: "Ativa",
-};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -127,7 +107,6 @@ export function PromotionForm({
 	);
 
 	const [errors, setErrors] = useState<Record<string, string>>({});
-	const [formIssues, setFormIssues] = useState<FormIssue[]>([]);
 	const [serverError, setServerError] = useState<string | null>(null);
 	const [submitted, setSubmitted] = useState(false);
 
@@ -137,7 +116,6 @@ export function PromotionForm({
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setErrors({});
-		setFormIssues([]);
 		setServerError(null);
 
 		const schema = mode === "create" ? createPromotionSchema : promotionSchema;
@@ -147,11 +125,8 @@ export function PromotionForm({
 			setErrors(
 				zodErrorsToFieldMap(parsed.error as ZodError<PromotionFormValues>)
 			);
-			const issues = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
-			setFormIssues(issues);
-			notify.error(
-				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
-			);
+			notify.error(errorToastMessage(parsed.error.issues.length));
+			focusFirstError();
 			return;
 		}
 
@@ -188,7 +163,6 @@ export function PromotionForm({
 
 	return (
 		<form className="flex w-full flex-col gap-8" onSubmit={handleSubmit}>
-			<FormErrorPanel issues={formIssues} />
 			{/* Server-side error banner */}
 			{serverError && (
 				<div

@@ -6,11 +6,7 @@ import { Label } from "@emach/ui/components/label";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
 import { useState, useTransition } from "react";
-import {
-	FormErrorPanel,
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
+import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { updateSocialSettings } from "../actions";
 import { SocialIcon } from "./social-icons";
@@ -23,17 +19,12 @@ import {
 	socialSettingsSchema,
 } from "./social-schema";
 
-const FIELD_LABELS: Record<string, string> = Object.fromEntries(
-	SOCIAL_NETWORKS.map((n) => [`${n.key}Url`, `${n.label} (link)`])
-);
-
 interface SocialSettingsFormProps {
 	settings: SocialState;
 }
 
 export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 	const [isPending, startTransition] = useTransition();
-	const [issues, setIssues] = useState<FormIssue[]>([]);
 	const [state, setState] = useState<SocialState>(settings);
 
 	function setUrl(key: SocialNetworkKey, url: string) {
@@ -53,7 +44,6 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setIssues([]);
 
 		const raw: Record<string, unknown> = {};
 		for (const n of SOCIAL_NETWORKS) {
@@ -63,11 +53,8 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 
 		const parsed = socialSettingsSchema.safeParse(raw);
 		if (!parsed.success) {
-			const next = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
-			setIssues(next);
-			notify.error(
-				`${next.length} ${next.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
-			);
+			notify.error(errorToastMessage(parsed.error.issues.length));
+			focusFirstError();
 			return;
 		}
 
@@ -84,8 +71,6 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 
 	return (
 		<form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-			<FormErrorPanel issues={issues} />
-
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<div className="flex flex-col gap-1">
 					<h2 className="font-medium text-sm">Redes sociais</h2>
