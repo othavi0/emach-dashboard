@@ -47,9 +47,13 @@ export function OwnAttributesTable({
 }: OwnTableProps) {
 	if (rows.length === 0) {
 		return (
-			<p className="text-muted-foreground text-xs">
-				Nenhum atributo próprio. Use "Novo atributo" para adicionar.
-			</p>
+			<div className="flex flex-col items-center gap-1 rounded-md border border-border border-dashed px-4 py-8 text-center">
+				<p className="font-medium text-sm">Nenhum atributo próprio ainda</p>
+				<p className="text-muted-foreground text-xs">
+					Use "Novo atributo" para definir especificações desta categoria. Elas
+					valem para ela e todas as descendentes.
+				</p>
+			</div>
 		);
 	}
 	return (
@@ -66,12 +70,7 @@ export function OwnAttributesTable({
 			<TableBody>
 				{rows.map(({ def, usageCount }) => (
 					<TableRow key={def.id}>
-						<TableCell className="font-medium">
-							{def.label}
-							<p className="font-mono text-muted-foreground text-xs">
-								{def.slug}
-							</p>
-						</TableCell>
+						<TableCell className="font-medium">{def.label}</TableCell>
 						<TableCell>{ATTRIBUTE_INPUT_TYPE_LABELS[def.inputType]}</TableCell>
 						<TableCell>{def.unit ?? "—"}</TableCell>
 						<TableCell>
@@ -127,12 +126,7 @@ export function InheritedAttributesTable({ rows }: InheritedTableProps) {
 			<TableBody>
 				{rows.map(({ def, ownerCategoryId, ownerCategoryName }) => (
 					<TableRow key={def.id}>
-						<TableCell className="font-medium">
-							{def.label}
-							<p className="font-mono text-muted-foreground text-xs">
-								{def.slug}
-							</p>
-						</TableCell>
+						<TableCell className="font-medium">{def.label}</TableCell>
 						<TableCell>{ATTRIBUTE_INPUT_TYPE_LABELS[def.inputType]}</TableCell>
 						<TableCell>
 							<Badge variant="secondary">{ownerCategoryName}</Badge>

@@ -90,6 +90,12 @@ Feed multi-fonte que monta os SELECTs condicionalmente (filtro de tipo) e junta 
 
 **Regra:** sempre envolver o union em derived table — `SELECT * FROM ( <blocos> ) AS feed ORDER BY ... LIMIT ...`. Vale para 1 ou N blocos. Canônico: `branches/[id]/activity-data.ts`. **Smoke do caminho de 1 bloco** (não só o default com todos): o erro só aparece quando a lista de blocos colapsa para um — testar o filtro/deep-link de tipo único, não confiar no estado inicial.
 
+## Armadilha: o erro do Postgres vem em `.cause`, não em `.message`
+
+Drizzle 0.45 embrulha o erro do driver numa `DrizzleQueryError` cujo `.message` é literalmente `"Failed query: <sql> params: <…>"`. O **erro real do node-postgres** (`DatabaseError`, com `code` SQLSTATE, `constraint`, `detail` e a mensagem `"violates …"`) fica em **`e.cause`** — `e.code` é `undefined`.
+
+**Regra:** **nunca** detectar erro de banco por `e.message.includes("foreign key"/"unique"/"category cycle"/…)` — não casa, e o catch acaba devolvendo o `"Failed query: …"` cru pro usuário (incidente do delete de categoria com FK). Usar `getPgError(e)` em `apps/web/src/lib/db-error.ts`: anda na cadeia `.cause` e devolve `{ code, message, constraint }`. Mapear o SQLSTATE → mensagem amigável (`23503` foreign_key_violation, `23505` unique_violation, `P0001` trigger `RAISE EXCEPTION` como o anti-ciclo de categoria); fallback **loga** e devolve mensagem genérica, sem vazar SQL. Referência: `dashboard/categories/actions.ts` (`deleteCategory`, `mapWriteError`).
+
 ## `db` × `createDb()`
 
 - `db` (singleton em `src/index.ts`) — uso geral em server actions.

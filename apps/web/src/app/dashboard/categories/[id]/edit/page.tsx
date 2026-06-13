@@ -14,6 +14,7 @@ import { requireCurrentSession, type UserRole } from "@/lib/session";
 import type { InheritedRow, OwnRow } from "../../_components/attributes-table";
 import { CategoryAttributesPanel } from "../../_components/category-attributes-panel";
 import { CategoryForm } from "../../_components/category-form";
+import { breadcrumbFromPath, buildNameBySlug } from "../../_lib/category-tree";
 import { getCategory, listCategories } from "../../actions";
 
 export const dynamic = "force-dynamic";
@@ -117,39 +118,40 @@ export default async function EditCategoryPage({ params }: PageProps) {
 		notFound();
 	}
 
+	const nameBySlug = buildNameBySlug(categories);
+	const segments = breadcrumbFromPath(existing.path, nameBySlug);
+
 	return (
 		<div className="flex flex-col gap-6">
 			<PageHeader
-				description={
-					<>
-						Caminho atual: <code className="text-xs">{existing.path}</code>
-					</>
-				}
+				description={segments.length > 0 ? segments.join(" › ") : existing.name}
 				title="Editar categoria"
 			/>
-			<CategoryForm
-				categories={categories}
-				categoryId={id}
-				defaultValues={{
-					id: existing.id,
-					name: existing.name,
-					slug: existing.slug,
-					parentId: existing.parentId,
-					description: existing.description,
-					isActive: existing.isActive,
-					path: existing.path,
-				}}
-				mode="edit"
-			/>
-			<CategoryAttributesPanel
-				canCreate={can(role, "attributes.create")}
-				canDelete={can(role, "attributes.delete")}
-				canUpdate={can(role, "attributes.update")}
-				categoryId={id}
-				categoryName={existing.name}
-				inheritedRows={attrRows.inheritedRows}
-				ownRows={attrRows.ownRows}
-			/>
+			<div className="flex max-w-2xl flex-col gap-6">
+				<CategoryForm
+					categories={categories}
+					categoryId={id}
+					defaultValues={{
+						id: existing.id,
+						name: existing.name,
+						slug: existing.slug,
+						parentId: existing.parentId,
+						description: existing.description,
+						isActive: existing.isActive,
+						path: existing.path,
+					}}
+					mode="edit"
+				/>
+				<CategoryAttributesPanel
+					canCreate={can(role, "attributes.create")}
+					canDelete={can(role, "attributes.delete")}
+					canUpdate={can(role, "attributes.update")}
+					categoryId={id}
+					categoryName={existing.name}
+					inheritedRows={attrRows.inheritedRows}
+					ownRows={attrRows.ownRows}
+				/>
+			</div>
 		</div>
 	);
 }
