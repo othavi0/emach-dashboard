@@ -1,15 +1,20 @@
 "use server";
 
 import { db } from "@emach/db";
-import { attributeDefinition } from "@emach/db/schema/attributes";
+import {
+	type AttributeDefinition,
+	attributeDefinition,
+} from "@emach/db/schema/attributes";
 import { category, toolCategory } from "@emach/db/schema/categories";
-import { tool, toolVariant } from "@emach/db/schema/tools";
-import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
+import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { logUserActivity } from "@/lib/activity";
+import { decodeCursorAs } from "@/lib/cursor";
 import { getPgError } from "@/lib/db-error";
+import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { type CategoryInput, categorySchema } from "./schema";
@@ -185,22 +190,91 @@ export async function getCategoryDetail(
 	};
 }
 
-export interface CategoryProduct {
+// ============================================================================
+// Detalhe — hierarquia, atributos e coleções paginadas (entity-detail pattern)
+// ============================================================================
+
+/** Cadeia de ancestrais da raiz até o pai imediato (para o breadcrumb). */
+export async function getCategoryAncestors(
+	id: string
+): Promise<{ id: string; name: string }[]> {
+	const [self] = await db
+		.select({ parentId: category.parentId })
+		.from(category)
+		.where(eq(category.id, id))
+		.limit(1);
+
+	const chain: { id: string; name: string }[] = [];
+	let cursor: string | null = self?.parentId ?? null;
+	while (cursor) {
+		const [row]: { id: string; name: string; parentId: string | null }[] =
+			await db
+				.select({
+					id: category.id,
+					name: category.name,
+					parentId: category.parentId,
+				})
+				.from(category)
+				.where(eq(category.id, cursor))
+				.limit(1);
+		if (!row) {
+			break;
+		}
+		chain.push({ id: row.id, name: row.name });
+		cursor = row.parentId;
+	}
+	return chain.reverse();
+}
+
+export interface CategoryAttributeView {
+	def: AttributeDefinition;
+	/** Nome da categoria-pai de onde o atributo é herdado; null se próprio. */
+	ownerName: string | null;
+}
+
+/** Atributos próprios da categoria + herdados da cadeia ancestral. */
+export async function getCategoryAttributes(
+	categoryId: string
+): Promise<CategoryAttributeView[]> {
+	const ancestors = await getCategoryAncestors(categoryId);
+	const nameById = new Map(ancestors.map((c) => [c.id, c.name]));
+
+	const ids = [categoryId, ...ancestors.map((c) => c.id)];
+	const defs = await db
+		.select()
+		.from(attributeDefinition)
+		.where(inArray(attributeDefinition.categoryId, ids));
+
+	return defs
+		.sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label))
+		.map((def) => ({
+			def,
+			ownerName:
+				def.categoryId === categoryId
+					? null
+					: (nameById.get(def.categoryId) ?? "Origem"),
+		}));
+}
+
+export interface CategoryProductItem {
 	id: string;
+	imageUrl: string | null;
 	name: string;
 	sku: string | null;
 }
 
-export async function getCategoryProducts(
-	id: string,
-	limit = 8
-): Promise<CategoryProduct[]> {
+/** Produtos primários da categoria, paginados por nome (keyset). */
+export async function getCategoryProductsPage({
+	categoryId,
+	cursor,
+}: {
+	categoryId: string;
+	cursor: string | null;
+}): Promise<InfiniteResult<CategoryProductItem>> {
+	const decoded = cursor ? decodeCursorAs(cursor, "nameAsc") : null;
+
 	const rows = await db
-		.select({
-			id: tool.id,
-			name: tool.name,
-			sku: toolVariant.sku,
-		})
+		.select({ id: tool.id, name: tool.name, sku: toolVariant.sku })
 		.from(toolCategory)
 		.innerJoin(tool, eq(tool.id, toolCategory.toolId))
 		.leftJoin(
@@ -208,11 +282,123 @@ export async function getCategoryProducts(
 			and(eq(toolVariant.toolId, tool.id), eq(toolVariant.isDefault, true))
 		)
 		.where(
-			and(eq(toolCategory.categoryId, id), eq(toolCategory.isPrimary, true))
+			and(
+				eq(toolCategory.categoryId, categoryId),
+				eq(toolCategory.isPrimary, true),
+				decoded
+					? sql`(${tool.name}, ${tool.id}) > (${decoded.name}, ${decoded.id})`
+					: undefined
+			)
 		)
-		.orderBy(asc(tool.name))
-		.limit(limit);
-	return rows;
+		.orderBy(asc(tool.name), asc(tool.id))
+		.limit(BATCH_SIZE + 1);
+
+	const page = paginate(
+		rows,
+		(r) => ({ id: r.id, name: r.name, sku: r.sku }),
+		(last) => ({ v: 1, sort: "nameAsc", name: last.name, id: last.id })
+	);
+
+	// Thumb via enriquecimento em 2 passos (subquery escalar no select não
+	// materializa — ver packages/db/CLAUDE.md). Primeira imagem por sortOrder.
+	const ids = page.items.map((i) => i.id);
+	const thumbByTool = new Map<string, string>();
+	if (ids.length > 0) {
+		const imgs = await db
+			.select({
+				toolId: toolImage.toolId,
+				url: toolImage.url,
+				sortOrder: toolImage.sortOrder,
+			})
+			.from(toolImage)
+			.where(inArray(toolImage.toolId, ids))
+			.orderBy(asc(toolImage.toolId), asc(toolImage.sortOrder));
+		for (const img of imgs) {
+			if (!thumbByTool.has(img.toolId)) {
+				thumbByTool.set(img.toolId, img.url);
+			}
+		}
+	}
+
+	return {
+		items: page.items.map((i) => ({
+			...i,
+			imageUrl: thumbByTool.get(i.id) ?? null,
+		})),
+		nextCursor: page.nextCursor,
+	};
+}
+
+export interface CategoryChildItem {
+	id: string;
+	name: string;
+	productCount: number;
+}
+
+/** Subcategorias diretas, paginadas por ordem manual + id (keyset). */
+export async function getCategoryChildrenPage({
+	categoryId,
+	cursor,
+}: {
+	categoryId: string;
+	cursor: string | null;
+}): Promise<InfiniteResult<CategoryChildItem>> {
+	const decoded = cursor ? decodeCursorAs(cursor, "categoryTree") : null;
+
+	const rows = await db
+		.select({
+			id: category.id,
+			name: category.name,
+			sortOrder: category.sortOrder,
+		})
+		.from(category)
+		.where(
+			and(
+				eq(category.parentId, categoryId),
+				decoded
+					? sql`(${category.sortOrder}, ${category.id}) > (${decoded.sortOrder}, ${decoded.id})`
+					: undefined
+			)
+		)
+		.orderBy(asc(category.sortOrder), asc(category.id))
+		.limit(BATCH_SIZE + 1);
+
+	const page = paginate(
+		rows,
+		(r) => ({ id: r.id, name: r.name }),
+		(last) => ({
+			v: 1,
+			sort: "categoryTree",
+			sortOrder: last.sortOrder,
+			id: last.id,
+		})
+	);
+
+	const ids = page.items.map((i) => i.id);
+	const countById = new Map<string, number>();
+	if (ids.length > 0) {
+		const counts = await db
+			.select({ categoryId: toolCategory.categoryId, c: count() })
+			.from(toolCategory)
+			.where(
+				and(
+					eq(toolCategory.isPrimary, true),
+					inArray(toolCategory.categoryId, ids)
+				)
+			)
+			.groupBy(toolCategory.categoryId);
+		for (const r of counts) {
+			countById.set(r.categoryId, Number(r.c));
+		}
+	}
+
+	return {
+		items: page.items.map((i) => ({
+			...i,
+			productCount: countById.get(i.id) ?? 0,
+		})),
+		nextCursor: page.nextCursor,
+	};
 }
 
 export async function createCategory(
