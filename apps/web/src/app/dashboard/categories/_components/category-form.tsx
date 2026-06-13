@@ -18,7 +18,12 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { ZodError } from "zod";
 
-import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
+import { FieldError } from "@/components/field-error";
+import {
+	errorToastMessage,
+	focusFirstError,
+	zodIssuesToFieldErrors,
+} from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import { slugifyLabel } from "../_lib/attribute-schema";
@@ -59,19 +64,14 @@ function SubmitLabel({
 function zodErrorsToFieldMap(
 	error: ZodError<CategoryInput>
 ): Partial<Record<keyof CategoryInput, string>> {
-	const map: Partial<Record<keyof CategoryInput, string>> = {};
-	for (const issue of error.issues) {
-		const raw = issue.path[0] as keyof CategoryInput | undefined;
-		// slug é oculto e derivado do nome: erro de slug aparece sob o campo Nome.
-		const key = raw === "slug" ? "name" : raw;
-		if (key && !map[key]) {
-			map[key] =
-				raw === "slug"
-					? "O nome não gera um identificador válido — use letras ou números."
-					: issue.message;
-		}
+	// slug é oculto e derivado do nome: erro de slug aparece sob o campo Nome
+	// (e a chave `slug` é omitida do mapa via destructuring).
+	const { slug, ...rest } = zodIssuesToFieldErrors<CategoryInput>(error);
+	if (slug && !rest.name) {
+		rest.name =
+			"O nome não gera um identificador válido — use letras ou números.";
 	}
-	return map;
+	return rest;
 }
 
 export function CategoryForm({
@@ -198,14 +198,13 @@ export function CategoryForm({
 						placeholder="Ex: Furadeiras"
 						value={name}
 					/>
-					{errors.name && (
-						<p className="text-destructive text-sm">{errors.name}</p>
-					)}
+					<FieldError>{errors.name}</FieldError>
 				</div>
 
 				<div className="flex flex-col gap-2">
 					<Label htmlFor="category-description">Descrição (opcional)</Label>
 					<Textarea
+						aria-invalid={errors.description ? true : undefined}
 						disabled={isPending}
 						id="category-description"
 						onChange={(event) => setDescription(event.target.value)}
@@ -213,9 +212,7 @@ export function CategoryForm({
 						rows={3}
 						value={description}
 					/>
-					{errors.description && (
-						<p className="text-destructive text-sm">{errors.description}</p>
-					)}
+					<FieldError>{errors.description}</FieldError>
 				</div>
 			</section>
 

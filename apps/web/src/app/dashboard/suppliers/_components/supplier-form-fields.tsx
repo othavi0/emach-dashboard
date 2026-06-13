@@ -4,6 +4,7 @@ import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import { Textarea } from "@emach/ui/components/textarea";
 
+import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
 import type { SupplierFormValues } from "./supplier-schema";
 
@@ -36,9 +37,7 @@ export function SupplierFormFields({
 					placeholder="Ex: Bosch Brasil"
 					value={values.name ?? ""}
 				/>
-				{errors.name && (
-					<p className="text-destructive text-xs">{errors.name}</p>
-				)}
+				<FieldError>{errors.name}</FieldError>
 			</div>
 
 			<div className="grid gap-4 md:grid-cols-2">
@@ -53,9 +52,7 @@ export function SupplierFormFields({
 						type="email"
 						value={values.contactEmail ?? ""}
 					/>
-					{errors.contactEmail && (
-						<p className="text-destructive text-xs">{errors.contactEmail}</p>
-					)}
+					<FieldError>{errors.contactEmail}</FieldError>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="supplier-phone">Telefone (opcional)</Label>
@@ -67,9 +64,7 @@ export function SupplierFormFields({
 						placeholder="(11) 99999-9999"
 						value={values.phone ?? ""}
 					/>
-					{errors.phone && (
-						<p className="text-destructive text-xs">{errors.phone}</p>
-					)}
+					<FieldError>{errors.phone}</FieldError>
 				</div>
 			</div>
 
@@ -91,9 +86,7 @@ export function SupplierFormFields({
 						type="url"
 						value={values.website ?? ""}
 					/>
-					{errors.website && (
-						<p className="text-destructive text-xs">{errors.website}</p>
-					)}
+					<FieldError>{errors.website}</FieldError>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label className="flex items-center gap-1.5" htmlFor="supplier-cnpj">
@@ -112,9 +105,7 @@ export function SupplierFormFields({
 						placeholder="00.000.000/0000-00"
 						value={values.cnpj ?? ""}
 					/>
-					{errors.cnpj && (
-						<p className="text-destructive text-xs">{errors.cnpj}</p>
-					)}
+					<FieldError>{errors.cnpj}</FieldError>
 				</div>
 			</div>
 
@@ -129,9 +120,7 @@ export function SupplierFormFields({
 					rows={5}
 					value={values.notes ?? ""}
 				/>
-				{errors.notes && (
-					<p className="text-destructive text-xs">{errors.notes}</p>
-				)}
+				<FieldError>{errors.notes}</FieldError>
 				<p className="text-muted-foreground text-xs">Markdown suportado</p>
 			</div>
 		</div>

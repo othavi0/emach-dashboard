@@ -13,6 +13,7 @@ import {
 } from "@emach/ui/components/select";
 import { Spinner } from "@emach/ui/components/spinner";
 import { useState, useTransition } from "react";
+import { FieldError } from "@/components/field-error";
 import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import type { OriginBranchOption } from "../actions";
@@ -118,11 +119,7 @@ export function ShippingSettingsForm({
 								</SelectGroup>
 							</SelectContent>
 						</Select>
-						{errors.originBranchId && (
-							<p className="text-destructive text-xs">
-								{errors.originBranchId}
-							</p>
-						)}
+						<FieldError>{errors.originBranchId}</FieldError>
 					</div>
 				)}
 			</section>
@@ -170,11 +167,7 @@ export function ShippingSettingsForm({
 							placeholder="3000.00"
 							value={capAmount}
 						/>
-						{errors.insuranceCapAmount && (
-							<p className="text-destructive text-xs">
-								{errors.insuranceCapAmount}
-							</p>
-						)}
+						<FieldError>{errors.insuranceCapAmount}</FieldError>
 						<p className="text-muted-foreground text-xs">
 							Valor máximo declarado por envio. Padrão R$ 3.000 (teto
 							SuperFrete).

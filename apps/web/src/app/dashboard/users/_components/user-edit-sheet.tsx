@@ -6,6 +6,7 @@ import { Switch } from "@emach/ui/components/switch";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
+import { FieldError } from "@/components/field-error";
 import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { allowedApprovalRoles } from "../_lib/approval-roles";
@@ -95,9 +96,7 @@ export function UserEditSheet({ user, actorRole }: Props) {
 						onChange={(e) => setName(e.target.value)}
 						value={name}
 					/>
-					{errors.name && (
-						<p className="text-destructive text-xs">{errors.name}</p>
-					)}
+					<FieldError>{errors.name}</FieldError>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label>Cargo</Label>
