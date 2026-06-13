@@ -1,7 +1,3 @@
-import {
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
 import { type ToolFormValues, toolFormSchema } from "./tool-schema";
 
 export type ToolStepId =
@@ -95,52 +91,6 @@ const _stepFieldsAreExhaustive: _UncoveredField extends never
 
 export type { _stepFieldsAreExhaustive as _ };
 
-export const FIELD_LABELS: Record<string, string> = {
-	name: "Nome",
-	description: "Descrição",
-	model: "Modelo comercial",
-	invoiceModel: "Modelo da fábrica",
-	manufacturerName: "Marca / fabricante",
-	status: "Status",
-	hsCode: "HS Code",
-	ncm: "NCM",
-	cest: "CEST",
-	powerWatts: "Potência (W)",
-	weightKg: "Peso (kg)",
-	lengthCm: "Comprimento (cm)",
-	widthCm: "Largura (cm)",
-	heightCm: "Altura (cm)",
-	categoryIds: "Categorias",
-	primaryCategoryId: "Categoria principal",
-	supplierId: "Fornecedor",
-	visibleOnSite: "Visível no site",
-	images: "Imagens",
-	variants: "Variantes",
-	attributeValues: "Especificações técnicas",
-	attributeAssignments: "Atributos vinculados",
-	overweightShippingAmount: "Sobretaxa de frete",
-};
-
-export function filterStepIssues(
-	result: ReturnType<typeof toolFormSchema.safeParse>,
-	stepId: ToolStepId
-): FormIssue[] {
-	if (result.success) {
-		return [];
-	}
-	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
-	const scoped = result.error.issues.filter(
-		(issue) => issue.path.length > 0 && fields.has(String(issue.path[0]))
-	);
-	if (scoped.length === 0) {
-		return [];
-	}
-	return zodIssuesToFormIssues(
-		{ issues: scoped } as Parameters<typeof zodIssuesToFormIssues>[0],
-		FIELD_LABELS
-	);
-}
-
 export function stepHasErrors(
 	result: ReturnType<typeof toolFormSchema.safeParse>,
 	stepId: ToolStepId
@@ -152,13 +102,6 @@ export function stepHasErrors(
 	return result.error.issues.some(
 		(issue) => issue.path.length > 0 && fields.has(String(issue.path[0]))
 	);
-}
-
-export function getStepIssues(
-	values: unknown,
-	stepId: ToolStepId
-): FormIssue[] {
-	return filterStepIssues(toolFormSchema.safeParse(values), stepId);
 }
 
 export function getStepFieldErrors(
