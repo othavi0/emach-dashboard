@@ -66,21 +66,23 @@ O Server Component lê `sp.tab` e injeta a ação primária no header:
 
 **Todos os cards seguem divisórias edge-to-edge** (DESIGN.md §4 "Footer edge-to-edge"): container `overflow-hidden` sem padding; header e linhas com `px-4` próprio; `border-t` pertence à linha inteira (corre de ponta a ponta); rodapé "Editar" com `bg-muted` + `border-t` encostando nas três bordas. **Nunca** divisória recuada "flutuando" no meio do padding.
 
-### Aba "Produtos" (`products-tab.tsx`, novo)
+### Aba "Produtos" (`products-tab.tsx`, novo — Client Component)
 
 - Lista linkada (cada item → `/dashboard/tools/{id}`): thumb (primeira imagem do tool) + nome (`text-primary`) + SKU (mono, à direita). Divisórias edge-to-edge.
-- `getCategoryProducts` ganha a primeira imagem via `leftJoin` em `toolImage` (fallback: ícone placeholder).
-- Mantém o limite atual (`limit=8`) + link "Ver todos os N produtos →" para `/dashboard/tools?category={id}` quando `productCount > products.length`.
-- Empty state: "Nenhum produto nesta categoria.".
+- **Scroll infinito** via `useInfiniteList` + `<InfiniteSentinel>` (`src/components/infinite.ts` / `src/components/infinite-sentinel.tsx`), `BATCH_SIZE = 20`, cursor keyset. Server action paginada `getCategoryProductsPage({ categoryId, cursor })` em `actions.ts`, ordenada por `tool.name` + `tool.id` (keyset estável). Cada página inclui a thumb via `leftJoin` em `toolImage` (fallback: ícone placeholder).
+- Skeleton opcional no loading; empty state: "Nenhum produto nesta categoria.". Sem texto de "fim da lista" (sentinel retorna `null`).
+- Carrega lazy (só quando `sp.tab === "produtos"`).
 
-### Aba "Subcategorias" (`subcategories-tab.tsx`, novo)
+### Aba "Subcategorias" (`subcategories-tab.tsx`, novo — Client Component)
 
-- Lista linkada de `detail.children` (cada item → `/dashboard/categories/{id}`): ícone pasta + nome (`text-primary`) + contagem de produtos (à direita). Divisórias edge-to-edge.
+- Lista linkada de subcategorias (cada item → `/dashboard/categories/{id}`): ícone pasta + nome (`text-primary`) + contagem de produtos (à direita). Divisórias edge-to-edge.
+- **Scroll infinito** via `useInfiniteList` + `<InfiniteSentinel>`, mesmo padrão. Server action paginada `getCategoryChildrenPage({ categoryId, cursor })` em `actions.ts`, ordenada por `sortOrder` + `id` (espelha a ordenação atual de `children`), com a contagem de produtos por filho (subquery/groupBy como `getCategoryDetail` já faz).
 - Empty state: "Sem subcategorias." + dica de usar "Nova subcategoria" (ação no header).
+- Carrega lazy (só quando `sp.tab === "subcategorias"`).
 
 ## Decisões de escopo (YAGNI)
 
-- **Sem scroll infinito** nas abas Produtos/Subcategorias nesta entrega — mantém o limite + link "ver todos" já existente. O padrão `useInfiniteList` para coleções aninhadas fica como melhoria futura se a contagem crescer.
+- **Scroll infinito** nas abas Produtos/Subcategorias (padrão `useInfiniteList` + `<InfiniteSentinel>` das coleções aninhadas — canônico `branches/[id]/_components/orders-tab.tsx`). Substitui o "ver todos os N" + limite fixo.
 - **Atributos na Visão geral**, não em aba própria (decisão aprovada). São poucos e read-only; aba dedicada só se chegarem a 10-15 herdados.
 - **Sem mudança de dados/schema** além das duas queries de leitura (`getCategoryAncestors`, thumb em `getCategoryProducts`).
 
@@ -95,7 +97,7 @@ O Server Component lê `sp.tab` e injeta a ação primária no header:
 
 **Editados:**
 - `categories/[id]/page.tsx` — reescrita para o padrão entity (header + tabs + ação contextual).
-- `categories/actions.ts` — `getCategoryAncestors(id)`; thumb em `getCategoryProducts`.
+- `categories/actions.ts` — `getCategoryAncestors(id)`; `getCategoryAttributes(id)` (migra `loadAttributes`); `getCategoryProductsPage({ categoryId, cursor })` e `getCategoryChildrenPage({ categoryId, cursor })` paginadas (keyset cursor, `BATCH_SIZE`). `getCategoryProducts`/`getCategoryDetail.children` antigos podem sair se não usados em outro lugar.
 
 **Removidos/migrados:**
 - Uso de `CategoryDetailActions` no detalhe (lógica migra pro menu ⋯). O componente pode ser deletado se não usado em outro lugar.
