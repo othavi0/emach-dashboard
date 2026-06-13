@@ -1,6 +1,8 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import type { ZodError } from "zod";
+import { notify } from "@/lib/notify";
 
 /**
  * Converte um ZodError em erros por campo (chave = path[0]). Issues de path
@@ -47,4 +49,23 @@ export function focusFirstError(container?: HTMLElement | null): void {
 			focusable?.focus({ preventScroll: true });
 		});
 	});
+}
+
+/**
+ * Estado de erros por campo + report unificado (setErrors + toast + foco).
+ * Encapsula a fiação repetida em cada form. `reportValidationError` recebe o
+ * ZodError de um `safeParse` falho; `clearErrors` zera (use ao abrir/resetar).
+ */
+export function useFormErrors<T = Record<string, string>>() {
+	const [errors, setErrors] = useState<
+		Partial<Record<keyof T & string, string>> & { _form?: string }
+	>({});
+	const reportValidationError = useCallback((error: ZodError) => {
+		const fieldErrors = zodIssuesToFieldErrors<T>(error);
+		setErrors(fieldErrors);
+		notify.error(errorToastMessage(fieldErrors));
+		focusFirstError();
+	}, []);
+	const clearErrors = useCallback(() => setErrors({}), []);
+	return { errors, setErrors, reportValidationError, clearErrors };
 }

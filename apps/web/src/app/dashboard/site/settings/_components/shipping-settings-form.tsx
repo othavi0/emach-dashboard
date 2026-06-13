@@ -13,11 +13,7 @@ import {
 } from "@emach/ui/components/select";
 import { Spinner } from "@emach/ui/components/spinner";
 import { useState, useTransition } from "react";
-import {
-	errorToastMessage,
-	focusFirstError,
-	zodIssuesToFieldErrors,
-} from "@/lib/form-errors";
+import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import type { OriginBranchOption } from "../actions";
 import { updateShippingSettings } from "../actions";
@@ -44,7 +40,8 @@ export function ShippingSettingsForm({
 	settings,
 }: ShippingSettingsFormProps) {
 	const [isPending, startTransition] = useTransition();
-	const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
+	const { errors, setErrors, reportValidationError } =
+		useFormErrors<ShippingSettingsFormValues>();
 	const [originBranchId, setOriginBranchId] = useState(
 		settings.originBranchId ?? NO_ORIGIN
 	);
@@ -67,10 +64,7 @@ export function ShippingSettingsForm({
 
 		const parsed = shippingSettingsSchema.safeParse(values);
 		if (!parsed.success) {
-			const fieldErrors = zodIssuesToFieldErrors(parsed.error);
-			setErrors(fieldErrors);
-			notify.error(errorToastMessage(fieldErrors));
-			focusFirstError();
+			reportValidationError(parsed.error);
 			return;
 		}
 

@@ -6,11 +6,7 @@ import { Switch } from "@emach/ui/components/switch";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
-import {
-	errorToastMessage,
-	focusFirstError,
-	zodIssuesToFieldErrors,
-} from "@/lib/form-errors";
+import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { allowedApprovalRoles } from "../_lib/approval-roles";
 import { updateUser } from "../actions";
@@ -39,7 +35,7 @@ export function UserEditSheet({ user, actorRole }: Props) {
 	const [name, setName] = useState(user.name);
 	const [role, setRole] = useState<UserRow["role"]>(user.role);
 	const [emailVerified, setEmailVerified] = useState(user.emailVerified);
-	const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
+	const { errors, reportValidationError, clearErrors } = useFormErrors();
 	const [submitting, startTransition] = useTransition();
 
 	useEffect(() => {
@@ -47,9 +43,9 @@ export function UserEditSheet({ user, actorRole }: Props) {
 			setName(user.name);
 			setRole(user.role);
 			setEmailVerified(user.emailVerified);
-			setErrors({});
+			clearErrors();
 		}
-	}, [open, user]);
+	}, [open, user, clearErrors]);
 
 	const close = () => {
 		const sp = new URLSearchParams(params);
@@ -67,10 +63,7 @@ export function UserEditSheet({ user, actorRole }: Props) {
 			emailVerified,
 		});
 		if (!parsed.success) {
-			const fieldErrors = zodIssuesToFieldErrors(parsed.error);
-			setErrors(fieldErrors);
-			notify.error(errorToastMessage(fieldErrors));
-			focusFirstError();
+			reportValidationError(parsed.error);
 			return;
 		}
 		startTransition(async () => {
