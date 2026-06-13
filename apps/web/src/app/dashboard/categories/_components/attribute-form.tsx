@@ -15,9 +15,13 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
 import { Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
-import type { ZodError } from "zod";
+import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
-import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
+import {
+	errorToastMessage,
+	focusFirstError,
+	zodIssuesToFieldErrors,
+} from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import {
@@ -91,15 +95,9 @@ export function AttributeForm({
 		event.preventDefault();
 		const result = attributeFormSchema.safeParse(values);
 		if (!result.success) {
-			const fieldErrors: Partial<Record<keyof AttributeFormValues, string>> =
-				{};
-			const issues = (result.error as ZodError<AttributeFormValues>).issues;
-			for (const issue of issues) {
-				const key = issue.path[0] as keyof AttributeFormValues | undefined;
-				if (key && !fieldErrors[key]) {
-					fieldErrors[key] = issue.message;
-				}
-			}
+			const fieldErrors = zodIssuesToFieldErrors<AttributeFormValues>(
+				result.error
+			);
 			setErrors(fieldErrors);
 			notify.error(errorToastMessage(fieldErrors));
 			focusFirstError();
@@ -152,9 +150,7 @@ export function AttributeForm({
 					placeholder="RPM máximo"
 					value={values.label}
 				/>
-				{errors.label && (
-					<p className="text-destructive text-xs">{errors.label}</p>
-				)}
+				<FieldError>{errors.label}</FieldError>
 			</div>
 
 			<div className="grid gap-3 md:grid-cols-2">
@@ -288,9 +284,7 @@ export function AttributeForm({
 					>
 						<Plus /> Adicionar opção
 					</Button>
-					{errors.options && (
-						<p className="text-destructive text-xs">{errors.options}</p>
-					)}
+					<FieldError>{errors.options}</FieldError>
 				</section>
 			)}
 
@@ -365,9 +359,7 @@ export function AttributeForm({
 					>
 						<Plus /> Adicionar cor
 					</Button>
-					{errors.swatches && (
-						<p className="text-destructive text-xs">{errors.swatches}</p>
-					)}
+					<FieldError>{errors.swatches}</FieldError>
 				</section>
 			)}
 
