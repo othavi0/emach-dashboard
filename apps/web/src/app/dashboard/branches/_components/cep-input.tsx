@@ -24,6 +24,7 @@ export interface CepResolved {
 }
 
 interface Props {
+	"aria-invalid"?: boolean;
 	disabled?: boolean;
 	id?: string;
 	onChange: (next: string | undefined) => void;
@@ -34,7 +35,14 @@ interface Props {
 const DEBOUNCE_MS = 300;
 const TIMEOUT_MS = 5000;
 
-export function CepInput({ id, value, onChange, onResolve, disabled }: Props) {
+export function CepInput({
+	id,
+	value,
+	onChange,
+	onResolve,
+	disabled,
+	"aria-invalid": ariaInvalid,
+}: Props) {
 	const [isFetching, setIsFetching] = useState(false);
 	// Inicia com o CEP já preenchido para não re-resolver (e mostrar toast) ao abrir
 	// o form de edição. O auto-resolve só dispara quando o usuário muda o CEP.
@@ -95,6 +103,7 @@ export function CepInput({ id, value, onChange, onResolve, disabled }: Props) {
 	return (
 		<div className="relative">
 			<MaskedInput
+				aria-invalid={ariaInvalid}
 				disabled={disabled}
 				id={id}
 				mask={cepMask}
