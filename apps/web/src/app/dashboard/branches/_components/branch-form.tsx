@@ -77,8 +77,11 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 
 		const parsed = branchSchema.safeParse(values);
 		if (!parsed.success) {
-			setErrors(zodIssuesToFieldErrors<BranchFormValues>(parsed.error));
-			notify.error(errorToastMessage(parsed.error.issues.length));
+			const fieldErrors = zodIssuesToFieldErrors<BranchFormValues>(
+				parsed.error
+			);
+			setErrors(fieldErrors);
+			notify.error(errorToastMessage(fieldErrors));
 			focusFirstError();
 			return;
 		}

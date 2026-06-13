@@ -64,7 +64,7 @@ export function ToolWizard({
 		const stepErrors = getStepFieldErrors(values, step.id);
 		if (Object.keys(stepErrors).length > 0 && !step.optional) {
 			setErrors(stepErrors);
-			notify.error(errorToastMessage(Object.keys(stepErrors).length));
+			notify.error(errorToastMessage(stepErrors));
 			focusFirstError();
 			return;
 		}

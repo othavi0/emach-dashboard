@@ -40,19 +40,21 @@ describe("zodIssuesToFieldErrors", () => {
 		expect(zodIssuesToFieldErrors(err).businessHours).toBe("Horário inválido");
 	});
 
-	it("ignora issues sem path", () => {
+	it("mapeia issue de path vazio para a chave _form", () => {
 		const err = {
-			issues: [{ path: [], message: "geral" }],
+			issues: [{ path: [], message: "Erro geral do formulário" }],
 		} as unknown as z.ZodError;
-		expect(zodIssuesToFieldErrors(err)).toEqual({});
+		expect(zodIssuesToFieldErrors(err)._form).toBe("Erro geral do formulário");
 	});
 });
 
 describe("errorToastMessage", () => {
-	it("singular", () => {
-		expect(errorToastMessage(1)).toBe("1 erro — corrija os campos destacados");
-	});
-	it("plural", () => {
-		expect(errorToastMessage(3)).toBe("3 erros — corrija os campos destacados");
+	it("conta campos destacados (chaves), não issues", () => {
+		expect(errorToastMessage({ name: "x" })).toBe(
+			"1 erro — corrija os campos destacados"
+		);
+		expect(errorToastMessage({ name: "x", email: "y" })).toBe(
+			"2 erros — corrija os campos destacados"
+		);
 	});
 });

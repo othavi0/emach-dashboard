@@ -72,8 +72,11 @@ export function BranchEditSheet({ branch }: Props) {
 		e.preventDefault();
 		const parsed = branchSchema.safeParse(values);
 		if (!parsed.success) {
-			setErrors(zodIssuesToFieldErrors<BranchFormValues>(parsed.error));
-			notify.error(errorToastMessage(parsed.error.issues.length));
+			const fieldErrors = zodIssuesToFieldErrors<BranchFormValues>(
+				parsed.error
+			);
+			setErrors(fieldErrors);
+			notify.error(errorToastMessage(fieldErrors));
 			focusFirstError();
 			return;
 		}

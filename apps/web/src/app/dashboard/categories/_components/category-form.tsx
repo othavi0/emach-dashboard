@@ -142,8 +142,9 @@ export function CategoryForm({
 		});
 
 		if (!parsed.success) {
-			setErrors(zodErrorsToFieldMap(parsed.error));
-			notify.error(errorToastMessage(parsed.error.issues.length));
+			const fieldErrors = zodErrorsToFieldMap(parsed.error);
+			setErrors(fieldErrors);
+			notify.error(errorToastMessage(fieldErrors));
 			focusFirstError();
 			return;
 		}

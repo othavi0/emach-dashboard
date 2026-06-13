@@ -122,10 +122,11 @@ export function PromotionForm({
 		const parsed = schema.safeParse(values);
 
 		if (!parsed.success) {
-			setErrors(
-				zodErrorsToFieldMap(parsed.error as ZodError<PromotionFormValues>)
+			const fieldErrors = zodErrorsToFieldMap(
+				parsed.error as ZodError<PromotionFormValues>
 			);
-			notify.error(errorToastMessage(parsed.error.issues.length));
+			setErrors(fieldErrors);
+			notify.error(errorToastMessage(fieldErrors));
 			focusFirstError();
 			return;
 		}

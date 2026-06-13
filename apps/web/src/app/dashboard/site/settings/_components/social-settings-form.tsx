@@ -6,7 +6,11 @@ import { Label } from "@emach/ui/components/label";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
 import { useState, useTransition } from "react";
-import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
+import {
+	errorToastMessage,
+	focusFirstError,
+	zodIssuesToFieldErrors,
+} from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { updateSocialSettings } from "../actions";
 import { SocialIcon } from "./social-icons";
@@ -53,7 +57,7 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 
 		const parsed = socialSettingsSchema.safeParse(raw);
 		if (!parsed.success) {
-			notify.error(errorToastMessage(parsed.error.issues.length));
+			notify.error(errorToastMessage(zodIssuesToFieldErrors(parsed.error)));
 			focusFirstError();
 			return;
 		}

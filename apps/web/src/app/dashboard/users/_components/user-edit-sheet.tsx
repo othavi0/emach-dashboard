@@ -67,8 +67,9 @@ export function UserEditSheet({ user, actorRole }: Props) {
 			emailVerified,
 		});
 		if (!parsed.success) {
-			setErrors(zodIssuesToFieldErrors(parsed.error));
-			notify.error(errorToastMessage(parsed.error.issues.length));
+			const fieldErrors = zodIssuesToFieldErrors(parsed.error);
+			setErrors(fieldErrors);
+			notify.error(errorToastMessage(fieldErrors));
 			focusFirstError();
 			return;
 		}

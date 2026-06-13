@@ -66,8 +66,11 @@ export function SupplierForm({
 		const parsed = supplierSchema.safeParse(values);
 
 		if (!parsed.success) {
-			setErrors(zodIssuesToFieldErrors<SupplierFormValues>(parsed.error));
-			notify.error(errorToastMessage(parsed.error.issues.length));
+			const fieldErrors = zodIssuesToFieldErrors<SupplierFormValues>(
+				parsed.error
+			);
+			setErrors(fieldErrors);
+			notify.error(errorToastMessage(fieldErrors));
 			focusFirstError();
 			return;
 		}

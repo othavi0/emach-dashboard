@@ -38,7 +38,7 @@ export function useToolSubmit({
 		const parsed = parseToolForm(values);
 		setErrors(parsed.fieldErrors);
 		if (!(parsed.ok && parsed.data)) {
-			notify.error(errorToastMessage(parsed.issueCount));
+			notify.error(errorToastMessage(parsed.fieldErrors));
 			if (onValidationFail) {
 				onValidationFail(Object.keys(parsed.fieldErrors));
 			} else {

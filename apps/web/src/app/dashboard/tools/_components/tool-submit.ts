@@ -8,19 +8,17 @@ import { type ToolFormValues, toolFormSchema } from "./tool-schema";
 export interface ParsedResult {
 	data?: ToolFormValues;
 	fieldErrors: Partial<Record<keyof ToolFormValues, string>>;
-	issueCount: number;
 	ok: boolean;
 }
 
 export function parseToolForm(values: ToolFormState): ParsedResult {
 	const result = toolFormSchema.safeParse(values);
 	if (result.success) {
-		return { ok: true, data: result.data, fieldErrors: {}, issueCount: 0 };
+		return { ok: true, data: result.data, fieldErrors: {} };
 	}
 	return {
 		ok: false,
 		fieldErrors: zodIssuesToFieldErrors<ToolFormValues>(result.error),
-		issueCount: result.error.issues.length,
 	};
 }
 

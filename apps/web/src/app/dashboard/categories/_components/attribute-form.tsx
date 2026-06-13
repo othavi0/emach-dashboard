@@ -101,7 +101,7 @@ export function AttributeForm({
 				}
 			}
 			setErrors(fieldErrors);
-			notify.error(errorToastMessage(issues.length));
+			notify.error(errorToastMessage(fieldErrors));
 			focusFirstError();
 			return;
 		}
