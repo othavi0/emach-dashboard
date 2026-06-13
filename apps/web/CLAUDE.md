@@ -36,7 +36,7 @@ Reativar: ver `docs/adr/0012-disable-role-based-gates.md`.
 
 ## Convenções de UX em forms
 
-- **Slug auto-gerado em `create`:** `<Input disabled />` com valor de `slugifyLabel()` em `dashboard/categories/_lib/attribute-schema.ts`. Em `edit` fica editável com hint "alterar pode quebrar URLs/referências".
+- **Slug escondido do usuário (categorias e atributos):** o slug é ruído pra quem usa o admin. **Não renderizar input de slug** em criar nem editar — gerado de `slugifyLabel()` (`dashboard/categories/_lib/attribute-schema.ts`) e **congelado na criação** (renomear NÃO regenera o slug). Protege URLs/path da loja (banco compartilhado): o trigger `prevent_category_cycle` só recalcula path em mudança de `parent_id`/`slug`, então slug congelado = path estável. Erro de validação de slug (nome atípico → slug vazio) é remapeado pro campo **Nome** (`category-form.tsx`).
 - **Painel de erros no topo:** quando `safeParse` falha, listar todos os issues como `<ul>` em caixa vermelha com path → rótulo humano. Toast só com contagem ("3 erros — veja detalhes acima"). NUNCA `toast.error("Revise os campos")` genérico.
 - **Variantes (tools):** form exige ≥1 `tool_variant`, uma `isDefault` (radio group). Editor em `tools/_components/variants-editor.tsx`.
 - **Specs dinâmicas:** `definitionsByCategory[primaryCategoryId]` (resolve cadeia ancestral). Trocar categoria primary com specs preenchidas → `updateTool` devolve `actionResult.warning = "orphan_attributes"`; form pede confirmação antes de deletar.

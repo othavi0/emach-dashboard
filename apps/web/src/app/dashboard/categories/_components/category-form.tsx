@@ -69,9 +69,14 @@ function zodErrorsToFieldMap(
 ): Partial<Record<keyof CategoryInput, string>> {
 	const map: Partial<Record<keyof CategoryInput, string>> = {};
 	for (const issue of error.issues) {
-		const key = issue.path[0] as keyof CategoryInput | undefined;
+		const raw = issue.path[0] as keyof CategoryInput | undefined;
+		// slug é oculto e derivado do nome: erro de slug aparece sob o campo Nome.
+		const key = raw === "slug" ? "name" : raw;
 		if (key && !map[key]) {
-			map[key] = issue.message;
+			map[key] =
+				raw === "slug"
+					? "O nome não gera um identificador válido — use letras ou números."
+					: issue.message;
 		}
 	}
 	return map;
@@ -142,8 +147,20 @@ export function CategoryForm({
 
 	const parentSegments = selectedParent
 		? breadcrumbFromPath(selectedParent.path, nameBySlug)
-		: ["Raiz"];
-	const placement = [...parentSegments, name.trim() || "…"].join(" › ");
+		: [];
+	const placement = [
+		...(selectedParent ? parentSegments : ["Raiz"]),
+		name.trim() || "…",
+	].join(" › ");
+	// Rótulo do trigger: breadcrumb do pai; cai pro nome se o path tiver slug
+	// órfão (ex: drift de dados) — nunca renderiza string vazia.
+	let parentLabel: string | null = null;
+	if (selectedParent) {
+		parentLabel =
+			parentSegments.length > 0
+				? parentSegments.join(" › ")
+				: selectedParent.name;
+	}
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -253,9 +270,7 @@ export function CategoryForm({
 						value={parentId}
 					>
 						<SelectTrigger id="category-parent">
-							{selectedParent ? (
-								breadcrumbFromPath(selectedParent.path, nameBySlug).join(" › ")
-							) : (
+							{parentLabel ?? (
 								<span className="text-muted-foreground">Nenhuma (raiz)</span>
 							)}
 						</SelectTrigger>

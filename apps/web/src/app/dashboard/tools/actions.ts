@@ -16,6 +16,7 @@ import { z } from "zod";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
+import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
@@ -39,6 +40,10 @@ export type ActionResult<T = undefined> =
 	| { ok: false; error: string };
 
 function errorMessage(error: unknown): string {
+	// Erro do Postgres (drizzle embrulha em .cause): nunca vazar SQL cru no toast.
+	if (getPgError(error)) {
+		return "Não foi possível concluir a operação. Tente novamente.";
+	}
 	if (error instanceof Error) {
 		return error.message;
 	}
@@ -807,11 +812,8 @@ export async function updateToolVariant(
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateToolVariant falhou", error);
-		// SKU duplicado: erro de unique constraint do Postgres
-		if (
-			error instanceof Error &&
-			error.message.toLowerCase().includes("unique")
-		) {
+		// SKU duplicado: unique_violation do Postgres (code 23505, em e.cause).
+		if (getPgError(error)?.code === "23505") {
 			return { ok: false, error: "SKU já existe para outra variante" };
 		}
 		return { ok: false, error: "Não foi possível atualizar a variante" };

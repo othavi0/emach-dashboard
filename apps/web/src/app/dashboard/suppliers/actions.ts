@@ -7,6 +7,7 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
+import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 import { normalizeCnpj } from "@/lib/validation/cnpj";
@@ -48,6 +49,10 @@ function normalizePayload(input: SupplierFormValues) {
 }
 
 function errorMessage(error: unknown): string {
+	// Erro do Postgres (drizzle embrulha em .cause): nunca vazar SQL cru no toast.
+	if (getPgError(error)) {
+		return "Não foi possível concluir a operação. Tente novamente.";
+	}
 	if (error instanceof Error) {
 		return error.message;
 	}
