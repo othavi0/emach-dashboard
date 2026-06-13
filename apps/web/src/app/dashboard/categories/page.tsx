@@ -7,6 +7,7 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
@@ -34,6 +35,7 @@ export default async function CategoriesPage() {
 							className={buttonVariants({ variant: "default" })}
 							href="/dashboard/categories/new"
 						>
+							<Plus aria-hidden className="size-4" />
 							Nova categoria
 						</Link>
 					) : null

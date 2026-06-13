@@ -15,7 +15,13 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
-import { ChevronDown, ChevronRight, GripVertical, Pencil } from "lucide-react";
+import {
+	ChevronDown,
+	ChevronRight,
+	FolderTree,
+	GripVertical,
+	Pencil,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -99,7 +105,7 @@ export function CategoriesTree({ canMutate, categories }: CategoriesTreeProps) {
 	}
 
 	return (
-		<div className="rounded-md border border-border bg-card">
+		<div className="overflow-hidden rounded-lg border border-border bg-card">
 			<SiblingGroup
 				canMutate={canMutate}
 				expanded={expanded}
@@ -204,7 +210,7 @@ function TreeRow({
 			}}
 		>
 			<div
-				className="flex items-center gap-2 border-border border-b px-3 py-2 last:border-b-0 hover:bg-muted/40"
+				className="flex items-center gap-2 border-border border-b px-3 py-2.5 transition-colors last:border-b-0 hover:bg-muted/40"
 				style={{ paddingLeft: `${0.75 + node.depth * 1.5}rem` }}
 			>
 				{canMutate && (
@@ -227,8 +233,11 @@ function TreeRow({
 				>
 					{toggleIcon}
 				</button>
+				<span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground">
+					<FolderTree aria-hidden className="size-3.5" />
+				</span>
 				<Link
-					className="font-medium text-sm hover:underline"
+					className="font-medium text-sm transition-colors hover:text-primary hover:underline"
 					href={`/dashboard/categories/${node.id}`}
 				>
 					{node.name}
