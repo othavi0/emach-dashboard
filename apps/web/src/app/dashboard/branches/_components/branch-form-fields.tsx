@@ -35,6 +35,7 @@ interface Props {
 	/** 1 = empilhado (drawer); 2 = duas colunas (página de criar). Default 1. */
 	columns?: 1 | 2;
 	disabled?: boolean;
+	errors?: Partial<Record<keyof BranchFormValues, string>>;
 	onPatch: Patch;
 	showTeamSection: boolean;
 	values: BranchFormValues;
@@ -55,6 +56,7 @@ export function BranchFormFields({
 	onPatch,
 	showTeamSection,
 	disabled,
+	errors = {},
 }: Props) {
 	const handleCepResolve = (resolved: CepResolved) => {
 		onPatch({
@@ -86,12 +88,16 @@ export function BranchFormFields({
 						Nome <span className="text-destructive">*</span>
 					</Label>
 					<Input
+						aria-invalid={errors.name ? true : undefined}
 						disabled={disabled}
 						id="branch-name"
 						onChange={(e) => onPatch({ name: e.target.value })}
 						placeholder="Ex: Filial São Paulo — Paulista"
 						value={values.name}
 					/>
+					{errors.name && (
+						<p className="text-destructive text-xs">{errors.name}</p>
+					)}
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="branch-status">Status</Label>
@@ -149,6 +155,9 @@ export function BranchFormFields({
 						onResolve={handleCepResolve}
 						value={values.cep}
 					/>
+					{errors.cep && (
+						<p className="text-destructive text-xs">{errors.cep}</p>
+					)}
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="branch-street">Rua</Label>
@@ -295,6 +304,9 @@ export function BranchFormFields({
 			<p className="text-muted-foreground text-xs">
 				Domingos são tratados como fechado.
 			</p>
+			{errors.businessHours && (
+				<p className="text-destructive text-xs">{errors.businessHours}</p>
+			)}
 		</section>
 	);
 
@@ -310,6 +322,9 @@ export function BranchFormFields({
 				onChange={(next) => onPatch({ cepRanges: next })}
 				value={values.cepRanges ?? []}
 			/>
+			{errors.cepRanges && (
+				<p className="text-destructive text-xs">{errors.cepRanges}</p>
+			)}
 		</section>
 	);
 

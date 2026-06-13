@@ -6,10 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
-	FormErrorPanel,
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
+	errorToastMessage,
+	focusFirstError,
+	zodIssuesToFieldErrors,
+} from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import { createBranch, updateBranch } from "../actions";
@@ -19,21 +19,6 @@ import {
 	branchSchema,
 	defaultBusinessHours,
 } from "./branch-schema";
-
-const FIELD_LABELS: Record<string, string> = {
-	name: "Nome",
-	status: "Status",
-	phone: "Telefone",
-	businessHours: "Horário de funcionamento",
-	cep: "CEP",
-	street: "Rua",
-	streetNumber: "Número",
-	complement: "Complemento",
-	neighborhood: "Bairro",
-	city: "Cidade",
-	state: "UF",
-	cepRanges: "Faixas de CEP",
-};
 
 interface BranchFormProps {
 	branchId?: string;
@@ -82,19 +67,19 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 	const [values, setValues] = useState<BranchFormValues>(() =>
 		buildInitial(defaultValues)
 	);
-	const [issues, setIssues] = useState<FormIssue[]>([]);
+	const [errors, setErrors] = useState<
+		Partial<Record<keyof BranchFormValues, string>>
+	>({});
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setIssues([]);
+		setErrors({});
 
 		const parsed = branchSchema.safeParse(values);
 		if (!parsed.success) {
-			const next = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
-			setIssues(next);
-			notify.error(
-				`${next.length} ${next.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
-			);
+			setErrors(zodIssuesToFieldErrors<BranchFormValues>(parsed.error));
+			notify.error(errorToastMessage(parsed.error.issues.length));
+			focusFirstError();
 			return;
 		}
 
@@ -119,12 +104,12 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 
 	return (
 		<form className="flex w-full flex-col gap-6" onSubmit={handleSubmit}>
-			<FormErrorPanel issues={issues} />
 			<div className="rounded-md border border-border bg-card p-6">
 				<BranchFormFields
 					branchId={branchId}
 					columns={2}
 					disabled={isPending}
+					errors={errors}
 					onPatch={(p) => setValues((prev) => ({ ...prev, ...p }))}
 					showTeamSection={mode === "edit"}
 					values={values}
