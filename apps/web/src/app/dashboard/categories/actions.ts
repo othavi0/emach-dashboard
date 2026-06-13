@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { logUserActivity } from "@/lib/activity";
+import { getPgError } from "@/lib/db-error";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { type CategoryInput, categorySchema } from "./schema";
@@ -29,17 +30,22 @@ function zodErrorMessage(error: unknown): string {
 }
 
 function mapWriteError(e: unknown): string {
-	if (e instanceof Error && e.message.includes("category cycle")) {
-		return "Operação criaria um ciclo na árvore";
+	const pg = getPgError(e);
+	if (pg) {
+		// Trigger anti-ciclo (prevent_category_cycle) levanta P0001.
+		if (pg.code === "P0001" && pg.message.includes("category cycle")) {
+			return "Operação criaria um ciclo na árvore";
+		}
+		// unique_violation no slug.
+		if (
+			pg.code === "23505" &&
+			(pg.constraint?.includes("slug") || pg.message.includes("slug"))
+		) {
+			return "Slug já está em uso";
+		}
 	}
-	if (
-		e instanceof Error &&
-		e.message.includes("unique") &&
-		e.message.includes("slug")
-	) {
-		return "Slug já está em uso";
-	}
-	return zodErrorMessage(e);
+	logger.error("category write error", e);
+	return "Não foi possível salvar a categoria";
 }
 
 function revalidateCategoryTrees() {
@@ -363,13 +369,16 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
 	try {
 		await db.delete(category).where(eq(category.id, id));
 	} catch (e) {
-		if (e instanceof Error && e.message.includes("foreign key")) {
+		// foreign_key_violation: categoria com subcategorias, produtos ou atributos.
+		if (getPgError(e)?.code === "23503") {
 			return {
 				ok: false,
-				error: "Categoria possui filhos ou produtos vinculados",
+				error:
+					"Não é possível remover: a categoria tem subcategorias, produtos ou atributos vinculados. Remova-os antes.",
 			};
 		}
-		return { ok: false, error: zodErrorMessage(e) };
+		logger.error("deleteCategory", e);
+		return { ok: false, error: "Não foi possível remover a categoria" };
 	}
 
 	await logUserActivity({

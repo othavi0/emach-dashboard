@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { AttributesLocked } from "../_components/attributes-locked";
 import { CategoryForm } from "../_components/category-form";
 import { listCategories } from "../actions";
 
@@ -24,11 +25,14 @@ export default async function NewCategoryPage({
 				description="Crie uma categoria raiz ou subcategoria para classificar ferramentas."
 				title="Nova categoria"
 			/>
-			<CategoryForm
-				categories={categories}
-				defaultValues={{ isActive: true, parentId: validParent }}
-				mode="create"
-			/>
+			<div className="flex max-w-2xl flex-col gap-6">
+				<CategoryForm
+					categories={categories}
+					defaultValues={{ isActive: true, parentId: validParent }}
+					mode="create"
+				/>
+				<AttributesLocked />
+			</div>
 		</div>
 	);
 }

@@ -7,6 +7,7 @@ Dashboard Next 16 / React 19. Regras gerais (auth invariantes, anti-patterns, go
 - Sempre `"use server"` no topo + `await requireCapability(cap)` (ou `requireCurrentSession()`) no início.
 - Padrão de retorno: `ActionResult<T>` = `{ ok: true; data } | { ok: false; error }`.
 - Validação com Zod `safeParse`. Em catch: `logger.error({ err })` + retornar `{ ok: false, error: "mensagem" }`. Não logar com `console`.
+- **Erro de banco no catch:** o drizzle põe o erro real do Postgres em `e.cause` (o `e.message` é só `"Failed query: …"`). **Nunca** detectar por `e.message.includes("foreign key"/"unique"/…)` — não casa e vaza SQL cru no toast. Usar `getPgError(e)` (`src/lib/db-error.ts`) → `{code, message, constraint}`, mapear SQLSTATE (`23503`/`23505`/`P0001`) p/ mensagem amigável; fallback loga + genérica. Detalhe em `packages/db/CLAUDE.md`.
 - `revalidatePath` ou `revalidateTag` após mutações.
 
 ## Capabilities (`src/lib/permissions.ts`)
@@ -35,7 +36,7 @@ Reativar: ver `docs/adr/0012-disable-role-based-gates.md`.
 
 ## Convenções de UX em forms
 
-- **Slug auto-gerado em `create`:** `<Input disabled />` com valor de `slugifyLabel()` em `dashboard/categories/_lib/attribute-schema.ts`. Em `edit` fica editável com hint "alterar pode quebrar URLs/referências".
+- **Slug escondido do usuário (categorias e atributos):** o slug é ruído pra quem usa o admin. **Não renderizar input de slug** em criar nem editar — gerado de `slugifyLabel()` (`dashboard/categories/_lib/attribute-schema.ts`) e **congelado na criação** (renomear NÃO regenera o slug). Protege URLs/path da loja (banco compartilhado): o trigger `prevent_category_cycle` só recalcula path em mudança de `parent_id`/`slug`, então slug congelado = path estável. Erro de validação de slug (nome atípico → slug vazio) é remapeado pro campo **Nome** (`category-form.tsx`).
 - **Painel de erros no topo:** quando `safeParse` falha, listar todos os issues como `<ul>` em caixa vermelha com path → rótulo humano. Toast só com contagem ("3 erros — veja detalhes acima"). NUNCA `toast.error("Revise os campos")` genérico.
 - **Variantes (tools):** form exige ≥1 `tool_variant`, uma `isDefault` (radio group). Editor em `tools/_components/variants-editor.tsx`.
 - **Specs dinâmicas:** `definitionsByCategory[primaryCategoryId]` (resolve cadeia ancestral). Trocar categoria primary com specs preenchidas → `updateTool` devolve `actionResult.warning = "orphan_attributes"`; form pede confirmação antes de deletar.
@@ -102,6 +103,10 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 `cacheTag` por feature (`'orders'`, `'customers'`, `'site-banners'`...). `revalidateTag` em mutations. Ver skill `next-cache-components`.
 
 **Dedup request-scoped sem Cache Components:** fetcher chamado em mais de um lugar no mesmo render (ex: `fetchDashboardCounts` no `layout.tsx` para badges **e** na `page.tsx` para o painel) → envolver em `cache()` do `react`. Dedupa a query no mesmo request sem precisar ligar `use cache`/Cache Components. Só funciona para a **mesma** função com os mesmos args; queries diferentes que contam o mesmo dado não deduplicam (ver issue de extrair counts num único fetch).
+
+## Listas drag-reorder (dnd-kit)
+
+`@dnd-kit/core` v6 gera os ids dos elementos de a11y (`aria-describedby="DndDescribedBy-N"`) com um **contador não-determinístico** → diverge entre SSR e cliente e quebra a hidratação (mostra como "1 Issue" no overlay do Next; pode remontar os handlers de drag logo após o load e deixar o primeiro reorder instável). **Sempre passar um `id` estável em cada `<DndContext>`** (derivado de dado, ex: `id={\`cat-sortable-${parentId ?? "root"}\`}`). Canônico: `dashboard/categories/_components/categories-tree.tsx`.
 
 ## Smoke run-time
 

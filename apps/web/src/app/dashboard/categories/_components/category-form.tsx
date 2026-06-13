@@ -1,13 +1,6 @@
 "use client";
 
 import { Button, buttonVariants } from "@emach/ui/components/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@emach/ui/components/card";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import {
@@ -16,7 +9,6 @@ import {
 	SelectGroup,
 	SelectItem,
 	SelectTrigger,
-	SelectValue,
 } from "@emach/ui/components/select";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
@@ -25,14 +17,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { ZodError } from "zod";
-import {
-	FormErrorPanel,
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
+
+import { FormErrorPanel, type FormIssue } from "@/components/form-error-panel";
 import { notify } from "@/lib/notify";
 
-import { slugifyLabel, validateSlugFormat } from "../_lib/attribute-schema";
+import { slugifyLabel } from "../_lib/attribute-schema";
+import { breadcrumbFromPath, buildNameBySlug } from "../_lib/category-tree";
 import {
 	type CategoryListItem,
 	createCategory,
@@ -42,7 +32,7 @@ import { type CategoryInput, categorySchema } from "../schema";
 
 const FIELD_LABELS: Record<string, string> = {
 	name: "Nome",
-	slug: "Slug",
+	slug: "Nome",
 	parentId: "Categoria pai",
 	description: "Descrição",
 	isActive: "Ativa",
@@ -79,12 +69,41 @@ function zodErrorsToFieldMap(
 ): Partial<Record<keyof CategoryInput, string>> {
 	const map: Partial<Record<keyof CategoryInput, string>> = {};
 	for (const issue of error.issues) {
-		const key = issue.path[0] as keyof CategoryInput | undefined;
+		const raw = issue.path[0] as keyof CategoryInput | undefined;
+		// slug é oculto e derivado do nome: erro de slug aparece sob o campo Nome.
+		const key = raw === "slug" ? "name" : raw;
 		if (key && !map[key]) {
-			map[key] = issue.message;
+			map[key] =
+				raw === "slug"
+					? "O nome não gera um identificador válido — use letras ou números."
+					: issue.message;
 		}
 	}
 	return map;
+}
+
+// Build the panel issue list from a ZodError, remapping slug errors
+// (slug is hidden and derived from name) to a user-facing "Nome" message.
+// Iterates error.issues directly to avoid positional coupling with zodIssuesToFormIssues.
+function buildFormIssues(error: ZodError<CategoryInput>): FormIssue[] {
+	let slugSeen = false;
+	return error.issues.flatMap((issue) => {
+		if (issue.path[0] === "slug") {
+			if (slugSeen) {
+				return [];
+			}
+			slugSeen = true;
+			return [
+				{
+					path: "Nome",
+					message:
+						"O nome não gera um identificador válido — use letras ou números.",
+				},
+			];
+		}
+		const head = String(issue.path[0]);
+		return [{ path: FIELD_LABELS[head] ?? head, message: issue.message }];
+	});
 }
 
 export function CategoryForm({
@@ -109,6 +128,8 @@ export function CategoryForm({
 	>({});
 	const [formIssues, setFormIssues] = useState<FormIssue[]>([]);
 
+	const nameBySlug = buildNameBySlug(categories);
+
 	const ownPath = defaultValues.path ?? "";
 	const parentOptions =
 		mode === "edit" && defaultValues.id
@@ -119,10 +140,27 @@ export function CategoryForm({
 				)
 			: categories;
 
-	const pathPreview =
+	const selectedParent =
 		parentId === NO_PARENT
-			? `/${slug || "…"}`
-			: `${categories.find((c) => c.id === parentId)?.path ?? ""}/${slug || "…"}`;
+			? null
+			: (categories.find((c) => c.id === parentId) ?? null);
+
+	const parentSegments = selectedParent
+		? breadcrumbFromPath(selectedParent.path, nameBySlug)
+		: [];
+	const placement = [
+		...(selectedParent ? parentSegments : ["Raiz"]),
+		name.trim() || "…",
+	].join(" › ");
+	// Rótulo do trigger: breadcrumb do pai; cai pro nome se o path tiver slug
+	// órfão (ex: drift de dados) — nunca renderiza string vazia.
+	let parentLabel: string | null = null;
+	if (selectedParent) {
+		parentLabel =
+			parentSegments.length > 0
+				? parentSegments.join(" › ")
+				: selectedParent.name;
+	}
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -139,7 +177,7 @@ export function CategoryForm({
 
 		if (!parsed.success) {
 			setErrors(zodErrorsToFieldMap(parsed.error));
-			const issues = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
+			const issues = buildFormIssues(parsed.error);
 			setFormIssues(issues);
 			notify.error(
 				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
@@ -148,176 +186,141 @@ export function CategoryForm({
 		}
 
 		startTransition(async () => {
-			const result =
-				mode === "create"
-					? await createCategory(parsed.data)
-					: await updateCategory(categoryId ?? "", parsed.data);
-
-			if (result.ok) {
-				notify.success(
-					mode === "create" ? "Categoria criada" : "Categoria atualizada"
-				);
-				router.push("/dashboard/categories");
-				router.refresh();
+			if (mode === "create") {
+				const result = await createCategory(parsed.data);
+				if (result.ok) {
+					notify.success("Categoria criada");
+					router.push(`/dashboard/categories/${result.data.id}/edit`);
+					router.refresh();
+				} else {
+					notify.error(result.error || "Não foi possível salvar a categoria");
+				}
 			} else {
-				notify.error(result.error || "Não foi possível salvar a categoria");
+				const result = await updateCategory(categoryId ?? "", parsed.data);
+				if (result.ok) {
+					notify.success("Categoria atualizada");
+					router.push("/dashboard/categories");
+					router.refresh();
+				} else {
+					notify.error(result.error || "Não foi possível salvar a categoria");
+				}
 			}
 		});
 	}
 
 	return (
-		<form
-			className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.95fr)]"
-			onSubmit={handleSubmit}
-		>
-			<div className="flex flex-col gap-4">
-				<FormErrorPanel issues={formIssues} />
+		<form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+			<FormErrorPanel issues={formIssues} />
 
-				<Card>
-					<CardHeader>
-						<CardTitle>Informações básicas</CardTitle>
-						<CardDescription>Nome, identificador e descrição.</CardDescription>
-					</CardHeader>
-					<CardContent className="flex flex-col gap-4">
-						<div className="flex flex-col gap-2">
-							<Label htmlFor="category-name">
-								Nome
-								<span className="text-destructive"> *</span>
-							</Label>
-							<Input
-								aria-invalid={errors.name ? true : undefined}
-								disabled={isPending}
-								id="category-name"
-								onChange={(event) => {
-									const next = event.target.value;
-									setName(next);
-									if (mode === "create") {
-										setSlug(slugifyLabel(next));
-									}
-								}}
-								placeholder="Ex: Furadeiras"
-								value={name}
-							/>
-							{errors.name && (
-								<p className="text-destructive text-sm">{errors.name}</p>
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
+				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+					Informações básicas
+				</h2>
+
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="category-name">
+						Nome
+						<span className="text-destructive"> *</span>
+					</Label>
+					<Input
+						aria-invalid={errors.name ? true : undefined}
+						disabled={isPending}
+						id="category-name"
+						onChange={(event) => {
+							const next = event.target.value;
+							setName(next);
+							if (mode === "create") {
+								setSlug(slugifyLabel(next));
+							}
+						}}
+						placeholder="Ex: Furadeiras"
+						value={name}
+					/>
+					{errors.name && (
+						<p className="text-destructive text-sm">{errors.name}</p>
+					)}
+				</div>
+
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="category-description">Descrição (opcional)</Label>
+					<Textarea
+						disabled={isPending}
+						id="category-description"
+						onChange={(event) => setDescription(event.target.value)}
+						placeholder="Texto curto explicando a categoria"
+						rows={3}
+						value={description}
+					/>
+					{errors.description && (
+						<p className="text-destructive text-sm">{errors.description}</p>
+					)}
+				</div>
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
+				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
+					Hierarquia e exibição
+				</h2>
+
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="category-parent">Categoria pai</Label>
+					<Select
+						disabled={isPending}
+						onValueChange={(value) => setParentId(value ?? NO_PARENT)}
+						value={parentId}
+					>
+						<SelectTrigger id="category-parent">
+							{parentLabel ?? (
+								<span className="text-muted-foreground">Nenhuma (raiz)</span>
 							)}
-						</div>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								<SelectItem value={NO_PARENT}>Nenhuma (raiz)</SelectItem>
+								{parentOptions.map((c) => (
+									<SelectItem
+										className={c.depth === 0 ? "font-semibold" : undefined}
+										key={c.id}
+										style={{ paddingLeft: `${0.5 + c.depth * 0.9}rem` }}
+										value={c.id}
+									>
+										{c.depth > 0 && (
+											<span aria-hidden className="text-muted-foreground/70">
+												└{" "}
+											</span>
+										)}
+										{c.name}
+									</SelectItem>
+								))}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+					<p className="text-muted-foreground text-xs">
+						Onde fica: <span className="text-foreground">{placement}</span>
+					</p>
+				</div>
 
-						<div className="flex flex-col gap-2">
-							<Label htmlFor="category-slug">
-								Slug
-								<span className="text-destructive"> *</span>
-							</Label>
-							<Input
-								aria-invalid={errors.slug ? true : undefined}
-								disabled={isPending || mode === "create"}
-								id="category-slug"
-								onBlur={() => {
-									if (mode === "edit") {
-										const err = validateSlugFormat(slug);
-										setErrors((prev) => ({ ...prev, slug: err ?? undefined }));
-									}
-								}}
-								onChange={(event) => setSlug(event.target.value)}
-								placeholder="furadeiras"
-								value={slug}
-							/>
-							<p className="text-muted-foreground text-xs">
-								{mode === "create"
-									? "Gerado automaticamente a partir do nome."
-									: "Atenção: alterar o slug pode quebrar URLs salvas."}
-							</p>
-							{errors.slug && (
-								<p className="text-destructive text-sm">{errors.slug}</p>
-							)}
-						</div>
+				<div className="flex items-center gap-3">
+					<Switch
+						checked={isActive}
+						disabled={isPending}
+						id="category-active"
+						onCheckedChange={setIsActive}
+					/>
+					<Label htmlFor="category-active">Ativa (visível no site)</Label>
+				</div>
+			</section>
 
-						<div className="flex flex-col gap-2">
-							<Label htmlFor="category-description">Descrição (opcional)</Label>
-							<Textarea
-								disabled={isPending}
-								id="category-description"
-								onChange={(event) => setDescription(event.target.value)}
-								placeholder="Texto curto explicando a categoria"
-								rows={3}
-								value={description}
-							/>
-							{errors.description && (
-								<p className="text-destructive text-sm">{errors.description}</p>
-							)}
-						</div>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<CardTitle>Hierarquia e exibição</CardTitle>
-						<CardDescription>
-							Posição na árvore e visibilidade. A ordem entre categorias irmãs é
-							ajustada arrastando na lista.
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="flex flex-col gap-4">
-						<div className="flex flex-col gap-2">
-							<Label htmlFor="category-parent">Categoria pai</Label>
-							<Select
-								disabled={isPending}
-								onValueChange={(value) => setParentId(value ?? NO_PARENT)}
-								value={parentId}
-							>
-								<SelectTrigger id="category-parent">
-									<SelectValue placeholder="Nenhuma (raiz)" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectGroup>
-										<SelectItem value={NO_PARENT}>Nenhuma (raiz)</SelectItem>
-										{parentOptions.map((c) => (
-											<SelectItem key={c.id} value={c.id}>
-												{"— ".repeat(c.depth)}
-												{c.name}
-											</SelectItem>
-										))}
-									</SelectGroup>
-								</SelectContent>
-							</Select>
-						</div>
-
-						<div className="flex items-center gap-3">
-							<Switch
-								checked={isActive}
-								disabled={isPending}
-								id="category-active"
-								onCheckedChange={setIsActive}
-							/>
-							<Label htmlFor="category-active">Ativa (visível no site)</Label>
-						</div>
-					</CardContent>
-				</Card>
-			</div>
-
-			<div className="flex flex-col gap-4">
-				<Card>
-					<CardHeader>
-						<CardTitle>
-							{mode === "create" ? "Criar categoria" : "Salvar alterações"}
-						</CardTitle>
-						<CardDescription>Pré-visualização do caminho</CardDescription>
-					</CardHeader>
-					<CardContent className="flex flex-col gap-3">
-						<code className="rounded-md border border-border bg-background px-2 py-1.5 text-xs">
-							{pathPreview}
-						</code>
-						<Button disabled={isPending} type="submit">
-							<SubmitLabel isPending={isPending} mode={mode} />
-						</Button>
-						<Link
-							className={buttonVariants({ variant: "ghost" })}
-							href="/dashboard/categories"
-						>
-							Cancelar
-						</Link>
-					</CardContent>
-				</Card>
+			<div className="flex items-center gap-3">
+				<Button disabled={isPending} type="submit">
+					<SubmitLabel isPending={isPending} mode={mode} />
+				</Button>
+				<Link
+					className={buttonVariants({ variant: "ghost" })}
+					href="/dashboard/categories"
+				>
+					Cancelar
+				</Link>
 			</div>
 		</form>
 	);

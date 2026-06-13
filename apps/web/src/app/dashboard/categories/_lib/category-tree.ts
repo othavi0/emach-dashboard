@@ -11,13 +11,15 @@ export interface FlatCategory {
 
 export interface CategoryTreeNode extends FlatCategory {
 	children: CategoryTreeNode[];
+	/** Direto do nó + soma dos rollups das descendentes (calculado no cliente). */
+	rollupCount: number;
 }
 
 /** Monta a árvore a partir da lista achatada, ordenando irmãos por sortOrder e nome. */
 export function buildCategoryTree(flat: FlatCategory[]): CategoryTreeNode[] {
 	const byId = new Map<string, CategoryTreeNode>();
 	for (const c of flat) {
-		byId.set(c.id, { ...c, children: [] });
+		byId.set(c.id, { ...c, children: [], rollupCount: 0 });
 	}
 
 	const roots: CategoryTreeNode[] = [];
@@ -40,7 +42,26 @@ export function buildCategoryTree(flat: FlatCategory[]): CategoryTreeNode[] {
 	};
 	sortSiblings(roots);
 
+	const computeRollup = (node: CategoryTreeNode): number => {
+		let total = node.productCount;
+		for (const child of node.children) {
+			total += computeRollup(child);
+		}
+		node.rollupCount = total;
+		return total;
+	};
+	for (const root of roots) {
+		computeRollup(root);
+	}
+
 	return roots;
+}
+
+/** Mapa slug → nome, para montar breadcrumbs de hierarquia. */
+export function buildNameBySlug(
+	categories: { slug: string; name: string }[]
+): Map<string, string> {
+	return new Map(categories.map((c) => [c.slug, c.name]));
 }
 
 /** Converte um path materializado (segmentos de slug) numa lista de nomes para breadcrumb. */
