@@ -11,7 +11,7 @@ import {
 	getCategoryAttributes,
 	getCategoryDetail,
 } from "../actions";
-import { CategoryActionsMenu } from "./_components/category-actions-menu";
+import { CategoryDetailActions } from "./_components/category-detail-actions";
 import { CategoryDetailHeader } from "./_components/category-detail-header";
 import { OverviewTab } from "./_components/overview-tab";
 import { ProductsTab } from "./_components/products-tab";
@@ -116,7 +116,7 @@ export default async function CategoryDetailPage({
 				actions={
 					<>
 						{primaryAction}
-						<CategoryActionsMenu
+						<CategoryDetailActions
 							categoryId={id}
 							categoryName={cat.name}
 							isActive={cat.isActive}

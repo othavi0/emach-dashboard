@@ -11,15 +11,8 @@ import {
 	AlertDialogTitle,
 } from "@emach/ui/components/alert-dialog";
 import { Button } from "@emach/ui/components/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@emach/ui/components/dropdown-menu";
 import { Spinner } from "@emach/ui/components/spinner";
-import { MoreHorizontal, Power, Trash2 } from "lucide-react";
+import { Power, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -32,7 +25,7 @@ interface Props {
 	isActive: boolean;
 }
 
-export function CategoryActionsMenu({
+export function CategoryDetailActions({
 	categoryId,
 	categoryName,
 	isActive,
@@ -69,35 +62,29 @@ export function CategoryActionsMenu({
 
 	return (
 		<>
-			<DropdownMenu>
-				<DropdownMenuTrigger
-					render={
-						<Button
-							aria-label="Mais ações"
-							disabled={togglePending}
-							size="icon"
-							variant="outline"
-						/>
-					}
-				>
-					<MoreHorizontal aria-hidden className="size-4" />
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end" className="min-w-44">
-					<DropdownMenuItem onClick={handleToggle}>
-						<Power aria-hidden />
-						{isActive ? "Desativar" : "Ativar"}
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						className="whitespace-nowrap"
-						onClick={() => setConfirmOpen(true)}
-						variant="destructive"
-					>
-						<Trash2 aria-hidden />
-						Excluir categoria
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
+			<Button
+				disabled={togglePending}
+				onClick={handleToggle}
+				size="sm"
+				type="button"
+				variant="outline"
+			>
+				{togglePending ? (
+					<Spinner />
+				) : (
+					<Power aria-hidden className="size-3.5" />
+				)}
+				{isActive ? "Desativar" : "Ativar"}
+			</Button>
+			<Button
+				onClick={() => setConfirmOpen(true)}
+				size="sm"
+				type="button"
+				variant="destructive"
+			>
+				<Trash2 aria-hidden className="size-3.5" />
+				Excluir
+			</Button>
 
 			<AlertDialog onOpenChange={setConfirmOpen} open={confirmOpen}>
 				<AlertDialogContent>
