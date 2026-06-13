@@ -282,7 +282,11 @@ export interface CategoryProductItem {
 	sku: string | null;
 }
 
-/** Produtos primários da categoria, paginados por nome (keyset). */
+/**
+ * Produtos primários de toda a subárvore da categoria (self + descendentes),
+ * paginados por nome (keyset). Subárvore via path materializado — bate com o
+ * rollup do KPI e com o número da listagem.
+ */
 export async function getCategoryProductsPage({
 	categoryId,
 	cursor,
@@ -290,20 +294,30 @@ export async function getCategoryProductsPage({
 	categoryId: string;
 	cursor: string | null;
 }): Promise<InfiniteResult<CategoryProductItem>> {
+	const [self] = await db
+		.select({ path: category.path })
+		.from(category)
+		.where(eq(category.id, categoryId))
+		.limit(1);
+	if (!self) {
+		return { items: [], nextCursor: null };
+	}
+
 	const decoded = cursor ? decodeCursorAs(cursor, "nameAsc") : null;
 
 	const rows = await db
 		.select({ id: tool.id, name: tool.name, sku: toolVariant.sku })
 		.from(toolCategory)
 		.innerJoin(tool, eq(tool.id, toolCategory.toolId))
+		.innerJoin(category, eq(category.id, toolCategory.categoryId))
 		.leftJoin(
 			toolVariant,
 			and(eq(toolVariant.toolId, tool.id), eq(toolVariant.isDefault, true))
 		)
 		.where(
 			and(
-				eq(toolCategory.categoryId, categoryId),
 				eq(toolCategory.isPrimary, true),
+				or(eq(category.path, self.path), like(category.path, `${self.path}/%`)),
 				decoded
 					? sql`(${tool.name}, ${tool.id}) > (${decoded.name}, ${decoded.id})`
 					: undefined
