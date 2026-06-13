@@ -42,6 +42,16 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 				visible: isPublishableUrl(url) ? prev[key].visible : false,
 			},
 		}));
+		// Limpa o erro de schema daquele campo ao editar — senão fica obsoleto
+		// (mostrando erro num valor já corrigido) até o próximo submit.
+		setErrors((prev) => {
+			if (prev[`${key}Url`] === undefined) {
+				return prev;
+			}
+			const next = { ...prev };
+			delete next[`${key}Url`];
+			return next;
+		});
 	}
 
 	function setVisible(key: SocialNetworkKey, visible: boolean) {
