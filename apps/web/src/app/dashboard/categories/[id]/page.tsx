@@ -1,5 +1,5 @@
 import { buttonVariants } from "@emach/ui/components/button";
-import { FolderTree, Info, Package } from "lucide-react";
+import { FolderTree, Info, Package, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -50,7 +50,7 @@ export default async function CategoryDetailPage({
 		notFound();
 	}
 
-	const { category: cat, children, productCount } = detail;
+	const { category: cat, children, productCount, rollupProductCount } = detail;
 
 	const attributes = isOverview ? await getCategoryAttributes(id) : [];
 
@@ -67,6 +67,7 @@ export default async function CategoryDetailPage({
 					description={cat.description}
 					isActive={cat.isActive}
 					productCount={productCount}
+					rollupProductCount={rollupProductCount}
 				/>
 			) : null,
 		},
@@ -96,6 +97,7 @@ export default async function CategoryDetailPage({
 				className={buttonVariants({ variant: "default" })}
 				href={`/dashboard/categories/new?parent=${id}`}
 			>
+				<Plus aria-hidden className="size-4" />
 				Nova subcategoria
 			</Link>
 		);
@@ -105,6 +107,7 @@ export default async function CategoryDetailPage({
 				className={buttonVariants({ variant: "default" })}
 				href={`/dashboard/categories/${id}/edit`}
 			>
+				<Pencil aria-hidden className="size-4" />
 				Editar
 			</Link>
 		);

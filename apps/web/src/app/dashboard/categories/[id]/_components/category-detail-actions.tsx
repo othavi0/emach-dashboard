@@ -65,24 +65,18 @@ export function CategoryDetailActions({
 			<Button
 				disabled={togglePending}
 				onClick={handleToggle}
-				size="sm"
 				type="button"
 				variant="outline"
 			>
-				{togglePending ? (
-					<Spinner />
-				) : (
-					<Power aria-hidden className="size-3.5" />
-				)}
+				{togglePending ? <Spinner /> : <Power aria-hidden className="size-4" />}
 				{isActive ? "Desativar" : "Ativar"}
 			</Button>
 			<Button
 				onClick={() => setConfirmOpen(true)}
-				size="sm"
 				type="button"
 				variant="destructive"
 			>
-				<Trash2 aria-hidden className="size-3.5" />
+				<Trash2 aria-hidden className="size-4" />
 				Excluir
 			</Button>
 
