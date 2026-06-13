@@ -24,6 +24,7 @@ import { AlertCircle, ChevronsUpDown, Tag, Ticket, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 import { DiscountInput } from "@/components/discount-input";
+import { FieldError } from "@/components/field-error";
 import { MaskedInput } from "@/components/masked-input";
 import { MoneyInput } from "@/components/money-input";
 import { integerMask } from "@/lib/masks";
@@ -46,7 +47,7 @@ type PromotionType = "promotion" | "promocode";
 export interface PromotionFormFieldsProps {
 	availableTools: ToolOption[];
 	disabled?: boolean;
-	errors: Record<string, string>;
+	errors: Partial<Record<keyof PromotionFormValues, string>>;
 	excludePromotionId?: string;
 	mode: "create" | "edit";
 	onPatch: Patch;
@@ -249,7 +250,6 @@ function Section({
 // PromotionFormFields — campos controlados (values + onPatch)
 // ---------------------------------------------------------------------------
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: componente de form com múltiplos campos condicionais (coupon vs discount, datas, ferramentas); complexidade inerente ao domínio
 export function PromotionFormFields({
 	availableTools,
 	disabled,
@@ -324,6 +324,7 @@ export function PromotionFormFields({
 							Título<span className="text-destructive"> *</span>
 						</Label>
 						<Input
+							aria-invalid={errors.title ? true : undefined}
 							disabled={disabled}
 							id="promo-title"
 							onChange={(e) => onPatch({ title: e.target.value })}
@@ -332,9 +333,7 @@ export function PromotionFormFields({
 							}
 							value={values.title}
 						/>
-						{errors.title && (
-							<p className="text-destructive text-sm">{errors.title}</p>
-						)}
+						<FieldError>{errors.title}</FieldError>
 					</div>
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="promo-description">Descrição</Label>
@@ -350,9 +349,7 @@ export function PromotionFormFields({
 							rows={3}
 							value={values.description ?? ""}
 						/>
-						{errors.description && (
-							<p className="text-destructive text-sm">{errors.description}</p>
-						)}
+						<FieldError>{errors.description}</FieldError>
 					</div>
 				</Section>
 
@@ -369,9 +366,7 @@ export function PromotionFormFields({
 							id="promo-discount-value"
 							onChange={(next) => onPatch(next)}
 						/>
-						{errors.discountValue && (
-							<p className="text-destructive text-sm">{errors.discountValue}</p>
-						)}
+						<FieldError>{errors.discountValue}</FieldError>
 					</div>
 
 					{isCoupon && (
@@ -380,6 +375,7 @@ export function PromotionFormFields({
 								Código<span className="text-destructive"> *</span>
 							</Label>
 							<Input
+								aria-invalid={errors.code ? true : undefined}
 								className="font-mono uppercase"
 								disabled={disabled}
 								id="promo-code"
@@ -394,9 +390,7 @@ export function PromotionFormFields({
 							<p className="text-muted-foreground text-xs">
 								Digitado pelo cliente no checkout para aplicar o desconto.
 							</p>
-							{errors.code && (
-								<p className="text-destructive text-sm">{errors.code}</p>
-							)}
+							<FieldError>{errors.code}</FieldError>
 						</div>
 					)}
 
@@ -423,11 +417,7 @@ export function PromotionFormFields({
 								<p className="text-muted-foreground text-xs">
 									Vazio = ilimitado
 								</p>
-								{errors.maxRedemptions && (
-									<p className="text-destructive text-sm">
-										{errors.maxRedemptions}
-									</p>
-								)}
+								<FieldError>{errors.maxRedemptions}</FieldError>
 							</div>
 
 							<div className="flex flex-col gap-2">
@@ -450,11 +440,7 @@ export function PromotionFormFields({
 								<p className="text-muted-foreground text-xs">
 									Vazio = sem mínimo
 								</p>
-								{errors.minOrderAmount && (
-									<p className="text-destructive text-sm">
-										{errors.minOrderAmount}
-									</p>
-								)}
+								<FieldError>{errors.minOrderAmount}</FieldError>
 							</div>
 						</>
 					)}
@@ -473,9 +459,7 @@ export function PromotionFormFields({
 								value={values.startsAt ?? undefined}
 							/>
 							<p className="text-muted-foreground text-xs">Vazio = imediato</p>
-							{errors.startsAt && (
-								<p className="text-destructive text-sm">{errors.startsAt}</p>
-							)}
+							<FieldError>{errors.startsAt}</FieldError>
 						</div>
 						<div className="flex flex-col gap-2">
 							<Label htmlFor="promo-ends-at">Fim</Label>
@@ -487,9 +471,7 @@ export function PromotionFormFields({
 								value={values.endsAt ?? undefined}
 							/>
 							<p className="text-muted-foreground text-xs">Vazio = sem prazo</p>
-							{errors.endsAt && (
-								<p className="text-destructive text-sm">{errors.endsAt}</p>
-							)}
+							<FieldError>{errors.endsAt}</FieldError>
 						</div>
 					</div>
 
@@ -572,9 +554,7 @@ export function PromotionFormFields({
 								onChange={(ids) => onPatch({ toolIds: ids })}
 								selectedIds={values.toolIds}
 							/>
-							{errors.toolIds && (
-								<p className="text-destructive text-sm">{errors.toolIds}</p>
-							)}
+							<FieldError>{errors.toolIds}</FieldError>
 							{conflictCount > 0 && (
 								<div className="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-muted-foreground text-xs">
 									<AlertCircle

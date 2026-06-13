@@ -4,8 +4,11 @@ import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import type { ZodError } from "zod";
-import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
+import {
+	errorToastMessage,
+	focusFirstError,
+	zodIssuesToFieldErrors,
+} from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import { createPromotion, updatePromotion } from "../actions";
@@ -30,23 +33,6 @@ export interface PromotionFormProps {
 	initialValues?: PromotionFormValues;
 	mode: "create" | "edit";
 	promotionId?: string;
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function zodErrorsToFieldMap(
-	error: ZodError<PromotionFormValues>
-): Record<string, string> {
-	const map: Record<string, string> = {};
-	for (const issue of error.issues) {
-		const key = issue.path[0];
-		if (key !== undefined && typeof key !== "symbol" && !map[String(key)]) {
-			map[String(key)] = issue.message;
-		}
-	}
-	return map;
 }
 
 const CREATE_DEFAULTS: PromotionFormValues = {
@@ -106,7 +92,9 @@ export function PromotionForm({
 		initialValues ?? CREATE_DEFAULTS
 	);
 
-	const [errors, setErrors] = useState<Record<string, string>>({});
+	const [errors, setErrors] = useState<
+		Partial<Record<keyof PromotionFormValues, string>>
+	>({});
 	const [serverError, setServerError] = useState<string | null>(null);
 	const [submitted, setSubmitted] = useState(false);
 
@@ -122,8 +110,8 @@ export function PromotionForm({
 		const parsed = schema.safeParse(values);
 
 		if (!parsed.success) {
-			const fieldErrors = zodErrorsToFieldMap(
-				parsed.error as ZodError<PromotionFormValues>
+			const fieldErrors = zodIssuesToFieldErrors<PromotionFormValues>(
+				parsed.error
 			);
 			setErrors(fieldErrors);
 			notify.error(errorToastMessage(fieldErrors));
