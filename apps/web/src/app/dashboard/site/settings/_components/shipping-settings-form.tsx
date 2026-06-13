@@ -14,10 +14,10 @@ import {
 import { Spinner } from "@emach/ui/components/spinner";
 import { useState, useTransition } from "react";
 import {
-	FormErrorPanel,
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
+	errorToastMessage,
+	focusFirstError,
+	zodIssuesToFieldErrors,
+} from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import type { OriginBranchOption } from "../actions";
 import { updateShippingSettings } from "../actions";
@@ -27,12 +27,6 @@ import {
 	type ShippingSettingsFormValues,
 	shippingSettingsSchema,
 } from "./shipping-schema";
-
-const FIELD_LABELS: Record<string, string> = {
-	originBranchId: "Filial de origem",
-	insurancePolicy: "Política de seguro",
-	insuranceCapAmount: "Teto do seguro",
-};
 
 const NO_ORIGIN = "__none__";
 
@@ -50,7 +44,7 @@ export function ShippingSettingsForm({
 	settings,
 }: ShippingSettingsFormProps) {
 	const [isPending, startTransition] = useTransition();
-	const [issues, setIssues] = useState<FormIssue[]>([]);
+	const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
 	const [originBranchId, setOriginBranchId] = useState(
 		settings.originBranchId ?? NO_ORIGIN
 	);
@@ -63,7 +57,7 @@ export function ShippingSettingsForm({
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setIssues([]);
+		setErrors({});
 
 		const values: ShippingSettingsFormValues = {
 			originBranchId: originBranchId === NO_ORIGIN ? undefined : originBranchId,
@@ -73,11 +67,9 @@ export function ShippingSettingsForm({
 
 		const parsed = shippingSettingsSchema.safeParse(values);
 		if (!parsed.success) {
-			const next = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
-			setIssues(next);
-			notify.error(
-				`${next.length} ${next.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
-			);
+			setErrors(zodIssuesToFieldErrors(parsed.error));
+			notify.error(errorToastMessage(parsed.error.issues.length));
+			focusFirstError();
 			return;
 		}
 
@@ -93,8 +85,6 @@ export function ShippingSettingsForm({
 
 	return (
 		<form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-			<FormErrorPanel issues={issues} />
-
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<div className="flex flex-col gap-1">
 					<h2 className="font-medium text-sm">Origem do despacho</h2>
@@ -116,7 +106,10 @@ export function ShippingSettingsForm({
 							onValueChange={(v) => setOriginBranchId(v ?? NO_ORIGIN)}
 							value={originBranchId}
 						>
-							<SelectTrigger id="originBranchId">
+							<SelectTrigger
+								aria-invalid={errors.originBranchId ? true : undefined}
+								id="originBranchId"
+							>
 								<SelectValue placeholder="Selecione a filial" />
 							</SelectTrigger>
 							<SelectContent>
@@ -130,6 +123,11 @@ export function ShippingSettingsForm({
 								</SelectGroup>
 							</SelectContent>
 						</Select>
+						{errors.originBranchId && (
+							<p className="text-destructive text-xs">
+								{errors.originBranchId}
+							</p>
+						)}
 					</div>
 				)}
 			</section>
@@ -170,12 +168,18 @@ export function ShippingSettingsForm({
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="insuranceCapAmount">Teto do seguro (R$)</Label>
 						<Input
+							aria-invalid={errors.insuranceCapAmount ? true : undefined}
 							id="insuranceCapAmount"
 							inputMode="decimal"
 							onChange={(e) => setCapAmount(e.target.value)}
 							placeholder="3000.00"
 							value={capAmount}
 						/>
+						{errors.insuranceCapAmount && (
+							<p className="text-destructive text-xs">
+								{errors.insuranceCapAmount}
+							</p>
+						)}
 						<p className="text-muted-foreground text-xs">
 							Valor máximo declarado por envio. Padrão R$ 3.000 (teto
 							SuperFrete).
