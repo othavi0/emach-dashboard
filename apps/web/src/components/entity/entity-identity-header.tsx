@@ -8,6 +8,8 @@ import type { ReactNode } from "react";
 
 interface Props {
 	actions?: ReactNode;
+	/** Classes extras no Avatar — ex.: avatar quadrado para entidades não-pessoa. */
+	avatarClassName?: string;
 	avatarFallback: ReactNode;
 	avatarUrl?: string | null;
 	badges?: ReactNode;
@@ -18,6 +20,7 @@ interface Props {
 
 export function EntityIdentityHeader({
 	avatarUrl,
+	avatarClassName,
 	avatarFallback,
 	title,
 	subtitle,
@@ -33,9 +36,9 @@ export function EntityIdentityHeader({
 			)}
 		>
 			<div className="flex min-w-0 items-center gap-3">
-				<Avatar className="size-12 shrink-0">
+				<Avatar className={cn("size-12 shrink-0", avatarClassName)}>
 					{avatarUrl ? <AvatarImage alt="" src={avatarUrl} /> : null}
-					<AvatarFallback className="bg-muted text-base">
+					<AvatarFallback className="rounded-[inherit] bg-muted text-base">
 						{avatarFallback}
 					</AvatarFallback>
 				</Avatar>
