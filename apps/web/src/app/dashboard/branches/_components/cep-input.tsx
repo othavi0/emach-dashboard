@@ -2,11 +2,10 @@
 
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-
 import { MaskedInput } from "@/components/masked-input";
 import { logger } from "@/lib/logger";
 import { cepMask } from "@/lib/masks";
+import { notify } from "@/lib/notify";
 
 interface ViaCepResponse {
 	bairro?: string;
@@ -67,7 +66,7 @@ export function CepInput({ id, value, onChange, onResolve, disabled }: Props) {
 				.then((data) => {
 					clearTimeout(timeout);
 					if (data.erro) {
-						toast.error("CEP não encontrado");
+						notify.error("CEP não encontrado");
 						return;
 					}
 					onResolve({
@@ -76,12 +75,12 @@ export function CepInput({ id, value, onChange, onResolve, disabled }: Props) {
 						city: data.localidade ?? "",
 						state: (data.uf ?? "").toUpperCase(),
 					});
-					toast.success("Endereço encontrado");
+					notify.success("Endereço encontrado");
 				})
 				.catch((err) => {
 					clearTimeout(timeout);
 					logger.error("ViaCEP lookup failed", { err, cep });
-					toast.message("Não foi possível buscar endereço — preencha manual");
+					notify.message("Não foi possível buscar endereço — preencha manual");
 				})
 				.finally(() => setIsFetching(false));
 		}, DEBOUNCE_MS);

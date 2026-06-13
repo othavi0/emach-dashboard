@@ -5,7 +5,7 @@ import { Copy, PauseCircle, PlayCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { DeletePromotionDialog } from "../../_components/delete-promotion-dialog";
 import {
 	duplicatePromotion,
@@ -26,10 +26,10 @@ export function PromotionHeaderActions({
 		startTransition(async () => {
 			const res = await togglePromotionActive(promotion.id);
 			if (!res.ok) {
-				toast.error(res.error);
+				notify.error(res.error);
 				return;
 			}
-			toast.success(res.data.active ? "Promoção ativada" : "Promoção pausada");
+			notify.success(res.data.active ? "Promoção ativada" : "Promoção pausada");
 			router.refresh();
 		});
 	}
@@ -38,10 +38,10 @@ export function PromotionHeaderActions({
 		startTransition(async () => {
 			const res = await duplicatePromotion(promotion.id);
 			if (!res.ok) {
-				toast.error(res.error);
+				notify.error(res.error);
 				return;
 			}
-			toast.success("Promoção duplicada");
+			notify.success("Promoção duplicada");
 			router.push(`/dashboard/promotions/${res.data.id}/edit`);
 		});
 	}

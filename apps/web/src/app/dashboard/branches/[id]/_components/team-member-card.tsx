@@ -15,10 +15,10 @@ import { Button } from "@emach/ui/components/button";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { toast } from "sonner";
 import { StatusBadge } from "@/app/dashboard/users/_components/status-badge";
 import { getInitials } from "@/lib/format/name";
 import { formatRelative } from "@/lib/format/relative";
+import { notify } from "@/lib/notify";
 import { unlinkUserFromBranchAction } from "../../actions";
 import type { BranchTeamRow } from "../../data";
 
@@ -47,11 +47,11 @@ export function TeamMemberCard({ branchId, member }: Props) {
 				userId: member.userId,
 			});
 			if (result.ok) {
-				toast.success(`${member.name} desvinculado da filial.`);
+				notify.success(`${member.name} desvinculado da filial.`);
 				setOpen(false);
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		} finally {
 			setUnlinking(false);

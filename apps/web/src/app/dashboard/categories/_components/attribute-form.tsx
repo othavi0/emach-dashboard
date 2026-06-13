@@ -15,11 +15,10 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
 import { Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import type { ZodError } from "zod";
-
 import { FormErrorPanel } from "@/components/form-error-panel";
 import { HelpTooltip } from "@/components/help-tooltip";
+import { notify } from "@/lib/notify";
 
 import {
 	createCategoryAttribute,
@@ -135,7 +134,7 @@ export function AttributeForm({
 			setAllIssues(
 				issues.map((i) => ({ path: pathToLabel(i.path), message: i.message }))
 			);
-			toast.error(
+			notify.error(
 				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
 			);
 			return;
@@ -152,13 +151,13 @@ export function AttributeForm({
 							result.data
 						);
 			if (action.ok) {
-				toast.success(
+				notify.success(
 					mode === "create" ? "Atributo criado" : "Atributo atualizado"
 				);
 				onSuccess();
 				return;
 			}
-			toast.error(action.error || "Falha ao salvar");
+			notify.error(action.error || "Falha ao salvar");
 		});
 	}
 

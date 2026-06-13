@@ -14,11 +14,10 @@ import { ArrowRight, ExternalLink, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
-
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { MaskedInput } from "@/components/masked-input";
 import { integerMask } from "@/lib/masks";
+import { notify } from "@/lib/notify";
 
 import {
 	adjustStock,
@@ -304,11 +303,11 @@ export function BranchStockEditSheet({
 		startAdjustTransition(async () => {
 			const result = await adjustStock(parsed.data);
 			if (result.ok) {
-				toast.success("Estoque atualizado");
+				notify.success("Estoque atualizado");
 				router.refresh();
 				onClose();
 			} else {
-				toast.error(result.error || "Não foi possível ajustar o estoque");
+				notify.error(result.error || "Não foi possível ajustar o estoque");
 			}
 		});
 	}
@@ -325,10 +324,10 @@ export function BranchStockEditSheet({
 				reorderPoint,
 			});
 			if (result.ok) {
-				toast.success("Limites atualizados");
+				notify.success("Limites atualizados");
 				router.refresh();
 			} else {
-				toast.error(result.error || "Não foi possível atualizar os limites");
+				notify.error(result.error || "Não foi possível atualizar os limites");
 			}
 		});
 	}

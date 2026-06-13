@@ -15,7 +15,7 @@ import { Label } from "@emach/ui/components/label";
 import { UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { allowedApprovalRoles } from "../_lib/approval-roles";
 import { inviteUser } from "../actions";
@@ -47,12 +47,12 @@ export function InviteDialog({ actorRole, branches }: Props) {
 		startTransition(async () => {
 			const result = await inviteUser({ email, role, branchIds });
 			if (result.ok) {
-				toast.success("Convite enviado");
+				notify.success("Convite enviado");
 				reset();
 				setOpen(false);
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 			}
 		});
 	}

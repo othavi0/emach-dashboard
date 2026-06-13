@@ -11,9 +11,8 @@ import {
 } from "@emach/ui/components/dialog";
 import { CheckIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
-import { toast } from "sonner";
-
 import { formatDateTime } from "@/lib/format/datetime";
+import { notify } from "@/lib/notify";
 import { generatePasswordResetLink } from "../actions";
 
 interface ResetPasswordDialogProps {
@@ -53,7 +52,7 @@ export function ResetPasswordDialog({
 						expiresAt: new Date(res.data.expiresAt),
 					});
 				} else {
-					toast.error(res.error);
+					notify.error(res.error);
 					setOpen(false);
 				}
 			});

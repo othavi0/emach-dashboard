@@ -12,7 +12,7 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import { moderateReview } from "../actions";
 import type { ReviewDetail, ReviewStatus } from "../data";
@@ -32,7 +32,7 @@ export function ModerateActions({ review }: { review: ReviewDetail }) {
 		status: Extract<ReviewStatus, "approved" | "rejected" | "spam">
 	) {
 		if (isNoteRequired(status) && !moderationNote.trim()) {
-			toast.error("Informe uma nota ao rejeitar ou marcar como spam");
+			notify.error("Informe uma nota ao rejeitar ou marcar como spam");
 			return;
 		}
 
@@ -45,14 +45,14 @@ export function ModerateActions({ review }: { review: ReviewDetail }) {
 				});
 
 				if (!result.ok) {
-					toast.error(result.error);
+					notify.error(result.error);
 					return;
 				}
 
-				toast.success("Moderação salva");
+				notify.success("Moderação salva");
 				router.refresh();
 			} catch {
-				toast.error("Não foi possível salvar a moderação");
+				notify.error("Não foi possível salvar a moderação");
 			}
 		});
 	}

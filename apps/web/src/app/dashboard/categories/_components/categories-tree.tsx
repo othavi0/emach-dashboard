@@ -19,7 +19,7 @@ import { ChevronDown, ChevronRight, GripVertical, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 import {
 	buildCategoryTree,
@@ -89,10 +89,10 @@ export function CategoriesTree({ canMutate, categories }: CategoriesTreeProps) {
 				orderedIds: reordered,
 			});
 			if (result.ok) {
-				toast.success("Ordem atualizada");
+				notify.success("Ordem atualizada");
 				router.refresh();
 			} else {
-				toast.error(result.error);
+				notify.error(result.error);
 				setOrder(categories);
 			}
 		});

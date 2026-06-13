@@ -16,10 +16,10 @@ import { Textarea } from "@emach/ui/components/textarea";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import type { ZodError } from "zod";
 
 import { FormErrorPanel, type FormIssue } from "@/components/form-error-panel";
+import { notify } from "@/lib/notify";
 
 import { slugifyLabel } from "../_lib/attribute-schema";
 import { breadcrumbFromPath, buildNameBySlug } from "../_lib/category-tree";
@@ -162,7 +162,7 @@ export function CategoryForm({
 			setErrors(zodErrorsToFieldMap(parsed.error));
 			const issues = buildFormIssues(parsed.error);
 			setFormIssues(issues);
-			toast.error(
+			notify.error(
 				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
 			);
 			return;
@@ -172,20 +172,20 @@ export function CategoryForm({
 			if (mode === "create") {
 				const result = await createCategory(parsed.data);
 				if (result.ok) {
-					toast.success("Categoria criada");
+					notify.success("Categoria criada");
 					router.push(`/dashboard/categories/${result.data.id}/edit`);
 					router.refresh();
 				} else {
-					toast.error(result.error || "Não foi possível salvar a categoria");
+					notify.error(result.error || "Não foi possível salvar a categoria");
 				}
 			} else {
 				const result = await updateCategory(categoryId ?? "", parsed.data);
 				if (result.ok) {
-					toast.success("Categoria atualizada");
+					notify.success("Categoria atualizada");
 					router.push("/dashboard/categories");
 					router.refresh();
 				} else {
-					toast.error(result.error || "Não foi possível salvar a categoria");
+					notify.error(result.error || "Não foi possível salvar a categoria");
 				}
 			}
 		});

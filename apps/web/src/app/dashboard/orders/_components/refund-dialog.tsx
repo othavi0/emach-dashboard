@@ -24,7 +24,7 @@ import { Textarea } from "@emach/ui/components/textarea";
 import { AlertTriangleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { refundOrder } from "../actions";
 import type { BranchOption, OrderDetailItem, OrderStatus } from "../data";
 
@@ -109,10 +109,10 @@ export function RefundDialog({
 				returnItems,
 			});
 			if (!result.ok) {
-				toast.error(result.error);
+				notify.error(result.error);
 				return;
 			}
-			toast.success("Pedido reembolsado");
+			notify.success("Pedido reembolsado");
 			setOpen(false);
 			router.refresh();
 		});

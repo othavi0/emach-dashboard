@@ -23,7 +23,7 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { updateOrderStatus } from "../actions";
 import type { BranchOption, OrderDetailItem, OrderStatus } from "../data";
 
@@ -120,17 +120,17 @@ export function StockReturnDialog({
 				});
 
 				if (!result.ok) {
-					toast.error(result.error);
+					notify.error(result.error);
 					return;
 				}
 
-				toast.success(
+				notify.success(
 					toStatus === "canceled" ? "Pedido cancelado" : "Devolução registrada"
 				);
 				setOpen(false);
 				router.refresh();
 			} catch {
-				toast.error("Não foi possível atualizar o pedido");
+				notify.error("Não foi possível atualizar o pedido");
 			}
 		});
 	}

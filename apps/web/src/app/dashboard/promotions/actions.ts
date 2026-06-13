@@ -19,6 +19,7 @@ import {
 import { revalidatePath } from "next/cache";
 
 import { type Cursor, decodeCursor } from "@/lib/cursor";
+import { endOfDaySaoPaulo, startOfDaySaoPaulo } from "@/lib/format/date-input";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
@@ -28,6 +29,7 @@ import {
 	type PromotionFormValues,
 	promotionSchema,
 } from "./_components/promotion-schema";
+import { featuredConflictMessage } from "./_lib/featured-message";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -227,6 +229,36 @@ function computeStatus(p: {
 		return "scheduled";
 	}
 	return "active";
+}
+
+/**
+ * Bloqueia marcar uma promoção como destaque enquanto já houver outro destaque
+ * vivo (status active ou scheduled). O índice único do banco garante 1 destaque;
+ * aqui damos a mensagem amigável antes de tentar o flip-off.
+ */
+async function assertFeaturedSlotFree(tx: Tx, excludeId?: string) {
+	const filters = [eq(promotion.featured, true)];
+	if (excludeId) {
+		filters.push(ne(promotion.id, excludeId));
+	}
+	const rows = await tx
+		.select({
+			active: promotion.active,
+			startsAt: promotion.startsAt,
+			endsAt: promotion.endsAt,
+		})
+		.from(promotion)
+		.where(and(...filters))
+		.limit(1);
+
+	const existing = rows[0];
+	if (!existing) {
+		return;
+	}
+	const status = computeStatus(existing);
+	if (status === "active" || status === "scheduled") {
+		conflict(featuredConflictMessage(existing));
+	}
 }
 
 // Predicado SQL de status, compartilhado entre fetchPromotionsPage (filtro da
@@ -635,6 +667,7 @@ export async function createPromotion(
 
 			const isFeatured = data.type === "promotion" && data.featured === true;
 			if (isFeatured) {
+				await assertFeaturedSlotFree(tx);
 				await tx
 					.update(promotion)
 					.set({ featured: false })
@@ -653,8 +686,8 @@ export async function createPromotion(
 				...couponFields,
 				active: data.active,
 				featured: isFeatured,
-				startsAt: data.startsAt ?? null,
-				endsAt: data.endsAt ?? null,
+				startsAt: data.startsAt ? startOfDaySaoPaulo(data.startsAt) : null,
+				endsAt: data.endsAt ? endOfDaySaoPaulo(data.endsAt) : null,
 				createdBy: session.user.id,
 				updatedBy: session.user.id,
 			});
@@ -721,6 +754,7 @@ export async function updatePromotion(
 
 			const isFeatured = data.type === "promotion" && data.featured === true;
 			if (isFeatured) {
+				await assertFeaturedSlotFree(tx, id);
 				await tx
 					.update(promotion)
 					.set({ featured: false })
@@ -740,8 +774,8 @@ export async function updatePromotion(
 					...couponFields,
 					active: data.active,
 					featured: isFeatured,
-					startsAt: data.startsAt ?? null,
-					endsAt: data.endsAt ?? null,
+					startsAt: data.startsAt ? startOfDaySaoPaulo(data.startsAt) : null,
+					endsAt: data.endsAt ? endOfDaySaoPaulo(data.endsAt) : null,
 					updatedBy: session.user.id,
 				})
 				.where(eq(promotion.id, id));
