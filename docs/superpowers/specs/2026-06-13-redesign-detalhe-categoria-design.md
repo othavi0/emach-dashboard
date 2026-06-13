@@ -60,7 +60,7 @@ O Server Component lê `sp.tab` e injeta a ação primária no header:
 
 ### Aba "Visão geral" (`overview-tab.tsx`, novo)
 
-1. **`EntityKpisRow`** — 4 KPIs: Produtos · Subcategorias · Atributos · Status (`tone="success"` quando Ativa). **"Profundidade/Nível" eliminado.**
+1. **`EntityKpisRow`** — 4 KPIs: Produtos · Subcategorias · Atributos · Status (`tone="success"` quando Ativa). **"Profundidade/Nível" eliminado.** O KPI Produtos mostra o **total da subárvore** (rollup via `path`) com legenda "N diretos" (omitida em categoria-folha). Bate com a listagem e com o badge/lista da aba Produtos.
 2. **Card Descrição** — `category.description` ou "Sem descrição.".
 3. **Card Atributos técnicos** — lista própria/herdados (move `loadAttributes` do page atual). Cada linha: label + tipo/unidade + badge de origem (`Próprio` coral / `↑ {nome do pai}` secondary). Rodapé com link "Editar atributos na página de edição →" (`text-info`).
 
@@ -69,7 +69,8 @@ O Server Component lê `sp.tab` e injeta a ação primária no header:
 ### Aba "Produtos" (`products-tab.tsx`, novo — Client Component)
 
 - Lista linkada (cada item → `/dashboard/tools/{id}`): thumb (primeira imagem do tool) + nome (`text-primary`) + SKU (mono, à direita). Divisórias edge-to-edge.
-- **Scroll infinito** via `useInfiniteList` + `<InfiniteSentinel>` (`src/components/infinite.ts` / `src/components/infinite-sentinel.tsx`), `BATCH_SIZE = 20`, cursor keyset. Server action paginada `getCategoryProductsPage({ categoryId, cursor })` em `actions.ts`, ordenada por `tool.name` + `tool.id` (keyset estável). Cada página inclui a thumb via `leftJoin` em `toolImage` (fallback: ícone placeholder).
+- **Lista a subárvore inteira** (produtos diretos + de todas as subcategorias), via `path` materializado — consistente com o KPI e o badge da aba. Numa categoria-pai a aba mostra os produtos dos descendentes.
+- **Scroll infinito** via `useInfiniteList` + `<InfiniteSentinel>` (`src/components/infinite.ts` / `src/components/infinite-sentinel.tsx`), `BATCH_SIZE = 20`, cursor keyset. Server action paginada `getCategoryProductsPage({ categoryId, cursor })` em `actions.ts`, ordenada por `tool.name` + `tool.id` (keyset estável). Cada página inclui a thumb via enriquecimento em 2 passos em `toolImage` (fallback: ícone placeholder).
 - Skeleton opcional no loading; empty state: "Nenhum produto nesta categoria.". Sem texto de "fim da lista" (sentinel retorna `null`).
 - Carrega lazy (só quando `sp.tab === "produtos"`).
 

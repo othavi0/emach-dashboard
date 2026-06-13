@@ -75,7 +75,7 @@ export default async function CategoryDetailPage({
 			value: "produtos",
 			label: "Produtos",
 			icon: <Package aria-hidden className="size-3.5" />,
-			badge: <CountBadge value={productCount} />,
+			badge: <CountBadge value={rollupProductCount} />,
 			content: current === "produtos" ? <ProductsTab categoryId={id} /> : null,
 		},
 		{
