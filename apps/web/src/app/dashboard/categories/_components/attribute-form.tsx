@@ -16,8 +16,8 @@ import { Switch } from "@emach/ui/components/switch";
 import { Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import type { ZodError } from "zod";
-import { FormErrorPanel } from "@/components/form-error-panel";
 import { HelpTooltip } from "@/components/help-tooltip";
+import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import {
@@ -51,33 +51,6 @@ const EMPTY: AttributeFormValues = {
 	swatches: [],
 };
 
-const FIELD_LABELS: Record<string, string> = {
-	label: "Rótulo",
-	slug: "Slug",
-	inputType: "Tipo de campo",
-	unit: "Unidade",
-	sortOrder: "Ordem",
-	options: "Opções da lista",
-	swatches: "Cores",
-	isRequired: "Obrigatório",
-};
-
-function pathToLabel(path: readonly PropertyKey[]): string {
-	if (path.length === 0) {
-		return "Formulário";
-	}
-	const head = String(path[0]);
-	const root = FIELD_LABELS[head] ?? head;
-	if (path.length === 1) {
-		return root;
-	}
-	const rest = path
-		.slice(1)
-		.map((p) => (typeof p === "number" ? `#${p + 1}` : p))
-		.join(" › ");
-	return `${root} ${rest}`;
-}
-
 function renderSubmitLabel(isPending: boolean, mode: "create" | "edit") {
 	if (isPending) {
 		return (
@@ -106,9 +79,6 @@ export function AttributeForm({
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof AttributeFormValues, string>>
 	>({});
-	const [allIssues, setAllIssues] = useState<
-		{ path: string; message: string }[]
-	>([]);
 
 	function update<K extends keyof AttributeFormValues>(
 		key: K,
@@ -131,16 +101,11 @@ export function AttributeForm({
 				}
 			}
 			setErrors(fieldErrors);
-			setAllIssues(
-				issues.map((i) => ({ path: pathToLabel(i.path), message: i.message }))
-			);
-			notify.error(
-				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
-			);
+			notify.error(errorToastMessage(issues.length));
+			focusFirstError();
 			return;
 		}
 		setErrors({});
-		setAllIssues([]);
 		startTransition(async () => {
 			const action =
 				mode === "create"
@@ -168,8 +133,6 @@ export function AttributeForm({
 
 	return (
 		<form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-			<FormErrorPanel issues={allIssues} />
-
 			<div className="flex flex-col gap-2">
 				<Label htmlFor="label">
 					Rótulo

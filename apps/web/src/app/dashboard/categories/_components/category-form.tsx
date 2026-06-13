@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { ZodError } from "zod";
 
-import { FormErrorPanel, type FormIssue } from "@/components/form-error-panel";
+import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import { slugifyLabel } from "../_lib/attribute-schema";
@@ -29,14 +29,6 @@ import {
 	updateCategory,
 } from "../actions";
 import { type CategoryInput, categorySchema } from "../schema";
-
-const FIELD_LABELS: Record<string, string> = {
-	name: "Nome",
-	slug: "Nome",
-	parentId: "Categoria pai",
-	description: "Descrição",
-	isActive: "Ativa",
-};
 
 const NO_PARENT = "__none__";
 
@@ -82,30 +74,6 @@ function zodErrorsToFieldMap(
 	return map;
 }
 
-// Build the panel issue list from a ZodError, remapping slug errors
-// (slug is hidden and derived from name) to a user-facing "Nome" message.
-// Iterates error.issues directly to avoid positional coupling with zodIssuesToFormIssues.
-function buildFormIssues(error: ZodError<CategoryInput>): FormIssue[] {
-	let slugSeen = false;
-	return error.issues.flatMap((issue) => {
-		if (issue.path[0] === "slug") {
-			if (slugSeen) {
-				return [];
-			}
-			slugSeen = true;
-			return [
-				{
-					path: "Nome",
-					message:
-						"O nome não gera um identificador válido — use letras ou números.",
-				},
-			];
-		}
-		const head = String(issue.path[0]);
-		return [{ path: FIELD_LABELS[head] ?? head, message: issue.message }];
-	});
-}
-
 export function CategoryForm({
 	categories,
 	categoryId,
@@ -126,7 +94,6 @@ export function CategoryForm({
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof CategoryInput, string>>
 	>({});
-	const [formIssues, setFormIssues] = useState<FormIssue[]>([]);
 
 	const nameBySlug = buildNameBySlug(categories);
 
@@ -165,7 +132,6 @@ export function CategoryForm({
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setErrors({});
-		setFormIssues([]);
 
 		const parsed = categorySchema.safeParse({
 			name,
@@ -177,11 +143,8 @@ export function CategoryForm({
 
 		if (!parsed.success) {
 			setErrors(zodErrorsToFieldMap(parsed.error));
-			const issues = buildFormIssues(parsed.error);
-			setFormIssues(issues);
-			notify.error(
-				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
-			);
+			notify.error(errorToastMessage(parsed.error.issues.length));
+			focusFirstError();
 			return;
 		}
 
@@ -210,8 +173,6 @@ export function CategoryForm({
 
 	return (
 		<form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-			<FormErrorPanel issues={formIssues} />
-
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas
