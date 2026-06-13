@@ -54,6 +54,16 @@ describe("countFilledSpecs", () => {
 	it("valueBool false conta como preenchido", () => {
 		expect(countFilledSpecs({ a: bool(false) }, ["a"])).toBe(1);
 	});
+
+	it("conta numeric_range preenchido só com valueNumericMax", () => {
+		expect(countFilledSpecs({ a: { valueNumericMax: 50 } }, ["a"])).toBe(1);
+	});
+
+	it("NaN em valueNumericMax não conta", () => {
+		expect(
+			countFilledSpecs({ a: { valueNumericMax: Number.NaN } }, ["a"])
+		).toBe(0);
+	});
 });
 
 function baseTool(overrides: Record<string, unknown> = {}) {

@@ -188,6 +188,12 @@ function isSpecFilled(v: AttributeValueInput): boolean {
 	if (typeof v.valueNumeric === "number" && !Number.isNaN(v.valueNumeric)) {
 		return true;
 	}
+	if (
+		typeof v.valueNumericMax === "number" &&
+		!Number.isNaN(v.valueNumericMax)
+	) {
+		return true;
+	}
 	if (typeof v.valueBool === "boolean") {
 		return true;
 	}
