@@ -1,4 +1,7 @@
-import type { BranchBusinessHours } from "@emach/db/schema/inventory";
+import type {
+	BranchBusinessHours,
+	BranchBusinessHoursPeriod,
+} from "@emach/db/schema/inventory";
 import { z } from "zod";
 
 const phoneRegex = /^(\+?55)?\s*\(?\d{2}\)?\s*\d{4,5}-?\d{4}$/;
@@ -8,9 +11,27 @@ const CEP_8_DIGITS = /^\d{8}$/;
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export const defaultBusinessHours: BranchBusinessHours = {
-	weekdays: { isOpen: true, opensAt: "08:00", closesAt: "18:00" },
-	saturday: { isOpen: true, opensAt: "08:00", closesAt: "12:00" },
-	holidays: { isOpen: false, opensAt: null, closesAt: null },
+	weekdays: {
+		isOpen: true,
+		opensAt: "08:00",
+		closesAt: "18:00",
+		breakStart: null,
+		breakEnd: null,
+	},
+	saturday: {
+		isOpen: true,
+		opensAt: "08:00",
+		closesAt: "12:00",
+		breakStart: null,
+		breakEnd: null,
+	},
+	holidays: {
+		isOpen: false,
+		opensAt: null,
+		closesAt: null,
+		breakStart: null,
+		breakEnd: null,
+	},
 };
 
 const cepDigits = z
@@ -59,6 +80,8 @@ const businessHoursPeriodSchema = z
 		isOpen: z.boolean(),
 		opensAt: timeValueSchema,
 		closesAt: timeValueSchema,
+		breakStart: timeValueSchema.optional().transform((v) => v ?? null),
+		breakEnd: timeValueSchema.optional().transform((v) => v ?? null),
 	})
 	.superRefine((value, ctx) => {
 		if (!value.isOpen) {
@@ -88,12 +111,47 @@ const businessHoursPeriodSchema = z
 				path: ["closesAt"],
 			});
 		}
+
+		const hasStart = Boolean(value.breakStart);
+		const hasEnd = Boolean(value.breakEnd);
+
+		if (hasStart !== hasEnd) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Preencha início e fim do intervalo",
+				path: [hasStart ? "breakEnd" : "breakStart"],
+			});
+		}
+
+		if (value.breakStart && value.breakEnd && value.opensAt && value.closesAt) {
+			const startOk =
+				value.opensAt < value.breakStart && value.breakStart < value.breakEnd;
+			const endOk =
+				value.breakStart < value.breakEnd && value.breakEnd < value.closesAt;
+			if (!startOk) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Intervalo deve ficar dentro do expediente",
+					path: ["breakStart"],
+				});
+			} else if (!endOk) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Intervalo deve ficar dentro do expediente",
+					path: ["breakEnd"],
+				});
+			}
+		}
 	})
-	.transform((value) => ({
-		isOpen: value.isOpen,
-		opensAt: value.isOpen ? value.opensAt : null,
-		closesAt: value.isOpen ? value.closesAt : null,
-	}));
+	.transform(
+		(value): BranchBusinessHoursPeriod => ({
+			isOpen: value.isOpen,
+			opensAt: value.isOpen ? value.opensAt : null,
+			closesAt: value.isOpen ? value.closesAt : null,
+			breakStart: value.isOpen ? value.breakStart : null,
+			breakEnd: value.isOpen ? value.breakEnd : null,
+		})
+	);
 
 export const businessHoursSchema = z
 	.object({
@@ -115,60 +173,47 @@ export const branchSchema = z
 		phone: z
 			.string()
 			.trim()
+			.min(1, "Telefone obrigatório")
 			.max(40, "Telefone muito longo")
-			.regex(phoneRegex, "Telefone inválido")
-			.optional()
-			.or(z.literal(""))
-			.transform((v) => (v ? v : undefined)),
+			.regex(phoneRegex, "Telefone inválido"),
 		businessHours: businessHoursSchema,
 		cep: z
 			.string()
 			.trim()
 			.transform((v) => v.replace(/\D/g, ""))
-			.refine((v) => v === "" || cepDigitsRegex.test(v), "CEP inválido")
-			.optional()
-			.transform((v) => (v ? v : undefined)),
-		street: optionalTrimmed.pipe(
-			z.string().max(200, "Rua muito longa").optional()
-		),
-		streetNumber: optionalTrimmed.pipe(
-			z.string().max(20, "Número muito longo").optional()
-		),
+			.pipe(z.string().regex(cepDigitsRegex, "CEP inválido (8 dígitos)")),
+		street: z
+			.string()
+			.trim()
+			.min(1, "Rua obrigatória")
+			.max(200, "Rua muito longa"),
+		streetNumber: z
+			.string()
+			.trim()
+			.min(1, "Número obrigatório")
+			.max(20, "Número muito longo"),
 		complement: optionalTrimmed.pipe(
 			z.string().max(100, "Complemento muito longo").optional()
 		),
-		neighborhood: optionalTrimmed.pipe(
-			z.string().max(120, "Bairro muito longo").optional()
-		),
-		city: optionalTrimmed.pipe(
-			z.string().max(120, "Cidade muito longa").optional()
-		),
+		neighborhood: z
+			.string()
+			.trim()
+			.min(1, "Bairro obrigatório")
+			.max(120, "Bairro muito longo"),
+		city: z
+			.string()
+			.trim()
+			.min(1, "Cidade obrigatória")
+			.max(120, "Cidade muito longa"),
 		state: z
 			.string()
 			.trim()
 			.toUpperCase()
-			.optional()
-			.or(z.literal(""))
-			.transform((v) => (v ? v : undefined))
-			.refine((v) => !v || ufRegex.test(v), "UF inválido (use 2 letras)"),
+			.min(1, "UF obrigatória")
+			.regex(ufRegex, "UF inválido (use 2 letras)"),
 		responsibleUserId: optionalTrimmed.pipe(z.string().min(1).optional()),
 		cepRanges: z.array(cepRangeSchema).max(20).optional().nullable(),
 	})
-	.refine(
-		(data) => {
-			if (!data.cep) {
-				return true;
-			}
-			return Boolean(
-				data.street && data.streetNumber && data.city && data.state
-			);
-		},
-		{
-			message:
-				"Quando CEP é preenchido, rua, número, cidade e UF são obrigatórios",
-			path: ["cep"],
-		}
-	)
 	.refine((data) => !(data.cepRanges && cepRangesOverlap(data.cepRanges)), {
 		message: "Faixas de CEP da filial não podem se sobrepor",
 		path: ["cepRanges"],

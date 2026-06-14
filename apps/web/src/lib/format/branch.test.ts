@@ -8,6 +8,8 @@ describe("formatBusinessPeriod", () => {
 				isOpen: true,
 				opensAt: "08:00",
 				closesAt: "18:00",
+				breakStart: null,
+				breakEnd: null,
 			})
 		).toBe("08:00–18:00");
 	});
@@ -17,12 +19,20 @@ describe("formatBusinessPeriod", () => {
 				isOpen: false,
 				opensAt: "08:00",
 				closesAt: "18:00",
+				breakStart: null,
+				breakEnd: null,
 			})
 		).toBe("Fechado");
 	});
 	it("retorna Fechado quando horários ausentes", () => {
 		expect(
-			formatBusinessPeriod({ isOpen: true, opensAt: null, closesAt: null })
+			formatBusinessPeriod({
+				isOpen: true,
+				opensAt: null,
+				closesAt: null,
+				breakStart: null,
+				breakEnd: null,
+			})
 		).toBe("Fechado");
 	});
 	it("retorna Fechado para null", () => {

@@ -15,6 +15,8 @@ import { user } from "./auth";
 import { toolVariant } from "./tools";
 
 export interface BranchBusinessHoursPeriod {
+	breakEnd: string | null;
+	breakStart: string | null;
 	closesAt: string | null;
 	isOpen: boolean;
 	opensAt: string | null;

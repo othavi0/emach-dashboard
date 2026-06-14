@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import {
@@ -10,6 +11,7 @@ import {
 	SelectValue,
 } from "@emach/ui/components/select";
 import { Switch } from "@emach/ui/components/switch";
+import { Plus, Trash2 } from "lucide-react";
 
 import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
@@ -31,6 +33,8 @@ const BUSINESS_HOURS_ROWS: Array<{ key: BusinessHoursKey; label: string }> = [
 	{ key: "saturday", label: "Sábado" },
 	{ key: "holidays", label: "Feriados" },
 ];
+
+const BREAK_ROWS = new Set<BusinessHoursKey>(["weekdays", "saturday"]);
 
 interface Props {
 	branchId?: string;
@@ -133,7 +137,12 @@ export function BranchFormFields({
 	const contactSection = (
 		<section className="flex flex-col gap-3">
 			<SectionHeader>Contato</SectionHeader>
-			<LabeledField error={errors.phone} id="branch-phone" label="Telefone">
+			<LabeledField
+				error={errors.phone}
+				id="branch-phone"
+				label="Telefone"
+				required
+			>
 				{(field) => (
 					<MaskedInput
 						{...field}
@@ -152,7 +161,7 @@ export function BranchFormFields({
 		<section className="flex flex-col gap-3">
 			<SectionHeader>Endereço</SectionHeader>
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr]">
-				<LabeledField error={errors.cep} id="branch-cep" label="CEP">
+				<LabeledField error={errors.cep} id="branch-cep" label="CEP" required>
 					{(field) => (
 						<CepInput
 							{...field}
@@ -163,7 +172,12 @@ export function BranchFormFields({
 						/>
 					)}
 				</LabeledField>
-				<LabeledField error={errors.street} id="branch-street" label="Rua">
+				<LabeledField
+					error={errors.street}
+					id="branch-street"
+					label="Rua"
+					required
+				>
 					{(field) => (
 						<Input
 							{...field}
@@ -180,6 +194,7 @@ export function BranchFormFields({
 					error={errors.streetNumber}
 					id="branch-number"
 					label="Número"
+					required
 				>
 					{(field) => (
 						<Input
@@ -211,6 +226,7 @@ export function BranchFormFields({
 				error={errors.neighborhood}
 				id="branch-neighborhood"
 				label="Bairro"
+				required
 			>
 				{(field) => (
 					<Input
@@ -223,7 +239,12 @@ export function BranchFormFields({
 				)}
 			</LabeledField>
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr]">
-				<LabeledField error={errors.city} id="branch-city" label="Cidade">
+				<LabeledField
+					error={errors.city}
+					id="branch-city"
+					label="Cidade"
+					required
+				>
 					{(field) => (
 						<Input
 							{...field}
@@ -234,7 +255,12 @@ export function BranchFormFields({
 						/>
 					)}
 				</LabeledField>
-				<LabeledField error={errors.state} id="branch-state" label="UF">
+				<LabeledField
+					error={errors.state}
+					id="branch-state"
+					label="UF"
+					required
+				>
 					{(field) => (
 						<UfSelect
 							{...field}
@@ -259,66 +285,145 @@ export function BranchFormFields({
 			<div className="flex flex-col">
 				{BUSINESS_HOURS_ROWS.map((row) => {
 					const period = values.businessHours[row.key];
+					const canBreak = BREAK_ROWS.has(row.key);
+					const hasBreak = Boolean(period.breakStart || period.breakEnd);
 					return (
 						<div
-							className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_112px_112px] items-center gap-2 border-border border-b py-2.5 last:border-b-0 sm:gap-3"
+							className="flex flex-col gap-2 border-border border-b py-2.5 last:border-b-0"
 							key={row.key}
 						>
-							<Label
-								className="text-foreground"
-								htmlFor={`branch-hours-${row.key}-switch`}
-							>
-								{row.label}
-							</Label>
-							<Switch
-								checked={period.isOpen}
-								disabled={disabled}
-								id={`branch-hours-${row.key}-switch`}
-								onCheckedChange={(checked) =>
-									patchBusinessHours(
-										row.key,
-										checked
-											? { isOpen: true, opensAt: "08:00", closesAt: "18:00" }
-											: { isOpen: false, opensAt: null, closesAt: null }
-									)
-								}
-							/>
-							{period.isOpen ? (
-								<>
-									<Input
-										aria-label={`Abertura de ${row.label}`}
-										className="px-2 text-center tabular-nums"
+							<div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_112px_112px] items-center gap-2 sm:gap-3">
+								<Label
+									className="text-foreground"
+									htmlFor={`branch-hours-${row.key}-switch`}
+								>
+									{row.label}
+								</Label>
+								<Switch
+									checked={period.isOpen}
+									disabled={disabled}
+									id={`branch-hours-${row.key}-switch`}
+									onCheckedChange={(checked) =>
+										patchBusinessHours(
+											row.key,
+											checked
+												? { isOpen: true, opensAt: "08:00", closesAt: "18:00" }
+												: {
+														isOpen: false,
+														opensAt: null,
+														closesAt: null,
+														breakStart: null,
+														breakEnd: null,
+													}
+										)
+									}
+								/>
+								{period.isOpen ? (
+									<>
+										<Input
+											aria-label={`Abertura de ${row.label}`}
+											className="px-2 text-center tabular-nums"
+											disabled={disabled}
+											inputMode="numeric"
+											maxLength={5}
+											onChange={(event) =>
+												patchBusinessHours(row.key, {
+													opensAt: sanitizeTime24h(event.target.value) || null,
+												})
+											}
+											placeholder="08:00"
+											value={period.opensAt ?? ""}
+										/>
+										<Input
+											aria-label={`Fechamento de ${row.label}`}
+											className="px-2 text-center tabular-nums"
+											disabled={disabled}
+											inputMode="numeric"
+											maxLength={5}
+											onChange={(event) =>
+												patchBusinessHours(row.key, {
+													closesAt: sanitizeTime24h(event.target.value) || null,
+												})
+											}
+											placeholder="18:00"
+											value={period.closesAt ?? ""}
+										/>
+									</>
+								) : (
+									<span className="col-span-2 text-center text-muted-foreground text-xs italic">
+										Fechado
+									</span>
+								)}
+							</div>
+							{canBreak &&
+								period.isOpen &&
+								(hasBreak ? (
+									<div className="grid grid-cols-[minmax(0,1fr)_auto_112px_112px] items-center gap-2 sm:gap-3">
+										<span className="text-muted-foreground text-xs">
+											Intervalo
+										</span>
+										<Button
+											aria-label="Remover intervalo"
+											disabled={disabled}
+											onClick={() =>
+												patchBusinessHours(row.key, {
+													breakStart: null,
+													breakEnd: null,
+												})
+											}
+											size="icon"
+											type="button"
+											variant="ghost"
+										>
+											<Trash2 className="size-4" />
+										</Button>
+										<Input
+											aria-label={`Início do intervalo de ${row.label}`}
+											className="px-2 text-center tabular-nums"
+											disabled={disabled}
+											inputMode="numeric"
+											maxLength={5}
+											onChange={(event) =>
+												patchBusinessHours(row.key, {
+													breakStart:
+														sanitizeTime24h(event.target.value) || null,
+												})
+											}
+											placeholder="12:00"
+											value={period.breakStart ?? ""}
+										/>
+										<Input
+											aria-label={`Fim do intervalo de ${row.label}`}
+											className="px-2 text-center tabular-nums"
+											disabled={disabled}
+											inputMode="numeric"
+											maxLength={5}
+											onChange={(event) =>
+												patchBusinessHours(row.key, {
+													breakEnd: sanitizeTime24h(event.target.value) || null,
+												})
+											}
+											placeholder="13:00"
+											value={period.breakEnd ?? ""}
+										/>
+									</div>
+								) : (
+									<Button
+										className="w-fit text-muted-foreground"
 										disabled={disabled}
-										inputMode="numeric"
-										maxLength={5}
-										onChange={(event) =>
+										onClick={() =>
 											patchBusinessHours(row.key, {
-												opensAt: sanitizeTime24h(event.target.value) || null,
+												breakStart: "12:00",
+												breakEnd: "13:00",
 											})
 										}
-										placeholder="08:00"
-										value={period.opensAt ?? ""}
-									/>
-									<Input
-										aria-label={`Fechamento de ${row.label}`}
-										className="px-2 text-center tabular-nums"
-										disabled={disabled}
-										inputMode="numeric"
-										maxLength={5}
-										onChange={(event) =>
-											patchBusinessHours(row.key, {
-												closesAt: sanitizeTime24h(event.target.value) || null,
-											})
-										}
-										placeholder="18:00"
-										value={period.closesAt ?? ""}
-									/>
-								</>
-							) : (
-								<span className="col-span-2 text-center text-muted-foreground text-xs italic">
-									Fechado
-								</span>
-							)}
+										size="sm"
+										type="button"
+										variant="ghost"
+									>
+										<Plus className="size-4" /> Adicionar intervalo
+									</Button>
+								))}
 						</div>
 					);
 				})}

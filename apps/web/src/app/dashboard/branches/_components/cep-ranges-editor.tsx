@@ -14,7 +14,7 @@ import { Plus, Trash2 } from "lucide-react";
 
 import { MaskedInput } from "@/components/masked-input";
 import { cepMask } from "@/lib/masks";
-import { BRASIL_PRESET, UF_CEP_PRESETS } from "./cep-presets";
+import { BRASIL_PRESET, isBrasilTodoOnly, UF_CEP_PRESETS } from "./cep-presets";
 
 export interface CepRangeValue {
 	from: string;
@@ -55,11 +55,7 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 	}
 
 	function addBrasil() {
-		if (value.length >= MAX_RANGES) {
-			return;
-		}
 		onChange([
-			...value,
 			{
 				from: BRASIL_PRESET.from,
 				to: BRASIL_PRESET.to,
@@ -138,6 +134,8 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 		);
 	}
 
+	const brasilTodo = isBrasilTodoOnly(value);
+
 	return (
 		<div className="flex flex-col gap-3">
 			{value.length === 0 ? (
@@ -148,40 +146,49 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 				<ul className="flex flex-col gap-3">{value.map(renderRow)}</ul>
 			)}
 			<div className="flex flex-wrap items-center gap-2">
-				<Button
-					disabled={disabled || value.length >= MAX_RANGES}
-					onClick={addRow}
-					size="sm"
-					type="button"
-					variant="outline"
-				>
-					<Plus className="size-4" /> Adicionar faixa
-				</Button>
-				<Button
-					disabled={disabled || value.length >= MAX_RANGES}
-					onClick={addBrasil}
-					size="sm"
-					type="button"
-					variant="outline"
-				>
-					Brasil todo
-				</Button>
-				<Select
-					disabled={disabled || value.length >= MAX_RANGES}
-					onValueChange={addUf}
-					value=""
-				>
-					<SelectTrigger className="h-8 w-[200px]" size="sm">
-						<SelectValue placeholder="Adicionar estado…" />
-					</SelectTrigger>
-					<SelectContent>
-						{UF_CEP_PRESETS.map((preset) => (
-							<SelectItem key={preset.uf} value={preset.uf}>
-								{preset.uf} — {preset.name}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+				{brasilTodo ? (
+					<p className="text-muted-foreground text-sm">
+						Atende todo o país. Remova a faixa "Brasil" para definir estados
+						específicos.
+					</p>
+				) : (
+					<>
+						<Button
+							disabled={disabled || value.length >= MAX_RANGES}
+							onClick={addRow}
+							size="sm"
+							type="button"
+							variant="outline"
+						>
+							<Plus className="size-4" /> Adicionar faixa
+						</Button>
+						<Button
+							disabled={disabled}
+							onClick={addBrasil}
+							size="sm"
+							type="button"
+							variant="outline"
+						>
+							Brasil todo
+						</Button>
+						<Select
+							disabled={disabled || value.length >= MAX_RANGES}
+							onValueChange={addUf}
+							value=""
+						>
+							<SelectTrigger className="h-8 w-[200px]" size="sm">
+								<SelectValue placeholder="Adicionar estado…" />
+							</SelectTrigger>
+							<SelectContent>
+								{UF_CEP_PRESETS.map((preset) => (
+									<SelectItem key={preset.uf} value={preset.uf}>
+										{preset.uf} — {preset.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</>
+				)}
 			</div>
 		</div>
 	);
