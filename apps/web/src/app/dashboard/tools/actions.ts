@@ -87,7 +87,6 @@ function normalizeToolPayload(input: ToolFormValues) {
 		heightCm: input.heightCm.toFixed(2),
 		overweightShippingAmount: toNumericString(input.overweightShippingAmount),
 		visibleOnSite: input.visibleOnSite,
-		supplierId: nullableText(input.supplierId),
 	};
 }
 

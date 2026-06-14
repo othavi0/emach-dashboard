@@ -38,7 +38,6 @@ export const EMPTY_TOOL_VALUES: ToolFormState = {
 	overweightShippingAmount: undefined,
 	categoryIds: [],
 	primaryCategoryId: "",
-	supplierId: "",
 	visibleOnSite: true,
 	images: [],
 	variants: [

@@ -32,6 +32,8 @@ export interface BranchActivityRow {
 	orderNumber: string | null;
 	reason: string | null;
 	sku: string | null;
+	supplierId: string | null;
+	supplierName: string | null;
 	toolName: string | null;
 	toStatus: string | null;
 }
@@ -50,6 +52,8 @@ interface BranchActivityDbRow extends Record<string, unknown> {
 	order_number: string | null;
 	reason: string | null;
 	sku: string | null;
+	supplier_id: string | null;
+	supplier_name: string | null;
 	to_status: string | null;
 	tool_name: string | null;
 }
@@ -113,11 +117,14 @@ function buildStockBlock(ctx: BlockCtx) {
 			NULL::text AS action, NULL::text AS member_name,
 			sm.reason_note AS note,
 			CASE WHEN sm.actor_type = 'user' THEN u.name ELSE NULL END AS actor_name,
-			NULL::text AS href
+			NULL::text AS href,
+			sm.supplier_id AS supplier_id,
+			sup.name AS supplier_name
 		FROM stock_movement sm
 		LEFT JOIN tool_variant tv ON tv.id = sm.variant_id
 		LEFT JOIN tool t ON t.id = tv.tool_id
 		LEFT JOIN "user" u ON u.id = sm.actor_id
+		LEFT JOIN supplier sup ON sup.id = sm.supplier_id
 		${whereFrom(parts)}
 		ORDER BY sm.created_at DESC, 'stock-' || sm.id DESC
 		LIMIT ${ctx.limit}
@@ -141,7 +148,9 @@ function buildOrderBlock(ctx: BlockCtx) {
 			NULL::text AS action, NULL::text AS member_name,
 			osh.reason AS note,
 			CASE WHEN osh.actor_type = 'user' THEN u.name ELSE NULL END AS actor_name,
-			'/dashboard/orders/' || o.id AS href
+			'/dashboard/orders/' || o.id AS href,
+			NULL::text AS supplier_id,
+			NULL::text AS supplier_name
 		FROM order_status_history osh
 		JOIN "order" o ON o.id = osh.order_id
 		LEFT JOIN client c ON c.id = o.client_id
@@ -175,7 +184,9 @@ function buildTeamBlock(ctx: BlockCtx) {
 			ual.action AS action, tu.name AS member_name,
 			NULL::text AS note,
 			COALESCE(ual.metadata->>'actorName', au.name) AS actor_name,
-			NULL::text AS href
+			NULL::text AS href,
+			NULL::text AS supplier_id,
+			NULL::text AS supplier_name
 		FROM user_activity_log ual
 		LEFT JOIN "user" au ON au.id = ual.actor_user_id
 		LEFT JOIN "user" tu ON tu.id = ual.target_id AND ual.target_type = 'user'
@@ -247,6 +258,8 @@ export async function fetchBranchActivityPage(
 		note: r.note,
 		actorName: r.actor_name,
 		href: r.href,
+		supplierId: r.supplier_id,
+		supplierName: r.supplier_name,
 	}));
 
 	const last = pageRows.at(-1);
