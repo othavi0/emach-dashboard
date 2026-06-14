@@ -141,6 +141,19 @@ describe("businessHoursSchema — intervalo de almoço", () => {
 		expect(r.success).toBe(false);
 	});
 
+	it.each([
+		["início igual à abertura", "08:00", "13:00"],
+		["fim igual ao fechamento", "12:00", "18:00"],
+		["início igual ao fim", "12:00", "12:00"],
+	])("rejeita intervalo com %s", (_label, breakStart, breakEnd) => {
+		const r = businessHoursSchema.safeParse({
+			weekdays: { ...open, breakStart, breakEnd },
+			saturday: { isOpen: false, opensAt: null, closesAt: null },
+			holidays: { isOpen: false, opensAt: null, closesAt: null },
+		});
+		expect(r.success).toBe(false);
+	});
+
 	it("zera intervalo quando o dia está fechado", () => {
 		const r = businessHoursSchema.parse({
 			weekdays: {
