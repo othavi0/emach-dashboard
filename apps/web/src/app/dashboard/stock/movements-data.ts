@@ -11,7 +11,7 @@ import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 
-export type { PeriodPreset } from "./actions";
+export type PeriodPreset = "today" | "7d" | "30d" | "90d" | "all";
 
 export interface LedgerFilters {
 	actorId?: string;
