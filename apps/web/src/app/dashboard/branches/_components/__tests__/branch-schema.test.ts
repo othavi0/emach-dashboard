@@ -33,7 +33,17 @@ describe("cepRangeSchema", () => {
 });
 
 describe("branchSchema cepRanges", () => {
-	const base = { name: "Filial SP", status: "active" as const };
+	const base = {
+		name: "Filial SP",
+		status: "active" as const,
+		phone: "(11) 98765-4321",
+		cep: "01000-000",
+		street: "Av. Paulista",
+		streetNumber: "1578",
+		neighborhood: "Bela Vista",
+		city: "São Paulo",
+		state: "SP",
+	};
 
 	it("aceita faixas que não se sobrepõem", () => {
 		const r = branchSchema.safeParse({
@@ -53,6 +63,41 @@ describe("branchSchema cepRanges", () => {
 				{ from: "05000000", to: "07000000" },
 			],
 		});
+		expect(r.success).toBe(false);
+	});
+});
+
+describe("branchSchema — campos obrigatórios", () => {
+	const full = {
+		name: "Filial SP",
+		status: "active" as const,
+		phone: "(11) 98765-4321",
+		cep: "01000-000",
+		street: "Av. Paulista",
+		streetNumber: "1578",
+		neighborhood: "Bela Vista",
+		city: "São Paulo",
+		state: "SP",
+	};
+
+	it("aceita filial com contato e endereço completos", () => {
+		expect(branchSchema.safeParse(full).success).toBe(true);
+	});
+
+	it("aceita complemento ausente (opcional)", () => {
+		expect(branchSchema.safeParse(full).success).toBe(true);
+	});
+
+	it.each([
+		"phone",
+		"cep",
+		"street",
+		"streetNumber",
+		"neighborhood",
+		"city",
+		"state",
+	] as const)("rejeita quando %s está vazio", (field) => {
+		const r = branchSchema.safeParse({ ...full, [field]: "" });
 		expect(r.success).toBe(false);
 	});
 });

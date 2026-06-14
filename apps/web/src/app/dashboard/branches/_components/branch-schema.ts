@@ -171,60 +171,47 @@ export const branchSchema = z
 		phone: z
 			.string()
 			.trim()
+			.min(1, "Telefone obrigatório")
 			.max(40, "Telefone muito longo")
-			.regex(phoneRegex, "Telefone inválido")
-			.optional()
-			.or(z.literal(""))
-			.transform((v) => (v ? v : undefined)),
+			.regex(phoneRegex, "Telefone inválido"),
 		businessHours: businessHoursSchema,
 		cep: z
 			.string()
 			.trim()
 			.transform((v) => v.replace(/\D/g, ""))
-			.refine((v) => v === "" || cepDigitsRegex.test(v), "CEP inválido")
-			.optional()
-			.transform((v) => (v ? v : undefined)),
-		street: optionalTrimmed.pipe(
-			z.string().max(200, "Rua muito longa").optional()
-		),
-		streetNumber: optionalTrimmed.pipe(
-			z.string().max(20, "Número muito longo").optional()
-		),
+			.pipe(z.string().regex(cepDigitsRegex, "CEP inválido (8 dígitos)")),
+		street: z
+			.string()
+			.trim()
+			.min(1, "Rua obrigatória")
+			.max(200, "Rua muito longa"),
+		streetNumber: z
+			.string()
+			.trim()
+			.min(1, "Número obrigatório")
+			.max(20, "Número muito longo"),
 		complement: optionalTrimmed.pipe(
 			z.string().max(100, "Complemento muito longo").optional()
 		),
-		neighborhood: optionalTrimmed.pipe(
-			z.string().max(120, "Bairro muito longo").optional()
-		),
-		city: optionalTrimmed.pipe(
-			z.string().max(120, "Cidade muito longa").optional()
-		),
+		neighborhood: z
+			.string()
+			.trim()
+			.min(1, "Bairro obrigatório")
+			.max(120, "Bairro muito longo"),
+		city: z
+			.string()
+			.trim()
+			.min(1, "Cidade obrigatória")
+			.max(120, "Cidade muito longa"),
 		state: z
 			.string()
 			.trim()
 			.toUpperCase()
-			.optional()
-			.or(z.literal(""))
-			.transform((v) => (v ? v : undefined))
-			.refine((v) => !v || ufRegex.test(v), "UF inválido (use 2 letras)"),
+			.min(1, "UF obrigatória")
+			.regex(ufRegex, "UF inválido (use 2 letras)"),
 		responsibleUserId: optionalTrimmed.pipe(z.string().min(1).optional()),
 		cepRanges: z.array(cepRangeSchema).max(20).optional().nullable(),
 	})
-	.refine(
-		(data) => {
-			if (!data.cep) {
-				return true;
-			}
-			return Boolean(
-				data.street && data.streetNumber && data.city && data.state
-			);
-		},
-		{
-			message:
-				"Quando CEP é preenchido, rua, número, cidade e UF são obrigatórios",
-			path: ["cep"],
-		}
-	)
 	.refine((data) => !(data.cepRanges && cepRangesOverlap(data.cepRanges)), {
 		message: "Faixas de CEP da filial não podem se sobrepor",
 		path: ["cepRanges"],
