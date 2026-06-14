@@ -18,8 +18,9 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { FieldError } from "@/components/field-error";
-import { type FieldErrorMap, useFormErrors } from "@/lib/form-errors";
+import type { FieldErrorMap } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
+import { useFormErrors } from "@/lib/use-form-errors";
 
 import { slugifyLabel } from "../_lib/attribute-schema";
 import { breadcrumbFromPath, buildNameBySlug } from "../_lib/category-tree";

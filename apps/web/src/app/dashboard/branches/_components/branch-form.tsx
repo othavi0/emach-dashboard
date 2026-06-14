@@ -5,8 +5,8 @@ import { Spinner } from "@emach/ui/components/spinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
+import { useFormErrors } from "@/lib/use-form-errors";
 
 import { createBranch, updateBranch } from "../actions";
 import { BranchFormFields } from "./branch-form-fields";
