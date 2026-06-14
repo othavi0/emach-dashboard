@@ -17,11 +17,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
-import {
-	errorToastMessage,
-	focusFirstError,
-	zodIssuesToFieldErrors,
-} from "@/lib/form-errors";
+import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import {
@@ -80,9 +76,8 @@ export function AttributeForm({
 		options: defaultValues.options ?? [],
 		swatches: defaultValues.swatches ?? [],
 	});
-	const [errors, setErrors] = useState<
-		Partial<Record<keyof AttributeFormValues, string>>
-	>({});
+	const { errors, reportValidationError, clearErrors } =
+		useFormErrors<AttributeFormValues>();
 
 	function update<K extends keyof AttributeFormValues>(
 		key: K,
@@ -95,15 +90,10 @@ export function AttributeForm({
 		event.preventDefault();
 		const result = attributeFormSchema.safeParse(values);
 		if (!result.success) {
-			const fieldErrors = zodIssuesToFieldErrors<AttributeFormValues>(
-				result.error
-			);
-			setErrors(fieldErrors);
-			notify.error(errorToastMessage(fieldErrors));
-			focusFirstError();
+			reportValidationError(result.error);
 			return;
 		}
-		setErrors({});
+		clearErrors();
 		startTransition(async () => {
 			const action =
 				mode === "create"

@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { MaskedInput } from "@/components/masked-input";
+import { useFormErrors } from "@/lib/form-errors";
 import { integerMask } from "@/lib/masks";
 import { notify } from "@/lib/notify";
 
@@ -87,19 +88,6 @@ function formatRelative(date: Date): string {
 		return RELATIVE.format(diffDays, "day");
 	}
 	return RELATIVE.format(Math.round(diffDays / 30), "month");
-}
-
-function zodErrorsToMap(error: {
-	issues: { path: unknown[]; message: string }[];
-}): Partial<Record<keyof StockAdjustmentUiInput, string>> {
-	const map: Partial<Record<keyof StockAdjustmentUiInput, string>> = {};
-	for (const issue of error.issues) {
-		const key = issue.path[0] as keyof StockAdjustmentUiInput | undefined;
-		if (key && !map[key]) {
-			map[key] = issue.message;
-		}
-	}
-	return map;
 }
 
 // ─── Movimento (linha) ───────────────────────────────────────────────────────
@@ -243,9 +231,8 @@ export function BranchStockEditSheet({
 	const [newQty, setNewQty] = useState<number | undefined>(undefined);
 	const [reason, setReason] = useState<StockMovementReasonUi>("entrada_compra");
 	const [reasonNote, setReasonNote] = useState("");
-	const [errors, setErrors] = useState<
-		Partial<Record<keyof StockAdjustmentUiInput, string>>
-	>({});
+	const { errors, reportValidationError, clearErrors } =
+		useFormErrors<StockAdjustmentUiInput>();
 	const [isAdjusting, startAdjustTransition] = useTransition();
 
 	const [minQty, setMinQty] = useState<number | undefined>(undefined);
@@ -267,7 +254,7 @@ export function BranchStockEditSheet({
 		setReasonNote("");
 		setMinQty(row.minQty);
 		setReorderPoint(row.reorderPoint);
-		setErrors({});
+		clearErrors();
 		setReservedQty(null);
 
 		startAdjustTransition(async () => {
@@ -281,7 +268,7 @@ export function BranchStockEditSheet({
 
 	function handleAdjustSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		setErrors({});
+		clearErrors();
 
 		if (!row) {
 			return;
@@ -297,7 +284,7 @@ export function BranchStockEditSheet({
 
 		const parsed = stockAdjustmentUiSchema.safeParse(input);
 		if (!parsed.success) {
-			setErrors(zodErrorsToMap(parsed.error));
+			reportValidationError(parsed.error);
 			return;
 		}
 
