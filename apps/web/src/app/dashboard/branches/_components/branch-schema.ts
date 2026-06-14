@@ -80,6 +80,8 @@ const businessHoursPeriodSchema = z
 		isOpen: z.boolean(),
 		opensAt: timeValueSchema,
 		closesAt: timeValueSchema,
+		breakStart: timeValueSchema.optional().transform((v) => v ?? null),
+		breakEnd: timeValueSchema.optional().transform((v) => v ?? null),
 	})
 	.superRefine((value, ctx) => {
 		if (!value.isOpen) {
@@ -109,14 +111,43 @@ const businessHoursPeriodSchema = z
 				path: ["closesAt"],
 			});
 		}
+
+		const hasStart = Boolean(value.breakStart);
+		const hasEnd = Boolean(value.breakEnd);
+
+		if (hasStart !== hasEnd) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Preencha início e fim do intervalo",
+				path: [hasStart ? "breakEnd" : "breakStart"],
+			});
+		}
+
+		if (
+			value.breakStart &&
+			value.breakEnd &&
+			value.opensAt &&
+			value.closesAt &&
+			!(
+				value.opensAt < value.breakStart &&
+				value.breakStart < value.breakEnd &&
+				value.breakEnd < value.closesAt
+			)
+		) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Intervalo deve ficar dentro do expediente",
+				path: ["breakStart"],
+			});
+		}
 	})
 	.transform(
 		(value): BranchBusinessHoursPeriod => ({
 			isOpen: value.isOpen,
 			opensAt: value.isOpen ? value.opensAt : null,
 			closesAt: value.isOpen ? value.closesAt : null,
-			breakStart: null,
-			breakEnd: null,
+			breakStart: value.isOpen ? value.breakStart : null,
+			breakEnd: value.isOpen ? value.breakEnd : null,
 		})
 	);
 
