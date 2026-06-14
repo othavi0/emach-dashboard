@@ -18,8 +18,8 @@ import { useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
 import { LabeledField } from "@/components/labeled-field";
-import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
+import { useFormErrors } from "@/lib/use-form-errors";
 
 import {
 	createCategoryAttribute,

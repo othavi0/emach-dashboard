@@ -6,9 +6,10 @@ import { Switch } from "@emach/ui/components/switch";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
+
 import { LabeledField } from "@/components/labeled-field";
-import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
+import { useFormErrors } from "@/lib/use-form-errors";
 import { allowedApprovalRoles } from "../_lib/approval-roles";
 import { updateUser } from "../actions";
 import { updateUserSchema } from "../schema";
