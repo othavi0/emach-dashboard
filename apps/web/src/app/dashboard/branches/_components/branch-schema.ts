@@ -1,4 +1,7 @@
-import type { BranchBusinessHours } from "@emach/db/schema/inventory";
+import type {
+	BranchBusinessHours,
+	BranchBusinessHoursPeriod,
+} from "@emach/db/schema/inventory";
 import { z } from "zod";
 
 const phoneRegex = /^(\+?55)?\s*\(?\d{2}\)?\s*\d{4,5}-?\d{4}$/;
@@ -8,9 +11,27 @@ const CEP_8_DIGITS = /^\d{8}$/;
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export const defaultBusinessHours: BranchBusinessHours = {
-	weekdays: { isOpen: true, opensAt: "08:00", closesAt: "18:00" },
-	saturday: { isOpen: true, opensAt: "08:00", closesAt: "12:00" },
-	holidays: { isOpen: false, opensAt: null, closesAt: null },
+	weekdays: {
+		isOpen: true,
+		opensAt: "08:00",
+		closesAt: "18:00",
+		breakStart: null,
+		breakEnd: null,
+	},
+	saturday: {
+		isOpen: true,
+		opensAt: "08:00",
+		closesAt: "12:00",
+		breakStart: null,
+		breakEnd: null,
+	},
+	holidays: {
+		isOpen: false,
+		opensAt: null,
+		closesAt: null,
+		breakStart: null,
+		breakEnd: null,
+	},
 };
 
 const cepDigits = z
@@ -89,11 +110,15 @@ const businessHoursPeriodSchema = z
 			});
 		}
 	})
-	.transform((value) => ({
-		isOpen: value.isOpen,
-		opensAt: value.isOpen ? value.opensAt : null,
-		closesAt: value.isOpen ? value.closesAt : null,
-	}));
+	.transform(
+		(value): BranchBusinessHoursPeriod => ({
+			isOpen: value.isOpen,
+			opensAt: value.isOpen ? value.opensAt : null,
+			closesAt: value.isOpen ? value.closesAt : null,
+			breakStart: null,
+			breakEnd: null,
+		})
+	);
 
 export const businessHoursSchema = z
 	.object({
