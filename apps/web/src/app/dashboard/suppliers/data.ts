@@ -2,10 +2,12 @@ import "server-only";
 
 import { db } from "@emach/db";
 import { user as userTable } from "@emach/db/schema/auth";
-import { toolCategory } from "@emach/db/schema/categories";
 import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
-import { supplier, tool } from "@emach/db/schema/tools";
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { supplier } from "@emach/db/schema/tools";
+import { toDate } from "@emach/db/utils";
+import { desc, eq, sql } from "drizzle-orm";
+import { decodeCursor, encodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
 export interface SupplierDetail {
 	cnpj: string | null;
@@ -34,14 +36,26 @@ export async function getSupplierDetail(
 	if (!base) {
 		return null;
 	}
-	const [counts] = await db
-		.select({
-			total: sql<number>`count(*)::int`,
-			active: sql<number>`count(*) filter (where ${tool.status} = 'active')::int`,
-			inactive: sql<number>`count(*) filter (where ${tool.status} <> 'active')::int`,
-		})
-		.from(tool)
-		.where(eq(tool.supplierId, id));
+	// Derivação: tools fornecidas = tools com ≥1 entrada_compra deste fornecedor (ADR-0015).
+	// Usa db.execute raw porque count + FILTER no query builder funciona, mas
+	// precisamos do WHERE com subquery e o shape retornado vem snake_case do driver.
+	const rows = await db.execute<{
+		total: string;
+		active: string;
+		inactive: string;
+	}>(sql`
+		SELECT
+			count(*)::int AS "total",
+			count(*) FILTER (WHERE t.status = 'active')::int AS "active",
+			count(*) FILTER (WHERE t.status <> 'active')::int AS "inactive"
+		FROM tool t
+		WHERE t.id IN (
+			SELECT DISTINCT tv.tool_id FROM stock_movement sm
+			JOIN tool_variant tv ON tv.id = sm.variant_id
+			WHERE sm.reason = 'entrada_compra' AND sm.supplier_id = ${id}
+		)
+	`);
+	const counts = rows.rows[0];
 	return {
 		id: base.id,
 		name: base.name,
@@ -53,9 +67,9 @@ export async function getSupplierDetail(
 		notes: base.notes,
 		createdAt: base.createdAt,
 		updatedAt: base.updatedAt,
-		toolsTotal: counts?.total ?? 0,
-		toolsActive: counts?.active ?? 0,
-		toolsInactive: counts?.inactive ?? 0,
+		toolsTotal: Number(counts?.total ?? 0),
+		toolsActive: Number(counts?.active ?? 0),
+		toolsInactive: Number(counts?.inactive ?? 0),
 	};
 }
 
@@ -69,24 +83,48 @@ export interface SupplierDetailKpis {
 export async function getSupplierDetailKpis(
 	supplierId: string
 ): Promise<SupplierDetailKpis> {
-	const [counts] = await db
-		.select({
-			active: sql<number>`count(*) filter (where ${tool.status} = 'active')::int`,
-			inactive: sql<number>`count(*) filter (where ${tool.status} <> 'active')::int`,
-			last: sql<Date | null>`max(${tool.createdAt})`,
-		})
-		.from(tool)
-		.where(eq(tool.supplierId, supplierId));
-	const [cats] = await db
-		.select({ n: sql<number>`count(distinct ${toolCategory.categoryId})::int` })
-		.from(tool)
-		.innerJoin(toolCategory, eq(toolCategory.toolId, tool.id))
-		.where(eq(tool.supplierId, supplierId));
+	// Tools derivadas: todas com ≥1 entrada_compra deste fornecedor.
+	// lastToolAddedAt = data da última entrada_compra do fornecedor (não criação da tool).
+	const countRows = await db.execute<{
+		active: string;
+		inactive: string;
+		lastEntrada: string | null;
+	}>(sql`
+		SELECT
+			count(*) FILTER (WHERE t.status = 'active')::int AS "active",
+			count(*) FILTER (WHERE t.status <> 'active')::int AS "inactive",
+			(
+				SELECT MAX(sm2.created_at)
+				FROM stock_movement sm2
+				WHERE sm2.reason = 'entrada_compra' AND sm2.supplier_id = ${supplierId}
+			) AS "lastEntrada"
+		FROM tool t
+		WHERE t.id IN (
+			SELECT DISTINCT tv.tool_id FROM stock_movement sm
+			JOIN tool_variant tv ON tv.id = sm.variant_id
+			WHERE sm.reason = 'entrada_compra' AND sm.supplier_id = ${supplierId}
+		)
+	`);
+
+	const catRows = await db.execute<{ n: string }>(sql`
+		SELECT count(DISTINCT tc.category_id)::int AS "n"
+		FROM tool_category tc
+		WHERE tc.tool_id IN (
+			SELECT DISTINCT tv.tool_id FROM stock_movement sm
+			JOIN tool_variant tv ON tv.id = sm.variant_id
+			WHERE sm.reason = 'entrada_compra' AND sm.supplier_id = ${supplierId}
+		)
+	`);
+
+	const counts = countRows.rows[0];
+	const cats = catRows.rows[0];
 	return {
-		activeTools: counts?.active ?? 0,
-		inactiveTools: counts?.inactive ?? 0,
-		lastToolAddedAt: counts?.last ?? null,
-		categoriesCovered: cats?.n ?? 0,
+		activeTools: Number(counts?.active ?? 0),
+		inactiveTools: Number(counts?.inactive ?? 0),
+		// lastToolAddedAt reutilizado como "data da última entrada deste fornecedor"
+		// para não alterar a interface consumida por overview-tab.tsx.
+		lastToolAddedAt: counts?.lastEntrada ? toDate(counts.lastEntrada) : null,
+		categoriesCovered: Number(cats?.n ?? 0),
 	};
 }
 
@@ -99,6 +137,122 @@ export interface SupplierToolRow {
 	name: string;
 	slug: string;
 	status: "draft" | "active" | "discontinued";
+}
+
+export interface SupplierStockToolRow {
+	category: string | null;
+	createdAt: Date;
+	defaultSku: string | null;
+	/** Estoque geral: soma de todas as variantes × filiais da tool. */
+	generalStock: number;
+	id: string;
+	imageUrl: string | null;
+	name: string;
+	/** Total recebido deste fornecedor (soma dos deltas de entrada_compra dele). */
+	receivedFromSupplier: number;
+	slug: string;
+	status: "draft" | "active" | "discontinued";
+}
+
+export async function getSupplierStockTools({
+	supplierId,
+	search,
+	cursor,
+}: {
+	supplierId: string;
+	search?: string;
+	cursor: string | null;
+}): Promise<InfiniteResult<SupplierStockToolRow>> {
+	const decoded = cursor ? decodeCursor(cursor) : null;
+
+	// Cláusulas adicionais após a condição de derivação.
+	const searchClause = search?.trim()
+		? sql` AND (t.name ILIKE ${`%${search.trim()}%`} OR t.slug ILIKE ${`%${search.trim()}%`})`
+		: sql``;
+
+	const cursorClause =
+		decoded && decoded.sort === "newest"
+			? sql` AND (t.created_at, t.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
+			: sql``;
+
+	// db.execute raw: subqueries escalares correlacionadas retornam null no db.select builder
+	// (armadilha documentada em packages/db/CLAUDE.md). Colunas aliasadas em camelCase.
+	const result = await db.execute<{
+		id: string;
+		name: string;
+		slug: string;
+		status: string;
+		created_at: string;
+		generalStock: string;
+		receivedFromSupplier: string;
+	}>(sql`
+		SELECT
+			t.id,
+			t.name,
+			t.slug,
+			t.status,
+			t.created_at,
+			COALESCE((
+				SELECT SUM(sl.quantity)
+				FROM stock_level sl
+				JOIN tool_variant tv2 ON tv2.id = sl.variant_id
+				WHERE tv2.tool_id = t.id
+			), 0) AS "generalStock",
+			COALESCE((
+				SELECT SUM(sm2.delta)
+				FROM stock_movement sm2
+				JOIN tool_variant tv3 ON tv3.id = sm2.variant_id
+				WHERE tv3.tool_id = t.id
+				  AND sm2.reason = 'entrada_compra'
+				  AND sm2.supplier_id = ${supplierId}
+			), 0) AS "receivedFromSupplier"
+		FROM tool t
+		WHERE t.id IN (
+			SELECT DISTINCT tv.tool_id
+			FROM stock_movement sm
+			JOIN tool_variant tv ON tv.id = sm.variant_id
+			WHERE sm.reason = 'entrada_compra' AND sm.supplier_id = ${supplierId}
+		)${searchClause}${cursorClause}
+		ORDER BY t.created_at DESC, t.id DESC
+		LIMIT ${BATCH_SIZE + 1}
+	`);
+
+	const rawRows = result.rows;
+	const hasMore = rawRows.length > BATCH_SIZE;
+	const pageRows = hasMore ? rawRows.slice(0, BATCH_SIZE) : rawRows;
+
+	// Enriquecimento de defaultSku/imageUrl/category via segundo passo (getToolCardMeta),
+	// porque subqueries escalares correlacionadas no db.select builder retornam null.
+	const meta = await getToolCardMeta(pageRows.map((r) => r.id));
+
+	const items: SupplierStockToolRow[] = pageRows.map((r) => {
+		const m = meta.get(r.id);
+		return {
+			id: r.id,
+			name: r.name,
+			slug: r.slug ?? "",
+			status: r.status as SupplierStockToolRow["status"],
+			createdAt: toDate(r.created_at),
+			generalStock: Number(r.generalStock),
+			receivedFromSupplier: Number(r.receivedFromSupplier),
+			defaultSku: m?.defaultSku ?? null,
+			imageUrl: m?.imageUrl ?? null,
+			category: m?.category ?? null,
+		};
+	});
+
+	const lastRaw = pageRows.at(-1);
+	const nextCursor =
+		hasMore && lastRaw
+			? encodeCursor({
+					v: 1,
+					sort: "newest",
+					createdAt: toDate(lastRaw.created_at).toISOString(),
+					id: lastRaw.id,
+				})
+			: null;
+
+	return { items, nextCursor };
 }
 
 export interface SupplierAuditRow {
@@ -150,22 +304,40 @@ export async function getSupplierTableAggregates(
 	if (supplierIds.length === 0) {
 		return new Map();
 	}
-	const rows = await db
-		.select({
-			supplierId: tool.supplierId,
-			total: sql<number>`count(*)::int`,
-			active: sql<number>`count(*) filter (where ${tool.status} = 'active')::int`,
-		})
-		.from(tool)
-		.where(inArray(tool.supplierId, supplierIds))
-		.groupBy(tool.supplierId);
+
+	// Derivação: tools fornecidas = tools com ≥1 entrada_compra do fornecedor.
+	// Agrupamos por supplier_id para cobrir todos os IDs de uma vez.
+	const idList = sql.join(
+		supplierIds.map((sid) => sql`${sid}`),
+		sql`, `
+	);
+	const result = await db.execute<{
+		supplierId: string;
+		total: string;
+		active: string;
+	}>(sql`
+		SELECT
+			sm.supplier_id AS "supplierId",
+			count(DISTINCT t.id)::int AS "total",
+			count(DISTINCT t.id) FILTER (WHERE t.status = 'active')::int AS "active"
+		FROM stock_movement sm
+		JOIN tool_variant tv ON tv.id = sm.variant_id
+		JOIN tool t ON t.id = tv.tool_id
+		WHERE sm.reason = 'entrada_compra'
+		  AND sm.supplier_id IN (${idList})
+		GROUP BY sm.supplier_id
+	`);
+
 	const map = new Map<string, { toolsTotal: number; toolsActive: number }>();
 	for (const id of supplierIds) {
 		map.set(id, { toolsTotal: 0, toolsActive: 0 });
 	}
-	for (const r of rows) {
+	for (const r of result.rows) {
 		if (r.supplierId) {
-			map.set(r.supplierId, { toolsTotal: r.total, toolsActive: r.active });
+			map.set(r.supplierId, {
+				toolsTotal: Number(r.total),
+				toolsActive: Number(r.active),
+			});
 		}
 	}
 	return map;
