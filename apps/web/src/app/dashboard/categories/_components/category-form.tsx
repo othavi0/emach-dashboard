@@ -16,14 +16,9 @@ import { Textarea } from "@emach/ui/components/textarea";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import type { ZodError } from "zod";
 
 import { FieldError } from "@/components/field-error";
-import {
-	errorToastMessage,
-	focusFirstError,
-	zodIssuesToFieldErrors,
-} from "@/lib/form-errors";
+import { type FieldErrorMap, useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import { slugifyLabel } from "../_lib/attribute-schema";
@@ -61,12 +56,13 @@ function SubmitLabel({
 	return <>{mode === "create" ? "Criar categoria" : "Salvar alterações"}</>;
 }
 
-function zodErrorsToFieldMap(
-	error: ZodError<CategoryInput>
-): Partial<Record<keyof CategoryInput, string>> {
-	// slug é oculto e derivado do nome: erro de slug aparece sob o campo Nome
-	// (e a chave `slug` é omitida do mapa via destructuring).
-	const { slug, ...rest } = zodIssuesToFieldErrors<CategoryInput>(error);
+// slug é oculto e derivado do nome: erro de slug aparece sob o campo Nome
+// (e a chave `slug` é omitida do mapa via destructuring). Passado como
+// `transform` ao hook, mantendo a tripla setErrors+toast+foco dentro dele.
+function remapSlugToName(
+	fieldErrors: FieldErrorMap<CategoryInput>
+): FieldErrorMap<CategoryInput> {
+	const { slug, ...rest } = fieldErrors;
 	if (slug && !rest.name) {
 		rest.name =
 			"O nome não gera um identificador válido — use letras ou números.";
@@ -91,9 +87,8 @@ export function CategoryForm({
 		defaultValues.description ?? ""
 	);
 	const [isActive, setIsActive] = useState(defaultValues.isActive ?? true);
-	const [errors, setErrors] = useState<
-		Partial<Record<keyof CategoryInput, string>>
-	>({});
+	const { errors, reportValidationError, clearErrors } =
+		useFormErrors<CategoryInput>();
 
 	const nameBySlug = buildNameBySlug(categories);
 
@@ -131,7 +126,7 @@ export function CategoryForm({
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setErrors({});
+		clearErrors();
 
 		const parsed = categorySchema.safeParse({
 			name,
@@ -142,10 +137,7 @@ export function CategoryForm({
 		});
 
 		if (!parsed.success) {
-			const fieldErrors = zodErrorsToFieldMap(parsed.error);
-			setErrors(fieldErrors);
-			notify.error(errorToastMessage(fieldErrors));
-			focusFirstError();
+			reportValidationError(parsed.error, remapSlugToName);
 			return;
 		}
 
