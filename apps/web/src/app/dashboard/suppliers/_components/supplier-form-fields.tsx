@@ -1,11 +1,10 @@
 "use client";
 
 import { Input } from "@emach/ui/components/input";
-import { Label } from "@emach/ui/components/label";
 import { Textarea } from "@emach/ui/components/textarea";
 
-import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
+import { LabeledField } from "@/components/labeled-field";
 import type { SupplierFormValues } from "./supplier-schema";
 
 type Patch = (next: Partial<SupplierFormValues>) => void;
@@ -25,104 +24,116 @@ export function SupplierFormFields({
 }: Props) {
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="flex flex-col gap-1.5">
-				<Label htmlFor="supplier-name">
-					Nome<span className="text-destructive"> *</span>
-				</Label>
-				<Input
-					aria-invalid={errors.name ? true : undefined}
-					disabled={disabled}
-					id="supplier-name"
-					onChange={(e) => onPatch({ name: e.target.value })}
-					placeholder="Ex: Bosch Brasil"
-					value={values.name ?? ""}
-				/>
-				<FieldError>{errors.name}</FieldError>
+			<LabeledField
+				error={errors.name}
+				id="supplier-name"
+				label="Nome"
+				required
+			>
+				{(field) => (
+					<Input
+						{...field}
+						disabled={disabled}
+						onChange={(e) => onPatch({ name: e.target.value })}
+						placeholder="Ex: Bosch Brasil"
+						value={values.name ?? ""}
+					/>
+				)}
+			</LabeledField>
+
+			<div className="grid gap-4 md:grid-cols-2">
+				<LabeledField
+					error={errors.contactEmail}
+					id="supplier-email"
+					label="E-mail (opcional)"
+				>
+					{(field) => (
+						<Input
+							{...field}
+							disabled={disabled}
+							onChange={(e) => onPatch({ contactEmail: e.target.value })}
+							placeholder="contato@fornecedor.com"
+							type="email"
+							value={values.contactEmail ?? ""}
+						/>
+					)}
+				</LabeledField>
+				<LabeledField
+					error={errors.phone}
+					id="supplier-phone"
+					label="Telefone (opcional)"
+				>
+					{(field) => (
+						<Input
+							{...field}
+							disabled={disabled}
+							onChange={(e) => onPatch({ phone: e.target.value })}
+							placeholder="(11) 99999-9999"
+							value={values.phone ?? ""}
+						/>
+					)}
+				</LabeledField>
 			</div>
 
 			<div className="grid gap-4 md:grid-cols-2">
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="supplier-email">E-mail (opcional)</Label>
-					<Input
-						aria-invalid={errors.contactEmail ? true : undefined}
-						disabled={disabled}
-						id="supplier-email"
-						onChange={(e) => onPatch({ contactEmail: e.target.value })}
-						placeholder="contato@fornecedor.com"
-						type="email"
-						value={values.contactEmail ?? ""}
-					/>
-					<FieldError>{errors.contactEmail}</FieldError>
-				</div>
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="supplier-phone">Telefone (opcional)</Label>
-					<Input
-						aria-invalid={errors.phone ? true : undefined}
-						disabled={disabled}
-						id="supplier-phone"
-						onChange={(e) => onPatch({ phone: e.target.value })}
-						placeholder="(11) 99999-9999"
-						value={values.phone ?? ""}
-					/>
-					<FieldError>{errors.phone}</FieldError>
-				</div>
-			</div>
-
-			<div className="grid gap-4 md:grid-cols-2">
-				<div className="flex flex-col gap-1.5">
-					<Label
-						className="flex items-center gap-1.5"
-						htmlFor="supplier-website"
-					>
-						Website (opcional)
-						<HelpTooltip text="URL completa, começando com https://." />
-					</Label>
-					<Input
-						aria-invalid={errors.website ? true : undefined}
-						disabled={disabled}
-						id="supplier-website"
-						onChange={(e) => onPatch({ website: e.target.value })}
-						placeholder="https://..."
-						type="url"
-						value={values.website ?? ""}
-					/>
-					<FieldError>{errors.website}</FieldError>
-				</div>
-				<div className="flex flex-col gap-1.5">
-					<Label className="flex items-center gap-1.5" htmlFor="supplier-cnpj">
-						CNPJ (opcional)
+				<LabeledField
+					error={errors.website}
+					help={<HelpTooltip text="URL completa, começando com https://." />}
+					id="supplier-website"
+					label="Website (opcional)"
+				>
+					{(field) => (
+						<Input
+							{...field}
+							disabled={disabled}
+							onChange={(e) => onPatch({ website: e.target.value })}
+							placeholder="https://..."
+							type="url"
+							value={values.website ?? ""}
+						/>
+					)}
+				</LabeledField>
+				<LabeledField
+					error={errors.cnpj}
+					help={
 						<HelpTooltip
 							body="Só os dígitos são salvos; a máscara é apenas visual."
 							example="12.345.678/0001-90 → 12345678000190"
 							title="CNPJ"
 						/>
-					</Label>
-					<Input
-						aria-invalid={errors.cnpj ? true : undefined}
-						disabled={disabled}
-						id="supplier-cnpj"
-						onChange={(e) => onPatch({ cnpj: e.target.value })}
-						placeholder="00.000.000/0000-00"
-						value={values.cnpj ?? ""}
-					/>
-					<FieldError>{errors.cnpj}</FieldError>
-				</div>
+					}
+					id="supplier-cnpj"
+					label="CNPJ (opcional)"
+				>
+					{(field) => (
+						<Input
+							{...field}
+							disabled={disabled}
+							onChange={(e) => onPatch({ cnpj: e.target.value })}
+							placeholder="00.000.000/0000-00"
+							value={values.cnpj ?? ""}
+						/>
+					)}
+				</LabeledField>
 			</div>
 
-			<div className="flex flex-col gap-1.5">
-				<Label htmlFor="supplier-notes">Observações (opcional)</Label>
-				<Textarea
-					aria-invalid={errors.notes ? true : undefined}
-					disabled={disabled}
-					id="supplier-notes"
-					onChange={(e) => onPatch({ notes: e.target.value })}
-					placeholder="Condições comerciais, contato responsável ou instruções internas."
-					rows={5}
-					value={values.notes ?? ""}
-				/>
-				<FieldError>{errors.notes}</FieldError>
-				<p className="text-muted-foreground text-xs">Markdown suportado</p>
-			</div>
+			<LabeledField
+				error={errors.notes}
+				hint="Markdown suportado"
+				id="supplier-notes"
+				label="Observações (opcional)"
+			>
+				{(field) => (
+					<Textarea
+						{...field}
+						disabled={disabled}
+						onChange={(e) => onPatch({ notes: e.target.value })}
+						placeholder="Condições comerciais, contato responsável ou instruções internas."
+						rows={5}
+						value={values.notes ?? ""}
+					/>
+				)}
+			</LabeledField>
 		</div>
 	);
 }
