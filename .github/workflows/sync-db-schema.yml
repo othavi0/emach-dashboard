@@ -15,12 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout dashboard
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: dashboard
 
       - name: Checkout ecommerce
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: othavioquiliao/emach-ecommerce
           token: ${{ secrets.ECOMMERCE_SYNC_TOKEN }}
