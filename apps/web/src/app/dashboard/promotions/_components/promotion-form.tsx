@@ -4,11 +4,7 @@ import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import {
-	errorToastMessage,
-	focusFirstError,
-	zodIssuesToFieldErrors,
-} from "@/lib/form-errors";
+import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import { createPromotion, updatePromotion } from "../actions";
@@ -92,9 +88,8 @@ export function PromotionForm({
 		initialValues ?? CREATE_DEFAULTS
 	);
 
-	const [errors, setErrors] = useState<
-		Partial<Record<keyof PromotionFormValues, string>>
-	>({});
+	const { errors, reportValidationError, clearErrors } =
+		useFormErrors<PromotionFormValues>();
 	const [serverError, setServerError] = useState<string | null>(null);
 	const [submitted, setSubmitted] = useState(false);
 
@@ -103,19 +98,14 @@ export function PromotionForm({
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setErrors({});
+		clearErrors();
 		setServerError(null);
 
 		const schema = mode === "create" ? createPromotionSchema : promotionSchema;
 		const parsed = schema.safeParse(values);
 
 		if (!parsed.success) {
-			const fieldErrors = zodIssuesToFieldErrors<PromotionFormValues>(
-				parsed.error
-			);
-			setErrors(fieldErrors);
-			notify.error(errorToastMessage(fieldErrors));
-			focusFirstError();
+			reportValidationError(parsed.error);
 			return;
 		}
 

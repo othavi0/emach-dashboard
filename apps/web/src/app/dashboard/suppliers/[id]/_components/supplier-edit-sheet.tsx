@@ -3,11 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
-import {
-	errorToastMessage,
-	focusFirstError,
-	zodIssuesToFieldErrors,
-} from "@/lib/form-errors";
+import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { SupplierFormFields } from "../../_components/supplier-form-fields";
 import {
@@ -35,9 +31,8 @@ export function SupplierEditSheet({ supplier }: Props) {
 		cnpj: supplier.cnpj ?? "",
 		notes: supplier.notes ?? "",
 	});
-	const [errors, setErrors] = useState<
-		Partial<Record<keyof SupplierFormValues, string>>
-	>({});
+	const { errors, reportValidationError, clearErrors } =
+		useFormErrors<SupplierFormValues>();
 	const [submitting, startTransition] = useTransition();
 
 	useEffect(() => {
@@ -50,9 +45,9 @@ export function SupplierEditSheet({ supplier }: Props) {
 				cnpj: supplier.cnpj ?? "",
 				notes: supplier.notes ?? "",
 			});
-			setErrors({});
+			clearErrors();
 		}
-	}, [open, supplier]);
+	}, [open, supplier, clearErrors]);
 
 	const close = () => {
 		const sp = new URLSearchParams(params);
@@ -65,12 +60,7 @@ export function SupplierEditSheet({ supplier }: Props) {
 		e.preventDefault();
 		const parsed = supplierSchema.safeParse(values);
 		if (!parsed.success) {
-			const fieldErrors = zodIssuesToFieldErrors<SupplierFormValues>(
-				parsed.error
-			);
-			setErrors(fieldErrors);
-			notify.error(errorToastMessage(fieldErrors));
-			focusFirstError();
+			reportValidationError(parsed.error);
 			return;
 		}
 		startTransition(async () => {

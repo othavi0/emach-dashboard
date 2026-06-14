@@ -3,11 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
-import {
-	errorToastMessage,
-	focusFirstError,
-	zodIssuesToFieldErrors,
-} from "@/lib/form-errors";
+import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { BranchFormFields } from "../../_components/branch-form-fields";
 import {
@@ -49,17 +45,16 @@ export function BranchEditSheet({ branch }: Props) {
 	const [values, setValues] = useState<BranchFormValues>(() =>
 		toFormValues(branch)
 	);
-	const [errors, setErrors] = useState<
-		Partial<Record<keyof BranchFormValues, string>>
-	>({});
+	const { errors, reportValidationError, clearErrors } =
+		useFormErrors<BranchFormValues>();
 	const [submitting, startTransition] = useTransition();
 
 	useEffect(() => {
 		if (open) {
 			setValues(toFormValues(branch));
-			setErrors({});
+			clearErrors();
 		}
-	}, [open, branch]);
+	}, [open, branch, clearErrors]);
 
 	const close = () => {
 		const sp = new URLSearchParams(params);
@@ -72,12 +67,7 @@ export function BranchEditSheet({ branch }: Props) {
 		e.preventDefault();
 		const parsed = branchSchema.safeParse(values);
 		if (!parsed.success) {
-			const fieldErrors = zodIssuesToFieldErrors<BranchFormValues>(
-				parsed.error
-			);
-			setErrors(fieldErrors);
-			notify.error(errorToastMessage(fieldErrors));
-			focusFirstError();
+			reportValidationError(parsed.error);
 			return;
 		}
 		startTransition(async () => {
