@@ -14,7 +14,6 @@ import { Textarea } from "@emach/ui/components/textarea";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { FormErrorPanel, type FormIssue } from "@/components/form-error-panel";
 import { formatDocument } from "@/lib/cpf-cnpj";
 import { notify } from "@/lib/notify";
 import { updateCustomerProfile } from "../actions";
@@ -44,7 +43,6 @@ export function CustomerProfileForm({
 }: CustomerProfileFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
-	const [issues, setIssues] = useState<FormIssue[]>([]);
 
 	const [name, setName] = useState(customer.name);
 	const [email, setEmail] = useState(customer.email);
@@ -59,7 +57,6 @@ export function CustomerProfileForm({
 
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
-		setIssues([]);
 
 		startTransition(async () => {
 			const result = await updateCustomerProfile({
@@ -78,7 +75,6 @@ export function CustomerProfileForm({
 				router.refresh();
 			} else {
 				notify.error(result.error);
-				setIssues([{ path: "Formulário", message: result.error }]);
 			}
 		});
 	}
@@ -142,8 +138,6 @@ export function CustomerProfileForm({
 
 	return (
 		<form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-			{issues.length > 0 && <FormErrorPanel issues={issues} />}
-
 			<div className="grid gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<label className="font-medium text-sm" htmlFor="profile-name">

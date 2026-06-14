@@ -18,7 +18,12 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { ZodError } from "zod";
 
-import { FormErrorPanel, type FormIssue } from "@/components/form-error-panel";
+import { FieldError } from "@/components/field-error";
+import {
+	errorToastMessage,
+	focusFirstError,
+	zodIssuesToFieldErrors,
+} from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import { slugifyLabel } from "../_lib/attribute-schema";
@@ -29,14 +34,6 @@ import {
 	updateCategory,
 } from "../actions";
 import { type CategoryInput, categorySchema } from "../schema";
-
-const FIELD_LABELS: Record<string, string> = {
-	name: "Nome",
-	slug: "Nome",
-	parentId: "Categoria pai",
-	description: "Descrição",
-	isActive: "Ativa",
-};
 
 const NO_PARENT = "__none__";
 
@@ -67,43 +64,14 @@ function SubmitLabel({
 function zodErrorsToFieldMap(
 	error: ZodError<CategoryInput>
 ): Partial<Record<keyof CategoryInput, string>> {
-	const map: Partial<Record<keyof CategoryInput, string>> = {};
-	for (const issue of error.issues) {
-		const raw = issue.path[0] as keyof CategoryInput | undefined;
-		// slug é oculto e derivado do nome: erro de slug aparece sob o campo Nome.
-		const key = raw === "slug" ? "name" : raw;
-		if (key && !map[key]) {
-			map[key] =
-				raw === "slug"
-					? "O nome não gera um identificador válido — use letras ou números."
-					: issue.message;
-		}
+	// slug é oculto e derivado do nome: erro de slug aparece sob o campo Nome
+	// (e a chave `slug` é omitida do mapa via destructuring).
+	const { slug, ...rest } = zodIssuesToFieldErrors<CategoryInput>(error);
+	if (slug && !rest.name) {
+		rest.name =
+			"O nome não gera um identificador válido — use letras ou números.";
 	}
-	return map;
-}
-
-// Build the panel issue list from a ZodError, remapping slug errors
-// (slug is hidden and derived from name) to a user-facing "Nome" message.
-// Iterates error.issues directly to avoid positional coupling with zodIssuesToFormIssues.
-function buildFormIssues(error: ZodError<CategoryInput>): FormIssue[] {
-	let slugSeen = false;
-	return error.issues.flatMap((issue) => {
-		if (issue.path[0] === "slug") {
-			if (slugSeen) {
-				return [];
-			}
-			slugSeen = true;
-			return [
-				{
-					path: "Nome",
-					message:
-						"O nome não gera um identificador válido — use letras ou números.",
-				},
-			];
-		}
-		const head = String(issue.path[0]);
-		return [{ path: FIELD_LABELS[head] ?? head, message: issue.message }];
-	});
+	return rest;
 }
 
 export function CategoryForm({
@@ -126,7 +94,6 @@ export function CategoryForm({
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof CategoryInput, string>>
 	>({});
-	const [formIssues, setFormIssues] = useState<FormIssue[]>([]);
 
 	const nameBySlug = buildNameBySlug(categories);
 
@@ -165,7 +132,6 @@ export function CategoryForm({
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setErrors({});
-		setFormIssues([]);
 
 		const parsed = categorySchema.safeParse({
 			name,
@@ -176,12 +142,10 @@ export function CategoryForm({
 		});
 
 		if (!parsed.success) {
-			setErrors(zodErrorsToFieldMap(parsed.error));
-			const issues = buildFormIssues(parsed.error);
-			setFormIssues(issues);
-			notify.error(
-				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
-			);
+			const fieldErrors = zodErrorsToFieldMap(parsed.error);
+			setErrors(fieldErrors);
+			notify.error(errorToastMessage(fieldErrors));
+			focusFirstError();
 			return;
 		}
 
@@ -210,8 +174,6 @@ export function CategoryForm({
 
 	return (
 		<form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-			<FormErrorPanel issues={formIssues} />
-
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas
@@ -236,14 +198,13 @@ export function CategoryForm({
 						placeholder="Ex: Furadeiras"
 						value={name}
 					/>
-					{errors.name && (
-						<p className="text-destructive text-sm">{errors.name}</p>
-					)}
+					<FieldError>{errors.name}</FieldError>
 				</div>
 
 				<div className="flex flex-col gap-2">
 					<Label htmlFor="category-description">Descrição (opcional)</Label>
 					<Textarea
+						aria-invalid={errors.description ? true : undefined}
 						disabled={isPending}
 						id="category-description"
 						onChange={(event) => setDescription(event.target.value)}
@@ -251,9 +212,7 @@ export function CategoryForm({
 						rows={3}
 						value={description}
 					/>
-					{errors.description && (
-						<p className="text-destructive text-sm">{errors.description}</p>
-					)}
+					<FieldError>{errors.description}</FieldError>
 				</div>
 			</section>
 

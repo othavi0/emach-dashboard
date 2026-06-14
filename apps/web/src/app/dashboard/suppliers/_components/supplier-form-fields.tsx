@@ -4,6 +4,7 @@ import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import { Textarea } from "@emach/ui/components/textarea";
 
+import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
 import type { SupplierFormValues } from "./supplier-schema";
 
@@ -11,11 +12,17 @@ type Patch = (next: Partial<SupplierFormValues>) => void;
 
 interface Props {
 	disabled?: boolean;
+	errors?: Partial<Record<keyof SupplierFormValues, string>>;
 	onPatch: Patch;
 	values: SupplierFormValues;
 }
 
-export function SupplierFormFields({ values, onPatch, disabled }: Props) {
+export function SupplierFormFields({
+	values,
+	onPatch,
+	disabled,
+	errors = {},
+}: Props) {
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-col gap-1.5">
@@ -23,18 +30,21 @@ export function SupplierFormFields({ values, onPatch, disabled }: Props) {
 					Nome<span className="text-destructive"> *</span>
 				</Label>
 				<Input
+					aria-invalid={errors.name ? true : undefined}
 					disabled={disabled}
 					id="supplier-name"
 					onChange={(e) => onPatch({ name: e.target.value })}
 					placeholder="Ex: Bosch Brasil"
 					value={values.name ?? ""}
 				/>
+				<FieldError>{errors.name}</FieldError>
 			</div>
 
 			<div className="grid gap-4 md:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="supplier-email">E-mail (opcional)</Label>
 					<Input
+						aria-invalid={errors.contactEmail ? true : undefined}
 						disabled={disabled}
 						id="supplier-email"
 						onChange={(e) => onPatch({ contactEmail: e.target.value })}
@@ -42,16 +52,19 @@ export function SupplierFormFields({ values, onPatch, disabled }: Props) {
 						type="email"
 						value={values.contactEmail ?? ""}
 					/>
+					<FieldError>{errors.contactEmail}</FieldError>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="supplier-phone">Telefone (opcional)</Label>
 					<Input
+						aria-invalid={errors.phone ? true : undefined}
 						disabled={disabled}
 						id="supplier-phone"
 						onChange={(e) => onPatch({ phone: e.target.value })}
 						placeholder="(11) 99999-9999"
 						value={values.phone ?? ""}
 					/>
+					<FieldError>{errors.phone}</FieldError>
 				</div>
 			</div>
 
@@ -65,6 +78,7 @@ export function SupplierFormFields({ values, onPatch, disabled }: Props) {
 						<HelpTooltip text="URL completa, começando com https://." />
 					</Label>
 					<Input
+						aria-invalid={errors.website ? true : undefined}
 						disabled={disabled}
 						id="supplier-website"
 						onChange={(e) => onPatch({ website: e.target.value })}
@@ -72,6 +86,7 @@ export function SupplierFormFields({ values, onPatch, disabled }: Props) {
 						type="url"
 						value={values.website ?? ""}
 					/>
+					<FieldError>{errors.website}</FieldError>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label className="flex items-center gap-1.5" htmlFor="supplier-cnpj">
@@ -83,18 +98,21 @@ export function SupplierFormFields({ values, onPatch, disabled }: Props) {
 						/>
 					</Label>
 					<Input
+						aria-invalid={errors.cnpj ? true : undefined}
 						disabled={disabled}
 						id="supplier-cnpj"
 						onChange={(e) => onPatch({ cnpj: e.target.value })}
 						placeholder="00.000.000/0000-00"
 						value={values.cnpj ?? ""}
 					/>
+					<FieldError>{errors.cnpj}</FieldError>
 				</div>
 			</div>
 
 			<div className="flex flex-col gap-1.5">
 				<Label htmlFor="supplier-notes">Observações (opcional)</Label>
 				<Textarea
+					aria-invalid={errors.notes ? true : undefined}
 					disabled={disabled}
 					id="supplier-notes"
 					onChange={(e) => onPatch({ notes: e.target.value })}
@@ -102,6 +120,7 @@ export function SupplierFormFields({ values, onPatch, disabled }: Props) {
 					rows={5}
 					value={values.notes ?? ""}
 				/>
+				<FieldError>{errors.notes}</FieldError>
 				<p className="text-muted-foreground text-xs">Markdown suportado</p>
 			</div>
 		</div>

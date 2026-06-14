@@ -39,20 +39,27 @@ const BR_UFS = [
 ] as const;
 
 interface Props {
+	"aria-invalid"?: boolean;
 	disabled?: boolean;
 	id?: string;
 	onChange: (uf: string | undefined) => void;
 	value: string | undefined;
 }
 
-export function UfSelect({ id, value, onChange, disabled }: Props) {
+export function UfSelect({
+	id,
+	value,
+	onChange,
+	disabled,
+	"aria-invalid": ariaInvalid,
+}: Props) {
 	return (
 		<Select
 			disabled={disabled}
 			onValueChange={(v) => onChange(v || undefined)}
 			value={value ?? ""}
 		>
-			<SelectTrigger id={id}>
+			<SelectTrigger aria-invalid={ariaInvalid} id={id}>
 				<SelectValue placeholder="UF" />
 			</SelectTrigger>
 			<SelectContent>

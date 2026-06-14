@@ -3,13 +3,18 @@
 import type { AttributeDefinition } from "@emach/db/schema/attributes";
 import { useMemo } from "react";
 
+import { FieldError } from "@/components/field-error";
 import { AttributeAssignmentsEditor } from "../attribute-assignments-editor";
 import { DynamicSpecsEditor } from "../dynamic-specs-editor";
 import { useToolFormContext } from "../tool-form-context";
-import type { AttributeValueInput } from "../tool-schema";
+import {
+	type AttributeValueInput,
+	countFilledSpecs,
+	MIN_SPECS_ACTIVE,
+} from "../tool-schema";
 import type { ToolFieldGroupProps } from "./types";
 
-export function SpecFields({ values, onPatch }: ToolFieldGroupProps) {
+export function SpecFields({ values, onPatch, errors }: ToolFieldGroupProps) {
 	const { allDefinitions, definitionsByCategory } = useToolFormContext();
 
 	const suggestedDefinitions = useMemo(
@@ -32,6 +37,11 @@ export function SpecFields({ values, onPatch }: ToolFieldGroupProps) {
 		}
 		return out;
 	}, [values.attributeAssignments, definitionsBySlug]);
+
+	const filledSpecs = countFilledSpecs(
+		values.attributeValues,
+		values.attributeAssignments
+	);
 
 	function updateAssignments(next: string[]) {
 		const nextSet = new Set(next);
@@ -59,7 +69,19 @@ export function SpecFields({ values, onPatch }: ToolFieldGroupProps) {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<h3 className="font-medium text-sm">Atributos desta ferramenta</h3>
+			<div className="flex items-center justify-between gap-2">
+				<h3 className="font-medium text-sm">Atributos desta ferramenta</h3>
+				<span
+					className={
+						filledSpecs >= MIN_SPECS_ACTIVE
+							? "text-success text-xs"
+							: "text-muted-foreground text-xs"
+					}
+				>
+					{filledSpecs} de {MIN_SPECS_ACTIVE} preenchidas
+				</span>
+			</div>
+			<FieldError>{errors.attributeValues}</FieldError>
 			<AttributeAssignmentsEditor
 				allDefinitions={allDefinitions}
 				onChange={updateAssignments}

@@ -11,6 +11,7 @@ import {
 } from "@emach/ui/components/select";
 import { Switch } from "@emach/ui/components/switch";
 
+import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
 import { MaskedInput } from "@/components/masked-input";
 import { UfSelect } from "@/components/uf-select";
@@ -35,6 +36,7 @@ interface Props {
 	/** 1 = empilhado (drawer); 2 = duas colunas (página de criar). Default 1. */
 	columns?: 1 | 2;
 	disabled?: boolean;
+	errors?: Partial<Record<keyof BranchFormValues, string>>;
 	onPatch: Patch;
 	showTeamSection: boolean;
 	values: BranchFormValues;
@@ -55,6 +57,7 @@ export function BranchFormFields({
 	onPatch,
 	showTeamSection,
 	disabled,
+	errors = {},
 }: Props) {
 	const handleCepResolve = (resolved: CepResolved) => {
 		onPatch({
@@ -86,12 +89,14 @@ export function BranchFormFields({
 						Nome <span className="text-destructive">*</span>
 					</Label>
 					<Input
+						aria-invalid={errors.name ? true : undefined}
 						disabled={disabled}
 						id="branch-name"
 						onChange={(e) => onPatch({ name: e.target.value })}
 						placeholder="Ex: Filial São Paulo — Paulista"
 						value={values.name}
 					/>
+					<FieldError>{errors.name}</FieldError>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="branch-status">Status</Label>
@@ -102,7 +107,10 @@ export function BranchFormFields({
 						}
 						value={values.status}
 					>
-						<SelectTrigger id="branch-status">
+						<SelectTrigger
+							aria-invalid={errors.status ? true : undefined}
+							id="branch-status"
+						>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -110,6 +118,7 @@ export function BranchFormFields({
 							<SelectItem value="inactive">Inativa</SelectItem>
 						</SelectContent>
 					</Select>
+					<FieldError>{errors.status}</FieldError>
 				</div>
 			</div>
 			<p className="text-muted-foreground text-xs">
@@ -125,6 +134,7 @@ export function BranchFormFields({
 			<div className="flex flex-col gap-1.5">
 				<Label htmlFor="branch-phone">Telefone</Label>
 				<MaskedInput
+					aria-invalid={errors.phone ? true : undefined}
 					disabled={disabled}
 					id="branch-phone"
 					mask={phoneBrMask}
@@ -132,6 +142,7 @@ export function BranchFormFields({
 					placeholder="(11) 98765-4321"
 					value={values.phone}
 				/>
+				<FieldError>{errors.phone}</FieldError>
 			</div>
 		</section>
 	);
@@ -143,75 +154,89 @@ export function BranchFormFields({
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="branch-cep">CEP</Label>
 					<CepInput
+						aria-invalid={errors.cep ? true : undefined}
 						disabled={disabled}
 						id="branch-cep"
 						onChange={(v) => onPatch({ cep: v })}
 						onResolve={handleCepResolve}
 						value={values.cep}
 					/>
+					<FieldError>{errors.cep}</FieldError>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="branch-street">Rua</Label>
 					<Input
+						aria-invalid={errors.street ? true : undefined}
 						disabled={disabled}
 						id="branch-street"
 						onChange={(e) => onPatch({ street: e.target.value })}
 						placeholder="Preenchida pelo CEP"
 						value={values.street ?? ""}
 					/>
+					<FieldError>{errors.street}</FieldError>
 				</div>
 			</div>
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr]">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="branch-number">Número</Label>
 					<Input
+						aria-invalid={errors.streetNumber ? true : undefined}
 						disabled={disabled}
 						id="branch-number"
 						onChange={(e) => onPatch({ streetNumber: e.target.value })}
 						placeholder="1578"
 						value={values.streetNumber ?? ""}
 					/>
+					<FieldError>{errors.streetNumber}</FieldError>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="branch-complement">Complemento</Label>
 					<Input
+						aria-invalid={errors.complement ? true : undefined}
 						disabled={disabled}
 						id="branch-complement"
 						onChange={(e) => onPatch({ complement: e.target.value })}
 						placeholder="Conj., sala, bloco…"
 						value={values.complement ?? ""}
 					/>
+					<FieldError>{errors.complement}</FieldError>
 				</div>
 			</div>
 			<div className="flex flex-col gap-1.5">
 				<Label htmlFor="branch-neighborhood">Bairro</Label>
 				<Input
+					aria-invalid={errors.neighborhood ? true : undefined}
 					disabled={disabled}
 					id="branch-neighborhood"
 					onChange={(e) => onPatch({ neighborhood: e.target.value })}
 					placeholder="Bela Vista"
 					value={values.neighborhood ?? ""}
 				/>
+				<FieldError>{errors.neighborhood}</FieldError>
 			</div>
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr]">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="branch-city">Cidade</Label>
 					<Input
+						aria-invalid={errors.city ? true : undefined}
 						disabled={disabled}
 						id="branch-city"
 						onChange={(e) => onPatch({ city: e.target.value })}
 						placeholder="São Paulo"
 						value={values.city ?? ""}
 					/>
+					<FieldError>{errors.city}</FieldError>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="branch-state">UF</Label>
 					<UfSelect
+						aria-invalid={errors.state ? true : undefined}
 						disabled={disabled}
 						id="branch-state"
 						onChange={(v) => onPatch({ state: v })}
 						value={values.state ?? undefined}
 					/>
+					<FieldError>{errors.state}</FieldError>
 				</div>
 			</div>
 		</section>
@@ -295,6 +320,7 @@ export function BranchFormFields({
 			<p className="text-muted-foreground text-xs">
 				Domingos são tratados como fechado.
 			</p>
+			<FieldError>{errors.businessHours}</FieldError>
 		</section>
 	);
 
@@ -310,6 +336,7 @@ export function BranchFormFields({
 				onChange={(next) => onPatch({ cepRanges: next })}
 				value={values.cepRanges ?? []}
 			/>
+			<FieldError>{errors.cepRanges}</FieldError>
 		</section>
 	);
 

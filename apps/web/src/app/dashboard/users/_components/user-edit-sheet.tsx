@@ -6,10 +6,8 @@ import { Switch } from "@emach/ui/components/switch";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
-import {
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
+import { FieldError } from "@/components/field-error";
+import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { allowedApprovalRoles } from "../_lib/approval-roles";
 import { updateUser } from "../actions";
@@ -38,7 +36,7 @@ export function UserEditSheet({ user, actorRole }: Props) {
 	const [name, setName] = useState(user.name);
 	const [role, setRole] = useState<UserRow["role"]>(user.role);
 	const [emailVerified, setEmailVerified] = useState(user.emailVerified);
-	const [issues, setIssues] = useState<FormIssue[]>([]);
+	const { errors, reportValidationError, clearErrors } = useFormErrors();
 	const [submitting, startTransition] = useTransition();
 
 	useEffect(() => {
@@ -46,9 +44,9 @@ export function UserEditSheet({ user, actorRole }: Props) {
 			setName(user.name);
 			setRole(user.role);
 			setEmailVerified(user.emailVerified);
-			setIssues([]);
+			clearErrors();
 		}
-	}, [open, user]);
+	}, [open, user, clearErrors]);
 
 	const close = () => {
 		const sp = new URLSearchParams(params);
@@ -66,13 +64,7 @@ export function UserEditSheet({ user, actorRole }: Props) {
 			emailVerified,
 		});
 		if (!parsed.success) {
-			setIssues(
-				zodIssuesToFormIssues(parsed.error, {
-					name: "Nome",
-					role: "Cargo",
-					emailVerified: "E-mail verificado",
-				})
-			);
+			reportValidationError(parsed.error);
 			return;
 		}
 		startTransition(async () => {
@@ -89,7 +81,6 @@ export function UserEditSheet({ user, actorRole }: Props) {
 	return (
 		<EntityEditSheet
 			description="Atualize nome, cargo e verificação de e-mail. Filiais são geridas na aba Filiais."
-			issues={issues}
 			onOpenChange={(v) => !v && close()}
 			onSubmit={handleSubmit}
 			open={open}
@@ -100,10 +91,12 @@ export function UserEditSheet({ user, actorRole }: Props) {
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="user-name">Nome</Label>
 					<Input
+						aria-invalid={errors.name ? true : undefined}
 						id="user-name"
 						onChange={(e) => setName(e.target.value)}
 						value={name}
 					/>
+					<FieldError>{errors.name}</FieldError>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label>Cargo</Label>
