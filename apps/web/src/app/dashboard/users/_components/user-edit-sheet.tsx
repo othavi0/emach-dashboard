@@ -88,7 +88,7 @@ export function UserEditSheet({ user, actorRole }: Props) {
 			title={`Editar ${user.name}`}
 		>
 			<div className="flex flex-col gap-4">
-				<LabeledField error={errors.name} id="user-name" label="Nome" required>
+				<LabeledField error={errors.name} id="user-name" label="Nome">
 					{(field) => (
 						<Input
 							{...field}
