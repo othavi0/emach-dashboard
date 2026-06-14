@@ -17,7 +17,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { FieldError } from "@/components/field-error";
+import { LabeledField } from "@/components/labeled-field";
 import type { FieldErrorMap } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { useFormErrors } from "@/lib/use-form-errors";
@@ -172,41 +172,45 @@ export function CategoryForm({
 					Informações básicas
 				</h2>
 
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-name">
-						Nome
-						<span className="text-destructive"> *</span>
-					</Label>
-					<Input
-						aria-invalid={errors.name ? true : undefined}
-						disabled={isPending}
-						id="category-name"
-						onChange={(event) => {
-							const next = event.target.value;
-							setName(next);
-							if (mode === "create") {
-								setSlug(slugifyLabel(next));
-							}
-						}}
-						placeholder="Ex: Furadeiras"
-						value={name}
-					/>
-					<FieldError>{errors.name}</FieldError>
-				</div>
+				<LabeledField
+					error={errors.name}
+					id="category-name"
+					label="Nome"
+					required
+				>
+					{(field) => (
+						<Input
+							{...field}
+							disabled={isPending}
+							onChange={(event) => {
+								const next = event.target.value;
+								setName(next);
+								if (mode === "create") {
+									setSlug(slugifyLabel(next));
+								}
+							}}
+							placeholder="Ex: Furadeiras"
+							value={name}
+						/>
+					)}
+				</LabeledField>
 
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="category-description">Descrição (opcional)</Label>
-					<Textarea
-						aria-invalid={errors.description ? true : undefined}
-						disabled={isPending}
-						id="category-description"
-						onChange={(event) => setDescription(event.target.value)}
-						placeholder="Texto curto explicando a categoria"
-						rows={3}
-						value={description}
-					/>
-					<FieldError>{errors.description}</FieldError>
-				</div>
+				<LabeledField
+					error={errors.description}
+					id="category-description"
+					label="Descrição (opcional)"
+				>
+					{(field) => (
+						<Textarea
+							{...field}
+							disabled={isPending}
+							onChange={(event) => setDescription(event.target.value)}
+							placeholder="Texto curto explicando a categoria"
+							rows={3}
+							value={description}
+						/>
+					)}
+				</LabeledField>
 			</section>
 
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">

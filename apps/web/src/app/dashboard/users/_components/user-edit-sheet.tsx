@@ -6,7 +6,8 @@ import { Switch } from "@emach/ui/components/switch";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
-import { FieldError } from "@/components/field-error";
+
+import { LabeledField } from "@/components/labeled-field";
 import { notify } from "@/lib/notify";
 import { useFormErrors } from "@/lib/use-form-errors";
 import { allowedApprovalRoles } from "../_lib/approval-roles";
@@ -88,16 +89,15 @@ export function UserEditSheet({ user, actorRole }: Props) {
 			title={`Editar ${user.name}`}
 		>
 			<div className="flex flex-col gap-4">
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="user-name">Nome</Label>
-					<Input
-						aria-invalid={errors.name ? true : undefined}
-						id="user-name"
-						onChange={(e) => setName(e.target.value)}
-						value={name}
-					/>
-					<FieldError>{errors.name}</FieldError>
-				</div>
+				<LabeledField error={errors.name} id="user-name" label="Nome">
+					{(field) => (
+						<Input
+							{...field}
+							onChange={(e) => setName(e.target.value)}
+							value={name}
+						/>
+					)}
+				</LabeledField>
 				<div className="flex flex-col gap-1.5">
 					<Label>Cargo</Label>
 					<RoleSelect allowedRoles={allowed} onChange={setRole} value={role} />

@@ -15,6 +15,7 @@ import { useState } from "react";
 
 interface DatePickerProps {
 	align?: "start" | "center" | "end";
+	"aria-invalid"?: boolean;
 	"aria-label"?: string;
 	className?: string;
 	disabled?: boolean;
@@ -38,6 +39,7 @@ function DatePicker({
 	id,
 	name,
 	className,
+	"aria-invalid": ariaInvalid,
 	"aria-label": ariaLabel,
 }: DatePickerProps) {
 	const [open, setOpen] = useState(false);
@@ -63,6 +65,7 @@ function DatePicker({
 				disabled={disabled}
 				render={
 					<Button
+						aria-invalid={ariaInvalid}
 						aria-label={ariaLabel ?? placeholder}
 						className={cn(
 							"justify-start font-normal",

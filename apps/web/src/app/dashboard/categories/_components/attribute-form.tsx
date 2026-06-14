@@ -17,6 +17,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
+import { LabeledField } from "@/components/labeled-field";
 import { notify } from "@/lib/notify";
 import { useFormErrors } from "@/lib/use-form-errors";
 
@@ -121,84 +122,84 @@ export function AttributeForm({
 
 	return (
 		<form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="label">
-					Rótulo
-					<span className="text-destructive"> *</span>
-				</Label>
-				<Input
-					aria-invalid={errors.label ? true : undefined}
-					aria-required="true"
-					id="label"
-					onChange={(e) => {
-						const v = e.target.value;
-						update("label", v);
-						if (mode === "create") {
-							update("slug", slugifyLabel(v));
-						}
-					}}
-					placeholder="RPM máximo"
-					value={values.label}
-				/>
-				<FieldError>{errors.label}</FieldError>
-			</div>
+			<LabeledField error={errors.label} id="label" label="Rótulo" required>
+				{(field) => (
+					<Input
+						{...field}
+						aria-required="true"
+						onChange={(e) => {
+							const v = e.target.value;
+							update("label", v);
+							if (mode === "create") {
+								update("slug", slugifyLabel(v));
+							}
+						}}
+						placeholder="RPM máximo"
+						value={values.label}
+					/>
+				)}
+			</LabeledField>
 
 			<div className="grid gap-3 md:grid-cols-2">
-				<div className="flex flex-col gap-2">
-					<Label className="flex items-center gap-1.5" htmlFor="inputType">
-						<span>
-							Tipo de campo
-							<span className="text-destructive"> *</span>
-						</span>
+				<LabeledField
+					help={
 						<HelpTooltip
 							body="Texto e número são livres. Lista (select) exige opções; cor exige swatches; faixa numérica pede unidade."
 							title="Tipo de campo"
 						/>
-					</Label>
-					<Select
-						onValueChange={(v) =>
-							update("inputType", v as AttributeFormValues["inputType"])
-						}
-						value={values.inputType}
-					>
-						<SelectTrigger id="inputType">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								{ATTRIBUTE_INPUT_TYPES.map((t) => (
-									<SelectItem key={t} value={t}>
-										{ATTRIBUTE_INPUT_TYPE_LABELS[t]}
-									</SelectItem>
-								))}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
-				</div>
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="sortOrder">Ordem</Label>
-					<Input
-						id="sortOrder"
-						onChange={(e) =>
-							update("sortOrder", Number.parseInt(e.target.value, 10) || 0)
-						}
-						placeholder="0"
-						type="number"
-						value={values.sortOrder}
-					/>
-				</div>
+					}
+					id="inputType"
+					label="Tipo de campo"
+					required
+				>
+					{(field) => (
+						<Select
+							onValueChange={(v) =>
+								update("inputType", v as AttributeFormValues["inputType"])
+							}
+							value={values.inputType}
+						>
+							<SelectTrigger {...field}>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									{ATTRIBUTE_INPUT_TYPES.map((t) => (
+										<SelectItem key={t} value={t}>
+											{ATTRIBUTE_INPUT_TYPE_LABELS[t]}
+										</SelectItem>
+									))}
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					)}
+				</LabeledField>
+				<LabeledField id="sortOrder" label="Ordem">
+					{(field) => (
+						<Input
+							{...field}
+							onChange={(e) =>
+								update("sortOrder", Number.parseInt(e.target.value, 10) || 0)
+							}
+							placeholder="0"
+							type="number"
+							value={values.sortOrder}
+						/>
+					)}
+				</LabeledField>
 			</div>
 
 			{showUnit && (
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="unit">Unidade</Label>
-					<Input
-						id="unit"
-						onChange={(e) => update("unit", e.target.value)}
-						placeholder="RPM, mm, kg, W"
-						value={values.unit ?? ""}
-					/>
-				</div>
+				<LabeledField id="unit" label="Unidade">
+					{(field) => (
+						<Input
+							{...field}
+							onChange={(e) => update("unit", e.target.value)}
+							placeholder="RPM, mm, kg, W"
+							value={values.unit ?? ""}
+						/>
+					)}
+				</LabeledField>
 			)}
 
 			<div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-3">

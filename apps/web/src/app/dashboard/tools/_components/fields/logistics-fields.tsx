@@ -1,9 +1,9 @@
 "use client";
 
-import { Label } from "@emach/ui/components/label";
 import { TriangleAlert } from "lucide-react";
 
 import { HelpTooltip } from "@/components/help-tooltip";
+import { LabeledField } from "@/components/labeled-field";
 import { MaskedInput } from "@/components/masked-input";
 import type { Mask } from "@/lib/masks";
 import { decimalMask, integerMask } from "@/lib/masks";
@@ -103,28 +103,29 @@ export function LogisticsFields({
 						</p>
 					</div>
 					<div className="flex max-w-xs flex-col gap-2">
-						<Label
-							className="flex items-center gap-1.5"
-							htmlFor="overweightShippingAmount"
-						>
-							Frete para item pesado (R$)
-							<HelpTooltip
-								body="Acima de 30 kg / 100 cm a loja não cota. Esse valor fixo entra no lugar. Em branco = 'Frete a combinar' na loja."
-								example="Ex: 250,00"
-								title="Quando a cotação automática não cobre"
-							/>
-						</Label>
-						<MaskedInput
-							disabled={disabled}
+						<LabeledField
+							help={
+								<HelpTooltip
+									body="Acima de 30 kg / 100 cm a loja não cota. Esse valor fixo entra no lugar. Em branco = 'Frete a combinar' na loja."
+									example="Ex: 250,00"
+									title="Quando a cotação automática não cobre"
+								/>
+							}
+							hint="Cobrado no lugar da cotação automática."
 							id="overweightShippingAmount"
-							mask={decimalMask}
-							onChange={(v) => onPatch({ overweightShippingAmount: v })}
-							placeholder="Ex: 250,00"
-							value={values.overweightShippingAmount}
-						/>
-						<p className="text-muted-foreground text-xs">
-							Cobrado no lugar da cotação automática.
-						</p>
+							label="Frete para item pesado (R$)"
+						>
+							{(field) => (
+								<MaskedInput
+									{...field}
+									disabled={disabled}
+									mask={decimalMask}
+									onChange={(v) => onPatch({ overweightShippingAmount: v })}
+									placeholder="Ex: 250,00"
+									value={values.overweightShippingAmount}
+								/>
+							)}
+						</LabeledField>
 					</div>
 				</div>
 			)}
@@ -154,22 +155,18 @@ function FieldNum({
 	onChange: (v: number | undefined) => void;
 }) {
 	return (
-		<div className="flex flex-col gap-2">
-			<Label htmlFor={id}>
-				{label}
-				{required && <span className="text-destructive"> *</span>}
-			</Label>
-			<MaskedInput
-				aria-invalid={error ? true : undefined}
-				aria-required={required ? "true" : undefined}
-				disabled={disabled}
-				id={id}
-				mask={mask}
-				onChange={onChange}
-				placeholder={placeholder}
-				value={value}
-			/>
-			{error && <p className="text-destructive text-xs">{error}</p>}
-		</div>
+		<LabeledField error={error} id={id} label={label} required={required}>
+			{(field) => (
+				<MaskedInput
+					{...field}
+					aria-required={required ? "true" : undefined}
+					disabled={disabled}
+					mask={mask}
+					onChange={onChange}
+					placeholder={placeholder}
+					value={value}
+				/>
+			)}
+		</LabeledField>
 	);
 }
