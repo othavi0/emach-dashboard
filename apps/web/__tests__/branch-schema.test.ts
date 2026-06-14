@@ -5,11 +5,22 @@ import {
 	defaultBusinessHours,
 } from "@/app/dashboard/branches/_components/branch-schema";
 
+const baseAddress = {
+	phone: "(11) 98765-4321",
+	cep: "01000-000",
+	street: "Av. Paulista",
+	streetNumber: "1578",
+	neighborhood: "Bela Vista",
+	city: "São Paulo",
+	state: "SP",
+};
+
 describe("branchSchema businessHours", () => {
 	it("keeps structured hours for weekdays, saturday, and holidays", () => {
 		const parsed = branchSchema.safeParse({
 			name: "Matriz",
 			status: "active",
+			...baseAddress,
 			businessHours: defaultBusinessHours,
 		});
 
@@ -24,6 +35,7 @@ describe("branchSchema businessHours", () => {
 		const parsed = branchSchema.safeParse({
 			name: "Matriz",
 			status: "active",
+			...baseAddress,
 			businessHours: {
 				...defaultBusinessHours,
 				weekdays: { isOpen: true, opensAt: "18:00", closesAt: "08:00" },
