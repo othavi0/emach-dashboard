@@ -14,8 +14,8 @@ import {
 import { Spinner } from "@emach/ui/components/spinner";
 import { useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
-import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
+import { useFormErrors } from "@/lib/use-form-errors";
 import type { OriginBranchOption } from "../actions";
 import { updateShippingSettings } from "../actions";
 import {
