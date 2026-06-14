@@ -4,8 +4,8 @@ import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
+import { useFormErrors } from "@/lib/use-form-errors";
 
 import { createPromotion, updatePromotion } from "../actions";
 import { PromotionFormFields } from "./promotion-form-fields";

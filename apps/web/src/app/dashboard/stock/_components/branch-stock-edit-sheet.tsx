@@ -17,9 +17,9 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { LabeledField } from "@/components/labeled-field";
 import { MaskedInput } from "@/components/masked-input";
-import { useFormErrors } from "@/lib/form-errors";
 import { integerMask } from "@/lib/masks";
 import { notify } from "@/lib/notify";
+import { useFormErrors } from "@/lib/use-form-errors";
 
 import {
 	adjustStock,
