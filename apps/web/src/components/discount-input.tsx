@@ -21,6 +21,7 @@ import {
 type DiscountType = "percent" | "fixed";
 
 interface DiscountInputProps {
+	"aria-invalid"?: true | undefined;
 	disabled?: boolean;
 	discountType: DiscountType;
 	discountValue: number;
@@ -36,6 +37,7 @@ function formatFor(type: DiscountType, value: number): string {
 }
 
 export function DiscountInput({
+	"aria-invalid": ariaInvalid,
 	discountType,
 	discountValue,
 	disabled,
@@ -90,6 +92,7 @@ export function DiscountInput({
 
 	return (
 		<AffixInput
+			aria-invalid={ariaInvalid}
 			disabled={disabled}
 			id={id}
 			inputMode="decimal"
