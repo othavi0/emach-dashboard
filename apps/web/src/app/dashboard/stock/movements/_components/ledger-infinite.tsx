@@ -8,11 +8,8 @@ import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { formatDateTime } from "@/lib/format/datetime";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
-import {
-	fetchLedgerPage,
-	type LedgerFilters,
-	type LedgerRow,
-} from "../../movements-data";
+import type { LedgerFilters, LedgerRow } from "../../movements-data";
+import { fetchLedgerPageAction } from "../actions";
 
 const REASON_LABEL: Record<string, string> = {
 	entrada_compra: "Entrada compra",
@@ -148,7 +145,7 @@ export function LedgerInfinite({
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
-		fetchPage: (cursor) => fetchLedgerPage(filters, cursor),
+		fetchPage: (cursor) => fetchLedgerPageAction(filters, cursor),
 		resetKey,
 	});
 
