@@ -33,9 +33,12 @@
     "db:sync": "turbo -F @emach/db db:sync",
     "db:studio": "turbo -F @emach/db db:studio",
     "check": "ultracite check",
-    "fix": "ultracite fix"
+    "fix": "ultracite fix",
+    "guard:forms": "ast-grep scan",
+    "guard:forms:test": "ast-grep test --skip-snapshot-tests"
   },
   "devDependencies": {
+    "@ast-grep/cli": "0.43.0",
     "@biomejs/biome": "2.4.15",
     "@emach/config": "workspace:*",
     "@types/node": "^25.8.0",
