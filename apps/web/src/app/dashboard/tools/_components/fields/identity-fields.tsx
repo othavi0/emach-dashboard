@@ -15,7 +15,9 @@ import { Textarea } from "@emach/ui/components/textarea";
 import { Star } from "lucide-react";
 import { useMemo } from "react";
 
+import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
+import { LabeledField } from "@/components/labeled-field";
 import { useToolFormContext } from "../tool-form-context";
 import { slugify } from "../tool-schema";
 import type { ToolFieldGroupProps } from "./types";
@@ -57,45 +59,47 @@ export function IdentityFields({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="name">
-					Nome <span className="text-destructive">*</span>
-				</Label>
-				<Input
-					aria-invalid={errors.name ? true : undefined}
-					aria-required="true"
-					disabled={disabled}
-					id="name"
-					onChange={(e) => onPatch({ name: e.target.value })}
-					placeholder="Ex: Furadeira de impacto 700W"
-					value={values.name}
-				/>
-				<p className="font-mono text-muted-foreground text-xs">
-					Endereço público: /ferramentas/{slugPreview}
-				</p>
-				{errors.name && (
-					<p className="text-destructive text-xs">{errors.name}</p>
+			<LabeledField
+				error={errors.name}
+				hint={`Endereço público: /ferramentas/${slugPreview}`}
+				id="name"
+				label="Nome"
+				required
+			>
+				{(field) => (
+					<Input
+						{...field}
+						aria-required="true"
+						disabled={disabled}
+						onChange={(e) => onPatch({ name: e.target.value })}
+						placeholder="Ex: Furadeira de impacto 700W"
+						value={values.name}
+					/>
 				)}
-			</div>
+			</LabeledField>
 
-			<div className="flex flex-col gap-2">
-				<Label className="flex items-center gap-1.5" htmlFor="description">
-					Descrição
+			<LabeledField
+				help={
 					<HelpTooltip
 						body="Use **negrito**, listas com - e títulos. É renderizado na página pública da ferramenta."
 						example="**Potente** e leve - 700W - Bivolt"
 						title="Aceita Markdown"
 					/>
-				</Label>
-				<Textarea
-					disabled={disabled}
-					id="description"
-					onChange={(e) => onPatch({ description: e.target.value })}
-					placeholder="Especificações, destaques e uso recomendado. Aceita markdown."
-					rows={4}
-					value={values.description ?? ""}
-				/>
-			</div>
+				}
+				id="description"
+				label="Descrição"
+			>
+				{(field) => (
+					<Textarea
+						{...field}
+						disabled={disabled}
+						onChange={(e) => onPatch({ description: e.target.value })}
+						placeholder="Especificações, destaques e uso recomendado. Aceita markdown."
+						rows={4}
+						value={values.description ?? ""}
+					/>
+				)}
+			</LabeledField>
 
 			<div className="flex flex-col gap-2">
 				<Label className="flex items-center gap-1.5">
@@ -156,35 +160,32 @@ export function IdentityFields({
 						);
 					})}
 				</div>
-				{errors.categoryIds && (
-					<p className="text-destructive text-xs">{errors.categoryIds}</p>
-				)}
-				{errors.primaryCategoryId && (
-					<p className="text-destructive text-xs">{errors.primaryCategoryId}</p>
-				)}
+				<FieldError>{errors.categoryIds}</FieldError>
+				<FieldError>{errors.primaryCategoryId}</FieldError>
 			</div>
 
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="supplierId">Fornecedor</Label>
-				<Select
-					disabled={disabled}
-					onValueChange={(v) => onPatch({ supplierId: v ?? "" })}
-					value={values.supplierId ?? ""}
-				>
-					<SelectTrigger id="supplierId">
-						<SelectValue placeholder="Opcional" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectGroup>
-							{suppliers.map((s) => (
-								<SelectItem key={s.id} value={s.id}>
-									{s.name}
-								</SelectItem>
-							))}
-						</SelectGroup>
-					</SelectContent>
-				</Select>
-			</div>
+			<LabeledField id="supplierId" label="Fornecedor">
+				{(field) => (
+					<Select
+						disabled={disabled}
+						onValueChange={(v) => onPatch({ supplierId: v ?? "" })}
+						value={values.supplierId ?? ""}
+					>
+						<SelectTrigger {...field}>
+							<SelectValue placeholder="Opcional" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								{suppliers.map((s) => (
+									<SelectItem key={s.id} value={s.id}>
+										{s.name}
+									</SelectItem>
+								))}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				)}
+			</LabeledField>
 		</div>
 	);
 }
