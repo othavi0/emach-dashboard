@@ -15,7 +15,7 @@ import {
 	type SupplierFormValues,
 	supplierSchema,
 } from "./_components/supplier-schema";
-import type { SupplierToolRow } from "./data";
+import type { SupplierStockToolRow, SupplierToolRow } from "./data";
 
 const SUPPLIERS_PATH = "/dashboard/suppliers";
 const TOOLS_PATH = "/dashboard/tools";
@@ -374,4 +374,22 @@ export async function fetchSupplierToolsPage({
 				})
 			: null;
 	return { items, nextCursor };
+}
+
+/**
+ * Página paginada de tools derivadas das entradas de estoque do fornecedor.
+ * Substitui `fetchSupplierToolsPage` (mantida para compatibilidade temporária).
+ * Retorna métricas de estoque geral e recebido deste fornecedor por tool.
+ */
+export async function fetchSupplierStockPage({
+	supplierId,
+	search,
+	cursor,
+}: {
+	supplierId: string;
+	search?: string;
+	cursor: string | null;
+}): Promise<InfiniteResult<SupplierStockToolRow>> {
+	const { getSupplierStockTools } = await import("./data");
+	return await getSupplierStockTools({ supplierId, search, cursor });
 }
