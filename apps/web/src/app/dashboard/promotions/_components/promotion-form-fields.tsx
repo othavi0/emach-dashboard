@@ -25,6 +25,7 @@ import { useEffect, useState, useTransition } from "react";
 
 import { DiscountInput } from "@/components/discount-input";
 import { FieldError } from "@/components/field-error";
+import { LabeledField } from "@/components/labeled-field";
 import { MaskedInput } from "@/components/masked-input";
 import { MoneyInput } from "@/components/money-input";
 import { integerMask } from "@/lib/masks";
@@ -87,11 +88,13 @@ function ToolCombobox({
 	disabled,
 	onChange,
 	selectedIds,
+	"aria-invalid": ariaInvalid,
 }: {
 	availableTools: ToolOption[];
 	disabled?: boolean;
 	onChange: (ids: string[]) => void;
 	selectedIds: string[];
+	"aria-invalid"?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
 
@@ -115,6 +118,7 @@ function ToolCombobox({
 		<div className="flex flex-col gap-2">
 			<Popover onOpenChange={setOpen} open={open}>
 				<PopoverTrigger
+					aria-invalid={ariaInvalid}
 					className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 					disabled={disabled}
 					render={<button type="button" />}
@@ -319,129 +323,140 @@ export function PromotionFormFields({
 			<div className="grid gap-4 lg:grid-cols-2">
 				{/* Card 1 — Identidade */}
 				<Section title="Identidade">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="promo-title">
-							Título<span className="text-destructive"> *</span>
-						</Label>
-						<Input
-							aria-invalid={errors.title ? true : undefined}
-							disabled={disabled}
-							id="promo-title"
-							onChange={(e) => onPatch({ title: e.target.value })}
-							placeholder={
-								isCoupon ? "Ex: Cupom boas-vindas" : "Ex: Liquidação de inverno"
-							}
-							value={values.title}
-						/>
-						<FieldError>{errors.title}</FieldError>
-					</div>
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="promo-description">Descrição</Label>
-						<Textarea
-							disabled={disabled}
-							id="promo-description"
-							onChange={(e) =>
-								onPatch({
-									description: e.target.value === "" ? null : e.target.value,
-								})
-							}
-							placeholder="Contexto interno — não aparece no site."
-							rows={3}
-							value={values.description ?? ""}
-						/>
-						<FieldError>{errors.description}</FieldError>
-					</div>
+					<LabeledField
+						error={errors.title}
+						id="promo-title"
+						label="Título"
+						required
+					>
+						{(field) => (
+							<Input
+								{...field}
+								disabled={disabled}
+								onChange={(e) => onPatch({ title: e.target.value })}
+								placeholder={
+									isCoupon
+										? "Ex: Cupom boas-vindas"
+										: "Ex: Liquidação de inverno"
+								}
+								value={values.title}
+							/>
+						)}
+					</LabeledField>
+					<LabeledField
+						error={errors.description}
+						id="promo-description"
+						label="Descrição"
+					>
+						{(field) => (
+							<Textarea
+								{...field}
+								disabled={disabled}
+								onChange={(e) =>
+									onPatch({
+										description: e.target.value === "" ? null : e.target.value,
+									})
+								}
+								placeholder="Contexto interno — não aparece no site."
+								rows={3}
+								value={values.description ?? ""}
+							/>
+						)}
+					</LabeledField>
 				</Section>
 
 				{/* Card 2 — Desconto (+ campos de cupom) */}
 				<Section title="Desconto">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="promo-discount-value">
-							Desconto<span className="text-destructive"> *</span>
-						</Label>
-						<DiscountInput
-							disabled={disabled}
-							discountType={values.discountType}
-							discountValue={values.discountValue}
-							id="promo-discount-value"
-							onChange={(next) => onPatch(next)}
-						/>
-						<FieldError>{errors.discountValue}</FieldError>
-					</div>
+					<LabeledField
+						error={errors.discountValue}
+						id="promo-discount-value"
+						label="Desconto"
+						required
+					>
+						{(field) => (
+							<DiscountInput
+								{...field}
+								disabled={disabled}
+								discountType={values.discountType}
+								discountValue={values.discountValue}
+								onChange={(next) => onPatch(next)}
+							/>
+						)}
+					</LabeledField>
 
 					{isCoupon && (
-						<div className="flex flex-col gap-2">
-							<Label htmlFor="promo-code">
-								Código<span className="text-destructive"> *</span>
-							</Label>
-							<Input
-								aria-invalid={errors.code ? true : undefined}
-								className="font-mono uppercase"
-								disabled={disabled}
-								id="promo-code"
-								onChange={(e) =>
-									onPatch({
-										code: e.target.value,
-									} as Partial<PromotionFormValues>)
-								}
-								placeholder="VERAO2025"
-								value={values.code ?? ""}
-							/>
-							<p className="text-muted-foreground text-xs">
-								Digitado pelo cliente no checkout para aplicar o desconto.
-							</p>
-							<FieldError>{errors.code}</FieldError>
-						</div>
+						<LabeledField
+							error={errors.code}
+							hint="Digitado pelo cliente no checkout para aplicar o desconto."
+							id="promo-code"
+							label="Código"
+							required
+						>
+							{(field) => (
+								<Input
+									{...field}
+									className="font-mono uppercase"
+									disabled={disabled}
+									onChange={(e) =>
+										onPatch({
+											code: e.target.value,
+										} as Partial<PromotionFormValues>)
+									}
+									placeholder="VERAO2025"
+									value={values.code ?? ""}
+								/>
+							)}
+						</LabeledField>
 					)}
 
 					{isCoupon && (
 						<>
-							<div className="flex flex-col gap-2">
-								<Label htmlFor="promo-max-redemptions">
-									Limite de resgates
-								</Label>
-								<MaskedInput
-									disabled={disabled}
-									id="promo-max-redemptions"
-									mask={integerMask}
-									onChange={(n) =>
-										onPatch({
-											maxRedemptions: n ?? null,
-										} as Partial<PromotionFormValues>)
-									}
-									value={
-										(values as { maxRedemptions?: number | null })
-											.maxRedemptions ?? undefined
-									}
-								/>
-								<p className="text-muted-foreground text-xs">
-									Vazio = ilimitado
-								</p>
-								<FieldError>{errors.maxRedemptions}</FieldError>
-							</div>
+							<LabeledField
+								error={errors.maxRedemptions}
+								hint="Vazio = ilimitado"
+								id="promo-max-redemptions"
+								label="Limite de resgates"
+							>
+								{(field) => (
+									<MaskedInput
+										{...field}
+										disabled={disabled}
+										mask={integerMask}
+										onChange={(n) =>
+											onPatch({
+												maxRedemptions: n ?? null,
+											} as Partial<PromotionFormValues>)
+										}
+										value={
+											(values as { maxRedemptions?: number | null })
+												.maxRedemptions ?? undefined
+										}
+									/>
+								)}
+							</LabeledField>
 
-							<div className="flex flex-col gap-2">
-								<Label htmlFor="promo-min-order-amount">
-									Valor mínimo do pedido
-								</Label>
-								<MoneyInput
-									disabled={disabled}
-									id="promo-min-order-amount"
-									onChange={(n) =>
-										onPatch({
-											minOrderAmount: n,
-										} as Partial<PromotionFormValues>)
-									}
-									value={
-										(values as { minOrderAmount?: number | null })
-											.minOrderAmount
-									}
-								/>
-								<p className="text-muted-foreground text-xs">
-									Vazio = sem mínimo
-								</p>
-								<FieldError>{errors.minOrderAmount}</FieldError>
-							</div>
+							<LabeledField
+								error={errors.minOrderAmount}
+								hint="Vazio = sem mínimo"
+								id="promo-min-order-amount"
+								label="Valor mínimo do pedido"
+							>
+								{(field) => (
+									<MoneyInput
+										{...field}
+										disabled={disabled}
+										onChange={(n) =>
+											onPatch({
+												minOrderAmount: n,
+											} as Partial<PromotionFormValues>)
+										}
+										value={
+											(values as { minOrderAmount?: number | null })
+												.minOrderAmount
+										}
+									/>
+								)}
+							</LabeledField>
 						</>
 					)}
 				</Section>
@@ -449,30 +464,38 @@ export function PromotionFormFields({
 				{/* Card 3 — Vigência & publicação */}
 				<Section title="Vigência & publicação">
 					<div className="grid gap-4 sm:grid-cols-2">
-						<div className="flex flex-col gap-2">
-							<Label htmlFor="promo-starts-at">Início</Label>
-							<DatePicker
-								disabled={disabled}
-								id="promo-starts-at"
-								min={mode === "create" ? new Date() : undefined}
-								onChange={(d) => onPatch({ startsAt: d ?? null })}
-								value={values.startsAt ?? undefined}
-							/>
-							<p className="text-muted-foreground text-xs">Vazio = imediato</p>
-							<FieldError>{errors.startsAt}</FieldError>
-						</div>
-						<div className="flex flex-col gap-2">
-							<Label htmlFor="promo-ends-at">Fim</Label>
-							<DatePicker
-								disabled={disabled}
-								id="promo-ends-at"
-								min={values.startsAt ?? undefined}
-								onChange={(d) => onPatch({ endsAt: d ?? null })}
-								value={values.endsAt ?? undefined}
-							/>
-							<p className="text-muted-foreground text-xs">Vazio = sem prazo</p>
-							<FieldError>{errors.endsAt}</FieldError>
-						</div>
+						<LabeledField
+							error={errors.startsAt}
+							hint="Vazio = imediato"
+							id="promo-starts-at"
+							label="Início"
+						>
+							{(field) => (
+								<DatePicker
+									{...field}
+									disabled={disabled}
+									min={mode === "create" ? new Date() : undefined}
+									onChange={(d) => onPatch({ startsAt: d ?? null })}
+									value={values.startsAt ?? undefined}
+								/>
+							)}
+						</LabeledField>
+						<LabeledField
+							error={errors.endsAt}
+							hint="Vazio = sem prazo"
+							id="promo-ends-at"
+							label="Fim"
+						>
+							{(field) => (
+								<DatePicker
+									{...field}
+									disabled={disabled}
+									min={values.startsAt ?? undefined}
+									onChange={(d) => onPatch({ endsAt: d ?? null })}
+									value={values.endsAt ?? undefined}
+								/>
+							)}
+						</LabeledField>
 					</div>
 
 					<div className="flex items-center gap-3">
@@ -549,6 +572,7 @@ export function PromotionFormFields({
 					{!values.appliesToAll && (
 						<div className="flex flex-col gap-2">
 							<ToolCombobox
+								aria-invalid={errors.toolIds ? true : undefined}
 								availableTools={availableTools}
 								disabled={disabled}
 								onChange={(ids) => onPatch({ toolIds: ids })}
