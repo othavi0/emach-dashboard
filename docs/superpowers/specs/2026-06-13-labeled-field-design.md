@@ -72,13 +72,15 @@ Renderizar `aria-invalid="false"` no DOM tem semântica a11y de "campo validado 
 
 `apps/web/src/components/labeled-field.tsx` (consistente com `field-error.tsx`).
 
-## Teste unitário (vitest + Testing Library)
+## Teste unitário (vitest + `renderToStaticMarkup`)
+
+O repo roda vitest em `environment: node` e só testa funções puras — **não há** Testing Library/jsdom. Em vez de instalar essa infra (scope creep + contraria a escolha deliberada do repo), o teste usa `renderToStaticMarkup` de `react-dom/server` para renderizar o componente a uma string HTML e asseverar por `includes`/regex. Roda no `environment: node` atual; só exige adicionar `.test.tsx` ao `include` do `vitest.config.ts`. O `Label` (`@emach/ui`) é função pura (`<label>` + `cn`), sem CSS/`"use client"` — renderiza em node sem problema. Os testes não passam `help`, então o `HelpTooltip` (base-ui HoverCard) nunca é renderizado.
 
 Cobre os contratos que o componente existe pra garantir:
 
 1. Renderiza o `label` e o `*` quando `required`; **não** renderiza o `*` quando ausente.
-2. O controle recebe `aria-invalid="true"` no DOM quando há `error`; recebe `undefined` (atributo ausente) quando não há — asserção no elemento renderizado pelo children.
-3. Renderiza a mensagem de erro dentro de `[data-error="true"]` (âncora de scroll preservada).
+2. O controle (um `<input>` simples passado como children) recebe `aria-invalid="true"` no markup quando há `error`; o atributo **fica ausente** quando não há.
+3. Renderiza a mensagem de erro dentro de `data-error="true"` (âncora de scroll preservada).
 4. Renderiza o `hint` quando passado.
 
 ## Migração do piloto — `supplier-form-fields.tsx`
