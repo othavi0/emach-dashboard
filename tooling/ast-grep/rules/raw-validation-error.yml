@@ -1,0 +1,29 @@
+id: raw-validation-error
+language: tsx
+severity: error
+message: >-
+  Erro de validação renderizado fora do padrão <FieldError>/<LabeledField>. Use
+  <FieldError>{errors.campo?.message}</FieldError> ou <LabeledField error={errors.campo}>.
+  Exceção legítima: // ast-grep-ignore: raw-validation-error <motivo>
+note: |
+  Detecta <p|span|div className="...text-destructive...">{errors.X}</...> cru.
+  NÃO casa: <FieldError>, {error} de fetch (identifier solto), asterisco required
+  aninhado (className em filho não-relacionado), nem errors.map(...) (array local).
+rule:
+  kind: jsx_element
+  all:
+    - has:
+        field: open_tag
+        has:
+          kind: jsx_attribute
+          all:
+            - has: { kind: property_identifier, regex: '^className$' }
+            - has: { stopBy: end, kind: string, regex: 'text-destructive' }
+    - has:
+        kind: jsx_expression
+        has:
+          stopBy: end
+          kind: member_expression
+          all:
+            - has: { field: object, stopBy: end, kind: identifier, regex: '^errors$' }
+            - not: { inside: { kind: call_expression, field: function } }
