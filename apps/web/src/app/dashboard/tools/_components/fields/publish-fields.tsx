@@ -11,7 +11,9 @@ import {
 } from "@emach/ui/components/select";
 import { Switch } from "@emach/ui/components/switch";
 
+import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
+import { LabeledField } from "@/components/labeled-field";
 import { ToolImageGallery } from "../tool-image-gallery";
 import {
 	MAX_IMAGES,
@@ -41,39 +43,42 @@ export function PublishFields({
 					onChange={(images) => onPatch({ images })}
 					value={values.images}
 				/>
-				{errors.images && (
-					<p className="text-destructive text-xs">{errors.images}</p>
-				)}
+				<FieldError>{errors.images}</FieldError>
 			</div>
 			<div className="grid gap-4 md:grid-cols-2">
-				<div className="flex flex-col gap-2">
-					<Label className="flex items-center gap-1.5" htmlFor="status">
-						Status <span className="text-destructive">*</span>
+				<LabeledField
+					help={
 						<HelpTooltip
 							text={`Rascunho fica oculto. "Ativo" exige ${MIN_IMAGES_ACTIVE} imagens e publica na loja. Descontinuado some de novas vendas.`}
 						/>
-					</Label>
-					<Select
-						disabled={disabled}
-						onValueChange={(v) =>
-							onPatch({ status: v as ToolFormValues["status"] })
-						}
-						value={values.status}
-					>
-						<SelectTrigger id="status">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								{TOOL_STATUS_OPTIONS.map((s) => (
-									<SelectItem key={s} value={s}>
-										{TOOL_STATUS_LABELS[s]}
-									</SelectItem>
-								))}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
-				</div>
+					}
+					id="status"
+					label="Status"
+					required
+				>
+					{(field) => (
+						<Select
+							disabled={disabled}
+							onValueChange={(v) =>
+								onPatch({ status: v as ToolFormValues["status"] })
+							}
+							value={values.status}
+						>
+							<SelectTrigger {...field}>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									{TOOL_STATUS_OPTIONS.map((s) => (
+										<SelectItem key={s} value={s}>
+											{TOOL_STATUS_LABELS[s]}
+										</SelectItem>
+									))}
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					)}
+				</LabeledField>
 				<div className="flex items-center justify-between">
 					<Label className="flex items-center gap-1.5" htmlFor="visibleOnSite">
 						Visível no site

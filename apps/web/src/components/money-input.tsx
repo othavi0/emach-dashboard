@@ -6,6 +6,7 @@ import { AffixInput } from "@/components/affix-input";
 import { formatMoney, parseMoney } from "@/lib/discount-format";
 
 interface MoneyInputProps {
+	"aria-invalid"?: true | undefined;
 	disabled?: boolean;
 	id?: string;
 	onChange: (value: number | null) => void;
@@ -13,7 +14,13 @@ interface MoneyInputProps {
 }
 
 /** Campo de valor em R$ — prefixo fixo, sem símbolo no texto editável. */
-export function MoneyInput({ disabled, id, onChange, value }: MoneyInputProps) {
+export function MoneyInput({
+	"aria-invalid": ariaInvalid,
+	disabled,
+	id,
+	onChange,
+	value,
+}: MoneyInputProps) {
 	const [display, setDisplay] = useState(() => formatMoney(value ?? 0));
 
 	// re-sincroniza se o valor mudar por fora (ex.: reset do form)
@@ -29,6 +36,7 @@ export function MoneyInput({ disabled, id, onChange, value }: MoneyInputProps) {
 
 	return (
 		<AffixInput
+			aria-invalid={ariaInvalid}
 			disabled={disabled}
 			id={id}
 			inputMode="numeric"

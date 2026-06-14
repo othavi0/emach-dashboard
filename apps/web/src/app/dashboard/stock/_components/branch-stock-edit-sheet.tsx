@@ -14,8 +14,8 @@ import { ArrowRight, ExternalLink, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { FieldError } from "@/components/field-error";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
+import { LabeledField } from "@/components/labeled-field";
 import { MaskedInput } from "@/components/masked-input";
 import { integerMask } from "@/lib/masks";
 import { notify } from "@/lib/notify";
@@ -464,22 +464,23 @@ export function BranchStockEditSheet({
 								className="flex flex-col gap-3"
 								onSubmit={handleAdjustSubmit}
 							>
-								<div className="flex flex-col gap-1.5">
-									<Label htmlFor="sheet-new-qty">
-										Nova quantidade
-										<span className="text-destructive"> *</span>
-									</Label>
-									<MaskedInput
-										aria-invalid={errors.newQty ? true : undefined}
-										disabled={isAdjusting}
-										id="sheet-new-qty"
-										mask={integerMask}
-										onChange={setNewQty}
-										placeholder={`Atual: ${row.quantity}`}
-										value={newQty}
-									/>
-									<FieldError>{errors.newQty}</FieldError>
-								</div>
+								<LabeledField
+									error={errors.newQty}
+									id="sheet-new-qty"
+									label="Nova quantidade"
+									required
+								>
+									{(field) => (
+										<MaskedInput
+											{...field}
+											disabled={isAdjusting}
+											mask={integerMask}
+											onChange={setNewQty}
+											placeholder={`Atual: ${row.quantity}`}
+											value={newQty}
+										/>
+									)}
+								</LabeledField>
 
 								<div className="flex flex-col gap-1.5">
 									<Label>Motivo</Label>
@@ -499,24 +500,23 @@ export function BranchStockEditSheet({
 									</div>
 								</div>
 
-								<div className="flex flex-col gap-1.5">
-									<Label htmlFor="sheet-reason-note">
-										Observação
-										{reason === "outro" && (
-											<span className="text-destructive"> *</span>
-										)}
-									</Label>
-									<Textarea
-										aria-invalid={errors.reasonNote ? true : undefined}
-										disabled={isAdjusting}
-										id="sheet-reason-note"
-										onChange={(e) => setReasonNote(e.target.value)}
-										placeholder="NF #1234, fornecedor X…"
-										rows={2}
-										value={reasonNote}
-									/>
-									<FieldError>{errors.reasonNote}</FieldError>
-								</div>
+								<LabeledField
+									error={errors.reasonNote}
+									id="sheet-reason-note"
+									label="Observação"
+									required={reason === "outro"}
+								>
+									{(field) => (
+										<Textarea
+											{...field}
+											disabled={isAdjusting}
+											onChange={(e) => setReasonNote(e.target.value)}
+											placeholder="NF #1234, fornecedor X…"
+											rows={2}
+											value={reasonNote}
+										/>
+									)}
+								</LabeledField>
 
 								<Button
 									className="self-start"
