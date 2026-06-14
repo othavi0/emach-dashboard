@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { BranchStockEditSheet } from "@/app/dashboard/stock/_components/branch-stock-edit-sheet";
 import type { BranchStockRow } from "@/app/dashboard/stock/branch-stock-data";
+import type { ActiveSupplierOption } from "@/lib/suppliers";
 
 import { groupStockByVariant } from "../_lib/stock-grouping";
 import type { ToolDetailVariant, ToolStockRow } from "../_lib/tool-detail-data";
@@ -12,6 +13,7 @@ import { ToolStockBranchCard } from "./tool-stock-branch-card";
 interface EstoqueTabProps {
 	canMutate: boolean;
 	stockRows: ToolStockRow[];
+	suppliers: ActiveSupplierOption[];
 	toolId: string;
 	toolImageUrl: string | null;
 	toolName: string;
@@ -21,6 +23,7 @@ interface EstoqueTabProps {
 export function EstoqueTab({
 	canMutate,
 	stockRows,
+	suppliers,
 	toolId,
 	toolImageUrl,
 	toolName,
@@ -86,6 +89,7 @@ export function EstoqueTab({
 				lead="branch"
 				onClose={() => setSelected(null)}
 				row={selectedRow}
+				suppliers={suppliers}
 			/>
 		</div>
 	);
