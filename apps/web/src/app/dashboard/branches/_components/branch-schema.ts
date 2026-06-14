@@ -123,22 +123,24 @@ const businessHoursPeriodSchema = z
 			});
 		}
 
-		if (
-			value.breakStart &&
-			value.breakEnd &&
-			value.opensAt &&
-			value.closesAt &&
-			!(
-				value.opensAt < value.breakStart &&
-				value.breakStart < value.breakEnd &&
-				value.breakEnd < value.closesAt
-			)
-		) {
-			ctx.addIssue({
-				code: "custom",
-				message: "Intervalo deve ficar dentro do expediente",
-				path: ["breakStart"],
-			});
+		if (value.breakStart && value.breakEnd && value.opensAt && value.closesAt) {
+			const startOk =
+				value.opensAt < value.breakStart && value.breakStart < value.breakEnd;
+			const endOk =
+				value.breakStart < value.breakEnd && value.breakEnd < value.closesAt;
+			if (!startOk) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Intervalo deve ficar dentro do expediente",
+					path: ["breakStart"],
+				});
+			} else if (!endOk) {
+				ctx.addIssue({
+					code: "custom",
+					message: "Intervalo deve ficar dentro do expediente",
+					path: ["breakEnd"],
+				});
+			}
 		}
 	})
 	.transform(
