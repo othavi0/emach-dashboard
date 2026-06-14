@@ -100,7 +100,7 @@ Após os cortes: casa os 3 anti-padrões de teste (`errors.x`, `errors.x?.messag
    Pinar via npm garante **CI = local** (não depender do binário 0.43.0 do sistema).
 4. **`.github/workflows/forms-guard.yml`** — `on: [pull_request, push]`; `bun install`; `bun guard:forms`.
    Exit 1 da regra ⇒ job vermelho ⇒ PR bloqueado. Workflow próprio, **não** anexado ao `sync-db-schema.yml`.
-5. **Teste do guard** — `tooling/ast-grep/rules/__tests__/raw-validation-error.yml` (casos `valid`/`invalid`,
+5. **Teste do guard** — `tooling/ast-grep/rule-tests/raw-validation-error-test.yml` (casos `valid`/`invalid`,
    rodados por `ast-grep test`). Anti-regressão da própria regra: um tweak futuro não pode parar de pegar o
    padrão silenciosamente.
 6. **Doc** — uma linha em `apps/web/CLAUDE.md` (seção "Feedback de erro de validação") referenciando o guard
