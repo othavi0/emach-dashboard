@@ -137,7 +137,12 @@ export function BranchFormFields({
 	const contactSection = (
 		<section className="flex flex-col gap-3">
 			<SectionHeader>Contato</SectionHeader>
-			<LabeledField error={errors.phone} id="branch-phone" label="Telefone">
+			<LabeledField
+				error={errors.phone}
+				id="branch-phone"
+				label="Telefone"
+				required
+			>
 				{(field) => (
 					<MaskedInput
 						{...field}
@@ -156,7 +161,7 @@ export function BranchFormFields({
 		<section className="flex flex-col gap-3">
 			<SectionHeader>Endereço</SectionHeader>
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr]">
-				<LabeledField error={errors.cep} id="branch-cep" label="CEP">
+				<LabeledField error={errors.cep} id="branch-cep" label="CEP" required>
 					{(field) => (
 						<CepInput
 							{...field}
@@ -167,7 +172,12 @@ export function BranchFormFields({
 						/>
 					)}
 				</LabeledField>
-				<LabeledField error={errors.street} id="branch-street" label="Rua">
+				<LabeledField
+					error={errors.street}
+					id="branch-street"
+					label="Rua"
+					required
+				>
 					{(field) => (
 						<Input
 							{...field}
@@ -184,6 +194,7 @@ export function BranchFormFields({
 					error={errors.streetNumber}
 					id="branch-number"
 					label="Número"
+					required
 				>
 					{(field) => (
 						<Input
@@ -215,6 +226,7 @@ export function BranchFormFields({
 				error={errors.neighborhood}
 				id="branch-neighborhood"
 				label="Bairro"
+				required
 			>
 				{(field) => (
 					<Input
@@ -227,7 +239,12 @@ export function BranchFormFields({
 				)}
 			</LabeledField>
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr]">
-				<LabeledField error={errors.city} id="branch-city" label="Cidade">
+				<LabeledField
+					error={errors.city}
+					id="branch-city"
+					label="Cidade"
+					required
+				>
 					{(field) => (
 						<Input
 							{...field}
@@ -238,7 +255,12 @@ export function BranchFormFields({
 						/>
 					)}
 				</LabeledField>
-				<LabeledField error={errors.state} id="branch-state" label="UF">
+				<LabeledField
+					error={errors.state}
+					id="branch-state"
+					label="UF"
+					required
+				>
 					{(field) => (
 						<UfSelect
 							{...field}
