@@ -3,6 +3,14 @@
 import { Button } from "@emach/ui/components/button";
 import { Label } from "@emach/ui/components/label";
 import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@emach/ui/components/select";
+import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
@@ -19,25 +27,33 @@ import { LabeledField } from "@/components/labeled-field";
 import { MaskedInput } from "@/components/masked-input";
 import { integerMask } from "@/lib/masks";
 import { notify } from "@/lib/notify";
+import type { ActiveSupplierOption } from "@/lib/suppliers";
 import { useFormErrors } from "@/lib/use-form-errors";
 
 import {
 	adjustStock,
 	fetchVariantBranchMovementsPage,
 	getReservedQtyByVariantBranch,
+	recordStockEntry,
+	recordStockWriteOff,
 	type StockMovementRow,
 	updateStockThresholds,
 } from "../actions";
 import type { BranchStockRow } from "../branch-stock-data";
 import {
-	STOCK_MOVEMENT_REASONS_UI,
-	type StockAdjustmentUiInput,
-	type StockMovementReasonUi,
-	stockAdjustmentUiSchema,
-} from "./stock-adjustment-schema";
+	type StockEntryInput,
+	type StockRecountInput,
+	type StockWriteOffInput,
+	type StockWriteOffReason,
+	stockEntrySchema,
+	stockRecountSchema,
+	stockWriteOffSchema,
+} from "./stock-movement-schema";
 import { type StockStatus, stockStatus } from "./stock-status";
 
 // ─── Tipos e constantes ────────────────────────────────────────────────────
+
+type Mode = "entrada" | "baixa" | "ajuste";
 
 const STATUS_LABEL: Record<StockStatus, string | null> = {
 	critical: "Crítico",
@@ -53,19 +69,24 @@ const STATUS_CLASS: Record<StockStatus, string> = {
 	none: "bg-muted text-muted-foreground",
 };
 
-const REASON_LABEL_UI: Record<StockMovementReasonUi, string> = {
-	entrada_compra: "Entrada compra",
-	ajuste_inventario: "Ajuste inventário",
-	perda: "Perda",
-	outro: "Outro",
-};
-
 const REASON_LABEL_FULL: Record<string, string> = {
 	entrada_compra: "Entrada compra",
 	saida_venda: "Saída venda",
 	ajuste_inventario: "Ajuste inventário",
 	perda: "Perda",
 	outro: "Outro",
+};
+
+// Labels para os motivos de baixa (sem depender do schema antigo)
+const WRITE_OFF_REASON_LABEL: Record<StockWriteOffReason, string> = {
+	perda: "Perda",
+	outro: "Outro",
+};
+
+const MODE_LABEL: Record<Mode, string> = {
+	entrada: "Entrada",
+	baixa: "Baixa",
+	ajuste: "Ajuste",
 };
 
 const RELATIVE = new Intl.RelativeTimeFormat("pt-BR", {
@@ -108,6 +129,11 @@ function MovementRow({ m }: { m: StockMovementRow }) {
 			<div className="min-w-0 flex-1">
 				<p className="text-foreground">
 					{m.reason ? (REASON_LABEL_FULL[m.reason] ?? m.reason) : "Sem motivo"}
+					{m.supplierName ? (
+						<span className="ml-1 text-muted-foreground">
+							· {m.supplierName}
+						</span>
+					) : null}
 					{m.reasonNote ? (
 						<span className="ml-1 text-muted-foreground">— {m.reasonNote}</span>
 					) : null}
@@ -215,9 +241,10 @@ interface BranchStockEditSheetProps {
 	lead?: "branch" | "tool";
 	onClose: () => void;
 	row: BranchStockRow | null;
+	suppliers: ActiveSupplierOption[];
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sheet de edição de estoque com múltiplos estados (ajuste, limites, reservado, histórico); complexidade inerente ao domínio
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sheet de edição de estoque com três modos (entrada/baixa/ajuste), limites e histórico; complexidade inerente ao domínio
 export function BranchStockEditSheet({
 	branchId,
 	branchName,
@@ -225,16 +252,43 @@ export function BranchStockEditSheet({
 	lead = "tool",
 	onClose,
 	row,
+	suppliers,
 }: BranchStockEditSheetProps) {
 	const router = useRouter();
 
-	const [newQty, setNewQty] = useState<number | undefined>(undefined);
-	const [reason, setReason] = useState<StockMovementReasonUi>("entrada_compra");
-	const [reasonNote, setReasonNote] = useState("");
-	const { errors, reportValidationError, clearErrors } =
-		useFormErrors<StockAdjustmentUiInput>();
+	// ─── Estado do modo ───────────────────────────────────────────────────────
+	const [mode, setMode] = useState<Mode>("entrada");
+
+	// Entrada
+	const [qty, setQty] = useState<number | undefined>(undefined);
+	const [supplierId, setSupplierId] = useState<string>("");
+	// Baixa
+	const [writeOffReason, setWriteOffReason] =
+		useState<StockWriteOffReason>("perda");
+	// Ajuste
+	const [targetQty, setTargetQty] = useState<number | undefined>(undefined);
+	// Compartilhado
+	const [note, setNote] = useState("");
+
+	const {
+		errors: entradaErrors,
+		reportValidationError: reportEntradaError,
+		clearErrors: clearEntradaErrors,
+	} = useFormErrors<StockEntryInput>();
+	const {
+		errors: baixaErrors,
+		reportValidationError: reportBaixaError,
+		clearErrors: clearBaixaErrors,
+	} = useFormErrors<StockWriteOffInput>();
+	const {
+		errors: ajusteErrors,
+		reportValidationError: reportAjusteError,
+		clearErrors: clearAjusteErrors,
+	} = useFormErrors<StockRecountInput>();
+
 	const [isAdjusting, startAdjustTransition] = useTransition();
 
+	// Limites
 	const [minQty, setMinQty] = useState<number | undefined>(undefined);
 	const [reorderPoint, setReorderPoint] = useState<number | undefined>(
 		undefined
@@ -249,12 +303,17 @@ export function BranchStockEditSheet({
 			setReservedQty(null);
 			return;
 		}
-		setNewQty(row.quantity);
-		setReason("entrada_compra");
-		setReasonNote("");
+		setMode("entrada");
+		setQty(undefined);
+		setTargetQty(row.quantity);
+		setSupplierId("");
+		setWriteOffReason("perda");
+		setNote("");
 		setMinQty(row.minQty);
 		setReorderPoint(row.reorderPoint);
-		clearErrors();
+		clearEntradaErrors();
+		clearBaixaErrors();
+		clearAjusteErrors();
 		setReservedQty(null);
 
 		startAdjustTransition(async () => {
@@ -266,32 +325,98 @@ export function BranchStockEditSheet({
 		});
 	}, [row?.variantId, branchId]);
 
-	function handleAdjustSubmit(e: React.FormEvent<HTMLFormElement>) {
-		e.preventDefault();
-		clearErrors();
+	// ─── Handlers de submit ───────────────────────────────────────────────────
 
+	function handleEntradaSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
+		clearEntradaErrors();
 		if (!row) {
 			return;
 		}
 
-		const input: StockAdjustmentUiInput = {
+		const input: StockEntryInput = {
 			variantId: row.variantId,
 			branchId,
-			newQty: newQty ?? Number.NaN,
-			reason,
-			reasonNote: reasonNote.trim() === "" ? undefined : reasonNote.trim(),
+			quantity: qty ?? Number.NaN,
+			supplierId,
+			note: note.trim() === "" ? undefined : note.trim(),
 		};
 
-		const parsed = stockAdjustmentUiSchema.safeParse(input);
+		const parsed = stockEntrySchema.safeParse(input);
 		if (!parsed.success) {
-			reportValidationError(parsed.error);
+			reportEntradaError(parsed.error);
+			return;
+		}
+
+		startAdjustTransition(async () => {
+			const result = await recordStockEntry(parsed.data);
+			if (result.ok) {
+				notify.success("Entrada registrada");
+				router.refresh();
+				onClose();
+			} else {
+				notify.error(result.error || "Não foi possível registrar a entrada");
+			}
+		});
+	}
+
+	function handleBaixaSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
+		clearBaixaErrors();
+		if (!row) {
+			return;
+		}
+
+		const input: StockWriteOffInput = {
+			variantId: row.variantId,
+			branchId,
+			quantity: qty ?? Number.NaN,
+			reason: writeOffReason,
+			note: note.trim() === "" ? undefined : note.trim(),
+		};
+
+		const parsed = stockWriteOffSchema.safeParse(input);
+		if (!parsed.success) {
+			reportBaixaError(parsed.error);
+			return;
+		}
+
+		startAdjustTransition(async () => {
+			const result = await recordStockWriteOff(parsed.data);
+			if (result.ok) {
+				notify.success("Baixa registrada");
+				router.refresh();
+				onClose();
+			} else {
+				notify.error(result.error || "Não foi possível registrar a baixa");
+			}
+		});
+	}
+
+	function handleAjusteSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
+		clearAjusteErrors();
+		if (!row) {
+			return;
+		}
+
+		const input: StockRecountInput = {
+			variantId: row.variantId,
+			branchId,
+			newQty: targetQty ?? Number.NaN,
+			note: note.trim() === "" ? undefined : note.trim(),
+		};
+
+		const parsed = stockRecountSchema.safeParse(input);
+		if (!parsed.success) {
+			reportAjusteError(parsed.error);
 			return;
 		}
 
 		startAdjustTransition(async () => {
 			const result = await adjustStock(parsed.data);
 			if (result.ok) {
-				notify.success("Estoque atualizado");
+				notify.success("Estoque ajustado");
 				router.refresh();
 				onClose();
 			} else {
@@ -457,82 +582,260 @@ export function BranchStockEditSheet({
 				{/* Corpo: duas colunas */}
 				{canMutate ? (
 					<div className="grid min-h-0 flex-1 grid-cols-2">
-						{/* Esquerda — ajustar quantidade */}
+						{/* Esquerda — operações de estoque */}
 						<div className="overflow-y-auto border-border border-r px-6 py-5">
-							<p className="mb-3 font-medium text-sm">Ajustar quantidade</p>
-							<form
-								className="flex flex-col gap-3"
-								onSubmit={handleAdjustSubmit}
-							>
-								<LabeledField
-									error={errors.newQty}
-									id="sheet-new-qty"
-									label="Nova quantidade"
-									required
-								>
-									{(field) => (
-										<MaskedInput
-											{...field}
-											disabled={isAdjusting}
-											mask={integerMask}
-											onChange={setNewQty}
-											placeholder={`Atual: ${row.quantity}`}
-											value={newQty}
-										/>
-									)}
-								</LabeledField>
+							<p className="mb-3 font-medium text-sm">Movimentar estoque</p>
 
-								<div className="flex flex-col gap-1.5">
-									<Label>Motivo</Label>
-									<div className="grid grid-cols-2 gap-2">
-										{STOCK_MOVEMENT_REASONS_UI.map((r) => (
-											<Button
+							{/* Segmented control */}
+							<div className="mb-4 flex rounded-md border border-border bg-muted p-0.5">
+								{(["entrada", "baixa", "ajuste"] as Mode[]).map((m) => (
+									<button
+										className={`flex-1 rounded-sm px-2 py-1.5 font-medium text-xs transition-colors ${
+											mode === m
+												? "bg-background text-foreground shadow-sm"
+												: "text-muted-foreground hover:text-foreground"
+										}`}
+										key={m}
+										onClick={() => {
+											setMode(m);
+											setNote("");
+											setQty(undefined);
+										}}
+										type="button"
+									>
+										{MODE_LABEL[m]}
+									</button>
+								))}
+							</div>
+
+							{/* ── Modo: Entrada ─────────────────────────────────────────── */}
+							{mode === "entrada" && (
+								<form
+									className="flex flex-col gap-3"
+									onSubmit={handleEntradaSubmit}
+								>
+									<LabeledField
+										error={entradaErrors.quantity}
+										id="sheet-entrada-qty"
+										label="Quantidade a adicionar"
+										required
+									>
+										{(field) => (
+											<MaskedInput
+												{...field}
 												disabled={isAdjusting}
-												key={r}
-												onClick={() => setReason(r)}
-												size="sm"
-												type="button"
-												variant={reason === r ? "default" : "outline"}
+												mask={integerMask}
+												onChange={setQty}
+												placeholder="0"
+												value={qty}
+											/>
+										)}
+									</LabeledField>
+
+									<LabeledField
+										error={entradaErrors.supplierId}
+										id="sheet-entrada-supplier"
+										label="Fornecedor"
+										required
+									>
+										{(field) => (
+											<Select
+												disabled={isAdjusting}
+												onValueChange={(v) => setSupplierId(v ?? "")}
+												value={supplierId}
 											>
-												{REASON_LABEL_UI[r]}
-											</Button>
-										))}
+												<SelectTrigger {...field}>
+													<SelectValue placeholder="Selecione o fornecedor" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectGroup>
+														{suppliers.map((s) => (
+															<SelectItem key={s.id} value={s.id}>
+																{s.name}
+															</SelectItem>
+														))}
+													</SelectGroup>
+												</SelectContent>
+											</Select>
+										)}
+									</LabeledField>
+
+									<LabeledField
+										error={entradaErrors.note}
+										id="sheet-entrada-note"
+										label="Observação"
+									>
+										{(field) => (
+											<Textarea
+												{...field}
+												disabled={isAdjusting}
+												onChange={(e) => setNote(e.target.value)}
+												placeholder="NF #1234, lote X…"
+												rows={2}
+												value={note}
+											/>
+										)}
+									</LabeledField>
+
+									<Button
+										className="self-start"
+										disabled={isAdjusting}
+										size="sm"
+										type="submit"
+									>
+										{isAdjusting ? (
+											<>
+												<Spinner /> Salvando…
+											</>
+										) : (
+											"Registrar entrada"
+										)}
+									</Button>
+								</form>
+							)}
+
+							{/* ── Modo: Baixa ───────────────────────────────────────────── */}
+							{mode === "baixa" && (
+								<form
+									className="flex flex-col gap-3"
+									onSubmit={handleBaixaSubmit}
+								>
+									<LabeledField
+										error={baixaErrors.quantity}
+										id="sheet-baixa-qty"
+										label="Quantidade a remover"
+										required
+									>
+										{(field) => (
+											<MaskedInput
+												{...field}
+												disabled={isAdjusting}
+												mask={integerMask}
+												onChange={setQty}
+												placeholder="0"
+												value={qty}
+											/>
+										)}
+									</LabeledField>
+
+									<div className="flex flex-col gap-1.5">
+										<Label>Motivo</Label>
+										<div className="flex gap-2">
+											{(["perda", "outro"] as StockWriteOffReason[]).map(
+												(r) => (
+													<Button
+														disabled={isAdjusting}
+														key={r}
+														onClick={() => setWriteOffReason(r)}
+														size="sm"
+														type="button"
+														variant={
+															writeOffReason === r ? "default" : "outline"
+														}
+													>
+														{WRITE_OFF_REASON_LABEL[r]}
+													</Button>
+												)
+											)}
+										</div>
 									</div>
-								</div>
 
-								<LabeledField
-									error={errors.reasonNote}
-									id="sheet-reason-note"
-									label="Observação"
-									required={reason === "outro"}
-								>
-									{(field) => (
-										<Textarea
-											{...field}
-											disabled={isAdjusting}
-											onChange={(e) => setReasonNote(e.target.value)}
-											placeholder="NF #1234, fornecedor X…"
-											rows={2}
-											value={reasonNote}
-										/>
-									)}
-								</LabeledField>
+									<LabeledField
+										error={baixaErrors.note}
+										id="sheet-baixa-note"
+										label="Observação"
+										required={writeOffReason === "outro"}
+									>
+										{(field) => (
+											<Textarea
+												{...field}
+												disabled={isAdjusting}
+												onChange={(e) => setNote(e.target.value)}
+												placeholder={
+													writeOffReason === "outro"
+														? "Descreva o motivo da baixa…"
+														: "Opcional"
+												}
+												rows={2}
+												value={note}
+											/>
+										)}
+									</LabeledField>
 
-								<Button
-									className="self-start"
-									disabled={isAdjusting}
-									size="sm"
-									type="submit"
+									<Button
+										className="self-start"
+										disabled={isAdjusting}
+										size="sm"
+										type="submit"
+									>
+										{isAdjusting ? (
+											<>
+												<Spinner /> Salvando…
+											</>
+										) : (
+											"Registrar baixa"
+										)}
+									</Button>
+								</form>
+							)}
+
+							{/* ── Modo: Ajuste ──────────────────────────────────────────── */}
+							{mode === "ajuste" && (
+								<form
+									className="flex flex-col gap-3"
+									onSubmit={handleAjusteSubmit}
 								>
-									{isAdjusting ? (
-										<>
-											<Spinner /> Salvando…
-										</>
-									) : (
-										"Salvar ajuste"
-									)}
-								</Button>
-							</form>
+									<LabeledField
+										error={ajusteErrors.newQty}
+										id="sheet-ajuste-qty"
+										label="Quantidade contada"
+										required
+									>
+										{(field) => (
+											<MaskedInput
+												{...field}
+												disabled={isAdjusting}
+												mask={integerMask}
+												onChange={setTargetQty}
+												placeholder={`Atual: ${row.quantity}`}
+												value={targetQty}
+											/>
+										)}
+									</LabeledField>
+
+									<LabeledField
+										error={ajusteErrors.note}
+										id="sheet-ajuste-note"
+										label="Observação"
+									>
+										{(field) => (
+											<Textarea
+												{...field}
+												disabled={isAdjusting}
+												onChange={(e) => setNote(e.target.value)}
+												placeholder="Recontagem física, data…"
+												rows={2}
+												value={note}
+											/>
+										)}
+									</LabeledField>
+
+									<Button
+										className="self-start"
+										disabled={isAdjusting}
+										size="sm"
+										type="submit"
+									>
+										{isAdjusting ? (
+											<>
+												<Spinner /> Salvando…
+											</>
+										) : (
+											"Salvar ajuste"
+										)}
+									</Button>
+								</form>
+							)}
 						</div>
 
 						{/* Direita — limites + movimentos */}

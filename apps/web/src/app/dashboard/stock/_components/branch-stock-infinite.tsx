@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
+import type { ActiveSupplierOption } from "@/lib/suppliers";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
 import {
@@ -20,6 +21,7 @@ interface BranchStockInfiniteProps {
 	filters: BranchStockFiltersInput;
 	initial: BranchStockRow[];
 	initialCursor: string | null;
+	suppliers: ActiveSupplierOption[];
 }
 
 export function BranchStockInfinite({
@@ -29,6 +31,7 @@ export function BranchStockInfinite({
 	branchId,
 	branchName,
 	canMutate,
+	suppliers,
 }: BranchStockInfiniteProps) {
 	const [selectedRow, setSelectedRow] = useState<BranchStockRow | null>(null);
 
@@ -55,6 +58,7 @@ export function BranchStockInfinite({
 				canMutate={canMutate}
 				onClose={() => setSelectedRow(null)}
 				row={selectedRow}
+				suppliers={suppliers}
 			/>
 		</div>
 	);

@@ -4,9 +4,9 @@ import { db } from "@emach/db";
 import { user } from "@emach/db/schema/auth";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
 import { order, orderItem } from "@emach/db/schema/orders";
+import type { StockMovementReason } from "@emach/db/schema/stock-movements";
 import { stockMovement } from "@emach/db/schema/stock-movements";
-
-import { toolVariant } from "@emach/db/schema/tools";
+import { supplier, toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 
 import { revalidatePath } from "next/cache";
@@ -17,9 +17,13 @@ import { requireCapability } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import {
 	type STOCK_MOVEMENT_REASONS,
-	type StockAdjustmentInput,
-	stockAdjustmentSchema,
-} from "./_components/stock-adjustment-schema";
+	type StockEntryInput,
+	type StockRecountInput,
+	type StockWriteOffInput,
+	stockEntrySchema,
+	stockRecountSchema,
+	stockWriteOffSchema,
+} from "./_components/stock-movement-schema";
 
 import {
 	type StockThresholdInput,
@@ -44,107 +48,197 @@ function errorMessage(error: unknown): string {
 	return "Erro desconhecido";
 }
 
-export async function adjustStock(
-	input: StockAdjustmentInput
-): Promise<ActionResult<AdjustStockSuccess>> {
-	const session = await requireCapability("stock.adjust");
+// ─── Helper transacional ──────────────────────────────────────────────────────
 
-	const parsed = stockAdjustmentSchema.safeParse(input);
-	if (!parsed.success) {
-		const firstIssue = parsed.error.issues[0];
-		return {
-			ok: false,
-			error: firstIssue?.message ?? "Entrada inválida",
-		};
-	}
+type MovementMode =
+	| { mode: "target"; newQty: number }
+	| { mode: "delta"; deltaQty: number };
 
-	const { variantId, branchId, newQty, reason, reasonNote } = parsed.data;
-	const actorId = session.user.id;
+interface ApplyMovementArgs {
+	actorId: string;
+	branchId: string;
+	op: MovementMode;
+	reason: StockMovementReason;
+	reasonNote: string | null;
+	supplierId: string | null;
+	variantId: string;
+}
 
-	try {
-		const result = await db.transaction(async (tx) => {
-			await tx
-				.insert(stockLevel)
-				.values({
-					variantId,
-					branchId,
-					quantity: 0,
-					updatedAt: new Date(),
-				})
-				.onConflictDoNothing({
-					target: [stockLevel.variantId, stockLevel.branchId],
-				});
-
-			const lockedRows = await tx
-				.select({ quantity: stockLevel.quantity })
-				.from(stockLevel)
-				.where(
-					and(
-						eq(stockLevel.variantId, variantId),
-						eq(stockLevel.branchId, branchId)
-					)
-				)
-				.for("update");
-
-			const previousQty = lockedRows[0]?.quantity ?? 0;
-			const delta = newQty - previousQty;
-
-			if (delta === 0) {
-				return { previousQty, delta, movementId: null as string | null };
-			}
-
-			await tx
-				.update(stockLevel)
-				.set({ quantity: newQty, updatedAt: new Date() })
-				.where(
-					and(
-						eq(stockLevel.variantId, variantId),
-						eq(stockLevel.branchId, branchId)
-					)
-				);
-
-			const movementId = crypto.randomUUID();
-			await tx.insert(stockMovement).values({
-				id: movementId,
-				variantId,
-				branchId,
-				previousQty,
-				newQty,
-				delta,
-				reason: reason ?? "ajuste_inventario",
-				reasonNote: reasonNote ?? null,
-				actorType: "user",
-				actorId,
+async function applyMovement(
+	args: ApplyMovementArgs
+): Promise<AdjustStockSuccess> {
+	return await db.transaction(async (tx) => {
+		await tx
+			.insert(stockLevel)
+			.values({
+				variantId: args.variantId,
+				branchId: args.branchId,
+				quantity: 0,
+				updatedAt: new Date(),
+			})
+			.onConflictDoNothing({
+				target: [stockLevel.variantId, stockLevel.branchId],
 			});
 
-			return { previousQty, delta, movementId: movementId as string | null };
+		const lockedRows = await tx
+			.select({ quantity: stockLevel.quantity })
+			.from(stockLevel)
+			.where(
+				and(
+					eq(stockLevel.variantId, args.variantId),
+					eq(stockLevel.branchId, args.branchId)
+				)
+			)
+			.for("update");
+
+		const previousQty = lockedRows[0]?.quantity ?? 0;
+		const newQty =
+			args.op.mode === "target"
+				? args.op.newQty
+				: previousQty + args.op.deltaQty;
+		const delta = newQty - previousQty;
+
+		if (newQty < 0) {
+			throw new Error("Estoque não pode ficar negativo");
+		}
+
+		if (delta === 0) {
+			return { previousQty, newQty, delta, movementId: null };
+		}
+
+		await tx
+			.update(stockLevel)
+			.set({ quantity: newQty, updatedAt: new Date() })
+			.where(
+				and(
+					eq(stockLevel.variantId, args.variantId),
+					eq(stockLevel.branchId, args.branchId)
+				)
+			);
+
+		const movementId = crypto.randomUUID();
+		await tx.insert(stockMovement).values({
+			id: movementId,
+			variantId: args.variantId,
+			branchId: args.branchId,
+			previousQty,
+			newQty,
+			delta,
+			reason: args.reason,
+			reasonNote: args.reasonNote,
+			supplierId: args.supplierId,
+			actorType: "user",
+			actorId: args.actorId,
 		});
 
-		// Recupera toolId associado para revalidação de paths.
-		const [variantRow] = await db
-			.select({ toolId: toolVariant.toolId })
-			.from(toolVariant)
-			.where(eq(toolVariant.id, variantId))
-			.limit(1);
-		const toolId = variantRow?.toolId;
+		return { previousQty, newQty, delta, movementId };
+	});
+}
 
-		revalidatePath("/dashboard/stock");
-		revalidatePath(`/dashboard/branches/${branchId}`);
-		revalidatePath(`/dashboard/branches/${branchId}/stock`);
-		if (toolId) {
-			revalidatePath(`/dashboard/tools/${toolId}/stock`);
-		}
-		revalidatePath("/dashboard", "layout");
+async function revalidateStockPaths(
+	variantId: string,
+	branchId: string
+): Promise<void> {
+	const [variantRow] = await db
+		.select({ toolId: toolVariant.toolId })
+		.from(toolVariant)
+		.where(eq(toolVariant.id, variantId))
+		.limit(1);
+	const toolId = variantRow?.toolId;
+	revalidatePath("/dashboard/stock");
+	revalidatePath("/dashboard/stock/movements");
+	revalidatePath(`/dashboard/branches/${branchId}`);
+	revalidatePath(`/dashboard/branches/${branchId}/stock`);
+	if (toolId) {
+		revalidatePath(`/dashboard/tools/${toolId}/stock`);
+	}
+	revalidatePath("/dashboard", "layout");
+}
 
+// ─── Actions de escrita ───────────────────────────────────────────────────────
+
+export async function recordStockEntry(
+	input: StockEntryInput
+): Promise<ActionResult<AdjustStockSuccess>> {
+	const session = await requireCapability("stock.adjust");
+	const parsed = stockEntrySchema.safeParse(input);
+	if (!parsed.success) {
 		return {
-			ok: true,
-			data: {
-				previousQty: result.previousQty,
-				newQty,
-				delta: result.delta,
-				movementId: result.movementId,
-			},
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
 		};
+	}
+	const { variantId, branchId, quantity, supplierId, note } = parsed.data;
+	try {
+		const result = await applyMovement({
+			variantId,
+			branchId,
+			op: { mode: "delta", deltaQty: quantity },
+			reason: "entrada_compra",
+			reasonNote: note ?? null,
+			supplierId,
+			actorId: session.user.id,
+		});
+		await revalidateStockPaths(variantId, branchId);
+		return { ok: true, data: result };
+	} catch (error) {
+		return { ok: false, error: errorMessage(error) };
+	}
+}
+
+export async function recordStockWriteOff(
+	input: StockWriteOffInput
+): Promise<ActionResult<AdjustStockSuccess>> {
+	const session = await requireCapability("stock.adjust");
+	const parsed = stockWriteOffSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+	const { variantId, branchId, quantity, reason, note } = parsed.data;
+	try {
+		const result = await applyMovement({
+			variantId,
+			branchId,
+			op: { mode: "delta", deltaQty: -quantity },
+			reason,
+			reasonNote: note ?? null,
+			supplierId: null,
+			actorId: session.user.id,
+		});
+		await revalidateStockPaths(variantId, branchId);
+		return { ok: true, data: result };
+	} catch (error) {
+		return { ok: false, error: errorMessage(error) };
+	}
+}
+
+export async function adjustStock(
+	input: StockRecountInput
+): Promise<ActionResult<AdjustStockSuccess>> {
+	const session = await requireCapability("stock.adjust");
+	const parsed = stockRecountSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+	const { variantId, branchId, newQty, note } = parsed.data;
+	try {
+		const result = await applyMovement({
+			variantId,
+			branchId,
+			op: { mode: "target", newQty },
+			reason: "ajuste_inventario",
+			reasonNote: note ?? null,
+			supplierId: null,
+			actorId: session.user.id,
+		});
+		await revalidateStockPaths(variantId, branchId);
+		return { ok: true, data: result };
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
 	}
@@ -214,6 +308,8 @@ export async function updateStockThresholds(
 	}
 }
 
+// ─── Tipos de leitura ─────────────────────────────────────────────────────────
+
 export interface StockMovementRow {
 	actorId: string | null;
 	actorName: string | null;
@@ -226,6 +322,8 @@ export interface StockMovementRow {
 	previousQty: number;
 	reason: string | null;
 	reasonNote: string | null;
+	supplierId: string | null;
+	supplierName: string | null;
 }
 
 /**
@@ -248,11 +346,14 @@ export async function getStockMovements(
 			reasonNote: stockMovement.reasonNote,
 			actorId: stockMovement.actorId,
 			actorName: user.name,
+			supplierId: stockMovement.supplierId,
+			supplierName: supplier.name,
 		})
 		.from(stockMovement)
 		.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
 		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
 		.leftJoin(user, eq(stockMovement.actorId, user.id))
+		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
 		.where(eq(toolVariant.toolId, toolId))
 		.orderBy(desc(stockMovement.createdAt))
 		.limit(limit);
@@ -280,10 +381,13 @@ export async function getStockMovementsByVariantBranch(
 			reasonNote: stockMovement.reasonNote,
 			actorId: stockMovement.actorId,
 			actorName: user.name,
+			supplierId: stockMovement.supplierId,
+			supplierName: supplier.name,
 		})
 		.from(stockMovement)
 		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
 		.leftJoin(user, eq(stockMovement.actorId, user.id))
+		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
 		.where(
 			and(
 				eq(stockMovement.variantId, variantId),
@@ -337,10 +441,13 @@ export async function fetchVariantBranchMovementsPage(
 			reasonNote: stockMovement.reasonNote,
 			actorId: stockMovement.actorId,
 			actorName: user.name,
+			supplierId: stockMovement.supplierId,
+			supplierName: supplier.name,
 		})
 		.from(stockMovement)
 		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
 		.leftJoin(user, eq(stockMovement.actorId, user.id))
+		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
 		.where(and(...conditions))
 		.orderBy(desc(stockMovement.createdAt), desc(stockMovement.id))
 		.limit(BATCH_SIZE + 1);
@@ -394,6 +501,8 @@ export interface ToolActivityRow {
 	previousQty: number;
 	reason: string | null;
 	reasonNote: string | null;
+	supplierId: string | null;
+	supplierName: string | null;
 	variantSku: string;
 	variantVoltage: string | null;
 }
@@ -415,6 +524,8 @@ export async function getToolActivity(
 			reasonNote: stockMovement.reasonNote,
 			actorId: stockMovement.actorId,
 			actorName: user.name,
+			supplierId: stockMovement.supplierId,
+			supplierName: supplier.name,
 			variantSku: toolVariant.sku,
 			variantVoltage: toolVariant.voltage,
 		})
@@ -422,6 +533,7 @@ export async function getToolActivity(
 		.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
 		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
 		.leftJoin(user, eq(stockMovement.actorId, user.id))
+		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
 		.where(eq(toolVariant.toolId, toolId))
 		.orderBy(desc(stockMovement.createdAt))
 		.limit(limit);
@@ -509,6 +621,8 @@ export async function fetchToolActivityPage(
 			reasonNote: stockMovement.reasonNote,
 			actorId: stockMovement.actorId,
 			actorName: user.name,
+			supplierId: stockMovement.supplierId,
+			supplierName: supplier.name,
 			variantSku: toolVariant.sku,
 			variantVoltage: toolVariant.voltage,
 		})
@@ -516,6 +630,7 @@ export async function fetchToolActivityPage(
 		.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
 		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
 		.leftJoin(user, eq(stockMovement.actorId, user.id))
+		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
 		.where(and(...conditions))
 		.orderBy(desc(stockMovement.createdAt), desc(stockMovement.id))
 		.limit(limit + 1);

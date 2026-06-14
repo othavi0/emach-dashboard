@@ -6,7 +6,7 @@ import { EntityTabs } from "@/components/entity/entity-tabs";
 import { can } from "@/lib/permissions";
 import type { UserRole } from "@/lib/session";
 import { requireCurrentSession } from "@/lib/session";
-
+import { getActiveSuppliers } from "@/lib/suppliers";
 import { ActivityTab } from "./_components/activity-tab";
 import { EstoqueTab } from "./_components/estoque-tab";
 import { OverviewTab } from "./_components/overview-tab";
@@ -14,6 +14,7 @@ import { ToolDetailActions } from "./_components/tool-detail-actions";
 import { ToolDetailHeader } from "./_components/tool-detail-header";
 import { ToolReviewsSection } from "./_components/tool-reviews-section";
 import { VariantsTab } from "./_components/variants-tab";
+
 import { getToolReviewsSummary } from "./_lib/reviews-data";
 import { getToolDetail } from "./_lib/tool-detail-data";
 
@@ -45,6 +46,9 @@ export default async function ToolDetailPage({
 	// Carrega o resumo de reviews só quando a aba está ativa (lazy).
 	const reviewsSummary =
 		current === "avaliacoes" ? await getToolReviewsSummary(id) : null;
+
+	// Fornecedores ativos para o select de entrada na sheet de estoque (lazy: só na aba estoque).
+	const suppliers = current === "estoque" ? await getActiveSuppliers() : [];
 
 	const alertCount =
 		detail.stockSummary.criticalCount + detail.stockSummary.reorderCount;
@@ -95,6 +99,7 @@ export default async function ToolDetailPage({
 					<EstoqueTab
 						canMutate={canMutate}
 						stockRows={detail.stockRows}
+						suppliers={suppliers}
 						toolId={detail.tool.id}
 						toolImageUrl={detail.images[0]?.url ?? null}
 						toolName={detail.tool.name}
