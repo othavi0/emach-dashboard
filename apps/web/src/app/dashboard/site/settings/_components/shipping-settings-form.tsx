@@ -2,7 +2,6 @@
 
 import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
-import { Label } from "@emach/ui/components/label";
 import {
 	Select,
 	SelectContent,
@@ -137,28 +136,29 @@ export function ShippingSettingsForm({
 						risco. O teto limita o valor declarado por envio.
 					</p>
 				</div>
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="insurancePolicy">Política de seguro</Label>
-					<Select
-						onValueChange={(v) =>
-							setInsurancePolicy(v as typeof insurancePolicy)
-						}
-						value={insurancePolicy}
-					>
-						<SelectTrigger id="insurancePolicy">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								{INSURANCE_POLICY_OPTIONS.map((p) => (
-									<SelectItem key={p} value={p}>
-										{INSURANCE_POLICY_LABELS[p]}
-									</SelectItem>
-								))}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
-				</div>
+				<LabeledField id="insurancePolicy" label="Política de seguro">
+					{(field) => (
+						<Select
+							onValueChange={(v) =>
+								setInsurancePolicy(v as typeof insurancePolicy)
+							}
+							value={insurancePolicy}
+						>
+							<SelectTrigger {...field}>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									{INSURANCE_POLICY_OPTIONS.map((p) => (
+										<SelectItem key={p} value={p}>
+											{INSURANCE_POLICY_LABELS[p]}
+										</SelectItem>
+									))}
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					)}
+				</LabeledField>
 				{insurancePolicy === "cart_value" ? (
 					<LabeledField
 						error={errors.insuranceCapAmount}
