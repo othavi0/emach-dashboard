@@ -17,8 +17,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
-import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
+import { useFormErrors } from "@/lib/use-form-errors";
 
 import {
 	createCategoryAttribute,
