@@ -128,3 +128,13 @@ export const UF_CEP_PRESETS: UfPreset[] = [
 		ranges: [{ from: "77000000", to: "77999999" }],
 	},
 ];
+
+export function isBrasilTodoOnly(
+	ranges: Array<{ from: string; to: string }>
+): boolean {
+	return (
+		ranges.length === 1 &&
+		ranges[0]?.from === BRASIL_PRESET.from &&
+		ranges[0]?.to === BRASIL_PRESET.to
+	);
+}
