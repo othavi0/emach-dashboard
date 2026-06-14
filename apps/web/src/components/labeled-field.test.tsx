@@ -16,6 +16,7 @@ describe("LabeledField", () => {
 		expect(html).toContain("Nome");
 		expect(html).toContain(" *");
 		expect(html).toContain('for="f"');
+		expect(html).toContain('id="f"');
 	});
 
 	it("não renderiza o asterisco quando não required", () => {
@@ -53,6 +54,16 @@ describe("LabeledField", () => {
 		);
 		expect(html).toContain('data-error="true"');
 		expect(html).toContain("Obrigatório");
+	});
+
+	it("renderiza o help e aplica a classe flex no label quando há help", () => {
+		const html = render(
+			<LabeledField help={<span>ajuda-aqui</span>} id="f" label="Nome">
+				{(field) => <input {...field} />}
+			</LabeledField>
+		);
+		expect(html).toContain("ajuda-aqui");
+		expect(html).toContain("flex items-center gap-1.5");
 	});
 
 	it("renderiza o hint quando passado", () => {
