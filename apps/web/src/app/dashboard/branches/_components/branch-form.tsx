@@ -5,11 +5,7 @@ import { Spinner } from "@emach/ui/components/spinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import {
-	errorToastMessage,
-	focusFirstError,
-	zodIssuesToFieldErrors,
-} from "@/lib/form-errors";
+import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import { createBranch, updateBranch } from "../actions";
@@ -67,22 +63,16 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 	const [values, setValues] = useState<BranchFormValues>(() =>
 		buildInitial(defaultValues)
 	);
-	const [errors, setErrors] = useState<
-		Partial<Record<keyof BranchFormValues, string>>
-	>({});
+	const { errors, reportValidationError, clearErrors } =
+		useFormErrors<BranchFormValues>();
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setErrors({});
+		clearErrors();
 
 		const parsed = branchSchema.safeParse(values);
 		if (!parsed.success) {
-			const fieldErrors = zodIssuesToFieldErrors<BranchFormValues>(
-				parsed.error
-			);
-			setErrors(fieldErrors);
-			notify.error(errorToastMessage(fieldErrors));
-			focusFirstError();
+			reportValidationError(parsed.error);
 			return;
 		}
 

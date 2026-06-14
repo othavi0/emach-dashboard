@@ -5,11 +5,7 @@ import { Spinner } from "@emach/ui/components/spinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import {
-	errorToastMessage,
-	focusFirstError,
-	zodIssuesToFieldErrors,
-} from "@/lib/form-errors";
+import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import { createSupplier, updateSupplier } from "../actions";
@@ -55,23 +51,17 @@ export function SupplierForm({
 		cnpj: defaultValues.cnpj ?? "",
 		notes: defaultValues.notes ?? "",
 	});
-	const [errors, setErrors] = useState<
-		Partial<Record<keyof SupplierFormValues, string>>
-	>({});
+	const { errors, reportValidationError, clearErrors } =
+		useFormErrors<SupplierFormValues>();
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setErrors({});
+		clearErrors();
 
 		const parsed = supplierSchema.safeParse(values);
 
 		if (!parsed.success) {
-			const fieldErrors = zodIssuesToFieldErrors<SupplierFormValues>(
-				parsed.error
-			);
-			setErrors(fieldErrors);
-			notify.error(errorToastMessage(fieldErrors));
-			focusFirstError();
+			reportValidationError(parsed.error);
 			return;
 		}
 
