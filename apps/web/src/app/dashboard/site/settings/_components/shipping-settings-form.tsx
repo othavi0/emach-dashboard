@@ -13,7 +13,7 @@ import {
 } from "@emach/ui/components/select";
 import { Spinner } from "@emach/ui/components/spinner";
 import { useState, useTransition } from "react";
-import { FieldError } from "@/components/field-error";
+import { LabeledField } from "@/components/labeled-field";
 import { useFormErrors } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import type { OriginBranchOption } from "../actions";
@@ -96,31 +96,34 @@ export function ShippingSettingsForm({
 						definir a origem do despacho.
 					</p>
 				) : (
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="originBranchId">Filial de origem</Label>
-						<Select
-							onValueChange={(v) => setOriginBranchId(v ?? NO_ORIGIN)}
-							value={originBranchId}
-						>
-							<SelectTrigger
-								aria-invalid={errors.originBranchId ? true : undefined}
-								id="originBranchId"
+					<LabeledField
+						error={errors.originBranchId}
+						id="originBranchId"
+						label="Filial de origem"
+					>
+						{(field) => (
+							<Select
+								onValueChange={(v) => setOriginBranchId(v ?? NO_ORIGIN)}
+								value={originBranchId}
 							>
-								<SelectValue placeholder="Selecione a filial" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectGroup>
-									<SelectItem value={NO_ORIGIN}>Sem origem definida</SelectItem>
-									{originOptions.map((o) => (
-										<SelectItem key={o.id} value={o.id}>
-											{o.name}
+								<SelectTrigger {...field}>
+									<SelectValue placeholder="Selecione a filial" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										<SelectItem value={NO_ORIGIN}>
+											Sem origem definida
 										</SelectItem>
-									))}
-								</SelectGroup>
-							</SelectContent>
-						</Select>
-						<FieldError>{errors.originBranchId}</FieldError>
-					</div>
+										{originOptions.map((o) => (
+											<SelectItem key={o.id} value={o.id}>
+												{o.name}
+											</SelectItem>
+										))}
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+						)}
+					</LabeledField>
 				)}
 			</section>
 
@@ -157,22 +160,22 @@ export function ShippingSettingsForm({
 					</Select>
 				</div>
 				{insurancePolicy === "cart_value" ? (
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="insuranceCapAmount">Teto do seguro (R$)</Label>
-						<Input
-							aria-invalid={errors.insuranceCapAmount ? true : undefined}
-							id="insuranceCapAmount"
-							inputMode="decimal"
-							onChange={(e) => setCapAmount(e.target.value)}
-							placeholder="3000.00"
-							value={capAmount}
-						/>
-						<FieldError>{errors.insuranceCapAmount}</FieldError>
-						<p className="text-muted-foreground text-xs">
-							Valor máximo declarado por envio. Padrão R$ 3.000 (teto
-							SuperFrete).
-						</p>
-					</div>
+					<LabeledField
+						error={errors.insuranceCapAmount}
+						hint="Valor máximo declarado por envio. Padrão R$ 3.000 (teto SuperFrete)."
+						id="insuranceCapAmount"
+						label="Teto do seguro (R$)"
+					>
+						{(field) => (
+							<Input
+								{...field}
+								inputMode="decimal"
+								onChange={(e) => setCapAmount(e.target.value)}
+								placeholder="3000.00"
+								value={capAmount}
+							/>
+						)}
+					</LabeledField>
 				) : null}
 			</section>
 
