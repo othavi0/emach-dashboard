@@ -6,11 +6,12 @@ import { Label } from "@emach/ui/components/label";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
 import { useState, useTransition } from "react";
+import { FieldError } from "@/components/field-error";
 import {
-	FormErrorPanel,
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
+	errorToastMessage,
+	focusFirstError,
+	zodIssuesToFieldErrors,
+} from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { updateSocialSettings } from "../actions";
 import { SocialIcon } from "./social-icons";
@@ -23,18 +24,14 @@ import {
 	socialSettingsSchema,
 } from "./social-schema";
 
-const FIELD_LABELS: Record<string, string> = Object.fromEntries(
-	SOCIAL_NETWORKS.map((n) => [`${n.key}Url`, `${n.label} (link)`])
-);
-
 interface SocialSettingsFormProps {
 	settings: SocialState;
 }
 
 export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 	const [isPending, startTransition] = useTransition();
-	const [issues, setIssues] = useState<FormIssue[]>([]);
 	const [state, setState] = useState<SocialState>(settings);
+	const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
 
 	function setUrl(key: SocialNetworkKey, url: string) {
 		setState((prev) => ({
@@ -45,6 +42,16 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 				visible: isPublishableUrl(url) ? prev[key].visible : false,
 			},
 		}));
+		// Limpa o erro de schema daquele campo ao editar — senão fica obsoleto
+		// (mostrando erro num valor já corrigido) até o próximo submit.
+		setErrors((prev) => {
+			if (prev[`${key}Url`] === undefined) {
+				return prev;
+			}
+			const next = { ...prev };
+			delete next[`${key}Url`];
+			return next;
+		});
 	}
 
 	function setVisible(key: SocialNetworkKey, visible: boolean) {
@@ -53,7 +60,6 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setIssues([]);
 
 		const raw: Record<string, unknown> = {};
 		for (const n of SOCIAL_NETWORKS) {
@@ -63,13 +69,13 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 
 		const parsed = socialSettingsSchema.safeParse(raw);
 		if (!parsed.success) {
-			const next = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
-			setIssues(next);
-			notify.error(
-				`${next.length} ${next.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
-			);
+			const fieldErrors = zodIssuesToFieldErrors(parsed.error);
+			setErrors(fieldErrors);
+			notify.error(errorToastMessage(fieldErrors));
+			focusFirstError();
 			return;
 		}
+		setErrors({});
 
 		const values: SocialSettingsFormValues = parsed.data;
 		startTransition(async () => {
@@ -84,8 +90,6 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 
 	return (
 		<form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-			<FormErrorPanel issues={issues} />
-
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<div className="flex flex-col gap-1">
 					<h2 className="font-medium text-sm">Redes sociais</h2>
@@ -101,6 +105,7 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 						const value = state[n.key];
 						const canPublish = isPublishableUrl(value.url);
 						const invalidUrl = Boolean(value.url.trim()) && !canPublish;
+						const schemaError = errors[`${n.key}Url`];
 						return (
 							<div className="flex flex-col gap-2" key={n.key}>
 								<div className="flex items-center justify-between gap-3">
@@ -127,7 +132,7 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 									</div>
 								</div>
 								<Input
-									aria-invalid={invalidUrl}
+									aria-invalid={invalidUrl || Boolean(schemaError)}
 									id={`${n.key}Url`}
 									inputMode="url"
 									onChange={(e) => setUrl(n.key, e.target.value)}
@@ -136,10 +141,13 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 									value={value.url}
 								/>
 								{invalidUrl ? (
-									<p className="text-destructive text-xs">
+									<p className="text-destructive text-xs" data-error="true">
 										Link inválido — comece com https:// para poder exibir no
 										site.
 									</p>
+								) : null}
+								{!invalidUrl && schemaError ? (
+									<FieldError>{schemaError}</FieldError>
 								) : null}
 							</div>
 						);

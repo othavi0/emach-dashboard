@@ -5,7 +5,6 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { FormErrorPanel } from "@/components/form-error-panel";
 import { type ToolFormState, useToolFormState } from "./tool-form-state";
 import { TOOL_STEPS } from "./tool-form-steps";
 import { TOOL_SECTION_COMPONENTS } from "./tool-sections";
@@ -20,7 +19,7 @@ export function ToolEditView({
 	const { values, patch, errors, setErrors } = useToolFormState(
 		defaultValues ?? {}
 	);
-	const { submit, isPending, issues, errorRef } = useToolSubmit({
+	const { submit, isPending } = useToolSubmit({
 		mode: "edit",
 		values,
 		setErrors,
@@ -56,7 +55,6 @@ export function ToolEditView({
 				})}
 			</nav>
 			<div className="flex flex-col gap-6">
-				<FormErrorPanel issues={issues} ref={errorRef} />
 				{TOOL_STEPS.map((s) => {
 					const Fields = TOOL_SECTION_COMPONENTS[s.id];
 					return (

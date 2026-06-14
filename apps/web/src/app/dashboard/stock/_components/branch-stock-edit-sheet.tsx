@@ -14,6 +14,7 @@ import { ArrowRight, ExternalLink, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { FieldError } from "@/components/field-error";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { MaskedInput } from "@/components/masked-input";
 import { integerMask } from "@/lib/masks";
@@ -482,6 +483,7 @@ export function BranchStockEditSheet({
 										<span className="text-destructive"> *</span>
 									</Label>
 									<MaskedInput
+										aria-invalid={errors.newQty ? true : undefined}
 										disabled={isAdjusting}
 										id="sheet-new-qty"
 										mask={integerMask}
@@ -489,9 +491,7 @@ export function BranchStockEditSheet({
 										placeholder={`Atual: ${row.quantity}`}
 										value={newQty}
 									/>
-									{errors.newQty && (
-										<p className="text-destructive text-xs">{errors.newQty}</p>
-									)}
+									<FieldError>{errors.newQty}</FieldError>
 								</div>
 
 								<div className="flex flex-col gap-1.5">
@@ -520,6 +520,7 @@ export function BranchStockEditSheet({
 										)}
 									</Label>
 									<Textarea
+										aria-invalid={errors.reasonNote ? true : undefined}
 										disabled={isAdjusting}
 										id="sheet-reason-note"
 										onChange={(e) => setReasonNote(e.target.value)}
@@ -527,11 +528,7 @@ export function BranchStockEditSheet({
 										rows={2}
 										value={reasonNote}
 									/>
-									{errors.reasonNote && (
-										<p className="text-destructive text-xs">
-											{errors.reasonNote}
-										</p>
-									)}
+									<FieldError>{errors.reasonNote}</FieldError>
 								</div>
 
 								<Button

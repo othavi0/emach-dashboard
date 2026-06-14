@@ -6,24 +6,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
-	FormErrorPanel,
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
+	errorToastMessage,
+	focusFirstError,
+	zodIssuesToFieldErrors,
+} from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 
 import { createSupplier, updateSupplier } from "../actions";
 import { SupplierFormFields } from "./supplier-form-fields";
 import { type SupplierFormValues, supplierSchema } from "./supplier-schema";
-
-const FIELD_LABELS: Record<string, string> = {
-	name: "Nome",
-	contactEmail: "E-mail",
-	phone: "Telefone",
-	website: "Website",
-	cnpj: "CNPJ",
-	notes: "Observações",
-};
 
 interface SupplierFormProps {
 	defaultValues: Partial<SupplierFormValues>;
@@ -64,20 +55,23 @@ export function SupplierForm({
 		cnpj: defaultValues.cnpj ?? "",
 		notes: defaultValues.notes ?? "",
 	});
-	const [formIssues, setFormIssues] = useState<FormIssue[]>([]);
+	const [errors, setErrors] = useState<
+		Partial<Record<keyof SupplierFormValues, string>>
+	>({});
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setFormIssues([]);
+		setErrors({});
 
 		const parsed = supplierSchema.safeParse(values);
 
 		if (!parsed.success) {
-			const issues = zodIssuesToFormIssues(parsed.error, FIELD_LABELS);
-			setFormIssues(issues);
-			notify.error(
-				`${issues.length} ${issues.length === 1 ? "erro" : "erros"} no formulário — veja detalhes acima`
+			const fieldErrors = zodIssuesToFieldErrors<SupplierFormValues>(
+				parsed.error
 			);
+			setErrors(fieldErrors);
+			notify.error(errorToastMessage(fieldErrors));
+			focusFirstError();
 			return;
 		}
 
@@ -105,13 +99,13 @@ export function SupplierForm({
 			className="flex w-full max-w-2xl flex-col gap-6"
 			onSubmit={handleSubmit}
 		>
-			<FormErrorPanel issues={formIssues} />
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
 				<h2 className="font-semibold text-primary text-sm uppercase tracking-wide">
 					Informações básicas
 				</h2>
 				<SupplierFormFields
 					disabled={isPending}
+					errors={errors}
 					onPatch={(p) => setValues((v) => ({ ...v, ...p }))}
 					values={values}
 				/>

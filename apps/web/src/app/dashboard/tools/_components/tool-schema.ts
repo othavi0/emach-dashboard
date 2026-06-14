@@ -18,6 +18,7 @@ export const TOOL_STATUS_LABELS: Record<
 
 export const MIN_IMAGES_ACTIVE = 3;
 export const MAX_IMAGES = 8;
+export const MIN_SPECS_ACTIVE = 4;
 
 export const toolImageSchema = z.object({
 	id: z.string().optional(),
@@ -123,6 +124,17 @@ export const toolFormSchema = z
 				message: `Ativar exige mínimo de ${MIN_IMAGES_ACTIVE} imagens`,
 			});
 		}
+		if (
+			data.status === "active" &&
+			countFilledSpecs(data.attributeValues, data.attributeAssignments) <
+				MIN_SPECS_ACTIVE
+		) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["attributeValues"],
+				message: `Ativar exige ao menos ${MIN_SPECS_ACTIVE} especificações preenchidas. Se a categoria tiver poucos atributos, anexe atributos extras do catálogo.`,
+			});
+		}
 		if (!data.categoryIds.includes(data.primaryCategoryId)) {
 			ctx.addIssue({
 				code: "custom",
@@ -168,6 +180,44 @@ export const toolFormSchema = z
 export type ToolFormValues = z.infer<typeof toolFormSchema>;
 export type ToolImageValue = z.infer<typeof toolImageSchema>;
 export type ToolStatusValue = (typeof TOOL_STATUS_OPTIONS)[number];
+
+function isSpecFilled(v: AttributeValueInput): boolean {
+	if (typeof v.valueText === "string" && v.valueText.trim() !== "") {
+		return true;
+	}
+	if (typeof v.valueNumeric === "number" && !Number.isNaN(v.valueNumeric)) {
+		return true;
+	}
+	if (
+		typeof v.valueNumericMax === "number" &&
+		!Number.isNaN(v.valueNumericMax)
+	) {
+		return true;
+	}
+	if (typeof v.valueBool === "boolean") {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Conta atributos que estão vinculados (slug em `assignments`) E com valor real
+ * preenchido. Usado pela regra de ativação (mínimo MIN_SPECS_ACTIVE) e pelo
+ * contador no editor de specs. `valueBool` false conta — é decisão consciente.
+ */
+export function countFilledSpecs(
+	attributeValues: Record<string, AttributeValueInput>,
+	assignments: string[]
+): number {
+	let count = 0;
+	for (const slug of assignments) {
+		const v = attributeValues[slug];
+		if (v && isSpecFilled(v)) {
+			count++;
+		}
+	}
+	return count;
+}
 
 export function slugify(input: string): string {
 	return input

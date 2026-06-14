@@ -5,10 +5,12 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Check } from "lucide-react";
 import { useState } from "react";
 
-import { FormErrorPanel } from "@/components/form-error-panel";
+import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
+import { notify } from "@/lib/notify";
 import { type ToolFormState, useToolFormState } from "./tool-form-state";
 import {
-	getStepIssues,
+	getStepFieldErrors,
+	STEP_FIELDS,
 	stepHasErrors,
 	TOOL_STEPS,
 	type ToolStepId,
@@ -25,12 +27,25 @@ export function ToolWizard({
 	const { values, patch, errors, setErrors } = useToolFormState(
 		defaultValues ?? {}
 	);
-	const { submit, isPending, issues, setIssues, errorRef } = useToolSubmit({
+	const [active, setActive] = useState(0);
+
+	const handleValidationFail = (errorKeys: string[]) => {
+		const idx = TOOL_STEPS.findIndex((s) =>
+			(STEP_FIELDS[s.id] as readonly string[]).some((f) =>
+				errorKeys.includes(f)
+			)
+		);
+		if (idx >= 0) {
+			setActive(idx);
+		}
+		focusFirstError();
+	};
+	const { submit, isPending } = useToolSubmit({
 		mode: "create",
 		values,
 		setErrors,
+		onValidationFail: handleValidationFail,
 	});
-	const [active, setActive] = useState(0);
 
 	// active é controlado por setActive com clamp — nunca sai dos bounds
 	// biome-ignore lint/style/noNonNullAssertion: array constante não-vazio, índice clamped
@@ -46,9 +61,11 @@ export function ToolWizard({
 	}
 
 	function next() {
-		const stepIssues = getStepIssues(values, step.id);
-		setIssues(stepIssues);
-		if (stepIssues.length > 0 && !step.optional) {
+		const stepErrors = getStepFieldErrors(values, step.id);
+		if (Object.keys(stepErrors).length > 0 && !step.optional) {
+			setErrors(stepErrors);
+			notify.error(errorToastMessage(stepErrors));
+			focusFirstError();
 			return;
 		}
 		setActive((i) => Math.min(i + 1, TOOL_STEPS.length - 1));
@@ -89,8 +106,6 @@ export function ToolWizard({
 					);
 				})}
 			</ol>
-
-			<FormErrorPanel issues={issues} ref={errorRef} />
 
 			<section className="flex flex-col gap-2 rounded-md border border-border bg-card p-6">
 				<div className="flex flex-col gap-1">

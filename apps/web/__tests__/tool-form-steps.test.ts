@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-	getStepIssues,
+	firstStepWithError,
+	getStepFieldErrors,
 	STEP_FIELDS,
 	TOOL_STEPS,
 } from "@/app/dashboard/tools/_components/tool-form-steps";
@@ -40,6 +41,13 @@ const EMPTY = {
 	attributeAssignments: [],
 };
 
+const VALID_IDENTITY = {
+	...EMPTY,
+	name: "Furadeira",
+	categoryIds: ["c1"],
+	primaryCategoryId: "c1",
+};
+
 describe("TOOL_STEPS", () => {
 	it("tem 6 passos na ordem esperada com fiscal opcional", () => {
 		expect(TOOL_STEPS.map((s) => s.id)).toEqual([
@@ -52,39 +60,55 @@ describe("TOOL_STEPS", () => {
 		]);
 		expect(TOOL_STEPS.find((s) => s.id === "fiscal")?.optional).toBe(true);
 	});
-});
-
-describe("getStepIssues", () => {
-	it("acusa nome e categoria faltando no passo identity", () => {
-		const issues = getStepIssues(EMPTY, "identity");
-		const paths = issues.map((i) => i.path);
-		expect(paths.some((p) => p.includes("Nome"))).toBe(true);
-		expect(paths.some((p) => p.includes("Categoria"))).toBe(true);
-	});
-
-	it("não vaza erro de peso (logistics) pro passo identity", () => {
-		const issues = getStepIssues(EMPTY, "identity");
-		expect(issues.some((i) => i.path.includes("Peso"))).toBe(false);
-	});
-
-	it("acusa peso/dimensões faltando no passo logistics", () => {
-		const issues = getStepIssues(EMPTY, "logistics");
-		expect(issues.some((i) => i.path.includes("Peso"))).toBe(true);
-	});
-
-	it("passo identity fica sem issues quando nome+categoria estão preenchidos", () => {
-		const ok = {
-			...EMPTY,
-			name: "Furadeira",
-			categoryIds: ["c1"],
-			primaryCategoryId: "c1",
-		};
-		expect(getStepIssues(ok, "identity")).toHaveLength(0);
-	});
 
 	it("STEP_FIELDS cobre exatamente os 6 passos", () => {
 		expect(Object.keys(STEP_FIELDS).sort()).toEqual(
 			["fiscal", "identity", "logistics", "publish", "specs", "variants"].sort()
 		);
+	});
+});
+
+describe("getStepFieldErrors", () => {
+	it("acusa nome e categoria faltando no passo identity", () => {
+		const errors = getStepFieldErrors(EMPTY, "identity");
+		expect(errors.name).toBeTruthy();
+		expect(errors.categoryIds ?? errors.primaryCategoryId).toBeTruthy();
+	});
+
+	it("não vaza erro de peso (logistics) pro passo identity", () => {
+		const errors = getStepFieldErrors(EMPTY, "identity");
+		expect(errors.weightKg).toBeUndefined();
+	});
+
+	it("acusa peso faltando no passo logistics", () => {
+		const errors = getStepFieldErrors(EMPTY, "logistics");
+		expect(errors.weightKg).toBeTruthy();
+	});
+
+	it("passo identity fica sem erros quando nome+categoria estão preenchidos", () => {
+		expect(getStepFieldErrors(VALID_IDENTITY, "identity")).toEqual({});
+	});
+});
+
+describe("firstStepWithError", () => {
+	it("retorna 'identity' quando o nome está vazio", () => {
+		expect(firstStepWithError(EMPTY)).toBe("identity");
+	});
+
+	it("retorna null quando tudo válido para draft", () => {
+		const values = {
+			...EMPTY,
+			name: "Furadeira",
+			weightKg: 1,
+			lengthCm: 1,
+			widthCm: 1,
+			heightCm: 1,
+			categoryIds: ["c1"],
+			primaryCategoryId: "c1",
+			variants: [
+				{ sku: "SKU-1", priceAmount: 10, isDefault: true, sortOrder: 0 },
+			],
+		};
+		expect(firstStepWithError(values)).toBeNull();
 	});
 });

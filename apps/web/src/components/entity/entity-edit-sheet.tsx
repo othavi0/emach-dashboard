@@ -11,13 +11,10 @@ import {
 } from "@emach/ui/components/sheet";
 import type { FormEvent, ReactNode } from "react";
 
-import { FormErrorPanel, type FormIssue } from "@/components/form-error-panel";
-
 interface Props {
 	cancelLabel?: string;
 	children: ReactNode;
 	description?: ReactNode;
-	issues?: FormIssue[];
 	onOpenChange: (open: boolean) => void;
 	onSubmit: (e: FormEvent<HTMLFormElement>) => void;
 	open: boolean;
@@ -33,7 +30,6 @@ export function EntityEditSheet({
 	onOpenChange,
 	title,
 	description,
-	issues,
 	submitting = false,
 	submitLabel = "Salvar",
 	cancelLabel = "Cancelar",
@@ -53,14 +49,7 @@ export function EntityEditSheet({
 					) : null}
 				</SheetHeader>
 				<form className="flex min-h-0 flex-1 flex-col" onSubmit={onSubmit}>
-					<div className="flex-1 overflow-y-auto p-6">
-						{issues && issues.length > 0 ? (
-							<div className="mb-4">
-								<FormErrorPanel issues={issues} />
-							</div>
-						) : null}
-						{children}
-					</div>
+					<div className="flex-1 overflow-y-auto p-6">{children}</div>
 					<SheetFooter className="border-border border-t">
 						<Button
 							disabled={submitting}

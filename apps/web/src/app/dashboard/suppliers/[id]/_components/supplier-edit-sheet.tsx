@@ -4,9 +4,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
 import {
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
+	errorToastMessage,
+	focusFirstError,
+	zodIssuesToFieldErrors,
+} from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { SupplierFormFields } from "../../_components/supplier-form-fields";
 import {
@@ -15,15 +16,6 @@ import {
 } from "../../_components/supplier-schema";
 import { updateSupplier } from "../../actions";
 import type { SupplierDetail } from "../../data";
-
-const FIELD_LABELS: Record<string, string> = {
-	name: "Nome",
-	contactEmail: "E-mail",
-	phone: "Telefone",
-	website: "Website",
-	cnpj: "CNPJ",
-	notes: "Observações",
-};
 
 interface Props {
 	supplier: SupplierDetail;
@@ -43,7 +35,9 @@ export function SupplierEditSheet({ supplier }: Props) {
 		cnpj: supplier.cnpj ?? "",
 		notes: supplier.notes ?? "",
 	});
-	const [issues, setIssues] = useState<FormIssue[]>([]);
+	const [errors, setErrors] = useState<
+		Partial<Record<keyof SupplierFormValues, string>>
+	>({});
 	const [submitting, startTransition] = useTransition();
 
 	useEffect(() => {
@@ -56,7 +50,7 @@ export function SupplierEditSheet({ supplier }: Props) {
 				cnpj: supplier.cnpj ?? "",
 				notes: supplier.notes ?? "",
 			});
-			setIssues([]);
+			setErrors({});
 		}
 	}, [open, supplier]);
 
@@ -71,7 +65,12 @@ export function SupplierEditSheet({ supplier }: Props) {
 		e.preventDefault();
 		const parsed = supplierSchema.safeParse(values);
 		if (!parsed.success) {
-			setIssues(zodIssuesToFormIssues(parsed.error, FIELD_LABELS));
+			const fieldErrors = zodIssuesToFieldErrors<SupplierFormValues>(
+				parsed.error
+			);
+			setErrors(fieldErrors);
+			notify.error(errorToastMessage(fieldErrors));
+			focusFirstError();
 			return;
 		}
 		startTransition(async () => {
@@ -88,7 +87,6 @@ export function SupplierEditSheet({ supplier }: Props) {
 	return (
 		<EntityEditSheet
 			description="Atualize os dados do fornecedor"
-			issues={issues}
 			onOpenChange={(v) => !v && close()}
 			onSubmit={handleSubmit}
 			open={open}
@@ -97,6 +95,7 @@ export function SupplierEditSheet({ supplier }: Props) {
 		>
 			<SupplierFormFields
 				disabled={submitting}
+				errors={errors}
 				onPatch={(p) => setValues((v) => ({ ...v, ...p }))}
 				values={values}
 			/>

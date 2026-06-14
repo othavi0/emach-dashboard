@@ -4,9 +4,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
 import {
-	type FormIssue,
-	zodIssuesToFormIssues,
-} from "@/components/form-error-panel";
+	errorToastMessage,
+	focusFirstError,
+	zodIssuesToFieldErrors,
+} from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { BranchFormFields } from "../../_components/branch-form-fields";
 import {
@@ -20,22 +21,6 @@ import type { BranchDetail } from "../../data";
 interface Props {
 	branch: BranchDetail;
 }
-
-const FIELD_LABELS: Record<string, string> = {
-	name: "Nome",
-	status: "Status",
-	phone: "Telefone",
-	businessHours: "Horário de funcionamento",
-	cep: "CEP",
-	street: "Rua",
-	streetNumber: "Número",
-	complement: "Complemento",
-	neighborhood: "Bairro",
-	city: "Cidade",
-	state: "UF",
-	responsibleUserId: "Responsável",
-	cepRanges: "Faixas de CEP",
-};
 
 function toFormValues(b: BranchDetail): BranchFormValues {
 	return {
@@ -64,13 +49,15 @@ export function BranchEditSheet({ branch }: Props) {
 	const [values, setValues] = useState<BranchFormValues>(() =>
 		toFormValues(branch)
 	);
-	const [issues, setIssues] = useState<FormIssue[]>([]);
+	const [errors, setErrors] = useState<
+		Partial<Record<keyof BranchFormValues, string>>
+	>({});
 	const [submitting, startTransition] = useTransition();
 
 	useEffect(() => {
 		if (open) {
 			setValues(toFormValues(branch));
-			setIssues([]);
+			setErrors({});
 		}
 	}, [open, branch]);
 
@@ -85,7 +72,12 @@ export function BranchEditSheet({ branch }: Props) {
 		e.preventDefault();
 		const parsed = branchSchema.safeParse(values);
 		if (!parsed.success) {
-			setIssues(zodIssuesToFormIssues(parsed.error, FIELD_LABELS));
+			const fieldErrors = zodIssuesToFieldErrors<BranchFormValues>(
+				parsed.error
+			);
+			setErrors(fieldErrors);
+			notify.error(errorToastMessage(fieldErrors));
+			focusFirstError();
 			return;
 		}
 		startTransition(async () => {
@@ -103,7 +95,6 @@ export function BranchEditSheet({ branch }: Props) {
 	return (
 		<EntityEditSheet
 			description="Atualize os dados da filial"
-			issues={issues}
 			onOpenChange={(v) => !v && close()}
 			onSubmit={handleSubmit}
 			open={open}
@@ -114,6 +105,7 @@ export function BranchEditSheet({ branch }: Props) {
 			<BranchFormFields
 				branchId={branch.id}
 				disabled={submitting}
+				errors={errors}
 				onPatch={(p) => setValues((prev) => ({ ...prev, ...p }))}
 				showTeamSection
 				values={values}
