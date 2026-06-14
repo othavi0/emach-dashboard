@@ -77,9 +77,6 @@ export const tool = pgTable(
 		ncm: text("ncm"),
 		cest: text("cest"),
 		visibleOnSite: boolean("visible_on_site").notNull().default(true),
-		supplierId: text("supplier_id").references(() => supplier.id, {
-			onDelete: "set null",
-		}),
 		// Frete por-produto p/ itens > 30kg (teto SuperFrete). Null = "a combinar".
 		overweightShippingAmount: numeric("overweight_shipping_amount", {
 			precision: 10,
@@ -95,7 +92,6 @@ export const tool = pgTable(
 	},
 	(table) => [
 		index("tool_created_idx").on(table.createdAt.desc(), table.id.desc()),
-		index("tool_supplier_id_idx").on(table.supplierId),
 		index("tool_model_idx").on(table.model),
 		index("tool_invoice_model_idx").on(table.invoiceModel),
 		index("tool_ncm_idx").on(table.ncm),
@@ -159,10 +155,6 @@ export const toolVariant = pgTable(
 	]
 );
 
-export const supplierRelations = relations(supplier, ({ many }) => ({
-	tools: many(tool),
-}));
-
 export const toolImage = pgTable(
 	"tool_image",
 	{
@@ -182,11 +174,7 @@ export const toolImage = pgTable(
 	]
 );
 
-export const toolRelations = relations(tool, ({ one, many }) => ({
-	supplier: one(supplier, {
-		fields: [tool.supplierId],
-		references: [supplier.id],
-	}),
+export const toolRelations = relations(tool, ({ many }) => ({
 	images: many(toolImage),
 	variants: many(toolVariant),
 }));
