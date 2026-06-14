@@ -10,10 +10,6 @@ export interface CategoryOption {
 	path: string;
 	slug: string;
 }
-export interface SupplierOption {
-	id: string;
-	name: string;
-}
 
 export interface ToolFormContextValue {
 	allDefinitions: AttributeDefinition[];
@@ -21,7 +17,6 @@ export interface ToolFormContextValue {
 	definitionsByCategory: Record<string, AttributeDefinition[]>;
 	existingSlug?: string;
 	mode: "create" | "edit";
-	suppliers: SupplierOption[];
 	toolId?: string;
 }
 
