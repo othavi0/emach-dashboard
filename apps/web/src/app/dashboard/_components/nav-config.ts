@@ -1,4 +1,5 @@
 import {
+	ArrowLeftRight,
 	Bell,
 	Building2,
 	FolderTree,
@@ -81,6 +82,11 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				label: "Fornecedores",
 				href: "/dashboard/suppliers" as Route,
 				icon: Truck,
+			},
+			{
+				label: "Movimentações",
+				href: "/dashboard/stock/movements" as Route,
+				icon: ArrowLeftRight,
 			},
 		],
 	},
