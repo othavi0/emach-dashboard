@@ -80,7 +80,14 @@ function LedgerRowItem({ row }: { row: LedgerRow }) {
 								</span>
 							) : null}
 						</>
-					) : null}
+					) : (
+						<>
+							<span className="text-muted-foreground">·</span>
+							<span className="text-muted-foreground italic">
+								Ferramenta removida
+							</span>
+						</>
+					)}
 
 					{row.branchName ? (
 						<>

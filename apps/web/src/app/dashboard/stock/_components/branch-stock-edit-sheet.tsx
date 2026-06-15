@@ -600,6 +600,7 @@ export function BranchStockEditSheet({
 											setMode(m);
 											setNote("");
 											setQty(undefined);
+											setSupplierId("");
 										}}
 										type="button"
 									>
