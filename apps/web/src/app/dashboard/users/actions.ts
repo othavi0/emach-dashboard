@@ -14,7 +14,7 @@ import { promotion } from "@emach/db/schema/promotions";
 import { stockMovement } from "@emach/db/schema/stock-movements";
 import { sendInviteEmail } from "@emach/email/send";
 import { env } from "@emach/env/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
@@ -76,6 +76,14 @@ export async function inviteUser(
 		| "user";
 	if (!allowedApprovalRoles(actorRole).includes(parsed.data.role)) {
 		return { ok: false, error: "Você não pode atribuir esse cargo" };
+	}
+
+	// Admin (não-super) só pode convidar role='user'
+	if (actorRole !== "super_admin" && parsed.data.role !== "user") {
+		return {
+			ok: false,
+			error: "Você só pode convidar usuários de nível 'user'",
+		};
 	}
 
 	const { email, role, branchIds } = parsed.data;
@@ -668,9 +676,11 @@ export async function fetchMoreUsersAction(
 ): Promise<
 	import("@/lib/infinite").InfiniteResult<import("./data").UserListRow>
 > {
-	await requireCapabilityWithContext("users.manage", {});
+	const session = await requireCapabilityWithContext("users.manage", {});
+	const { getUserBranchScope } = await import("@/lib/branch-scope");
+	const scope = await getUserBranchScope(session);
 	const { fetchUsersPage } = await import("./data");
-	return fetchUsersPage({ ...filters, cursor });
+	return fetchUsersPage({ ...filters, cursor, scope });
 }
 
 export async function fetchPendingUsersAction(
@@ -777,12 +787,37 @@ export async function unlinkUserFromBranch(
 		targetBranchIds: [parsed.data.branchId],
 	});
 
+	const { userId: targetUserId, branchId } = parsed.data;
+
+	// Last-branch guard: admin/user precisam de ≥1 filial
+	const [targetUser] = await db
+		.select({ role: userTable.role })
+		.from(userTable)
+		.where(eq(userTable.id, targetUserId))
+		.limit(1);
+	const [remaining] = await db
+		.select({ n: sql<number>`count(*)::int` })
+		.from(userBranch)
+		.where(
+			and(
+				eq(userBranch.userId, targetUserId),
+				ne(userBranch.branchId, branchId)
+			)
+		);
+	if (
+		targetUser &&
+		targetUser.role !== "super_admin" &&
+		(remaining?.n ?? 0) < 1
+	) {
+		return { ok: false, error: "Usuário precisa de ao menos 1 filial" };
+	}
+
 	await db
 		.delete(userBranch)
 		.where(
 			and(
-				eq(userBranch.userId, parsed.data.userId),
-				eq(userBranch.branchId, parsed.data.branchId)
+				eq(userBranch.userId, targetUserId),
+				eq(userBranch.branchId, branchId)
 			)
 		);
 

@@ -13,13 +13,17 @@ import {
 	asc,
 	desc,
 	eq,
+	exists,
 	gt,
 	ilike,
+	inArray,
 	lte,
 	or,
 	type SQL,
 	sql,
 } from "drizzle-orm";
+
+import type { BranchScope } from "@/lib/branch-scope";
 
 import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
@@ -72,6 +76,7 @@ export interface UserListFilters {
 	cursor?: string | null;
 	limit?: number;
 	role?: "super_admin" | "admin" | "manager" | "user";
+	scope?: BranchScope;
 	search?: string;
 	status?: "active" | "pending" | "suspended";
 }
@@ -103,6 +108,28 @@ export async function fetchUsersPage(
 	if (filters.branchId) {
 		whereParts.push(
 			sql`${userTable.id} IN (SELECT ${userBranch.userId} FROM ${userBranch} WHERE ${userBranch.branchId} = ${filters.branchId})`
+		);
+	}
+	if (filters.scope?.kind === "scoped") {
+		const { branchIds } = filters.scope;
+		if (branchIds.length === 0) {
+			// Escopo cego: admin sem filial não vê nenhum usuário
+			return { items: [], nextCursor: null };
+		}
+		// Só usuários de role='user' que compartilham ≥1 filial com o ator
+		whereParts.push(
+			eq(userTable.role, "user"),
+			exists(
+				db
+					.select({ one: sql`1` })
+					.from(userBranch)
+					.where(
+						and(
+							eq(userBranch.userId, userTable.id),
+							inArray(userBranch.branchId, branchIds)
+						)
+					)
+			)
 		);
 	}
 	if (decoded) {
