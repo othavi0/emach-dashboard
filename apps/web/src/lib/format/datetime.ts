@@ -67,3 +67,40 @@ export const formatDayMonthShortYear = (date: Date): string =>
  */
 export const isSameDay = (a: Date, b: Date): boolean =>
 	FULL.format(a) === FULL.format(b);
+
+/**
+ * Início do dia (00:00) em America/Sao_Paulo, como instante (Date). Para
+ * cutoffs de filtro ("hoje") — NÃO é display. Robusto a DST: computa o offset
+ * real do fuso no instante (Brasil hoje não tem DST, mas não hard-coda -03:00).
+ */
+export const startOfDaySaoPaulo = (now: Date): Date => {
+	const parts = Object.fromEntries(
+		new Intl.DateTimeFormat("en-US", {
+			timeZone: TZ,
+			year: "numeric",
+			month: "2-digit",
+			day: "2-digit",
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+			hour12: false,
+		})
+			.formatToParts(now)
+			.map((p) => [p.type, p.value])
+	);
+	const y = Number(parts.year);
+	const mo = Number(parts.month);
+	const d = Number(parts.day);
+	// offset (ms) que o fuso está à frente do UTC neste instante
+	const asIfUtc = Date.UTC(
+		y,
+		mo - 1,
+		d,
+		Number(parts.hour),
+		Number(parts.minute),
+		Number(parts.second)
+	);
+	const offsetMs = asIfUtc - now.getTime();
+	// meia-noite SP (como instante UTC) = Date.UTC(data SP) − offset
+	return new Date(Date.UTC(y, mo - 1, d) - offsetMs);
+};

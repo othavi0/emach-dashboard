@@ -9,7 +9,10 @@ import {
 } from "@emach/ui/components/select";
 import { cn } from "@emach/ui/lib/utils";
 import { CheckIcon } from "lucide-react";
-
+import {
+	STOCK_MOVEMENT_REASON_SHORT,
+	STOCK_MOVEMENT_REASONS,
+} from "@/app/dashboard/stock/_components/stock-movement-schema";
 import type { PeriodPreset } from "@/app/dashboard/stock/actions";
 
 const PERIOD_OPTIONS: Array<{ label: string; value: PeriodPreset }> = [
@@ -20,13 +23,10 @@ const PERIOD_OPTIONS: Array<{ label: string; value: PeriodPreset }> = [
 	{ value: "all", label: "Tudo" },
 ];
 
-const REASON_OPTIONS: Array<{ label: string; value: string }> = [
-	{ value: "entrada_compra", label: "Entrada" },
-	{ value: "saida_venda", label: "Saída" },
-	{ value: "ajuste_inventario", label: "Ajuste" },
-	{ value: "perda", label: "Perda" },
-	{ value: "outro", label: "Outro" },
-];
+const REASON_OPTIONS = STOCK_MOVEMENT_REASONS.map((r) => ({
+	value: r,
+	label: STOCK_MOVEMENT_REASON_SHORT[r],
+}));
 
 interface Props {
 	branches: Array<{ id: string; name: string }>;

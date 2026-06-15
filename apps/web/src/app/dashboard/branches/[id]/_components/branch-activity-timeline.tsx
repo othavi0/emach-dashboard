@@ -1,6 +1,7 @@
 import { BoxIcon, type LucideIcon, UserCogIcon } from "lucide-react";
 import type { OrderStatus } from "@/app/dashboard/orders/status-meta";
 import { ORDER_STATUS_META } from "@/app/dashboard/orders/status-meta";
+import { STOCK_MOVEMENT_REASON_LABELS } from "@/app/dashboard/stock/_components/stock-movement-schema";
 import { STATUS_ICONS, TONE_TEXT } from "@/components/status-visual";
 import {
 	formatDayMonthShort,
@@ -9,14 +10,6 @@ import {
 } from "@/lib/format/datetime";
 
 import type { BranchActivityRow } from "../activity-data";
-
-const STOCK_REASON_LABEL: Record<string, string> = {
-	entrada_compra: "entrada compra",
-	saida_venda: "saída venda",
-	ajuste_inventario: "ajuste inventário",
-	perda: "perda",
-	outro: "outro",
-};
 
 const TEAM_ACTION_LABEL: Record<string, string> = {
 	"branch.created": "Filial criada",
@@ -65,7 +58,14 @@ interface RowVisual {
 function stockVisual(r: BranchActivityRow): RowVisual {
 	const delta = r.delta ?? 0;
 	const deltaClass = delta >= 0 ? "text-success" : "text-destructive";
-	const reasonLabel = STOCK_REASON_LABEL[r.reason ?? ""] ?? r.reason ?? "—";
+	const reasonLabel =
+		(r.reason
+			? STOCK_MOVEMENT_REASON_LABELS[
+					r.reason as keyof typeof STOCK_MOVEMENT_REASON_LABELS
+				]
+			: undefined) ??
+		r.reason ??
+		"—";
 	return {
 		Icon: BoxIcon,
 		iconClass: "bg-info/15 text-info",
