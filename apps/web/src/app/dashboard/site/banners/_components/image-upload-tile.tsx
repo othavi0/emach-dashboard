@@ -7,7 +7,6 @@ import { notify } from "@/lib/notify";
 import { deleteBannerImage, uploadBannerImage } from "./image-actions";
 
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MAX_BYTES = 3 * 1024 * 1024;
 
 export function ImageUploadTile({
 	label,
@@ -15,12 +14,14 @@ export function ImageUploadTile({
 	required,
 	value,
 	onChange,
+	maxBytes,
 }: {
 	label: string;
 	help: string;
 	required?: boolean;
 	value: string | null;
 	onChange: (url: string | null) => void;
+	maxBytes: number;
 }) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [busy, setBusy] = useState(false);
@@ -30,14 +31,15 @@ export function ImageUploadTile({
 			notify.error("Formato inválido (JPG/PNG/WEBP)");
 			return;
 		}
-		if (file.size > MAX_BYTES) {
-			notify.error("Arquivo excede 3MB");
+		if (file.size > maxBytes) {
+			notify.error(`Imagem excede ${Math.round(maxBytes / 1024)}KB`);
 			return;
 		}
 		setBusy(true);
 		try {
 			const fd = new FormData();
 			fd.append("file", file);
+			fd.append("maxBytes", String(maxBytes));
 			const { url } = await uploadBannerImage(fd);
 			onChange(url);
 			notify.success("Imagem enviada");

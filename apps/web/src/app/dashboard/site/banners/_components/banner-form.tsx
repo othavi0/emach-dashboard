@@ -81,6 +81,7 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 						<ImageUploadTile
 							help="2560×1440 · 16:9 · WebP/JPG · ≤500KB"
 							label="Fundo · desktop"
+							maxBytes={512_000}
 							onChange={(u) => {
 								set("backgroundImageUrl", u ?? "");
 							}}
@@ -90,18 +91,21 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 						<ImageUploadTile
 							help="1080×1920 · 9:16 · ≤350KB · cai pro desktop se vazio"
 							label="Fundo · mobile"
+							maxBytes={358_400}
 							onChange={(u) => set("backgroundImageMobileUrl", u)}
 							value={values.backgroundImageMobileUrl}
 						/>
 						<ImageUploadTile
 							help="~2400px · PNG transparente · ≤800KB"
 							label="Produto · desktop"
+							maxBytes={819_200}
 							onChange={(u) => set("productImageUrl", u)}
 							value={values.productImageUrl}
 						/>
 						<ImageUploadTile
 							help="~1400px · PNG · ≤500KB · cai pro produto desktop se vazio"
 							label="Produto · mobile"
+							maxBytes={512_000}
 							onChange={(u) => set("productImageMobileUrl", u)}
 							value={values.productImageMobileUrl}
 						/>

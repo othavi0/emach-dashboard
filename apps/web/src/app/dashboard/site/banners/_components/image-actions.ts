@@ -9,7 +9,6 @@ import {
 } from "@/lib/storage";
 import { BANNER_IMAGES_BUCKET } from "@/lib/supabase-server";
 
-const MAX_SIZE_BYTES = 3 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export async function uploadBannerImage(
@@ -17,10 +16,16 @@ export async function uploadBannerImage(
 ): Promise<{ url: string }> {
 	const session = await requireCapability("site.update_banners");
 
+	const raw = formData.get("maxBytes");
+	const maxSizeBytes =
+		typeof raw === "string" && Number.isFinite(Number(raw))
+			? Number(raw)
+			: 3 * 1024 * 1024;
+
 	const { url } = await uploadToPublicBucket({
 		bucket: BANNER_IMAGES_BUCKET,
 		formData,
-		maxSizeBytes: MAX_SIZE_BYTES,
+		maxSizeBytes,
 		allowedTypes: ALLOWED_TYPES,
 	});
 
