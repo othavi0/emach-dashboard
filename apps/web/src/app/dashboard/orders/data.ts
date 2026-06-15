@@ -65,7 +65,6 @@ export interface BranchOption {
 
 export interface OrderDetailItem {
 	cest: string | null;
-	cost: number | null;
 	discountAmount: number;
 	heightCm: number | null;
 	id: string;
@@ -873,7 +872,6 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			quantity: item.quantity,
 			lineTotal: Number(item.lineTotal),
 			discountAmount: Number(item.discountAmount),
-			cost: parseNumber(item.cost),
 			ncm: item.ncm,
 			cest: item.cest,
 			manufacturerName: item.manufacturerName,

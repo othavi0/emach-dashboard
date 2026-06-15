@@ -28,7 +28,6 @@ const EMPTY_VARIANT: ToolVariantInput = {
 	sku: "",
 	voltage: "",
 	priceAmount: 0,
-	costAmount: undefined,
 	isDefault: false,
 	sortOrder: 0,
 };
@@ -99,7 +98,7 @@ export function VariantsEditor({
 				const isSkuDuplicate = skuKey !== "" && duplicateSkus.has(skuKey);
 				return (
 					<div
-						className="grid gap-3 rounded-md border border-border bg-card p-4 md:grid-cols-[2fr_1fr_1fr_1fr_2fr_auto]"
+						className="grid gap-3 rounded-md border border-border bg-card p-4 md:grid-cols-[2fr_1fr_1fr_auto]"
 						key={index}
 					>
 						<div className="flex flex-col gap-2">
@@ -156,15 +155,6 @@ export function VariantsEditor({
 								mask={brlMask}
 								onChange={(v) => update(index, { priceAmount: v ?? 0 })}
 								value={variant.priceAmount}
-							/>
-						</div>
-						<div className="flex flex-col gap-2">
-							<Label htmlFor={`var-cost-${index}`}>Custo</Label>
-							<MaskedInput
-								id={`var-cost-${index}`}
-								mask={brlMask}
-								onChange={(v) => update(index, { costAmount: v })}
-								value={variant.costAmount}
 							/>
 						</div>
 						<div className="flex items-end justify-end">

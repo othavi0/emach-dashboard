@@ -465,7 +465,6 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 				quantity: itemDef.quantity,
 				lineTotal: (itemDef.quantity * Number.parseFloat(unitPrice)).toFixed(2),
 				discountAmount: "0",
-				cost: null,
 				ncm: null,
 				cest: null,
 				manufacturerName: null,
