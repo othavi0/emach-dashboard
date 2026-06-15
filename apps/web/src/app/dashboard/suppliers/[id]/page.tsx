@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
-import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 
 import {
 	getSupplierAuditLog,
@@ -28,7 +28,8 @@ export default async function SupplierDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
-	await requireCapabilityOrRedirect("suppliers.read");
+	const session = await requireCapabilityOrRedirect("suppliers.read");
+	const canManage = can(session.user.role, "suppliers.manage");
 
 	const { id } = await params;
 	const sp = await searchParams;
@@ -46,7 +47,7 @@ export default async function SupplierDetailPage({
 	const audit = tab === "history" ? await getSupplierAuditLog(id) : [];
 
 	let headerAction: React.ReactNode = null;
-	if (tab === "overview") {
+	if (canManage && tab === "overview") {
 		headerAction = (
 			<div className="flex items-center gap-2">
 				<Link

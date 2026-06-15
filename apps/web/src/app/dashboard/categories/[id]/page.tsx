@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
+import { can } from "@/lib/permissions";
+import { requireCurrentSession, type UserRole } from "@/lib/session";
 
 import {
 	getCategoryAncestors,
@@ -36,6 +38,11 @@ export default async function CategoryDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
+	const session = await requireCurrentSession();
+	const role = (session.user.role as UserRole | undefined) ?? null;
+	const canDelete = can(role, "categories.delete");
+	const canManage = can(role, "categories.manage");
+
 	const { id } = await params;
 	const { tab } = await searchParams;
 	const current = tab ?? "visao-geral";
@@ -91,7 +98,7 @@ export default async function CategoryDetailPage({
 	];
 
 	let primaryAction: React.ReactNode = null;
-	if (current === "subcategorias") {
+	if (canManage && current === "subcategorias") {
 		primaryAction = (
 			<Link
 				className={buttonVariants({ variant: "default" })}
@@ -101,7 +108,7 @@ export default async function CategoryDetailPage({
 				Nova subcategoria
 			</Link>
 		);
-	} else if (isOverview) {
+	} else if (canManage && isOverview) {
 		primaryAction = (
 			<Link
 				className={buttonVariants({ variant: "default" })}
@@ -120,6 +127,8 @@ export default async function CategoryDetailPage({
 					<>
 						{primaryAction}
 						<CategoryDetailActions
+							canDelete={canDelete}
+							canManage={canManage}
 							categoryId={id}
 							categoryName={cat.name}
 							isActive={cat.isActive}

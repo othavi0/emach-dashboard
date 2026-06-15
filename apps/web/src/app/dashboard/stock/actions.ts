@@ -14,7 +14,10 @@ import { revalidatePath } from "next/cache";
 import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
-import { requireCapability } from "@/lib/permissions";
+import {
+	requireCapability,
+	requireCapabilityWithContext,
+} from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import {
 	type STOCK_MOVEMENT_REASONS,
@@ -174,7 +177,6 @@ async function revalidateStockPaths(
 export async function recordStockEntry(
 	input: StockEntryInput
 ): Promise<ActionResult<AdjustStockSuccess>> {
-	const session = await requireCapability("stock.adjust");
 	const parsed = stockEntrySchema.safeParse(input);
 	if (!parsed.success) {
 		return {
@@ -183,6 +185,9 @@ export async function recordStockEntry(
 		};
 	}
 	const { variantId, branchId, quantity, supplierId, note } = parsed.data;
+	const session = await requireCapabilityWithContext("stock.adjust", {
+		targetBranchIds: [branchId],
+	});
 	try {
 		const result = await applyMovement({
 			variantId,
@@ -207,7 +212,6 @@ export async function recordStockEntry(
 export async function recordStockWriteOff(
 	input: StockWriteOffInput
 ): Promise<ActionResult<AdjustStockSuccess>> {
-	const session = await requireCapability("stock.adjust");
 	const parsed = stockWriteOffSchema.safeParse(input);
 	if (!parsed.success) {
 		return {
@@ -216,6 +220,9 @@ export async function recordStockWriteOff(
 		};
 	}
 	const { variantId, branchId, quantity, reason, note } = parsed.data;
+	const session = await requireCapabilityWithContext("stock.adjust", {
+		targetBranchIds: [branchId],
+	});
 	try {
 		const result = await applyMovement({
 			variantId,
@@ -236,7 +243,6 @@ export async function recordStockWriteOff(
 export async function adjustStock(
 	input: StockRecountInput
 ): Promise<ActionResult<AdjustStockSuccess>> {
-	const session = await requireCapability("stock.adjust");
 	const parsed = stockRecountSchema.safeParse(input);
 	if (!parsed.success) {
 		return {
@@ -245,6 +251,9 @@ export async function adjustStock(
 		};
 	}
 	const { variantId, branchId, newQty, note } = parsed.data;
+	const session = await requireCapabilityWithContext("stock.adjust", {
+		targetBranchIds: [branchId],
+	});
 	try {
 		const result = await applyMovement({
 			variantId,
@@ -265,8 +274,6 @@ export async function adjustStock(
 export async function updateStockThresholds(
 	input: StockThresholdInput
 ): Promise<ActionResult> {
-	await requireCapability("stock.adjust");
-
 	const parsed = stockThresholdSchema.safeParse(input);
 	if (!parsed.success) {
 		const firstIssue = parsed.error.issues[0];
@@ -277,6 +284,10 @@ export async function updateStockThresholds(
 	}
 
 	const { variantId, branchId, minQty, reorderPoint } = parsed.data;
+
+	await requireCapabilityWithContext("stock.adjust", {
+		targetBranchIds: [branchId],
+	});
 
 	try {
 		await db.transaction(async (tx) => {

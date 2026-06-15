@@ -14,8 +14,10 @@ import {
 } from "../../actions";
 
 export function PromotionHeaderActions({
+	canDelete,
 	promotion,
 }: {
+	canDelete: boolean;
 	promotion: PromotionDetail;
 }) {
 	const router = useRouter();
@@ -82,21 +84,25 @@ export function PromotionHeaderActions({
 			>
 				<Copy aria-hidden className="size-4" />
 			</Button>
-			<Button
-				aria-label="Excluir promoção"
-				onClick={() => setDeleteOpen(true)}
-				size="icon"
-				type="button"
-				variant="destructive"
-			>
-				<Trash2 aria-hidden className="size-4" />
-			</Button>
-			<DeletePromotionDialog
-				controlled={{ open: deleteOpen, onOpenChange: setDeleteOpen }}
-				promotionId={promotion.id}
-				promotionTitle={promotion.title}
-				redirectTo="/dashboard/promotions"
-			/>
+			{canDelete && (
+				<Button
+					aria-label="Excluir promoção"
+					onClick={() => setDeleteOpen(true)}
+					size="icon"
+					type="button"
+					variant="destructive"
+				>
+					<Trash2 aria-hidden className="size-4" />
+				</Button>
+			)}
+			{canDelete && (
+				<DeletePromotionDialog
+					controlled={{ open: deleteOpen, onOpenChange: setDeleteOpen }}
+					promotionId={promotion.id}
+					promotionTitle={promotion.title}
+					redirectTo="/dashboard/promotions"
+				/>
+			)}
 		</>
 	);
 }

@@ -29,6 +29,7 @@ export default async function DashboardLayout({
 
 	const role = (session.user.role ?? "user") as UserRole;
 	const canManageUsers = can(role, "users.approve");
+	const canUpdateSettings = can(role, "site.update_settings");
 
 	const [pendingCountRow, counts] = await Promise.all([
 		canManageUsers
@@ -52,6 +53,7 @@ export default async function DashboardLayout({
 		<SidebarProvider defaultOpen={sidebarOpen}>
 			<AppSidebar
 				canManageUsers={canManageUsers}
+				canUpdateSettings={canUpdateSettings}
 				orderCount={counts.orders}
 				pendingCount={pendingCount}
 				reviewCount={counts.reviews}

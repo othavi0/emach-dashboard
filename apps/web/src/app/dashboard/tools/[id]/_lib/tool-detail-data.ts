@@ -8,8 +8,10 @@ import { category, toolCategory } from "@emach/db/schema/categories";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
 import { orderItem } from "@emach/db/schema/orders";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { cache } from "react";
+import { getUserBranchScope } from "@/lib/branch-scope";
+import { requireCapability } from "@/lib/permissions";
 
 export type ToolDetailRow = typeof tool.$inferSelect;
 
@@ -86,11 +88,20 @@ export interface ToolDetail {
 
 export const getToolDetail = cache(
 	async (id: string): Promise<ToolDetail | null> => {
+		const session = await requireCapability("tools.read");
+		const scope = await getUserBranchScope(session);
+
 		const [row] = await db.select({ tool }).from(tool).where(eq(tool.id, id));
 
 		if (!row) {
 			return null;
 		}
+
+		// Condição de scope para stock_level: super_admin vê todas as filiais.
+		const stockScopeCondition =
+			scope.kind === "scoped" && scope.branchIds.length > 0
+				? inArray(stockLevel.branchId, scope.branchIds)
+				: undefined;
 
 		const [categories, images, variants, attributes, stockRows, orderedRows] =
 			await Promise.all([
@@ -153,7 +164,11 @@ export const getToolDetail = cache(
 					.from(stockLevel)
 					.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
 					.innerJoin(branch, eq(branch.id, stockLevel.branchId))
-					.where(eq(toolVariant.toolId, id))
+					.where(
+						stockScopeCondition
+							? and(eq(toolVariant.toolId, id), stockScopeCondition)
+							: eq(toolVariant.toolId, id)
+					)
 					.orderBy(asc(branch.name), asc(toolVariant.sortOrder)),
 				db
 					.selectDistinct({ variantId: orderItem.variantId })

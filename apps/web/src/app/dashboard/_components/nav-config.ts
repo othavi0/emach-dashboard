@@ -16,11 +16,13 @@ import {
 	Wrench,
 } from "lucide-react";
 import type { Route } from "next";
+import type { Capability } from "@/lib/permissions";
 
 export type BadgeKey = "orders" | "stock" | "reviews" | "users";
 
 export interface NavItemConfig {
 	badgeKey?: BadgeKey;
+	capability?: Capability;
 	disabled?: boolean;
 	exact?: boolean;
 	href: Route;
@@ -130,6 +132,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				label: "Configurações",
 				href: "/dashboard/site/settings" as Route,
 				icon: Settings,
+				capability: "site.update_settings",
 			},
 		],
 	},

@@ -21,7 +21,7 @@ Duas instâncias **completamente isoladas** Better Auth no mesmo banco:
 
 Roles dashboard: `user.role` enum `super_admin/admin/manager/user`; `user.status` enum `pending/active/suspended`. Acesso é **convite-only** (ADR-0013): sem signup público; admin convida → user nasce `pending` com `inviteToken` → vira `active` ao aceitar. Bootstrap do primeiro `super_admin` via SQL direto.
 
-**⚠️ Gates role-based desligados em 2026-05-27 (ADR-0012).** `requireCapability*`, `can()`, `requireRole` e `getUserBranchScope` em `apps/web/src/lib/` são no-op — validam só sessão + `status='active'`. Matriz original preservada em `apps/web/src/lib/permissions.disabled.ts`. Mantidos como guard-rails: status gate, self-action guard, last-super-admin guard. **Não adicionar capabilities novas sem religar** (passos em `docs/adr/0012-disable-role-based-gates.md`). Reativar antes de produção.
+**Gates role-based religados (ADR-0016, substitui 0012).** `requireCapability*`, `can()`, `requireRole`, `getUserBranchScope` enforçam de verdade. **3 níveis**: `super_admin`/`admin`/`user` (enum ainda tem `manager` = alias de admin). Dois eixos: Capability (tipo de ação) + Branch-scoping (filial) **só em Vendas/Inventory** — Catálogo/Clientes/Reviews/Settings são globais. `admin` é filial-scoped; exclusivos de `super_admin`: `branches.manage`, `users.delete`, `site.update_*`, e `*.delete` de catálogo. **Fail-closed**: admin/user sem vínculo em `user_branch` vê nada → **popular `user_branch` é pré-requisito** (invariante: todo admin/user tem ≥1 filial; ver CONTEXT.md #8). Guard-rails: status, self-action, last-super-admin, **last-branch**. Bootstrap 1º super_admin via SQL.
 
 ## Anti-patterns banidos (P0/P1)
 

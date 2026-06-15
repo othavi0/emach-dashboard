@@ -2,7 +2,7 @@ import { buttonVariants } from "@emach/ui/components/button";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
-import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { SupplierCardGrid } from "./_components/supplier-card-grid";
 import { SuppliersFilters } from "./_components/suppliers-filter";
@@ -20,9 +20,7 @@ interface PageProps {
 export default async function SuppliersPage({ searchParams }: PageProps) {
 	await requireCapabilityOrRedirect("suppliers.read");
 	const session = await requireCurrentSession();
-	const role = session.user.role ?? "user";
-	const canMutate =
-		role === "admin" || role === "super_admin" || role === "manager";
+	const canMutate = can(session.user.role, "suppliers.manage");
 
 	const sp = await searchParams;
 

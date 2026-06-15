@@ -1,35 +1,38 @@
 import { describe, expect, it } from "vitest";
+import { type BranchScope, inScope, isBlindScope } from "@/lib/branch-scope";
 
-import { getUserBranchScope, inScope } from "@/lib/branch-scope";
+const all: BranchScope = { kind: "all" };
+const sp: BranchScope = {
+	kind: "scoped",
+	branchIds: ["b-sp"],
+	includeUnassigned: true,
+};
+const userSp: BranchScope = {
+	kind: "scoped",
+	branchIds: ["b-sp"],
+	includeUnassigned: false,
+};
+const blind: BranchScope = {
+	kind: "scoped",
+	branchIds: [],
+	includeUnassigned: false,
+};
 
-describe("inScope()", () => {
-	it("retorna true quando scope é null (sempre, pós ADR-0012)", () => {
-		expect(inScope(null, "any-id")).toBe(true);
-	});
-
-	it("retorna true quando id está no scope", () => {
-		expect(inScope(["a", "b"], "a")).toBe(true);
-	});
-
-	it("retorna false quando id fora do scope", () => {
-		expect(inScope(["a", "b"], "c")).toBe(false);
+describe("inScope", () => {
+	it("all → sempre true", () => expect(inScope(all, "qualquer")).toBe(true));
+	it("scoped → só filiais da lista", () => {
+		expect(inScope(sp, "b-sp")).toBe(true);
+		expect(inScope(sp, "b-rj")).toBe(false);
 	});
 });
 
-describe("getUserBranchScope()", () => {
-	it("retorna null para super_admin", async () => {
-		const session = {
-			user: { id: "u1", role: "super_admin" },
-		} as never;
-		const result = await getUserBranchScope(session);
-		expect(result).toBeNull();
-	});
-
-	it("retorna null para qualquer outra role (no-op pós ADR-0012)", async () => {
-		const session = {
-			user: { id: "u2", role: "user" },
-		} as never;
-		const result = await getUserBranchScope(session);
-		expect(result).toBeNull();
-	});
+describe("isBlindScope", () => {
+	it("user sem filial → cego", () => expect(isBlindScope(blind)).toBe(true));
+	it("admin sem filial mas com triagem → não cego", () =>
+		expect(
+			isBlindScope({ kind: "scoped", branchIds: [], includeUnassigned: true })
+		).toBe(false));
+	it("all → nunca cego", () => expect(isBlindScope(all)).toBe(false));
+	it("user com filial → não cego", () =>
+		expect(isBlindScope(userSp)).toBe(false));
 });

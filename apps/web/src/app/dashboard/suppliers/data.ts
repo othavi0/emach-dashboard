@@ -7,6 +7,7 @@ import { supplier } from "@emach/db/schema/tools";
 import { toDate } from "@emach/db/utils";
 import { desc, eq, sql } from "drizzle-orm";
 
+import { type BranchScope, branchAndFilter } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
@@ -140,10 +141,12 @@ export async function getSupplierStockTools({
 	supplierId,
 	search,
 	cursor,
+	scope,
 }: {
 	supplierId: string;
 	search?: string;
 	cursor: string | null;
+	scope: BranchScope;
 }): Promise<InfiniteResult<SupplierStockToolRow>> {
 	const decoded = cursor ? decodeCursor(cursor) : null;
 
@@ -156,6 +159,10 @@ export async function getSupplierStockTools({
 		decoded && decoded.sort === "newest"
 			? sql` AND (t.created_at, t.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 			: sql``;
+
+	// Filtro de scope nas subqueries de estoque/entradas (super_admin → cross-filial).
+	const stockScopeFilter = branchAndFilter(scope, sql`sl.branch_id`);
+	const movementScopeFilter = branchAndFilter(scope, sql`sm2.branch_id`);
 
 	// db.execute raw: subqueries escalares correlacionadas retornam null no db.select builder
 	// (armadilha documentada em packages/db/CLAUDE.md). Colunas aliasadas em camelCase.
@@ -178,7 +185,7 @@ export async function getSupplierStockTools({
 				SELECT SUM(sl.quantity)
 				FROM stock_level sl
 				JOIN tool_variant tv2 ON tv2.id = sl.variant_id
-				WHERE tv2.tool_id = t.id
+				WHERE tv2.tool_id = t.id${stockScopeFilter}
 			), 0) AS "generalStock",
 			COALESCE((
 				SELECT SUM(sm2.delta)
@@ -186,7 +193,7 @@ export async function getSupplierStockTools({
 				JOIN tool_variant tv3 ON tv3.id = sm2.variant_id
 				WHERE tv3.tool_id = t.id
 				  AND sm2.reason = 'entrada_compra'
-				  AND sm2.supplier_id = ${supplierId}
+				  AND sm2.supplier_id = ${supplierId}${movementScopeFilter}
 			), 0) AS "receivedFromSupplier"
 		FROM tool t
 		WHERE t.id IN (${supplierToolIds(supplierId)})${searchClause}${cursorClause}

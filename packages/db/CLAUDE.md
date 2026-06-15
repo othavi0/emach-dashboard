@@ -136,9 +136,9 @@ Detalhes (formatos aceitos, cap 2MB pós-compressão, bucket privado de anexos):
 
 Não há script nem server action de anonimização de cliente ("direito ao esquecimento"). Só export existe (`client_export_log` + `dashboard/customers/export/`). **Implementar antes de produção.**
 
-### Gates role-based desligados (ADR-0012)
+### Gates role-based religados (ADR-0016)
 
-`requireCapability*`, `can()`, `requireRole` e `getUserBranchScope` em `apps/web/src/lib/` são no-op desde 2026-05-27. Matriz original preservada em `apps/web/src/lib/permissions.disabled.ts`. **Religar antes de produção** — passos em `docs/adr/0012-disable-role-based-gates.md`.
+`requireCapability*`, `can()`, `requireRole`, `getUserBranchScope` enforçam (3 níveis + Branch-scoping) desde 2026-06-15. Ver `docs/adr/0016-religacao-gates-3-niveis-filial.md`. **Pré-produção (dados):** rodar `manager → admin` e popular `user_branch` (todo admin/user precisa de ≥1 filial — fail-closed deixa cego sem vínculo). Verificação: `SELECT id,email FROM "user" WHERE role IN ('admin','user') AND status='active' AND id NOT IN (SELECT user_id FROM user_branch)` deve voltar zero linhas.
 
 ## Scripts adicionais
 
