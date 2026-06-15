@@ -13,6 +13,8 @@ export interface CapabilityMeta {
 	resource: string;
 }
 
+// Atalhos de defaultRoles (S = só super_admin; SA = super_admin + admin;
+// SAU = super_admin + admin + user).
 const S: readonly UserRole[] = ["super_admin"];
 const SA: readonly UserRole[] = ["super_admin", "admin"];
 const SAU: readonly UserRole[] = ["super_admin", "admin", "user"];
@@ -382,6 +384,3 @@ export function roleDefaultCapabilities(role: UserRole): Set<Capability> {
 	}
 	return result;
 }
-
-// Conveniência para listar todas as keys uma vez (UI).
-export const ALL_CAPABILITIES = Object.keys(CAPABILITIES) as Capability[];

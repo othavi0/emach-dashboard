@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+	type Capability,
 	CAPABILITIES,
 	isCapability,
 	roleDefaultCapabilities,
 } from "@/lib/capabilities";
 
-const LEGACY_USER: readonly string[] = [
+// Tipadas como Capability[] de propósito: o compilador valida que cada string
+// é uma key real do registry (pega typo na lista de regressão).
+const LEGACY_USER: readonly Capability[] = [
 	"tools.read",
 	"categories.read",
 	"suppliers.read",
@@ -21,7 +24,7 @@ const LEGACY_USER: readonly string[] = [
 	"orders.update_status",
 	"orders.add_note",
 ];
-const LEGACY_SUPER_EXCLUSIVE: readonly string[] = [
+const LEGACY_SUPER_EXCLUSIVE: readonly Capability[] = [
 	"branches.manage",
 	"users.delete",
 	"site.update_banners",
@@ -57,11 +60,11 @@ describe("registry de capabilities", () => {
 	it("admin default == tudo menos os exclusivos de super_admin", () => {
 		const adminCaps = roleDefaultCapabilities("admin");
 		for (const c of LEGACY_SUPER_EXCLUSIVE) {
-			expect(adminCaps.has(c as never), `admin não deve ter ${c}`).toBe(false);
+			expect(adminCaps.has(c), `admin não deve ter ${c}`).toBe(false);
 		}
-		for (const key of Object.keys(CAPABILITIES)) {
+		for (const key of Object.keys(CAPABILITIES) as Capability[]) {
 			if (!LEGACY_SUPER_EXCLUSIVE.includes(key)) {
-				expect(adminCaps.has(key as never), `admin deve ter ${key}`).toBe(true);
+				expect(adminCaps.has(key), `admin deve ter ${key}`).toBe(true);
 			}
 		}
 	});
