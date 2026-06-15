@@ -83,7 +83,7 @@ export interface GetToolsInput {
 	voltage?: Voltage[];
 }
 
-export type ToolDetailVariant = Omit<ToolVariant, "costAmount">;
+export type ToolDetailVariant = ToolVariant;
 
 export interface ToolDetail {
 	activePromotion: Promotion | null;

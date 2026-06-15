@@ -97,7 +97,6 @@ function normalizeVariantValues(
 		sku: v.sku.trim(),
 		voltage: v.voltage ? v.voltage : null,
 		priceAmount: v.priceAmount.toFixed(2),
-		costAmount: toNumericString(v.costAmount ?? null),
 		isDefault: v.isDefault,
 		sortOrder: v.sortOrder,
 	};
@@ -786,9 +785,6 @@ export async function updateToolVariant(
 		}
 		if (fields.priceAmount !== undefined) {
 			updateFields.priceAmount = fields.priceAmount;
-		}
-		if (fields.costAmount !== undefined) {
-			updateFields.costAmount = fields.costAmount;
 		}
 
 		if (Object.keys(updateFields).length === 0) {
