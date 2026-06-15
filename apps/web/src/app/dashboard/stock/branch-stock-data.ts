@@ -3,8 +3,10 @@
 import { db } from "@emach/db";
 import { sql } from "drizzle-orm";
 
+import { getUserBranchScope, inScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { requireCurrentSession } from "@/lib/session";
 
 export interface BranchStockRow {
 	imageUrl: string | null;
@@ -120,6 +122,10 @@ interface BranchStockKpisDbRow extends Record<string, unknown> {
 export async function getBranchStockKpis(
 	branchId: string
 ): Promise<BranchStockKpis> {
+	const scope = await getUserBranchScope(await requireCurrentSession());
+	if (!inScope(scope, branchId)) {
+		return { totalItems: 0, criticalCount: 0, reorderCount: 0, okCount: 0 };
+	}
 	const result = await db.execute<BranchStockKpisDbRow>(sql`
 		SELECT
 			COALESCE(sl.quantity, 0)::int AS quantity,
@@ -160,6 +166,10 @@ export async function fetchBranchStockPage({
 	filters: BranchStockFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<BranchStockRow>> {
+	const scope = await getUserBranchScope(await requireCurrentSession());
+	if (!inScope(scope, filters.branchId)) {
+		return { items: [], nextCursor: null };
+	}
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const trimmedSearch = filters.search?.trim();
 
