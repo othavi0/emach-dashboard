@@ -64,6 +64,15 @@ export async function setUserCapability(
 			}
 		);
 
+		// Fail-closed: alvo sem filial não tem escopo a proteger e `assertBranchScope`
+		// passa trivial — só super_admin pode gerenciá-lo (admin filial-scoped não).
+		if (
+			targetBranchIds.length === 0 &&
+			actorSession.user.role !== "super_admin"
+		) {
+			return { ok: false, error: "Usuário alvo sem filial atribuída" };
+		}
+
 		// Anti-escalada: ator só togla capabilities que ele próprio possui (efetivo).
 		// Aplica para grant E revoke — impede revogar cap que o ator nunca teria
 		// como re-conceder (evita uso de revoke como vetor de escalada indireta).
@@ -74,6 +83,19 @@ export async function setUserCapability(
 				error: "Você não pode gerenciar uma permissão que não possui",
 			};
 		}
+
+		// Estado anterior para a trilha de auditoria (antes da mutação).
+		const [existing] = await db
+			.select({ effect: userCapabilityOverride.effect })
+			.from(userCapabilityOverride)
+			.where(
+				and(
+					eq(userCapabilityOverride.userId, targetUserId),
+					eq(userCapabilityOverride.capability, capability)
+				)
+			)
+			.limit(1);
+		const before = existing?.effect ?? "inherit";
 
 		if (state === "inherit") {
 			await db
@@ -111,7 +133,7 @@ export async function setUserCapability(
 			actorUserId: actorSession.user.id,
 			targetType: "user",
 			targetId: targetUserId,
-			metadata: { capability, effect: state },
+			metadata: { capability, effect: state, before },
 		});
 
 		revalidatePath(`/dashboard/users/${targetUserId}`);

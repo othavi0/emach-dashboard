@@ -32,6 +32,14 @@ function mockTargetBranches(ids: string[]) {
 	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
 }
 
+// 2º db.select da action: estado anterior do override (para o `before` do audit).
+function mockExistingOverride(effect: string | null) {
+	const limit = vi.fn(() => Promise.resolve(effect ? [{ effect }] : []));
+	const where = vi.fn(() => ({ limit }));
+	const from = vi.fn(() => ({ where }));
+	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+}
+
 beforeEach(() => {
 	vi.clearAllMocks();
 	(requireCapabilityWithContext as ReturnType<typeof vi.fn>).mockResolvedValue(
@@ -62,11 +70,26 @@ describe("setUserCapability — teto e validações", () => {
 		expect(r.ok).toBe(false);
 	});
 
+	it("alvo sem filial: admin (não super_admin) é barrado (fail-closed)", async () => {
+		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
+			new Set(["tools.create"])
+		);
+		mockTargetBranches([]);
+		const r = await setUserCapability({
+			targetUserId: "u1",
+			capability: "tools.create",
+			state: "grant",
+		});
+		expect(r.ok).toBe(false);
+		expect(db.insert).not.toHaveBeenCalled();
+	});
+
 	it("grant válido: ator tem a cap e alvo no escopo → insere + audita", async () => {
 		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
 			new Set(["tools.create"])
 		);
 		mockTargetBranches(["b1"]);
+		mockExistingOverride(null);
 		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 		const values = vi.fn(() => ({ onConflictDoUpdate }));
 		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
@@ -77,7 +100,11 @@ describe("setUserCapability — teto e validações", () => {
 		});
 		expect(r.ok).toBe(true);
 		expect(logUserActivity).toHaveBeenCalledWith(
-			expect.objectContaining({ action: "permission.granted", targetId: "u1" })
+			expect.objectContaining({
+				action: "permission.granted",
+				targetId: "u1",
+				metadata: expect.objectContaining({ before: "inherit" }),
+			})
 		);
 	});
 
@@ -86,6 +113,7 @@ describe("setUserCapability — teto e validações", () => {
 			new Set(["tools.create"])
 		);
 		mockTargetBranches(["b1"]);
+		mockExistingOverride("grant");
 		const where = vi.fn(() => Promise.resolve());
 		(db.delete as ReturnType<typeof vi.fn>).mockReturnValue({ where });
 		const r = await setUserCapability({
@@ -105,6 +133,7 @@ describe("setUserCapability — teto e validações", () => {
 			new Set(["tools.create"])
 		);
 		mockTargetBranches(["b1"]);
+		mockExistingOverride(null);
 		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 		const values = vi.fn(() => ({ onConflictDoUpdate }));
 		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
@@ -127,6 +156,7 @@ describe("setUserCapability — teto e validações", () => {
 			new Set(["tools.create"])
 		);
 		mockTargetBranches(["b1"]);
+		mockExistingOverride(null);
 		(db.insert as ReturnType<typeof vi.fn>).mockImplementation(() => {
 			throw new Error("violates foreign key constraint xyz");
 		});
