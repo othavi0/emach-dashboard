@@ -4,154 +4,38 @@ import { user as userTable } from "@emach/db/schema/auth";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getUserBranchScope, inScope } from "@/lib/branch-scope";
+import { type Capability, roleDefaultCapabilities } from "@/lib/capabilities";
 import {
 	ROLE_WEIGHT,
 	requireCurrentSession,
 	type UserRole,
 } from "@/lib/session";
 
-export type Capability =
-	| "tools.read"
-	| "tools.create"
-	| "tools.update"
-	| "tools.delete"
-	| "categories.read"
-	| "categories.manage"
-	| "categories.delete"
-	| "suppliers.read"
-	| "suppliers.manage"
-	| "branches.read"
-	| "branches.manage"
-	| "stock.read"
-	| "stock.adjust"
-	| "promotions.read"
-	| "promotions.manage"
-	| "promotions.delete"
-	| "orders.read"
-	| "orders.update_status"
-	| "orders.cancel"
-	| "orders.refund"
-	| "orders.add_note"
-	| "orders.export"
-	| "customers.read"
-	| "customers.update_status"
-	| "customers.export"
-	| "customers.manage_sessions"
-	| "customers.reset_password"
-	| "site.read"
-	| "site.update_banners"
-	| "site.update_settings"
-	| "site.publish_announcements"
-	| "reviews.read"
-	| "reviews.moderate"
-	| "users.manage"
-	| "users.approve"
-	| "users.update_role"
-	| "users.update_branches"
-	| "users.suspend"
-	| "users.reset_password"
-	| "users.revoke_sessions"
-	| "users.delete"
-	| "audit.read"
-	| "attributes.read"
-	| "attributes.create"
-	| "attributes.update"
-	| "attributes.delete";
+export type { Capability };
 
-const ALL_CAPS: readonly Capability[] = [
-	"tools.read",
-	"tools.create",
-	"tools.update",
-	"tools.delete",
-	"categories.read",
-	"categories.manage",
-	"categories.delete",
-	"suppliers.read",
-	"suppliers.manage",
-	"branches.read",
-	"branches.manage",
-	"stock.read",
-	"stock.adjust",
-	"promotions.read",
-	"promotions.manage",
-	"promotions.delete",
-	"orders.read",
-	"orders.update_status",
-	"orders.cancel",
-	"orders.refund",
-	"orders.add_note",
-	"orders.export",
-	"customers.read",
-	"customers.update_status",
-	"customers.export",
-	"customers.manage_sessions",
-	"customers.reset_password",
-	"site.read",
-	"site.update_banners",
-	"site.update_settings",
-	"site.publish_announcements",
-	"reviews.read",
-	"reviews.moderate",
-	"users.manage",
-	"users.approve",
-	"users.update_role",
-	"users.update_branches",
-	"users.suspend",
-	"users.reset_password",
-	"users.revoke_sessions",
-	"users.delete",
-	"audit.read",
-	"attributes.read",
-	"attributes.create",
-	"attributes.update",
-	"attributes.delete",
-];
-
-const USER_CAPS: readonly Capability[] = [
-	"tools.read",
-	"categories.read",
-	"suppliers.read",
-	"branches.read",
-	"stock.read",
-	"promotions.read",
-	"orders.read",
-	"customers.read",
-	"site.read",
-	"reviews.read",
-	"attributes.read",
-	"stock.adjust",
-	"orders.update_status",
-	"orders.add_note",
-];
-
-const SUPER_ADMIN_EXCLUSIVE: readonly Capability[] = [
-	"branches.manage",
-	"users.delete",
-	"site.update_banners",
-	"site.update_settings",
-	"site.publish_announcements",
-	"tools.delete",
-	"categories.delete",
-	"promotions.delete",
-	"attributes.delete",
-];
-
-const ADMIN_CAPS: readonly Capability[] = ALL_CAPS.filter(
-	(c) => !SUPER_ADMIN_EXCLUSIVE.includes(c)
-);
-
-const ROLE_CAPS: Record<UserRole, readonly Capability[]> = {
-	super_admin: ALL_CAPS,
-	admin: ADMIN_CAPS,
-	manager: ADMIN_CAPS,
-	user: USER_CAPS,
+// Matriz de defaults derivada do registry (sem hardcode paralelo).
+const ROLE_CAPS: Record<UserRole, ReadonlySet<Capability>> = {
+	super_admin: roleDefaultCapabilities("super_admin"),
+	admin: roleDefaultCapabilities("admin"),
+	manager: roleDefaultCapabilities("manager"),
+	user: roleDefaultCapabilities("user"),
 };
 
-export function can(role: string | null | undefined, cap: Capability): boolean {
+// Checagem PURA de role-default (sync). Não considera overrides — usar `can`
+// (async) para o conjunto efetivo. Mantida para display de "padrão do role" e testes.
+export function roleHasCapability(
+	role: string | null | undefined,
+	cap: Capability
+): boolean {
 	if (!(role && role in ROLE_CAPS)) {
 		return false;
 	}
-	return ROLE_CAPS[role as UserRole].includes(cap);
+	return ROLE_CAPS[role as UserRole].has(cap);
+}
+
+// Alias mantido nesta task para não quebrar callsites de UI; vira async na próxima task.
+export function can(role: string | null | undefined, cap: Capability): boolean {
+	return roleHasCapability(role, cap);
 }
 
 // Listas intencionalmente separadas, ainda que coincidentes hoje:

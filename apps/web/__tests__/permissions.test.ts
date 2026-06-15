@@ -22,6 +22,7 @@ import {
 	can,
 	requireCapabilityWithContext,
 	requireUserDetailAccessOrRedirect,
+	roleHasCapability,
 } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 
@@ -35,15 +36,15 @@ describe("matriz de capability (3 níveis)", () => {
 			"tools.delete",
 			"site.update_settings",
 		] as const) {
-			expect(can("super_admin", cap)).toBe(true);
+			expect(roleHasCapability("super_admin", cap)).toBe(true);
 		}
 	});
 	it("admin edita catálogo mas NÃO deleta", () => {
-		expect(can("admin", "tools.create")).toBe(true);
-		expect(can("admin", "tools.update")).toBe(true);
-		expect(can("admin", "tools.delete")).toBe(false);
-		expect(can("admin", "categories.delete")).toBe(false);
-		expect(can("admin", "promotions.delete")).toBe(false);
+		expect(roleHasCapability("admin", "tools.create")).toBe(true);
+		expect(roleHasCapability("admin", "tools.update")).toBe(true);
+		expect(roleHasCapability("admin", "tools.delete")).toBe(false);
+		expect(roleHasCapability("admin", "categories.delete")).toBe(false);
+		expect(roleHasCapability("admin", "promotions.delete")).toBe(false);
 	});
 	it("admin NÃO acessa exclusivos de super_admin", () => {
 		for (const cap of [
@@ -52,30 +53,30 @@ describe("matriz de capability (3 níveis)", () => {
 			"site.update_settings",
 			"site.update_banners",
 		] as const) {
-			expect(can("admin", cap)).toBe(false);
+			expect(roleHasCapability("admin", cap)).toBe(false);
 		}
 	});
 	it("admin gerencia usuários (não-delete) e modera", () => {
-		expect(can("admin", "users.approve")).toBe(true);
-		expect(can("admin", "users.suspend")).toBe(true);
-		expect(can("admin", "reviews.moderate")).toBe(true);
-		expect(can("admin", "orders.refund")).toBe(true);
+		expect(roleHasCapability("admin", "users.approve")).toBe(true);
+		expect(roleHasCapability("admin", "users.suspend")).toBe(true);
+		expect(roleHasCapability("admin", "reviews.moderate")).toBe(true);
+		expect(roleHasCapability("admin", "orders.refund")).toBe(true);
 	});
 	it("user é operacional: lê, ajusta estoque, atualiza status — nada destrutivo", () => {
-		expect(can("user", "orders.read")).toBe(true);
-		expect(can("user", "stock.adjust")).toBe(true);
-		expect(can("user", "orders.update_status")).toBe(true);
-		expect(can("user", "tools.create")).toBe(false);
-		expect(can("user", "orders.cancel")).toBe(false);
-		expect(can("user", "reviews.moderate")).toBe(false);
+		expect(roleHasCapability("user", "orders.read")).toBe(true);
+		expect(roleHasCapability("user", "stock.adjust")).toBe(true);
+		expect(roleHasCapability("user", "orders.update_status")).toBe(true);
+		expect(roleHasCapability("user", "tools.create")).toBe(false);
+		expect(roleHasCapability("user", "orders.cancel")).toBe(false);
+		expect(roleHasCapability("user", "reviews.moderate")).toBe(false);
 	});
 	it("manager é alias de admin", () => {
-		expect(can("manager", "tools.create")).toBe(true);
-		expect(can("manager", "tools.delete")).toBe(false);
+		expect(roleHasCapability("manager", "tools.create")).toBe(true);
+		expect(roleHasCapability("manager", "tools.delete")).toBe(false);
 	});
 	it("role nula/desconhecida → nega", () => {
-		expect(can(null, "orders.read")).toBe(false);
-		expect(can("intruso", "orders.read" as never)).toBe(false);
+		expect(roleHasCapability(null, "orders.read")).toBe(false);
+		expect(roleHasCapability("intruso", "orders.read" as never)).toBe(false);
 	});
 });
 
