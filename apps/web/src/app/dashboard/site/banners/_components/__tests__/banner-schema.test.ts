@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bannerFormSchema, MAX_ACTIVE_BANNERS } from "../banner-schema";
 
-const valid = {
+const base = {
 	backgroundImageUrl:
 		"https://x.supabase.co/storage/v1/object/public/banner-images/a.jpg",
 	backgroundImageMobileUrl: null,
@@ -9,58 +9,106 @@ const valid = {
 	productImageMobileUrl: null,
 	title: "Potência redefinida",
 	subtitle: null,
-	altText: "EMACH — Potência redefinida",
+	altText: "EMACH — Potência",
+	badgeText: null,
 	ctaLabel: "Ver Catálogo",
 	ctaHref: "/catalog",
+	ctaVariant: "red" as const,
+	layout: "split" as const,
+	countdownTarget: null,
 	isActive: false,
 };
 
+const future = () => new Date(Date.now() + 86_400_000);
+const past = () => new Date(Date.now() - 86_400_000);
+
 describe("bannerFormSchema", () => {
-	it("aceita um banner válido", () => {
-		expect(bannerFormSchema.safeParse(valid).success).toBe(true);
+	it("aceita um banner completo válido", () => {
+		expect(bannerFormSchema.safeParse(base).success).toBe(true);
 	});
 
-	it("exige backgroundImageUrl", () => {
-		const r = bannerFormSchema.safeParse({ ...valid, backgroundImageUrl: "" });
-		expect(r.success).toBe(false);
-	});
-
-	it("rejeita title acima de 80 chars", () => {
-		const r = bannerFormSchema.safeParse({ ...valid, title: "a".repeat(81) });
-		expect(r.success).toBe(false);
-	});
-
-	it("rejeita ctaLabel acima de 30 chars", () => {
+	it("aceita banner só com título (sem fundo)", () => {
 		const r = bannerFormSchema.safeParse({
-			...valid,
-			ctaLabel: "a".repeat(31),
+			...base,
+			backgroundImageUrl: null,
+			altText: null,
+			title: "Só título",
+			ctaLabel: null,
+			ctaHref: null,
+		});
+		expect(r.success).toBe(true);
+	});
+
+	it("rejeita banner 100% vazio (sem fundo, título nem badge)", () => {
+		const r = bannerFormSchema.safeParse({
+			...base,
+			backgroundImageUrl: null,
+			altText: null,
+			title: null,
+			badgeText: null,
+			ctaLabel: null,
+			ctaHref: null,
 		});
 		expect(r.success).toBe(false);
 	});
 
-	it("rejeita subtitle acima de 140 chars", () => {
-		const r = bannerFormSchema.safeParse({
-			...valid,
-			subtitle: "a".repeat(141),
-		});
+	it("exige altText quando há fundo", () => {
+		const r = bannerFormSchema.safeParse({ ...base, altText: null });
 		expect(r.success).toBe(false);
 	});
 
-	it("aceita ctaHref interno (/) e externo (https://)", () => {
+	it("exige ctaLabel e ctaHref juntos", () => {
+		expect(bannerFormSchema.safeParse({ ...base, ctaHref: null }).success).toBe(
+			false
+		);
 		expect(
-			bannerFormSchema.safeParse({ ...valid, ctaHref: "/catalog" }).success
-		).toBe(true);
-		expect(
-			bannerFormSchema.safeParse({ ...valid, ctaHref: "https://x.com" }).success
-		).toBe(true);
-	});
-
-	it("rejeita ctaHref que não começa com / nem https://", () => {
-		expect(
-			bannerFormSchema.safeParse({ ...valid, ctaHref: "catalog" }).success
+			bannerFormSchema.safeParse({ ...base, ctaLabel: null }).success
 		).toBe(false);
 		expect(
-			bannerFormSchema.safeParse({ ...valid, ctaHref: "http://x.com" }).success
+			bannerFormSchema.safeParse({ ...base, ctaLabel: null, ctaHref: null })
+				.success
+		).toBe(true);
+	});
+
+	it("valida formato do ctaHref", () => {
+		expect(
+			bannerFormSchema.safeParse({ ...base, ctaHref: "catalog" }).success
+		).toBe(false);
+		expect(
+			bannerFormSchema.safeParse({ ...base, ctaHref: "https://x.com" }).success
+		).toBe(true);
+	});
+
+	it("exige countdown no futuro", () => {
+		expect(
+			bannerFormSchema.safeParse({ ...base, countdownTarget: past() }).success
+		).toBe(false);
+		expect(
+			bannerFormSchema.safeParse({ ...base, countdownTarget: future() }).success
+		).toBe(true);
+	});
+
+	it("aplica lengths (title ≤80, badge ≤16, ctaLabel ≤30, subtitle ≤140)", () => {
+		expect(
+			bannerFormSchema.safeParse({ ...base, title: "a".repeat(81) }).success
+		).toBe(false);
+		expect(
+			bannerFormSchema.safeParse({ ...base, badgeText: "a".repeat(17) }).success
+		).toBe(false);
+		expect(
+			bannerFormSchema.safeParse({ ...base, ctaLabel: "a".repeat(31) }).success
+		).toBe(false);
+		expect(
+			bannerFormSchema.safeParse({ ...base, subtitle: "a".repeat(141) }).success
+		).toBe(false);
+	});
+
+	it("valida enums layout e ctaVariant", () => {
+		expect(
+			bannerFormSchema.safeParse({ ...base, layout: "weird" }).success
+		).toBe(false);
+		expect(
+			bannerFormSchema.safeParse({ ...base, ctaVariant: "blue" }).success
 		).toBe(false);
 	});
 
