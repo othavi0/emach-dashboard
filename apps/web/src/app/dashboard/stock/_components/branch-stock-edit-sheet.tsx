@@ -586,13 +586,14 @@ export function BranchStockEditSheet({
 						<div className="overflow-y-auto border-border border-r px-6 py-5">
 							<p className="mb-3 font-medium text-sm">Movimentar estoque</p>
 
-							{/* Segmented control */}
-							<div className="mb-4 flex rounded-md border border-border bg-muted p-0.5">
+							{/* Segmented control — padrão canônico: active coral preenchido
+							    (espelha base Tabs / ActivityFilters / ledger-filters) */}
+							<div className="mb-4 flex gap-1 rounded-md bg-muted p-[3px] ring-1 ring-border/60">
 								{(["entrada", "baixa", "ajuste"] as Mode[]).map((m) => (
 									<button
-										className={`flex-1 rounded-sm px-2 py-1.5 font-medium text-xs transition-colors ${
+										className={`flex-1 rounded-sm px-2 py-1 font-medium text-xs transition-all ${
 											mode === m
-												? "bg-background text-foreground shadow-sm"
+												? "bg-primary text-primary-foreground shadow-sm"
 												: "text-muted-foreground hover:text-foreground"
 										}`}
 										key={m}
