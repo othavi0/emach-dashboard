@@ -51,7 +51,6 @@ export const toolVariantSchema = z.object({
 		.number()
 		.nonnegative("Preço não pode ser negativo")
 		.refine((n) => !Number.isNaN(n), "Preço inválido"),
-	costAmount: optionalNumber,
 	isDefault: z.boolean().default(false),
 	sortOrder: z.number().int().min(0),
 });
@@ -64,11 +63,6 @@ export const updateVariantSchema = z.object({
 	priceAmount: z
 		.string()
 		.regex(/^\d+(\.\d{1,2})?$/, "Preço inválido")
-		.optional(),
-	costAmount: z
-		.string()
-		.regex(/^\d+(\.\d{1,2})?$/, "Custo inválido")
-		.nullable()
 		.optional(),
 });
 

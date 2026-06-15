@@ -49,7 +49,6 @@ interface VariantsTabProps {
 }
 
 interface RowState {
-	costAmount: string;
 	priceAmount: string;
 	sku: string;
 	voltage: string | null;
@@ -60,7 +59,6 @@ function makeRowState(v: ToolDetailVariant): RowState {
 		sku: v.sku,
 		voltage: v.voltage,
 		priceAmount: v.priceAmount,
-		costAmount: v.costAmount ?? "",
 	};
 }
 
@@ -68,8 +66,7 @@ function isDirty(initial: RowState, current: RowState): boolean {
 	return (
 		initial.sku !== current.sku ||
 		initial.voltage !== current.voltage ||
-		initial.priceAmount !== current.priceAmount ||
-		initial.costAmount !== current.costAmount
+		initial.priceAmount !== current.priceAmount
 	);
 }
 
@@ -105,7 +102,6 @@ export function VariantsTab({
 							<TableHead>SKU</TableHead>
 							<TableHead>Voltagem</TableHead>
 							<TableHead className="text-right">Preço (R$)</TableHead>
-							<TableHead className="text-right">Custo (R$)</TableHead>
 							<TableHead className="text-center">Padrão</TableHead>
 							<TableHead>Visível no site</TableHead>
 							<TableHead />
@@ -179,14 +175,6 @@ function EditableRow({
 	const dirty = isDirty(initial, state);
 
 	function handleSave() {
-		let costAmountValue: string | null | undefined;
-		if (state.costAmount === initial.costAmount) {
-			costAmountValue = undefined;
-		} else if (state.costAmount === "") {
-			costAmountValue = null;
-		} else {
-			costAmountValue = state.costAmount;
-		}
 		startTransition(async () => {
 			const result = await updateToolVariant({
 				variantId: variant.id,
@@ -199,7 +187,6 @@ function EditableRow({
 					state.priceAmount === initial.priceAmount
 						? undefined
 						: state.priceAmount,
-				costAmount: costAmountValue,
 			});
 			if (result.ok) {
 				notify.success("Variante atualizada");
@@ -321,15 +308,6 @@ function EditableRow({
 					value={state.priceAmount}
 				/>
 			</TableCell>
-			<TableCell className="text-right">
-				<Input
-					className="h-8 text-right tabular-nums"
-					inputMode="decimal"
-					onChange={(e) => setState({ ...state, costAmount: e.target.value })}
-					placeholder="0.00"
-					value={state.costAmount}
-				/>
-			</TableCell>
 			<TableCell className="text-center">
 				<input
 					checked={variant.isDefault}
@@ -393,7 +371,6 @@ function VariantsReadOnly({ variants }: { variants: ToolDetailVariant[] }) {
 					<TableHead>SKU</TableHead>
 					<TableHead>Voltagem</TableHead>
 					<TableHead className="text-right">Preço</TableHead>
-					<TableHead className="text-right">Custo</TableHead>
 					<TableHead className="text-center">Padrão</TableHead>
 					<TableHead>Visível no site</TableHead>
 				</TableRow>
@@ -405,9 +382,6 @@ function VariantsReadOnly({ variants }: { variants: ToolDetailVariant[] }) {
 						<TableCell>{v.voltage ?? "—"}</TableCell>
 						<TableCell className="text-right tabular-nums">
 							{fmt(v.priceAmount)}
-						</TableCell>
-						<TableCell className="text-right tabular-nums">
-							{fmt(v.costAmount)}
 						</TableCell>
 						<TableCell className="text-center">
 							{v.isDefault ? (
