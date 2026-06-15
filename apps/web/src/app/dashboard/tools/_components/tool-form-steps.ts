@@ -19,7 +19,7 @@ export const TOOL_STEPS: ToolStep[] = [
 	{
 		id: "identity",
 		label: "Identidade & categoria",
-		description: "Nome, descrição, categorias e fornecedor",
+		description: "Nome, descrição e categorias",
 	},
 	{
 		id: "variants",
@@ -50,13 +50,7 @@ export const TOOL_STEPS: ToolStep[] = [
 ];
 
 export const STEP_FIELDS = {
-	identity: [
-		"name",
-		"description",
-		"categoryIds",
-		"primaryCategoryId",
-		"supplierId",
-	],
+	identity: ["name", "description", "categoryIds", "primaryCategoryId"],
 	variants: ["variants"],
 	specs: ["attributeAssignments", "attributeValues"],
 	logistics: [

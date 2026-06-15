@@ -79,6 +79,13 @@ function stockVisual(r: BranchActivityRow): RowVisual {
 				{r.toolName ? (
 					<span className="text-muted-foreground text-xs"> {r.toolName}</span>
 				) : null}
+				{r.reason === "entrada_compra" && r.supplierName ? (
+					<span className="text-muted-foreground text-xs">
+						{" "}
+						· Fornecedor:{" "}
+						<span className="text-foreground">{r.supplierName}</span>
+					</span>
+				) : null}
 			</>
 		),
 	};

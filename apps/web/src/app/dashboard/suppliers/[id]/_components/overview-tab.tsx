@@ -44,7 +44,7 @@ export function OverviewTab({ detail, kpis }: Props) {
 						icon: Circle,
 					},
 					{
-						label: "Última adição",
+						label: "Última entrada",
 						value: lastAddedLabel,
 						icon: CalendarPlus,
 					},

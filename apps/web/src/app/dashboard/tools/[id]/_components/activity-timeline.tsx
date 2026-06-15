@@ -114,6 +114,15 @@ export function ActivityTimeline({ rows }: Props) {
 													({r.variantVoltage})
 												</span>
 											)}
+											{r.reason === "entrada_compra" && r.supplierName && (
+												<span className="text-muted-foreground text-xs">
+													{" "}
+													· Fornecedor:{" "}
+													<span className="text-foreground">
+														{r.supplierName}
+													</span>
+												</span>
+											)}
 										</div>
 										{(r.reasonNote || r.actorName) && (
 											<div className="text-muted-foreground text-xs">

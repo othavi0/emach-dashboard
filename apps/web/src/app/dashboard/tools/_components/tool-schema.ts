@@ -103,7 +103,6 @@ export const toolFormSchema = z
 			.array(z.string().min(1))
 			.min(1, "Selecione ao menos uma categoria"),
 		primaryCategoryId: z.string().min(1, "Selecione a categoria principal"),
-		supplierId: optionalString,
 		visibleOnSite: z.boolean().default(true),
 		images: z
 			.array(toolImageSchema)

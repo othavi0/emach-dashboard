@@ -1,15 +1,15 @@
-import { Wrench } from "lucide-react";
+import { Boxes } from "lucide-react";
 
-import { fetchSupplierToolsPage } from "../../actions";
-import { SupplierToolsInfinite } from "./supplier-tools-infinite";
+import { fetchSupplierStockPage } from "../../actions";
+import { SupplierStockInfinite } from "./supplier-stock-infinite";
 
 interface Props {
 	search?: string;
 	supplierId: string;
 }
 
-export async function ToolsTab({ supplierId, search }: Props) {
-	const first = await fetchSupplierToolsPage({
+export async function EstoqueTab({ supplierId, search }: Props) {
+	const first = await fetchSupplierStockPage({
 		supplierId,
 		search,
 		cursor: null,
@@ -18,22 +18,24 @@ export async function ToolsTab({ supplierId, search }: Props) {
 	if (first.items.length === 0) {
 		return (
 			<div className="flex flex-col items-center gap-2 py-16 text-center">
-				<Wrench
+				<Boxes
 					aria-hidden
 					className="size-12 text-muted-foreground opacity-40"
 				/>
-				<p className="font-medium text-sm">Sem ferramentas vinculadas</p>
+				<p className="font-medium text-sm">
+					Nenhuma ferramenta recebida deste fornecedor
+				</p>
 				<p className="text-muted-foreground text-xs">
 					{search
 						? "Nenhuma ferramenta corresponde à busca."
-						: "Adicione a primeira ferramenta deste fornecedor."}
+						: "Registre uma entrada com este fornecedor para vê-la aqui."}
 				</p>
 			</div>
 		);
 	}
 
 	return (
-		<SupplierToolsInfinite
+		<SupplierStockInfinite
 			initial={first.items}
 			initialCursor={first.nextCursor}
 			search={search}

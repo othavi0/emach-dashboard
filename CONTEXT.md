@@ -54,7 +54,7 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 - **Default Variant** — a variante exibida quando nenhuma é escolhida. Uma por Tool (`isDefault=true`, partial unique index).
 - **Tool status** — ciclo de vida **editorial** do catálogo: `draft` (em cadastro) | `active` (publicável) | `discontinued` (saiu de linha). Enum `tool_status`, garantido pelo CHECK `valid_tool_status`. **Não existe valor `out_of_stock`** — disponibilidade é sempre derivada do Stock Level (variante × filial), nunca um status editorial.
 - **Visible on site** — chave manual de vitrine (`visibleOnSite`), independente do Tool status. Uma Tool aparece no site e-commerce quando `status='active'` **e** `visibleOnSite=true` — as duas condições juntas.
-- **Supplier (Fornecedor)** — de quem a Emach compra a Tool. Tem `status` (`active`/`archived`): arquivar é soft-delete que **preserva a proveniência** das Tools associadas. Mutações trilhadas em `supplier_audit_log`.
+- **Supplier (Fornecedor)** — de quem a Emach compra. A relação Fornecedor↔Tool é **N:N derivada das entradas**: um Fornecedor "fornece" uma Tool quando existe ≥1 Stock Movement de `entrada_compra` ligando os dois — **não há coluna `tool.supplier_id` nem tabela de vínculo** (removida; ver Ambiguidades resolvidas e ADR-0015). Tem `status` (`active`/`archived`): arquivar é soft-delete que **preserva a proveniência** das entradas associadas. Mutações do cadastro trilhadas em `supplier_audit_log`. **O Fornecedor não tem nenhuma informação financeira** (custo de compra não é responsabilidade deste sistema — estoque é controle de quantidade e proveniência, não gestão financeira).
 - **Category (Categoria)** — nó da árvore de classificação do catálogo. `parentId` + `path`/`depth` materializados por trigger PL/pgSQL (anti-ciclo, profundidade máxima 5). Uma Tool pertence a N categorias via `toolCategory`; exatamente uma é a Primary Category. Regra de domínio: **toda Tool deve ter ≥1 Category real** (uma primary), garantida na validação Zod do form de Tool.
 - **Primary Category** — a categoria principal de uma Tool (`isPrimary=true`); determina quais atributos dinâmicos a Tool exibe.
 - **Attribute Definition** — definição de uma especificação técnica dinâmica (ex.: "Rotação", "Cor"). Tabela `attributeDefinition`. Tem `inputType` (`text`/`number`/`select`/`boolean`/`numeric_range`/`color`), `unit`, `options`. Pertence **obrigatoriamente** a uma Category — não existe atributo global.
@@ -66,8 +66,14 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 
 - **Branch (Filial)** — local físico que mantém estoque. Tem `status` (`active`/`inactive`), responsável (`responsibleUserId`), faixas de CEP de atendimento (`cepRanges`) e horário de funcionamento (`businessHours`). Não há filial "default" no schema.
 - **Stock Level** — quantidade de uma **Tool Variant** em uma **Branch**. PK `(variantId, branchId)`. Tem `minQty` e `reorderPoint`; CHECK `quantity >= 0` é o guard anti-oversell.
-- **Stock Movement (Movimento de estoque)** — registro imutável de toda alteração de Stock Level. `reason` ∈ `entrada_compra` | `saida_venda` | `ajuste_inventario` | `perda` | `outro`. Trilha de auditoria por variante; `delta != 0`.
-- **Stock Adjustment (Ajuste de estoque)** — a única escrita de estoque que o admin faz diretamente: o staff informa a **quantidade-alvo** (não um delta) e o sistema calcula o `delta`, gerando um Stock Movement com Actor `user`. O débito de venda (`saida_venda`) não é um Adjustment — acontece no e-commerce.
+- **Stock Movement (Movimento de estoque)** — registro imutável de toda alteração de Stock Level. `reason` ∈ `entrada_compra` | `saida_venda` | `ajuste_inventario` | `perda` | `outro`. Trilha de auditoria por variante; `delta != 0`. Carrega `supplierId` **obrigatório quando `reason='entrada_compra'`** (a proveniência da compra) e **nulo nos demais motivos** — é a base da relação Fornecedor↔Tool derivada.
+- **Operações de estoque do admin** — o staff escreve estoque por **três operações de intenção distinta**, todas gerando Stock Movement com Actor `user`:
+  - **Entrada (Recebimento)** — soma estoque (delta **positivo**) por recebimento de um Fornecedor. `reason='entrada_compra'`; **Fornecedor obrigatório**. Não captura custo.
+  - **Baixa** — subtrai estoque (delta **negativo**) por perda ou outro motivo operacional. `reason='perda'`/`'outro'`; sem Fornecedor.
+  - **Ajuste de inventário (Recontagem)** — o staff informa a **quantidade-alvo** (não um delta) numa recontagem física; o sistema calcula o `delta`. `reason='ajuste_inventario'`; sem Fornecedor.
+
+  O débito de venda (`saida_venda`) **não é** nenhuma das três — acontece no e-commerce com Actor `system`. Ver ADR-0015.
+- **Estoque geral** — total de unidades de uma Tool em todo lugar: soma de `stock_level.quantity` sobre **todas as variantes da Tool × todas as Branches**. É o número que a aba Estoque do Fornecedor exibe por ferramenta. **Distinto** do Stock Level (que é por variante × filial). A saída de venda consome do estoque geral, sem escolher Fornecedor — por isso a aba do Fornecedor mostra o estoque geral da Tool, não só o que veio dele.
 - **Reorder Point** — nível em que uma variante deve ser recomprada (`reorderPoint >= minQty`).
 
 ### Vendas
@@ -136,6 +142,9 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 - **Lead** — o schema de `consent_log` antecipava um ator `lead` (enum `consent_actor`, coluna `leadId`). Resolvido: Lead não é um conceito do domínio — todo contato é um Client registrado. Os artefatos de schema **já foram removidos** — hoje `consent_log.client_id` é `NOT NULL` e não há enum `consent_actor`. Ver ADR-0003.
 - **Catch-all de categoria** — historicamente existiam duas categorias-raiz catch-all vazias (`sem-categoria` no seed, `geral` resquício de migration). Issue #39 confirmou **0 attribute definitions e 0 tools** sob elas. Issue #41 removeu ambas do seed e do banco: toda Tool tem uma Category real, sem fallback.
 - **`paymentStatus`** — `order` tem dois campos de estado (`status` e `paymentStatus`) com `paid`/`refunded` sobrepostos. Resolvido: o Order passa a ter um eixo único `status`; o campo `paymentStatus` e seu enum são removidos. Ver ADR-0005.
+- **Fornecedor na Tool × na entrada** — historicamente o Fornecedor era **1:1 fixo na Tool** (`tool.supplier_id`, definido na criação da ferramenta). Resolvido: a proveniência pertence à **compra**, não à ferramenta — a relação Fornecedor↔Tool é **N:N derivada das entradas** (`stock_movement.supplier_id` em `reason='entrada_compra'`), e a coluna `tool.supplier_id` foi **removida**. Ver ADR-0015.
+- **Custo no estoque** — a variante tem `cost_amount` e houve a tentação de capturar custo por entrada. Resolvido: **estoque não é gestão financeira** — o fluxo de estoque não captura custo. (A remoção de `tool_variant.cost_amount` é limpeza à parte, fora da feature de fluxo de estoque.)
+- **Transferência entre filiais** — não é um conceito do domínio. Cada Branch tem seu estoque isolado; **não existe operação de transferência** de estoque entre filiais (não há motivo de movimento, UX nem registro para isso). Movimentos entre filiais, se um dia necessários, seriam Baixa numa + Entrada noutra — mas hoje isso está **fora de escopo por decisão de produto**.
 
 ## ADRs
 
@@ -154,5 +163,7 @@ Decisões arquiteturais ficam em `docs/adr/`:
 - **ADR-0011** — Audit log de user sobrevive ao delete: FK `set null` + snapshot do nome em `metadata`.
 - **ADR-0012** — Gates role-based desligados; roles mantidos como rótulo (religar antes de produção).
 - **ADR-0013** — Auth de staff é convite-only (substitui ADR-0010); sem signup público.
+- **ADR-0014** — RLS deny-all nas tabelas expostas via PostgREST (fecha a porta REST para `anon`/`authenticated`).
+- **ADR-0015** — Proveniência de Fornecedor vive na entrada de estoque (N:N derivado), não na Tool; admin tem três operações de estoque (entrada/baixa/ajuste).
 
 Se um output contradiz um ADR existente, sinalize explicitamente em vez de sobrescrever em silêncio.
