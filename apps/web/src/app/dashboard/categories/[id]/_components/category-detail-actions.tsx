@@ -20,12 +20,14 @@ import { notify } from "@/lib/notify";
 import { deleteCategory, toggleCategoryActive } from "../../actions";
 
 interface Props {
+	canDelete: boolean;
 	categoryId: string;
 	categoryName: string;
 	isActive: boolean;
 }
 
 export function CategoryDetailActions({
+	canDelete,
 	categoryId,
 	categoryName,
 	isActive,
@@ -71,48 +73,52 @@ export function CategoryDetailActions({
 				{togglePending ? <Spinner /> : <Power aria-hidden className="size-4" />}
 				{isActive ? "Desativar" : "Ativar"}
 			</Button>
-			<Button
-				onClick={() => setConfirmOpen(true)}
-				type="button"
-				variant="destructive"
-			>
-				<Trash2 aria-hidden className="size-4" />
-				Excluir
-			</Button>
+			{canDelete && (
+				<Button
+					onClick={() => setConfirmOpen(true)}
+					type="button"
+					variant="destructive"
+				>
+					<Trash2 aria-hidden className="size-4" />
+					Excluir
+				</Button>
+			)}
 
-			<AlertDialog onOpenChange={setConfirmOpen} open={confirmOpen}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>
-							Remover categoria <strong>{categoryName}</strong>?
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							Esta ação não pode ser desfeita. Categorias com subcategorias ou
-							ferramentas vinculadas não podem ser removidas.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={deletePending}>
-							Cancelar
-						</AlertDialogCancel>
-						<AlertDialogAction
-							disabled={deletePending}
-							onClick={(e) => {
-								e.preventDefault();
-								handleDelete();
-							}}
-						>
-							{deletePending ? (
-								<>
-									<Spinner /> Removendo…
-								</>
-							) : (
-								"Remover"
-							)}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			{canDelete && (
+				<AlertDialog onOpenChange={setConfirmOpen} open={confirmOpen}>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>
+								Remover categoria <strong>{categoryName}</strong>?
+							</AlertDialogTitle>
+							<AlertDialogDescription>
+								Esta ação não pode ser desfeita. Categorias com subcategorias ou
+								ferramentas vinculadas não podem ser removidas.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel disabled={deletePending}>
+								Cancelar
+							</AlertDialogCancel>
+							<AlertDialogAction
+								disabled={deletePending}
+								onClick={(e) => {
+									e.preventDefault();
+									handleDelete();
+								}}
+							>
+								{deletePending ? (
+									<>
+										<Spinner /> Removendo…
+									</>
+								) : (
+									"Remover"
+								)}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			)}
 		</>
 	);
 }

@@ -19,6 +19,7 @@ import { type FooterUser, SidebarFooterUser } from "./sidebar-footer-user";
 
 interface AppSidebarProps {
 	canManageUsers: boolean;
+	canUpdateSettings: boolean;
 	orderCount: number;
 	pendingCount: number;
 	reviewCount: number;
@@ -28,6 +29,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({
 	canManageUsers,
+	canUpdateSettings,
 	orderCount,
 	reviewCount,
 	pendingCount,
@@ -42,9 +44,16 @@ export function AppSidebar({
 		stock: stockCount,
 	} as const;
 
+	const caps = { "site.update_settings": canUpdateSettings } as const;
+
 	const groups = NAV_GROUPS.filter(
 		(g) => g.label !== "Administração" || canManageUsers
-	);
+	).map((g) => ({
+		...g,
+		items: g.items.filter(
+			(item) => !item.capability || caps[item.capability as keyof typeof caps]
+		),
+	}));
 
 	return (
 		<MotionProvider>
