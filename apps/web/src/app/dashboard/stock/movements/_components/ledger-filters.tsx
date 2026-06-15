@@ -62,7 +62,8 @@ export function LedgerFiltersBar({
 	);
 
 	const handlePeriodChange = (period: PeriodPreset) => {
-		push({ period: period === "all" ? undefined : period });
+		// 7d é o default (sem query param); os demais viram ?period=.
+		push({ period: period === "7d" ? undefined : period });
 	};
 
 	const handleBranchChange = (value: string | null) => {
@@ -85,7 +86,7 @@ export function LedgerFiltersBar({
 		filters.branchId ||
 		filters.supplierId ||
 		(filters.reasons && filters.reasons.length > 0) ||
-		filters.period !== "all";
+		filters.period !== "7d";
 
 	const clearFilters = () => {
 		router.push("?");
