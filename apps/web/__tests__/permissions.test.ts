@@ -24,24 +24,55 @@ import {
 } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 
-describe("can() — no-op pós ADR-0012", () => {
-	it("retorna true para qualquer role válida + qualquer capability", () => {
-		expect(can("super_admin", "tools.delete")).toBe(true);
-		expect(can("admin", "users.delete")).toBe(true);
-		expect(can("manager", "branches.manage")).toBe(true);
-		expect(can("user", "orders.refund")).toBe(true);
-		expect(can("user", "customers.export")).toBe(true);
+describe("matriz de capability (3 níveis)", () => {
+	it("super_admin pode tudo, inclusive exclusivos", () => {
+		for (const cap of [
+			"branches.manage",
+			"users.delete",
+			"tools.delete",
+			"site.update_settings",
+		] as const) {
+			expect(can("super_admin", cap)).toBe(true);
+		}
 	});
-
-	it("retorna false para role null/undefined/string vazia", () => {
-		expect(can(null, "tools.read")).toBe(false);
-		expect(can(undefined, "tools.read")).toBe(false);
-		expect(can("", "tools.read")).toBe(false);
+	it("admin edita catálogo mas NÃO deleta", () => {
+		expect(can("admin", "tools.create")).toBe(true);
+		expect(can("admin", "tools.update")).toBe(true);
+		expect(can("admin", "tools.delete")).toBe(false);
+		expect(can("admin", "categories.delete")).toBe(false);
+		expect(can("admin", "promotions.delete")).toBe(false);
 	});
-
-	it("retorna true para string arbitrária não vazia (no-op não inspeciona role)", () => {
-		// Comportamento aceito do no-op: só rejeita falsy. Cobertura real é status gate.
-		expect(can("hacker", "tools.read")).toBe(true);
+	it("admin NÃO acessa exclusivos de super_admin", () => {
+		for (const cap of [
+			"branches.manage",
+			"users.delete",
+			"site.update_settings",
+			"site.update_banners",
+		] as const) {
+			expect(can("admin", cap)).toBe(false);
+		}
+	});
+	it("admin gerencia usuários (não-delete) e modera", () => {
+		expect(can("admin", "users.approve")).toBe(true);
+		expect(can("admin", "users.suspend")).toBe(true);
+		expect(can("admin", "reviews.moderate")).toBe(true);
+		expect(can("admin", "orders.refund")).toBe(true);
+	});
+	it("user é operacional: lê, ajusta estoque, atualiza status — nada destrutivo", () => {
+		expect(can("user", "orders.read")).toBe(true);
+		expect(can("user", "stock.adjust")).toBe(true);
+		expect(can("user", "orders.update_status")).toBe(true);
+		expect(can("user", "tools.create")).toBe(false);
+		expect(can("user", "orders.cancel")).toBe(false);
+		expect(can("user", "reviews.moderate")).toBe(false);
+	});
+	it("manager é alias de admin", () => {
+		expect(can("manager", "tools.create")).toBe(true);
+		expect(can("manager", "tools.delete")).toBe(false);
+	});
+	it("role nula/desconhecida → nega", () => {
+		expect(can(null, "orders.read")).toBe(false);
+		expect(can("intruso", "orders.read" as never)).toBe(false);
 	});
 });
 

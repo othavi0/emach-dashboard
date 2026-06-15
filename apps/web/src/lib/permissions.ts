@@ -3,11 +3,8 @@ import { db } from "@emach/db";
 import { user as userTable } from "@emach/db/schema/auth";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { requireCurrentSession } from "@/lib/session";
-
-// ⚠️ Gates role-based desligados em 2026-05-27 (ver docs/adr/0012-disable-role-based-gates.md).
-// Matriz original preservada em `permissions.disabled.ts`. Não adicionar capabilities novas
-// sem religar primeiro — o tipo ainda é checado para que callsites continuem corretos.
+import { getUserBranchScope, inScope } from "@/lib/branch-scope";
+import { requireCurrentSession, type UserRole } from "@/lib/session";
 
 export type Capability =
 	| "tools.read"
@@ -16,6 +13,7 @@ export type Capability =
 	| "tools.delete"
 	| "categories.read"
 	| "categories.manage"
+	| "categories.delete"
 	| "suppliers.read"
 	| "suppliers.manage"
 	| "branches.read"
@@ -24,6 +22,7 @@ export type Capability =
 	| "stock.adjust"
 	| "promotions.read"
 	| "promotions.manage"
+	| "promotions.delete"
 	| "orders.read"
 	| "orders.update_status"
 	| "orders.cancel"
@@ -55,6 +54,102 @@ export type Capability =
 	| "attributes.update"
 	| "attributes.delete";
 
+const ALL_CAPS: readonly Capability[] = [
+	"tools.read",
+	"tools.create",
+	"tools.update",
+	"tools.delete",
+	"categories.read",
+	"categories.manage",
+	"categories.delete",
+	"suppliers.read",
+	"suppliers.manage",
+	"branches.read",
+	"branches.manage",
+	"stock.read",
+	"stock.adjust",
+	"promotions.read",
+	"promotions.manage",
+	"promotions.delete",
+	"orders.read",
+	"orders.update_status",
+	"orders.cancel",
+	"orders.refund",
+	"orders.add_note",
+	"orders.export",
+	"customers.read",
+	"customers.update_status",
+	"customers.export",
+	"customers.manage_sessions",
+	"customers.reset_password",
+	"site.read",
+	"site.update_banners",
+	"site.update_settings",
+	"site.publish_announcements",
+	"reviews.read",
+	"reviews.moderate",
+	"users.manage",
+	"users.approve",
+	"users.update_role",
+	"users.update_branches",
+	"users.suspend",
+	"users.reset_password",
+	"users.revoke_sessions",
+	"users.delete",
+	"audit.read",
+	"attributes.read",
+	"attributes.create",
+	"attributes.update",
+	"attributes.delete",
+];
+
+const USER_CAPS: readonly Capability[] = [
+	"tools.read",
+	"categories.read",
+	"suppliers.read",
+	"branches.read",
+	"stock.read",
+	"promotions.read",
+	"orders.read",
+	"customers.read",
+	"site.read",
+	"reviews.read",
+	"attributes.read",
+	"stock.adjust",
+	"orders.update_status",
+	"orders.add_note",
+];
+
+const SUPER_ADMIN_EXCLUSIVE: readonly Capability[] = [
+	"branches.manage",
+	"users.delete",
+	"site.update_banners",
+	"site.update_settings",
+	"site.publish_announcements",
+	"tools.delete",
+	"categories.delete",
+	"promotions.delete",
+	"attributes.delete",
+];
+
+const ADMIN_CAPS: readonly Capability[] = ALL_CAPS.filter(
+	(c) => !SUPER_ADMIN_EXCLUSIVE.includes(c)
+);
+
+const ROLE_CAPS: Record<UserRole, readonly Capability[]> = {
+	super_admin: ALL_CAPS,
+	admin: ADMIN_CAPS,
+	manager: ADMIN_CAPS,
+	user: USER_CAPS,
+};
+
+export function can(role: string | null | undefined, cap: Capability): boolean {
+	if (!(role && role in ROLE_CAPS)) {
+		return false;
+	}
+	return ROLE_CAPS[role as UserRole].includes(cap);
+}
+
 // Listas intencionalmente separadas, ainda que coincidentes hoje:
 // SELF_RESTRICTED = caps proibidas contra si mesmo (UX, independente de outros guards).
 // LAST_SUPER_ADMIN_GUARDED = caps que disparam a checagem de último super_admin ativo.
@@ -70,13 +165,6 @@ const LAST_SUPER_ADMIN_GUARDED: readonly Capability[] = [
 	"users.delete",
 	"users.update_role",
 ];
-
-export function can(
-	role: string | null | undefined,
-	_cap: Capability
-): boolean {
-	return Boolean(role);
-}
 
 function ensureActive(session: DashboardSession): void {
 	if (session.user.status !== "active") {
@@ -114,19 +202,22 @@ async function assertNotLastActiveSuperAdmin(
 }
 
 export async function requireCapability(
-	_cap: Capability
+	cap: Capability
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
 	ensureActive(session);
+	if (!can(session.user.role, cap)) {
+		throw new Error(`Forbidden: capability "${cap}" requerida`);
+	}
 	return session;
 }
 
 export async function requireCapabilityOrRedirect(
-	_cap: Capability,
+	cap: Capability,
 	redirectTo = "/dashboard"
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
-	if (session.user.status !== "active") {
+	if (!can(session.user.role, cap)) {
 		redirect(redirectTo);
 	}
 	return session;
@@ -171,6 +262,15 @@ export async function requireCapabilityWithContext(
 
 	if (ctx.targetUserId && LAST_SUPER_ADMIN_GUARDED.includes(cap)) {
 		await assertNotLastActiveSuperAdmin(ctx.targetUserId);
+	}
+
+	if (ctx.targetBranchIds && session.user.role !== "super_admin") {
+		const scope = await getUserBranchScope(session);
+		for (const targetId of ctx.targetBranchIds) {
+			if (!inScope(scope, targetId)) {
+				throw new Error(`Filial fora do seu escopo: ${targetId}`);
+			}
+		}
 	}
 
 	return session;
