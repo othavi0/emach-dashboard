@@ -36,7 +36,7 @@ export default async function UserDetailPage({
 	const { id } = await params;
 	const sp = await searchParams;
 	const actorSession = await requireUserDetailAccessOrRedirect(id);
-	const canDelete = can(actorSession.user.role, "users.delete");
+	const canDelete = await can(actorSession, "users.delete");
 
 	// availableBranches só é usada no painel "Vincular filial" (aba Filiais);
 	// evita varrer todas as filiais nas demais abas.

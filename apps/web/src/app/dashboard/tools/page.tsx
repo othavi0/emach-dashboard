@@ -1,5 +1,4 @@
 import { db } from "@emach/db";
-import type { UserRole } from "@emach/db/schema/auth";
 import { category } from "@emach/db/schema/categories";
 import { branch } from "@emach/db/schema/inventory";
 import { buttonVariants } from "@emach/ui/components/button";
@@ -58,7 +57,7 @@ const VALID_SORTS: readonly ToolSort[] = ["newest", "name"];
 
 export default async function ToolsPage({ searchParams }: PageProps) {
 	const session = await requireCurrentSession();
-	const canMutate = can(session.user.role as UserRole | null, "tools.create");
+	const canMutate = await can(session, "tools.create");
 	const params = await searchParams;
 	const search = params.search ?? params.q;
 	const sortParam = params.sort as ToolSort | undefined;

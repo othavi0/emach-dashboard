@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { can } from "@/lib/permissions";
-import type { UserRole } from "@/lib/session";
 import { requireCurrentSession } from "@/lib/session";
 import { getActiveSuppliers } from "@/lib/suppliers";
 import { ActivityTab } from "./_components/activity-tab";
@@ -28,9 +27,10 @@ export default async function ToolDetailPage({
 	searchParams,
 }: PageProps) {
 	const session = await requireCurrentSession();
-	const role = (session.user.role ?? "user") as UserRole;
-	const canMutate = can(role, "tools.update");
-	const canDelete = can(role, "tools.delete");
+	const [canMutate, canDelete] = await Promise.all([
+		can(session, "tools.update"),
+		can(session, "tools.delete"),
+	]);
 
 	const { id } = await params;
 	const { tab } = await searchParams;

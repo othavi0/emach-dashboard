@@ -1,4 +1,3 @@
-import type { UserRole } from "@emach/db/schema/auth";
 import type { ClientAuditAction } from "@emach/db/schema/client-audit";
 import { notFound } from "next/navigation";
 
@@ -61,7 +60,6 @@ export default async function CustomerDetailPage({
 	searchParams,
 }: PageProps) {
 	const session = await requireCapability("customers.read");
-	const role = (session.user.role ?? "user") as UserRole;
 
 	const { id } = await params;
 	const raw = await searchParams;
@@ -77,10 +75,13 @@ export default async function CustomerDetailPage({
 	});
 	const auditAction = parsedAudit.success ? parsedAudit.data.action : undefined;
 
-	const canEdit = can(role, "customers.update_status");
-	const canResetPassword = can(role, "customers.reset_password");
-	const canModerateReviews = can(role, "reviews.moderate");
-	const canManageSessions = can(role, "customers.manage_sessions");
+	const [canEdit, canResetPassword, canModerateReviews, canManageSessions] =
+		await Promise.all([
+			can(session, "customers.update_status"),
+			can(session, "customers.reset_password"),
+			can(session, "reviews.moderate"),
+			can(session, "customers.manage_sessions"),
+		]);
 
 	// Always-loaded data
 	const [customer, kpis, addresses] = await Promise.all([

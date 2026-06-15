@@ -20,7 +20,7 @@ interface PageProps {
 export default async function SuppliersPage({ searchParams }: PageProps) {
 	await requireCapabilityOrRedirect("suppliers.read");
 	const session = await requireCurrentSession();
-	const canMutate = can(session.user.role, "suppliers.manage");
+	const canMutate = await can(session, "suppliers.manage");
 
 	const sp = await searchParams;
 

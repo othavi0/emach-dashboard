@@ -1,4 +1,3 @@
-import type { UserRole } from "@emach/db/schema/auth";
 import {
 	History,
 	Receipt,
@@ -51,7 +50,14 @@ export default async function OrderDetailPage({
 	if (!order) {
 		notFound();
 	}
-	const role = (session.user.role ?? "user") as UserRole;
+	const [canAddNote, canCancel, canRefund, canUpdateStatus] = await Promise.all(
+		[
+			can(session, "orders.add_note"),
+			can(session, "orders.cancel"),
+			can(session, "orders.refund"),
+			can(session, "orders.update_status"),
+		]
+	);
 
 	const tabs: EntityTab[] = [
 		{
@@ -105,10 +111,10 @@ export default async function OrderDetailPage({
 				<EntityTabs defaultValue="itens" tabs={tabs} />
 				<OrderActionColumn
 					branches={branches}
-					canAddNote={can(role, "orders.add_note")}
-					canCancel={can(role, "orders.cancel")}
-					canRefund={can(role, "orders.refund")}
-					canUpdateStatus={can(role, "orders.update_status")}
+					canAddNote={canAddNote}
+					canCancel={canCancel}
+					canRefund={canRefund}
+					canUpdateStatus={canUpdateStatus}
 					order={order}
 				/>
 			</div>

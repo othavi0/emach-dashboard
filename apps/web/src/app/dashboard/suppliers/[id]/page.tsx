@@ -29,7 +29,7 @@ export default async function SupplierDetailPage({
 	searchParams,
 }: PageProps) {
 	const session = await requireCapabilityOrRedirect("suppliers.read");
-	const canManage = can(session.user.role, "suppliers.manage");
+	const canManage = await can(session, "suppliers.manage");
 
 	const { id } = await params;
 	const sp = await searchParams;

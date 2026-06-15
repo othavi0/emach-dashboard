@@ -40,9 +40,13 @@ export function roleHasCapability(
 	return ROLE_CAPS[role as UserRole].has(cap);
 }
 
-// Alias mantido nesta task para não quebrar callsites de UI; vira async na próxima task.
-export function can(role: string | null | undefined, cap: Capability): boolean {
-	return roleHasCapability(role, cap);
+// Conjunto EFETIVO (role default ± overrides). Use em Server Components para
+// gating de UI. Para o default puro do role (sync), use roleHasCapability.
+export async function can(
+	session: DashboardSession,
+	cap: Capability
+): Promise<boolean> {
+	return (await getUserCapabilities(session)).has(cap);
 }
 
 // Conjunto efetivo de capabilities, resolvido UMA vez por request (React.cache
