@@ -103,6 +103,12 @@ function mockCountQuery(count: number) {
 	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
 }
 
+function mockOverrides(rows: { capability: string; effect: string }[]) {
+	const where = vi.fn(() => Promise.resolve(rows));
+	const from = vi.fn(() => ({ where }));
+	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+}
+
 describe("requireCapabilityWithContext — guards mantidos", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -240,12 +246,6 @@ describe("requireUserDetailAccessOrRedirect", () => {
 		);
 	});
 });
-
-function mockOverrides(rows: { capability: string; effect: string }[]) {
-	const where = vi.fn(() => Promise.resolve(rows));
-	const from = vi.fn(() => ({ where }));
-	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
-}
 
 describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)", () => {
 	beforeEach(() => vi.clearAllMocks());
