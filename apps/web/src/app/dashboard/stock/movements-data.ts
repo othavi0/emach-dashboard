@@ -126,8 +126,10 @@ export async function fetchLedgerPage(
 			actorName: user.name,
 		})
 		.from(stockMovement)
-		.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
-		.innerJoin(tool, eq(tool.id, toolVariant.toolId))
+		// leftJoin (não inner): o ledger é "histórico completo" — movimentos de
+		// variantes deletadas (variantId → null) precisam aparecer mesmo sem tool.
+		.leftJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
+		.leftJoin(tool, eq(tool.id, toolVariant.toolId))
 		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
 		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
 		.leftJoin(user, eq(stockMovement.actorId, user.id))

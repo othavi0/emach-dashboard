@@ -11,6 +11,7 @@ import { and, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 
 import { revalidatePath } from "next/cache";
 import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
+import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
 import { requireCapability } from "@/lib/permissions";
@@ -42,6 +43,11 @@ interface AdjustStockSuccess {
 }
 
 function errorMessage(error: unknown): string {
+	// Erro do Postgres (drizzle embrulha em .cause): nunca vazar SQL+params no toast.
+	if (getPgError(error)) {
+		return "Não foi possível concluir a operação. Tente novamente.";
+	}
+	// Erros de domínio (ex: "Estoque não pode ficar negativo") são seguros de exibir.
 	if (error instanceof Error) {
 		return error.message;
 	}
@@ -180,6 +186,10 @@ export async function recordStockEntry(
 			actorId: session.user.id,
 		});
 		await revalidateStockPaths(variantId, branchId);
+		// A relação fornecedor↔tool e os KPIs do fornecedor são derivados das
+		// entradas: revalidar a aba Estoque + listagem após registrar uma.
+		revalidatePath("/dashboard/suppliers");
+		revalidatePath(`/dashboard/suppliers/${supplierId}`);
 		return { ok: true, data: result };
 	} catch (error) {
 		return { ok: false, error: errorMessage(error) };
