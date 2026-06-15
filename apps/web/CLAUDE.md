@@ -33,6 +33,7 @@ Reativar: ver `docs/adr/0012-disable-role-based-gates.md`.
 - `@/...` → `src/...`.
 - **Permitido:** `@emach/db/schema/client` (admin lê dados de cliente — features `customers/`, `reviews/`).
 - **Proibido P0:** `@emach/auth/ecommerce` daqui.
+- **Client Component nunca importa fn de módulo `server-only`/`@emach/db`.** Importar uma função de data-fetching `server-only` (que puxa `@emach/db`) num `"use client"` arrasta o driver pg pro bundle do browser → build quebra com `Module not found: Can't resolve 'net'/'tls'`. `check-types` **não pega** (só o build). Padrão: client chama uma **server action** (`"use server"`) que envolve a query; **tipos** podem vir do módulo server-only via `import type` (apagado no compile). Canônico: `stock/movements/actions.ts` (`fetchLedgerPageAction`) envolvendo `movements-data.ts`. Incidente do ledger (ADR-0015).
 
 ## Convenções de UX em forms
 
