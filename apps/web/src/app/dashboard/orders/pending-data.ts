@@ -8,7 +8,11 @@ import { toDate } from "@emach/db/utils";
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
-import { getUserBranchScope } from "@/lib/branch-scope";
+import {
+	getUserBranchScope,
+	isBlindScope,
+	orderBranchCondition,
+} from "@/lib/branch-scope";
 import { decodeCursorAs } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
@@ -31,7 +35,7 @@ export async function fetchPendingOrdersPage({
 }): Promise<InfiniteResult<PendingRow>> {
 	const session = await requireCurrentSession();
 	const scope = await getUserBranchScope(session);
-	if (scope !== null && scope.length === 0) {
+	if (isBlindScope(scope)) {
 		return { items: [], nextCursor: null };
 	}
 	const conditions = [
@@ -40,13 +44,9 @@ export async function fetchPendingOrdersPage({
 			sql`, `
 		)})`,
 	];
-	if (scope !== null) {
-		conditions.push(
-			sql`o.branch_id IN (${sql.join(
-				scope.map((id) => sql`${id}`),
-				sql`, `
-			)})`
-		);
+	const branchCondition = orderBranchCondition(scope);
+	if (branchCondition) {
+		conditions.push(branchCondition);
 	}
 	if (cursor) {
 		const c = decodeCursorAs(cursor, "newest");

@@ -19,7 +19,11 @@ import {
 	refundRequest,
 } from "@emach/db/schema/orders";
 import { asc, desc, eq, inArray, sql } from "drizzle-orm";
-import { getUserBranchScope } from "@/lib/branch-scope";
+import {
+	getUserBranchScope,
+	isBlindScope,
+	orderBranchCondition,
+} from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
@@ -242,16 +246,16 @@ export async function listOrderBranches(): Promise<BranchOption[]> {
 		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
 		.from(branch)
 		.orderBy(asc(branch.name));
-	if (scope === null) {
+	if (scope.kind === "all") {
 		return query;
 	}
-	if (scope.length === 0) {
+	if (scope.branchIds.length === 0) {
 		return [];
 	}
 	return db
 		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
 		.from(branch)
-		.where(inArray(branch.id, scope))
+		.where(inArray(branch.id, scope.branchIds))
 		.orderBy(asc(branch.name));
 }
 
@@ -274,7 +278,7 @@ export async function fetchOrdersPage({
 	const session = await requireCurrentSession();
 	const scope = await getUserBranchScope(session);
 
-	if (scope !== null && scope.length === 0) {
+	if (isBlindScope(scope)) {
 		return { items: [], nextCursor: null };
 	}
 
@@ -285,12 +289,9 @@ export async function fetchOrdersPage({
 	const from = normalizeDateParam(filters.from);
 	const to = normalizeDateParam(filters.to);
 
-	if (scope !== null) {
-		const placeholders = sql.join(
-			scope.map((id) => sql`${id}`),
-			sql`, `
-		);
-		conditions.push(sql`o.branch_id IN (${placeholders})`);
+	const branchCondition = orderBranchCondition(scope);
+	if (branchCondition) {
+		conditions.push(branchCondition);
 	}
 	if (tab.statuses) {
 		const placeholders = sql.join(
@@ -388,7 +389,7 @@ export async function listOrders(
 	const session = await requireCurrentSession();
 	const scope = await getUserBranchScope(session);
 
-	if (scope !== null && scope.length === 0) {
+	if (isBlindScope(scope)) {
 		return { items: [], page: 1, total: 0, totalPages: 1 };
 	}
 
@@ -400,12 +401,9 @@ export async function listOrders(
 	const from = normalizeDateParam(filters.from);
 	const to = normalizeDateParam(filters.to);
 
-	if (scope !== null) {
-		const placeholders = sql.join(
-			scope.map((id) => sql`${id}`),
-			sql`, `
-		);
-		conditions.push(sql`o.branch_id IN (${placeholders})`);
+	const branchCondition = orderBranchCondition(scope);
+	if (branchCondition) {
+		conditions.push(branchCondition);
 	}
 	if (tab.statuses) {
 		const placeholders = sql.join(

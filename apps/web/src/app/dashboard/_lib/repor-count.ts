@@ -8,7 +8,7 @@ import type { BranchScope } from "@/lib/branch-scope";
 
 export const getReporCount = cache(
 	async (scope: BranchScope): Promise<number> => {
-		if (scope !== null && scope.length === 0) {
+		if (scope.kind === "scoped" && scope.branchIds.length === 0) {
 			return 0;
 		}
 
@@ -17,8 +17,8 @@ export const getReporCount = cache(
 			lte(stockLevel.quantity, stockLevel.reorderPoint),
 		];
 
-		if (scope !== null) {
-			whereConditions.push(inArray(stockLevel.branchId, scope));
+		if (scope.kind === "scoped") {
+			whereConditions.push(inArray(stockLevel.branchId, scope.branchIds));
 		}
 
 		const [row] = await db

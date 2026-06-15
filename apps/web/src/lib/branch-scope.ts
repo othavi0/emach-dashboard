@@ -1,19 +1,64 @@
 import type { DashboardSession } from "@emach/auth/dashboard";
+import { db } from "@emach/db";
+import { userBranch } from "@emach/db/schema/inventory";
+import { eq, type SQL, sql } from "drizzle-orm";
 import { cache } from "react";
+import type { UserRole } from "@/lib/session";
 
-// ⚠️ Gates role-based desligados em 2026-05-27 (ver docs/adr/0012-disable-role-based-gates.md).
-// Versão original (consulta a `user_branch`) recuperável via `git log -p -- apps/web/src/lib/branch-scope.ts`.
+export type BranchScope =
+	| { kind: "all" }
+	| { kind: "scoped"; branchIds: string[]; includeUnassigned: boolean };
 
-export type BranchScope = string[] | null;
-
-// `cache()` mantido para preservar a assinatura — voltará a memoizar I/O ao reativar gates.
 export const getUserBranchScope = cache(
-	async (_session: DashboardSession): Promise<BranchScope> => null
+	async (session: DashboardSession): Promise<BranchScope> => {
+		const role = (session.user.role ?? "user") as UserRole;
+		if (role === "super_admin") {
+			return { kind: "all" };
+		}
+		const rows = await db
+			.select({ branchId: userBranch.branchId })
+			.from(userBranch)
+			.where(eq(userBranch.userId, session.user.id));
+		return {
+			kind: "scoped",
+			branchIds: rows.map((r) => r.branchId),
+			includeUnassigned: role === "admin" || role === "manager",
+		};
+	}
 );
 
 export function inScope(scope: BranchScope, branchId: string): boolean {
-	if (scope === null) {
-		return true;
+	return scope.kind === "all" || scope.branchIds.includes(branchId);
+}
+
+export function isBlindScope(scope: BranchScope): boolean {
+	return (
+		scope.kind === "scoped" &&
+		scope.branchIds.length === 0 &&
+		!scope.includeUnassigned
+	);
+}
+
+// Condição SQL para listagens de Pedidos (alias `o`). Trata Pedido na triagem (branch_id NULL).
+// undefined = sem filtro (super_admin). sql`false` = cego (nada).
+export function orderBranchCondition(scope: BranchScope): SQL | undefined {
+	if (scope.kind === "all") {
+		return;
 	}
-	return scope.includes(branchId);
+	const parts: SQL[] = [];
+	if (scope.branchIds.length > 0) {
+		parts.push(
+			sql`o.branch_id IN (${sql.join(
+				scope.branchIds.map((id) => sql`${id}`),
+				sql`, `
+			)})`
+		);
+	}
+	if (scope.includeUnassigned) {
+		parts.push(sql`o.branch_id IS NULL`);
+	}
+	if (parts.length === 0) {
+		return sql`false`;
+	}
+	return sql`(${sql.join(parts, sql` OR `)})`;
 }
