@@ -52,7 +52,7 @@ export async function can(
 // Conjunto efetivo de capabilities, resolvido UMA vez por request (React.cache
 // keya por identidade da session). base do role ± overrides do usuário.
 export const getUserCapabilities = cache(
-	async (session: DashboardSession): Promise<Set<Capability>> => {
+	async (session: DashboardSession): Promise<ReadonlySet<Capability>> => {
 		const role = (session.user.role ?? "user") as UserRole;
 		const caps = roleDefaultCapabilities(role);
 		const overrides = await db
@@ -146,6 +146,11 @@ export async function requireCapabilityOrRedirect(
 	redirectTo = "/dashboard"
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
+	// Consistência com requireCapability/requireCapabilityWithContext (que chamam
+	// ensureActive) — defesa-em-profundidade além do gate de status no layout.
+	if (session.user.status !== "active") {
+		redirect(redirectTo);
+	}
 	if (!(await getUserCapabilities(session)).has(cap)) {
 		redirect(redirectTo);
 	}
