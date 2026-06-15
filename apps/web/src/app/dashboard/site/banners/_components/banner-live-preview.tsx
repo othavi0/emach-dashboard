@@ -73,7 +73,7 @@ export function BannerLivePreview({
 		values.layout === "split" || values.layout === "stack_left";
 
 	return (
-		<div className="sticky top-4 flex flex-col gap-2">
+		<div className="sticky top-4 flex flex-col gap-2 self-start">
 			<div className="flex items-center justify-between">
 				<span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
 					Preview ao vivo

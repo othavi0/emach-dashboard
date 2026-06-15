@@ -227,6 +227,7 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 								<Input
 									{...f}
 									onChange={(e) => set("altText", e.target.value || null)}
+									placeholder="Ex: EMACH — Potência redefinida"
 									value={values.altText ?? ""}
 								/>
 							)}
@@ -280,6 +281,7 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 										}
 									}}
 									onChange={(e) => set("title", e.target.value || null)}
+									placeholder="Ex: Potência redefinida"
 									value={values.title ?? ""}
 								/>
 							)}
@@ -294,6 +296,7 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 									{...f}
 									maxLength={140}
 									onChange={(e) => set("subtitle", e.target.value || null)}
+									placeholder="Ex: A nova linha que redefine o canteiro"
 									value={values.subtitle ?? ""}
 								/>
 							)}
@@ -365,6 +368,7 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 									{...f}
 									maxLength={30}
 									onChange={(e) => set("ctaLabel", e.target.value || null)}
+									placeholder="Ex: Ver Catálogo"
 									value={values.ctaLabel ?? ""}
 								/>
 							)}
