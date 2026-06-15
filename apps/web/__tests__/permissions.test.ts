@@ -19,9 +19,10 @@ vi.mock("@emach/db", () => ({
 
 import { db } from "@emach/db";
 import {
-	can,
+	getUserCapabilities,
 	requireCapabilityWithContext,
 	requireUserDetailAccessOrRedirect,
+	roleHasCapability,
 } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 
@@ -35,15 +36,15 @@ describe("matriz de capability (3 níveis)", () => {
 			"tools.delete",
 			"site.update_settings",
 		] as const) {
-			expect(can("super_admin", cap)).toBe(true);
+			expect(roleHasCapability("super_admin", cap)).toBe(true);
 		}
 	});
 	it("admin edita catálogo mas NÃO deleta", () => {
-		expect(can("admin", "tools.create")).toBe(true);
-		expect(can("admin", "tools.update")).toBe(true);
-		expect(can("admin", "tools.delete")).toBe(false);
-		expect(can("admin", "categories.delete")).toBe(false);
-		expect(can("admin", "promotions.delete")).toBe(false);
+		expect(roleHasCapability("admin", "tools.create")).toBe(true);
+		expect(roleHasCapability("admin", "tools.update")).toBe(true);
+		expect(roleHasCapability("admin", "tools.delete")).toBe(false);
+		expect(roleHasCapability("admin", "categories.delete")).toBe(false);
+		expect(roleHasCapability("admin", "promotions.delete")).toBe(false);
 	});
 	it("admin NÃO acessa exclusivos de super_admin", () => {
 		for (const cap of [
@@ -52,30 +53,30 @@ describe("matriz de capability (3 níveis)", () => {
 			"site.update_settings",
 			"site.update_banners",
 		] as const) {
-			expect(can("admin", cap)).toBe(false);
+			expect(roleHasCapability("admin", cap)).toBe(false);
 		}
 	});
 	it("admin gerencia usuários (não-delete) e modera", () => {
-		expect(can("admin", "users.approve")).toBe(true);
-		expect(can("admin", "users.suspend")).toBe(true);
-		expect(can("admin", "reviews.moderate")).toBe(true);
-		expect(can("admin", "orders.refund")).toBe(true);
+		expect(roleHasCapability("admin", "users.approve")).toBe(true);
+		expect(roleHasCapability("admin", "users.suspend")).toBe(true);
+		expect(roleHasCapability("admin", "reviews.moderate")).toBe(true);
+		expect(roleHasCapability("admin", "orders.refund")).toBe(true);
 	});
 	it("user é operacional: lê, ajusta estoque, atualiza status — nada destrutivo", () => {
-		expect(can("user", "orders.read")).toBe(true);
-		expect(can("user", "stock.adjust")).toBe(true);
-		expect(can("user", "orders.update_status")).toBe(true);
-		expect(can("user", "tools.create")).toBe(false);
-		expect(can("user", "orders.cancel")).toBe(false);
-		expect(can("user", "reviews.moderate")).toBe(false);
+		expect(roleHasCapability("user", "orders.read")).toBe(true);
+		expect(roleHasCapability("user", "stock.adjust")).toBe(true);
+		expect(roleHasCapability("user", "orders.update_status")).toBe(true);
+		expect(roleHasCapability("user", "tools.create")).toBe(false);
+		expect(roleHasCapability("user", "orders.cancel")).toBe(false);
+		expect(roleHasCapability("user", "reviews.moderate")).toBe(false);
 	});
 	it("manager é alias de admin", () => {
-		expect(can("manager", "tools.create")).toBe(true);
-		expect(can("manager", "tools.delete")).toBe(false);
+		expect(roleHasCapability("manager", "tools.create")).toBe(true);
+		expect(roleHasCapability("manager", "tools.delete")).toBe(false);
 	});
 	it("role nula/desconhecida → nega", () => {
-		expect(can(null, "orders.read")).toBe(false);
-		expect(can("intruso", "orders.read" as never)).toBe(false);
+		expect(roleHasCapability(null, "orders.read")).toBe(false);
+		expect(roleHasCapability("intruso", "orders.read" as never)).toBe(false);
 	});
 });
 
@@ -88,9 +89,6 @@ const sessionSuspended = {
 const sessionSuperAdmin = {
 	user: { id: "actor-1", status: "active", role: "super_admin" },
 } as never;
-const sessionAdmin = {
-	user: { id: "actor-1", status: "active", role: "admin" },
-} as never;
 
 function mockTargetLookup(target: { role: string; status: string } | null) {
 	const limit = vi.fn(() => Promise.resolve(target ? [target] : []));
@@ -101,6 +99,12 @@ function mockTargetLookup(target: { role: string; status: string } | null) {
 
 function mockCountQuery(count: number) {
 	const where = vi.fn(() => Promise.resolve([{ value: count }]));
+	const from = vi.fn(() => ({ where }));
+	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+}
+
+function mockOverrides(rows: { capability: string; effect: string }[]) {
+	const where = vi.fn(() => Promise.resolve(rows));
 	const from = vi.fn(() => ({ where }));
 	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
 }
@@ -123,9 +127,11 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("gate de capability: role sem a cap é rejeitado (regressão P0)", async () => {
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
-			sessionActive
-		);
+		const s = {
+			user: { id: "guard-cap-1", status: "active", role: "user" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
 		// role "user" NÃO tem orders.refund — deve barrar pela capability,
 		// não passar batido só por estar ativo / sem contexto de filial.
 		await expect(
@@ -134,20 +140,50 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("self-action guard: usuário não pode se suspender", async () => {
+		const s = {
+			user: { id: "guard-self-1", status: "active", role: "super_admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
 		await expect(
-			requireCapabilityWithContext("users.suspend", { targetUserId: "actor-1" })
+			requireCapabilityWithContext("users.suspend", {
+				targetUserId: "guard-self-1",
+			})
+		).rejects.toThrow("Não é possível executar essa ação em si mesmo");
+	});
+
+	it("self-action guard: não gerencia as próprias permissões (permissions.manage)", async () => {
+		const s = {
+			user: { id: "guard-self-perm", status: "active", role: "super_admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
+		await expect(
+			requireCapabilityWithContext("permissions.manage", {
+				targetUserId: "guard-self-perm",
+			})
 		).rejects.toThrow("Não é possível executar essa ação em si mesmo");
 	});
 
 	it("self-action guard NÃO bloqueia caps fora de SELF_RESTRICTED", async () => {
+		const s = {
+			user: { id: "guard-self-2", status: "active", role: "super_admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
 		await expect(
 			requireCapabilityWithContext("users.reset_password", {
-				targetUserId: "actor-1",
+				targetUserId: "guard-self-2",
 			})
-		).resolves.toBe(sessionSuperAdmin);
+		).resolves.toBe(s);
 	});
 
 	it("last super_admin guard: rejeita se alvo é o último super_admin ativo", async () => {
+		const s = {
+			user: { id: "guard-lsa-1", status: "active", role: "super_admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
 		mockTargetLookup({ role: "super_admin", status: "active" });
 		mockCountQuery(0);
 		await expect(
@@ -156,17 +192,24 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("last super_admin guard: permite se há outros super_admin ativos", async () => {
+		const s = {
+			user: { id: "guard-lsa-2", status: "active", role: "super_admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
 		mockTargetLookup({ role: "super_admin", status: "active" });
 		mockCountQuery(2);
 		await expect(
 			requireCapabilityWithContext("users.delete", { targetUserId: "other-1" })
-		).resolves.toBe(sessionSuperAdmin);
+		).resolves.toBe(s);
 	});
 
 	it("hierarquia: admin não gerencia usuário de role igual/superior", async () => {
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
-			sessionAdmin
-		);
+		const s = {
+			user: { id: "guard-hier-1", status: "active", role: "admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
 		mockTargetLookup({ role: "admin", status: "active" });
 		await expect(
 			requireCapabilityWithContext("users.reset_password", {
@@ -176,22 +219,29 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("hierarquia: admin gerencia usuário de role user", async () => {
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
-			sessionAdmin
-		);
+		const s = {
+			user: { id: "guard-hier-2", status: "active", role: "admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
 		mockTargetLookup({ role: "user", status: "active" });
 		await expect(
 			requireCapabilityWithContext("users.reset_password", {
 				targetUserId: "other-user",
 			})
-		).resolves.toBe(sessionAdmin);
+		).resolves.toBe(s);
 	});
 
 	it("last super_admin guard: ignora alvo não-super_admin", async () => {
+		const s = {
+			user: { id: "guard-lsa-3", status: "active", role: "super_admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
 		mockTargetLookup({ role: "admin", status: "active" });
 		await expect(
 			requireCapabilityWithContext("users.delete", { targetUserId: "other-1" })
-		).resolves.toBe(sessionSuperAdmin);
+		).resolves.toBe(s);
 	});
 });
 
@@ -207,5 +257,47 @@ describe("requireUserDetailAccessOrRedirect", () => {
 		await expect(requireUserDetailAccessOrRedirect("actor-1")).resolves.toBe(
 			sessionActive
 		);
+	});
+});
+
+describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)", () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it("sem overrides = role default puro", async () => {
+		// id único por teste para garantir cache miss do React.cache
+		const s = {
+			user: { id: "ovr-1", role: "admin", status: "active" },
+		} as never;
+		mockOverrides([]);
+		const caps = await getUserCapabilities(s);
+		expect(caps.has("tools.create")).toBe(true);
+		expect(caps.has("tools.delete")).toBe(false);
+	});
+
+	it("grant adiciona capability acima do role", async () => {
+		const s = {
+			user: { id: "ovr-2", role: "admin", status: "active" },
+		} as never;
+		mockOverrides([{ capability: "tools.delete", effect: "grant" }]);
+		const caps = await getUserCapabilities(s);
+		expect(caps.has("tools.delete")).toBe(true);
+	});
+
+	it("revoke remove capability do role", async () => {
+		const s = {
+			user: { id: "ovr-3", role: "admin", status: "active" },
+		} as never;
+		mockOverrides([{ capability: "tools.create", effect: "revoke" }]);
+		const caps = await getUserCapabilities(s);
+		expect(caps.has("tools.create")).toBe(false);
+	});
+
+	it("ignora override de cap fora do registry (fail-closed)", async () => {
+		const s = {
+			user: { id: "ovr-4", role: "admin", status: "active" },
+		} as never;
+		mockOverrides([{ capability: "legado.removido", effect: "grant" }]);
+		const caps = await getUserCapabilities(s);
+		expect(caps.has("legado.removido" as never)).toBe(false);
 	});
 });

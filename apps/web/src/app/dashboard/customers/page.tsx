@@ -1,4 +1,3 @@
-import type { UserRole } from "@emach/db/schema/auth";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Empty,
@@ -35,9 +34,8 @@ export const dynamic = "force-dynamic";
 
 export default async function CustomersPage({ searchParams }: PageProps) {
 	const session = await requireCapability("customers.read");
-	const role = (session.user.role ?? "user") as UserRole;
 
-	const canExport = can(role, "customers.export");
+	const canExport = await can(session, "customers.export");
 
 	const raw = await searchParams;
 	const parsed = customersListFiltersSchema.safeParse(raw);

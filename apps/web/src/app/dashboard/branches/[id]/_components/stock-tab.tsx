@@ -54,7 +54,7 @@ export async function StockTab({
 	const session = await requireCapabilityWithContextOrRedirect("stock.adjust", {
 		targetBranchIds: [branchId],
 	});
-	const canMutate = can(session.user.role, "stock.adjust");
+	const canMutate = await can(session, "stock.adjust");
 
 	const [categories, suppliers] = await Promise.all([
 		db

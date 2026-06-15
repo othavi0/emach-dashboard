@@ -1,12 +1,25 @@
 import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
 import { asc } from "drizzle-orm";
-import { Activity, Briefcase, Lock, Monitor, User } from "lucide-react";
+import {
+	Activity,
+	Briefcase,
+	Lock,
+	Monitor,
+	ShieldCheck,
+	User,
+} from "lucide-react";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
-import { can, requireUserDetailAccessOrRedirect } from "@/lib/permissions";
+import { roleDefaultCapabilities } from "@/lib/capabilities";
+import {
+	can,
+	getUserCapabilities,
+	requireUserDetailAccessOrRedirect,
+} from "@/lib/permissions";
+import type { UserRole } from "@/lib/session";
 import type { UserRow } from "../_components/types";
 import { UserEditSheet } from "../_components/user-edit-sheet";
 import {
@@ -18,11 +31,13 @@ import {
 import { ActivityTab } from "./_components/activity-tab";
 import { BranchesTab } from "./_components/branches-tab";
 import { EditUserButton } from "./_components/edit-user-button";
+import { PermissionsTab } from "./_components/permissions-tab";
 import { ProfileTab } from "./_components/profile-tab";
 import { SecurityTab } from "./_components/security-tab";
 import { SessionsTab } from "./_components/sessions-tab";
 import { UserBranchLinkPanel } from "./_components/user-branch-link-panel";
 import { UserIdentity } from "./_components/user-identity";
+import { getUserOverrides } from "./permissions/data";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -36,7 +51,7 @@ export default async function UserDetailPage({
 	const { id } = await params;
 	const sp = await searchParams;
 	const actorSession = await requireUserDetailAccessOrRedirect(id);
-	const canDelete = can(actorSession.user.role, "users.delete");
+	const canDelete = await can(actorSession, "users.delete");
 
 	// availableBranches só é usada no painel "Vincular filial" (aba Filiais);
 	// evita varrer todas as filiais nas demais abas.
@@ -60,6 +75,32 @@ export default async function UserDetailPage({
 	}
 
 	const linkedIds = new Set(linkedBranches.map((b) => b.id));
+
+	const onPermissionsTab = sp.tab === "permissoes";
+	const canManagePermissions = await can(actorSession, "permissions.manage");
+	const actorRole = (actorSession.user.role ?? "user") as UserRole;
+	// Teto de hierarquia: super_admin gerencia todos; admin/manager (que têm
+	// permissions.manage por default) só gerenciam alvos role=user. O 2º branch
+	// independe de actorRole — quem tem a cap e mira um user entra (manager incluso).
+	const targetManageable =
+		actorRole === "super_admin" ||
+		(canManagePermissions && user.role === "user");
+
+	let permissionsTabContent: ReactNode = null;
+	if (targetManageable && onPermissionsTab) {
+		const [overrides, actorCaps] = await Promise.all([
+			getUserOverrides(user.id),
+			getUserCapabilities(actorSession),
+		]);
+		permissionsTabContent = (
+			<PermissionsTab
+				manageableCaps={[...actorCaps]}
+				overrides={[...overrides.entries()]}
+				roleDefaults={[...roleDefaultCapabilities(user.role as UserRole)]}
+				targetUserId={user.id}
+			/>
+		);
+	}
 
 	const tabs: EntityTab[] = [
 		{
@@ -105,6 +146,15 @@ export default async function UserDetailPage({
 			content: <SecurityTab canDelete={canDelete} user={user} />,
 		},
 	];
+
+	if (targetManageable) {
+		tabs.push({
+			value: "permissoes",
+			label: "Permissões",
+			icon: <ShieldCheck aria-hidden className="size-3.5" />,
+			content: permissionsTabContent,
+		});
+	}
 
 	let headerAction: ReactNode = null;
 	if (!sp.tab || sp.tab === "profile") {

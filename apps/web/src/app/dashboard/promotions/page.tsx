@@ -98,7 +98,7 @@ function buildStatusHref(
 
 export default async function PromotionsPage({ searchParams }: PageProps) {
 	const session = await requireCurrentSession();
-	const canMutate = can(session.user.role, "promotions.manage");
+	const canMutate = await can(session, "promotions.manage");
 
 	const params = await searchParams;
 	const search = params.search ?? "";

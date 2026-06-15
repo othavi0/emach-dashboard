@@ -6,7 +6,6 @@ import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
-import { requireCurrentSession, type UserRole } from "@/lib/session";
 import { getPromotion } from "../actions";
 import { OverviewTab } from "./_components/overview-tab";
 import { PromotionHeaderActions } from "./_components/promotion-header-actions";
@@ -24,11 +23,8 @@ export default async function PromotionDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
-	const session = await requireCurrentSession();
-	const role = (session.user.role as UserRole | undefined) ?? null;
-	const canDelete = can(role, "promotions.delete");
-
-	await requireCapabilityOrRedirect("promotions.manage");
+	const session = await requireCapabilityOrRedirect("promotions.manage");
+	const canDelete = await can(session, "promotions.delete");
 
 	const { id } = await params;
 	const sp = await searchParams;

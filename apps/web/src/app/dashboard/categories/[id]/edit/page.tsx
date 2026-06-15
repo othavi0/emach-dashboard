@@ -10,7 +10,6 @@ import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
-import { requireCurrentSession, type UserRole } from "@/lib/session";
 import type { InheritedRow, OwnRow } from "../../_components/attributes-table";
 import { CategoryAttributesPanel } from "../../_components/category-attributes-panel";
 import { CategoryForm } from "../../_components/category-form";
@@ -103,10 +102,8 @@ async function loadAttributeRows(
 }
 
 export default async function EditCategoryPage({ params }: PageProps) {
-	await requireCapabilityOrRedirect("categories.manage");
+	const session = await requireCapabilityOrRedirect("categories.manage");
 	const { id } = await params;
-	const session = await requireCurrentSession();
-	const role = (session.user.role as UserRole | undefined) ?? null;
 
 	const [existing, categories, attrRows] = await Promise.all([
 		getCategory(id),
@@ -117,6 +114,12 @@ export default async function EditCategoryPage({ params }: PageProps) {
 	if (!existing) {
 		notFound();
 	}
+
+	const [canCreate, canDelete, canUpdate] = await Promise.all([
+		can(session, "attributes.create"),
+		can(session, "attributes.delete"),
+		can(session, "attributes.update"),
+	]);
 
 	const nameBySlug = buildNameBySlug(categories);
 	const segments = breadcrumbFromPath(existing.path, nameBySlug);
@@ -143,9 +146,9 @@ export default async function EditCategoryPage({ params }: PageProps) {
 					mode="edit"
 				/>
 				<CategoryAttributesPanel
-					canCreate={can(role, "attributes.create")}
-					canDelete={can(role, "attributes.delete")}
-					canUpdate={can(role, "attributes.update")}
+					canCreate={canCreate}
+					canDelete={canDelete}
+					canUpdate={canUpdate}
 					categoryId={id}
 					categoryName={existing.name}
 					inheritedRows={attrRows.inheritedRows}

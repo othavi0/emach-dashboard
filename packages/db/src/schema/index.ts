@@ -17,3 +17,4 @@ export * from "./store-settings";
 export * from "./supplier-audit";
 export * from "./tools";
 export * from "./user-activity";
+export * from "./user-capability-override";
