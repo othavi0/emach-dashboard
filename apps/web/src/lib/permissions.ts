@@ -1,17 +1,24 @@
 import type { DashboardSession } from "@emach/auth/dashboard";
 import { db } from "@emach/db";
 import { user as userTable } from "@emach/db/schema/auth";
+import { userCapabilityOverride } from "@emach/db/schema/user-capability-override";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { getUserBranchScope, inScope } from "@/lib/branch-scope";
-import { type Capability, roleDefaultCapabilities } from "@/lib/capabilities";
+import {
+	type Capability,
+	isCapability,
+	roleDefaultCapabilities,
+} from "@/lib/capabilities";
 import {
 	ROLE_WEIGHT,
 	requireCurrentSession,
 	type UserRole,
 } from "@/lib/session";
 
-export type { Capability };
+// Re-export do tipo direto da fonte (evita lint/style/noExportedImports).
+export type { Capability } from "@/lib/capabilities";
 
 // Matriz de defaults derivada do registry (sem hardcode paralelo).
 const ROLE_CAPS: Record<UserRole, ReadonlySet<Capability>> = {
@@ -37,6 +44,33 @@ export function roleHasCapability(
 export function can(role: string | null | undefined, cap: Capability): boolean {
 	return roleHasCapability(role, cap);
 }
+
+// Conjunto efetivo de capabilities, resolvido UMA vez por request (React.cache
+// keya por identidade da session). base do role ± overrides do usuário.
+export const getUserCapabilities = cache(
+	async (session: DashboardSession): Promise<Set<Capability>> => {
+		const role = (session.user.role ?? "user") as UserRole;
+		const caps = roleDefaultCapabilities(role);
+		const overrides = await db
+			.select({
+				capability: userCapabilityOverride.capability,
+				effect: userCapabilityOverride.effect,
+			})
+			.from(userCapabilityOverride)
+			.where(eq(userCapabilityOverride.userId, session.user.id));
+		for (const o of overrides) {
+			if (!isCapability(o.capability)) {
+				continue; // cap removida do registry → ignora (fail-closed)
+			}
+			if (o.effect === "grant") {
+				caps.add(o.capability);
+			} else {
+				caps.delete(o.capability);
+			}
+		}
+		return caps;
+	}
+);
 
 // Listas intencionalmente separadas, ainda que coincidentes hoje:
 // SELF_RESTRICTED = caps proibidas contra si mesmo (UX, independente de outros guards).
@@ -94,7 +128,7 @@ export async function requireCapability(
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
 	ensureActive(session);
-	if (!can(session.user.role, cap)) {
+	if (!(await getUserCapabilities(session)).has(cap)) {
 		throw new Error(`Forbidden: capability "${cap}" requerida`);
 	}
 	return session;
@@ -105,7 +139,7 @@ export async function requireCapabilityOrRedirect(
 	redirectTo = "/dashboard"
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
-	if (!can(session.user.role, cap)) {
+	if (!(await getUserCapabilities(session)).has(cap)) {
 		redirect(redirectTo);
 	}
 	return session;
@@ -122,7 +156,7 @@ export async function requireUserDetailAccessOrRedirect(
 	if (session.user.id === targetUserId) {
 		return session;
 	}
-	if (!can(session.user.role, "users.manage")) {
+	if (!(await getUserCapabilities(session)).has("users.manage")) {
 		redirect(redirectTo);
 	}
 	return session;
@@ -183,7 +217,7 @@ export async function requireCapabilityWithContext(
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
 	ensureActive(session);
-	if (!can(session.user.role, cap)) {
+	if (!(await getUserCapabilities(session)).has(cap)) {
 		throw new Error(`Forbidden: capability "${cap}" requerida`);
 	}
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-	type Capability,
 	CAPABILITIES,
+	type Capability,
 	isCapability,
 	roleDefaultCapabilities,
 } from "@/lib/capabilities";
