@@ -3,7 +3,7 @@
 import { db } from "@emach/db";
 import { banner } from "@emach/db/schema/banner";
 import { and, asc, count, eq, ne, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { logUserActivity } from "@/lib/activity";
 import { getPgError } from "@/lib/db-error";
 import { logger } from "@/lib/logger";
@@ -99,6 +99,7 @@ export async function createBanner(
 			metadata: { title: v.title },
 		});
 		revalidatePath(BANNERS_PATH);
+		revalidateTag("site-banners", {});
 		return { ok: true, data: { id } };
 	} catch (error) {
 		logger.error("createBanner", { err: error });
@@ -147,6 +148,7 @@ export async function updateBanner(
 			metadata: { title: v.title },
 		});
 		revalidatePath(BANNERS_PATH);
+		revalidateTag("site-banners", {});
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateBanner", { err: error });
@@ -174,6 +176,7 @@ export async function toggleBannerActive(
 			targetId: id,
 		});
 		revalidatePath(BANNERS_PATH);
+		revalidateTag("site-banners", {});
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("toggleBannerActive", { err: error });
@@ -195,6 +198,7 @@ export async function reorderBanners(
 			}
 		});
 		revalidatePath(BANNERS_PATH);
+		revalidateTag("site-banners", {});
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("reorderBanners", { err: error });
@@ -231,6 +235,7 @@ export async function deleteBanner(id: string): Promise<ActionResult> {
 			targetId: id,
 		});
 		revalidatePath(BANNERS_PATH);
+		revalidateTag("site-banners", {});
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("deleteBanner", { err: error });
