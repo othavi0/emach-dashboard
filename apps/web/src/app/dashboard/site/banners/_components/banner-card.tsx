@@ -47,9 +47,9 @@ export function BannerCard({
 				{/* biome-ignore lint/performance/noImgElement: Supabase public URL */}
 				{/* biome-ignore lint/correctness/useImageSize: dimensões via CSS (inset-0 size-full) */}
 				<img
-					alt={item.altText}
+					alt={item.altText ?? ""}
 					className="absolute inset-0 size-full object-cover"
-					src={item.backgroundImageUrl}
+					src={item.backgroundImageUrl ?? undefined}
 				/>
 				{item.productImageUrl && (
 					// biome-ignore lint/performance/noImgElement: Supabase public URL
@@ -108,7 +108,10 @@ export function BannerCard({
 					>
 						<Pencil className="size-3.5" />
 					</Link>
-					<DeleteBannerDialog bannerId={item.id} bannerTitle={item.title} />
+					<DeleteBannerDialog
+						bannerId={item.id}
+						bannerTitle={item.title ?? ""}
+					/>
 				</div>
 				<Switch
 					aria-label={item.isActive ? "Despublicar" : "Publicar"}
