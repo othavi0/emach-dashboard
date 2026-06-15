@@ -1,158 +1,80 @@
 import type { DashboardSession } from "@emach/auth/dashboard";
 import { db } from "@emach/db";
 import { user as userTable } from "@emach/db/schema/auth";
+import { userCapabilityOverride } from "@emach/db/schema/user-capability-override";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { getUserBranchScope, inScope } from "@/lib/branch-scope";
+import {
+	type Capability,
+	isCapability,
+	roleDefaultCapabilities,
+} from "@/lib/capabilities";
 import {
 	ROLE_WEIGHT,
 	requireCurrentSession,
 	type UserRole,
 } from "@/lib/session";
 
-export type Capability =
-	| "tools.read"
-	| "tools.create"
-	| "tools.update"
-	| "tools.delete"
-	| "categories.read"
-	| "categories.manage"
-	| "categories.delete"
-	| "suppliers.read"
-	| "suppliers.manage"
-	| "branches.read"
-	| "branches.manage"
-	| "stock.read"
-	| "stock.adjust"
-	| "promotions.read"
-	| "promotions.manage"
-	| "promotions.delete"
-	| "orders.read"
-	| "orders.update_status"
-	| "orders.cancel"
-	| "orders.refund"
-	| "orders.add_note"
-	| "orders.export"
-	| "customers.read"
-	| "customers.update_status"
-	| "customers.export"
-	| "customers.manage_sessions"
-	| "customers.reset_password"
-	| "site.read"
-	| "site.update_banners"
-	| "site.update_settings"
-	| "site.publish_announcements"
-	| "reviews.read"
-	| "reviews.moderate"
-	| "users.manage"
-	| "users.approve"
-	| "users.update_role"
-	| "users.update_branches"
-	| "users.suspend"
-	| "users.reset_password"
-	| "users.revoke_sessions"
-	| "users.delete"
-	| "audit.read"
-	| "attributes.read"
-	| "attributes.create"
-	| "attributes.update"
-	| "attributes.delete";
+// Re-export do tipo direto da fonte (evita lint/style/noExportedImports).
+export type { Capability } from "@/lib/capabilities";
 
-const ALL_CAPS: readonly Capability[] = [
-	"tools.read",
-	"tools.create",
-	"tools.update",
-	"tools.delete",
-	"categories.read",
-	"categories.manage",
-	"categories.delete",
-	"suppliers.read",
-	"suppliers.manage",
-	"branches.read",
-	"branches.manage",
-	"stock.read",
-	"stock.adjust",
-	"promotions.read",
-	"promotions.manage",
-	"promotions.delete",
-	"orders.read",
-	"orders.update_status",
-	"orders.cancel",
-	"orders.refund",
-	"orders.add_note",
-	"orders.export",
-	"customers.read",
-	"customers.update_status",
-	"customers.export",
-	"customers.manage_sessions",
-	"customers.reset_password",
-	"site.read",
-	"site.update_banners",
-	"site.update_settings",
-	"site.publish_announcements",
-	"reviews.read",
-	"reviews.moderate",
-	"users.manage",
-	"users.approve",
-	"users.update_role",
-	"users.update_branches",
-	"users.suspend",
-	"users.reset_password",
-	"users.revoke_sessions",
-	"users.delete",
-	"audit.read",
-	"attributes.read",
-	"attributes.create",
-	"attributes.update",
-	"attributes.delete",
-];
-
-const USER_CAPS: readonly Capability[] = [
-	"tools.read",
-	"categories.read",
-	"suppliers.read",
-	"branches.read",
-	"stock.read",
-	"promotions.read",
-	"orders.read",
-	"customers.read",
-	"site.read",
-	"reviews.read",
-	"attributes.read",
-	"stock.adjust",
-	"orders.update_status",
-	"orders.add_note",
-];
-
-const SUPER_ADMIN_EXCLUSIVE: readonly Capability[] = [
-	"branches.manage",
-	"users.delete",
-	"site.update_banners",
-	"site.update_settings",
-	"site.publish_announcements",
-	"tools.delete",
-	"categories.delete",
-	"promotions.delete",
-	"attributes.delete",
-];
-
-const ADMIN_CAPS: readonly Capability[] = ALL_CAPS.filter(
-	(c) => !SUPER_ADMIN_EXCLUSIVE.includes(c)
-);
-
-const ROLE_CAPS: Record<UserRole, readonly Capability[]> = {
-	super_admin: ALL_CAPS,
-	admin: ADMIN_CAPS,
-	manager: ADMIN_CAPS,
-	user: USER_CAPS,
+// Matriz de defaults derivada do registry (sem hardcode paralelo).
+const ROLE_CAPS: Record<UserRole, ReadonlySet<Capability>> = {
+	super_admin: roleDefaultCapabilities("super_admin"),
+	admin: roleDefaultCapabilities("admin"),
+	manager: roleDefaultCapabilities("manager"),
+	user: roleDefaultCapabilities("user"),
 };
 
-export function can(role: string | null | undefined, cap: Capability): boolean {
+// Checagem PURA de role-default (sync). Não considera overrides — usar `can`
+// (async) para o conjunto efetivo. Mantida para display de "padrão do role" e testes.
+export function roleHasCapability(
+	role: string | null | undefined,
+	cap: Capability
+): boolean {
 	if (!(role && role in ROLE_CAPS)) {
 		return false;
 	}
-	return ROLE_CAPS[role as UserRole].includes(cap);
+	return ROLE_CAPS[role as UserRole].has(cap);
 }
+
+// Conjunto EFETIVO (role default ± overrides). Use em Server Components para
+// gating de UI. Para o default puro do role (sync), use roleHasCapability.
+export async function can(
+	session: DashboardSession,
+	cap: Capability
+): Promise<boolean> {
+	return (await getUserCapabilities(session)).has(cap);
+}
+
+// Conjunto efetivo de capabilities, resolvido UMA vez por request (React.cache
+// keya por identidade da session). base do role ± overrides do usuário.
+export const getUserCapabilities = cache(
+	async (session: DashboardSession): Promise<Set<Capability>> => {
+		const role = (session.user.role ?? "user") as UserRole;
+		const caps = roleDefaultCapabilities(role);
+		const overrides = await db
+			.select({
+				capability: userCapabilityOverride.capability,
+				effect: userCapabilityOverride.effect,
+			})
+			.from(userCapabilityOverride)
+			.where(eq(userCapabilityOverride.userId, session.user.id));
+		for (const o of overrides) {
+			if (!isCapability(o.capability)) {
+				continue; // cap removida do registry → ignora (fail-closed)
+			}
+			if (o.effect === "grant") {
+				caps.add(o.capability);
+			} else {
+				caps.delete(o.capability);
+			}
+		}
+		return caps;
+	}
+);
 
 // Listas intencionalmente separadas, ainda que coincidentes hoje:
 // SELF_RESTRICTED = caps proibidas contra si mesmo (UX, independente de outros guards).
@@ -162,6 +84,9 @@ const SELF_RESTRICTED: readonly Capability[] = [
 	"users.suspend",
 	"users.delete",
 	"users.update_role",
+	// Permissões são geridas de OUTROS usuários, nunca de si mesmo (evita drift
+	// role↔override e auto-gestão fora da hierarquia via self-bypass).
+	"permissions.manage",
 ];
 
 const LAST_SUPER_ADMIN_GUARDED: readonly Capability[] = [
@@ -210,7 +135,7 @@ export async function requireCapability(
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
 	ensureActive(session);
-	if (!can(session.user.role, cap)) {
+	if (!(await getUserCapabilities(session)).has(cap)) {
 		throw new Error(`Forbidden: capability "${cap}" requerida`);
 	}
 	return session;
@@ -221,7 +146,7 @@ export async function requireCapabilityOrRedirect(
 	redirectTo = "/dashboard"
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
-	if (!can(session.user.role, cap)) {
+	if (!(await getUserCapabilities(session)).has(cap)) {
 		redirect(redirectTo);
 	}
 	return session;
@@ -238,7 +163,7 @@ export async function requireUserDetailAccessOrRedirect(
 	if (session.user.id === targetUserId) {
 		return session;
 	}
-	if (!can(session.user.role, "users.manage")) {
+	if (!(await getUserCapabilities(session)).has("users.manage")) {
 		redirect(redirectTo);
 	}
 	return session;
@@ -299,7 +224,7 @@ export async function requireCapabilityWithContext(
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
 	ensureActive(session);
-	if (!can(session.user.role, cap)) {
+	if (!(await getUserCapabilities(session)).has(cap)) {
 		throw new Error(`Forbidden: capability "${cap}" requerida`);
 	}
 

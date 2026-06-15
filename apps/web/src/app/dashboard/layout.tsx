@@ -9,7 +9,6 @@ import { count, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/permissions";
-import type { UserRole } from "@/lib/session";
 import { getUserStatus, requireCurrentSession } from "@/lib/session";
 import { parseSidebarCookie, SIDEBAR_COOKIE_NAME } from "@/lib/sidebar-cookie";
 import { AppSidebar } from "./_components/app-sidebar";
@@ -27,9 +26,10 @@ export default async function DashboardLayout({
 		redirect("/suspended");
 	}
 
-	const role = (session.user.role ?? "user") as UserRole;
-	const canManageUsers = can(role, "users.approve");
-	const canUpdateSettings = can(role, "site.update_settings");
+	const [canManageUsers, canUpdateSettings] = await Promise.all([
+		can(session, "users.approve"),
+		can(session, "site.update_settings"),
+	]);
 
 	const [pendingCountRow, counts] = await Promise.all([
 		canManageUsers

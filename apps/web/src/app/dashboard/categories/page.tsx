@@ -1,4 +1,3 @@
-import type { UserRole } from "@emach/db/schema/auth";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Empty,
@@ -20,9 +19,10 @@ export const dynamic = "force-dynamic";
 
 export default async function CategoriesPage() {
 	const session = await requireCurrentSession();
-	const role = session.user.role as UserRole | undefined;
-	const canMutate = can(role, "categories.manage");
-	const canDelete = can(role, "categories.delete");
+	const [canMutate, canDelete] = await Promise.all([
+		can(session, "categories.manage"),
+		can(session, "categories.delete"),
+	]);
 
 	const categories = await listCategoriesForTree();
 	const isEmpty = categories.length === 0;

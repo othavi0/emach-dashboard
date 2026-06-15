@@ -1,4 +1,3 @@
-import type { UserRole } from "@emach/db/schema/auth";
 import { buttonVariants } from "@emach/ui/components/button";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -24,7 +23,7 @@ export default async function ReviewDetailPage({
 		notFound();
 	}
 
-	const role = (session.user.role ?? "user") as UserRole;
+	const canModerate = await can(session, "reviews.moderate");
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -46,7 +45,7 @@ export default async function ReviewDetailPage({
 
 			<div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_24rem]">
 				<ReviewDetailCard review={review} />
-				{can(role, "reviews.moderate") && <ModerateActions review={review} />}
+				{canModerate && <ModerateActions review={review} />}
 			</div>
 		</div>
 	);

@@ -18,7 +18,7 @@ interface PageProps {
 
 export default async function BranchesPage({ searchParams }: PageProps) {
 	const session = await requireCapabilityOrRedirect("branches.read");
-	const canManage = can(session.user.role, "branches.manage");
+	const canManage = await can(session, "branches.manage");
 	const sp = await searchParams;
 
 	const filters: BranchesFiltersInput = {
