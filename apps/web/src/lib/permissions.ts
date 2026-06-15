@@ -251,6 +251,9 @@ export async function requireCapabilityWithContext(
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
 	ensureActive(session);
+	if (!can(session.user.role, cap)) {
+		throw new Error(`Forbidden: capability "${cap}" requerida`);
+	}
 
 	if (
 		ctx.targetUserId &&

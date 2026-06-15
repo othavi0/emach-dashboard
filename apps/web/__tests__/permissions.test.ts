@@ -82,6 +82,9 @@ const sessionActive = {
 const sessionSuspended = {
 	user: { id: "actor-1", status: "suspended", role: "user" },
 } as never;
+const sessionSuperAdmin = {
+	user: { id: "actor-1", status: "active", role: "super_admin" },
+} as never;
 
 function mockTargetLookup(target: { role: string; status: string } | null) {
 	const limit = vi.fn(() => Promise.resolve(target ? [target] : []));
@@ -100,7 +103,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
-			sessionActive
+			sessionSuperAdmin
 		);
 	});
 
@@ -111,6 +114,17 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		await expect(
 			requireCapabilityWithContext("tools.delete", {})
 		).rejects.toThrow("Conta não ativa");
+	});
+
+	it("gate de capability: role sem a cap é rejeitado (regressão P0)", async () => {
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+			sessionActive
+		);
+		// role "user" NÃO tem orders.refund — deve barrar pela capability,
+		// não passar batido só por estar ativo / sem contexto de filial.
+		await expect(
+			requireCapabilityWithContext("orders.refund", {})
+		).rejects.toThrow(/capability "orders.refund"/);
 	});
 
 	it("self-action guard: usuário não pode se suspender", async () => {
@@ -124,7 +138,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 			requireCapabilityWithContext("users.reset_password", {
 				targetUserId: "actor-1",
 			})
-		).resolves.toBe(sessionActive);
+		).resolves.toBe(sessionSuperAdmin);
 	});
 
 	it("last super_admin guard: rejeita se alvo é o último super_admin ativo", async () => {
@@ -140,14 +154,14 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		mockCountQuery(2);
 		await expect(
 			requireCapabilityWithContext("users.delete", { targetUserId: "other-1" })
-		).resolves.toBe(sessionActive);
+		).resolves.toBe(sessionSuperAdmin);
 	});
 
 	it("last super_admin guard: ignora alvo não-super_admin", async () => {
 		mockTargetLookup({ role: "admin", status: "active" });
 		await expect(
 			requireCapabilityWithContext("users.delete", { targetUserId: "other-1" })
-		).resolves.toBe(sessionActive);
+		).resolves.toBe(sessionSuperAdmin);
 	});
 });
 
