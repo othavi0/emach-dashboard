@@ -86,8 +86,12 @@ export async function createBanner(
 			title: v.title,
 			subtitle: v.subtitle,
 			altText: v.altText,
+			badgeText: v.badgeText,
 			ctaLabel: v.ctaLabel,
 			ctaHref: v.ctaHref,
+			ctaVariant: v.ctaVariant,
+			layout: v.layout,
+			countdownTarget: v.countdownTarget,
 			isActive: v.isActive,
 			sortOrder: (maxRow?.max ?? -1) + 1,
 		});
@@ -135,8 +139,12 @@ export async function updateBanner(
 				title: v.title,
 				subtitle: v.subtitle,
 				altText: v.altText,
+				badgeText: v.badgeText,
 				ctaLabel: v.ctaLabel,
 				ctaHref: v.ctaHref,
+				ctaVariant: v.ctaVariant,
+				layout: v.layout,
+				countdownTarget: v.countdownTarget,
 				isActive: v.isActive,
 			})
 			.where(eq(banner.id, id));
