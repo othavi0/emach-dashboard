@@ -46,6 +46,7 @@ import {
 } from "../actions";
 import type { BranchStockRow } from "../branch-stock-data";
 import {
+	STOCK_MOVEMENT_REASON_LABELS,
 	type StockEntryInput,
 	type StockRecountInput,
 	type StockWriteOffInput,
@@ -72,14 +73,6 @@ const STATUS_CLASS: Record<StockStatus, string> = {
 	reorder: "bg-warning/15 text-warning",
 	ok: "bg-success/15 text-success",
 	none: "bg-muted text-muted-foreground",
-};
-
-const REASON_LABEL_FULL: Record<string, string> = {
-	entrada_compra: "Entrada compra",
-	saida_venda: "Saída venda",
-	ajuste_inventario: "Ajuste inventário",
-	perda: "Perda",
-	outro: "Outro",
 };
 
 // Labels para os motivos de baixa (sem depender do schema antigo)
@@ -133,7 +126,11 @@ function MovementRow({ m }: { m: StockMovementRow }) {
 			</span>
 			<div className="min-w-0 flex-1">
 				<p className="text-foreground">
-					{m.reason ? (REASON_LABEL_FULL[m.reason] ?? m.reason) : "Sem motivo"}
+					{m.reason
+						? (STOCK_MOVEMENT_REASON_LABELS[
+								m.reason as keyof typeof STOCK_MOVEMENT_REASON_LABELS
+							] ?? m.reason)
+						: "Sem motivo"}
 					{m.supplierName ? (
 						<span className="ml-1 text-muted-foreground">
 							· {m.supplierName}

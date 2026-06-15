@@ -1,19 +1,11 @@
 import { ArrowDown, ArrowUp, Pencil, X } from "lucide-react";
-
+import { STOCK_MOVEMENT_REASON_LABELS } from "@/app/dashboard/stock/_components/stock-movement-schema";
 import type { ToolActivityRow } from "@/app/dashboard/stock/actions";
 import {
 	formatDayMonthShort,
 	formatDayMonthShortYear,
 	formatTime,
 } from "@/lib/format/datetime";
-
-const REASON_LABEL: Record<string, string> = {
-	entrada_compra: "entrada compra",
-	saida_venda: "saída venda",
-	ajuste_inventario: "ajuste inventário",
-	perda: "perda",
-	outro: "outro",
-};
 
 function reasonIcon(reason: string | null) {
 	switch (reason) {
@@ -87,7 +79,13 @@ export function ActivityTimeline({ rows }: Props) {
 						{g.items.map((r) => {
 							const { Icon, color, bg } = reasonIcon(r.reason);
 							const reasonLabel =
-								REASON_LABEL[r.reason ?? ""] ?? r.reason ?? "—";
+								(r.reason
+									? STOCK_MOVEMENT_REASON_LABELS[
+											r.reason as keyof typeof STOCK_MOVEMENT_REASON_LABELS
+										]
+									: undefined) ??
+								r.reason ??
+								"—";
 							return (
 								<li
 									className="flex items-start gap-3 px-4 py-3 text-sm"
