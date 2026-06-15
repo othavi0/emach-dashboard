@@ -6,8 +6,13 @@ import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
 import { supplier } from "@emach/db/schema/tools";
 import { toDate } from "@emach/db/utils";
 import { desc, eq, sql } from "drizzle-orm";
+
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+
+/** tool_ids fornecidos por um supplier = têm ≥1 entrada_compra dele (ADR-0015). */
+const supplierToolIds = (supplierId: string) =>
+	sql`SELECT DISTINCT tv.tool_id FROM stock_movement sm JOIN tool_variant tv ON tv.id = sm.variant_id WHERE sm.reason = 'entrada_compra' AND sm.supplier_id = ${supplierId}`;
 
 export interface SupplierDetail {
 	cnpj: string | null;
@@ -49,11 +54,7 @@ export async function getSupplierDetail(
 			count(*) FILTER (WHERE t.status = 'active')::int AS "active",
 			count(*) FILTER (WHERE t.status <> 'active')::int AS "inactive"
 		FROM tool t
-		WHERE t.id IN (
-			SELECT DISTINCT tv.tool_id FROM stock_movement sm
-			JOIN tool_variant tv ON tv.id = sm.variant_id
-			WHERE sm.reason = 'entrada_compra' AND sm.supplier_id = ${id}
-		)
+		WHERE t.id IN (${supplierToolIds(id)})
 	`);
 	const counts = rows.rows[0];
 	return {
@@ -99,21 +100,13 @@ export async function getSupplierDetailKpis(
 				WHERE sm2.reason = 'entrada_compra' AND sm2.supplier_id = ${supplierId}
 			) AS "lastEntrada"
 		FROM tool t
-		WHERE t.id IN (
-			SELECT DISTINCT tv.tool_id FROM stock_movement sm
-			JOIN tool_variant tv ON tv.id = sm.variant_id
-			WHERE sm.reason = 'entrada_compra' AND sm.supplier_id = ${supplierId}
-		)
+		WHERE t.id IN (${supplierToolIds(supplierId)})
 	`);
 
 	const catRows = await db.execute<{ n: string }>(sql`
 		SELECT count(DISTINCT tc.category_id)::int AS "n"
 		FROM tool_category tc
-		WHERE tc.tool_id IN (
-			SELECT DISTINCT tv.tool_id FROM stock_movement sm
-			JOIN tool_variant tv ON tv.id = sm.variant_id
-			WHERE sm.reason = 'entrada_compra' AND sm.supplier_id = ${supplierId}
-		)
+		WHERE tc.tool_id IN (${supplierToolIds(supplierId)})
 	`);
 
 	const counts = countRows.rows[0];
@@ -196,12 +189,7 @@ export async function getSupplierStockTools({
 				  AND sm2.supplier_id = ${supplierId}
 			), 0) AS "receivedFromSupplier"
 		FROM tool t
-		WHERE t.id IN (
-			SELECT DISTINCT tv.tool_id
-			FROM stock_movement sm
-			JOIN tool_variant tv ON tv.id = sm.variant_id
-			WHERE sm.reason = 'entrada_compra' AND sm.supplier_id = ${supplierId}
-		)${searchClause}${cursorClause}
+		WHERE t.id IN (${supplierToolIds(supplierId)})${searchClause}${cursorClause}
 		ORDER BY t.created_at DESC, t.id DESC
 		LIMIT ${BATCH_SIZE + 1}
 	`);

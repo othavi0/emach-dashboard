@@ -14,6 +14,10 @@ import { useCallback } from "react";
 
 import type { ActiveSupplierOption } from "@/lib/suppliers";
 
+import {
+	STOCK_MOVEMENT_REASON_SHORT,
+	STOCK_MOVEMENT_REASONS,
+} from "../../_components/stock-movement-schema";
 import type { LedgerFilters, PeriodPreset } from "../../movements-data";
 
 const PERIOD_OPTIONS: Array<{ label: string; value: PeriodPreset }> = [
@@ -24,13 +28,10 @@ const PERIOD_OPTIONS: Array<{ label: string; value: PeriodPreset }> = [
 	{ value: "all", label: "Tudo" },
 ];
 
-const REASON_OPTIONS: Array<{ label: string; value: string }> = [
-	{ value: "entrada_compra", label: "Entrada" },
-	{ value: "saida_venda", label: "Saída" },
-	{ value: "ajuste_inventario", label: "Ajuste" },
-	{ value: "perda", label: "Perda" },
-	{ value: "outro", label: "Outro" },
-];
+const REASON_OPTIONS = STOCK_MOVEMENT_REASONS.map((r) => ({
+	value: r,
+	label: STOCK_MOVEMENT_REASON_SHORT[r],
+}));
 
 interface LedgerFiltersProps {
 	branches: Array<{ id: string; name: string }>;

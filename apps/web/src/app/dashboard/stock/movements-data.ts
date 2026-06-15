@@ -5,13 +5,18 @@ import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
 import { stockMovement } from "@emach/db/schema/stock-movements";
 import { supplier, tool, toolVariant } from "@emach/db/schema/tools";
-import { and, desc, eq, gte, inArray, lt, or } from "drizzle-orm";
+import { and, desc, eq, gte, inArray } from "drizzle-orm";
 
-import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
+import {
+	computePeriodCutoff,
+	encodeMovementCursor,
+	movementKeysetCondition,
+	type PeriodPreset,
+} from "./_lib/movements-shared";
 
-export type PeriodPreset = "today" | "7d" | "30d" | "90d" | "all";
+export type { PeriodPreset } from "./_lib/movements-shared";
 
 export interface LedgerFilters {
 	actorId?: string;
@@ -39,23 +44,6 @@ export interface LedgerRow {
 	toolId: string | null;
 	toolName: string | null;
 	variantSku: string | null;
-}
-
-const PERIOD_DAYS: Record<"7d" | "30d" | "90d", number> = {
-	"7d": 7,
-	"30d": 30,
-	"90d": 90,
-};
-
-function computePeriodCutoff(period: PeriodPreset): Date | null {
-	if (period === "all") {
-		return null;
-	}
-	const now = new Date();
-	if (period === "today") {
-		return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-	}
-	return new Date(now.getTime() - PERIOD_DAYS[period] * 86_400_000);
 }
 
 export async function fetchLedgerPage(
@@ -92,18 +80,9 @@ export async function fetchLedgerPage(
 		conditions.push(gte(stockMovement.createdAt, cutoff));
 	}
 
-	if (cursor) {
-		const c = decodeCursorAs(cursor, "activity");
-		const cursorClause = or(
-			lt(stockMovement.createdAt, new Date(c.createdAt)),
-			and(
-				eq(stockMovement.createdAt, new Date(c.createdAt)),
-				lt(stockMovement.id, c.id)
-			)
-		);
-		if (cursorClause) {
-			conditions.push(cursorClause);
-		}
+	const cursorClause = movementKeysetCondition(cursor);
+	if (cursorClause) {
+		conditions.push(cursorClause);
 	}
 
 	const rows = await db
@@ -139,16 +118,7 @@ export async function fetchLedgerPage(
 
 	const hasMore = rows.length > BATCH_SIZE;
 	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
-	const last = items.at(-1);
-	const nextCursor =
-		hasMore && last
-			? encodeCursor({
-					v: 1,
-					sort: "activity",
-					id: last.id,
-					createdAt: last.createdAt.toISOString(),
-				})
-			: null;
+	const nextCursor = encodeMovementCursor(items.at(-1), hasMore);
 
 	return { items, nextCursor };
 }
