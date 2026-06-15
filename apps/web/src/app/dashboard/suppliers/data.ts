@@ -7,7 +7,7 @@ import { supplier } from "@emach/db/schema/tools";
 import { toDate } from "@emach/db/utils";
 import { desc, eq, sql } from "drizzle-orm";
 
-import type { BranchScope } from "@/lib/branch-scope";
+import { type BranchScope, branchAndFilter } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
@@ -160,29 +160,9 @@ export async function getSupplierStockTools({
 			? sql` AND (t.created_at, t.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 			: sql``;
 
-	// Filtro de scope na subquery de estoque geral.
-	// super_admin (kind "all") → sem filtro de filial = soma cross-filial.
-	// scoped → apenas filiais atribuídas ao usuário.
-	const stockScopeFilter =
-		scope.kind === "scoped" && scope.branchIds.length > 0
-			? sql` AND sl.branch_id IN (${sql.join(
-					scope.branchIds.map((id) => sql`${id}`),
-					sql`, `
-				)})`
-			: scope.kind === "scoped"
-				? sql` AND false`
-				: sql``;
-
-	// Mesmo filtro para o agregado de entradas (stock_movement aliasado sm2).
-	const movementScopeFilter =
-		scope.kind === "scoped" && scope.branchIds.length > 0
-			? sql` AND sm2.branch_id IN (${sql.join(
-					scope.branchIds.map((id) => sql`${id}`),
-					sql`, `
-				)})`
-			: scope.kind === "scoped"
-				? sql` AND false`
-				: sql``;
+	// Filtro de scope nas subqueries de estoque/entradas (super_admin → cross-filial).
+	const stockScopeFilter = branchAndFilter(scope, sql`sl.branch_id`);
+	const movementScopeFilter = branchAndFilter(scope, sql`sm2.branch_id`);
 
 	// db.execute raw: subqueries escalares correlacionadas retornam null no db.select builder
 	// (armadilha documentada em packages/db/CLAUDE.md). Colunas aliasadas em camelCase.

@@ -249,6 +249,50 @@ interface CapabilityContext {
 	targetUserId?: string;
 }
 
+// Hierarquia de role: non-super_admin não gerencia usuário de role igual/superior
+// (admin nunca mexe em admin/super_admin). super_admin e self ignoram.
+async function assertManageableTarget(
+	session: DashboardSession,
+	targetUserId: string
+): Promise<void> {
+	if (targetUserId === session.user.id) {
+		return;
+	}
+	const actorRole = (session.user.role ?? "user") as UserRole;
+	if (actorRole === "super_admin") {
+		return;
+	}
+	const [target] = await db
+		.select({ role: userTable.role })
+		.from(userTable)
+		.where(eq(userTable.id, targetUserId))
+		.limit(1);
+	if (!target) {
+		throw new Error("Usuário alvo não encontrado");
+	}
+	if (ROLE_WEIGHT[target.role as UserRole] >= ROLE_WEIGHT[actorRole]) {
+		throw new Error(
+			"Não é possível gerenciar usuário com role igual ou superior"
+		);
+	}
+}
+
+// Branch-scoping: non-super_admin só age sobre filiais no próprio escopo.
+async function assertBranchScope(
+	session: DashboardSession,
+	targetBranchIds: string[]
+): Promise<void> {
+	if (session.user.role === "super_admin") {
+		return;
+	}
+	const scope = await getUserBranchScope(session);
+	for (const targetId of targetBranchIds) {
+		if (!inScope(scope, targetId)) {
+			throw new Error(`Filial fora do seu escopo: ${targetId}`);
+		}
+	}
+}
+
 export async function requireCapabilityWithContext(
 	cap: Capability,
 	ctx: CapabilityContext = {}
@@ -271,34 +315,12 @@ export async function requireCapabilityWithContext(
 		await assertNotLastActiveSuperAdmin(ctx.targetUserId);
 	}
 
-	// Hierarquia de role: non-super_admin não gerencia usuário de role igual/superior
-	// (admin nunca mexe em admin/super_admin). super_admin ignora.
-	if (ctx.targetUserId && ctx.targetUserId !== session.user.id) {
-		const actorRole = (session.user.role ?? "user") as UserRole;
-		if (actorRole !== "super_admin") {
-			const [target] = await db
-				.select({ role: userTable.role })
-				.from(userTable)
-				.where(eq(userTable.id, ctx.targetUserId))
-				.limit(1);
-			if (!target) {
-				throw new Error("Usuário alvo não encontrado");
-			}
-			if (ROLE_WEIGHT[target.role as UserRole] >= ROLE_WEIGHT[actorRole]) {
-				throw new Error(
-					"Não é possível gerenciar usuário com role igual ou superior"
-				);
-			}
-		}
+	if (ctx.targetUserId) {
+		await assertManageableTarget(session, ctx.targetUserId);
 	}
 
-	if (ctx.targetBranchIds && session.user.role !== "super_admin") {
-		const scope = await getUserBranchScope(session);
-		for (const targetId of ctx.targetBranchIds) {
-			if (!inScope(scope, targetId)) {
-				throw new Error(`Filial fora do seu escopo: ${targetId}`);
-			}
-		}
+	if (ctx.targetBranchIds) {
+		await assertBranchScope(session, ctx.targetBranchIds);
 	}
 
 	return session;

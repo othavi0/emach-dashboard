@@ -23,6 +23,7 @@ import {
 	getUserBranchScope,
 	isBlindScope,
 	orderBranchCondition,
+	orderBranchConditionNoAlias,
 	orderInScope,
 } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
@@ -548,24 +549,8 @@ export async function getOrdersTabCounts(): Promise<Record<string, number>> {
 		};
 	}
 
-	// As subqueries usam a tabela sem alias → construir condição inline.
-	// orderBranchCondition usa alias `o`, então derivamos a mesma lógica aqui.
-	const branchFilter: SQL | undefined =
-		scope.kind === "all"
-			? undefined
-			: scope.branchIds.length > 0 && scope.includeUnassigned
-				? sql`(branch_id IN (${sql.join(
-						scope.branchIds.map((id) => sql`${id}`),
-						sql`, `
-					)}) OR branch_id IS NULL)`
-				: scope.branchIds.length > 0
-					? sql`branch_id IN (${sql.join(
-							scope.branchIds.map((id) => sql`${id}`),
-							sql`, `
-						)})`
-					: scope.includeUnassigned
-						? sql`branch_id IS NULL`
-						: sql`false`;
+	// Subqueries usam a tabela sem alias → condição com coluna `branch_id`.
+	const branchFilter = orderBranchConditionNoAlias(scope);
 
 	const and = (base: SQL, extra: SQL | undefined): SQL =>
 		extra ? sql`${base} AND ${extra}` : base;
@@ -986,22 +971,7 @@ export async function getOrderKpis(): Promise<OrderKpis> {
 	}
 
 	// Query usa FROM "order" sem alias → condição referencia branch_id diretamente.
-	const branchFilter: SQL | undefined =
-		scope.kind === "all"
-			? undefined
-			: scope.branchIds.length > 0 && scope.includeUnassigned
-				? sql`(branch_id IN (${sql.join(
-						scope.branchIds.map((id) => sql`${id}`),
-						sql`, `
-					)}) OR branch_id IS NULL)`
-				: scope.branchIds.length > 0
-					? sql`branch_id IN (${sql.join(
-							scope.branchIds.map((id) => sql`${id}`),
-							sql`, `
-						)})`
-					: scope.includeUnassigned
-						? sql`branch_id IS NULL`
-						: sql`false`;
+	const branchFilter = orderBranchConditionNoAlias(scope);
 
 	const result = await db.execute<{
 		revenue_today: string | null;

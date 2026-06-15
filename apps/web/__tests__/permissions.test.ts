@@ -25,6 +25,8 @@ import {
 } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 
+const FORBIDDEN_REFUND_CAP_RE = /capability "orders\.refund"/;
+
 describe("matriz de capability (3 níveis)", () => {
 	it("super_admin pode tudo, inclusive exclusivos", () => {
 		for (const cap of [
@@ -128,7 +130,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		// não passar batido só por estar ativo / sem contexto de filial.
 		await expect(
 			requireCapabilityWithContext("orders.refund", {})
-		).rejects.toThrow(/capability "orders.refund"/);
+		).rejects.toThrow(FORBIDDEN_REFUND_CAP_RE);
 	});
 
 	it("self-action guard: usuário não pode se suspender", async () => {

@@ -54,26 +54,44 @@ export function orderInScope(
 	return scope.branchIds.includes(branchId);
 }
 
-// Condição SQL para listagens de Pedidos (alias `o`). Trata Pedido na triagem (branch_id NULL).
-// undefined = sem filtro (super_admin). sql`false` = cego (nada).
-export function orderBranchCondition(scope: BranchScope): SQL | undefined {
+// Condição SQL de filial para uma coluna arbitrária (ex: sql`o.branch_id`, sql`branch_id`).
+// undefined = sem filtro (super_admin). sql`false` = cego (nada). Trata triagem (NULL).
+function branchCondForColumn(scope: BranchScope, col: SQL): SQL | undefined {
 	if (scope.kind === "all") {
 		return;
 	}
 	const parts: SQL[] = [];
 	if (scope.branchIds.length > 0) {
 		parts.push(
-			sql`o.branch_id IN (${sql.join(
+			sql`${col} IN (${sql.join(
 				scope.branchIds.map((id) => sql`${id}`),
 				sql`, `
 			)})`
 		);
 	}
 	if (scope.includeUnassigned) {
-		parts.push(sql`o.branch_id IS NULL`);
+		parts.push(sql`${col} IS NULL`);
 	}
 	if (parts.length === 0) {
 		return sql`false`;
 	}
 	return sql`(${sql.join(parts, sql` OR `)})`;
+}
+
+// Listagens de Pedidos com alias `o`.
+export function orderBranchCondition(scope: BranchScope): SQL | undefined {
+	return branchCondForColumn(scope, sql`o.branch_id`);
+}
+
+// Subqueries de order SEM alias (coluna `branch_id`). undefined = super_admin.
+export function orderBranchConditionNoAlias(
+	scope: BranchScope
+): SQL | undefined {
+	return branchCondForColumn(scope, sql`branch_id`);
+}
+
+// Fragmento ` AND (...)` p/ anexar a um WHERE existente em subquery raw (ex: estoque com alias `sl`/`sm2`).
+export function branchAndFilter(scope: BranchScope, col: SQL): SQL {
+	const cond = branchCondForColumn(scope, col);
+	return cond ? sql` AND ${cond}` : sql``;
 }
