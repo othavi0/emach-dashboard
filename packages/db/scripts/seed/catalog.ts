@@ -7,6 +7,7 @@ import {
 } from "@emach/db/schema/attributes";
 import { category, toolCategory } from "@emach/db/schema/categories";
 import { supplier, tool, toolImage, toolVariant } from "@emach/db/schema/tools";
+import { env } from "@emach/env/server";
 import { sql } from "drizzle-orm";
 import type { SeedContext, Tx } from "./context";
 
@@ -745,6 +746,20 @@ const TOOLS: ToolDef[] = [
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: script de seed com múltiplas inserções sequenciais de entidades relacionadas — complexidade inerente ao domínio de bootstrap
 export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
+	// Imagens das tools: reaproveita os objetos `.webp` que JÁ existem no bucket
+	// `tool-images`. O seed não faz upload — fabricar paths `seed-*.jpg` deixava
+	// todos os cards sem imagem (objeto inexistente → 400/503). Referenciar os
+	// arquivos reais garante render. Fallback: bucket vazio → tool sem imagem
+	// (melhor que link morto).
+	const storageBase = `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/tool-images`;
+	const existingImages = await tx.execute<{ name: string }>(
+		sql`SELECT name FROM storage.objects
+			WHERE bucket_id = 'tool-images' AND name LIKE '%.webp'
+			ORDER BY created_at`
+	);
+	const imageNames = existingImages.rows.map((r) => r.name);
+	let imageCursor = 0;
+
 	// --- 1. Categorias ---
 	// Inserir em ordem topológica (pais antes de filhos).
 	// O trigger PL/pgSQL materializa path e depth — passar placeholders.
@@ -895,13 +910,14 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 			}
 		}
 
-		// Images
-		for (let i = 0; i < toolDef.imageCount; i++) {
-			const imageId = crypto.randomUUID();
+		// Images — reaproveita objetos reais do bucket (ver topo da função).
+		for (let i = 0; i < toolDef.imageCount && imageNames.length > 0; i++) {
+			const name = imageNames[imageCursor % imageNames.length];
+			imageCursor++;
 			await tx.insert(toolImage).values({
-				id: imageId,
+				id: crypto.randomUUID(),
 				toolId,
-				url: `https://wrxohbzepoyscsacjzvd.supabase.co/storage/v1/object/public/tool-images/seed-${toolDef.slug}-${i + 1}.jpg`,
+				url: `${storageBase}/${name}`,
 				sortOrder: i,
 			});
 		}
