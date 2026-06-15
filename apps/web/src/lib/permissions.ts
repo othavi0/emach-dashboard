@@ -84,6 +84,9 @@ const SELF_RESTRICTED: readonly Capability[] = [
 	"users.suspend",
 	"users.delete",
 	"users.update_role",
+	// Permissões são geridas de OUTROS usuários, nunca de si mesmo (evita drift
+	// role↔override e auto-gestão fora da hierarquia via self-bypass).
+	"permissions.manage",
 ];
 
 const LAST_SUPER_ADMIN_GUARDED: readonly Capability[] = [

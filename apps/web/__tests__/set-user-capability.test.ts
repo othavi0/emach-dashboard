@@ -94,4 +94,45 @@ describe("setUserCapability — teto e validações", () => {
 		expect(r.ok).toBe(true);
 		expect(db.delete).toHaveBeenCalled();
 	});
+
+	it("revoke válido: insere effect=revoke e audita permission.revoked", async () => {
+		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
+			new Set(["tools.create"])
+		);
+		mockTargetBranches(["b1"]);
+		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
+		const values = vi.fn(() => ({ onConflictDoUpdate }));
+		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
+		const r = await setUserCapability({
+			targetUserId: "u1",
+			capability: "tools.create",
+			state: "revoke",
+		});
+		expect(r.ok).toBe(true);
+		expect(values).toHaveBeenCalledWith(
+			expect.objectContaining({ effect: "revoke" })
+		);
+		expect(logUserActivity).toHaveBeenCalledWith(
+			expect.objectContaining({ action: "permission.revoked", targetId: "u1" })
+		);
+	});
+
+	it("erro de banco: retorna ok:false genérico (não vaza)", async () => {
+		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
+			new Set(["tools.create"])
+		);
+		mockTargetBranches(["b1"]);
+		(db.insert as ReturnType<typeof vi.fn>).mockImplementation(() => {
+			throw new Error("violates foreign key constraint xyz");
+		});
+		const r = await setUserCapability({
+			targetUserId: "u1",
+			capability: "tools.create",
+			state: "grant",
+		});
+		expect(r.ok).toBe(false);
+		if (!r.ok) {
+			expect(r.error).not.toContain("foreign key");
+		}
+	});
 });

@@ -152,6 +152,19 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		).rejects.toThrow("Não é possível executar essa ação em si mesmo");
 	});
 
+	it("self-action guard: não gerencia as próprias permissões (permissions.manage)", async () => {
+		const s = {
+			user: { id: "guard-self-perm", status: "active", role: "super_admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
+		await expect(
+			requireCapabilityWithContext("permissions.manage", {
+				targetUserId: "guard-self-perm",
+			})
+		).rejects.toThrow("Não é possível executar essa ação em si mesmo");
+	});
+
 	it("self-action guard NÃO bloqueia caps fora de SELF_RESTRICTED", async () => {
 		const s = {
 			user: { id: "guard-self-2", status: "active", role: "super_admin" },
