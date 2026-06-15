@@ -7,17 +7,9 @@ import Link from "next/link";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { formatDateTime } from "@/lib/format/datetime";
 import { useInfiniteList } from "@/lib/use-infinite-list";
-
+import { STOCK_MOVEMENT_REASON_LABELS } from "../../_components/stock-movement-schema";
 import type { LedgerFilters, LedgerRow } from "../../movements-data";
 import { fetchLedgerPageAction } from "../actions";
-
-const REASON_LABEL: Record<string, string> = {
-	entrada_compra: "Entrada compra",
-	saida_venda: "Saída venda",
-	ajuste_inventario: "Ajuste inventário",
-	perda: "Perda",
-	outro: "Outro",
-};
 
 function reasonIcon(reason: string | null) {
 	switch (reason) {
@@ -40,7 +32,14 @@ function reasonIcon(reason: string | null) {
 
 function LedgerRowItem({ row }: { row: LedgerRow }) {
 	const { Icon, color, bg } = reasonIcon(row.reason);
-	const reasonLabel = REASON_LABEL[row.reason ?? ""] ?? row.reason ?? "—";
+	const reasonLabel =
+		(row.reason
+			? STOCK_MOVEMENT_REASON_LABELS[
+					row.reason as keyof typeof STOCK_MOVEMENT_REASON_LABELS
+				]
+			: undefined) ??
+		row.reason ??
+		"—";
 	const deltaPositive = row.delta >= 0;
 
 	return (

@@ -9,6 +9,26 @@ export const STOCK_MOVEMENT_REASONS = [
 ] as const;
 export type StockMovementReason = (typeof STOCK_MOVEMENT_REASONS)[number];
 
+/** Labels completos (Title case) para exibição em listas e drawers. */
+export const STOCK_MOVEMENT_REASON_LABELS: Record<StockMovementReason, string> =
+	{
+		entrada_compra: "Entrada compra",
+		saida_venda: "Saída venda",
+		ajuste_inventario: "Ajuste inventário",
+		perda: "Perda",
+		outro: "Outro",
+	};
+
+/** Labels curtos para chips de filtro. */
+export const STOCK_MOVEMENT_REASON_SHORT: Record<StockMovementReason, string> =
+	{
+		entrada_compra: "Entrada",
+		saida_venda: "Saída",
+		ajuste_inventario: "Ajuste",
+		perda: "Perda",
+		outro: "Outro",
+	};
+
 const variantBranch = {
 	variantId: z.string().min(1, "Variante obrigatória"),
 	branchId: z.string().min(1, "Filial obrigatória"),
