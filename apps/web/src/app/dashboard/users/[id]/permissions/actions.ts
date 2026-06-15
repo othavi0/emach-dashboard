@@ -98,7 +98,11 @@ export async function setUserCapability(
 						userCapabilityOverride.userId,
 						userCapabilityOverride.capability,
 					],
-					set: { effect: state, grantedBy: actorSession.user.id },
+					set: {
+						effect: state,
+						grantedBy: actorSession.user.id,
+						grantedAt: new Date(),
+					},
 				});
 		}
 

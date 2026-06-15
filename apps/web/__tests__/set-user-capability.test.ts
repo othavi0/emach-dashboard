@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/activity", () => ({ logUserActivity: vi.fn() }));
+vi.mock("@/lib/logger", () => ({ logger: { error: vi.fn() } }));
 vi.mock("@/lib/permissions", () => ({
 	requireCapabilityWithContext: vi.fn(),
 	getUserCapabilities: vi.fn(),
@@ -13,6 +14,7 @@ vi.mock("@emach/db", () => ({
 import { db } from "@emach/db";
 import { setUserCapability } from "@/app/dashboard/users/[id]/permissions/actions";
 import { logUserActivity } from "@/lib/activity";
+import { logger } from "@/lib/logger";
 import {
 	getUserCapabilities,
 	requireCapabilityWithContext,
@@ -93,6 +95,9 @@ describe("setUserCapability — teto e validações", () => {
 		});
 		expect(r.ok).toBe(true);
 		expect(db.delete).toHaveBeenCalled();
+		expect(logUserActivity).toHaveBeenCalledWith(
+			expect.objectContaining({ action: "permission.reset", targetId: "u1" })
+		);
 	});
 
 	it("revoke válido: insere effect=revoke e audita permission.revoked", async () => {
@@ -134,5 +139,9 @@ describe("setUserCapability — teto e validações", () => {
 		if (!r.ok) {
 			expect(r.error).not.toContain("foreign key");
 		}
+		expect(logger.error).toHaveBeenCalledWith(
+			"setUserCapability",
+			expect.any(Error)
+		);
 	});
 });
