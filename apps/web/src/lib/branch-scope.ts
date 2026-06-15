@@ -39,6 +39,21 @@ export function isBlindScope(scope: BranchScope): boolean {
 	);
 }
 
+// Um Pedido (leitura unitária: detalhe, atividade) é visível? Espelha
+// `orderBranchCondition`: super_admin tudo; admin própria filial + triagem; user só filial.
+export function orderInScope(
+	scope: BranchScope,
+	branchId: string | null
+): boolean {
+	if (scope.kind === "all") {
+		return true;
+	}
+	if (branchId === null) {
+		return scope.includeUnassigned;
+	}
+	return scope.branchIds.includes(branchId);
+}
+
 // Condição SQL para listagens de Pedidos (alias `o`). Trata Pedido na triagem (branch_id NULL).
 // undefined = sem filtro (super_admin). sql`false` = cego (nada).
 export function orderBranchCondition(scope: BranchScope): SQL | undefined {

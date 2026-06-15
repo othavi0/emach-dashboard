@@ -23,6 +23,7 @@ import {
 	getUserBranchScope,
 	isBlindScope,
 	orderBranchCondition,
+	orderInScope,
 } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
@@ -648,6 +649,7 @@ export async function getOrderReviewsOverview(
 }
 
 export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
+	const scope = await getUserBranchScope(await requireCurrentSession());
 	const [base, items, history, notes, attachmentRows, refundRows, eventRows] =
 		await Promise.all([
 			db.execute<{
@@ -805,6 +807,10 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 
 	const row = base.rows[0];
 	if (!row) {
+		return null;
+	}
+	// Branch-scoping: pedido fora do escopo do staff é invisível (404), inclusive triagem p/ user.
+	if (!orderInScope(scope, row.branch_id)) {
 		return null;
 	}
 
