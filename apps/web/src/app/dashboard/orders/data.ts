@@ -18,7 +18,7 @@ import {
 	orderStatusHistory,
 	refundRequest,
 } from "@emach/db/schema/orders";
-import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { asc, desc, eq, inArray, type SQL, sql } from "drizzle-orm";
 import {
 	getUserBranchScope,
 	isBlindScope,
@@ -499,6 +499,11 @@ export interface OrderActivityRow {
 export async function getRecentOrderActivity(
 	limit = 15
 ): Promise<OrderActivityRow[]> {
+	const scope = await getUserBranchScope(await requireCurrentSession());
+	if (isBlindScope(scope)) {
+		return [];
+	}
+	const branchCond = orderBranchCondition(scope);
 	const result = await db.execute<{
 		created_at: Date;
 		id: string;
@@ -514,6 +519,7 @@ export async function getRecentOrderActivity(
 			osh.created_at
 		FROM order_status_history osh
 		JOIN "order" o ON o.id = osh.order_id
+		${branchCond ? sql`WHERE ${branchCond}` : sql``}
 		ORDER BY osh.created_at DESC
 		LIMIT ${limit}
 	`);
@@ -527,17 +533,54 @@ export async function getRecentOrderActivity(
 }
 
 export async function getOrdersTabCounts(): Promise<Record<string, number>> {
+	const scope = await getUserBranchScope(await requireCurrentSession());
+	if (isBlindScope(scope)) {
+		return {
+			all_count: 0,
+			pending_payment: 0,
+			payment_failed: 0,
+			paid: 0,
+			preparing: 0,
+			shipped: 0,
+			delivered: 0,
+			returned: 0,
+			canceled: 0,
+		};
+	}
+
+	// As subqueries usam a tabela sem alias → construir condição inline.
+	// orderBranchCondition usa alias `o`, então derivamos a mesma lógica aqui.
+	const branchFilter: SQL | undefined =
+		scope.kind === "all"
+			? undefined
+			: scope.branchIds.length > 0 && scope.includeUnassigned
+				? sql`(branch_id IN (${sql.join(
+						scope.branchIds.map((id) => sql`${id}`),
+						sql`, `
+					)}) OR branch_id IS NULL)`
+				: scope.branchIds.length > 0
+					? sql`branch_id IN (${sql.join(
+							scope.branchIds.map((id) => sql`${id}`),
+							sql`, `
+						)})`
+					: scope.includeUnassigned
+						? sql`branch_id IS NULL`
+						: sql`false`;
+
+	const and = (base: SQL, extra: SQL | undefined): SQL =>
+		extra ? sql`${base} AND ${extra}` : base;
+
 	const result = await db.execute<Record<string, number>>(sql`
 		SELECT
-			(SELECT COUNT(*)::int FROM "order") AS all_count,
-			(SELECT COUNT(*)::int FROM "order" WHERE status = 'pending_payment') AS pending_payment,
-			(SELECT COUNT(*)::int FROM "order" WHERE status = 'payment_failed') AS payment_failed,
-			(SELECT COUNT(*)::int FROM "order" WHERE status = 'paid') AS paid,
-			(SELECT COUNT(*)::int FROM "order" WHERE status = 'preparing') AS preparing,
-			(SELECT COUNT(*)::int FROM "order" WHERE status = 'shipped') AS shipped,
-			(SELECT COUNT(*)::int FROM "order" WHERE status = 'delivered') AS delivered,
-			(SELECT COUNT(*)::int FROM "order" WHERE status = 'returned') AS returned,
-			(SELECT COUNT(*)::int FROM "order" WHERE status IN ('canceled', 'refunded')) AS canceled
+			(SELECT COUNT(*)::int FROM "order" ${branchFilter ? sql`WHERE ${branchFilter}` : sql``}) AS all_count,
+			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'pending_payment'`, branchFilter)}) AS pending_payment,
+			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'payment_failed'`, branchFilter)}) AS payment_failed,
+			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'paid'`, branchFilter)}) AS paid,
+			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'preparing'`, branchFilter)}) AS preparing,
+			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'shipped'`, branchFilter)}) AS shipped,
+			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'delivered'`, branchFilter)}) AS delivered,
+			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'returned'`, branchFilter)}) AS returned,
+			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status IN ('canceled', 'refunded')`, branchFilter)}) AS canceled
 	`);
 
 	return (
@@ -932,6 +975,34 @@ export interface OrderKpis {
 }
 
 export async function getOrderKpis(): Promise<OrderKpis> {
+	const scope = await getUserBranchScope(await requireCurrentSession());
+	if (isBlindScope(scope)) {
+		return {
+			revenueToday: 0,
+			revenueYesterday: 0,
+			averageTicket: 0,
+			paidPercent: 0,
+		};
+	}
+
+	// Query usa FROM "order" sem alias → condição referencia branch_id diretamente.
+	const branchFilter: SQL | undefined =
+		scope.kind === "all"
+			? undefined
+			: scope.branchIds.length > 0 && scope.includeUnassigned
+				? sql`(branch_id IN (${sql.join(
+						scope.branchIds.map((id) => sql`${id}`),
+						sql`, `
+					)}) OR branch_id IS NULL)`
+				: scope.branchIds.length > 0
+					? sql`branch_id IN (${sql.join(
+							scope.branchIds.map((id) => sql`${id}`),
+							sql`, `
+						)})`
+					: scope.includeUnassigned
+						? sql`branch_id IS NULL`
+						: sql`false`;
+
 	const result = await db.execute<{
 		revenue_today: string | null;
 		revenue_yesterday: string | null;
@@ -963,6 +1034,7 @@ export async function getOrderKpis(): Promise<OrderKpis> {
 				)
 			END AS paid_percent
 		FROM "order"
+		${branchFilter ? sql`WHERE ${branchFilter}` : sql``}
 	`);
 
 	const row = result.rows[0];

@@ -2,6 +2,11 @@ import { db } from "@emach/db";
 import { toDate } from "@emach/db/utils";
 import { sql } from "drizzle-orm";
 
+import {
+	getUserBranchScope,
+	isBlindScope,
+	orderBranchCondition,
+} from "@/lib/branch-scope";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { ordersListFiltersSchema } from "../schema";
@@ -67,6 +72,17 @@ function parseSearchParams(req: Request): RawSearchParams {
 export async function GET(req: Request) {
 	const session = await requireCapability("orders.export");
 
+	const scope = await getUserBranchScope(session);
+	if (isBlindScope(scope)) {
+		return new Response("", {
+			headers: {
+				"Content-Type": "text/csv; charset=utf-8",
+				"Content-Disposition": `attachment; filename="pedidos-${new Date().toISOString().slice(0, 10)}.csv"`,
+				"Cache-Control": "no-store",
+			},
+		});
+	}
+
 	const raw = parseSearchParams(req);
 	const parsed = ordersListFiltersSchema.safeParse(raw);
 	if (!parsed.success) {
@@ -75,6 +91,12 @@ export async function GET(req: Request) {
 	const filters = parsed.data;
 
 	const conditions = [] as ReturnType<typeof sql>[];
+
+	// Filtro de filial: sempre aplicado antes dos demais filtros (alias `o`).
+	const branchCond = orderBranchCondition(scope);
+	if (branchCond) {
+		conditions.push(branchCond);
+	}
 
 	// Export de selecionados: IDs explícitos substituem os filtros de listagem.
 	const selectedIds = filters.ids
