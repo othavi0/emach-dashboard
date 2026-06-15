@@ -6,7 +6,7 @@ import { branch } from "@emach/db/schema/inventory";
 import { stockMovement } from "@emach/db/schema/stock-movements";
 import { supplier, tool, toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq, gte, inArray } from "drizzle-orm";
-import { getUserBranchScope } from "@/lib/branch-scope";
+import { getUserBranchScope, inScope } from "@/lib/branch-scope";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 import {
@@ -64,7 +64,11 @@ export async function fetchLedgerPage(
 		conditions.push(eq(toolVariant.toolId, filters.toolId));
 	}
 	if (filters.branchId) {
-		// Filtro explícito do usuário — já restringe; scope é validado pelo gate de mutação.
+		// LEITURA: validar que a filial pedida está no escopo (senão um user de A
+		// leria o ledger de B via ?branchId=<id-de-B>).
+		if (!inScope(scope, filters.branchId)) {
+			return { items: [], nextCursor: null };
+		}
 		conditions.push(eq(stockMovement.branchId, filters.branchId));
 	} else if (scope.kind === "scoped") {
 		// Sem filtro explícito: restringir ao escopo do usuário.

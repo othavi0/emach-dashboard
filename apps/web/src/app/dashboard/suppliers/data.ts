@@ -173,6 +173,17 @@ export async function getSupplierStockTools({
 				? sql` AND false`
 				: sql``;
 
+	// Mesmo filtro para o agregado de entradas (stock_movement aliasado sm2).
+	const movementScopeFilter =
+		scope.kind === "scoped" && scope.branchIds.length > 0
+			? sql` AND sm2.branch_id IN (${sql.join(
+					scope.branchIds.map((id) => sql`${id}`),
+					sql`, `
+				)})`
+			: scope.kind === "scoped"
+				? sql` AND false`
+				: sql``;
+
 	// db.execute raw: subqueries escalares correlacionadas retornam null no db.select builder
 	// (armadilha documentada em packages/db/CLAUDE.md). Colunas aliasadas em camelCase.
 	const result = await db.execute<{
@@ -202,7 +213,7 @@ export async function getSupplierStockTools({
 				JOIN tool_variant tv3 ON tv3.id = sm2.variant_id
 				WHERE tv3.tool_id = t.id
 				  AND sm2.reason = 'entrada_compra'
-				  AND sm2.supplier_id = ${supplierId}
+				  AND sm2.supplier_id = ${supplierId}${movementScopeFilter}
 			), 0) AS "receivedFromSupplier"
 		FROM tool t
 		WHERE t.id IN (${supplierToolIds(supplierId)})${searchClause}${cursorClause}

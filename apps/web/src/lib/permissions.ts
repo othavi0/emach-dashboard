@@ -4,7 +4,11 @@ import { user as userTable } from "@emach/db/schema/auth";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getUserBranchScope, inScope } from "@/lib/branch-scope";
-import { requireCurrentSession, type UserRole } from "@/lib/session";
+import {
+	ROLE_WEIGHT,
+	requireCurrentSession,
+	type UserRole,
+} from "@/lib/session";
 
 export type Capability =
 	| "tools.read"
@@ -265,6 +269,27 @@ export async function requireCapabilityWithContext(
 
 	if (ctx.targetUserId && LAST_SUPER_ADMIN_GUARDED.includes(cap)) {
 		await assertNotLastActiveSuperAdmin(ctx.targetUserId);
+	}
+
+	// Hierarquia de role: non-super_admin não gerencia usuário de role igual/superior
+	// (admin nunca mexe em admin/super_admin). super_admin ignora.
+	if (ctx.targetUserId && ctx.targetUserId !== session.user.id) {
+		const actorRole = (session.user.role ?? "user") as UserRole;
+		if (actorRole !== "super_admin") {
+			const [target] = await db
+				.select({ role: userTable.role })
+				.from(userTable)
+				.where(eq(userTable.id, ctx.targetUserId))
+				.limit(1);
+			if (!target) {
+				throw new Error("Usuário alvo não encontrado");
+			}
+			if (ROLE_WEIGHT[target.role as UserRole] >= ROLE_WEIGHT[actorRole]) {
+				throw new Error(
+					"Não é possível gerenciar usuário com role igual ou superior"
+				);
+			}
+		}
 	}
 
 	if (ctx.targetBranchIds && session.user.role !== "super_admin") {

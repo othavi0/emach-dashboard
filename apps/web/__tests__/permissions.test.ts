@@ -8,6 +8,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/session", () => ({
 	requireCurrentSession: vi.fn(),
+	ROLE_WEIGHT: { super_admin: 4, admin: 3, manager: 2, user: 1 },
 }));
 
 vi.mock("@emach/db", () => ({
@@ -85,6 +86,9 @@ const sessionSuspended = {
 const sessionSuperAdmin = {
 	user: { id: "actor-1", status: "active", role: "super_admin" },
 } as never;
+const sessionAdmin = {
+	user: { id: "actor-1", status: "active", role: "admin" },
+} as never;
 
 function mockTargetLookup(target: { role: string; status: string } | null) {
 	const limit = vi.fn(() => Promise.resolve(target ? [target] : []));
@@ -155,6 +159,30 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		await expect(
 			requireCapabilityWithContext("users.delete", { targetUserId: "other-1" })
 		).resolves.toBe(sessionSuperAdmin);
+	});
+
+	it("hierarquia: admin não gerencia usuário de role igual/superior", async () => {
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+			sessionAdmin
+		);
+		mockTargetLookup({ role: "admin", status: "active" });
+		await expect(
+			requireCapabilityWithContext("users.reset_password", {
+				targetUserId: "other-admin",
+			})
+		).rejects.toThrow("role igual ou superior");
+	});
+
+	it("hierarquia: admin gerencia usuário de role user", async () => {
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+			sessionAdmin
+		);
+		mockTargetLookup({ role: "user", status: "active" });
+		await expect(
+			requireCapabilityWithContext("users.reset_password", {
+				targetUserId: "other-user",
+			})
+		).resolves.toBe(sessionAdmin);
 	});
 
 	it("last super_admin guard: ignora alvo não-super_admin", async () => {

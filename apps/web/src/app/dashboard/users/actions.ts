@@ -306,7 +306,12 @@ export async function updateUser(
 		return { ok: false, error: "validação" };
 	}
 
-	let session = await requireCurrentSession();
+	// Baseline obrigatório p/ qualquer campo (inclusive só emailVerified): users.manage
+	// + active + hierarquia (admin não toca admin/super_admin). Fecha o bypass em que
+	// um payload só-emailVerified passava sem nenhum gate.
+	const session = await requireCapabilityWithContext("users.manage", {
+		targetUserId: parsed.data.userId,
+	});
 
 	try {
 		const [current] = await db
@@ -319,15 +324,9 @@ export async function updateUser(
 
 		const roleChanged =
 			parsed.data.role !== undefined && parsed.data.role !== current.role;
-		const nameChanged = parsed.data.name !== undefined;
 
 		if (roleChanged) {
-			session = await requireCapabilityWithContext("users.update_role", {
-				targetUserId: parsed.data.userId,
-			});
-		}
-		if (nameChanged) {
-			session = await requireCapabilityWithContext("users.manage", {
+			await requireCapabilityWithContext("users.update_role", {
 				targetUserId: parsed.data.userId,
 			});
 		}
