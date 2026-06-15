@@ -13,27 +13,83 @@ import { notify } from "@/lib/notify";
 import { useFormErrors } from "@/lib/use-form-errors";
 import { createBanner, updateBanner } from "../actions";
 import { BannerLivePreview } from "./banner-live-preview";
+import { type BannerPreset, SLOT_FIELDS, type SlotKey } from "./banner-presets";
 import { type BannerFormValues, bannerFormSchema } from "./banner-schema";
+import { CountdownField } from "./countdown-field";
+import { CtaVariantPicker } from "./cta-variant-picker";
 import { ImageUploadTile } from "./image-upload-tile";
+import { LayoutPicker } from "./layout-picker";
+import { PresetCards } from "./preset-cards";
+import { SlotSection } from "./slot-section";
 
-function initial(banner?: Banner): BannerFormValues {
+const ALL_SLOTS: SlotKey[] = [
+	"background",
+	"product",
+	"title",
+	"badge",
+	"countdown",
+	"cta",
+];
+
+const EMPTY: BannerFormValues = {
+	backgroundImageUrl: null,
+	backgroundImageMobileUrl: null,
+	productImageUrl: null,
+	productImageMobileUrl: null,
+	title: null,
+	subtitle: null,
+	altText: null,
+	badgeText: null,
+	ctaLabel: null,
+	ctaHref: null,
+	ctaVariant: "red",
+	layout: "split",
+	countdownTarget: null,
+	isActive: false,
+};
+
+function initialValues(banner?: Banner): BannerFormValues {
+	if (!banner) {
+		return EMPTY;
+	}
 	return {
-		backgroundImageUrl: banner?.backgroundImageUrl ?? "",
-		backgroundImageMobileUrl: banner?.backgroundImageMobileUrl ?? null,
-		productImageUrl: banner?.productImageUrl ?? null,
-		productImageMobileUrl: banner?.productImageMobileUrl ?? null,
-		title: banner?.title ?? "",
-		subtitle: banner?.subtitle ?? null,
-		altText: banner?.altText ?? "",
-		ctaLabel: banner?.ctaLabel ?? "",
-		ctaHref: banner?.ctaHref ?? "",
-		isActive: banner?.isActive ?? false,
+		backgroundImageUrl: banner.backgroundImageUrl,
+		backgroundImageMobileUrl: banner.backgroundImageMobileUrl,
+		productImageUrl: banner.productImageUrl,
+		productImageMobileUrl: banner.productImageMobileUrl,
+		title: banner.title,
+		subtitle: banner.subtitle,
+		altText: banner.altText,
+		badgeText: banner.badgeText,
+		ctaLabel: banner.ctaLabel,
+		ctaHref: banner.ctaHref,
+		ctaVariant: banner.ctaVariant,
+		layout: banner.layout,
+		countdownTarget: banner.countdownTarget,
+		isActive: banner.isActive,
+	};
+}
+
+function deriveSlots(v: BannerFormValues): Record<SlotKey, boolean> {
+	return {
+		background: v.backgroundImageUrl !== null,
+		product: v.productImageUrl !== null,
+		title: v.title !== null,
+		badge: v.badgeText !== null,
+		countdown: v.countdownTarget !== null,
+		cta: v.ctaLabel !== null || v.ctaHref !== null,
 	};
 }
 
 export function BannerForm({ banner }: { banner?: Banner }) {
 	const router = useRouter();
-	const [values, setValues] = useState<BannerFormValues>(() => initial(banner));
+	const [values, setValues] = useState<BannerFormValues>(() =>
+		initialValues(banner)
+	);
+	const [slots, setSlots] = useState<Record<SlotKey, boolean>>(() =>
+		deriveSlots(initialValues(banner))
+	);
+	const [presetKey, setPresetKey] = useState<string | null>(null);
 	const [pending, startTransition] = useTransition();
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<BannerFormValues>();
@@ -45,10 +101,55 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 		setValues((prev) => ({ ...prev, [key]: v }));
 	}
 
+	function toggleSlot(key: SlotKey, on: boolean) {
+		setSlots((prev) => ({ ...prev, [key]: on }));
+		if (!on) {
+			setValues((prev) => {
+				const next = { ...prev };
+				for (const f of SLOT_FIELDS[key]) {
+					Reflect.set(next, f, null);
+				}
+				return next;
+			});
+		}
+		setPresetKey(null);
+	}
+
+	function applyPreset(preset: BannerPreset) {
+		const enabled = new Set(preset.slots);
+		setSlots(() => {
+			const next = {} as Record<SlotKey, boolean>;
+			for (const k of ALL_SLOTS) {
+				next[k] = enabled.has(k);
+			}
+			return next;
+		});
+		setValues((prev) => {
+			const next = { ...prev, layout: preset.layout };
+			for (const k of ALL_SLOTS) {
+				if (!enabled.has(k)) {
+					for (const f of SLOT_FIELDS[k]) {
+						Reflect.set(next, f, null);
+					}
+				}
+			}
+			return next;
+		});
+		setPresetKey(preset.key);
+	}
+
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		clearErrors();
-		const parsed = bannerFormSchema.safeParse(values);
+		const clean = { ...values };
+		for (const key of ALL_SLOTS) {
+			if (!slots[key]) {
+				for (const f of SLOT_FIELDS[key]) {
+					Reflect.set(clean, f, null);
+				}
+			}
+		}
+		const parsed = bannerFormSchema.safeParse(clean);
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
 			return;
@@ -72,21 +173,37 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 			className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]"
 			onSubmit={handleSubmit}
 		>
-			<div className="flex flex-col gap-5">
+			<div className="flex flex-col gap-4">
+				<div>
+					<p className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+						Começar de um preset
+					</p>
+					<PresetCards onSelect={applyPreset} selectedKey={presetKey} />
+				</div>
+
 				<fieldset className="rounded-xl border border-border bg-card p-4">
 					<legend className="px-1 font-medium text-muted-foreground text-xs uppercase tracking-wider">
-						Imagens
+						Disposição
 					</legend>
+					<LayoutPicker
+						onChange={(l) => set("layout", l)}
+						value={values.layout}
+					/>
+				</fieldset>
+
+				<SlotSection
+					enabled={slots.background}
+					id="slot-background"
+					onToggle={(on) => toggleSlot("background", on)}
+					title="Fundo"
+				>
 					<div className="grid grid-cols-2 gap-3">
 						<ImageUploadTile
 							help="2560×1440 · 16:9 · WebP/JPG · ≤500KB"
 							label="Fundo · desktop"
 							maxBytes={512_000}
-							onChange={(u) => {
-								set("backgroundImageUrl", u ?? "");
-							}}
-							required
-							value={values.backgroundImageUrl || null}
+							onChange={(u) => set("backgroundImageUrl", u)}
+							value={values.backgroundImageUrl}
 						/>
 						<ImageUploadTile
 							help="1080×1920 · 9:16 · ≤350KB · cai pro desktop se vazio"
@@ -95,6 +212,36 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 							onChange={(u) => set("backgroundImageMobileUrl", u)}
 							value={values.backgroundImageMobileUrl}
 						/>
+					</div>
+					<div className="mt-3">
+						<LabeledField
+							error={errors.altText}
+							help={
+								<HelpTooltip text="Descreve a imagem de fundo para leitores de tela." />
+							}
+							id="banner-alt-text"
+							label="Texto alternativo (alt)"
+							required
+						>
+							{(f) => (
+								<Input
+									{...f}
+									onChange={(e) => set("altText", e.target.value || null)}
+									placeholder="Ex: EMACH — Potência redefinida"
+									value={values.altText ?? ""}
+								/>
+							)}
+						</LabeledField>
+					</div>
+				</SlotSection>
+
+				<SlotSection
+					enabled={slots.product}
+					id="slot-product"
+					onToggle={(on) => toggleSlot("product", on)}
+					title="Produto central"
+				>
+					<div className="grid grid-cols-2 gap-3">
 						<ImageUploadTile
 							help="~2400px · PNG transparente · ≤800KB"
 							label="Produto · desktop"
@@ -110,31 +257,32 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 							value={values.productImageMobileUrl}
 						/>
 					</div>
-					<FieldError>{errors.backgroundImageUrl}</FieldError>
-				</fieldset>
+				</SlotSection>
 
-				<fieldset className="rounded-xl border border-border bg-card p-4">
-					<legend className="px-1 font-medium text-muted-foreground text-xs uppercase tracking-wider">
-						Conteúdo
-					</legend>
+				<SlotSection
+					enabled={slots.title}
+					id="slot-title"
+					onToggle={(on) => toggleSlot("title", on)}
+					title="Título + descrição"
+				>
 					<div className="flex flex-col gap-3">
 						<LabeledField
 							error={errors.title}
 							id="banner-title"
-							label={`Título (${values.title.length}/80)`}
-							required
+							label={`Título (${(values.title ?? "").length}/80)`}
 						>
 							{(f) => (
 								<Input
 									{...f}
 									maxLength={80}
 									onBlur={() => {
-										if (!values.altText) {
+										if (values.backgroundImageUrl && !values.altText) {
 											set("altText", values.title);
 										}
 									}}
-									onChange={(e) => set("title", e.target.value)}
-									value={values.title}
+									onChange={(e) => set("title", e.target.value || null)}
+									placeholder="Ex: Potência redefinida"
+									value={values.title ?? ""}
 								/>
 							)}
 						</LabeledField>
@@ -148,47 +296,80 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 									{...f}
 									maxLength={140}
 									onChange={(e) => set("subtitle", e.target.value || null)}
+									placeholder="Ex: A nova linha que redefine o canteiro"
 									value={values.subtitle ?? ""}
 								/>
 							)}
 						</LabeledField>
-						<LabeledField
-							error={errors.altText}
-							help={
-								<HelpTooltip text="Descreve a imagem de fundo para leitores de tela." />
-							}
-							id="banner-alt-text"
-							label="Texto alternativo (alt)"
-							required
-						>
-							{(f) => (
-								<Input
-									{...f}
-									onChange={(e) => set("altText", e.target.value)}
-									value={values.altText}
-								/>
-							)}
-						</LabeledField>
 					</div>
-				</fieldset>
+				</SlotSection>
 
-				<fieldset className="rounded-xl border border-border bg-card p-4">
-					<legend className="px-1 font-medium text-muted-foreground text-xs uppercase tracking-wider">
-						Botão (CTA)
-					</legend>
+				<SlotSection
+					enabled={slots.badge}
+					id="slot-badge"
+					onToggle={(on) => toggleSlot("badge", on)}
+					title="Badge / selo"
+				>
+					<LabeledField
+						error={errors.badgeText}
+						id="banner-badge"
+						label={`Texto do selo (${(values.badgeText ?? "").length}/16)`}
+					>
+						{(f) => (
+							<Input
+								{...f}
+								maxLength={16}
+								onChange={(e) => set("badgeText", e.target.value || null)}
+								placeholder="LANÇAMENTO"
+								value={values.badgeText ?? ""}
+							/>
+						)}
+					</LabeledField>
+				</SlotSection>
+
+				<SlotSection
+					enabled={slots.countdown}
+					id="slot-countdown"
+					onToggle={(on) => toggleSlot("countdown", on)}
+					title="Countdown"
+				>
+					<LabeledField
+						error={errors.countdownTarget}
+						help={
+							<HelpTooltip text="Contador regressivo até esta data/hora no storefront." />
+						}
+						id="banner-countdown"
+						label="Data/hora alvo"
+					>
+						{() => (
+							<CountdownField
+								ariaInvalid={Boolean(errors.countdownTarget)}
+								onChange={(d) => set("countdownTarget", d)}
+								value={values.countdownTarget}
+							/>
+						)}
+					</LabeledField>
+				</SlotSection>
+
+				<SlotSection
+					enabled={slots.cta}
+					id="slot-cta"
+					onToggle={(on) => toggleSlot("cta", on)}
+					title="Botão (CTA)"
+				>
 					<div className="flex flex-col gap-3">
 						<LabeledField
 							error={errors.ctaLabel}
 							id="banner-cta-label"
-							label={`Rótulo (${values.ctaLabel.length}/30)`}
-							required
+							label={`Rótulo (${(values.ctaLabel ?? "").length}/30)`}
 						>
 							{(f) => (
 								<Input
 									{...f}
 									maxLength={30}
-									onChange={(e) => set("ctaLabel", e.target.value)}
-									value={values.ctaLabel}
+									onChange={(e) => set("ctaLabel", e.target.value || null)}
+									placeholder="Ex: Ver Catálogo"
+									value={values.ctaLabel ?? ""}
 								/>
 							)}
 						</LabeledField>
@@ -199,19 +380,29 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 							}
 							id="banner-cta-href"
 							label="Link"
-							required
 						>
 							{(f) => (
 								<Input
 									{...f}
-									onChange={(e) => set("ctaHref", e.target.value)}
+									onChange={(e) => set("ctaHref", e.target.value || null)}
 									placeholder="/catalog"
-									value={values.ctaHref}
+									value={values.ctaHref ?? ""}
 								/>
 							)}
 						</LabeledField>
+						<div>
+							<p className="mb-1.5 text-muted-foreground text-xs">
+								Variante de cor
+							</p>
+							<CtaVariantPicker
+								onChange={(v) => set("ctaVariant", v)}
+								value={values.ctaVariant}
+							/>
+						</div>
 					</div>
-				</fieldset>
+				</SlotSection>
+
+				<FieldError>{errors._form}</FieldError>
 
 				<fieldset className="rounded-xl border border-border bg-card p-4">
 					<legend className="px-1 font-medium text-muted-foreground text-xs uppercase tracking-wider">
@@ -240,7 +431,7 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 				</div>
 			</div>
 
-			<BannerLivePreview values={values} />
+			<BannerLivePreview slots={slots} values={values} />
 		</form>
 	);
 }
