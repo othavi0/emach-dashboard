@@ -18,15 +18,19 @@ import { ImageUploadTile } from "./image-upload-tile";
 
 function initial(banner?: Banner): BannerFormValues {
 	return {
-		backgroundImageUrl: banner?.backgroundImageUrl ?? "",
+		backgroundImageUrl: banner?.backgroundImageUrl ?? null,
 		backgroundImageMobileUrl: banner?.backgroundImageMobileUrl ?? null,
 		productImageUrl: banner?.productImageUrl ?? null,
 		productImageMobileUrl: banner?.productImageMobileUrl ?? null,
-		title: banner?.title ?? "",
+		title: banner?.title ?? null,
 		subtitle: banner?.subtitle ?? null,
-		altText: banner?.altText ?? "",
-		ctaLabel: banner?.ctaLabel ?? "",
-		ctaHref: banner?.ctaHref ?? "",
+		altText: banner?.altText ?? null,
+		badgeText: banner?.badgeText ?? null,
+		ctaLabel: banner?.ctaLabel ?? null,
+		ctaHref: banner?.ctaHref ?? null,
+		ctaVariant: banner?.ctaVariant ?? "red",
+		layout: banner?.layout ?? "split",
+		countdownTarget: banner?.countdownTarget ?? null,
 		isActive: banner?.isActive ?? false,
 	};
 }
@@ -121,7 +125,7 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 						<LabeledField
 							error={errors.title}
 							id="banner-title"
-							label={`Título (${values.title.length}/80)`}
+							label={`Título (${(values.title ?? "").length}/80)`}
 							required
 						>
 							{(f) => (
@@ -133,8 +137,8 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 											set("altText", values.title);
 										}
 									}}
-									onChange={(e) => set("title", e.target.value)}
-									value={values.title}
+									onChange={(e) => set("title", e.target.value || null)}
+									value={values.title ?? ""}
 								/>
 							)}
 						</LabeledField>
@@ -164,8 +168,8 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 							{(f) => (
 								<Input
 									{...f}
-									onChange={(e) => set("altText", e.target.value)}
-									value={values.altText}
+									onChange={(e) => set("altText", e.target.value || null)}
+									value={values.altText ?? ""}
 								/>
 							)}
 						</LabeledField>
@@ -180,15 +184,14 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 						<LabeledField
 							error={errors.ctaLabel}
 							id="banner-cta-label"
-							label={`Rótulo (${values.ctaLabel.length}/30)`}
-							required
+							label={`Rótulo (${(values.ctaLabel ?? "").length}/30)`}
 						>
 							{(f) => (
 								<Input
 									{...f}
 									maxLength={30}
-									onChange={(e) => set("ctaLabel", e.target.value)}
-									value={values.ctaLabel}
+									onChange={(e) => set("ctaLabel", e.target.value || null)}
+									value={values.ctaLabel ?? ""}
 								/>
 							)}
 						</LabeledField>
@@ -199,14 +202,13 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 							}
 							id="banner-cta-href"
 							label="Link"
-							required
 						>
 							{(f) => (
 								<Input
 									{...f}
-									onChange={(e) => set("ctaHref", e.target.value)}
+									onChange={(e) => set("ctaHref", e.target.value || null)}
 									placeholder="/catalog"
-									value={values.ctaHref}
+									value={values.ctaHref ?? ""}
 								/>
 							)}
 						</LabeledField>
