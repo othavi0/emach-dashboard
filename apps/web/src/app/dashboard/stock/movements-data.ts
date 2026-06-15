@@ -6,7 +6,7 @@ import { branch } from "@emach/db/schema/inventory";
 import { stockMovement } from "@emach/db/schema/stock-movements";
 import { supplier, tool, toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq, gte, inArray } from "drizzle-orm";
-
+import { getUserBranchScope } from "@/lib/branch-scope";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 import {
@@ -50,7 +50,13 @@ export async function fetchLedgerPage(
 	filters: LedgerFilters,
 	cursor: string | null
 ): Promise<InfiniteResult<LedgerRow>> {
-	await requireCapability("stock.read");
+	const session = await requireCapability("stock.read");
+	const scope = await getUserBranchScope(session);
+
+	// Escopo cego: usuário sem filial atribuída, sem direito de ver triagem → vazio.
+	if (scope.kind === "scoped" && scope.branchIds.length === 0) {
+		return { items: [], nextCursor: null };
+	}
 
 	const conditions: ReturnType<typeof eq>[] = [];
 
@@ -58,7 +64,11 @@ export async function fetchLedgerPage(
 		conditions.push(eq(toolVariant.toolId, filters.toolId));
 	}
 	if (filters.branchId) {
+		// Filtro explícito do usuário — já restringe; scope é validado pelo gate de mutação.
 		conditions.push(eq(stockMovement.branchId, filters.branchId));
+	} else if (scope.kind === "scoped") {
+		// Sem filtro explícito: restringir ao escopo do usuário.
+		conditions.push(inArray(stockMovement.branchId, scope.branchIds));
 	}
 	if (filters.supplierId) {
 		conditions.push(eq(stockMovement.supplierId, filters.supplierId));

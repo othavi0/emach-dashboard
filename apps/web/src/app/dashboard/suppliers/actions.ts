@@ -6,6 +6,7 @@ import { supplier } from "@emach/db/schema/tools";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { logUserActivity } from "@/lib/activity";
+import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
@@ -313,6 +314,8 @@ export async function fetchSupplierStockPage({
 	search?: string;
 	cursor: string | null;
 }): Promise<InfiniteResult<SupplierStockToolRow>> {
+	const session = await requireCapability("stock.read");
+	const scope = await getUserBranchScope(session);
 	const { getSupplierStockTools } = await import("./data");
-	return await getSupplierStockTools({ supplierId, search, cursor });
+	return await getSupplierStockTools({ supplierId, search, cursor, scope });
 }
