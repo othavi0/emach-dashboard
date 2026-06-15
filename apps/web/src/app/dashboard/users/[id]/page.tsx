@@ -19,7 +19,7 @@ import {
 	getUserCapabilities,
 	requireUserDetailAccessOrRedirect,
 } from "@/lib/permissions";
-import type { UserRole } from "@/lib/session";
+import { ROLE_WEIGHT, type UserRole } from "@/lib/session";
 import type { UserRow } from "../_components/types";
 import { UserEditSheet } from "../_components/user-edit-sheet";
 import {
@@ -79,12 +79,15 @@ export default async function UserDetailPage({
 	const onPermissionsTab = sp.tab === "permissoes";
 	const canManagePermissions = await can(actorSession, "permissions.manage");
 	const actorRole = (actorSession.user.role ?? "user") as UserRole;
-	// Teto de hierarquia: super_admin gerencia todos; admin/manager (que têm
-	// permissions.manage por default) só gerenciam alvos role=user. O 2º branch
-	// independe de actorRole — quem tem a cap e mira um user entra (manager incluso).
+	// Espelha assertManageableTarget (servidor): nunca si mesmo; super_admin
+	// gerencia qualquer outro; admin/manager só quem está estritamente abaixo na
+	// hierarquia (ROLE_WEIGHT). Mantém a UI alinhada ao que a action aceita —
+	// sem aba "morta" (self / role igual) nem aba escondida (admin × manager).
 	const targetManageable =
-		actorRole === "super_admin" ||
-		(canManagePermissions && user.role === "user");
+		canManagePermissions &&
+		actorSession.user.id !== user.id &&
+		(actorRole === "super_admin" ||
+			ROLE_WEIGHT[actorRole] > ROLE_WEIGHT[user.role as UserRole]);
 
 	let permissionsTabContent: ReactNode = null;
 	if (targetManageable && onPermissionsTab) {
