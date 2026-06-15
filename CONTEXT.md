@@ -39,13 +39,13 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 - **Client (Cliente)** — comprador final brasileiro, dono dos pedidos. Tabela `client`. Identificado por `document` (CPF/CNPJ normalizado, só dígitos). Autentica pela instância **ecommerce** do Better Auth; o dashboard apenas **lê** dados de Client, nunca cria sessão de Client.
 - **Client type (B2C / B2B)** — `clientType`: rótulo de **segmentação** do Client (pessoa física × jurídica), apenas para filtro e relatório. Não dirige preço, regra fiscal nem fluxo — não há precificação por tipo. **Derivado automaticamente** do `document` por trigger (`derive_client_type`: CPF → `b2c`, CNPJ → `b2b`); override manual é respeitado. `null` apenas quando `document` é nulo.
 - **Client Address (Endereço do cliente)** — endereço cadastrado de um Client (tabela `client_address`), com um default por cliente. **Distinto** do `shipping_address` do Order (snapshot JSONB congelado no checkout).
-- **Role** — papel hierárquico do staff: `super_admin` > `admin` > `manager` > `user`. Agrega um conjunto de Capabilities. `client` **não** tem role.
+- **Role** — papel hierárquico do staff: `super_admin` > `admin` > `user` (**3 níveis**). Agrega um conjunto de Capabilities. `client` **não** tem role. O enum Postgres ainda carrega `manager` por compatibilidade, mas o nível está **aposentado** — `manager` é tratado como `admin` (migração de dado `manager → admin`).
 - **Capability** — permissão granular (`tools.create`, `orders.refund`, `reviews.moderate`, …). É a unidade real de autorização; `role` só mapeia para um conjunto de Capabilities. Server actions sensíveis começam com `requireCapability(cap)`.
-- **Branch-scoping** — restrição de uma ação às filiais do staff. `userBranch` liga staff↔filial; `requireCapabilityWithContext` valida que o alvo está no escopo. `super_admin` ignora o escopo.
+- **Branch-scoping** — restrição do staff às suas filiais (`userBranch` liga staff↔filial), em **dois planos**: **visibilidade** (listagens de Pedidos e Stock Levels só mostram dados das filiais do staff) e **ação** (`requireCapabilityWithContext` valida que o alvo está no escopo). Só se aplica a contextos com filial — **Vendas e Inventory**; Catálogo, Clientes, Reviews e Store Settings são **globais** (governados só por Capability). Staff sem nenhuma filial vinculada vê/age sobre **nada** (fail-closed). `super_admin` ignora o escopo (vê tudo, inclusive Pedidos na triagem); `admin` enxerga adicionalmente os Pedidos na triagem; `user` só a própria filial.
 - **Actor** — quem causou uma mutação auditável: `user` (um membro do staff) ou `system` (automação sem usuário humano — inclui as escritas do app e-commerce, como o débito de estoque por venda). Enum `actor_type`.
 - **User status** — `pending` (convidado, aguardando aceite) → `active` → `suspended`. O acesso é **convite-only** (ADR-0013): admin convida, o user nasce `pending` com `inviteToken`, e vira `active` ao aceitar (definir nome + senha). Não há mais auto-cadastro.
 - **User Activity Log** — trilha de atividade do staff no dashboard (tabela `user_activity_log`): `action`, `targetType`, `targetId`, `metadata`. Sobrevive ao delete do ator via snapshot do nome em `metadata` (ADR-0011). **Distinto** do Client Audit Log (que rastreia mutações de dados de Client).
-- **Convite (Invitation)** — mecanismo de onboarding de staff. Um admin convida (email + cargo + filiais); cria-se o `user` em `pending` com `inviteToken`/`inviteTokenExpiresAt` (7 dias, single-use) na própria linha de `user` — **não há tabela `invite`**. O aceite em `/convite?token=…` cria a credential, seta `active` e loga. Ver ADR-0013.
+- **Convite (Invitation)** — mecanismo de onboarding de staff. Um admin convida (email + cargo + filiais); cria-se o `user` em `pending` com `inviteToken`/`inviteTokenExpiresAt` (7 dias, single-use) na própria linha de `user` — **não há tabela `invite`**. **Cargo `admin`/`user` exige ≥1 filial no convite** (invariante "todo staff operacional pertence a ≥1 filial"); `super_admin` é convidado sem filial (escopo global). O aceite em `/convite?token=…` cria a credential, seta `active` e loga. Ver ADR-0013.
 
 ### Catálogo
 
@@ -73,7 +73,7 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
   - **Ajuste de inventário (Recontagem)** — o staff informa a **quantidade-alvo** (não um delta) numa recontagem física; o sistema calcula o `delta`. `reason='ajuste_inventario'`; sem Fornecedor.
 
   O débito de venda (`saida_venda`) **não é** nenhuma das três — acontece no e-commerce com Actor `system`. Ver ADR-0015.
-- **Estoque geral** — total de unidades de uma Tool em todo lugar: soma de `stock_level.quantity` sobre **todas as variantes da Tool × todas as Branches**. É o número que a aba Estoque do Fornecedor exibe por ferramenta. **Distinto** do Stock Level (que é por variante × filial). A saída de venda consome do estoque geral, sem escolher Fornecedor — por isso a aba do Fornecedor mostra o estoque geral da Tool, não só o que veio dele.
+- **Estoque geral** — total de unidades de uma Tool em todo lugar: soma de `stock_level.quantity` sobre **todas as variantes da Tool × todas as Branches**. É o número que a aba Estoque do Fornecedor exibe por ferramenta. **Distinto** do Stock Level (que é por variante × filial). A saída de venda consome do estoque geral, sem escolher Fornecedor — por isso a aba do Fornecedor mostra o estoque geral da Tool, não só o que veio dele. **Sujeito a Branch-scoping na exibição:** só o `super_admin` vê o total cross-filial verdadeiro; para `admin`/`user` o agregado exibido (cards de Tool, aba do Fornecedor) é limitado à soma das **suas** filiais — nunca revela quanto as outras têm.
 - **Reorder Point** — nível em que uma variante deve ser recomprada (`reorderPoint >= minQty`).
 
 ### Vendas
@@ -86,6 +86,8 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 - **`order.notes`** — campo `text` na tabela `order`, preenchido pelo **cliente** durante o checkout (ex.: "deixar com o porteiro"). Imutável após a criação do pedido. Completamente distinto de Order Note (tabela de anotações do staff).
 - **Order Attachment** — arquivo anexado ao pedido pelo staff (ex.: documento de despacho, autorização de devolução). Tabela `order_attachment`. Nunca criado pelo e-commerce; visível apenas no dashboard.
 - **Order Event** — evento operacional auditável de um Order que **não** é transição de status. Tabela `order_event`, tipos `tracking_set` | `branch_assigned`. Complementa o Order Status History (que cobre só transições de `status`).
+- **Filial de fulfillment** — a Branch que prepara e despacha um Order (`order.branchId`). Atribuída pelo staff (nunca pelo e-commerce) via Branch Assignment (Order Event `branch_assigned`); obrigatória ao entrar em `preparing`. É o eixo de Branch-scoping de Vendas: admin/user só operam pedidos da(s) sua(s) filial(is) de fulfillment.
+- **Pedido na triagem** — Order com `branchId IS NULL`, ainda **sem filial de fulfillment**. Forma a fila de triagem visível só a **super_admin e admin** (não a `user`); sai dela quando recebe uma filial via Branch Assignment.
 - **Refund Request (Solicitação de reembolso)** — pedido de estorno de um Order. Tabela `refund_request`, ciclo próprio `requested → under_review → approved → refunded | rejected`. Motivo categorizado (`refund_reason`: `defeito`/`item_errado`/`avaria_transporte`/`arrependimento`/`outro`) + texto livre. **No máximo uma ativa por Order** (índice parcial `refund_request_one_open_per_order`, derivado de `ACTIVE_REFUND_STATUSES`). Guarda snapshot do valor no momento da solicitação.
 - **Comprovante de pagamento** — URL do comprovante emitido pelo gateway Asaas (`order.payment_receipt_url`). Preenchido pelo e-commerce após confirmação de pagamento; o dashboard apenas exibe. O dashboard nunca chama o Asaas diretamente. Ver ADR-0008.
 - **returned** — status que cobre **dois cenários**: (a) devolução pelo cliente após entrega (`delivered → returned`); (b) falha de entrega pela transportadora, com o pedido retornando ao centro de distribuição (`shipped → returned`). Não há status separado para falha de entrega. O campo `reason` em `order_status_history` distingue os dois casos. Ver ADR-0005.
@@ -118,6 +120,7 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 5. **O Order tem um eixo único de status.** Pagamento e fulfillment vivem no mesmo campo `status` — não há `paymentStatus`. Refund e return são sempre do pedido inteiro. `returned` cobre devolução pelo cliente **e** falha de entrega. Ver ADR-0005.
 6. **A coordenação com o e-commerce é só pelo schema.** Admin não chama o site; o site não chama o admin. O dashboard nunca chama APIs de terceiros (ex.: Asaas) — recebe dados pelo banco. Ver ADR-0004, ADR-0008.
 7. **Débito de estoque ocorre em `paid`.** `pending_payment` não reserva estoque. Cancelar um pedido não pago não gera `stock_movement`. Ver ADR-0007.
+8. **Todo staff operacional pertence a ≥1 filial.** `admin` e `user` têm sempre ≥1 vínculo em `userBranch` — exigido no convite e preservado por guard ao desvincular (não se remove a última filial de um admin/user). Só `super_admin` é sem-filial (escopo global). Não existe staff `admin`/`user` sem filial — logo, não existe "usuário na triagem".
 
 ---
 
@@ -161,9 +164,10 @@ Decisões arquiteturais ficam em `docs/adr/`:
 - **ADR-0009** — O schema do e-commerce sincroniza do dashboard via CI (PR automático); o dashboard é a fonte de verdade.
 - **ADR-0010** — ~~Signup de staff é público (aprovação manual), sem flow de invitation.~~ **Superado por ADR-0013.**
 - **ADR-0011** — Audit log de user sobrevive ao delete: FK `set null` + snapshot do nome em `metadata`.
-- **ADR-0012** — Gates role-based desligados; roles mantidos como rótulo (religar antes de produção).
+- **ADR-0012** — ~~Gates role-based desligados; roles mantidos como rótulo (religar antes de produção).~~ **Superado por ADR-0016.**
 - **ADR-0013** — Auth de staff é convite-only (substitui ADR-0010); sem signup público.
 - **ADR-0014** — RLS deny-all nas tabelas expostas via PostgREST (fecha a porta REST para `anon`/`authenticated`).
 - **ADR-0015** — Proveniência de Fornecedor vive na entrada de estoque (N:N derivado), não na Tool; admin tem três operações de estoque (entrada/baixa/ajuste).
+- **ADR-0016** — Religar gates com 3 níveis (`manager` aposentado) e Branch-scoping em dois planos (visibilidade + ação); admin filial-scoped, fail-closed, invariante "todo admin/user tem ≥1 filial". Substitui ADR-0012.
 
 Se um output contradiz um ADR existente, sinalize explicitamente em vez de sobrescrever em silêncio.
