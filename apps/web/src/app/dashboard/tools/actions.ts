@@ -87,7 +87,6 @@ function normalizeToolPayload(input: ToolFormValues) {
 		heightCm: input.heightCm.toFixed(2),
 		overweightShippingAmount: toNumericString(input.overweightShippingAmount),
 		visibleOnSite: input.visibleOnSite,
-		supplierId: nullableText(input.supplierId),
 	};
 }
 
@@ -563,7 +562,6 @@ interface ToolPageRow extends Record<string, unknown> {
 	reorder_count: number;
 	slug: string | null;
 	status: string;
-	supplier_name: string | null;
 	total_stock: number;
 	variant_count: number;
 	variant_voltages: string[];
@@ -703,7 +701,6 @@ export async function fetchToolsPage({
 			t.visible_on_site,
 			(SELECT c.name FROM tool_category tc JOIN category c ON c.id = tc.category_id
 				WHERE tc.tool_id = t.id AND tc.is_primary = true LIMIT 1) AS primary_category_name,
-			s.name AS supplier_name,
 			COALESCE((SELECT SUM(sl.quantity)::int FROM stock_level sl
 				JOIN tool_variant tv ON tv.id = sl.variant_id WHERE tv.tool_id = t.id${branchStockFilter}), 0) AS total_stock,
 			COALESCE((SELECT COUNT(*)::int FROM stock_level sl
@@ -716,7 +713,6 @@ export async function fetchToolsPage({
 				JOIN branch b ON b.id = g.bid), '[]'::json) AS branches_breakdown,
 			t.created_at::text AS created_at
 		FROM tool t
-		LEFT JOIN supplier s ON s.id = t.supplier_id
 		${whereClause}
 		${orderClause}
 		LIMIT ${BATCH_SIZE + 1}

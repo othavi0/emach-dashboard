@@ -13,7 +13,7 @@ import { user } from "./auth";
 import { branch } from "./inventory";
 import { order, orderItem } from "./orders";
 import { actorTypeEnum } from "./shared-enums";
-import { toolVariant } from "./tools";
+import { supplier, toolVariant } from "./tools";
 
 export type StockMovementReason =
 	| "entrada_compra"
@@ -43,6 +43,10 @@ export const stockMovement = pgTable(
 		orderItemId: text("order_item_id").references(() => orderItem.id, {
 			onDelete: "set null",
 		}),
+		// Proveniência da compra: obrigatório em entrada_compra, nulo nos demais (ADR-0015).
+		supplierId: text("supplier_id").references(() => supplier.id, {
+			onDelete: "set null",
+		}),
 		// auditoria
 		actorType: actorTypeEnum("actor_type").notNull().default("system"),
 		actorId: text("actor_id").references(() => user.id, {
@@ -64,10 +68,21 @@ export const stockMovement = pgTable(
 		),
 		index("stock_movement_order_idx").on(table.orderId),
 		index("stock_movement_actor_idx").on(table.actorType, table.actorId),
+		// Dashboard: entradas por fornecedor em janela temporal (aba Estoque + ledger).
+		index("stock_movement_supplier_created_idx").on(
+			table.supplierId,
+			table.createdAt.desc()
+		),
 		uniqueIndex("stock_movement_sale_idempotency")
 			.on(table.orderItemId)
 			.where(sql`reason = 'saida_venda' AND order_item_id IS NOT NULL`),
 		check("delta_non_zero", sql`${table.delta} <> 0`),
+		// Entrada de compra exige fornecedor; demais motivos têm supplier_id nulo.
+		// E-commerce só escreve saida_venda, então o CHECK não o afeta (ADR-0015).
+		check(
+			"entrada_requires_supplier",
+			sql`(${table.reason} <> 'entrada_compra') OR (${table.supplierId} IS NOT NULL)`
+		),
 		check(
 			"actor_coherence",
 			sql`(
@@ -86,6 +101,10 @@ export const stockMovementRelations = relations(stockMovement, ({ one }) => ({
 	branch: one(branch, {
 		fields: [stockMovement.branchId],
 		references: [branch.id],
+	}),
+	supplier: one(supplier, {
+		fields: [stockMovement.supplierId],
+		references: [supplier.id],
 	}),
 	actor: one(user, {
 		fields: [stockMovement.actorId],

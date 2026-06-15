@@ -1,7 +1,6 @@
 import { db } from "@emach/db";
 import { attributeDefinition } from "@emach/db/schema/attributes";
 import { category } from "@emach/db/schema/categories";
-import { supplier } from "@emach/db/schema/tools";
 import { asc } from "drizzle-orm";
 
 import { requireCapability } from "@/lib/permissions";
@@ -12,8 +11,8 @@ import { ToolWizard } from "../_components/tool-wizard";
 export default async function NewToolPage() {
 	await requireCapability("tools.create");
 
-	const [categories, suppliers, definitionsByCategory, allDefinitions] =
-		await Promise.all([
+	const [categories, definitionsByCategory, allDefinitions] = await Promise.all(
+		[
 			db
 				.select({
 					id: category.id,
@@ -24,10 +23,6 @@ export default async function NewToolPage() {
 				})
 				.from(category)
 				.orderBy(asc(category.path)),
-			db
-				.select({ id: supplier.id, name: supplier.name })
-				.from(supplier)
-				.orderBy(asc(supplier.name)),
 			buildDefinitionsByCategory(),
 			db
 				.select()
@@ -36,7 +31,8 @@ export default async function NewToolPage() {
 					asc(attributeDefinition.sortOrder),
 					asc(attributeDefinition.label)
 				),
-		]);
+		]
+	);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -53,7 +49,6 @@ export default async function NewToolPage() {
 					allDefinitions,
 					categories,
 					definitionsByCategory,
-					suppliers,
 					mode: "create",
 				}}
 			>

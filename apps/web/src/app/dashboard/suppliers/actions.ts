@@ -2,8 +2,8 @@
 
 import { db } from "@emach/db";
 import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
-import { supplier, tool } from "@emach/db/schema/tools";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { supplier } from "@emach/db/schema/tools";
+import { asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
@@ -15,7 +15,7 @@ import {
 	type SupplierFormValues,
 	supplierSchema,
 } from "./_components/supplier-schema";
-import type { SupplierToolRow } from "./data";
+import type { SupplierStockToolRow } from "./data";
 
 const SUPPLIERS_PATH = "/dashboard/suppliers";
 const TOOLS_PATH = "/dashboard/tools";
@@ -304,7 +304,7 @@ export async function restoreSupplier(id: string): Promise<ActionResult> {
 	return await setSupplierStatus(id, "active", "restored");
 }
 
-export async function fetchSupplierToolsPage({
+export async function fetchSupplierStockPage({
 	supplierId,
 	search,
 	cursor,
@@ -312,66 +312,7 @@ export async function fetchSupplierToolsPage({
 	supplierId: string;
 	search?: string;
 	cursor: string | null;
-}): Promise<InfiniteResult<SupplierToolRow>> {
-	const decoded = cursor ? decodeCursor(cursor) : null;
-	const conditions = [eq(tool.supplierId, supplierId)];
-
-	if (search?.trim()) {
-		const pattern = `%${search.trim()}%`;
-		conditions.push(
-			sql`(${tool.name} ILIKE ${pattern} OR ${tool.slug} ILIKE ${pattern})`
-		);
-	}
-	if (decoded && decoded.sort === "newest") {
-		conditions.push(
-			sql`(${tool.createdAt}, ${tool.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
-		);
-	}
-
-	const rows = await db
-		.select({
-			id: tool.id,
-			name: tool.name,
-			slug: tool.slug,
-			status: tool.status,
-			createdAt: tool.createdAt,
-		})
-		.from(tool)
-		.where(and(...conditions))
-		.orderBy(desc(tool.createdAt), desc(tool.id))
-		.limit(BATCH_SIZE + 1);
-
-	const hasMore = rows.length > BATCH_SIZE;
-	const base = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
-
-	// SKU default, imagem e categoria via segundo passo (subqueries escalares
-	// não materializam no db.select builder — ver getToolCardMeta).
-	const { getToolCardMeta } = await import("./data");
-	const meta = await getToolCardMeta(base.map((r) => r.id));
-
-	const items: SupplierToolRow[] = base.map((r) => {
-		const m = meta.get(r.id);
-		return {
-			id: r.id,
-			name: r.name,
-			slug: r.slug ?? "",
-			status: r.status,
-			createdAt: r.createdAt,
-			defaultSku: m?.defaultSku ?? null,
-			imageUrl: m?.imageUrl ?? null,
-			category: m?.category ?? null,
-		};
-	});
-
-	const last = base.at(-1);
-	const nextCursor =
-		hasMore && last
-			? encodeCursor({
-					v: 1,
-					sort: "newest",
-					createdAt: last.createdAt.toISOString(),
-					id: last.id,
-				})
-			: null;
-	return { items, nextCursor };
+}): Promise<InfiniteResult<SupplierStockToolRow>> {
+	const { getSupplierStockTools } = await import("./data");
+	return await getSupplierStockTools({ supplierId, search, cursor });
 }

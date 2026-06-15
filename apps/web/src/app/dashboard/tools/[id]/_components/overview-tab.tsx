@@ -110,7 +110,6 @@ export function OverviewTab({
 									</span>
 								)}
 							</MetaRow>
-							<MetaRow label="Fornecedor">{tool.supplierName ?? "—"}</MetaRow>
 							<MetaRow label="Visibilidade">
 								{tool.visibleOnSite ? (
 									<span className="text-success">Visível no site</span>

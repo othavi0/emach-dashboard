@@ -5,7 +5,7 @@ import {
 	toolAttributeValue,
 } from "@emach/db/schema/attributes";
 import { category, toolCategory } from "@emach/db/schema/categories";
-import { supplier, tool, toolImage, toolVariant } from "@emach/db/schema/tools";
+import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
@@ -98,7 +98,6 @@ function toFormValues(
 			: undefined,
 		categoryIds,
 		primaryCategoryId,
-		supplierId: row.supplierId ?? "",
 		visibleOnSite: row.visibleOnSite,
 		images: images.map((img) => ({
 			id: img.id,
@@ -123,7 +122,6 @@ export default async function EditToolPage({ params }: PageProps) {
 	const [
 		images,
 		categories,
-		suppliers,
 		toolCats,
 		variants,
 		attrValues,
@@ -146,10 +144,6 @@ export default async function EditToolPage({ params }: PageProps) {
 			})
 			.from(category)
 			.orderBy(asc(category.path)),
-		db
-			.select({ id: supplier.id, name: supplier.name })
-			.from(supplier)
-			.orderBy(asc(supplier.name)),
 		db.select().from(toolCategory).where(eq(toolCategory.toolId, id)),
 		db
 			.select()
@@ -206,7 +200,6 @@ export default async function EditToolPage({ params }: PageProps) {
 					allDefinitions,
 					categories,
 					definitionsByCategory,
-					suppliers,
 					mode: "edit",
 					existingSlug: row.slug ?? undefined,
 					toolId: id,

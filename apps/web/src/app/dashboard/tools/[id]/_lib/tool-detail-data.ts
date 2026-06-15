@@ -7,13 +7,11 @@ import {
 import { category, toolCategory } from "@emach/db/schema/categories";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
 import { orderItem } from "@emach/db/schema/orders";
-import { supplier, tool, toolImage, toolVariant } from "@emach/db/schema/tools";
+import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { asc, eq } from "drizzle-orm";
 import { cache } from "react";
 
-export type ToolDetailRow = typeof tool.$inferSelect & {
-	supplierName: string | null;
-};
+export type ToolDetailRow = typeof tool.$inferSelect;
 
 export interface ToolDetailCategory {
 	categoryId: string;
@@ -88,14 +86,7 @@ export interface ToolDetail {
 
 export const getToolDetail = cache(
 	async (id: string): Promise<ToolDetail | null> => {
-		const [row] = await db
-			.select({
-				tool,
-				supplierName: supplier.name,
-			})
-			.from(tool)
-			.leftJoin(supplier, eq(tool.supplierId, supplier.id))
-			.where(eq(tool.id, id));
+		const [row] = await db.select({ tool }).from(tool).where(eq(tool.id, id));
 
 		if (!row) {
 			return null;
@@ -174,7 +165,7 @@ export const getToolDetail = cache(
 		const stockSummary = computeStockSummary(stockRows);
 
 		return {
-			tool: { ...row.tool, supplierName: row.supplierName },
+			tool: row.tool,
 			categories,
 			images,
 			orderedVariantIds: orderedRows.map((r) => r.variantId),

@@ -37,9 +37,6 @@ export function ToolDetailHeader({ detail, actions }: ToolDetailHeaderProps) {
 	if (defaultVariant) {
 		subtitleParts.push(`SKU ${defaultVariant.sku}`);
 	}
-	if (tool.supplierName) {
-		subtitleParts.push(tool.supplierName);
-	}
 
 	return (
 		<div className="flex flex-col gap-3">

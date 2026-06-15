@@ -3,14 +3,6 @@
 import { Checkbox } from "@emach/ui/components/checkbox";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@emach/ui/components/select";
 import { Textarea } from "@emach/ui/components/textarea";
 import { Star } from "lucide-react";
 import { useMemo } from "react";
@@ -28,7 +20,7 @@ export function IdentityFields({
 	errors,
 	disabled,
 }: ToolFieldGroupProps) {
-	const { categories, suppliers, mode, existingSlug } = useToolFormContext();
+	const { categories, mode, existingSlug } = useToolFormContext();
 
 	const slugPreview = useMemo(() => {
 		if (mode === "edit" && existingSlug) {
@@ -163,29 +155,6 @@ export function IdentityFields({
 				<FieldError>{errors.categoryIds}</FieldError>
 				<FieldError>{errors.primaryCategoryId}</FieldError>
 			</div>
-
-			<LabeledField id="supplierId" label="Fornecedor">
-				{(field) => (
-					<Select
-						disabled={disabled}
-						onValueChange={(v) => onPatch({ supplierId: v ?? "" })}
-						value={values.supplierId ?? ""}
-					>
-						<SelectTrigger {...field}>
-							<SelectValue placeholder="Opcional" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								{suppliers.map((s) => (
-									<SelectItem key={s.id} value={s.id}>
-										{s.name}
-									</SelectItem>
-								))}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
-				)}
-			</LabeledField>
 		</div>
 	);
 }

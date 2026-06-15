@@ -20,6 +20,7 @@ import {
 	fetchBranchStockPage,
 } from "@/app/dashboard/stock/branch-stock-data";
 import { can, requireCapabilityWithContextOrRedirect } from "@/lib/permissions";
+import { getActiveSuppliers } from "@/lib/suppliers";
 
 interface StockTabProps {
 	branchId: string;
@@ -55,11 +56,14 @@ export async function StockTab({
 	});
 	const canMutate = can(session.user.role, "stock.adjust");
 
-	const categories = await db
-		.select({ depth: category.depth, id: category.id, name: category.name })
-		.from(category)
-		.where(eq(category.isActive, true))
-		.orderBy(asc(category.path));
+	const [categories, suppliers] = await Promise.all([
+		db
+			.select({ depth: category.depth, id: category.id, name: category.name })
+			.from(category)
+			.where(eq(category.isActive, true))
+			.orderBy(asc(category.path)),
+		getActiveSuppliers(),
+	]);
 
 	const basePath = `/dashboard/branches/${branchId}`;
 
@@ -108,6 +112,7 @@ export async function StockTab({
 								`${i.variantId}:${i.quantity}:${i.minQty}:${i.reorderPoint}`
 						)
 						.join("|")}
+					suppliers={suppliers}
 				/>
 			)}
 		</div>

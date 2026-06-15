@@ -877,7 +877,6 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 	// --- 5. Tools + variants + images ---
 	for (const toolDef of TOOLS) {
 		const toolId = crypto.randomUUID();
-		const supplierId = ctx.supplierIds[toolDef.supplierIndex];
 
 		await tx.insert(tool).values({
 			id: toolId,
@@ -887,7 +886,6 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 			model: toolDef.model,
 			status: toolDef.status,
 			visibleOnSite: toolDef.visibleOnSite,
-			supplierId,
 			powerWatts: toolDef.powerWatts ?? null,
 			weightKg: toolDef.weightKg ?? randomWeightKg(),
 			lengthCm: toolDef.lengthCm ?? randomDimCm(),
