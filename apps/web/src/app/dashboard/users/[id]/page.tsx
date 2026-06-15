@@ -79,7 +79,9 @@ export default async function UserDetailPage({
 	const onPermissionsTab = sp.tab === "permissoes";
 	const canManagePermissions = await can(actorSession, "permissions.manage");
 	const actorRole = (actorSession.user.role ?? "user") as UserRole;
-	// Teto de hierarquia: admin só gerencia role=user; super_admin gerencia todos.
+	// Teto de hierarquia: super_admin gerencia todos; admin/manager (que têm
+	// permissions.manage por default) só gerenciam alvos role=user. O 2º branch
+	// independe de actorRole — quem tem a cap e mira um user entra (manager incluso).
 	const targetManageable =
 		actorRole === "super_admin" ||
 		(canManagePermissions && user.role === "user");

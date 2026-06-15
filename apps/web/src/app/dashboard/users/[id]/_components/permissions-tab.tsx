@@ -1,5 +1,9 @@
 "use client";
 
+import {
+	ToggleGroup,
+	ToggleGroupItem,
+} from "@emach/ui/components/toggle-group";
 import { useTransition } from "react";
 import { CAPABILITIES, type Capability } from "@/lib/capabilities";
 import { notify } from "@/lib/notify";
@@ -95,6 +99,7 @@ export function PermissionsTab({
 								<TriState
 									defaultOn={row.defaultOn}
 									disabled={!row.editable || pending}
+									label={`${row.resource} · ${row.action}`}
 									onChange={(s) => apply(row.cap, s)}
 									value={row.state}
 								/>
@@ -111,11 +116,13 @@ function TriState({
 	value,
 	defaultOn,
 	disabled,
+	label,
 	onChange,
 }: {
 	value: OverrideState;
 	defaultOn: boolean;
 	disabled: boolean;
+	label: string;
 	onChange: (s: OverrideState) => void;
 }) {
 	const options: { key: OverrideState; label: string }[] = [
@@ -124,22 +131,27 @@ function TriState({
 		{ key: "revoke", label: "Revogar" },
 	];
 	return (
-		<div className="inline-flex shrink-0 overflow-hidden rounded-md border border-border">
+		<ToggleGroup
+			aria-label={`Permissão de ${label}`}
+			className="shrink-0"
+			disabled={disabled}
+			onValueChange={(groupValue) => {
+				const next = groupValue[0] as OverrideState | undefined;
+				// toggleMultiple=false: clicar o ativo esvazia o array — ignoramos
+				// (sempre há um estado vigente; não dá pra "desmarcar").
+				if (next) {
+					onChange(next);
+				}
+			}}
+			size="sm"
+			value={[value]}
+			variant="outline"
+		>
 			{options.map((opt) => (
-				<button
-					className={
-						value === opt.key
-							? "bg-primary px-2.5 py-1 text-primary-foreground text-xs"
-							: "px-2.5 py-1 text-muted-foreground text-xs hover:bg-muted disabled:opacity-50"
-					}
-					disabled={disabled}
-					key={opt.key}
-					onClick={() => onChange(opt.key)}
-					type="button"
-				>
+				<ToggleGroupItem key={opt.key} value={opt.key}>
 					{opt.label}
-				</button>
+				</ToggleGroupItem>
 			))}
-		</div>
+		</ToggleGroup>
 	);
 }
