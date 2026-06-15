@@ -21,6 +21,7 @@ import { deleteCategory, toggleCategoryActive } from "../../actions";
 
 interface Props {
 	canDelete: boolean;
+	canManage: boolean;
 	categoryId: string;
 	categoryName: string;
 	isActive: boolean;
@@ -28,6 +29,7 @@ interface Props {
 
 export function CategoryDetailActions({
 	canDelete,
+	canManage,
 	categoryId,
 	categoryName,
 	isActive,
@@ -64,15 +66,21 @@ export function CategoryDetailActions({
 
 	return (
 		<>
-			<Button
-				disabled={togglePending}
-				onClick={handleToggle}
-				type="button"
-				variant="outline"
-			>
-				{togglePending ? <Spinner /> : <Power aria-hidden className="size-4" />}
-				{isActive ? "Desativar" : "Ativar"}
-			</Button>
+			{canManage && (
+				<Button
+					disabled={togglePending}
+					onClick={handleToggle}
+					type="button"
+					variant="outline"
+				>
+					{togglePending ? (
+						<Spinner />
+					) : (
+						<Power aria-hidden className="size-4" />
+					)}
+					{isActive ? "Desativar" : "Ativar"}
+				</Button>
+			)}
 			{canDelete && (
 				<Button
 					onClick={() => setConfirmOpen(true)}

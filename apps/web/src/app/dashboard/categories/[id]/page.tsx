@@ -41,6 +41,7 @@ export default async function CategoryDetailPage({
 	const session = await requireCurrentSession();
 	const role = (session.user.role as UserRole | undefined) ?? null;
 	const canDelete = can(role, "categories.delete");
+	const canManage = can(role, "categories.manage");
 
 	const { id } = await params;
 	const { tab } = await searchParams;
@@ -97,7 +98,7 @@ export default async function CategoryDetailPage({
 	];
 
 	let primaryAction: React.ReactNode = null;
-	if (current === "subcategorias") {
+	if (canManage && current === "subcategorias") {
 		primaryAction = (
 			<Link
 				className={buttonVariants({ variant: "default" })}
@@ -107,7 +108,7 @@ export default async function CategoryDetailPage({
 				Nova subcategoria
 			</Link>
 		);
-	} else if (isOverview) {
+	} else if (canManage && isOverview) {
 		primaryAction = (
 			<Link
 				className={buttonVariants({ variant: "default" })}
@@ -127,6 +128,7 @@ export default async function CategoryDetailPage({
 						{primaryAction}
 						<CategoryDetailActions
 							canDelete={canDelete}
+							canManage={canManage}
 							categoryId={id}
 							categoryName={cat.name}
 							isActive={cat.isActive}
