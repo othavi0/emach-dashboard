@@ -32,7 +32,6 @@ const EMPTY = {
 			sku: "",
 			voltage: "",
 			priceAmount: 0,
-			costAmount: undefined,
 			isDefault: true,
 			sortOrder: 0,
 		},

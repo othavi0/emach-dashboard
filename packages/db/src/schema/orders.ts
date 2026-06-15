@@ -182,7 +182,6 @@ export const orderItem = pgTable(
 		})
 			.notNull()
 			.default("0"),
-		cost: numeric("cost", { precision: 12, scale: 2 }),
 		ncm: text("ncm"),
 		cest: text("cest"),
 		manufacturerName: text("manufacturer_name"),

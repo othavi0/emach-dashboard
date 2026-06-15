@@ -129,7 +129,6 @@ export const toolVariant = pgTable(
 		sku: text("sku").notNull().unique(),
 		voltage: voltageEnum("voltage"),
 		priceAmount: numeric("price_amount", { precision: 10, scale: 2 }).notNull(),
-		costAmount: numeric("cost_amount", { precision: 10, scale: 2 }),
 		isDefault: boolean("is_default").notNull().default(false),
 		visibleOnSite: boolean("visible_on_site").notNull().default(true),
 		sortOrder: integer("sort_order").notNull().default(0),
@@ -148,10 +147,6 @@ export const toolVariant = pgTable(
 			.on(table.toolId)
 			.where(sql`${table.isDefault} = true`),
 		check("price_amount_positive", sql`${table.priceAmount} >= 0`),
-		check(
-			"cost_amount_positive",
-			sql`${table.costAmount} IS NULL OR ${table.costAmount} >= 0`
-		),
 	]
 );
 

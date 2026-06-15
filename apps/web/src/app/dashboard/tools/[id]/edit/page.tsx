@@ -46,17 +46,11 @@ function toFormValues(
 
 	const parsedVariants: ToolVariantInput[] = variants.map((v) => {
 		const priceNum = v.priceAmount == null ? 0 : Number(v.priceAmount);
-		const costNum =
-			v.costAmount == null || v.costAmount === ""
-				? undefined
-				: Number(v.costAmount);
 		return {
 			id: v.id,
 			sku: v.sku ?? "",
 			voltage: (v.voltage ?? "") as (typeof VOLTAGE_OPTIONS)[number] | "",
 			priceAmount: Number.isFinite(priceNum) ? priceNum : 0,
-			costAmount:
-				costNum !== undefined && Number.isFinite(costNum) ? costNum : undefined,
 			isDefault: v.isDefault,
 			sortOrder: v.sortOrder,
 		};
