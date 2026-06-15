@@ -5,7 +5,7 @@ import {
 	order as orderTable,
 } from "@emach/db/schema/orders";
 import { toDate } from "@emach/db/utils";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, type SQL, sql } from "drizzle-orm";
 import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
 import {
@@ -113,7 +113,23 @@ export async function fetchPendingOrdersPage({
 export async function fetchOrderActivityPage(
 	cursor: string | null
 ): Promise<InfiniteResult<ActivityEvent>> {
-	await requireCurrentSession();
+	const scope = await getUserBranchScope(await requireCurrentSession());
+	if (isBlindScope(scope)) {
+		return { items: [], nextCursor: null };
+	}
+
+	// Branch-scope no feed: admin vê própria filial + triagem; user só filial; super tudo.
+	let branchCondition: SQL | undefined;
+	if (scope.kind === "scoped") {
+		const parts: SQL[] = [];
+		if (scope.branchIds.length > 0) {
+			parts.push(inArray(orderTable.branchId, scope.branchIds));
+		}
+		if (scope.includeUnassigned) {
+			parts.push(isNull(orderTable.branchId));
+		}
+		branchCondition = parts.length > 1 ? or(...parts) : parts[0];
+	}
 
 	const cursorCondition = cursor
 		? (() => {
@@ -132,7 +148,7 @@ export async function fetchOrderActivityPage(
 		})
 		.from(orderStatusHistory)
 		.innerJoin(orderTable, eq(orderStatusHistory.orderId, orderTable.id))
-		.where(cursorCondition ? and(cursorCondition) : undefined)
+		.where(and(cursorCondition, branchCondition))
 		.orderBy(desc(orderStatusHistory.createdAt), desc(orderStatusHistory.id))
 		.limit(BATCH_SIZE + 1);
 
