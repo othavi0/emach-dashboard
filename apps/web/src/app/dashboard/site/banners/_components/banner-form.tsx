@@ -199,16 +199,16 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 				>
 					<div className="grid grid-cols-2 gap-3">
 						<ImageUploadTile
-							help="2560×1440 · 16:9 · WebP/JPG · ≤500KB"
+							help="2560×1440 · 16:9 · WebP/JPG · ≤4MB"
 							label="Fundo · desktop"
-							maxBytes={512_000}
+							maxBytes={4_194_304}
 							onChange={(u) => set("backgroundImageUrl", u)}
 							value={values.backgroundImageUrl}
 						/>
 						<ImageUploadTile
-							help="1080×1920 · 9:16 · ≤350KB · cai pro desktop se vazio"
+							help="1080×1920 · 9:16 · ≤2MB · cai pro desktop se vazio"
 							label="Fundo · mobile"
-							maxBytes={358_400}
+							maxBytes={2_097_152}
 							onChange={(u) => set("backgroundImageMobileUrl", u)}
 							value={values.backgroundImageMobileUrl}
 						/>
@@ -243,16 +243,16 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 				>
 					<div className="grid grid-cols-2 gap-3">
 						<ImageUploadTile
-							help="~2400px · PNG transparente · ≤800KB"
+							help="~2400px · PNG transparente · ≤4MB"
 							label="Produto · desktop"
-							maxBytes={819_200}
+							maxBytes={4_194_304}
 							onChange={(u) => set("productImageUrl", u)}
 							value={values.productImageUrl}
 						/>
 						<ImageUploadTile
-							help="~1400px · PNG · ≤500KB · cai pro produto desktop se vazio"
+							help="~1400px · PNG · ≤2MB · cai pro produto desktop se vazio"
 							label="Produto · mobile"
-							maxBytes={512_000}
+							maxBytes={2_097_152}
 							onChange={(u) => set("productImageMobileUrl", u)}
 							value={values.productImageMobileUrl}
 						/>

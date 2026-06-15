@@ -12,7 +12,9 @@ const nextConfig: NextConfig = {
 	reactCompiler: true,
 	experimental: {
 		serverActions: {
-			bodySizeLimit: "5mb",
+			// Banners aceitam master de alta qualidade (fundo/produto até 4MB).
+			// Margem para o overhead do multipart FormData acima do maior cap.
+			bodySizeLimit: "8mb",
 		},
 	},
 	images: supabaseHostname

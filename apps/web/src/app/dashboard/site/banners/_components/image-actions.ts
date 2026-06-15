@@ -20,7 +20,7 @@ export async function uploadBannerImage(
 	const maxSizeBytes =
 		typeof raw === "string" && Number.isFinite(Number(raw))
 			? Number(raw)
-			: 3 * 1024 * 1024;
+			: 4 * 1024 * 1024;
 
 	const { url } = await uploadToPublicBucket({
 		bucket: BANNER_IMAGES_BUCKET,
