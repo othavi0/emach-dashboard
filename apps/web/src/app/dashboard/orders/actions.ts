@@ -12,9 +12,9 @@ import {
 } from "@emach/db/schema/orders";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
 import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
+import { getUserBranchScope } from "@/lib/branch-scope";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import {
@@ -145,12 +145,22 @@ export async function lockOrderAndAuthorize(
 	// The capability check runs its own read-only queries on the global `db`
 	// pool (a separate connection), not on `tx` — it touches `user`/`userBranch`,
 	// never the locked `order` row, so there is no deadlock with the held lock.
-	const session =
-		locked.branchId === null
-			? await requireCapability(cap)
-			: await requireCapabilityWithContext(cap, {
-					targetBranchIds: [locked.branchId],
-				});
+	let session: DashboardSession;
+	if (locked.branchId === null) {
+		// Pedido na triagem: capability + só quem enxerga a triagem (admin/super_admin).
+		// `user` tem orders.update_status mas não pode agir sobre pedido não-roteado.
+		session = await requireCapability(cap);
+		const scope = await getUserBranchScope(session);
+		if (scope.kind === "scoped" && !scope.includeUnassigned) {
+			throw new Error(
+				"Pedido na triagem só pode ser tratado por admin ou super_admin"
+			);
+		}
+	} else {
+		session = await requireCapabilityWithContext(cap, {
+			targetBranchIds: [locked.branchId],
+		});
+	}
 
 	return { status: locked.status, branchId: locked.branchId, session };
 }

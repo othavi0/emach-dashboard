@@ -36,11 +36,16 @@ import { reorderCategories } from "../actions";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
 
 interface CategoriesTreeProps {
+	canDelete: boolean;
 	canMutate: boolean;
 	categories: FlatCategory[];
 }
 
-export function CategoriesTree({ canMutate, categories }: CategoriesTreeProps) {
+export function CategoriesTree({
+	canDelete,
+	canMutate,
+	categories,
+}: CategoriesTreeProps) {
 	const router = useRouter();
 	const [, startTransition] = useTransition();
 	const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
@@ -107,6 +112,7 @@ export function CategoriesTree({ canMutate, categories }: CategoriesTreeProps) {
 	return (
 		<div className="overflow-hidden rounded-lg border border-border bg-card">
 			<SiblingGroup
+				canDelete={canDelete}
 				canMutate={canMutate}
 				expanded={expanded}
 				nodes={tree}
@@ -119,6 +125,7 @@ export function CategoriesTree({ canMutate, categories }: CategoriesTreeProps) {
 }
 
 interface SiblingGroupProps {
+	canDelete: boolean;
 	canMutate: boolean;
 	expanded: Set<string>;
 	nodes: CategoryTreeNode[];
@@ -128,6 +135,7 @@ interface SiblingGroupProps {
 }
 
 function SiblingGroup({
+	canDelete,
 	canMutate,
 	expanded,
 	nodes,
@@ -150,6 +158,7 @@ function SiblingGroup({
 			>
 				{nodes.map((node) => (
 					<TreeRow
+						canDelete={canDelete}
 						canMutate={canMutate}
 						expanded={expanded}
 						key={node.id}
@@ -165,6 +174,7 @@ function SiblingGroup({
 }
 
 interface TreeRowProps {
+	canDelete: boolean;
 	canMutate: boolean;
 	expanded: Set<string>;
 	node: CategoryTreeNode;
@@ -174,6 +184,7 @@ interface TreeRowProps {
 }
 
 function TreeRow({
+	canDelete,
 	canMutate,
 	expanded,
 	node,
@@ -253,27 +264,28 @@ function TreeRow({
 					{node.isActive ? "Ativa" : "Inativa"}
 				</Badge>
 				{canMutate && (
-					<>
-						<Link
-							aria-label={`Editar categoria ${node.name}`}
-							className={buttonVariants({
-								size: "icon-sm",
-								variant: "secondary",
-							})}
-							href={`/dashboard/categories/${node.id}/edit`}
-						>
-							<Pencil aria-hidden className="size-3.5" />
-						</Link>
-						<DeleteCategoryDialog
-							categoryId={node.id}
-							categoryName={node.name}
-							variant="icon"
-						/>
-					</>
+					<Link
+						aria-label={`Editar categoria ${node.name}`}
+						className={buttonVariants({
+							size: "icon-sm",
+							variant: "secondary",
+						})}
+						href={`/dashboard/categories/${node.id}/edit`}
+					>
+						<Pencil aria-hidden className="size-3.5" />
+					</Link>
+				)}
+				{canDelete && (
+					<DeleteCategoryDialog
+						categoryId={node.id}
+						categoryName={node.name}
+						variant="icon"
+					/>
 				)}
 			</div>
 			{isOpen && hasChildren && (
 				<SiblingGroup
+					canDelete={canDelete}
 					canMutate={canMutate}
 					expanded={expanded}
 					nodes={node.children}

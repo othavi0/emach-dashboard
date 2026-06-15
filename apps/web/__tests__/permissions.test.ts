@@ -8,6 +8,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/session", () => ({
 	requireCurrentSession: vi.fn(),
+	ROLE_WEIGHT: { super_admin: 4, admin: 3, manager: 2, user: 1 },
 }));
 
 vi.mock("@emach/db", () => ({
@@ -24,24 +25,57 @@ import {
 } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 
-describe("can() — no-op pós ADR-0012", () => {
-	it("retorna true para qualquer role válida + qualquer capability", () => {
-		expect(can("super_admin", "tools.delete")).toBe(true);
-		expect(can("admin", "users.delete")).toBe(true);
-		expect(can("manager", "branches.manage")).toBe(true);
-		expect(can("user", "orders.refund")).toBe(true);
-		expect(can("user", "customers.export")).toBe(true);
-	});
+const FORBIDDEN_REFUND_CAP_RE = /capability "orders\.refund"/;
 
-	it("retorna false para role null/undefined/string vazia", () => {
-		expect(can(null, "tools.read")).toBe(false);
-		expect(can(undefined, "tools.read")).toBe(false);
-		expect(can("", "tools.read")).toBe(false);
+describe("matriz de capability (3 níveis)", () => {
+	it("super_admin pode tudo, inclusive exclusivos", () => {
+		for (const cap of [
+			"branches.manage",
+			"users.delete",
+			"tools.delete",
+			"site.update_settings",
+		] as const) {
+			expect(can("super_admin", cap)).toBe(true);
+		}
 	});
-
-	it("retorna true para string arbitrária não vazia (no-op não inspeciona role)", () => {
-		// Comportamento aceito do no-op: só rejeita falsy. Cobertura real é status gate.
-		expect(can("hacker", "tools.read")).toBe(true);
+	it("admin edita catálogo mas NÃO deleta", () => {
+		expect(can("admin", "tools.create")).toBe(true);
+		expect(can("admin", "tools.update")).toBe(true);
+		expect(can("admin", "tools.delete")).toBe(false);
+		expect(can("admin", "categories.delete")).toBe(false);
+		expect(can("admin", "promotions.delete")).toBe(false);
+	});
+	it("admin NÃO acessa exclusivos de super_admin", () => {
+		for (const cap of [
+			"branches.manage",
+			"users.delete",
+			"site.update_settings",
+			"site.update_banners",
+		] as const) {
+			expect(can("admin", cap)).toBe(false);
+		}
+	});
+	it("admin gerencia usuários (não-delete) e modera", () => {
+		expect(can("admin", "users.approve")).toBe(true);
+		expect(can("admin", "users.suspend")).toBe(true);
+		expect(can("admin", "reviews.moderate")).toBe(true);
+		expect(can("admin", "orders.refund")).toBe(true);
+	});
+	it("user é operacional: lê, ajusta estoque, atualiza status — nada destrutivo", () => {
+		expect(can("user", "orders.read")).toBe(true);
+		expect(can("user", "stock.adjust")).toBe(true);
+		expect(can("user", "orders.update_status")).toBe(true);
+		expect(can("user", "tools.create")).toBe(false);
+		expect(can("user", "orders.cancel")).toBe(false);
+		expect(can("user", "reviews.moderate")).toBe(false);
+	});
+	it("manager é alias de admin", () => {
+		expect(can("manager", "tools.create")).toBe(true);
+		expect(can("manager", "tools.delete")).toBe(false);
+	});
+	it("role nula/desconhecida → nega", () => {
+		expect(can(null, "orders.read")).toBe(false);
+		expect(can("intruso", "orders.read" as never)).toBe(false);
 	});
 });
 
@@ -50,6 +84,12 @@ const sessionActive = {
 } as never;
 const sessionSuspended = {
 	user: { id: "actor-1", status: "suspended", role: "user" },
+} as never;
+const sessionSuperAdmin = {
+	user: { id: "actor-1", status: "active", role: "super_admin" },
+} as never;
+const sessionAdmin = {
+	user: { id: "actor-1", status: "active", role: "admin" },
 } as never;
 
 function mockTargetLookup(target: { role: string; status: string } | null) {
@@ -69,7 +109,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
-			sessionActive
+			sessionSuperAdmin
 		);
 	});
 
@@ -80,6 +120,17 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		await expect(
 			requireCapabilityWithContext("tools.delete", {})
 		).rejects.toThrow("Conta não ativa");
+	});
+
+	it("gate de capability: role sem a cap é rejeitado (regressão P0)", async () => {
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+			sessionActive
+		);
+		// role "user" NÃO tem orders.refund — deve barrar pela capability,
+		// não passar batido só por estar ativo / sem contexto de filial.
+		await expect(
+			requireCapabilityWithContext("orders.refund", {})
+		).rejects.toThrow(FORBIDDEN_REFUND_CAP_RE);
 	});
 
 	it("self-action guard: usuário não pode se suspender", async () => {
@@ -93,7 +144,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 			requireCapabilityWithContext("users.reset_password", {
 				targetUserId: "actor-1",
 			})
-		).resolves.toBe(sessionActive);
+		).resolves.toBe(sessionSuperAdmin);
 	});
 
 	it("last super_admin guard: rejeita se alvo é o último super_admin ativo", async () => {
@@ -109,14 +160,38 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		mockCountQuery(2);
 		await expect(
 			requireCapabilityWithContext("users.delete", { targetUserId: "other-1" })
-		).resolves.toBe(sessionActive);
+		).resolves.toBe(sessionSuperAdmin);
+	});
+
+	it("hierarquia: admin não gerencia usuário de role igual/superior", async () => {
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+			sessionAdmin
+		);
+		mockTargetLookup({ role: "admin", status: "active" });
+		await expect(
+			requireCapabilityWithContext("users.reset_password", {
+				targetUserId: "other-admin",
+			})
+		).rejects.toThrow("role igual ou superior");
+	});
+
+	it("hierarquia: admin gerencia usuário de role user", async () => {
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
+			sessionAdmin
+		);
+		mockTargetLookup({ role: "user", status: "active" });
+		await expect(
+			requireCapabilityWithContext("users.reset_password", {
+				targetUserId: "other-user",
+			})
+		).resolves.toBe(sessionAdmin);
 	});
 
 	it("last super_admin guard: ignora alvo não-super_admin", async () => {
 		mockTargetLookup({ role: "admin", status: "active" });
 		await expect(
 			requireCapabilityWithContext("users.delete", { targetUserId: "other-1" })
-		).resolves.toBe(sessionActive);
+		).resolves.toBe(sessionSuperAdmin);
 	});
 });
 

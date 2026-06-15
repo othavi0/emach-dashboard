@@ -22,6 +22,7 @@ export default async function CategoriesPage() {
 	const session = await requireCurrentSession();
 	const role = session.user.role as UserRole | undefined;
 	const canMutate = can(role, "categories.manage");
+	const canDelete = can(role, "categories.delete");
 
 	const categories = await listCategoriesForTree();
 	const isEmpty = categories.length === 0;
@@ -65,7 +66,11 @@ export default async function CategoriesPage() {
 					</EmptyContent>
 				</Empty>
 			) : (
-				<CategoriesTree canMutate={canMutate} categories={categories} />
+				<CategoriesTree
+					canDelete={canDelete}
+					canMutate={canMutate}
+					categories={categories}
+				/>
 			)}
 		</>
 	);

@@ -15,6 +15,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
 import { logUserActivity } from "@/lib/activity";
+import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
@@ -672,6 +673,9 @@ export async function fetchToolsPage({
 	filters: ToolsFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<ToolCardData>> {
+	const session = await requireCapability("tools.read");
+	const scope = await getUserBranchScope(session);
+
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const whereClause = buildToolsWhereClause(filters, decoded);
 	const orderClause =
@@ -679,13 +683,26 @@ export async function fetchToolsPage({
 			? sql`ORDER BY t.name ASC, t.id ASC`
 			: sql`ORDER BY t.created_at DESC, t.id DESC`;
 
-	// Branch filter fragments for stock subqueries
-	const branchStockFilter = filters.branchId
-		? sql` AND sl.branch_id = ${filters.branchId}`
-		: sql``;
-	const branchStockFilter2 = filters.branchId
-		? sql` AND sl2.branch_id = ${filters.branchId}`
-		: sql``;
+	// Branch filter fragments for stock subqueries.
+	// Prioridade: filtro explícito do usuário > scope do usuário > sem filtro (super_admin).
+	function buildStockBranchFilter(alias: string): ReturnType<typeof sql> {
+		if (filters.branchId) {
+			return sql` AND ${sql.raw(alias)}.branch_id = ${filters.branchId}`;
+		}
+		if (scope.kind === "scoped") {
+			if (scope.branchIds.length === 0) {
+				return sql` AND false`;
+			}
+			return sql` AND ${sql.raw(alias)}.branch_id IN (${sql.join(
+				scope.branchIds.map((id) => sql`${id}`),
+				sql`, `
+			)})`;
+		}
+		return sql``;
+	}
+
+	const branchStockFilter = buildStockBranchFilter("sl");
+	const branchStockFilter2 = buildStockBranchFilter("sl2");
 
 	const rows = await db.execute<ToolPageRow>(sql`
 		SELECT

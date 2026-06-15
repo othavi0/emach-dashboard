@@ -10,6 +10,7 @@ import { asc } from "drizzle-orm";
 import Link from "next/link";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
+import { getUserBranchScope } from "@/lib/branch-scope";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { InviteDialog } from "./_components/invite-dialog";
 import { UsersCardGrid } from "./_components/users-card-grid";
@@ -62,12 +63,15 @@ export default async function UsersPage({ searchParams }: PageProps) {
 	const actorSession = await requireCapabilityOrRedirect("users.manage");
 	const sp = await searchParams;
 
+	const scope = await getUserBranchScope(actorSession);
+
 	const status = (sp.status as Status | undefined) ?? "active";
 	const filters = {
 		status,
 		role: sp.role as "super_admin" | "admin" | "manager" | "user" | undefined,
 		branchId: sp.branchId,
 		search: sp.search,
+		scope,
 	};
 
 	const [kpis, page, pending, activity, branches] = await Promise.all([

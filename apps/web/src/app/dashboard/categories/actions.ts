@@ -577,7 +577,7 @@ export async function reorderCategories(input: unknown): Promise<ActionResult> {
 }
 
 export async function deleteCategory(id: string): Promise<ActionResult> {
-	const session = await requireCapability("categories.manage");
+	const session = await requireCapability("categories.delete");
 
 	const [categoryRow] = await db
 		.select({ name: category.name })
