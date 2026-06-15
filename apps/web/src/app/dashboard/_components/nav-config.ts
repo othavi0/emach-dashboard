@@ -115,7 +115,6 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				label: "Banners",
 				href: "/dashboard/site/banners" as Route,
 				icon: ImageIcon,
-				disabled: true,
 			},
 			{
 				label: "Notificações",

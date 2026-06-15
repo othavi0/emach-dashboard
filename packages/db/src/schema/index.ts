@@ -1,6 +1,7 @@
 // biome-ignore lint/performance/noBarrelFile: intentional public API barrel for @emach/db schema consumers
 export * from "./attributes";
 export * from "./auth";
+export * from "./banner";
 export * from "./categories";
 export * from "./client";
 export * from "./client-audit";
