@@ -35,7 +35,7 @@ Reaproveita os 138 callsites de `requireCapability*` intactos e o scaffolding de
 
 - Enum Postgres mantém os 4 valores (`super_admin/admin/manager/user`) para evitar migration de tipo; só 3 em uso.
 - Migração de dado: `UPDATE "user" SET role='admin' WHERE role='manager'`.
-- `ROLE_WEIGHT` colapsa: `super_admin=3, admin=2, user=1` (remover `manager`).
+- `ROLE_WEIGHT` mantém 4 chaves (`super_admin=4, admin=3, manager=2, user=1`); `manager` continua no enum mas aliasa `admin` em `ROLE_CAPS`. `requireRole` e o guard de hierarquia de `requireCapabilityWithContext` usam esse peso.
 
 ## 2. Camada de capability
 
