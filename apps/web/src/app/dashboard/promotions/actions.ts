@@ -811,7 +811,7 @@ export async function deletePromotion(
 	id: string
 ): Promise<ActionResult<undefined>> {
 	try {
-		await requireCapability("promotions.manage");
+		await requireCapability("promotions.delete");
 	} catch (error) {
 		return safeRequireRole(error);
 	}

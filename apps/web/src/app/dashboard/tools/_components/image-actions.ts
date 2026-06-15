@@ -1,7 +1,7 @@
 "use server";
 
 import { logUserActivity } from "@/lib/activity";
-import { requireCurrentSession, requireRole } from "@/lib/session";
+import { requireCapability } from "@/lib/permissions";
 import {
 	extractPublicUrlPath,
 	removeStorageObject,
@@ -15,8 +15,7 @@ const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 export async function uploadToolImage(
 	formData: FormData
 ): Promise<{ url: string }> {
-	const session = await requireCurrentSession();
-	await requireRole("admin");
+	const session = await requireCapability("tools.update");
 
 	const { url } = await uploadToPublicBucket({
 		bucket: TOOL_IMAGES_BUCKET,
@@ -35,8 +34,7 @@ export async function uploadToolImage(
 }
 
 export async function deleteToolImage(url: string): Promise<void> {
-	const session = await requireCurrentSession();
-	await requireRole("admin");
+	const session = await requireCapability("tools.delete");
 
 	const path = extractPublicUrlPath(url, TOOL_IMAGES_BUCKET);
 	if (!path) {
