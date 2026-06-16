@@ -7,7 +7,7 @@ import {
 } from "@emach/db/schema/attributes";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
+import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { requireCapability } from "@/lib/permissions";
 import {
@@ -15,10 +15,6 @@ import {
 	attributeFormSchema,
 	buildOptionsField,
 } from "./attribute-schema";
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 function errorMessage(error: unknown): string {
 	if (error instanceof Error) {

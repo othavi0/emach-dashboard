@@ -11,6 +11,7 @@ import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { revalidatePath } from "next/cache";
 
+import type { ActionResult } from "@/lib/action-result";
 import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
@@ -41,10 +42,6 @@ import {
 } from "./_lib/movements-shared";
 
 export type { PeriodPreset } from "./_lib/movements-shared";
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 interface AdjustStockSuccess {
 	delta: number;

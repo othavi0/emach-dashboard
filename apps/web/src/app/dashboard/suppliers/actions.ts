@@ -5,6 +5,7 @@ import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
 import { supplier } from "@emach/db/schema/tools";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
@@ -20,10 +21,6 @@ import type { SupplierStockToolRow } from "./data";
 
 const SUPPLIERS_PATH = "/dashboard/suppliers";
 const TOOLS_PATH = "/dashboard/tools";
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 export type SuppliersSort = "newest" | "name";
 

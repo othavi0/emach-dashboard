@@ -17,7 +17,7 @@ import { env } from "@emach/env/server";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-
+import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
 import { requireCapabilityWithContext } from "@/lib/permissions";
@@ -40,10 +40,6 @@ import {
 } from "./schema";
 
 const USERS_PATH = "/dashboard/users";
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 

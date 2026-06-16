@@ -14,6 +14,7 @@ import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
+import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
@@ -35,10 +36,6 @@ import {
 import { resolveVariantDeletion } from "./_components/variant-deletion";
 
 const TOOLS_PATH = "/dashboard/tools";
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 function errorMessage(error: unknown): string {
 	// Erro do Postgres (drizzle embrulha em .cause): nunca vazar SQL cru no toast.
