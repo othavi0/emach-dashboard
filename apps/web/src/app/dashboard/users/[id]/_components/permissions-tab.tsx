@@ -186,7 +186,13 @@ function CapabilityTriState({
 			variant="outline"
 		>
 			{options.map((opt) => (
-				<ToggleGroupItem key={opt.key} value={opt.key}>
+				// Segmented conectado: cada item do ToggleGroup vem com rounded-md (base);
+				// sobrescreve para arredondar só as pontas (meio reto, parece unido).
+				<ToggleGroupItem
+					className="rounded-none! first:rounded-l-md! last:rounded-r-md!"
+					key={opt.key}
+					value={opt.key}
+				>
 					{opt.label}
 				</ToggleGroupItem>
 			))}
