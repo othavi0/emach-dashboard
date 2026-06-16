@@ -53,7 +53,7 @@ export function UserCard({ user }: UserCardProps) {
 		>
 			{/* Header: avatar + nome + email + status badge */}
 			<div className="flex items-start gap-3">
-				<div className="flex size-[52px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-border bg-muted font-bold text-[18px] text-foreground">
+				<div className="flex size-[52px] flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted font-bold text-[18px] text-foreground">
 					{user.image ? (
 						// biome-ignore lint/performance/noImgElement: avatar do usuário
 						// biome-ignore lint/correctness/useImageSize: tamanho fixo via Tailwind

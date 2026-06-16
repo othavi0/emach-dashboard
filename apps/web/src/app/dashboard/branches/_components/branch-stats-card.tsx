@@ -53,7 +53,7 @@ export function BranchStatsCard({
 			tabIndex={0}
 		>
 			<div className="flex items-start gap-3 px-4 pt-4 pb-3">
-				<div className="flex size-12 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-muted font-bold text-[17px] text-foreground">
+				<div className="flex size-12 flex-shrink-0 items-center justify-center rounded-md border border-border bg-muted font-bold text-[17px] text-foreground">
 					{getInitials(name)}
 				</div>
 				<div className="min-w-0 flex-1">

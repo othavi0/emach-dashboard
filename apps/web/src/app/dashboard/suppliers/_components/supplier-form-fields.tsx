@@ -5,6 +5,8 @@ import { Textarea } from "@emach/ui/components/textarea";
 
 import { HelpTooltip } from "@/components/help-tooltip";
 import { LabeledField } from "@/components/labeled-field";
+import { MaskedInput } from "@/components/masked-input";
+import { cnpjMask, phoneBrMask } from "@/lib/masks";
 import type { SupplierFormValues } from "./supplier-schema";
 
 type Patch = (next: Partial<SupplierFormValues>) => void;
@@ -61,15 +63,17 @@ export function SupplierFormFields({
 				<LabeledField
 					error={errors.phone}
 					id="supplier-phone"
-					label="Telefone (opcional)"
+					label="Telefone"
+					required
 				>
 					{(field) => (
-						<Input
+						<MaskedInput
 							{...field}
 							disabled={disabled}
-							onChange={(e) => onPatch({ phone: e.target.value })}
+							mask={phoneBrMask}
+							onChange={(v) => onPatch({ phone: v })}
 							placeholder="(11) 99999-9999"
-							value={values.phone ?? ""}
+							value={values.phone}
 						/>
 					)}
 				</LabeledField>
@@ -97,7 +101,7 @@ export function SupplierFormFields({
 					error={errors.cnpj}
 					help={
 						<HelpTooltip
-							body="Só os dígitos são salvos; a máscara é apenas visual."
+							body="Só os dígitos são salvos; a máscara é apenas visual. Se não informar o CNPJ, descreva o motivo nas observações."
 							example="12.345.678/0001-90 → 12345678000190"
 							title="CNPJ"
 						/>
@@ -106,12 +110,13 @@ export function SupplierFormFields({
 					label="CNPJ (opcional)"
 				>
 					{(field) => (
-						<Input
+						<MaskedInput
 							{...field}
 							disabled={disabled}
-							onChange={(e) => onPatch({ cnpj: e.target.value })}
+							mask={cnpjMask}
+							onChange={(v) => onPatch({ cnpj: v })}
 							placeholder="00.000.000/0000-00"
-							value={values.cnpj ?? ""}
+							value={values.cnpj}
 						/>
 					)}
 				</LabeledField>
@@ -119,9 +124,9 @@ export function SupplierFormFields({
 
 			<LabeledField
 				error={errors.notes}
-				hint="Markdown suportado"
+				hint="Markdown suportado · obrigatório quando não há CNPJ"
 				id="supplier-notes"
-				label="Observações (opcional)"
+				label="Observações"
 			>
 				{(field) => (
 					<Textarea

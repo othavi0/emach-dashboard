@@ -1,10 +1,11 @@
 import { z } from "zod";
 
 import { isValidCnpj } from "@/lib/validation/cnpj";
+import { isValidPhoneBr } from "@/lib/validation/phone-br";
 
 const URL_RE = /^https?:\/\/.+/i;
 
-export const supplierSchema = z.object({
+const supplierObject = z.object({
 	name: z
 		.string()
 		.trim()
@@ -17,11 +18,10 @@ export const supplierSchema = z.object({
 		.optional()
 		.or(z.literal("")),
 	phone: z
-		.string()
+		.string({ error: "Telefone obrigatório" })
 		.trim()
-		.max(40, "Telefone muito longo")
-		.optional()
-		.or(z.literal("")),
+		.min(1, "Telefone obrigatório")
+		.refine(isValidPhoneBr, "Telefone inválido (use DDD + número)"),
 	website: z
 		.string()
 		.trim()
@@ -44,6 +44,20 @@ export const supplierSchema = z.object({
 		.max(1000, "Observações muito longas")
 		.optional()
 		.or(z.literal("")),
+});
+
+export const supplierSchema = supplierObject.superRefine((data, ctx) => {
+	// Sem CNPJ, exigimos uma observação explicando o motivo — fornecedor sem
+	// documento não pode passar despercebido.
+	const hasCnpj = Boolean(data.cnpj?.trim());
+	const hasNotes = Boolean(data.notes?.trim());
+	if (!(hasCnpj || hasNotes)) {
+		ctx.addIssue({
+			code: "custom",
+			path: ["notes"],
+			message: "Sem CNPJ, descreva o motivo nas observações",
+		});
+	}
 });
 
 export type SupplierFormValues = z.infer<typeof supplierSchema>;
