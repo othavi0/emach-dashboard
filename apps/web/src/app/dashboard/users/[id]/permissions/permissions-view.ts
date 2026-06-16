@@ -96,9 +96,9 @@ export function sectionMasterState(
 		.flatMap((r) => r.rows)
 		.filter((row) => row.editable)
 		.map((row) => row.state);
-	if (states.length === 0) {
+	const first = states[0];
+	if (!first) {
 		return null;
 	}
-	const first = states[0] as OverrideState;
 	return states.every((s) => s === first) ? first : "mixed";
 }
