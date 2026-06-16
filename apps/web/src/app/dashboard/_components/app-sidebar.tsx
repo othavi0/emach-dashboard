@@ -11,6 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
+import type { Capability } from "@/lib/permissions";
 import { CommandPalette } from "./command-palette";
 import { MotionProvider } from "./motion-provider";
 import { DASHBOARD_HREF, NAV_GROUPS } from "./nav-config";
@@ -19,7 +20,7 @@ import { type FooterUser, SidebarFooterUser } from "./sidebar-footer-user";
 
 interface AppSidebarProps {
 	canManageUsers: boolean;
-	canUpdateSettings: boolean;
+	capabilities: Capability[];
 	orderCount: number;
 	pendingCount: number;
 	reviewCount: number;
@@ -29,7 +30,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({
 	canManageUsers,
-	canUpdateSettings,
+	capabilities,
 	orderCount,
 	reviewCount,
 	pendingCount,
@@ -44,14 +45,14 @@ export function AppSidebar({
 		stock: stockCount,
 	} as const;
 
-	const caps = { "site.update_settings": canUpdateSettings } as const;
+	const capSet = new Set(capabilities);
 
 	const groups = NAV_GROUPS.filter(
 		(g) => g.label !== "Administração" || canManageUsers
 	).map((g) => ({
 		...g,
 		items: g.items.filter(
-			(item) => !item.capability || caps[item.capability as keyof typeof caps]
+			(item) => !item.capability || capSet.has(item.capability)
 		),
 	}));
 

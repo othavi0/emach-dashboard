@@ -9,7 +9,7 @@ import { count, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { can } from "@/lib/permissions";
+import { can, getUserCapabilities } from "@/lib/permissions";
 import { getUserStatus, requireCurrentSession } from "@/lib/session";
 import { parseSidebarCookie, SIDEBAR_COOKIE_NAME } from "@/lib/sidebar-cookie";
 import { AppSidebar } from "./_components/app-sidebar";
@@ -36,10 +36,11 @@ export default async function DashboardLayout({
 		redirect("/suspended");
 	}
 
-	const [canManageUsers, canUpdateSettings] = await Promise.all([
+	const [canManageUsers, capsSet] = await Promise.all([
 		can(session, "users.approve"),
-		can(session, "site.update_settings"),
+		getUserCapabilities(session),
 	]);
+	const capabilities = [...capsSet];
 
 	const [pendingCountRow, counts] = await Promise.all([
 		canManageUsers
@@ -63,7 +64,7 @@ export default async function DashboardLayout({
 		<SidebarProvider defaultOpen={sidebarOpen}>
 			<AppSidebar
 				canManageUsers={canManageUsers}
-				canUpdateSettings={canUpdateSettings}
+				capabilities={capabilities}
 				orderCount={counts.orders}
 				pendingCount={pendingCount}
 				reviewCount={counts.reviews}
