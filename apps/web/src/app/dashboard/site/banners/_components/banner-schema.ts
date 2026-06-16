@@ -7,6 +7,10 @@ export const BANNER_LAYOUTS = [
 	"stack_left",
 	"center_bottom",
 	"center_mid",
+	"center_cta_right",
+	"mirror_split",
+	"hero_center",
+	"text_right",
 ] as const;
 export const BANNER_CTA_VARIANTS = ["red", "dark", "white", "ghost"] as const;
 
@@ -32,6 +36,8 @@ export const bannerFormSchema = z
 		ctaHref: z.string().trim().nullable(),
 		ctaVariant: z.enum(BANNER_CTA_VARIANTS),
 		layout: z.enum(BANNER_LAYOUTS),
+		productScale: z.number().int().min(50).max(160).default(100),
+		ctaScale: z.number().int().min(80).max(140).default(100),
 		countdownTarget: z.date().nullable(),
 		isActive: z.boolean(),
 	})

@@ -3,6 +3,7 @@
 import type { Banner } from "@emach/db/schema/banner";
 import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
+import { Slider } from "@emach/ui/components/slider";
 import { Switch } from "@emach/ui/components/switch";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -44,6 +45,8 @@ const EMPTY: BannerFormValues = {
 	ctaHref: null,
 	ctaVariant: "red",
 	layout: "split",
+	productScale: 100,
+	ctaScale: 100,
 	countdownTarget: null,
 	isActive: false,
 };
@@ -65,6 +68,8 @@ function initialValues(banner?: Banner): BannerFormValues {
 		ctaHref: banner.ctaHref,
 		ctaVariant: banner.ctaVariant,
 		layout: banner.layout,
+		productScale: banner.productScale,
+		ctaScale: banner.ctaScale,
 		countdownTarget: banner.countdownTarget,
 		isActive: banner.isActive,
 	};
@@ -257,6 +262,23 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 							value={values.productImageMobileUrl}
 						/>
 					</div>
+					<div className="mt-3">
+						<div className="mb-1.5 flex items-center justify-between text-muted-foreground text-xs">
+							<span>Tamanho da ferramenta</span>
+							<span className="text-foreground tabular-nums">
+								{values.productScale}%
+							</span>
+						</div>
+						<Slider
+							max={160}
+							min={50}
+							onValueChange={(val) =>
+								set("productScale", Array.isArray(val) ? val[0] : val)
+							}
+							step={5}
+							value={[values.productScale]}
+						/>
+					</div>
 				</SlotSection>
 
 				<SlotSection
@@ -399,6 +421,23 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 								value={values.ctaVariant}
 							/>
 						</div>
+					</div>
+					<div className="mt-3">
+						<div className="mb-1.5 flex items-center justify-between text-muted-foreground text-xs">
+							<span>Tamanho do botão</span>
+							<span className="text-foreground tabular-nums">
+								{values.ctaScale}%
+							</span>
+						</div>
+						<Slider
+							max={140}
+							min={80}
+							onValueChange={(val) =>
+								set("ctaScale", Array.isArray(val) ? val[0] : val)
+							}
+							step={5}
+							value={[values.ctaScale]}
+						/>
 					</div>
 				</SlotSection>
 

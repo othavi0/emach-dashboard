@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import {
+	Barlow,
+	Barlow_Condensed,
+	Cormorant_Garamond,
+	Inter,
+} from "next/font/google";
 
 import "../index.css";
 import AppHeader from "@/components/app-header";
@@ -18,6 +23,21 @@ const fontSans = Inter({
 	display: "swap",
 });
 
+// Fontes do storefront (hero), usadas no preview de banner para fidelidade.
+const fontBarlow = Barlow({
+	subsets: ["latin"],
+	weight: ["400", "600", "700"],
+	variable: "--font-barlow",
+	display: "swap",
+});
+
+const fontBarlowCondensed = Barlow_Condensed({
+	subsets: ["latin"],
+	weight: ["600", "700"],
+	variable: "--font-barlow-condensed",
+	display: "swap",
+});
+
 export const metadata: Metadata = {
 	title: "emach dashboard",
 	description: "Dashboard de gestão de estoque e e-commerce da E-mach.",
@@ -30,7 +50,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html
-			className={`dark ${fontSerif.variable} ${fontSans.variable}`}
+			className={`dark ${fontSerif.variable} ${fontSans.variable} ${fontBarlow.variable} ${fontBarlowCondensed.variable}`}
 			lang="pt-BR"
 			suppressHydrationWarning
 		>
