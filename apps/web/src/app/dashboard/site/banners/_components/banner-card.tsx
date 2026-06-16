@@ -8,6 +8,8 @@ import { Switch } from "@emach/ui/components/switch";
 import { cn } from "@emach/ui/lib/utils";
 import { GripVertical, Monitor, Pencil, Smartphone } from "lucide-react";
 import Link from "next/link";
+import { CTA_POS, PRODUCT_POS } from "./banner-layout-pos";
+import { CTA_BASE, CTA_VARIANT_CLASS } from "./cta-variant-class";
 import { DeleteBannerDialog } from "./delete-banner-dialog";
 
 function SlotChip({ label }: { label: string }) {
@@ -77,10 +79,26 @@ export function BannerCard({
 					// biome-ignore lint/correctness/useImageSize: dimensões via CSS (size-3/5)
 					<img
 						alt=""
-						className="absolute inset-0 m-auto size-3/5 object-contain drop-shadow-[0_20px_24px_rgba(0,0,0,0.55)]"
+						className={cn(
+							"absolute size-3/5 object-contain drop-shadow-[0_20px_24px_rgba(0,0,0,0.55)]",
+							PRODUCT_POS[item.layout]
+						)}
 						src={item.productImageUrl}
 						style={{ scale: String(item.productScale / 100) }}
 					/>
+				)}
+				{item.ctaLabel && (
+					<span
+						className={cn(
+							"absolute z-10 px-3 py-1.5 text-[11px]",
+							CTA_BASE,
+							CTA_VARIANT_CLASS[item.ctaVariant],
+							CTA_POS[item.layout]
+						)}
+						style={{ scale: String(item.ctaScale / 100) }}
+					>
+						{item.ctaLabel} →
+					</span>
 				)}
 				{typeof order === "number" && (
 					<span className="absolute top-2 left-2 rounded-md bg-black/60 px-2 py-0.5 font-bold text-white text-xs backdrop-blur">
