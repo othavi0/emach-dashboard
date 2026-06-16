@@ -36,6 +36,7 @@ import { PermissionsTab } from "./_components/permissions-tab";
 import { ProfileTab } from "./_components/profile-tab";
 import { SecurityTab } from "./_components/security-tab";
 import { SessionsTab } from "./_components/sessions-tab";
+import { SuperAdminPermissionsNotice } from "./_components/super-admin-permissions-notice";
 import { UserBranchLinkPanel } from "./_components/user-branch-link-panel";
 import { UserIdentity } from "./_components/user-identity";
 import { getUserOverrides } from "./permissions/data";
@@ -96,18 +97,23 @@ export default async function UserDetailPage({
 
 	let permissionsTabContent: ReactNode = null;
 	if (targetManageable && onPermissionsTab) {
-		const [overrides, actorCaps] = await Promise.all([
-			getUserOverrides(user.id),
-			getUserCapabilities(actorSession),
-		]);
-		permissionsTabContent = (
-			<PermissionsTab
-				manageableCaps={[...actorCaps]}
-				overrides={[...overrides.entries()]}
-				roleDefaults={[...roleDefaultCapabilities(user.role as UserRole)]}
-				targetUserId={user.id}
-			/>
-		);
+		if (user.role === "super_admin") {
+			// Camada 3 (issue #184): overrides não se aplicam a super_admin — sem grid.
+			permissionsTabContent = <SuperAdminPermissionsNotice />;
+		} else {
+			const [overrides, actorCaps] = await Promise.all([
+				getUserOverrides(user.id),
+				getUserCapabilities(actorSession),
+			]);
+			permissionsTabContent = (
+				<PermissionsTab
+					manageableCaps={[...actorCaps]}
+					overrides={[...overrides.entries()]}
+					roleDefaults={[...roleDefaultCapabilities(user.role as UserRole)]}
+					targetUserId={user.id}
+				/>
+			);
+		}
 	}
 
 	const tabs: EntityTab[] = [

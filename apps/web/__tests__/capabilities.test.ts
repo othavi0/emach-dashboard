@@ -4,6 +4,8 @@ import {
 	type Capability,
 	isCapability,
 	roleDefaultCapabilities,
+	SECTION_ORDER,
+	sectionForCapability,
 } from "@/lib/capabilities";
 
 // Tipadas como Capability[] de propósito: o compilador valida que cada string
@@ -78,5 +80,25 @@ describe("registry de capabilities", () => {
 	it("isCapability discrimina keys válidas", () => {
 		expect(isCapability("tools.read")).toBe(true);
 		expect(isCapability("inexistente.foo")).toBe(false);
+	});
+});
+
+describe("seções de navegação (redesign permissões)", () => {
+	it("mapeia cada recurso para a seção da sidebar", () => {
+		expect(sectionForCapability("orders.read")).toBe("Operação");
+		expect(sectionForCapability("branches.manage")).toBe("Operação");
+		expect(sectionForCapability("tools.create")).toBe("Catálogo");
+		expect(sectionForCapability("stock.adjust")).toBe("Catálogo");
+		expect(sectionForCapability("reviews.moderate")).toBe("Relacionamento");
+		expect(sectionForCapability("promotions.manage")).toBe("Relacionamento");
+		expect(sectionForCapability("site.update_settings")).toBe("Sistema");
+		expect(sectionForCapability("permissions.manage")).toBe("Administração");
+		expect(sectionForCapability("audit.read")).toBe("Administração");
+	});
+
+	it("toda capability tem uma seção em SECTION_ORDER", () => {
+		for (const cap of Object.keys(CAPABILITIES) as Capability[]) {
+			expect(SECTION_ORDER).toContain(sectionForCapability(cap));
+		}
 	});
 });

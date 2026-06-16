@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@emach/db";
+import { user as userTable } from "@emach/db/schema/auth";
 import { userBranch } from "@emach/db/schema/inventory";
 import { userCapabilityOverride } from "@emach/db/schema/user-capability-override";
 import { and, eq } from "drizzle-orm";
@@ -41,6 +42,21 @@ export async function setUserCapability(
 	}
 
 	try {
+		// Camada 2 (issue #184): super_admin é irrestrito — override grant/revoke
+		// sobre ele é semanticamente inválido e abre lock-out. `inherit` (limpeza
+		// de override) permanece permitido: é idempotente e nunca cria lock-out.
+		const [targetUser] = await db
+			.select({ role: userTable.role })
+			.from(userTable)
+			.where(eq(userTable.id, targetUserId))
+			.limit(1);
+		if (targetUser?.role === "super_admin" && state !== "inherit") {
+			return {
+				ok: false,
+				error: "Super admin tem acesso total — permissões não são ajustáveis",
+			};
+		}
+
 		// Filiais do alvo entram no teto de branch-scope (admin só age na própria filial).
 		const targetBranches = await db
 			.select({ branchId: userBranch.branchId })
@@ -140,5 +156,119 @@ export async function setUserCapability(
 	} catch (err) {
 		logger.error("setUserCapability", err);
 		return { ok: false, error: "Não foi possível alterar a permissão" };
+	}
+}
+
+const sectionInputSchema = z.object({
+	targetUserId: z.string().min(1),
+	capabilities: z.array(z.string().min(1)).min(1),
+	state: z.enum(["grant", "revoke", "inherit"]),
+});
+
+export async function setSectionCapabilities(
+	raw: z.infer<typeof sectionInputSchema>
+): Promise<ActionResult> {
+	const parsed = sectionInputSchema.safeParse(raw);
+	if (!parsed.success) {
+		return { ok: false, error: "Dados inválidos" };
+	}
+	const { targetUserId, state } = parsed.data;
+	const caps = parsed.data.capabilities.filter(isCapability);
+	if (caps.length === 0) {
+		return { ok: false, error: "Nenhuma permissão válida" };
+	}
+
+	try {
+		// Regra issue #184: nunca grant/revoke sobre super_admin (inherit ok).
+		const targetUserRows = await db
+			.select({ role: userTable.role })
+			.from(userTable)
+			.where(eq(userTable.id, targetUserId))
+			.limit(1);
+		const targetUser = targetUserRows[0];
+		if (targetUser?.role === "super_admin" && state !== "inherit") {
+			return {
+				ok: false,
+				error: "Super admin tem acesso total — permissões não são ajustáveis",
+			};
+		}
+
+		const targetBranches = await db
+			.select({ branchId: userBranch.branchId })
+			.from(userBranch)
+			.where(eq(userBranch.userId, targetUserId));
+		const targetBranchIds = targetBranches.map((b) => b.branchId);
+
+		const actorSession = await requireCapabilityWithContext(
+			"permissions.manage",
+			{
+				targetUserId,
+				targetBranchIds,
+			}
+		);
+
+		if (
+			targetBranchIds.length === 0 &&
+			actorSession.user.role !== "super_admin"
+		) {
+			return { ok: false, error: "Usuário alvo sem filial atribuída" };
+		}
+
+		// Anti-escalada: grant só concede o que o ator possui (espelha setUserCapability).
+		let effective = caps;
+		if (state === "grant") {
+			const actorCaps = await getUserCapabilities(actorSession);
+			effective = caps.filter((c) => actorCaps.has(c));
+		}
+		if (effective.length === 0) {
+			return { ok: false, error: "Nenhuma permissão aplicável" };
+		}
+
+		for (const capability of effective) {
+			if (state === "inherit") {
+				await db
+					.delete(userCapabilityOverride)
+					.where(
+						and(
+							eq(userCapabilityOverride.userId, targetUserId),
+							eq(userCapabilityOverride.capability, capability)
+						)
+					);
+			} else {
+				await db
+					.insert(userCapabilityOverride)
+					.values({
+						userId: targetUserId,
+						capability,
+						effect: state,
+						grantedBy: actorSession.user.id,
+					})
+					.onConflictDoUpdate({
+						target: [
+							userCapabilityOverride.userId,
+							userCapabilityOverride.capability,
+						],
+						set: {
+							effect: state,
+							grantedBy: actorSession.user.id,
+							grantedAt: new Date(),
+						},
+					});
+			}
+		}
+
+		await logUserActivity({
+			action: AUDIT_ACTION[state],
+			actorUserId: actorSession.user.id,
+			targetType: "user",
+			targetId: targetUserId,
+			metadata: { bulk: true, effect: state, capabilities: effective },
+		});
+
+		revalidatePath(`/dashboard/users/${targetUserId}`);
+		return { ok: true, data: undefined };
+	} catch (err) {
+		logger.error("setSectionCapabilities", err);
+		return { ok: false, error: "Não foi possível alterar as permissões" };
 	}
 }

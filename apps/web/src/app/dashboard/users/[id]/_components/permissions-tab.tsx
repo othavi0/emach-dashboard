@@ -1,30 +1,29 @@
 "use client";
 
+import { Badge } from "@emach/ui/components/badge";
 import {
 	ToggleGroup,
 	ToggleGroupItem,
 } from "@emach/ui/components/toggle-group";
 import { useTransition } from "react";
-import { CAPABILITIES, type Capability } from "@/lib/capabilities";
+import type { Capability } from "@/lib/capabilities";
 import { notify } from "@/lib/notify";
-import { setUserCapability } from "../permissions/actions";
-import type { OverrideState } from "../permissions/data";
+import {
+	setSectionCapabilities,
+	setUserCapability,
+} from "../permissions/actions";
+import {
+	buildPermissionTree,
+	type OverrideState,
+	type SectionView,
+	sectionMasterState,
+} from "../permissions/permissions-view";
 
 interface Props {
 	manageableCaps: Capability[];
 	overrides: [Capability, OverrideState][];
 	roleDefaults: Capability[];
 	targetUserId: string;
-}
-
-interface Row {
-	action: string;
-	cap: Capability;
-	defaultOn: boolean;
-	description: string;
-	editable: boolean;
-	resource: string;
-	state: OverrideState;
 }
 
 export function PermissionsTab({
@@ -34,28 +33,16 @@ export function PermissionsTab({
 	manageableCaps,
 }: Props) {
 	const [pending, startTransition] = useTransition();
+
 	const overrideMap = new Map(overrides);
 	const defaultSet = new Set(roleDefaults);
-	const editableSet = new Set(manageableCaps);
+	const manageable = new Set(manageableCaps);
 
-	const groups = new Map<string, Row[]>();
-	for (const [cap, meta] of Object.entries(CAPABILITIES) as [
-		Capability,
-		(typeof CAPABILITIES)[Capability],
-	][]) {
-		const row: Row = {
-			cap,
-			resource: meta.resource,
-			action: meta.action,
-			description: meta.description,
-			defaultOn: defaultSet.has(cap),
-			state: overrideMap.get(cap) ?? "inherit",
-			editable: editableSet.has(cap),
-		};
-		const list = groups.get(meta.group) ?? [];
-		list.push(row);
-		groups.set(meta.group, list);
-	}
+	const tree = buildPermissionTree({
+		overrides: overrideMap,
+		roleDefaults: defaultSet,
+		manageable,
+	});
 
 	function apply(cap: Capability, state: OverrideState) {
 		startTransition(async () => {
@@ -72,83 +59,140 @@ export function PermissionsTab({
 		});
 	}
 
+	function applySection(section: SectionView, state: OverrideState) {
+		const caps = section.resources
+			.flatMap((r) => r.rows)
+			.filter((row) => row.editable)
+			.map((row) => row.cap);
+		if (caps.length === 0) {
+			return;
+		}
+		startTransition(async () => {
+			const res = await setSectionCapabilities({
+				targetUserId,
+				capabilities: caps,
+				state,
+			});
+			if (res.ok) {
+				notify.success("Seção atualizada");
+			} else {
+				notify.error(res.error);
+			}
+		});
+	}
+
 	return (
-		<div className="flex flex-col gap-6">
-			{[...groups.entries()].map(([group, rows]) => (
-				<section className="rounded-lg border border-border" key={group}>
-					<h3 className="border-border border-b px-4 py-2.5 font-medium text-sm">
-						{group}
-					</h3>
-					<ul className="divide-y divide-border">
-						{rows.map((row) => (
-							<li
-								className="flex items-center justify-between gap-4 px-4 py-2.5"
-								key={row.cap}
-							>
-								<div className="min-w-0">
-									<p className="font-medium text-sm">
-										{row.resource} · {row.action}
-									</p>
-									<p className="text-muted-foreground text-xs">
-										{row.description} — padrão do nível:{" "}
-										<span className="tabular-nums">
-											{row.defaultOn ? "permitido" : "negado"}
-										</span>
-									</p>
+		<div className="flex w-0 min-w-full flex-col gap-4">
+			{tree.map((section) => {
+				const masterState = sectionMasterState(section);
+				return (
+					<section
+						className="rounded-lg border border-border"
+						key={section.section}
+					>
+						{/* Header da seção */}
+						<div className="flex items-center justify-between gap-4 border-border border-b px-4 py-2.5">
+							<h3 className="font-medium text-sm">{section.section}</h3>
+							{masterState !== null && (
+								<div className="flex items-center gap-2">
+									{masterState === "mixed" && (
+										<Badge className="text-[11px]" variant="secondary">
+											Misto
+										</Badge>
+									)}
+									<CapabilityTriState
+										disabled={pending}
+										label={`seção ${section.section}`}
+										onChange={(s) => applySection(section, s)}
+										value={masterState}
+									/>
 								</div>
-								<TriState
-									defaultOn={row.defaultOn}
-									disabled={!row.editable || pending}
-									label={`${row.resource} · ${row.action}`}
-									onChange={(s) => apply(row.cap, s)}
-									value={row.state}
-								/>
-							</li>
-						))}
-					</ul>
-				</section>
-			))}
+							)}
+						</div>
+
+						{/* Recursos da seção */}
+						<ul className="divide-y divide-border">
+							{section.resources.map((rv) => (
+								<li key={rv.resource}>
+									<div className="flex items-center gap-3 px-4 py-2">
+										<span className="w-28 shrink-0 font-medium text-sm">
+											{rv.resource}
+										</span>
+										<div className="min-w-0 flex-1 overflow-x-auto pb-1">
+											<div className="flex w-max gap-5">
+												{rv.rows.map((row) => (
+													<div
+														className="flex shrink-0 flex-col items-center gap-1.5"
+														key={row.cap}
+													>
+														<span className="whitespace-nowrap text-[11px] text-muted-foreground">
+															{row.action}
+															{" · "}
+															<span className="opacity-70">
+																{row.defaultOn ? "permitido" : "negado"}
+															</span>
+														</span>
+														<CapabilityTriState
+															disabled={!row.editable || pending}
+															label={`${rv.resource} · ${row.action}`}
+															onChange={(s) => apply(row.cap, s)}
+															value={row.state}
+														/>
+													</div>
+												))}
+											</div>
+										</div>
+									</div>
+								</li>
+							))}
+						</ul>
+					</section>
+				);
+			})}
 		</div>
 	);
 }
 
-function TriState({
+function CapabilityTriState({
 	value,
-	defaultOn,
 	disabled,
 	label,
 	onChange,
 }: {
-	value: OverrideState;
-	defaultOn: boolean;
+	// "mixed" = caps da seção divergem → nenhum estado ativo (badge "Misto" ao lado).
+	value: OverrideState | "mixed";
 	disabled: boolean;
 	label: string;
 	onChange: (s: OverrideState) => void;
 }) {
 	const options: { key: OverrideState; label: string }[] = [
-		{ key: "inherit", label: `Herdar (${defaultOn ? "sim" : "não"})` },
-		{ key: "grant", label: "Conceder" },
-		{ key: "revoke", label: "Revogar" },
+		{ key: "inherit", label: "Padrão" },
+		{ key: "grant", label: "Permitir" },
+		{ key: "revoke", label: "Bloquear" },
 	];
 	return (
 		<ToggleGroup
 			aria-label={`Permissão de ${label}`}
 			className="shrink-0"
 			disabled={disabled}
-			onValueChange={(groupValue) => {
-				const next = groupValue[0] as OverrideState | undefined;
-				// toggleMultiple=false: clicar o ativo esvazia o array — ignoramos
-				// (sempre há um estado vigente; não dá pra "desmarcar").
+			onValueChange={(v) => {
+				const next = v[0] as OverrideState | undefined;
 				if (next) {
 					onChange(next);
 				}
 			}}
 			size="sm"
-			value={[value]}
+			value={value === "mixed" ? [] : [value]}
 			variant="outline"
 		>
 			{options.map((opt) => (
-				<ToggleGroupItem key={opt.key} value={opt.key}>
+				// Segmented conectado: cada item do ToggleGroup vem com rounded-md (base);
+				// sobrescreve para arredondar só as pontas (meio reto, parece unido).
+				<ToggleGroupItem
+					className="rounded-none! first:rounded-l-md! last:rounded-r-md!"
+					key={opt.key}
+					value={opt.key}
+				>
 					{opt.label}
 				</ToggleGroupItem>
 			))}

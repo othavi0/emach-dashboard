@@ -80,6 +80,12 @@ Aba "Permissões" em `dashboard/users/[id]` — grid tri-state por grupo de capa
 - **B — plugin `access-control` do Better Auth** — oferece statements `role/resource/action` com wildcards e um `ac.userHasPermission()`. Rejeitado: o plugin é role-based puro (sem override per-user nativo); a semântica de statement inspirou o formato de metadata do registry, mas o mecanismo de override teria de ser construído em cima de qualquer forma. Adotar o plugin adicionaria uma abstração extra sem eliminar a tabela de overrides.
 - **C — `capability` como pgEnum** — tipagem forte no Postgres, validação na constraint. Rejeitado: cada nova capability exigiria `ALTER TYPE … ADD VALUE` + `db:sync` (push-only, ADR-0006) — churn alto para um catálogo que cresce com frequência. Validação em código via `isCapability()` é suficiente e não gera diff no banco.
 
+### Invariante: overrides não se aplicam a super_admin (issue #184)
+
+`super_admin` é funcionalmente irrestrito por role. Um override `grant` sobre ele é redundante; um `revoke` o degrada abaixo do teto do role e, no caso de `permissions.manage`, abre um lock-out só recuperável via SQL (dois super_admins se revogando mutuamente — nenhum é "o último", então `assertNotLastActiveSuperAdmin` não dispara). Decisão (Opção A): overrides valem **apenas para `admin`/`user`**. Defesa em 3 camadas: (1) `getUserCapabilities` ignora overrides quando `role === super_admin`; (2) `setUserCapability` rejeita `grant`/`revoke` sobre alvo super_admin (mantém `inherit` para limpeza); (3) a aba "Permissões" mostra estado explicativo para alvo super_admin. Alternativas B (guard "≥1 super_admin com a cap"), C (`permissions.manage` em `LAST_SUPER_ADMIN_GUARDED`) e D (caps `defaultRoles: S` não-revogáveis) cobririam só o lock-out de uma cap, não a classe inteira. Design completo: `docs/superpowers/specs/2026-06-16-issue-184-overrides-super-admin-design.md`.
+
+**Cleanup de dados legados (opcional, idempotente):** como a Camada 1 já neutraliza overrides legados sobre super_admins, é só higiene — `DELETE FROM user_capability_override WHERE user_id IN (SELECT id FROM "user" WHERE role = 'super_admin');` (push-only, ADR-0006 — script SQL pontual, não migration versionada).
+
 ## Consequences
 
 - **Extensibilidade:** nova capability = 1 entrada no catálogo; UI, validação e resolução acompanham automaticamente.
