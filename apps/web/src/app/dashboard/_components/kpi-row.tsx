@@ -13,15 +13,10 @@ function formatAge(hours: number): string {
 export async function KpiRow({ branchId }: { branchId: string | null }) {
 	const k = await fetchKpis(branchId);
 	return (
-		<div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-			<KpiCard
-				format="currency"
-				label="Receita do dia"
-				value={k.revenueToday}
-			/>
+		<div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
 			<KpiCard label="Pedidos ativos" value={k.activeOrders} />
 			<KpiCard
-				label="Reviews pendentes"
+				label="Avaliações pendentes"
 				sub={
 					k.oldestPendingReviewHours == null
 						? undefined
