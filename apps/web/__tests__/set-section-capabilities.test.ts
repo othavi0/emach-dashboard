@@ -69,6 +69,26 @@ describe("setSectionCapabilities", () => {
 		);
 	});
 
+	it("inherit em massa: deleta os overrides (não insere) + audita", async () => {
+		mockTargetRole("user");
+		mockTargetBranches(["b1"]);
+		const where = vi.fn(() => Promise.resolve());
+		(db.delete as ReturnType<typeof vi.fn>).mockReturnValue({ where });
+		const r = await setSectionCapabilities({
+			targetUserId: "u1",
+			capabilities: ["tools.create", "tools.delete"],
+			state: "inherit",
+		});
+		expect(r.ok).toBe(true);
+		expect(db.delete).toHaveBeenCalledTimes(2);
+		expect(db.insert).not.toHaveBeenCalled();
+		expect(logUserActivity).toHaveBeenCalledWith(
+			expect.objectContaining({
+				metadata: expect.objectContaining({ bulk: true, effect: "inherit" }),
+			})
+		);
+	});
+
 	it("alvo super_admin: revoke em massa é rejeitado (issue #184)", async () => {
 		mockTargetRole("super_admin");
 		const r = await setSectionCapabilities({
