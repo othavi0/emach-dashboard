@@ -577,6 +577,9 @@ export async function deleteUser(input: unknown): Promise<ActionResult> {
 }
 
 export async function revokeUserSession(input: unknown): Promise<ActionResult> {
+	// Contexto vazio: o alvo é um sessionId, então o userId só é conhecido após o
+	// lookup abaixo — o self-guard (SELF_RESTRICTED) não tem como agir aqui. A
+	// proteção self vive no check explícito `target.userId === actor.user.id` adiante.
 	await requireCapabilityWithContext("users.revoke_sessions", {});
 	const actor = await requireCurrentSession();
 	const parsed = revokeSessionSchema.safeParse(input);
@@ -589,6 +592,12 @@ export async function revokeUserSession(input: unknown): Promise<ActionResult> {
 	});
 	if (!target) {
 		return { ok: false, error: "Sessão não encontrada" };
+	}
+	if (target.userId === actor.user.id) {
+		return {
+			ok: false,
+			error: "Não é possível revogar a própria sessão por aqui",
+		};
 	}
 
 	await db
@@ -608,11 +617,18 @@ export async function revokeUserSession(input: unknown): Promise<ActionResult> {
 export async function forceLogoutAllSessions(
 	input: unknown
 ): Promise<ActionResult<{ count: number }>> {
-	await requireCapabilityWithContext("users.revoke_sessions", {});
 	const actor = await requireCurrentSession();
 	const parsed = userIdSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
+	}
+	try {
+		await requireCapabilityWithContext("users.revoke_sessions", {
+			targetUserId: parsed.data.userId,
+		});
+	} catch (e) {
+		const message = e instanceof Error ? e.message : "Acesso negado";
+		return { ok: false, error: message };
 	}
 
 	const deleted = await db

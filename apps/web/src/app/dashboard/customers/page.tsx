@@ -12,7 +12,7 @@ import Link from "next/link";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
 import { PendingPanel, type PendingTab } from "@/components/pending-panel";
-import { can, requireCapability } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { CustomerFilters } from "./_components/customer-filters";
 import { CustomersInfinite } from "./_components/customers-infinite";
 import { ExportCsvLink } from "./_components/export-csv-link";
@@ -38,7 +38,10 @@ interface PageProps {
 export const dynamic = "force-dynamic";
 
 export default async function CustomersPage({ searchParams }: PageProps) {
-	const session = await requireCapability("customers.read");
+	const session = await requireCapabilityOrRedirect(
+		"customers.read",
+		"/dashboard/sem-acesso?recurso=Clientes"
+	);
 
 	const canExport = await can(session, "customers.export");
 

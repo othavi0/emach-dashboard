@@ -10,19 +10,18 @@ import {
 
 // Tipadas como Capability[] de propósito: o compilador valida que cada string
 // é uma key real do registry (pega typo na lista de regressão).
-const LEGACY_USER: readonly Capability[] = [
+// Matriz alvo do role user (estoqueista/operacional) — ver ADR-0016 + spec
+// docs/superpowers/specs/2026-06-16-permissoes-role-user-design.md
+const OPERATIONAL_USER: readonly Capability[] = [
 	"tools.read",
 	"categories.read",
+	"attributes.read",
 	"suppliers.read",
+	"suppliers.manage",
 	"branches.read",
 	"stock.read",
-	"promotions.read",
-	"orders.read",
-	"customers.read",
-	"site.read",
-	"reviews.read",
-	"attributes.read",
 	"stock.adjust",
+	"orders.read",
 	"orders.update_status",
 	"orders.add_note",
 ];
@@ -54,9 +53,9 @@ describe("registry de capabilities", () => {
 		expect(superCaps.size).toBe(Object.keys(CAPABILITIES).length);
 	});
 
-	it("user default == LEGACY_USER (mais nada)", () => {
+	it("user default == OPERATIONAL_USER (mais nada)", () => {
 		const userCaps = roleDefaultCapabilities("user");
-		expect([...userCaps].sort()).toEqual([...LEGACY_USER].sort());
+		expect([...userCaps].sort()).toEqual([...OPERATIONAL_USER].sort());
 	});
 
 	it("admin default == tudo menos os exclusivos de super_admin", () => {
@@ -68,6 +67,22 @@ describe("registry de capabilities", () => {
 			if (!LEGACY_SUPER_EXCLUSIVE.includes(key)) {
 				expect(adminCaps.has(key), `admin deve ter ${key}`).toBe(true);
 			}
+		}
+	});
+
+	it("admin mantém as caps que mudaram de nível na matriz operacional do user", () => {
+		// suppliers.manage migrou SA→SAU; customers/reviews/promotions/site.read
+		// migraram SAU→SA. admin permanece com todas — regressão explícita da feature
+		// do role user (o loop acima cobre isso só implicitamente).
+		const adminCaps = roleDefaultCapabilities("admin");
+		for (const c of [
+			"suppliers.manage",
+			"customers.read",
+			"reviews.read",
+			"promotions.read",
+			"site.read",
+		] as const) {
+			expect(adminCaps.has(c), `admin deve manter ${c}`).toBe(true);
 		}
 	});
 

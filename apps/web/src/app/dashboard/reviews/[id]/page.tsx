@@ -2,7 +2,7 @@ import { buttonVariants } from "@emach/ui/components/button";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { can, requireCapability } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { ModerateActions } from "../_components/moderate-actions";
 import { ReviewDetailCard } from "../_components/review-detail-card";
 import { getReviewDetail } from "../data";
@@ -20,7 +20,10 @@ export const dynamic = "force-dynamic";
 export default async function ReviewDetailPage({
 	params,
 }: ReviewDetailPageProps) {
-	const session = await requireCapability("reviews.read");
+	const session = await requireCapabilityOrRedirect(
+		"reviews.read",
+		"/dashboard/sem-acesso?recurso=Avaliações"
+	);
 	const { id } = await params;
 	const review = await getReviewDetail(id);
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
-import { requireRole } from "@/lib/session";
+import { requireCapability } from "@/lib/permissions";
 import { BranchForm } from "../_components/branch-form";
 
 export const metadata: Metadata = {
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewBranchPage() {
-	await requireRole("admin");
+	await requireCapability("branches.manage");
 
 	return (
 		<div className="flex flex-col gap-6">

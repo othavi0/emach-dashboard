@@ -9,7 +9,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
-import { requireCapability } from "@/lib/permissions";
+import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { ReviewsFilters } from "./_components/reviews-filters";
 import { ReviewsInfinite } from "./_components/reviews-infinite";
 import { getReviewsTabCounts, listReviews } from "./data";
@@ -27,7 +27,10 @@ interface ReviewsPageProps {
 export const dynamic = "force-dynamic";
 
 export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
-	await requireCapability("reviews.read");
+	await requireCapabilityOrRedirect(
+		"reviews.read",
+		"/dashboard/sem-acesso?recurso=Avaliações"
+	);
 
 	const raw = await searchParams;
 	const parsed = reviewsListFiltersSchema.safeParse(raw);

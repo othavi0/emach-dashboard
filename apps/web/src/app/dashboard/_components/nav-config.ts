@@ -99,22 +99,26 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				label: "Clientes",
 				href: "/dashboard/customers" as Route,
 				icon: Users,
+				capability: "customers.read",
 			},
 			{
 				label: "Avaliações",
 				href: "/dashboard/reviews" as Route,
 				icon: Star,
 				badgeKey: "reviews",
+				capability: "reviews.read",
 			},
 			{
 				label: "Promoções",
 				href: "/dashboard/promotions" as Route,
 				icon: Megaphone,
+				capability: "promotions.read",
 			},
 			{
 				label: "Banners",
 				href: "/dashboard/site/banners" as Route,
 				icon: ImageIcon,
+				capability: "site.update_banners",
 			},
 			{
 				label: "Notificações",
