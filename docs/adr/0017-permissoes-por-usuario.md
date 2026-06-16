@@ -62,7 +62,7 @@ capabilities_efetivas = role_defaults ± overrides
 - **Teto**: ator precisa de `permissions.manage`.
 - **Hierarquia**: ator não pode tocar usuário de role igual ou superior.
 - **Branch-scope do alvo**: admin só gerencia capabilities de users da própria filial.
-- **Anti-escalada**: ator só pode grant/revoke de capabilities que ele próprio possui — não pode conceder o que não tem.
+- **Anti-escalada (somente `grant`)**: ator só pode *conceder* capabilities que ele próprio possui — não pode conceder o que não tem. `revoke` e `inherit` ficam livres dessa restrição: eles apenas reduzem ou resetam o acesso de um alvo que o ator já tem direito de gerenciar (hierarquia + filial já validados), e nunca elevam o acesso do alvo acima do teto do seu role. Exigir posse nesse caso criaria um beco operacional — um admin não conseguiria limpar um override perigoso sem acionar um super_admin.
 - `inherit` remove o override (volta ao default do role).
 - Toda operação escreve em `userActivityLog` (campo `metadata` com `{ capability, effect, before }`).
 

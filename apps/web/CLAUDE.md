@@ -35,7 +35,7 @@ Catálogo em **`src/lib/capabilities.ts`** (47 caps, metadata `group/resource/ac
 - **`can(session, cap)`** — **async**, resolve role ± overrides via `getUserCapabilities(session)` (request-cache, `cache()` do React, mesmo padrão de `getUserBranchScope`). Todos os callsites foram migrados para `await can(...)`.
 - **`roleHasCapability(role, cap)`** — sync, apenas o default do role (sem overrides); usar quando override não é relevante (ex: UI que exibe o default do role como sugestão).
 - Overrides persistidos em `user_capability_override` (tabela nova; tabela vazia = no-op = comportamento idêntico ao role puro).
-- **`setUserCapability`** (`dashboard/users/[id]/permissions/actions.ts`) — teto: `permissions.manage` + hierarquia + branch-scope do alvo + anti-escalada (ator só togla caps que possui). Self-management bloqueado (`permissions.manage` ∈ `SELF_RESTRICTED`). Toda operação auditada em `userActivityLog`.
+- **`setUserCapability`** (`dashboard/users/[id]/permissions/actions.ts`) — teto: `permissions.manage` + hierarquia + branch-scope do alvo + anti-escalada só em `grant` (ator não concede cap que não possui; `revoke`/`inherit` livres — apenas reduzem/resetam acesso de alvo gerenciável). Self-management bloqueado (`permissions.manage` ∈ `SELF_RESTRICTED`). Toda operação auditada em `userActivityLog`.
 - UI: aba "Permissões" em `users/[id]` (grid tri-state Herdar/Conceder/Revogar), gated por `permissions.manage`.
 
 ## Imports
