@@ -1,13 +1,10 @@
 "use server";
 
+import type { ActionResult } from "@/lib/action-result";
 import { logger } from "@/lib/logger";
 import { requireCurrentSession } from "@/lib/session";
 import type { SearchResults } from "./_lib/global-search";
 import { runGlobalSearch } from "./_lib/global-search.server";
-
-type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 export async function globalSearch(
 	query: string

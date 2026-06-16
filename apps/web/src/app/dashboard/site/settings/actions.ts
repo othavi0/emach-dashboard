@@ -8,7 +8,7 @@ import {
 } from "@emach/db/schema/store-settings";
 import { asc, eq, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
+import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
@@ -23,10 +23,6 @@ import {
 
 const SETTINGS_PATH = "/dashboard/site/settings";
 const SINGLETON_ID = "singleton";
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 function zodErrorMessage(error: unknown): string {
 	if (error instanceof Error) {

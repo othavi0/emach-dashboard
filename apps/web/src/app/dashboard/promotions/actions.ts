@@ -18,6 +18,7 @@ import {
 } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+import type { ActionResult } from "@/lib/action-result";
 import { type Cursor, decodeCursor } from "@/lib/cursor";
 import { endOfDaySaoPaulo, startOfDaySaoPaulo } from "@/lib/format/date-input";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
@@ -42,10 +43,6 @@ const UUID_RE =
 // ---------------------------------------------------------------------------
 // Shared types
 // ---------------------------------------------------------------------------
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 export type PromotionStatus = "active" | "scheduled" | "expired" | "inactive";
 

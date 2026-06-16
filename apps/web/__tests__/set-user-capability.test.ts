@@ -174,4 +174,64 @@ describe("setUserCapability — teto e validações", () => {
 			expect.any(Error)
 		);
 	});
+
+	it("revoke: ator SEM a cap, alvo gerenciável → sucesso + audit permission.revoked", async () => {
+		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
+			new Set([])
+		);
+		mockTargetBranches(["b1"]);
+		mockExistingOverride(null);
+		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
+		const values = vi.fn(() => ({ onConflictDoUpdate }));
+		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
+		const r = await setUserCapability({
+			targetUserId: "u1",
+			capability: "tools.delete",
+			state: "revoke",
+		});
+		expect(r.ok).toBe(true);
+		expect(values).toHaveBeenCalledWith(
+			expect.objectContaining({ effect: "revoke" })
+		);
+		expect(logUserActivity).toHaveBeenCalledWith(
+			expect.objectContaining({ action: "permission.revoked" })
+		);
+		expect(getUserCapabilities).not.toHaveBeenCalled();
+	});
+
+	it("inherit: ator SEM a cap, alvo gerenciável → sucesso (delete) + audit permission.reset", async () => {
+		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
+			new Set([])
+		);
+		mockTargetBranches(["b1"]);
+		mockExistingOverride("grant");
+		const where = vi.fn(() => Promise.resolve());
+		(db.delete as ReturnType<typeof vi.fn>).mockReturnValue({ where });
+		const r = await setUserCapability({
+			targetUserId: "u1",
+			capability: "tools.delete",
+			state: "inherit",
+		});
+		expect(r.ok).toBe(true);
+		expect(db.delete).toHaveBeenCalled();
+		expect(logUserActivity).toHaveBeenCalledWith(
+			expect.objectContaining({ action: "permission.reset" })
+		);
+		expect(getUserCapabilities).not.toHaveBeenCalled();
+	});
+
+	it("revoke: guards continuam barrando — requireCapabilityWithContext lança → ok:false, sem mutação", async () => {
+		(
+			requireCapabilityWithContext as ReturnType<typeof vi.fn>
+		).mockRejectedValue(new Error("Forbidden"));
+		mockTargetBranches(["b1"]);
+		const r = await setUserCapability({
+			targetUserId: "u1",
+			capability: "tools.delete",
+			state: "revoke",
+		});
+		expect(r.ok).toBe(false);
+		expect(db.insert).not.toHaveBeenCalled();
+		expect(db.delete).not.toHaveBeenCalled();
+	});
 });

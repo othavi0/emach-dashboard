@@ -13,6 +13,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
+import type { ActionResult } from "@/lib/action-result";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
@@ -33,10 +34,6 @@ import {
 	updateCustomerStatusSchema,
 	updateCustomerTypeSchema,
 } from "./schema";
-
-export type ActionResult<T = undefined> =
-	| { data: T; ok: true }
-	| { error: string; ok: false };
 
 function revalidateAll(clientId: string) {
 	revalidatePath("/dashboard/customers");

@@ -5,6 +5,7 @@ import { review } from "@emach/db/schema/reviews";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+import type { ActionResult } from "@/lib/action-result";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
@@ -15,10 +16,6 @@ import {
 	type ReviewsListFiltersParsed,
 } from "./schema";
 import { REVIEW_TABS } from "./status-meta";
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 const REVIEWS_PATH = "/dashboard/reviews";
 

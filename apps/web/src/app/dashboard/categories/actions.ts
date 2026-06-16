@@ -10,7 +10,7 @@ import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { and, asc, count, eq, inArray, like, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-
+import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursorAs } from "@/lib/cursor";
 import { getPgError } from "@/lib/db-error";
@@ -22,10 +22,6 @@ import { type CategoryInput, categorySchema } from "./schema";
 const CATEGORIES_PATH = "/dashboard/categories";
 
 export type CategoryListItem = typeof category.$inferSelect;
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 function zodErrorMessage(error: unknown): string {
 	if (error instanceof Error) {
