@@ -28,6 +28,8 @@
     "clean": "bash scripts/clean.sh",
     "clean-all": "bash scripts/clean.sh -y --cache",
     "clean-dry": "bash scripts/clean.sh --dry-run",
+    "sync:fork": "bash scripts/sync-fork.sh",
+    "sync:fork:dry": "bash scripts/sync-fork.sh --dry-run",
     "dev:web": "turbo -F web dev",
     "db:push": "turbo -F @emach/db db:push",
     "db:sync": "turbo -F @emach/db db:sync",
