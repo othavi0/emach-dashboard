@@ -32,6 +32,8 @@ export const bannerFormSchema = z
 		ctaHref: z.string().trim().nullable(),
 		ctaVariant: z.enum(BANNER_CTA_VARIANTS),
 		layout: z.enum(BANNER_LAYOUTS),
+		productScale: z.number().int().min(50).max(160).default(100),
+		ctaScale: z.number().int().min(80).max(140).default(100),
 		countdownTarget: z.date().nullable(),
 		isActive: z.boolean(),
 	})

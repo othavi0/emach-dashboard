@@ -132,6 +132,7 @@ export function BannerLivePreview({
 								: "top-[8%] left-1/2 -translate-x-1/2"
 						)}
 						src={product}
+						style={{ scale: String(values.productScale / 100) }}
 					/>
 				)}
 
@@ -174,6 +175,7 @@ export function BannerLivePreview({
 								? "right-[7%] bottom-[12%]"
 								: "bottom-[6%] left-1/2 -translate-x-1/2"
 						)}
+						style={{ scale: String(values.ctaScale / 100) }}
 					>
 						{values.ctaLabel} →
 					</span>
