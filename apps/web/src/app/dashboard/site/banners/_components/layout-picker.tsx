@@ -8,6 +8,10 @@ const LABELS: Record<BannerLayout, string> = {
 	stack_left: "Empilhado",
 	center_bottom: "Centro abaixo",
 	center_mid: "Centralizado",
+	center_cta_right: "Centro + CTA dir.",
+	mirror_split: "Espelhado",
+	hero_center: "Produto destaque",
+	text_right: "Texto à direita",
 };
 
 function Diagram({ layout }: { layout: BannerLayout }) {
@@ -38,6 +42,34 @@ function Diagram({ layout }: { layout: BannerLayout }) {
 				<>
 					<span className="absolute top-[40%] left-1/2 h-[9%] w-[50%] -translate-x-1/2 rounded-sm bg-foreground/40" />
 					<span className="absolute top-[56%] left-1/2 h-[9%] w-[26%] -translate-x-1/2 rounded-sm bg-primary" />
+				</>
+			)}
+			{layout === "center_cta_right" && (
+				<>
+					<span className="absolute top-[44%] left-[8%] h-[8%] w-[30%] rounded-sm bg-foreground/40" />
+					<span className="absolute top-[10%] left-1/2 h-[40%] w-[26%] -translate-x-1/2 rounded-sm bg-foreground/20" />
+					<span className="absolute right-[8%] bottom-[16%] h-[12%] w-[24%] rounded-sm bg-primary" />
+				</>
+			)}
+			{layout === "mirror_split" && (
+				<>
+					<span className="absolute top-[28%] right-[8%] h-[8%] w-[34%] rounded-sm bg-foreground/40" />
+					<span className="absolute top-[30%] left-[6%] h-[46%] w-[24%] rounded-sm bg-foreground/20" />
+					<span className="absolute bottom-[16%] left-[8%] h-[12%] w-[24%] rounded-sm bg-primary" />
+				</>
+			)}
+			{layout === "hero_center" && (
+				<>
+					<span className="absolute top-[10%] left-1/2 h-[8%] w-[44%] -translate-x-1/2 rounded-sm bg-foreground/40" />
+					<span className="absolute top-1/2 left-1/2 h-[44%] w-[34%] -translate-x-1/2 -translate-y-1/2 rounded-sm bg-foreground/20" />
+					<span className="absolute bottom-[8%] left-1/2 h-[8%] w-[24%] -translate-x-1/2 rounded-sm bg-primary" />
+				</>
+			)}
+			{layout === "text_right" && (
+				<>
+					<span className="absolute top-[28%] right-[8%] h-[8%] w-[34%] rounded-sm bg-foreground/40" />
+					<span className="absolute top-[30%] left-[6%] h-[46%] w-[24%] rounded-sm bg-foreground/20" />
+					<span className="absolute right-[8%] bottom-[16%] h-[12%] w-[24%] rounded-sm bg-primary" />
 				</>
 			)}
 		</div>

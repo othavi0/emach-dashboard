@@ -10,6 +10,6 @@ export const CTA_VARIANT_CLASS: Record<BannerCtaVariant, string> = {
 	ghost: "border border-white/70 bg-transparent text-white",
 };
 
-// Forma + peso + tracking comuns do EmachButton real.
+// Forma + peso + tracking + fonte (Barlow) comuns do EmachButton real.
 export const CTA_BASE =
-	"rounded-[2px] font-sans font-semibold tracking-[0.04em]";
+	"rounded-[2px] font-[family-name:var(--font-barlow)] font-semibold tracking-[0.04em]";

@@ -88,6 +88,8 @@ export async function createBanner(
 			ctaHref: v.ctaHref,
 			ctaVariant: v.ctaVariant,
 			layout: v.layout,
+			productScale: v.productScale,
+			ctaScale: v.ctaScale,
 			countdownTarget: v.countdownTarget,
 			isActive: v.isActive,
 			sortOrder: (maxRow?.max ?? -1) + 1,
@@ -141,6 +143,8 @@ export async function updateBanner(
 				ctaHref: v.ctaHref,
 				ctaVariant: v.ctaVariant,
 				layout: v.layout,
+				productScale: v.productScale,
+				ctaScale: v.ctaScale,
 				countdownTarget: v.countdownTarget,
 				isActive: v.isActive,
 			})

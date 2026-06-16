@@ -79,6 +79,7 @@ export function BannerCard({
 						alt=""
 						className="absolute inset-0 m-auto size-3/5 object-contain drop-shadow-[0_20px_24px_rgba(0,0,0,0.55)]"
 						src={item.productImageUrl}
+						style={{ scale: String(item.productScale / 100) }}
 					/>
 				)}
 				{typeof order === "number" && (
