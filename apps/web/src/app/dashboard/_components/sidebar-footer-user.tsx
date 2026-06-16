@@ -1,6 +1,10 @@
 "use client";
 
-import { Avatar, AvatarFallback } from "@emach/ui/components/avatar";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "@emach/ui/components/avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -23,6 +27,7 @@ import { getInitials } from "@/lib/format/name";
 export interface FooterUser {
 	email: string;
 	id: string;
+	image?: string | null;
 	name: string;
 	role?: string | null;
 }
@@ -65,8 +70,9 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 								className="data-[state=open]:bg-sidebar-accent"
 								size="lg"
 							>
-								<Avatar className="rounded-md" size="default">
-									<AvatarFallback className="rounded-md text-xs">
+								<Avatar size="default">
+									{user.image ? <AvatarImage alt="" src={user.image} /> : null}
+									<AvatarFallback className="text-xs">
 										{getInitials(user.name)}
 									</AvatarFallback>
 								</Avatar>

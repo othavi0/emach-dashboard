@@ -13,6 +13,7 @@ export function OrderIdentity({ order }: OrderIdentityProps) {
 	return (
 		<EntityIdentityHeader
 			avatarFallback={getInitials(order.clientName)}
+			avatarUrl={order.clientImage}
 			badges={
 				<>
 					<OrderStatusBadge status={order.status} />

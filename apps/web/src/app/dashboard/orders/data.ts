@@ -161,6 +161,7 @@ export interface OrderDetail {
 	clientDocument: string | null;
 	clientEmail: string;
 	clientId: string;
+	clientImage: string | null;
 	clientName: string;
 	clientPhone: string | null;
 	clientType: string | null;
@@ -712,6 +713,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				total_amount: string;
 				discount_amount: string;
 				client_document: string | null;
+				client_image: string | null;
 				client_type: string | null;
 				preparing_at: Date | null;
 			}>(sql`
@@ -747,6 +749,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				c.email AS client_email,
 				c.phone AS client_phone,
 				c.document AS client_document,
+				c.image AS client_image,
 				c.client_type AS client_type,
 				b.name AS branch_name
 			FROM "order" o
@@ -864,6 +867,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		status: row.status,
 		clientId: row.client_id,
 		clientName: row.client_name,
+		clientImage: row.client_image,
 		customerNotes: row.customer_notes,
 		clientEmail: row.client_email,
 		clientPhone: row.client_phone,

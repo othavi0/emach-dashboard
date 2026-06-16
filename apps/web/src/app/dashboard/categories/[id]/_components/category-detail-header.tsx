@@ -66,7 +66,6 @@ export function CategoryDetailHeader({
 
 			<EntityIdentityHeader
 				actions={actions}
-				avatarClassName="rounded-lg after:rounded-lg"
 				avatarFallback={<FolderTree aria-hidden className="size-5" />}
 				badges={
 					<Badge variant={isActive ? "success" : "outline"}>

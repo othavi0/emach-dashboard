@@ -87,11 +87,11 @@ export function CustomerCard({ customer }: CustomerCardProps) {
 			tabIndex={0}
 		>
 			<div className="flex items-start gap-3 px-4 pt-4 pb-3">
-				<Avatar className="size-12 flex-shrink-0 rounded-[10px]">
+				<Avatar className="size-12 flex-shrink-0 rounded-md">
 					{customer.image && (
 						<AvatarImage alt={customer.name} src={customer.image} />
 					)}
-					<AvatarFallback className="rounded-[10px] bg-muted font-bold text-[17px]">
+					<AvatarFallback className="rounded-md bg-muted font-bold text-[17px]">
 						{getInitials(customer.name)}
 					</AvatarFallback>
 				</Avatar>
