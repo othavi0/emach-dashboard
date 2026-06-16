@@ -82,7 +82,7 @@ export function PermissionsTab({
 	}
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="flex w-0 min-w-full flex-col gap-4">
 			{tree.map((section) => {
 				const masterState = sectionMasterState(section);
 				return (
@@ -118,27 +118,29 @@ export function PermissionsTab({
 										<span className="w-28 shrink-0 font-medium text-sm">
 											{rv.resource}
 										</span>
-										<div className="flex gap-3 overflow-x-auto">
-											{rv.rows.map((row) => (
-												<div
-													className="flex shrink-0 flex-col items-center gap-1"
-													key={row.cap}
-												>
-													<span className="whitespace-nowrap text-[11px] text-muted-foreground">
-														{row.action}
-														{" · "}
-														<span className="opacity-70">
-															{row.defaultOn ? "permitido" : "negado"}
+										<div className="min-w-0 flex-1 overflow-x-auto pb-1">
+											<div className="flex w-max gap-5">
+												{rv.rows.map((row) => (
+													<div
+														className="flex shrink-0 flex-col items-center gap-1.5"
+														key={row.cap}
+													>
+														<span className="whitespace-nowrap text-[11px] text-muted-foreground">
+															{row.action}
+															{" · "}
+															<span className="opacity-70">
+																{row.defaultOn ? "permitido" : "negado"}
+															</span>
 														</span>
-													</span>
-													<CapabilityTriState
-														disabled={!row.editable || pending}
-														label={`${rv.resource} · ${row.action}`}
-														onChange={(s) => apply(row.cap, s)}
-														value={row.state}
-													/>
-												</div>
-											))}
+														<CapabilityTriState
+															disabled={!row.editable || pending}
+															label={`${rv.resource} · ${row.action}`}
+															onChange={(s) => apply(row.cap, s)}
+															value={row.state}
+														/>
+													</div>
+												))}
+											</div>
 										</div>
 									</div>
 								</li>
