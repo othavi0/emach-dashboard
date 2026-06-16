@@ -22,7 +22,7 @@ export const getUserBranchScope = cache(
 		return {
 			kind: "scoped",
 			branchIds: rows.map((r) => r.branchId),
-			includeUnassigned: role === "admin" || role === "manager",
+			includeUnassigned: role === "admin",
 		};
 	}
 );

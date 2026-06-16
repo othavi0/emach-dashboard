@@ -67,7 +67,7 @@ export interface UserListRow {
 	image: string | null;
 	lastLoginAt: Date | null;
 	name: string;
-	role: "super_admin" | "admin" | "manager" | "user";
+	role: "super_admin" | "admin" | "user";
 	status: "pending" | "active" | "suspended";
 }
 
@@ -75,7 +75,7 @@ export interface UserListFilters {
 	branchId?: string;
 	cursor?: string | null;
 	limit?: number;
-	role?: "super_admin" | "admin" | "manager" | "user";
+	role?: "super_admin" | "admin" | "user";
 	scope?: BranchScope;
 	search?: string;
 	status?: "active" | "pending" | "suspended";

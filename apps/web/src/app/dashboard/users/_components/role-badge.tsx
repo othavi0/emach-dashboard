@@ -1,6 +1,6 @@
 import { Badge } from "@emach/ui/components/badge";
 import type { LucideIcon } from "lucide-react";
-import { Crown, Shield, ShieldCheck, UserRound } from "lucide-react";
+import { Crown, ShieldCheck, UserRound } from "lucide-react";
 
 const META: Record<
 	string,
@@ -12,7 +12,6 @@ const META: Record<
 > = {
 	super_admin: { label: "Super Admin", icon: Crown },
 	admin: { label: "Admin", icon: ShieldCheck },
-	manager: { label: "Manager", icon: Shield, variant: "secondary" },
 	user: { label: "Estoquista", icon: UserRound, variant: "outline" },
 };
 

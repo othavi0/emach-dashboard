@@ -26,7 +26,6 @@ interface Props {
 const ROLE_LABEL: Record<ResponsibleCandidate["role"], string> = {
 	super_admin: "Super admin",
 	admin: "Admin",
-	manager: "Manager",
 	user: "Membro",
 };
 

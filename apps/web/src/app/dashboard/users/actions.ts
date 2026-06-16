@@ -65,11 +65,7 @@ export async function inviteUser(
 		targetBranchIds: parsed.data.branchIds,
 	});
 
-	const actorRole = session.user.role as
-		| "super_admin"
-		| "admin"
-		| "manager"
-		| "user";
+	const actorRole = session.user.role as "super_admin" | "admin" | "user";
 	if (!allowedApprovalRoles(actorRole).includes(parsed.data.role)) {
 		return { ok: false, error: "Você não pode atribuir esse cargo" };
 	}
