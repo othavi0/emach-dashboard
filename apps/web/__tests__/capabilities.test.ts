@@ -10,19 +10,18 @@ import {
 
 // Tipadas como Capability[] de propósito: o compilador valida que cada string
 // é uma key real do registry (pega typo na lista de regressão).
-const LEGACY_USER: readonly Capability[] = [
+// Matriz alvo do role user (estoqueista/operacional) — ver ADR-0016 + spec
+// docs/superpowers/specs/2026-06-16-permissoes-role-user-design.md
+const OPERATIONAL_USER: readonly Capability[] = [
 	"tools.read",
 	"categories.read",
+	"attributes.read",
 	"suppliers.read",
+	"suppliers.manage",
 	"branches.read",
 	"stock.read",
-	"promotions.read",
-	"orders.read",
-	"customers.read",
-	"site.read",
-	"reviews.read",
-	"attributes.read",
 	"stock.adjust",
+	"orders.read",
 	"orders.update_status",
 	"orders.add_note",
 ];
@@ -54,9 +53,9 @@ describe("registry de capabilities", () => {
 		expect(superCaps.size).toBe(Object.keys(CAPABILITIES).length);
 	});
 
-	it("user default == LEGACY_USER (mais nada)", () => {
+	it("user default == OPERATIONAL_USER (mais nada)", () => {
 		const userCaps = roleDefaultCapabilities("user");
-		expect([...userCaps].sort()).toEqual([...LEGACY_USER].sort());
+		expect([...userCaps].sort()).toEqual([...OPERATIONAL_USER].sort());
 	});
 
 	it("admin default == tudo menos os exclusivos de super_admin", () => {

@@ -69,6 +69,11 @@ describe("matriz de capability (3 níveis)", () => {
 		expect(roleHasCapability("user", "tools.create")).toBe(false);
 		expect(roleHasCapability("user", "orders.cancel")).toBe(false);
 		expect(roleHasCapability("user", "reviews.moderate")).toBe(false);
+		expect(roleHasCapability("user", "suppliers.manage")).toBe(true);
+		expect(roleHasCapability("user", "customers.read")).toBe(false);
+		expect(roleHasCapability("user", "reviews.read")).toBe(false);
+		expect(roleHasCapability("user", "promotions.read")).toBe(false);
+		expect(roleHasCapability("user", "site.read")).toBe(false);
 	});
 	it("role nula/desconhecida → nega", () => {
 		expect(roleHasCapability(null, "orders.read")).toBe(false);

@@ -112,14 +112,14 @@ export const CAPABILITIES = {
 		resource: "Fornecedores",
 		action: "Gerenciar",
 		description: "Criar/editar fornecedores",
-		defaultRoles: SA,
+		defaultRoles: SAU,
 	},
 	"promotions.read": {
 		group: "Catálogo",
 		resource: "Promoções",
 		action: "Ver",
 		description: "Visualizar promoções",
-		defaultRoles: SAU,
+		defaultRoles: SA,
 	},
 	"promotions.manage": {
 		group: "Catálogo",
@@ -214,7 +214,7 @@ export const CAPABILITIES = {
 		resource: "Clientes",
 		action: "Ver",
 		description: "Visualizar clientes",
-		defaultRoles: SAU,
+		defaultRoles: SA,
 	},
 	"customers.update_status": {
 		group: "Clientes",
@@ -249,7 +249,7 @@ export const CAPABILITIES = {
 		resource: "Avaliações",
 		action: "Ver",
 		description: "Visualizar avaliações",
-		defaultRoles: SAU,
+		defaultRoles: SA,
 	},
 	"reviews.moderate": {
 		group: "Clientes",
@@ -264,7 +264,7 @@ export const CAPABILITIES = {
 		resource: "Site",
 		action: "Ver",
 		description: "Visualizar configurações do site",
-		defaultRoles: SAU,
+		defaultRoles: SA,
 	},
 	"site.update_banners": {
 		group: "Site",
