@@ -9,7 +9,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
-import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { getBranchDetail, getBranchDetailKpis } from "../data";
 import { ActivityTab } from "./_components/activity-tab";
 import { BranchEditSheet } from "./_components/branch-edit-sheet";
@@ -44,7 +44,11 @@ export default async function BranchDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
-	await requireCapabilityOrRedirect("branches.manage");
+	const session = await requireCapabilityOrRedirect("branches.read");
+	const [canManageBranch, canManageTeam] = await Promise.all([
+		can(session, "branches.manage"),
+		can(session, "users.manage"),
+	]);
 
 	const { id } = await params;
 	const sp = await searchParams;
@@ -67,17 +71,21 @@ export default async function BranchDetailPage({
 			icon: <Building2 aria-hidden className="size-3.5" />,
 			content: <OverviewTab detail={detail} kpis={kpis} />,
 		},
-		{
-			value: "team",
-			label: "Equipe",
-			icon: <Users aria-hidden className="size-3.5" />,
-			badge: (
-				<span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-secondary px-1 font-medium text-secondary-foreground text-xs tabular-nums">
-					{kpis.teamSize}
-				</span>
-			),
-			content: sp.tab === "team" ? <TeamTab branchId={id} /> : null,
-		},
+		...(canManageTeam
+			? [
+					{
+						value: "team",
+						label: "Equipe",
+						icon: <Users aria-hidden className="size-3.5" />,
+						badge: (
+							<span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-secondary px-1 font-medium text-secondary-foreground text-xs tabular-nums">
+								{kpis.teamSize}
+							</span>
+						),
+						content: sp.tab === "team" ? <TeamTab branchId={id} /> : null,
+					},
+				]
+			: []),
 		{
 			value: "orders",
 			label: "Pedidos",
@@ -116,9 +124,9 @@ export default async function BranchDetailPage({
 	];
 
 	let headerAction: React.ReactNode = null;
-	if (sp.tab === "team") {
+	if (sp.tab === "team" && canManageTeam) {
 		headerAction = <TeamLinkPanel branchId={id} />;
-	} else if (!sp.tab || sp.tab === "overview") {
+	} else if ((!sp.tab || sp.tab === "overview") && canManageBranch) {
 		headerAction = <EditBranchButton />;
 	}
 
