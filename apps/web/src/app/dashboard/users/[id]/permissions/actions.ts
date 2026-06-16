@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@emach/db";
+import { user as userTable } from "@emach/db/schema/auth";
 import { userBranch } from "@emach/db/schema/inventory";
 import { userCapabilityOverride } from "@emach/db/schema/user-capability-override";
 import { and, eq } from "drizzle-orm";
@@ -41,6 +42,21 @@ export async function setUserCapability(
 	}
 
 	try {
+		// Camada 2 (issue #184): super_admin é irrestrito — override grant/revoke
+		// sobre ele é semanticamente inválido e abre lock-out. `inherit` (limpeza
+		// de override) permanece permitido: é idempotente e nunca cria lock-out.
+		const [targetUser] = await db
+			.select({ role: userTable.role })
+			.from(userTable)
+			.where(eq(userTable.id, targetUserId))
+			.limit(1);
+		if (targetUser?.role === "super_admin" && state !== "inherit") {
+			return {
+				ok: false,
+				error: "Super admin tem acesso total — permissões não são ajustáveis",
+			};
+		}
+
 		// Filiais do alvo entram no teto de branch-scope (admin só age na própria filial).
 		const targetBranches = await db
 			.select({ branchId: userBranch.branchId })
