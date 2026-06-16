@@ -366,6 +366,47 @@ export function isCapability(value: string): value is Capability {
 	return value in CAPABILITIES;
 }
 
+export type NavSection =
+	| "Operação"
+	| "Catálogo"
+	| "Relacionamento"
+	| "Sistema"
+	| "Administração";
+
+// Ordem = ordem da sidebar (nav-config.ts). Visão/Dashboard não tem capability.
+export const SECTION_ORDER: readonly NavSection[] = [
+	"Operação",
+	"Catálogo",
+	"Relacionamento",
+	"Sistema",
+	"Administração",
+];
+
+// Recurso (meta.resource) → seção da sidebar. Alinha a tela de permissões à navegação.
+const RESOURCE_SECTION: Record<string, NavSection> = {
+	Pedidos: "Operação",
+	Filiais: "Operação",
+	Ferramentas: "Catálogo",
+	Atributos: "Catálogo",
+	Categorias: "Catálogo",
+	Fornecedores: "Catálogo",
+	Estoque: "Catálogo",
+	Clientes: "Relacionamento",
+	Avaliações: "Relacionamento",
+	Promoções: "Relacionamento",
+	Site: "Sistema",
+	Usuários: "Administração",
+	Permissões: "Administração",
+	Auditoria: "Administração",
+};
+
+export function sectionForCapability(cap: Capability): NavSection {
+	// RESOURCE_SECTION cobre todo resource declarado em CAPABILITIES.
+	// O teste "toda capability tem uma seção em SECTION_ORDER" garante exaustividade.
+	// biome-ignore lint/style/noNonNullAssertion: cobertura garantida pelo teste de regressão
+	return RESOURCE_SECTION[CAPABILITIES[cap].resource]!;
+}
+
 // manager é alias de admin (ADR-0016). Mantido aqui pra centralizar a normalização.
 function normalizeRole(role: UserRole): UserRole {
 	return role === "manager" ? "admin" : role;
