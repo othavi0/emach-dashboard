@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
 	Barlow,
 	Barlow_Condensed,
@@ -83,6 +83,14 @@ export const metadata: Metadata = {
 	alternates: {
 		canonical: "/",
 	},
+};
+
+// Dark-only por contrato (DESIGN.md §1). Emite `<meta name="color-scheme"
+// content="dark">` no <head>, instruindo o browser a usar paleta escura em
+// scrollbars, autofill, `::selection` e file pickers nativos antes mesmo do
+// CSS carregar (mais cedo que `color-scheme: dark` em globals.css).
+export const viewport: Viewport = {
+	colorScheme: "dark",
 };
 
 export default function RootLayout({

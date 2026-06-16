@@ -23,7 +23,11 @@ import {
 } from "recharts";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
-const THEMES = { light: "", dark: ".dark" } as const;
+// Dark-only por contrato (DESIGN.md §1). Só emitimos o bloco prefixado com
+// `.dark` — sem entrada `light: ""`, que geraria CSS sem prefixo aplicando
+// fora de `.dark` (zero efeito hoje, mas armadilha latente se alguém usar
+// `theme: { light, dark }` no ChartConfig no futuro).
+const THEMES = { dark: ".dark" } as const;
 
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const;
 type TooltipNameType = number | string;

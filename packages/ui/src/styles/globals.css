@@ -231,3 +231,95 @@
 		}
 	}
 }
+
+/* === Sonner toast overrides — warm-dark per DESIGN.md §2 ===
+ *
+ * O wrapper monta com `theme="dark"` fixo. Os defaults do Sonner para o
+ * tema dark usam hues frios (success hsl 150, info hsl 215, etc.) que
+ * violam o princípio "toda neutra/role com chroma warm" (§9). Aqui os
+ * `--*-bg/--*-text/--*-border` ativados por `richColors` são reescritos
+ * para os tokens semânticos do sistema.
+ *
+ * Padrão por role: bg = surface elevada na cor da role (alpha baixo p/
+ * legibilidade do texto, tipo card-colorido); border = role @ 35%;
+ * text = foreground principal (não a cor da role) — quem comunica é o
+ * ícone colorido (configurado no wrapper) + a borda. Mesmo princípio dos
+ * Alerts do sistema (DESIGN §4: "bg-card + texto carrega cor da role").
+ */
+[data-sonner-toaster][data-sonner-theme="dark"] {
+	/* Neutro (toast.message, sem tipo) */
+	--normal-bg: var(--popover);
+	--normal-text: var(--popover-foreground);
+	--normal-border: var(--border);
+
+	/* Success — jade hue 155 */
+	--success-bg: color-mix(in oklab, var(--success) 14%, var(--popover));
+	--success-border: color-mix(in oklab, var(--success) 45%, transparent);
+	--success-text: var(--popover-foreground);
+
+	/* Error — pure red hue 15 */
+	--error-bg: color-mix(in oklab, var(--destructive) 16%, var(--popover));
+	--error-border: color-mix(in oklab, var(--destructive) 50%, transparent);
+	--error-text: var(--popover-foreground);
+
+	/* Warning — mustard hue 85 */
+	--warning-bg: color-mix(in oklab, var(--warning) 12%, var(--popover));
+	--warning-border: color-mix(in oklab, var(--warning) 45%, transparent);
+	--warning-text: var(--popover-foreground);
+
+	/* Info — teal hue 200 (único frio permitido) */
+	--info-bg: color-mix(in oklab, var(--info) 14%, var(--popover));
+	--info-border: color-mix(in oklab, var(--info) 45%, transparent);
+	--info-text: var(--popover-foreground);
+}
+
+/* Ícone herda a cor da role (lucide é currentColor por default) */
+[data-sonner-toaster][data-sonner-theme="dark"]
+	[data-sonner-toast][data-type="success"]
+	[data-icon] {
+	color: var(--success);
+}
+[data-sonner-toaster][data-sonner-theme="dark"]
+	[data-sonner-toast][data-type="error"]
+	[data-icon] {
+	color: var(--destructive);
+}
+[data-sonner-toaster][data-sonner-theme="dark"]
+	[data-sonner-toast][data-type="warning"]
+	[data-icon] {
+	color: var(--warning);
+}
+[data-sonner-toaster][data-sonner-theme="dark"]
+	[data-sonner-toast][data-type="info"]
+	[data-icon] {
+	color: var(--info);
+}
+[data-sonner-toaster][data-sonner-theme="dark"]
+	[data-sonner-toast][data-type="loading"]
+	[data-icon] {
+	color: var(--muted-foreground);
+}
+
+/* Close button (notify.error/.warning ativam closeButton) — alinhado ao
+ * focus ring do sistema (§7): hairline coral com offset. */
+[data-sonner-toaster][data-sonner-theme="dark"]
+	[data-sonner-toast]
+	[data-close-button] {
+	color: var(--muted-foreground);
+	background: var(--popover);
+	border-color: var(--border);
+}
+[data-sonner-toaster][data-sonner-theme="dark"]
+	[data-sonner-toast]
+	[data-close-button]:hover {
+	color: var(--foreground);
+	background: var(--muted);
+}
+[data-sonner-toaster][data-sonner-theme="dark"]
+	[data-sonner-toast]
+	[data-close-button]:focus-visible {
+	outline: none;
+	box-shadow:
+		0 0 0 1px var(--background),
+		0 0 0 2px var(--ring);
+}
