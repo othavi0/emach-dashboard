@@ -14,8 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
-import { can } from "@/lib/permissions";
-import { requireCurrentSession } from "@/lib/session";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { ToolFilters } from "./_components/tool-filters";
 import { ToolsInfinite } from "./_components/tools-infinite";
 import {
@@ -61,7 +60,10 @@ async function fetchActiveBranches() {
 const VALID_SORTS: readonly ToolSort[] = ["newest", "name"];
 
 export default async function ToolsPage({ searchParams }: PageProps) {
-	const session = await requireCurrentSession();
+	const session = await requireCapabilityOrRedirect(
+		"tools.read",
+		"/dashboard/sem-acesso?recurso=Ferramentas"
+	);
 	const canMutate = await can(session, "tools.create");
 	const params = await searchParams;
 	const search = params.search ?? params.q;

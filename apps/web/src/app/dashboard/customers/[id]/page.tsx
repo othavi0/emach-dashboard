@@ -2,7 +2,7 @@ import type { ClientAuditAction } from "@emach/db/schema/client-audit";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { can, requireCapability } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { CustomerHeader } from "../_components/customer-header";
 import { CustomerKpisHeader } from "../_components/customer-kpis-header";
 import { CustomerTabs } from "../_components/customer-tabs";
@@ -64,7 +64,10 @@ export default async function CustomerDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
-	const session = await requireCapability("customers.read");
+	const session = await requireCapabilityOrRedirect(
+		"customers.read",
+		"/dashboard/sem-acesso?recurso=Clientes"
+	);
 
 	const { id } = await params;
 	const raw = await searchParams;

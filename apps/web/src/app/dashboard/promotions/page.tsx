@@ -16,8 +16,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
-import { can } from "@/lib/permissions";
-import { requireCurrentSession } from "@/lib/session";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PromotionsFilters } from "./_components/promotions-filters";
 import { PromotionsGrid } from "./_components/promotions-grid";
 import {
@@ -102,7 +101,10 @@ function buildStatusHref(
 }
 
 export default async function PromotionsPage({ searchParams }: PageProps) {
-	const session = await requireCurrentSession();
+	const session = await requireCapabilityOrRedirect(
+		"promotions.read",
+		"/dashboard/sem-acesso?recurso=Promoções"
+	);
 	const canMutate = await can(session, "promotions.manage");
 
 	const params = await searchParams;
