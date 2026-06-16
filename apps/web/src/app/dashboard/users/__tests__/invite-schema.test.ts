@@ -5,7 +5,7 @@ describe("inviteUserSchema", () => {
 	it("aceita email + role + branchIds", () => {
 		const r = inviteUserSchema.safeParse({
 			email: "Novo@Emach.com.BR",
-			role: "manager",
+			role: "admin",
 			branchIds: ["b1"],
 		});
 		expect(r.success).toBe(true);
@@ -19,7 +19,7 @@ describe("inviteUserSchema", () => {
 		expect(
 			inviteUserSchema.safeParse({
 				email: "a@b.com",
-				role: "manager",
+				role: "admin",
 				branchIds: [],
 			}).success
 		).toBe(false);

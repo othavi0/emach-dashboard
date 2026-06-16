@@ -10,7 +10,6 @@ import type { UserListRow } from "../data";
 const ROLE_LABEL: Record<UserListRow["role"], string> = {
 	super_admin: "Super admin",
 	admin: "Admin",
-	manager: "Gerente",
 	user: "Usuário",
 };
 

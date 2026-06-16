@@ -828,7 +828,7 @@ export async function deletePromotion(
 }
 
 // ---------------------------------------------------------------------------
-// togglePromotionActive — requires admin/manager (promotions.manage)
+// togglePromotionActive — requires admin (promotions.manage)
 // ---------------------------------------------------------------------------
 
 export async function togglePromotionActive(
@@ -882,7 +882,7 @@ export async function togglePromotionActive(
 }
 
 // ---------------------------------------------------------------------------
-// duplicatePromotion — requires admin/manager (promotions.manage)
+// duplicatePromotion — requires admin (promotions.manage)
 // ---------------------------------------------------------------------------
 
 export async function duplicatePromotion(

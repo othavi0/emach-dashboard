@@ -8,12 +8,11 @@ import { logger } from "./logger";
 
 export type { UserStatus };
 
-export type UserRole = "super_admin" | "admin" | "manager" | "user";
+export type UserRole = "super_admin" | "admin" | "user";
 
 export const ROLE_WEIGHT: Record<UserRole, number> = {
-	super_admin: 4,
-	admin: 3,
-	manager: 2,
+	super_admin: 3,
+	admin: 2,
 	user: 1,
 };
 
@@ -52,7 +51,7 @@ export const requireCurrentSession = async (): Promise<DashboardSession> => {
 	return session;
 };
 
-// Gates role-based religados (ADR-0016). `manager` tem peso de admin (alias).
+// Gates role-based religados (ADR-0016). 3 níveis: super_admin > admin > user.
 export const requireRole = async (
 	role: UserRole
 ): Promise<DashboardSession> => {

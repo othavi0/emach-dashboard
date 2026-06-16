@@ -1,11 +1,6 @@
 import type { UserRole } from "@emach/db/schema/auth";
 
-const HIERARCHY: readonly UserRole[] = [
-	"super_admin",
-	"admin",
-	"manager",
-	"user",
-];
+const HIERARCHY: readonly UserRole[] = ["super_admin", "admin", "user"];
 
 /**
  * Roles que um ator pode atribuir a outro user durante a aprovação.

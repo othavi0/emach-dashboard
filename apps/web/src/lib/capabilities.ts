@@ -407,19 +407,13 @@ export function sectionForCapability(cap: Capability): NavSection {
 	return RESOURCE_SECTION[CAPABILITIES[cap].resource]!;
 }
 
-// manager é alias de admin (ADR-0016). Mantido aqui pra centralizar a normalização.
-function normalizeRole(role: UserRole): UserRole {
-	return role === "manager" ? "admin" : role;
-}
-
 export function roleDefaultCapabilities(role: UserRole): Set<Capability> {
-	const normalized = normalizeRole(role);
 	const result = new Set<Capability>();
 	for (const [key, meta] of Object.entries(CAPABILITIES) as [
 		Capability,
 		CapabilityMeta,
 	][]) {
-		if (meta.defaultRoles.includes(normalized)) {
+		if (meta.defaultRoles.includes(role)) {
 			result.add(key);
 		}
 	}

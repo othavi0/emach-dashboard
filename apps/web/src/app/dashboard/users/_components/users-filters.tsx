@@ -29,7 +29,6 @@ const ROLE_LABELS: Record<string, string> = {
 	all: "Todos os cargos",
 	super_admin: "Super Admin",
 	admin: "Admin",
-	manager: "Manager",
 	user: "Estoquista",
 };
 
@@ -78,7 +77,6 @@ export function UsersFilters({ branches }: UsersFiltersProps) {
 							<SelectItem value="all">Todos os cargos</SelectItem>
 							<SelectItem value="super_admin">Super Admin</SelectItem>
 							<SelectItem value="admin">Admin</SelectItem>
-							<SelectItem value="manager">Manager</SelectItem>
 							<SelectItem value="user">Estoquista</SelectItem>
 						</SelectGroup>
 					</SelectContent>

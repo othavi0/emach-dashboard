@@ -71,12 +71,6 @@ describe("registry de capabilities", () => {
 		}
 	});
 
-	it("manager é alias de admin", () => {
-		expect([...roleDefaultCapabilities("manager")].sort()).toEqual(
-			[...roleDefaultCapabilities("admin")].sort()
-		);
-	});
-
 	it("isCapability discrimina keys válidas", () => {
 		expect(isCapability("tools.read")).toBe(true);
 		expect(isCapability("inexistente.foo")).toBe(false);

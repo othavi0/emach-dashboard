@@ -12,7 +12,7 @@ Dashboard Next 16 / React 19. Regras gerais (auth invariantes, anti-patterns, go
 
 ## Capabilities (`src/lib/permissions.ts`)
 
-**Religado em 2026-06-15 (ADR-0016, substitui 0012).** `requireCapability`, `requireCapabilityOrRedirect`, `requireCapabilityWithContext`, `requireCapabilityWithContextOrRedirect`, `can` **enforçam** a matriz de 3 níveis (`super_admin`/`admin`/`user`; `manager` = alias de admin). `requireCapabilityWithContext` valida tb `targetBranchIds ⊆ escopo` (Branch-scoping). Snapshot da matriz antiga (4 níveis) em `src/lib/permissions.disabled.ts` (não-importada, só histórico).
+**Religado em 2026-06-15 (ADR-0016, substitui 0012).** `requireCapability`, `requireCapabilityOrRedirect`, `requireCapabilityWithContext`, `requireCapabilityWithContextOrRedirect`, `can` **enforçam** a matriz de 3 níveis (`super_admin`/`admin`/`user`). `requireCapabilityWithContext` valida tb `targetBranchIds ⊆ escopo` (Branch-scoping). Snapshot da matriz antiga (4 níveis, incluía `manager`) em `src/lib/permissions.disabled.ts` (não-importada, `@ts-nocheck`, só histórico). O valor `manager` foi removido do enum DB e de todo o código vivo em 2026-06-16 (era alias de admin — ver ADR-0016).
 
 **O padrão obrigatório em server actions continua sendo `await requireCapability(cap)` ou `requireCapabilityWithContext(cap, ctx)`** — assim, quando religar, todos os endpoints já estão cobertos sem varredura. **Nunca remover essas chamadas; novos endpoints precisam delas.**
 
@@ -22,7 +22,7 @@ Guard-rails mantidos dentro dos no-ops:
 - Self-action guard em `users.suspend` / `users.delete` / `users.update_role`.
 - Last super_admin guard — `assertNotLastActiveSuperAdmin` bloqueia rebaixar/suspender/deletar o último `super_admin` `active`.
 
-`requireRole` em `src/lib/session.ts` enforça via `ROLE_WEIGHT` (`manager` tem peso de admin). `getUserBranchScope` em `src/lib/branch-scope.ts` retorna o escopo real (`{kind:"all"}` p/ super_admin; `{kind:"scoped",branchIds,includeUnassigned}` p/ admin/user — `includeUnassigned` = ver Pedido na triagem, só admin). **Fail-closed**: sem `user_branch` → vê nada.
+`requireRole` em `src/lib/session.ts` enforça via `ROLE_WEIGHT` (super_admin:3 > admin:2 > user:1). `getUserBranchScope` em `src/lib/branch-scope.ts` retorna o escopo real (`{kind:"all"}` p/ super_admin; `{kind:"scoped",branchIds,includeUnassigned}` p/ admin/user — `includeUnassigned` = ver Pedido na triagem, só admin). **Fail-closed**: sem `user_branch` → vê nada.
 
 Bootstrap do primeiro `super_admin` via SQL: `UPDATE "user" SET role='super_admin', status='active' WHERE email='...'`.
 

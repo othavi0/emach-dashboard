@@ -24,7 +24,6 @@ export type { Capability } from "@/lib/capabilities";
 const ROLE_CAPS: Record<UserRole, ReadonlySet<Capability>> = {
 	super_admin: roleDefaultCapabilities("super_admin"),
 	admin: roleDefaultCapabilities("admin"),
-	manager: roleDefaultCapabilities("manager"),
 	user: roleDefaultCapabilities("user"),
 };
 

@@ -77,7 +77,7 @@ export interface ResponsibleCandidate {
 	id: string;
 	image: string | null;
 	name: string;
-	role: "super_admin" | "admin" | "manager" | "user";
+	role: "super_admin" | "admin" | "user";
 }
 
 export async function listResponsibleCandidates(

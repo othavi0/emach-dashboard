@@ -86,9 +86,9 @@ export default async function UserDetailPage({
 	const canManagePermissions = await can(actorSession, "permissions.manage");
 	const actorRole = (actorSession.user.role ?? "user") as UserRole;
 	// Espelha assertManageableTarget (servidor): nunca si mesmo; super_admin
-	// gerencia qualquer outro; admin/manager só quem está estritamente abaixo na
+	// gerencia qualquer outro; admin só quem está estritamente abaixo na
 	// hierarquia (ROLE_WEIGHT). Mantém a UI alinhada ao que a action aceita —
-	// sem aba "morta" (self / role igual) nem aba escondida (admin × manager).
+	// sem aba "morta" (self / role igual).
 	const targetManageable =
 		canManagePermissions &&
 		actorSession.user.id !== user.id &&

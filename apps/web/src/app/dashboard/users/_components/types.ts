@@ -4,7 +4,7 @@ export interface UserRow {
 	email: string;
 	id: string;
 	name: string;
-	role: "super_admin" | "admin" | "manager" | "user";
+	role: "super_admin" | "admin" | "user";
 	status: "pending" | "active" | "suspended";
 }
 

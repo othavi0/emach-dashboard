@@ -73,7 +73,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
 	const status = (sp.status as Status | undefined) ?? "active";
 	const filters = {
 		status,
-		role: sp.role as "super_admin" | "admin" | "manager" | "user" | undefined,
+		role: sp.role as "super_admin" | "admin" | "user" | undefined,
 		branchId: sp.branchId,
 		search: sp.search,
 		scope,

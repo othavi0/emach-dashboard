@@ -25,7 +25,6 @@ import type { BranchTeamRow } from "../../data";
 const ROLE_LABEL: Record<BranchTeamRow["role"], string> = {
 	super_admin: "Super admin",
 	admin: "Admin",
-	manager: "Gerente",
 	user: "Usuário",
 };
 

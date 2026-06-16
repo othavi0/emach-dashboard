@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const ROLES = ["super_admin", "admin", "manager", "user"] as const;
+const ROLES = ["super_admin", "admin", "user"] as const;
 
 export const inviteUserSchema = z
 	.object({

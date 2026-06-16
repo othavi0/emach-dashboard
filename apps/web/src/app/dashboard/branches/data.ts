@@ -139,7 +139,7 @@ export interface BranchTeamRow {
 	lastLoginAt: Date | null;
 	linkedAt: Date;
 	name: string;
-	role: "super_admin" | "admin" | "manager" | "user";
+	role: "super_admin" | "admin" | "user";
 	status: "active" | "pending" | "suspended";
 	userId: string;
 }

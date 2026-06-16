@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/session", () => ({
 	requireCurrentSession: vi.fn(),
-	ROLE_WEIGHT: { super_admin: 4, admin: 3, manager: 2, user: 1 },
+	ROLE_WEIGHT: { super_admin: 3, admin: 2, user: 1 },
 }));
 
 vi.mock("@emach/db", () => ({
@@ -69,10 +69,6 @@ describe("matriz de capability (3 níveis)", () => {
 		expect(roleHasCapability("user", "tools.create")).toBe(false);
 		expect(roleHasCapability("user", "orders.cancel")).toBe(false);
 		expect(roleHasCapability("user", "reviews.moderate")).toBe(false);
-	});
-	it("manager é alias de admin", () => {
-		expect(roleHasCapability("manager", "tools.create")).toBe(true);
-		expect(roleHasCapability("manager", "tools.delete")).toBe(false);
 	});
 	it("role nula/desconhecida → nega", () => {
 		expect(roleHasCapability(null, "orders.read")).toBe(false);
