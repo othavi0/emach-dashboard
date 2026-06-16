@@ -4,6 +4,7 @@ import { db } from "@emach/db";
 import { banner } from "@emach/db/schema/banner";
 import { and, asc, count, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
+import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { getPgError } from "@/lib/db-error";
 import { logger } from "@/lib/logger";
@@ -15,10 +16,6 @@ import {
 } from "./_components/banner-schema";
 
 const BANNERS_PATH = "/dashboard/site/banners";
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 function errorMessage(error: unknown): string {
 	if (getPgError(error)) {

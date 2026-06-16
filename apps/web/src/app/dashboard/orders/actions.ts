@@ -14,6 +14,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
+import type { ActionResult } from "@/lib/action-result";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
@@ -50,10 +51,6 @@ import {
 	updateTrackingCodeSchema,
 	VALID_TRANSITIONS,
 } from "./schema";
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 const ORDERS_PATH = "/dashboard/orders";
 

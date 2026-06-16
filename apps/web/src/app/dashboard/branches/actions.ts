@@ -6,6 +6,7 @@ import { branch, userBranch } from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
@@ -32,10 +33,6 @@ export async function fetchBranchActivityPage(
 }
 
 export type BranchListItem = typeof branch.$inferSelect;
-
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 function normalizePayload(input: BranchFormValues) {
 	return {

@@ -6,7 +6,7 @@ import { userCapabilityOverride } from "@emach/db/schema/user-capability-overrid
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-
+import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { isCapability } from "@/lib/capabilities";
 import { logger } from "@/lib/logger";
@@ -14,12 +14,6 @@ import {
 	getUserCapabilities,
 	requireCapabilityWithContext,
 } from "@/lib/permissions";
-
-// ActionResult canônico vive em users/actions.ts; reexportamos o tipo localmente
-// para não criar dependência circular via import de server action de outro módulo.
-export type ActionResult<T = undefined> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
 
 const AUDIT_ACTION = {
 	grant: "permission.granted",
