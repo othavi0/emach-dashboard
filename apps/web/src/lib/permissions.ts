@@ -55,6 +55,12 @@ export const getUserCapabilities = cache(
 	async (session: DashboardSession): Promise<ReadonlySet<Capability>> => {
 		const role = (session.user.role ?? "user") as UserRole;
 		const caps = roleDefaultCapabilities(role);
+		// super_admin é irrestrito por construção: overrides não se aplicam (grant
+		// é redundante, revoke seria vetor de lock-out — issue #184 / ADR-0017).
+		// Early-return também poupa a query de overrides por request.
+		if (role === "super_admin") {
+			return caps;
+		}
 		const overrides = await db
 			.select({
 				capability: userCapabilityOverride.capability,
