@@ -173,10 +173,34 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		await expect(
-			requireCapabilityWithContext("users.reset_password", {
+			requireCapabilityWithContext("users.update_branches", {
 				targetUserId: "guard-self-2",
 			})
 		).resolves.toBe(s);
+	});
+
+	it("self-action guard: não reseta a própria senha", async () => {
+		const s = {
+			user: { id: "guard-self-reset", status: "active", role: "super_admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		await expect(
+			requireCapabilityWithContext("users.reset_password", {
+				targetUserId: "guard-self-reset",
+			})
+		).rejects.toThrow("Não é possível executar essa ação em si mesmo");
+	});
+
+	it("self-action guard: não revoga as próprias sessões", async () => {
+		const s = {
+			user: { id: "guard-self-revoke", status: "active", role: "super_admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		await expect(
+			requireCapabilityWithContext("users.revoke_sessions", {
+				targetUserId: "guard-self-revoke",
+			})
+		).rejects.toThrow("Não é possível executar essa ação em si mesmo");
 	});
 
 	it("last super_admin guard: rejeita se alvo é o último super_admin ativo", async () => {

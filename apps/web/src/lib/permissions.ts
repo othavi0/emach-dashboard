@@ -92,6 +92,9 @@ const SELF_RESTRICTED: readonly Capability[] = [
 	// Permissões são geridas de OUTROS usuários, nunca de si mesmo (evita drift
 	// role↔override e auto-gestão fora da hierarquia via self-bypass).
 	"permissions.manage",
+	// Auto-logout e auto-reset pelo painel não fazem sentido e travariam o ator.
+	"users.revoke_sessions",
+	"users.reset_password",
 ];
 
 const LAST_SUPER_ADMIN_GUARDED: readonly Capability[] = [
