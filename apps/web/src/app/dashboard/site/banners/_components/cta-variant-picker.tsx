@@ -2,13 +2,8 @@
 
 import { cn } from "@emach/ui/lib/utils";
 import { BANNER_CTA_VARIANTS, type BannerCtaVariant } from "./banner-schema";
+import { CTA_BASE, CTA_VARIANT_CLASS } from "./cta-variant-class";
 
-const SWATCH: Record<BannerCtaVariant, string> = {
-	red: "bg-[#e60012] text-white",
-	dark: "border border-white bg-[#181818] text-white",
-	white: "bg-white text-[#181818]",
-	ghost: "border border-white bg-transparent text-white",
-};
 const LABELS: Record<BannerCtaVariant, string> = {
 	red: "Vermelho",
 	dark: "Escuro",
@@ -37,13 +32,16 @@ export function CtaVariantPicker({
 					onClick={() => onChange(variant)}
 					type="button"
 				>
-					<span
-						className={cn(
-							"mb-1 inline-block rounded-sm px-3 py-1 font-bold text-[10px]",
-							SWATCH[variant]
-						)}
-					>
-						Botão
+					<span className="mb-1 flex items-center justify-center rounded-md bg-[#0b0a09] px-3 py-2">
+						<span
+							className={cn(
+								"inline-block px-3 py-1 text-[10px]",
+								CTA_BASE,
+								CTA_VARIANT_CLASS[variant]
+							)}
+						>
+							Botão
+						</span>
 					</span>
 					<span className="block text-[10px] text-muted-foreground">
 						{LABELS[variant]}

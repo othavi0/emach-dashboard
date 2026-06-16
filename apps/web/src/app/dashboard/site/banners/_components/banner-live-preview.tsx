@@ -5,14 +5,8 @@ import { cn } from "@emach/ui/lib/utils";
 import { Monitor, Smartphone } from "lucide-react";
 import { useState } from "react";
 import type { SlotKey } from "./banner-presets";
-import type { BannerCtaVariant, BannerFormValues } from "./banner-schema";
-
-const CTA_CLASS: Record<BannerCtaVariant, string> = {
-	red: "bg-[#e60012] text-white",
-	dark: "border border-white bg-[#181818] text-white",
-	white: "bg-white text-[#181818]",
-	ghost: "border border-white bg-transparent text-white",
-};
+import type { BannerFormValues } from "./banner-schema";
+import { CTA_BASE, CTA_VARIANT_CLASS } from "./cta-variant-class";
 
 const CONTENT_POS: Record<BannerFormValues["layout"], string> = {
 	split: "left-[7%] top-1/2 -translate-y-1/2 items-start text-left",
@@ -120,7 +114,7 @@ export function BannerLivePreview({
 						className="pointer-events-none absolute top-1/2 left-1/2 size-2/3 -translate-x-1/2 -translate-y-1/2 rounded-full"
 						style={{
 							background:
-								"radial-gradient(circle, rgba(230,0,18,0.3), transparent 70%)",
+								"radial-gradient(circle, rgba(218,41,28,0.3), transparent 70%)",
 							filter: "blur(20px)",
 						}}
 					/>
@@ -158,7 +152,7 @@ export function BannerLivePreview({
 								<p className="font-bold text-white text-xl uppercase leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
 									{values.title}
 								</p>
-								<span className="my-1 h-[3px] w-10 bg-[#e60012]" />
+								<span className="my-1 h-[3px] w-10 bg-[#da291c]" />
 							</>
 						)}
 						{slots.title && values.subtitle && (
@@ -173,8 +167,9 @@ export function BannerLivePreview({
 				{slots.cta && values.ctaLabel && (
 					<span
 						className={cn(
-							"absolute z-10 rounded-sm px-3 py-1.5 font-bold text-[11px]",
-							CTA_CLASS[values.ctaVariant],
+							"absolute z-10 px-3 py-1.5 text-[11px]",
+							CTA_BASE,
+							CTA_VARIANT_CLASS[values.ctaVariant],
 							values.layout === "split"
 								? "right-[7%] bottom-[12%]"
 								: "bottom-[6%] left-1/2 -translate-x-1/2"
@@ -185,7 +180,7 @@ export function BannerLivePreview({
 				)}
 
 				<div className="absolute bottom-[6%] left-1/2 z-10 flex -translate-x-1/2 gap-1">
-					<span className="h-[3px] w-4 rounded bg-[#e60012]" />
+					<span className="h-[3px] w-4 rounded bg-[#da291c]" />
 					<span className="h-[3px] w-4 rounded bg-white/30" />
 				</div>
 			</div>
