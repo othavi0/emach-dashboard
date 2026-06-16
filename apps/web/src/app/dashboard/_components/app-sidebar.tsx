@@ -49,12 +49,16 @@ export function AppSidebar({
 
 	const groups = NAV_GROUPS.filter(
 		(g) => g.label !== "Administração" || canManageUsers
-	).map((g) => ({
-		...g,
-		items: g.items.filter(
-			(item) => !item.capability || capSet.has(item.capability)
-		),
-	}));
+	)
+		.map((g) => ({
+			...g,
+			items: g.items.filter(
+				(item) => !item.capability || capSet.has(item.capability)
+			),
+		}))
+		// Não renderiza grupo cujos itens visíveis são todos inacessíveis
+		// (vazio) ou meros placeholders desabilitados (ex: "Notificações").
+		.filter((g) => g.items.some((item) => !item.disabled));
 
 	return (
 		<MotionProvider>
