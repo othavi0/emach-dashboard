@@ -295,5 +295,7 @@ describe("setUserCapability — teto e validações", () => {
 		});
 		expect(r.ok).toBe(true);
 		expect(db.delete).toHaveBeenCalled();
+		// inherit sobre super_admin nunca insere override — só limpa (issue #184).
+		expect(db.insert).not.toHaveBeenCalled();
 	});
 });
