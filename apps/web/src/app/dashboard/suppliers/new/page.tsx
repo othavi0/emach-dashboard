@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
-import { requireRole } from "@/lib/session";
+import { requireCapability } from "@/lib/permissions";
 import { SupplierForm } from "../_components/supplier-form";
 
 export const metadata: Metadata = {
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewSupplierPage() {
-	await requireRole("admin");
+	await requireCapability("suppliers.manage");
 
 	return (
 		<div className="flex flex-col gap-6">
