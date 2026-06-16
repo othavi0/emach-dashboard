@@ -59,9 +59,16 @@ export function PublishFields({
 					{(field) => (
 						<Select
 							disabled={disabled}
-							onValueChange={(v) =>
-								onPatch({ status: v as ToolFormValues["status"] })
-							}
+							onValueChange={(v) => {
+								const status = v as ToolFormValues["status"];
+								// Rascunho/descontinuado não deve nascer público: força o
+								// usuário a reativar "Visível no site" manualmente.
+								onPatch(
+									status === "draft" || status === "discontinued"
+										? { status, visibleOnSite: false }
+										: { status }
+								);
+							}}
 							value={values.status}
 						>
 							<SelectTrigger {...field}>
