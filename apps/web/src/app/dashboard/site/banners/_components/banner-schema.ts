@@ -7,6 +7,10 @@ export const BANNER_LAYOUTS = [
 	"stack_left",
 	"center_bottom",
 	"center_mid",
+	"center_cta_right",
+	"mirror_split",
+	"hero_center",
+	"text_right",
 ] as const;
 export const BANNER_CTA_VARIANTS = ["red", "dark", "white", "ghost"] as const;
 

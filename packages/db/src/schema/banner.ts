@@ -14,6 +14,10 @@ export const bannerLayout = pgEnum("banner_layout", [
 	"stack_left",
 	"center_bottom",
 	"center_mid",
+	"center_cta_right",
+	"mirror_split",
+	"hero_center",
+	"text_right",
 ]);
 
 export const bannerCtaVariant = pgEnum("banner_cta_variant", [

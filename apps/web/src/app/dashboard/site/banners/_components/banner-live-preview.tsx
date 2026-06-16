@@ -8,6 +8,7 @@ import type { SlotKey } from "./banner-presets";
 import type { BannerFormValues } from "./banner-schema";
 import { CTA_BASE, CTA_VARIANT_CLASS } from "./cta-variant-class";
 
+// Posição do bloco de conteúdo (título/badge/countdown) por preset.
 const CONTENT_POS: Record<BannerFormValues["layout"], string> = {
 	split: "left-[7%] top-1/2 -translate-y-1/2 items-start text-left",
 	stack_left: "left-[7%] bottom-[14%] items-start text-left",
@@ -15,6 +16,34 @@ const CONTENT_POS: Record<BannerFormValues["layout"], string> = {
 		"left-1/2 bottom-[14%] -translate-x-1/2 items-center text-center",
 	center_mid:
 		"left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center text-center",
+	center_cta_right: "left-[7%] top-1/2 -translate-y-1/2 items-start text-left",
+	mirror_split: "right-[7%] top-1/2 -translate-y-1/2 items-end text-right",
+	hero_center: "left-1/2 top-[10%] -translate-x-1/2 items-center text-center",
+	text_right: "right-[7%] top-1/2 -translate-y-1/2 items-end text-right",
+};
+
+// Posição da imagem do produto por preset.
+const PRODUCT_POS: Record<BannerFormValues["layout"], string> = {
+	split: "top-1/2 right-[6%] -translate-y-1/2",
+	stack_left: "top-1/2 right-[6%] -translate-y-1/2",
+	center_bottom: "top-[8%] left-1/2 -translate-x-1/2",
+	center_mid: "top-[8%] left-1/2 -translate-x-1/2",
+	center_cta_right: "top-[8%] left-1/2 -translate-x-1/2",
+	mirror_split: "top-1/2 left-[6%] -translate-y-1/2",
+	hero_center: "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+	text_right: "top-1/2 left-[6%] -translate-y-1/2",
+};
+
+// Posição do CTA por preset.
+const CTA_POS: Record<BannerFormValues["layout"], string> = {
+	split: "right-[7%] bottom-[12%]",
+	stack_left: "bottom-[6%] left-1/2 -translate-x-1/2",
+	center_bottom: "bottom-[6%] left-1/2 -translate-x-1/2",
+	center_mid: "bottom-[6%] left-1/2 -translate-x-1/2",
+	center_cta_right: "right-[7%] bottom-[12%]",
+	mirror_split: "left-[7%] bottom-[12%]",
+	hero_center: "bottom-[6%] left-1/2 -translate-x-1/2",
+	text_right: "right-[7%] bottom-[12%]",
 };
 
 function Countdown({ target }: { target: Date }) {
@@ -63,8 +92,6 @@ export function BannerLivePreview({
 		(slots.title && values.title) ||
 		(slots.badge && values.badgeText) ||
 		(slots.countdown && values.countdownTarget);
-	const productSide =
-		values.layout === "split" || values.layout === "stack_left";
 
 	return (
 		<div className="sticky top-4 flex flex-col gap-2 self-start">
@@ -127,9 +154,7 @@ export function BannerLivePreview({
 						alt=""
 						className={cn(
 							"absolute size-3/5 object-contain drop-shadow-[0_24px_24px_rgba(0,0,0,0.6)]",
-							productSide
-								? "top-1/2 right-[6%] -translate-y-1/2"
-								: "top-[8%] left-1/2 -translate-x-1/2"
+							PRODUCT_POS[values.layout]
 						)}
 						src={product}
 						style={{ scale: String(values.productScale / 100) }}
@@ -171,9 +196,7 @@ export function BannerLivePreview({
 							"absolute z-10 px-3 py-1.5 text-[11px]",
 							CTA_BASE,
 							CTA_VARIANT_CLASS[values.ctaVariant],
-							values.layout === "split"
-								? "right-[7%] bottom-[12%]"
-								: "bottom-[6%] left-1/2 -translate-x-1/2"
+							CTA_POS[values.layout]
 						)}
 						style={{ scale: String(values.ctaScale / 100) }}
 					>
