@@ -577,6 +577,9 @@ export async function deleteUser(input: unknown): Promise<ActionResult> {
 }
 
 export async function revokeUserSession(input: unknown): Promise<ActionResult> {
+	// Contexto vazio: o alvo é um sessionId, então o userId só é conhecido após o
+	// lookup abaixo — o self-guard (SELF_RESTRICTED) não tem como agir aqui. A
+	// proteção self vive no check explícito `target.userId === actor.user.id` adiante.
 	await requireCapabilityWithContext("users.revoke_sessions", {});
 	const actor = await requireCurrentSession();
 	const parsed = revokeSessionSchema.safeParse(input);
