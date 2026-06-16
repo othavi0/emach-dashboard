@@ -103,9 +103,8 @@ export function PermissionsTab({
 									<CapabilityTriState
 										disabled={pending}
 										label={`seção ${section.section}`}
-										mixed={masterState === "mixed"}
 										onChange={(s) => applySection(section, s)}
-										value={masterState === "mixed" ? "inherit" : masterState}
+										value={masterState}
 									/>
 								</div>
 							)}
@@ -157,13 +156,12 @@ function CapabilityTriState({
 	disabled,
 	label,
 	onChange,
-	mixed = false,
 }: {
-	value: OverrideState;
+	// "mixed" = caps da seção divergem → nenhum estado ativo (badge "Misto" ao lado).
+	value: OverrideState | "mixed";
 	disabled: boolean;
 	label: string;
 	onChange: (s: OverrideState) => void;
-	mixed?: boolean;
 }) {
 	const options: { key: OverrideState; label: string }[] = [
 		{ key: "inherit", label: "Padrão" },
@@ -182,7 +180,7 @@ function CapabilityTriState({
 				}
 			}}
 			size="sm"
-			value={mixed ? [] : [value]}
+			value={value === "mixed" ? [] : [value]}
 			variant="outline"
 		>
 			{options.map((opt) => (
