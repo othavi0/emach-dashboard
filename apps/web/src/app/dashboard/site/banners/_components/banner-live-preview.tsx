@@ -92,7 +92,7 @@ export function BannerLivePreview({
 
 			<div
 				className={cn(
-					"relative mx-auto w-full overflow-hidden rounded-lg",
+					"relative mx-auto w-full overflow-hidden rounded-lg font-[family-name:var(--font-barlow)]",
 					isMobile ? "aspect-[9/16] max-w-[240px]" : "aspect-video"
 				)}
 				style={{
@@ -144,13 +144,13 @@ export function BannerLivePreview({
 						)}
 					>
 						{slots.badge && values.badgeText && (
-							<span className="inline-block rounded-sm bg-white px-2 py-0.5 font-bold text-[#181818] text-[10px]">
+							<span className="inline-block rounded-sm bg-white px-2 py-0.5 font-[family-name:var(--font-barlow-condensed)] font-bold text-[#181818] text-[10px]">
 								{values.badgeText}
 							</span>
 						)}
 						{slots.title && values.title && (
 							<>
-								<p className="font-bold text-white text-xl uppercase leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+								<p className="font-[family-name:var(--font-barlow-condensed)] font-bold text-white text-xl uppercase leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
 									{values.title}
 								</p>
 								<span className="my-1 h-[3px] w-10 bg-[#da291c]" />
