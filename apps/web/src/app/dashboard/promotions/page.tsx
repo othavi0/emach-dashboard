@@ -12,6 +12,7 @@ import {
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
 import { ChevronDown, Plus, Tag, Ticket } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
@@ -27,6 +28,10 @@ import {
 	type PromotionSort,
 	type PromotionStatus,
 } from "./actions";
+
+export const metadata: Metadata = {
+	title: "Promoções",
+};
 
 interface PageProps {
 	searchParams: Promise<{

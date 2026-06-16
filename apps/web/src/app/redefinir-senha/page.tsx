@@ -1,5 +1,16 @@
+import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
+
+export const metadata: Metadata = {
+	description:
+		"Redefina com segurança a senha da sua conta no dashboard administrativo da Emach Ferramentas.",
+	robots: {
+		follow: false,
+		index: false,
+	},
+	title: "Redefinir senha",
+};
 
 export default async function ResetPasswordPage({
 	searchParams,

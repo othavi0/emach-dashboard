@@ -5,6 +5,7 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
@@ -14,6 +15,10 @@ import { ReviewsInfinite } from "./_components/reviews-infinite";
 import { getReviewsTabCounts, listReviews } from "./data";
 import { reviewsListFiltersSchema } from "./schema";
 import { REVIEW_TABS } from "./status-meta";
+
+export const metadata: Metadata = {
+	title: "Avaliações",
+};
 
 interface ReviewsPageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;

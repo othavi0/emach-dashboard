@@ -7,6 +7,17 @@ import { Badge } from "@emach/ui/components/badge";
 import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+	description:
+		"Página técnica interna para pré-visualização de paletas do dashboard Emach.",
+	robots: {
+		follow: false,
+		index: false,
+	},
+	title: "Preview de design",
+};
 
 interface Palette {
 	hex: string;

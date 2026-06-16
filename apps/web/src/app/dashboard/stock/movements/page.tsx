@@ -1,6 +1,7 @@
 import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
 import { asc, eq } from "drizzle-orm";
+import type { Metadata } from "next";
 
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -9,6 +10,10 @@ import { getActiveSuppliers } from "@/lib/suppliers";
 import { fetchLedgerPage, type LedgerFilters } from "../movements-data";
 import { LedgerFiltersBar } from "./_components/ledger-filters";
 import { LedgerInfinite } from "./_components/ledger-infinite";
+
+export const metadata: Metadata = {
+	title: "Movimentações de estoque",
+};
 
 export const dynamic = "force-dynamic";
 

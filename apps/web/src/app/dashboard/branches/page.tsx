@@ -1,4 +1,5 @@
 import { buttonVariants } from "@emach/ui/components/button";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
@@ -6,6 +7,10 @@ import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { BranchCardGrid } from "./_components/branch-card-grid";
 import { BranchesFilters } from "./_components/branches-filters";
 import { type BranchesFiltersInput, fetchBranchesTablePage } from "./actions";
+
+export const metadata: Metadata = {
+	title: "Filiais",
+};
 
 export const dynamic = "force-dynamic";
 

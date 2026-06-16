@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
+
+export const metadata: Metadata = {
+	title: "Estoque por filial",
+};
 
 interface PageProps {
 	searchParams: Promise<{

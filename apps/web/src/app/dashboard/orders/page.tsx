@@ -6,6 +6,7 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
@@ -28,6 +29,10 @@ import {
 } from "./data";
 import { ordersListFiltersSchema } from "./schema";
 import { DEFAULT_ORDER_TAB } from "./status-meta";
+
+export const metadata: Metadata = {
+	title: "Pedidos",
+};
 
 interface PageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;

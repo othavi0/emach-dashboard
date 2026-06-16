@@ -9,6 +9,7 @@ import {
 	ShieldCheck,
 	User,
 } from "lucide-react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import type { EntityTab } from "@/components/entity/entity-tabs";
@@ -38,6 +39,10 @@ import { SessionsTab } from "./_components/sessions-tab";
 import { UserBranchLinkPanel } from "./_components/user-branch-link-panel";
 import { UserIdentity } from "./_components/user-identity";
 import { getUserOverrides } from "./permissions/data";
+
+export const metadata: Metadata = {
+	title: "Detalhe do usuário",
+};
 
 interface PageProps {
 	params: Promise<{ id: string }>;

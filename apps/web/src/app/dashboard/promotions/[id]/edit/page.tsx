@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -9,6 +10,10 @@ import { PromotionIdentity } from "../_components/promotion-identity";
 interface PageProps {
 	params: Promise<{ id: string }>;
 }
+
+export const metadata: Metadata = {
+	title: "Editar promoção",
+};
 
 export const dynamic = "force-dynamic";
 

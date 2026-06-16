@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { requireRole } from "@/lib/session";
 import { BranchForm } from "../_components/branch-form";
+
+export const metadata: Metadata = {
+	title: "Nova filial",
+};
 
 export default async function NewBranchPage() {
 	await requireRole("admin");

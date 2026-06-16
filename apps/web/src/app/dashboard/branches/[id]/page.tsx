@@ -5,6 +5,7 @@ import {
 	ShoppingCart,
 	Users,
 } from "lucide-react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
@@ -19,6 +20,10 @@ import { OverviewTab } from "./_components/overview-tab";
 import { StockTab } from "./_components/stock-tab";
 import { TeamLinkPanel } from "./_components/team-link-panel";
 import { TeamTab } from "./_components/team-tab";
+
+export const metadata: Metadata = {
+	title: "Detalhe da filial",
+};
 
 interface PageProps {
 	params: Promise<{ id: string }>;

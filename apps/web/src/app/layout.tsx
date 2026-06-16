@@ -38,9 +38,51 @@ const fontBarlowCondensed = Barlow_Condensed({
 	display: "swap",
 });
 
+const siteUrl = new URL("https://dashboard.emachferramentas.com.br");
+const siteDescription =
+	"Dashboard administrativo da Emach Ferramentas para gestão de ferramentas, pedidos, estoque, clientes e conteúdo do e-commerce.";
+
 export const metadata: Metadata = {
-	title: "emach dashboard",
-	description: "Dashboard de gestão de estoque e e-commerce da E-mach.",
+	applicationName: "Emach Dashboard",
+	authors: [{ name: "Emach Ferramentas" }],
+	creator: "Emach Ferramentas",
+	description: siteDescription,
+	icons: {
+		apple: "/logo.jpg",
+		icon: "/logo.jpg",
+		shortcut: "/logo.jpg",
+	},
+	metadataBase: siteUrl,
+	openGraph: {
+		description: siteDescription,
+		images: [
+			{
+				alt: "Emach Dashboard",
+				height: 465,
+				url: "/logo.jpg",
+				width: 553,
+			},
+		],
+		locale: "pt_BR",
+		siteName: "Emach Dashboard",
+		title: "Emach Dashboard",
+		type: "website",
+		url: "/",
+	},
+	publisher: "Emach Ferramentas",
+	title: {
+		default: "Emach Dashboard",
+		template: "%s · Emach Dashboard",
+	},
+	twitter: {
+		card: "summary_large_image",
+		description: siteDescription,
+		images: ["/logo.jpg"],
+		title: "Emach Dashboard",
+	},
+	alternates: {
+		canonical: "/",
+	},
 };
 
 export default function RootLayout({

@@ -10,6 +10,7 @@ import {
 	EmptyTitle,
 } from "@emach/ui/components/empty";
 import { asc, eq } from "drizzle-orm";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
@@ -23,6 +24,10 @@ import {
 	type ToolsFiltersInput,
 	type ToolsListMode,
 } from "./actions";
+
+export const metadata: Metadata = {
+	title: "Ferramentas",
+};
 
 interface PageProps {
 	searchParams: Promise<{

@@ -7,6 +7,7 @@ import {
 	EmptyTitle,
 } from "@emach/ui/components/empty";
 import { Plus } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
@@ -14,6 +15,10 @@ import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { CategoriesTree } from "./_components/categories-tree";
 import { listCategoriesForTree } from "./actions";
+
+export const metadata: Metadata = {
+	title: "Categorias",
+};
 
 export const dynamic = "force-dynamic";
 

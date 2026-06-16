@@ -1,8 +1,19 @@
+import type { Metadata } from "next";
 import { getInviteByToken } from "@/app/dashboard/users/data";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { InviteAcceptForm } from "@/components/auth/invite-accept-form";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+	description:
+		"Aceite seu convite para acessar o dashboard administrativo da Emach Ferramentas.",
+	robots: {
+		follow: false,
+		index: false,
+	},
+	title: "Convite",
+};
 
 export default async function InvitePage({
 	searchParams,

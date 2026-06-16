@@ -6,6 +6,7 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ActivityFeed } from "@/components/activity-feed";
@@ -25,6 +26,10 @@ import {
 } from "./actions";
 import { getCustomerPendingCounts, listCustomers } from "./data";
 import { customersListFiltersSchema } from "./schema";
+
+export const metadata: Metadata = {
+	title: "Clientes",
+};
 
 interface PageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;

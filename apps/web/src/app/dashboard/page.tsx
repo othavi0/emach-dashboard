@@ -6,6 +6,7 @@ import {
 } from "@emach/ui/components/card";
 import type { ChartConfig } from "@emach/ui/components/chart";
 import { Skeleton } from "@emach/ui/components/skeleton";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PendingPanel, type PendingTab } from "@/components/pending-panel";
@@ -41,6 +42,10 @@ import {
 	fetchToolStatus,
 } from "./dashboard-data";
 import { TOOL_STATUS_LABELS } from "./tools/_components/tool-schema";
+
+export const metadata: Metadata = {
+	title: "Visão geral",
+};
 
 // Deriva do mapa canônico de labels (tool-schema) — evita drift se um rótulo mudar.
 const TOOL_STATUS_CONFIG = Object.fromEntries(

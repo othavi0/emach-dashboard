@@ -6,6 +6,7 @@ import {
 } from "@emach/db/schema/attributes";
 import { category } from "@emach/db/schema/categories";
 import { count, eq, inArray } from "drizzle-orm";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
@@ -15,6 +16,10 @@ import { CategoryAttributesPanel } from "../../_components/category-attributes-p
 import { CategoryForm } from "../../_components/category-form";
 import { breadcrumbFromPath, buildNameBySlug } from "../../_lib/category-tree";
 import { getCategory, listCategories } from "../../actions";
+
+export const metadata: Metadata = {
+	title: "Editar categoria",
+};
 
 export const dynamic = "force-dynamic";
 

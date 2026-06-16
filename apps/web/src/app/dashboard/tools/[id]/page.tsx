@@ -1,4 +1,5 @@
 import { Activity, Boxes, Info, Star, Tag } from "lucide-react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
@@ -16,6 +17,10 @@ import { VariantsTab } from "./_components/variants-tab";
 
 import { getToolReviewsSummary } from "./_lib/reviews-data";
 import { getToolDetail } from "./_lib/tool-detail-data";
+
+export const metadata: Metadata = {
+	title: "Detalhe da ferramenta",
+};
 
 interface PageProps {
 	params: Promise<{ id: string }>;

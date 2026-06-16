@@ -7,6 +7,7 @@ import {
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
 import { asc } from "drizzle-orm";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
@@ -24,6 +25,10 @@ import {
 	getUserKpis,
 	type UserListRow,
 } from "./data";
+
+export const metadata: Metadata = {
+	title: "Usuários",
+};
 
 export const dynamic = "force-dynamic";
 

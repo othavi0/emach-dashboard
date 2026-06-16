@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PromotionForm } from "../_components/promotion-form";
 import type { PromotionFormValues } from "../_components/promotion-schema";
 import { getToolOptions } from "../actions";
+
+export const metadata: Metadata = {
+	title: "Nova promoção",
+};
 
 interface PageProps {
 	searchParams: Promise<{ type?: string }>;

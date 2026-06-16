@@ -1,5 +1,6 @@
 import { buttonVariants } from "@emach/ui/components/button";
 import { FolderTree, Info, Package, Pencil, Plus } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -18,6 +19,10 @@ import { CategoryDetailHeader } from "./_components/category-detail-header";
 import { OverviewTab } from "./_components/overview-tab";
 import { ProductsTab } from "./_components/products-tab";
 import { SubcategoriesTab } from "./_components/subcategories-tab";
+
+export const metadata: Metadata = {
+	title: "Detalhe da categoria",
+};
 
 export const dynamic = "force-dynamic";
 

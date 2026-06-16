@@ -1,4 +1,5 @@
 import { Badge } from "@emach/ui/components/badge";
+import type { Metadata } from "next";
 
 import { type EntityTab, EntityTabs } from "@/components/entity/entity-tabs";
 import { PageHeader } from "@/components/page-header";
@@ -12,6 +13,10 @@ import {
 	getOrCreateShippingSettings,
 	listOriginBranchOptions,
 } from "./actions";
+
+export const metadata: Metadata = {
+	title: "Configurações do site",
+};
 
 export const dynamic = "force-dynamic";
 

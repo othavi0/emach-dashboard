@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { BannerForm } from "../../_components/banner-form";
 import { fetchBanner } from "../../actions";
+
+export const metadata: Metadata = {
+	title: "Editar banner",
+};
 
 export default async function EditBannerPage({
 	params,

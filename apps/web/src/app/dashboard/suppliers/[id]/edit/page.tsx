@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
+
+export const metadata: Metadata = {
+	title: "Editar fornecedor",
+};
 
 export default async function SupplierEditRedirect({
 	params,

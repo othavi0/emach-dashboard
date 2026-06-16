@@ -1,4 +1,5 @@
 import { buttonVariants } from "@emach/ui/components/button";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
@@ -7,6 +8,10 @@ import { requireCurrentSession } from "@/lib/session";
 import { SupplierCardGrid } from "./_components/supplier-card-grid";
 import { SuppliersFilters } from "./_components/suppliers-filter";
 import { fetchSuppliersTablePage, type SuppliersFiltersInput } from "./actions";
+
+export const metadata: Metadata = {
+	title: "Fornecedores",
+};
 
 export const dynamic = "force-dynamic";
 

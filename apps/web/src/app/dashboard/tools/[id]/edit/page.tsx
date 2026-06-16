@@ -7,6 +7,7 @@ import {
 import { category, toolCategory } from "@emach/db/schema/categories";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { asc, eq } from "drizzle-orm";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { requireCapability } from "@/lib/permissions";
@@ -20,6 +21,10 @@ import type {
 	ToolVariantInput,
 	VOLTAGE_OPTIONS,
 } from "../../_components/tool-schema";
+
+export const metadata: Metadata = {
+	title: "Editar ferramenta",
+};
 
 interface PageProps {
 	params: Promise<{ id: string }>;

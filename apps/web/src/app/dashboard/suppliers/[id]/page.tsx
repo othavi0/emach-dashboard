@@ -1,5 +1,6 @@
 import { buttonVariants } from "@emach/ui/components/button";
 import { Boxes, Factory, History, Pencil } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -18,6 +19,10 @@ import { HistoryTab } from "./_components/history-tab";
 import { OverviewTab } from "./_components/overview-tab";
 import { SupplierEditSheet } from "./_components/supplier-edit-sheet";
 import { SupplierIdentity } from "./_components/supplier-identity";
+
+export const metadata: Metadata = {
+	title: "Detalhe do fornecedor",
+};
 
 interface PageProps {
 	params: Promise<{ id: string }>;

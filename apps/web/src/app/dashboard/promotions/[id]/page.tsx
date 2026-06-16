@@ -1,5 +1,6 @@
 import { buttonVariants } from "@emach/ui/components/button";
 import { Info, Settings2, Wrench } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -11,6 +12,10 @@ import { OverviewTab } from "./_components/overview-tab";
 import { PromotionHeaderActions } from "./_components/promotion-header-actions";
 import { PromotionIdentity } from "./_components/promotion-identity";
 import { ToolsTab } from "./_components/tools-tab";
+
+export const metadata: Metadata = {
+	title: "Detalhe da promoção",
+};
 
 interface PageProps {
 	params: Promise<{ id: string }>;

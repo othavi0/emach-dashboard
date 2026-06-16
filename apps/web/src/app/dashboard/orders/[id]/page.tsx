@@ -6,6 +6,7 @@ import {
 	Star,
 	Truck,
 } from "lucide-react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
@@ -24,6 +25,10 @@ import { ItemsTab } from "./_components/tabs/items-tab";
 import { PaymentFiscalTab } from "./_components/tabs/payment-fiscal-tab";
 import { RefundTab } from "./_components/tabs/refund-tab";
 import { ReviewsTab } from "./_components/tabs/reviews-tab";
+
+export const metadata: Metadata = {
+	title: "Detalhe do pedido",
+};
 
 export const dynamic = "force-dynamic";
 

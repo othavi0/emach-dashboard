@@ -6,10 +6,15 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { BannerList } from "./_components/banner-list";
 import { fetchBanners } from "./actions";
+
+export const metadata: Metadata = {
+	title: "Banners",
+};
 
 export default async function BannersPage() {
 	const banners = await fetchBanners();

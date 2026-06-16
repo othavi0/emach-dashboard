@@ -1,10 +1,15 @@
 import { buttonVariants } from "@emach/ui/components/button";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { can, requireCapability } from "@/lib/permissions";
 import { ModerateActions } from "../_components/moderate-actions";
 import { ReviewDetailCard } from "../_components/review-detail-card";
 import { getReviewDetail } from "../data";
+
+export const metadata: Metadata = {
+	title: "Detalhe da avaliação",
+};
 
 interface ReviewDetailPageProps {
 	params: Promise<{ id: string }>;

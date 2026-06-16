@@ -6,6 +6,7 @@ import {
 	SidebarTrigger,
 } from "@emach/ui/components/sidebar";
 import { count, eq } from "drizzle-orm";
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/permissions";
@@ -13,6 +14,15 @@ import { getUserStatus, requireCurrentSession } from "@/lib/session";
 import { parseSidebarCookie, SIDEBAR_COOKIE_NAME } from "@/lib/sidebar-cookie";
 import { AppSidebar } from "./_components/app-sidebar";
 import { fetchDashboardCounts } from "./pending-data";
+
+export const metadata: Metadata = {
+	description:
+		"Área administrativa privada da Emach Ferramentas para gestão operacional do e-commerce.",
+	robots: {
+		follow: false,
+		index: false,
+	},
+};
 
 export default async function DashboardLayout({
 	children,

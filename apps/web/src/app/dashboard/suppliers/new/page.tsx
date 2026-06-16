@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { requireRole } from "@/lib/session";
 import { SupplierForm } from "../_components/supplier-form";
+
+export const metadata: Metadata = {
+	title: "Novo fornecedor",
+};
 
 export default async function NewSupplierPage() {
 	await requireRole("admin");

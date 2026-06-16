@@ -89,6 +89,7 @@ import {
 	Pencil,
 	Trash2,
 } from "lucide-react";
+import type { Metadata } from "next";
 import {
 	AccordionShowcase,
 	DialogShowcase,
@@ -98,6 +99,16 @@ import {
 	TooltipShowcase,
 } from "./_components/interactive";
 import { Section, Showcase, Swatch } from "./_components/section";
+
+export const metadata: Metadata = {
+	description:
+		"Página técnica interna para validação do design system da Emach.",
+	robots: {
+		follow: false,
+		index: false,
+	},
+	title: "Design system",
+};
 
 const tableOfContents: { id: string; title: string }[] = [
 	{ id: "tipografia", title: "Tipografia" },

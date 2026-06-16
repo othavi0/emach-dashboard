@@ -1,9 +1,20 @@
 import { Ban } from "lucide-react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthStatusPanel } from "@/components/auth/auth-status-panel";
 import { getCurrentSession, getUserStatus } from "@/lib/session";
+
+export const metadata: Metadata = {
+	description:
+		"Estado de acesso suspenso para contas do dashboard administrativo da Emach Ferramentas.",
+	robots: {
+		follow: false,
+		index: false,
+	},
+	title: "Acesso suspenso",
+};
 
 export default async function SuspendedPage() {
 	const session = await getCurrentSession();

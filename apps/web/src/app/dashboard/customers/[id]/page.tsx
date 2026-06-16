@@ -1,4 +1,5 @@
 import type { ClientAuditAction } from "@emach/db/schema/client-audit";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { can, requireCapability } from "@/lib/permissions";
@@ -16,6 +17,10 @@ import {
 	getCustomerSessions,
 } from "../data";
 import { auditFilterSchema } from "../schema";
+
+export const metadata: Metadata = {
+	title: "Detalhe do cliente",
+};
 
 interface PageProps {
 	params: Promise<{ id: string }>;
