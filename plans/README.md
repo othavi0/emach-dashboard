@@ -120,24 +120,24 @@ Esta rodada cobriu correctness/security/tests/tech-debt/deps/dx/docs/direction �
 | Plano | Slug | Prioridade | Esforço | Risco | Categoria | Depende de | Review | Status |
 |-------|------|------------|---------|-------|-----------|------------|--------|--------|
 | 012 | capability-guards-read-actions | P1 | M | MED | security | none (014 recomendado em paralelo) | FIXED | TODO |
-| 013 | assign-branch-lock-authorization | P1 | S | LOW | security | none | PASS | TODO |
+| 013 | assign-branch-lock-authorization | P1 | S | LOW | security | none | PASS | DONE (onda 1, `8fccf543`; smoke multi-role recomendado pré-prod) |
 | 014 | tests-branch-scope-capability | P1 | S | LOW | tests | none | FIXED | DONE (onda 1, `225eefca`) |
 | 015 | tests-apply-stock-returns | P1 | S | LOW | tests | none | PASS | DONE (onda 1, `225eefca`) |
 | 016 | consolidate-action-error-message | P1 | S | LOW | tech-debt | none | FIXED | DONE (onda 1, `225eefca`) |
-| 017 | ci-test-gate-and-verify-script | P1 | S | LOW | dx | none | FIXED | TODO |
+| 017 | ci-test-gate-and-verify-script | P1 | S | LOW | dx | none | FIXED | DONE (onda 1, `98fda766`) |
 | 018 | env-example-required-vars | P2 | S | LOW | dx | none | FIXED | DONE (onda 1, `225eefca`) |
 | 019 | fix-doc-drift | P2 | S | LOW | docs | none | FIXED | DONE (onda 1, `225eefca`) |
 | 020 | fix-revalidate-tag-banners | P2 | S | LOW | bug | none | PASS | TODO |
 | 021 | invite-user-atomicity | P2 | M | MED | bug | none | FIXED | TODO |
 | 022 | unlink-branch-last-branch-race | P2 | S | LOW | bug | none | FIXED | TODO |
-| 023 | tests-cpf-cnpj | P2 | S | LOW | tests | none (pairs with 025) | FIXED | TODO |
-| 024 | tests-cron-cancel-stale-orders | P2 | S | LOW | tests | none | FIXED | TODO |
+| 023 | tests-cpf-cnpj | P2 | S | LOW | tests | none (pairs with 025) | FIXED | DONE (onda 1, `c2c3c735`) |
+| 024 | tests-cron-cancel-stale-orders | P2 | S | LOW | tests | none | FIXED | DONE (onda 1, `150d7c3f`) |
 | 025 | dedup-cnpj-validator | P2 | S | LOW | tech-debt | plans/023-*.md (characterization tests for cpf-cnpj.ts) | FIXED | TODO |
 | 026 | update-tool-video-in-transaction | P3 | S | LOW | bug | none | FIXED | TODO |
 | 027 | security-response-headers | P2 | M | MED | security | none | FIXED | TODO |
 | 028 | split-god-module-actions | P3 | M | MED | tech-debt | none | FIXED | TODO |
 | 029 | decompose-branch-stock-edit-sheet | P3 | M | MED | tech-debt | none | FIXED | TODO |
-| 030 | structured-logger | P3 | M | LOW | dx | none | FIXED | TODO |
+| 030 | structured-logger | P3 | M | LOW | dx | none | FIXED | DONE (onda 1, `4334879c`; requestId threading deferido) |
 | 031 | dependency-hygiene | P3 | S | LOW | dependencies | none | PASS | TODO |
 | 032 | barrel-annotations-and-precommit | P3 | S | LOW | dx | none | FIXED | TODO |
 | 033 | env-import-better-auth-url | P3 | S | LOW | security | none | FIXED | TODO |
