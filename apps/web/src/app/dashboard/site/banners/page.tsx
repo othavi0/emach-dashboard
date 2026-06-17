@@ -6,11 +6,17 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
+import { Skeleton } from "@emach/ui/components/skeleton";
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
-import { BannerList } from "./_components/banner-list";
 import { fetchBanners } from "./actions";
+
+const BannerList = dynamic(
+	() => import("./_components/banner-list").then((m) => m.BannerList),
+	{ loading: () => <Skeleton className="h-64 w-full" /> }
+);
 
 export const metadata: Metadata = {
 	title: "Banners",

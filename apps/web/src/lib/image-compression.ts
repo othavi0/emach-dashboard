@@ -1,5 +1,3 @@
-import imageCompression from "browser-image-compression";
-
 const SKIP_THRESHOLD_BYTES = 800 * 1024;
 const EXTENSION_RE = /\.[^.]+$/;
 
@@ -19,6 +17,9 @@ export async function compressImageForUpload(file: File): Promise<File> {
 		return file;
 	}
 
+	const { default: imageCompression } = await import(
+		"browser-image-compression"
+	);
 	const blob = await imageCompression(file, COMPRESSION_OPTS);
 	const baseName = file.name.replace(EXTENSION_RE, "");
 	return new File([blob], `${baseName}.webp`, {
