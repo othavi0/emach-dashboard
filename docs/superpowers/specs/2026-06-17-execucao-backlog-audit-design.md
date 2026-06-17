@@ -109,3 +109,28 @@ de produto. Ficam como docs no backlog até aprovação da direção.
 4. **`noThenProperty` em mock de Drizzle é esperado.** O query builder do Drizzle é thenable;
    um mock fiel precisa de `then` → `// biome-ignore lint/suspicious/noThenProperty: <motivo>`
    justificado é o padrão (não reescrever o mock). Aplicado no 015.
+
+### Onda 1 (sub-lote 2: planos 013, 017, 023, 024, 029, 030)
+
+5. **Os 2 fixes de processo funcionaram.** (a) PASSO 0 `git merge chore/improve-audit-2026-06`:
+   todos os 6 worktrees fizeram fast-forward ao tip e enxergaram planos + sub-lote 1. (b) Lint
+   por-arquivo: instruir `bunx ultracite check <arquivos>` quando `bun check` der "0 files" fez
+   os executores **pegarem e corrigirem os próprios lints antes de reportar** (024:
+   organizeImports+useAwait; 030: noEmptyBlock+useTopLevelRegex; 013: useAwait; 029: tudo). O
+   gate integrado no main confirmou: zero residual de lint no sub-lote 2 (vs. 2 issues no
+   sub-lote 1). **Conclusão: lint do executor é confiável SE explícito por-arquivo; o gate
+   integrado continua obrigatório como backstop.**
+6. **013 (auth P0) verificado por leitura do diff:** adota `lockOrderAndAuthorize` canônico
+   dentro da tx (fecha hijack cross-branch + not-found + actorUserId). É o mesmo mecanismo já
+   provado em runtime por outras 6 mutations. **Smoke multi-role ao vivo = gate pré-prod** (não
+   bloqueia merge na branch de trabalho; consistente com o checklist do CLAUDE.md).
+7. **029 (refactor UI):** shell 986→616 linhas. **Alvo ≤450 não atingido** (MovementsCard/Row +
+   helpers internos permanecem), MAS o objetivo primário — remover o `biome-ignore
+   noExcessiveCognitiveComplexity` — foi alcançado. Code review: extração idiomática
+   (`LabeledField`/`useFormErrors`/`useTransition`/`notify`), todos `"use client"`, submit
+   corretamente fiado. **Smoke visual ao vivo dos 3 modos (entrada/baixa/ajuste) = recomendado
+   pré-merge-to-main** (CLAUDE.md exige smoke após mudança de componente; check-types não pega
+   regressão de render/interação).
+8. **030: requestId threading deferido** (scope guard respeitado — 62 call-sites intactos).
+   Caminho futuro documentado: `AsyncLocalStorage` em `middleware.ts` lido dentro do logger, sem
+   tocar a API pública.
