@@ -59,7 +59,7 @@ export function ToolSpecs({
 						value={
 							tool.weightKg === null
 								? null
-								: `${formatMeasure(tool.weightKg)} kg`
+								: `${formatMeasure(tool.weightKg) ?? "—"} kg`
 						}
 					/>
 					<SpecField
@@ -68,7 +68,7 @@ export function ToolSpecs({
 							tool.lengthCm !== null &&
 							tool.widthCm !== null &&
 							tool.heightCm !== null
-								? `${formatMeasure(tool.lengthCm, 2)} × ${formatMeasure(tool.widthCm, 2)} × ${formatMeasure(tool.heightCm, 2)} cm`
+								? `${formatMeasure(tool.lengthCm, 2) ?? "?"} × ${formatMeasure(tool.widthCm, 2) ?? "?"} × ${formatMeasure(tool.heightCm, 2) ?? "?"} cm`
 								: null
 						}
 					/>

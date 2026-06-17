@@ -14,6 +14,7 @@ import {
 	TableRow,
 } from "@emach/ui/components/table";
 
+import { formatMeasure } from "@/lib/format/number";
 import type { OrderDetail } from "../../../data";
 import { AsaasBlock } from "../asaas-block";
 
@@ -52,7 +53,9 @@ function formatDims(
 	if (l === null && w === null && h === null) {
 		return "—";
 	}
-	return `${l ?? "?"}×${w ?? "?"}×${h ?? "?"}`;
+	const dim = (v: number | null) =>
+		v === null ? "?" : (formatMeasure(v, 2) ?? "?");
+	return `${dim(l)}×${dim(w)}×${dim(h)}`;
 }
 
 export function PaymentFiscalTab({ order }: { order: OrderDetail }) {
@@ -107,7 +110,9 @@ export function PaymentFiscalTab({ order }: { order: OrderDetail }) {
 									{item.cest ?? "—"}
 								</TableCell>
 								<TableCell className="text-right font-mono text-xs">
-									{item.weightKg === null ? "—" : `${item.weightKg} kg`}
+									{item.weightKg === null
+										? "—"
+										: `${formatMeasure(item.weightKg) ?? "—"} kg`}
 								</TableCell>
 								<TableCell className="text-right font-mono text-xs">
 									{formatDims(item.lengthCm, item.widthCm, item.heightCm)}
