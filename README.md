@@ -11,7 +11,7 @@ Dashboard interno + base para futuro ecomerce BR. Monorepo Bun + Turborepo. Auth
 - **Frontend:** Next 16 + React 19 (`apps/web`, port 3001)
 - **UI:** shadcn/ui + Tailwind 4 + Base UI React (`packages/ui`)
 - **DB:** PostgreSQL via Supabase + Drizzle ORM (`packages/db`)
-- **Auth:** Better Auth 1.6 — dual instances (`packages/auth/src/dashboard.ts` + `ecommerce.ts`), dashboard é **convite-only** (ADR-0013)
+- **Auth:** Better Auth 1.6 — instância dashboard em `packages/auth/src/dashboard.ts` (convite-only, ADR-0013); instância ecommerce vive no repo ecommerce (ADR-0004)
 - **Env validation:** `@t3-oss/env-core` + Zod (`packages/env`)
 - **Lint/format:** Biome 2.4.15 + Ultracite (`bun fix`)
 - **Storage:** Supabase Storage (`tool-images` bucket) para imagens de produtos
@@ -81,12 +81,12 @@ emach-dashboard/
 │       └── src/app/dashboard/{tools,categories,suppliers,branches,stock,promotions,orders,reviews,customers,users,site}
 ├── packages/
 │   ├── ui/                          # shadcn/ui primitives + globals.css
-│   ├── auth/                        # Better Auth dual: dashboard.ts + ecommerce.ts
+│   ├── auth/                        # Better Auth dashboard: dashboard.ts (ecommerce no repo ecommerce — ADR-0004)
 │   ├── db/                          # Drizzle schema + createDb factory + scripts
 │   ├── env/                         # Zod-validated env (@t3-oss/env-core)
 │   └── config/                      # tsconfig.base.json compartilhado
 ├── docs/
-│   ├── adr/                         # Decisões arquiteturais (0001…0013)
+│   ├── adr/                         # Decisões arquiteturais (0001…0017)
 │   ├── agents/                      # Guias de consumo de domínio/issues p/ agentes
 │   ├── integration/admin-ecommerce.md
 │   └── storage-buckets.md
