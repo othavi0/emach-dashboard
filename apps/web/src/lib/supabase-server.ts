@@ -20,4 +20,5 @@ export const supabaseAdmin = createClient(url, serviceKey, {
 });
 
 export const TOOL_IMAGES_BUCKET = "tool-images";
+export const TOOL_VIDEOS_BUCKET = "tool-videos";
 export const BANNER_IMAGES_BUCKET = "banner-images";
