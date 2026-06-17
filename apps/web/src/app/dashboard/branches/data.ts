@@ -108,7 +108,9 @@ export async function getBranchDetailKpis(
 				n: sql<number>`count(distinct ${stockLevel.variantId})::int`,
 			})
 			.from(stockLevel)
-			.where(and(eq(stockLevel.branchId, branchId), gt(stockLevel.quantity, 0))),
+			.where(
+				and(eq(stockLevel.branchId, branchId), gt(stockLevel.quantity, 0))
+			),
 		db
 			.select({
 				v: sql<number>`coalesce(sum(${stockLevel.quantity} * coalesce(${toolVariant.priceAmount}, 0)), 0)::float`,

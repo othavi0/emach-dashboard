@@ -1,6 +1,5 @@
 "use server";
 
-import { cache } from "react";
 import { db } from "@emach/db";
 import { promotion, promotionTool } from "@emach/db/schema/promotions";
 import { tool } from "@emach/db/schema/tools";
@@ -18,6 +17,7 @@ import {
 	sql,
 } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { cache } from "react";
 
 import type { ActionResult } from "@/lib/action-result";
 import { type Cursor, decodeCursor } from "@/lib/cursor";
@@ -1016,5 +1016,5 @@ export const getToolOptions = cache(
 			.select({ id: tool.id, name: tool.name })
 			.from(tool)
 			.orderBy(asc(tool.name));
-	},
+	}
 );
