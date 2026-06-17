@@ -6,16 +6,19 @@ import { Check, CircleAlert } from "lucide-react";
 import { useState } from "react";
 
 import { focusFirstError } from "@/lib/form-errors";
+import { DraftRecoveredBanner } from "./draft-recovered-banner";
 import { type ToolFormState, useToolFormState } from "./tool-form-state";
 import {
 	getStepErrorCount,
 	getStepFieldErrors,
 	STEP_FIELDS,
+	stepsWithContent,
 	TOOL_STEPS,
 	type ToolStepId,
 } from "./tool-form-steps";
 import { toolFormSchema } from "./tool-schema";
 import { TOOL_SECTION_COMPONENTS } from "./tool-sections";
+import { useToolDraft } from "./use-tool-draft";
 import { useToolSubmit } from "./use-tool-submit";
 
 function renderStepMarker(
@@ -43,11 +46,17 @@ export function ToolWizard({
 }: {
 	defaultValues?: Partial<ToolFormState>;
 }) {
-	const { values, patch, errors, setErrors } = useToolFormState(
+	const { values, patch, errors, setErrors, setValues } = useToolFormState(
 		defaultValues ?? {}
 	);
 	const [active, setActive] = useState(0);
 	const [visited, setVisited] = useState<Set<ToolStepId>>(() => new Set());
+
+	const { recovered, discard, clear } = useToolDraft({
+		values,
+		setValues,
+		onRestore: (restored) => setVisited(stepsWithContent(restored)),
+	});
 
 	// active é controlado por setActive com clamp — nunca sai dos bounds
 	// biome-ignore lint/style/noNonNullAssertion: array constante não-vazio, índice clamped
@@ -87,6 +96,7 @@ export function ToolWizard({
 		values,
 		setErrors,
 		onValidationFail: handleValidationFail,
+		onSuccess: clear,
 	});
 
 	const Fields = TOOL_SECTION_COMPONENTS[step.id];
@@ -97,6 +107,16 @@ export function ToolWizard({
 
 	return (
 		<div className="flex flex-col gap-6">
+			{recovered && (
+				<DraftRecoveredBanner
+					onDiscard={() => {
+						discard();
+						setVisited(new Set());
+						setErrors({});
+						setActive(0);
+					}}
+				/>
+			)}
 			<ol
 				aria-label="Etapas do cadastro"
 				className="flex flex-wrap gap-1 rounded-md bg-muted p-1 ring-1 ring-border/60"

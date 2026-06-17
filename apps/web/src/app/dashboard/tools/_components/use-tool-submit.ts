@@ -16,6 +16,8 @@ const SUCCESS_MESSAGE: Record<"create" | "edit", string> = {
 
 interface UseToolSubmitArgs {
 	mode: "create" | "edit";
+	/** Chamado uma vez quando a persistência retorna ok (ex: limpar rascunho). */
+	onSuccess?: () => void;
 	/** Wizard injeta para navegar até o passo com erro antes de focar. */
 	onValidationFail?: (errorKeys: string[]) => void;
 	setErrors: Dispatch<
@@ -29,6 +31,7 @@ export function useToolSubmit({
 	values,
 	setErrors,
 	onValidationFail,
+	onSuccess,
 }: UseToolSubmitArgs) {
 	const router = useRouter();
 	const { toolId } = useToolFormContext();
@@ -51,6 +54,7 @@ export function useToolSubmit({
 			const res = await persistTool(mode, data, toolId);
 			if (res.ok) {
 				notify.success(SUCCESS_MESSAGE[mode]);
+				onSuccess?.();
 				router.push("/dashboard/tools");
 				router.refresh();
 			} else {
