@@ -81,6 +81,10 @@ Thumbs Supabase: `<img>` puro **com `// biome-ignore lint/performance/noImgEleme
 
 Formatar timestamps **sempre** via `src/lib/format/datetime.ts` (`formatDate`, `formatDateTime`, `formatTime`, `formatDayTime`, `isSameDay`, …) — fuso fixo `America/Sao_Paulo`. **Nunca** `new Intl.DateTimeFormat`/`toLocale*`/`date-fns format` cru em componente: sem `timeZone` fixo, server (Vercel UTC) e client (BR) divergem → hydration mismatch perto da meia-noite (issue #137). Idem `Date.toDateString()` pra comparar dia → usar `isSameDay`. Exceções: moeda/número (`toLocaleString` ok) e colunas date-only (`::date` → `localDate`, ver `packages/db/CLAUDE.md`).
 
+## Medidas numéricas (peso, dimensões)
+
+**Nunca renderizar a string crua de coluna `numeric` do Postgres em UI pt-BR.** Drizzle devolve `numeric` como string no padrão US (ponto decimal): `weightKg` 5 vira `"5.000"`. Em pt-BR o ponto é separador de **milhar**, então `"5.000 kg"` (5 kg) é lido como **cinco mil kg** — parece bug de "conversão ×1000", mas o dado está certo; o erro é de locale na exibição. Formatar **sempre** via `formatMeasure()` (`src/lib/format/number.ts`): converte pra número e aplica `toLocaleString("pt-BR")` (vírgula decimal, sem zeros supérfluos) → `"5 kg"`, `"28 × 15 × 4 cm"`. O form de edição (`MaskedInput` + `decimalMask`) já usa vírgula; specs numéricas de atributo passam por `Number()` antes. O ponto a vigiar é qualquer JSX novo que interpole `tool.weightKg`/`*Cm` direto.
+
 ## Auditoria de mutações DB
 
 Ao inserir em `stockMovement`, `orderStatusHistory`, `clientAuditLog`, `supplierAuditLog`, `userActivityLog`:
