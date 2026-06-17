@@ -41,8 +41,12 @@ export async function buildDefinitionsByCategory(): Promise<
 	const result: Record<string, AttributeDefinition[]> = {};
 	for (const c of categories) {
 		const chain: string[] = [c.id];
+		// `seenChain` evita loop infinito num parentId cíclico (escrita SQL direta
+		// que burle o trigger prevent_category_cycle).
+		const seenChain = new Set<string>([c.id]);
 		let cur = c.parentId;
-		while (cur) {
+		while (cur && !seenChain.has(cur)) {
+			seenChain.add(cur);
 			chain.push(cur);
 			cur = parentById.get(cur) ?? null;
 		}

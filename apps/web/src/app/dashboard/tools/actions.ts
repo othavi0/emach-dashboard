@@ -22,6 +22,11 @@ import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
+import {
+	isCategoryComplete,
+	MIN_CATEGORY_ATTRIBUTES,
+} from "../categories/_lib/category-completeness";
+import { getEffectiveAttributeCount } from "../categories/_lib/effective-attributes";
 import { deleteToolImage } from "./_components/image-actions";
 import type { ToolStatusValue } from "./_components/tool-schema";
 import {
@@ -65,6 +70,37 @@ function toInt(value: number | undefined): number | null {
 function nullableText(value: string | undefined): string | null {
 	const trimmed = value?.trim();
 	return trimmed ? trimmed : null;
+}
+
+/**
+ * Gate de completude: a categoria *principal* define as specs disponíveis (cadeia
+ * própria + herdada). Se tiver menos de MIN_CATEGORY_ATTRIBUTES atributos
+ * efetivos, nenhuma ferramenta nela conseguiria atingir MIN_SPECS_ACTIVE — então
+ * bloqueamos cadastro/edição com a primária incompleta. Devolve a mensagem de
+ * erro, ou `null` se a categoria estiver completa.
+ */
+async function primaryCategoryIncompleteError(
+	primaryCategoryId: string
+): Promise<string | null> {
+	const effective = await getEffectiveAttributeCount(primaryCategoryId);
+	if (isCategoryComplete(effective)) {
+		return null;
+	}
+	return `A categoria principal está incompleta (${effective}/${MIN_CATEGORY_ATTRIBUTES} atributos efetivos). Adicione atributos à categoria antes de cadastrar ou ativar ferramentas nela.`;
+}
+
+/** Categoria principal atual da ferramenta (para decidir se o gate se aplica no update). */
+async function currentPrimaryCategoryId(
+	toolId: string
+): Promise<string | null> {
+	const [row] = await db
+		.select({ categoryId: toolCategory.categoryId })
+		.from(toolCategory)
+		.where(
+			and(eq(toolCategory.toolId, toolId), eq(toolCategory.isPrimary, true))
+		)
+		.limit(1);
+	return row?.categoryId ?? null;
 }
 
 function normalizeToolPayload(input: ToolFormValues) {
@@ -189,6 +225,12 @@ export async function createTool(
 	if (!parsed.success) {
 		return { ok: false, error: errorMessage(parsed.error) };
 	}
+	const categoryError = await primaryCategoryIncompleteError(
+		parsed.data.primaryCategoryId
+	);
+	if (categoryError) {
+		return { ok: false, error: categoryError };
+	}
 	const id = crypto.randomUUID();
 	const payload = normalizeToolPayload(parsed.data);
 	const slug = slugify(parsed.data.name);
@@ -292,6 +334,18 @@ export async function updateTool(
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: errorMessage(parsed.error) };
+	}
+	// Gate só barra quando a primária MUDA para uma incompleta — não punir edição
+	// de tool cuja primária já existente degradou (deleção de atributo posterior),
+	// senão a ferramenta vira ineditável até alguém consertar a categoria.
+	const previousPrimary = await currentPrimaryCategoryId(id);
+	if (parsed.data.primaryCategoryId !== previousPrimary) {
+		const categoryError = await primaryCategoryIncompleteError(
+			parsed.data.primaryCategoryId
+		);
+		if (categoryError) {
+			return { ok: false, error: categoryError };
+		}
 	}
 	const payload = normalizeToolPayload(parsed.data);
 

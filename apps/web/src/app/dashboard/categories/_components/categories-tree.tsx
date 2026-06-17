@@ -28,6 +28,10 @@ import { useMemo, useState, useTransition } from "react";
 import { notify } from "@/lib/notify";
 
 import {
+	isCategoryComplete,
+	MIN_CATEGORY_ATTRIBUTES,
+} from "../_lib/category-completeness";
+import {
 	buildCategoryTree,
 	type CategoryTreeNode,
 	type FlatCategory,
@@ -260,6 +264,15 @@ function TreeRow({
 					rollup={node.rollupCount}
 				/>
 				<span className="flex-1" />
+				{!isCategoryComplete(node.attributeCount) && (
+					<Badge
+						className="border-warning/40 text-warning"
+						title={`Categoria incompleta: ${node.attributeCount} de ${MIN_CATEGORY_ATTRIBUTES} atributos efetivos (próprios + herdados). Ferramentas só podem ser cadastradas/ativadas em categorias completas.`}
+						variant="outline"
+					>
+						Incompleta · {node.attributeCount}/{MIN_CATEGORY_ATTRIBUTES}
+					</Badge>
+				)}
 				<Badge variant={node.isActive ? "success" : "outline"}>
 					{node.isActive ? "Ativa" : "Inativa"}
 				</Badge>

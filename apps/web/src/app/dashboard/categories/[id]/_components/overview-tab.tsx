@@ -4,6 +4,7 @@ import {
 	FolderTree,
 	Package,
 	SlidersHorizontal,
+	TriangleAlert,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -12,6 +13,10 @@ import {
 	type KpiItem,
 } from "@/components/entity/entity-kpis-row";
 import { ATTRIBUTE_INPUT_TYPE_LABELS } from "../../_lib/attribute-schema";
+import {
+	isCategoryComplete,
+	MIN_CATEGORY_ATTRIBUTES,
+} from "../../_lib/category-completeness";
 import type { CategoryAttributeView } from "../../actions";
 
 interface Props {
@@ -53,8 +58,28 @@ export function OverviewTab({
 		},
 	];
 
+	const complete = isCategoryComplete(attributes.length);
+
 	return (
 		<div className="flex flex-col gap-4">
+			{!complete && (
+				<div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3">
+					<TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" />
+					<p className="text-foreground text-xs leading-relaxed">
+						<strong>Categoria incompleta.</strong> Tem {attributes.length} de{" "}
+						{MIN_CATEGORY_ATTRIBUTES} atributos efetivos (próprios + herdados).
+						Uma ferramenta precisa de ao menos {MIN_CATEGORY_ATTRIBUTES}{" "}
+						especificações para ser ativada, então{" "}
+						<strong>
+							ferramentas só podem ser cadastradas e ativadas em categorias
+							completas
+						</strong>
+						. Adicione atributos abaixo (ou em uma categoria-pai) para
+						desbloquear.
+					</p>
+				</div>
+			)}
+
 			<EntityKpisRow items={kpis} />
 
 			<div className="grid gap-4 lg:grid-cols-2">

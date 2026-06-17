@@ -7,6 +7,7 @@ import {
 import { TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { HelpTooltip } from "@/components/help-tooltip";
+import { formatMeasure } from "@/lib/format/number";
 import { FISCAL_HELP, MODEL_HELP } from "../../_components/fields/spec-help";
 import type { AttributeGroup } from "../_lib/attribute-grouping";
 import type { SpecDivergences } from "../_lib/spec-divergence";
@@ -55,7 +56,11 @@ export function ToolSpecs({
 					<SpecField
 						diverges={weightDiverges}
 						label="Peso"
-						value={tool.weightKg === null ? null : `${tool.weightKg} kg`}
+						value={
+							tool.weightKg === null
+								? null
+								: `${formatMeasure(tool.weightKg) ?? "—"} kg`
+						}
 					/>
 					<SpecField
 						label="Dimensões"
@@ -63,7 +68,7 @@ export function ToolSpecs({
 							tool.lengthCm !== null &&
 							tool.widthCm !== null &&
 							tool.heightCm !== null
-								? `${tool.lengthCm} × ${tool.widthCm} × ${tool.heightCm} cm`
+								? `${formatMeasure(tool.lengthCm, 2) ?? "?"} × ${formatMeasure(tool.widthCm, 2) ?? "?"} × ${formatMeasure(tool.heightCm, 2) ?? "?"} cm`
 								: null
 						}
 					/>

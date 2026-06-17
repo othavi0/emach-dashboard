@@ -1,4 +1,10 @@
+import { formatMeasure } from "@/lib/format/number";
 import type { ToolDetailAttribute } from "../_lib/tool-detail-data";
+
+/** Valor numérico de spec em pt-BR (vírgula decimal), ou "—" quando ausente. */
+function formatSpecNumber(value: number | null): string {
+	return value === null ? "—" : (formatMeasure(value, 4) ?? "—");
+}
 
 export function AttributeValue({ attr }: { attr: ToolDetailAttribute }) {
 	if (attr.inputType === "color" && attr.options?.kind === "color") {
@@ -35,14 +41,13 @@ export function AttributeValue({ attr }: { attr: ToolDetailAttribute }) {
 	const unit = attr.unit ? ` ${attr.unit}` : "";
 
 	if (attr.inputType === "numeric_range") {
-		const lo = attr.valueNumeric ?? "—";
-		const hi = attr.valueNumericMax ?? "—";
+		const lo = formatSpecNumber(attr.valueNumeric);
+		const hi = formatSpecNumber(attr.valueNumericMax);
 		return <>{`${lo} – ${hi}${unit}`}</>;
 	}
 
 	if (attr.inputType === "number") {
-		const v = attr.valueNumeric ?? "—";
-		return <>{`${v}${unit}`}</>;
+		return <>{`${formatSpecNumber(attr.valueNumeric)}${unit}`}</>;
 	}
 
 	return <>{attr.valueText ?? "—"}</>;
