@@ -9,10 +9,10 @@ import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { getUserBranchScope } from "@/lib/branch-scope";
+import { normalizeCnpj } from "@/lib/cpf-cnpj";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
-import { normalizeCnpj } from "@/lib/cpf-cnpj";
 import {
 	type SupplierFormValues,
 	supplierSchema,
