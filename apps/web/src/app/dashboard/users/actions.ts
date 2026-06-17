@@ -92,37 +92,55 @@ export async function inviteUser(
 
 	const { token, expiresAt } = makeInviteToken();
 
+	// newUserId distingue criação de reenvio: só definido quando o user não existia.
+	// Usado na compensação do catch para evitar ghost state.
+	let newUserId: string | null = null;
+
 	try {
 		let userId: string;
 		if (existing) {
-			// Convite aberto pro mesmo email → regenera (reenvio implícito).
+			// Caminho de reenvio — safe: usuário já existia como pending
 			userId = existing.id;
 			await db
 				.update(userTable)
 				.set({ role, inviteToken: token, inviteTokenExpiresAt: expiresAt })
 				.where(eq(userTable.id, userId));
+
+			// Revincula filiais (caminho de reenvio — fora de transação, já era assim)
+			await db.delete(userBranch).where(eq(userBranch.userId, userId));
+			if (branchIds.length > 0) {
+				await db
+					.insert(userBranch)
+					.values(branchIds.map((branchId) => ({ userId, branchId })));
+			}
 		} else {
+			// Caminho de usuário NOVO
+			// internalAdapter usa conexão própria do Better Auth — não entra em db.transaction
 			const ctx = await authDashboard.$context;
 			const created = await ctx.internalAdapter.createUser({
 				email,
 				name: "",
 				emailVerified: true,
 			});
+			newUserId = created.id;
 			userId = created.id;
-			await db
-				.update(userTable)
-				.set({ role, inviteToken: token, inviteTokenExpiresAt: expiresAt })
-				.where(eq(userTable.id, userId));
+
+			// db.update + db.delete(userBranch) + db.insert(userBranch) em transação atômica
+			await db.transaction(async (tx) => {
+				await tx
+					.update(userTable)
+					.set({ role, inviteToken: token, inviteTokenExpiresAt: expiresAt })
+					.where(eq(userTable.id, userId));
+				await tx.delete(userBranch).where(eq(userBranch.userId, userId));
+				if (branchIds.length > 0) {
+					await tx
+						.insert(userBranch)
+						.values(branchIds.map((branchId) => ({ userId, branchId })));
+				}
+			});
 		}
 
-		// Revincula filiais (idempotente).
-		await db.delete(userBranch).where(eq(userBranch.userId, userId));
-		if (branchIds.length > 0) {
-			await db
-				.insert(userBranch)
-				.values(branchIds.map((branchId) => ({ userId, branchId })));
-		}
-
+		// Email enviado após commit da transação — se lançar, compensação no catch remove o user novo
 		await sendInviteEmail({
 			to: email,
 			inviterName: session.user.name,
@@ -138,6 +156,16 @@ export async function inviteUser(
 		});
 	} catch (error) {
 		logger.error("inviteUser falhou", error);
+		// Compensação: se o user foi criado nesta chamada, removê-lo para evitar ghost state.
+		// FK user_branch.user_id ON DELETE CASCADE garante remoção automática dos vínculos.
+		// Caminho de reenvio (existing) não compensa — o user preexistia.
+		if (newUserId !== null) {
+			try {
+				await db.delete(userTable).where(eq(userTable.id, newUserId));
+			} catch (cleanupErr) {
+				logger.error("inviteUser compensação falhou", cleanupErr);
+			}
+		}
 		return { ok: false, error: "Não foi possível enviar o convite" };
 	}
 
