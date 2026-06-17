@@ -510,7 +510,7 @@ export async function triggerPasswordReset(
 		await authDashboard.api.requestPasswordReset({
 			body: {
 				email: target.email,
-				redirectTo: `${process.env.BETTER_AUTH_URL}/reset-password`,
+				redirectTo: `${env.BETTER_AUTH_URL}/reset-password`,
 			},
 		});
 		await logUserActivity({
