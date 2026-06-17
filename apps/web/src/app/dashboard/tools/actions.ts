@@ -18,6 +18,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
+import { actionErrorMessage } from "@/lib/action-error";
 import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
@@ -42,17 +43,6 @@ import { resolveVariantDeletion } from "./_components/variant-deletion";
 import { deleteToolVideoObject } from "./_components/video-actions";
 
 const TOOLS_PATH = "/dashboard/tools";
-
-function errorMessage(error: unknown): string {
-	// Erro do Postgres (drizzle embrulha em .cause): nunca vazar SQL cru no toast.
-	if (getPgError(error)) {
-		return "Não foi possível concluir a operação. Tente novamente.";
-	}
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro inesperado";
-}
 
 function toNumericString(value: number | null | undefined): string | null {
 	if (typeof value !== "number" || Number.isNaN(value)) {
@@ -226,7 +216,7 @@ export async function createTool(
 	const session = await requireCapability("tools.create");
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: errorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 	const categoryError = await primaryCategoryIncompleteError(
 		parsed.data.primaryCategoryId
@@ -315,7 +305,7 @@ export async function createTool(
 			}
 		});
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await logUserActivity({
@@ -336,7 +326,7 @@ export async function updateTool(
 	const session = await requireCapability("tools.update");
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: errorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 	// Gate só barra quando a primária MUDA para uma incompleta — não punir edição
 	// de tool cuja primária já existente degradou (deleção de atributo posterior),
@@ -523,7 +513,7 @@ export async function updateTool(
 			}
 		});
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	if (toDelete.length > 0) {
@@ -585,7 +575,7 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 	try {
 		await db.delete(tool).where(eq(tool.id, id));
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	if (urls.length > 0) {

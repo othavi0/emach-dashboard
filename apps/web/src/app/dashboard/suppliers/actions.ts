@@ -9,7 +9,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
-import { getPgError } from "@/lib/db-error";
+import { actionErrorMessage } from "@/lib/action-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 import { normalizeCnpj } from "@/lib/validation/cnpj";
@@ -44,17 +44,6 @@ function normalizePayload(input: SupplierFormValues) {
 		cnpj: cnpjDigits ? cnpjDigits : null,
 		notes: notes ? notes : null,
 	};
-}
-
-function errorMessage(error: unknown): string {
-	// Erro do Postgres (drizzle embrulha em .cause): nunca vazar SQL cru no toast.
-	if (getPgError(error)) {
-		return "Não foi possível concluir a operação. Tente novamente.";
-	}
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro inesperado";
 }
 
 type SupplierBaseRow = typeof supplier.$inferSelect;
@@ -157,7 +146,7 @@ export async function createSupplier(
 
 	const parsed = supplierSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: errorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 
 	const id = crypto.randomUUID();
@@ -166,7 +155,7 @@ export async function createSupplier(
 	try {
 		await db.insert(supplier).values({ id, ...payload });
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await db.insert(supplierAuditLog).values({
@@ -198,7 +187,7 @@ export async function updateSupplier(
 
 	const parsed = supplierSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: errorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 
 	const payload = normalizePayload(parsed.data);
@@ -223,7 +212,7 @@ export async function updateSupplier(
 	try {
 		await db.update(supplier).set(payload).where(eq(supplier.id, id));
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await db.insert(supplierAuditLog).values({
@@ -269,7 +258,7 @@ async function setSupplierStatus(
 	try {
 		await db.update(supplier).set({ status: next }).where(eq(supplier.id, id));
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await db.insert(supplierAuditLog).values({

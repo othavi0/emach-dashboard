@@ -6,7 +6,7 @@ import { and, asc, count, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
-import { getPgError } from "@/lib/db-error";
+import { actionErrorMessage } from "@/lib/action-error";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import {
@@ -16,16 +16,6 @@ import {
 } from "./_components/banner-schema";
 
 const BANNERS_PATH = "/dashboard/site/banners";
-
-function errorMessage(error: unknown): string {
-	if (getPgError(error)) {
-		return "Não foi possível concluir a operação. Tente novamente.";
-	}
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro inesperado";
-}
 
 async function countActive(excludeId?: string): Promise<number> {
 	const where = excludeId
@@ -107,7 +97,7 @@ export async function createBanner(
 		return { ok: true, data: { id } };
 	} catch (error) {
 		logger.error("createBanner", { err: error });
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -163,7 +153,7 @@ export async function updateBanner(
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateBanner", { err: error });
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -191,7 +181,7 @@ export async function toggleBannerActive(
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("toggleBannerActive", { err: error });
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -213,7 +203,7 @@ export async function reorderBanners(
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("reorderBanners", { err: error });
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -250,6 +240,6 @@ export async function deleteBanner(id: string): Promise<ActionResult> {
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("deleteBanner", { err: error });
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }

@@ -10,18 +10,12 @@ import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { requireCapability } from "@/lib/permissions";
+import { actionErrorMessage } from "@/lib/action-error";
 import {
 	type AttributeFormValues,
 	attributeFormSchema,
 	buildOptionsField,
 } from "./attribute-schema";
-
-function errorMessage(error: unknown): string {
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro inesperado";
-}
 
 function normalize(input: AttributeFormValues, categoryId: string) {
 	return {
@@ -43,7 +37,7 @@ export async function createCategoryAttribute(
 	const session = await requireCapability("attributes.create");
 	const parsed = attributeFormSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: errorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 	const id = crypto.randomUUID();
 	try {
@@ -51,7 +45,7 @@ export async function createCategoryAttribute(
 			.insert(attributeDefinition)
 			.values({ id, ...normalize(parsed.data, categoryId) });
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 	await logUserActivity({
 		actorUserId: session.user.id,
@@ -72,7 +66,7 @@ export async function updateCategoryAttribute(
 	const session = await requireCapability("attributes.update");
 	const parsed = attributeFormSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: errorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 	try {
 		await db
@@ -80,7 +74,7 @@ export async function updateCategoryAttribute(
 			.set(normalize(parsed.data, categoryId))
 			.where(eq(attributeDefinition.id, id));
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 	await logUserActivity({
 		actorUserId: session.user.id,
@@ -102,7 +96,7 @@ export async function deleteCategoryAttribute(
 		// Cascade na FK de toolAttributeValue lida com valores existentes.
 		await db.delete(attributeDefinition).where(eq(attributeDefinition.id, id));
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 	await logUserActivity({
 		actorUserId: session.user.id,
