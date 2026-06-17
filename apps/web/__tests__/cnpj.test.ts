@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isValidCnpj, normalizeCnpj } from "@/lib/validation/cnpj";
+import { isValidCnpj, normalizeCnpj } from "@/lib/cpf-cnpj";
 
 describe("normalizeCnpj", () => {
 	it("remove caracteres não numéricos", () => {
