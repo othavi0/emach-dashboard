@@ -6,11 +6,13 @@ import {
 } from "@emach/ui/components/card";
 import type { ChartConfig } from "@emach/ui/components/chart";
 import { Skeleton } from "@emach/ui/components/skeleton";
+import { cn } from "@emach/ui/lib/utils";
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { type ReactNode, Suspense } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PendingPanel, type PendingTab } from "@/components/pending-panel";
 import { formatDateShort } from "@/lib/format/datetime";
+import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { BranchFilter } from "./_components/branch-filter";
 import { NewClientsLine } from "./_components/charts/new-clients-line";
@@ -22,6 +24,7 @@ import { StockFlowArea } from "./_components/charts/stock-flow-area";
 import { KpiRow } from "./_components/kpi-row";
 import { ReorderTable } from "./_components/reorder-table";
 import { parseBranchParam } from "./_lib/dashboard-params";
+import { kpiGridClass, visibleKpiCount } from "./_lib/kpi-grid";
 import {
 	fetchDashboardActivity,
 	fetchDashboardCounts,
@@ -71,6 +74,21 @@ export default async function DashboardPage({
 	const sp = await searchParams;
 	const branchId = parseBranchParam(sp.branch);
 
+	// Capabilities dos domínios restritos a Clientes/Reviews/Promoções (todos `SA`):
+	// o `user` não os tem. KPIs/tabs/gráficos desses domínios só renderizam com
+	// acesso — o gate de dado real vive nas server actions/queries (ADR-0016).
+	const [canReadReviews, canReadCustomers, canReadPromotions] =
+		await Promise.all([
+			can(session, "reviews.read"),
+			can(session, "customers.read"),
+			can(session, "promotions.read"),
+		]);
+	const kpiCount = visibleKpiCount({
+		canReadCustomers,
+		canReadPromotions,
+		canReadReviews,
+	});
+
 	return (
 		<main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-2 py-4">
 			<section className="flex items-end justify-between gap-4">
@@ -85,20 +103,30 @@ export default async function DashboardPage({
 				</Suspense>
 			</section>
 
-			<Suspense fallback={<KpiSkeleton />}>
-				<KpiRow branchId={branchId} />
+			<Suspense fallback={<KpiSkeleton count={kpiCount} />}>
+				<KpiRow
+					branchId={branchId}
+					caps={{ canReadCustomers, canReadPromotions, canReadReviews }}
+				/>
 			</Suspense>
 
 			<Suspense fallback={<Skeleton className="h-72 w-full" />}>
-				<PendingSection />
+				<PendingSection
+					canReadPromotions={canReadPromotions}
+					canReadReviews={canReadReviews}
+				/>
 			</Suspense>
 
 			<Suspense fallback={<Skeleton className="h-64 w-full" />}>
-				<TrendsSection branchId={branchId} />
+				<TrendsSection branchId={branchId} canReadReviews={canReadReviews} />
 			</Suspense>
 
 			<Suspense fallback={<Skeleton className="h-56 w-full" />}>
-				<StrategicSection branchId={branchId} />
+				<StrategicSection
+					branchId={branchId}
+					canReadCustomers={canReadCustomers}
+					canReadPromotions={canReadPromotions}
+				/>
 			</Suspense>
 		</main>
 	);
@@ -109,24 +137,30 @@ async function BranchFilterSlot({ value }: { value: string | null }) {
 	return <BranchFilter options={options} value={value} />;
 }
 
-function KpiSkeleton() {
+function KpiSkeleton({ count }: { count: number }) {
 	return (
-		<div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-			{Array.from({ length: 6 }, (_, i) => (
+		<div className={cn("grid grid-cols-2 gap-3", kpiGridClass(count))}>
+			{Array.from({ length: count }, (_, i) => (
 				<Skeleton className="h-24 w-full" key={`kpi-skeleton-${i}`} />
 			))}
 		</div>
 	);
 }
 
-async function PendingSection() {
-	const [counts, stock, orders, reviews, promos, activity] = await Promise.all([
+async function PendingSection({
+	canReadReviews,
+	canReadPromotions,
+}: {
+	canReadPromotions: boolean;
+	canReadReviews: boolean;
+}) {
+	const [counts, stock, orders, activity, reviews, promos] = await Promise.all([
 		fetchDashboardCounts(),
 		fetchPendingStock(null),
 		fetchPendingOrders(null),
-		fetchPendingReviews(null),
-		fetchExpiringPromotions(null),
 		fetchDashboardActivity(null),
+		canReadReviews ? fetchPendingReviews(null) : null,
+		canReadPromotions ? fetchExpiringPromotions(null) : null,
 	]);
 	const tabs: PendingTab[] = [
 		{
@@ -147,7 +181,9 @@ async function PendingSection() {
 			initialCursor: orders.nextCursor,
 			fetchPage: fetchPendingOrders,
 		},
-		{
+	];
+	if (canReadReviews && reviews) {
+		tabs.push({
 			id: "reviews",
 			label: "Moderação",
 			count: counts.reviews,
@@ -155,8 +191,10 @@ async function PendingSection() {
 			initial: reviews.items,
 			initialCursor: reviews.nextCursor,
 			fetchPage: fetchPendingReviews,
-		},
-		{
+		});
+	}
+	if (canReadPromotions && promos) {
+		tabs.push({
 			id: "promotions",
 			label: "Promoções",
 			count: counts.promotionsExpiring,
@@ -164,8 +202,8 @@ async function PendingSection() {
 			initial: promos.items,
 			initialCursor: promos.nextCursor,
 			fetchPage: fetchExpiringPromotions,
-		},
-	];
+		});
+	}
 	return (
 		<section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 			<PendingPanel tabs={tabs} />
@@ -182,11 +220,17 @@ async function PendingSection() {
 	);
 }
 
-async function TrendsSection({ branchId }: { branchId: string | null }) {
+async function TrendsSection({
+	branchId,
+	canReadReviews,
+}: {
+	branchId: string | null;
+	canReadReviews: boolean;
+}) {
 	const [revenue, funnel, ratings, reorder] = await Promise.all([
 		fetchDailyRevenue(branchId),
 		fetchOrderFunnel(branchId),
-		fetchRatingDistribution(),
+		canReadReviews ? fetchRatingDistribution() : null,
 		fetchReorderTable(branchId),
 	]);
 	const revenueData = revenue.map((p) => ({
@@ -194,6 +238,17 @@ async function TrendsSection({ branchId }: { branchId: string | null }) {
 		revenue: p.revenue,
 		movingAvg: p.movingAvg,
 	}));
+
+	const funnelCard = (
+		<Card>
+			<CardHeader>
+				<CardTitle>Funil de pedidos</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<OrderFunnel data={funnel} />
+			</CardContent>
+		</Card>
+	);
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -205,24 +260,21 @@ async function TrendsSection({ branchId }: { branchId: string | null }) {
 					<RevenueArea data={revenueData} />
 				</CardContent>
 			</Card>
-			<div className="grid gap-4 lg:grid-cols-2">
-				<Card>
-					<CardHeader>
-						<CardTitle>Funil de pedidos</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<OrderFunnel data={funnel} />
-					</CardContent>
-				</Card>
-				<Card>
-					<CardHeader>
-						<CardTitle>Distribuição de notas</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<RatingBars data={ratings} />
-					</CardContent>
-				</Card>
-			</div>
+			{canReadReviews && ratings ? (
+				<div className="grid gap-4 lg:grid-cols-2">
+					{funnelCard}
+					<Card>
+						<CardHeader>
+							<CardTitle>Distribuição de notas</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<RatingBars data={ratings} />
+						</CardContent>
+					</Card>
+				</div>
+			) : (
+				funnelCard
+			)}
 			<Card>
 				<CardHeader>
 					<CardTitle>Itens para repor</CardTitle>
@@ -235,50 +287,82 @@ async function TrendsSection({ branchId }: { branchId: string | null }) {
 	);
 }
 
-async function StrategicSection({ branchId }: { branchId: string | null }) {
+// Classes completas por contagem de cards na fileira estratégica (purge-safe).
+const STRATEGIC_GRID_BY_COUNT: Record<number, string> = {
+	1: "",
+	2: "lg:grid-cols-2",
+	3: "lg:grid-cols-3",
+};
+
+async function StrategicSection({
+	branchId,
+	canReadCustomers,
+	canReadPromotions,
+}: {
+	branchId: string | null;
+	canReadCustomers: boolean;
+	canReadPromotions: boolean;
+}) {
 	const [toolStatus, newClients, promoStatus, stockFlow] = await Promise.all([
 		fetchToolStatus(),
-		fetchNewClients(),
-		fetchPromotionStatus(),
+		canReadCustomers ? fetchNewClients() : null,
+		canReadPromotions ? fetchPromotionStatus() : null,
 		fetchStockFlow(branchId),
 	]);
-	const clientsData = newClients.map((p) => ({
-		week: formatDateShort(p.week),
-		count: p.count,
-	}));
 	const flowData = stockFlow.map((p) => ({
 		week: formatDateShort(p.week),
 		entradas: p.entradas,
 		saidas: p.saidas,
 	}));
 
+	const topCards: ReactNode[] = [
+		<Card key="tools">
+			<CardHeader>
+				<CardTitle>Ferramentas por status</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<StatusDonut config={TOOL_STATUS_CONFIG} data={toolStatus} />
+			</CardContent>
+		</Card>,
+	];
+	if (canReadCustomers && newClients) {
+		const clientsData = newClients.map((p) => ({
+			week: formatDateShort(p.week),
+			count: p.count,
+		}));
+		topCards.push(
+			<Card key="clients">
+				<CardHeader>
+					<CardTitle>Novos clientes (90d)</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<NewClientsLine data={clientsData} />
+				</CardContent>
+			</Card>
+		);
+	}
+	if (canReadPromotions && promoStatus) {
+		topCards.push(
+			<Card key="promotions">
+				<CardHeader>
+					<CardTitle>Status de promoções</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<StatusDonut config={PROMO_STATUS_CONFIG} data={promoStatus} />
+				</CardContent>
+			</Card>
+		);
+	}
+
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="grid gap-4 lg:grid-cols-3">
-				<Card>
-					<CardHeader>
-						<CardTitle>Ferramentas por status</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<StatusDonut config={TOOL_STATUS_CONFIG} data={toolStatus} />
-					</CardContent>
-				</Card>
-				<Card>
-					<CardHeader>
-						<CardTitle>Novos clientes (90d)</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<NewClientsLine data={clientsData} />
-					</CardContent>
-				</Card>
-				<Card>
-					<CardHeader>
-						<CardTitle>Status de promoções</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<StatusDonut config={PROMO_STATUS_CONFIG} data={promoStatus} />
-					</CardContent>
-				</Card>
+			<div
+				className={cn(
+					"grid gap-4",
+					STRATEGIC_GRID_BY_COUNT[topCards.length] ?? "lg:grid-cols-3"
+				)}
+			>
+				{topCards}
 			</div>
 			<Card>
 				<CardHeader>

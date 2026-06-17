@@ -11,6 +11,7 @@ import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
 import { decodeCursorAs } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
+import { can, requireCapability } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "./orders/status-meta";
 import { REVIEW_STATUS_LABELS, type ReviewStatus } from "./reviews/status-meta";
@@ -25,7 +26,7 @@ export interface DashboardCounts {
 export async function fetchPendingStock(
 	cursor: string | null
 ): Promise<InfiniteResult<PendingRow>> {
-	await requireCurrentSession();
+	await requireCapability("stock.read");
 	const decoded = cursor ? decodeCursorAs(cursor, "pendingStock") : null;
 	const keyset = decoded
 		? sql`AND (sl.quantity, sl.variant_id || ':' || sl.branch_id) > (${decoded.quantity}, ${decoded.id})`
@@ -73,7 +74,7 @@ export async function fetchPendingStock(
 export async function fetchPendingOrders(
 	cursor: string | null
 ): Promise<InfiniteResult<PendingRow>> {
-	await requireCurrentSession();
+	await requireCapability("orders.read");
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
 	const keyset = decoded
 		? sql`AND (o.created_at, o.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
@@ -122,7 +123,7 @@ export async function fetchPendingOrders(
 export async function fetchPendingReviews(
 	cursor: string | null
 ): Promise<InfiniteResult<PendingRow>> {
-	await requireCurrentSession();
+	await requireCapability("reviews.read");
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
 	const keyset = decoded
 		? sql`AND (r.created_at, r.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
@@ -162,7 +163,7 @@ export async function fetchPendingReviews(
 export async function fetchExpiringPromotions(
 	cursor: string | null
 ): Promise<InfiniteResult<PendingRow>> {
-	await requireCurrentSession();
+	await requireCapability("promotions.read");
 	const decoded = cursor ? decodeCursorAs(cursor, "expiringPromo") : null;
 	// ordena por ends_at ASC (mais urgente primeiro) — keyset crescente
 	const keyset = decoded
@@ -300,7 +301,22 @@ export async function fetchDashboardActivity(
 // chamam isto no mesmo render — dedupa a query de counts.
 export const fetchDashboardCounts = cache(
 	async (): Promise<DashboardCounts> => {
-		await requireCurrentSession();
+		const session = await requireCurrentSession();
+		// Counts de domínios restritos só são computados/expostos com a capability:
+		// protege o endpoint (server action) e o badge da sidebar (layout), não só a
+		// renderização da UI. Sem acesso → `0` (a subquery nem roda).
+		const [canReviews, canPromotions] = await Promise.all([
+			can(session, "reviews.read"),
+			can(session, "promotions.read"),
+		]);
+		const reviewsExpr = canReviews
+			? sql`(SELECT COUNT(*)::int FROM review WHERE status = 'pending')`
+			: sql`0`;
+		const promotionsExpr = canPromotions
+			? sql`(SELECT COUNT(*)::int FROM promotion
+				WHERE active = true AND ends_at IS NOT NULL
+				AND ends_at BETWEEN now() AND now() + INTERVAL '7 days')`
+			: sql`0`;
 		const result = await db.execute<{
 			orders: number;
 			promotions_expiring: number;
@@ -311,10 +327,8 @@ export const fetchDashboardCounts = cache(
 			(SELECT COUNT(*)::int FROM stock_level
 				WHERE quantity = 0 OR (reorder_point > 0 AND quantity <= reorder_point)) AS stock,
 			(SELECT COUNT(*)::int FROM "order" WHERE status = 'paid') AS orders,
-			(SELECT COUNT(*)::int FROM review WHERE status = 'pending') AS reviews,
-			(SELECT COUNT(*)::int FROM promotion
-				WHERE active = true AND ends_at IS NOT NULL
-				AND ends_at BETWEEN now() AND now() + INTERVAL '7 days') AS promotions_expiring
+			${reviewsExpr} AS reviews,
+			${promotionsExpr} AS promotions_expiring
 	`);
 		const row = result.rows[0];
 		if (!row) {
