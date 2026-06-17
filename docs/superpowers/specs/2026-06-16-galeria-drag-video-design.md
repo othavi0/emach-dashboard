@@ -115,5 +115,5 @@ Médio — schema + bucket + signed-upload action + UI de upload/poster no clien
 ## Sequência de execução deste ciclo
 
 1. ✅ Design doc (este arquivo), commitado.
-2. Confirmar com o usuário e **abrir a issue no repo ecommerce** referenciando a Parte 2 (blocked-by a implementação dashboard do vídeo).
-3. Implementar a **Parte 1 (drag-and-drop)** via writing-plans → execução → smoke visual.
+2. ✅ Issue de render no ecommerce aberta: [emach-ecommerce#137](https://github.com/othavioquiliao/emach-ecommerce/issues/137) (blocked-by a implementação dashboard do vídeo).
+3. ✅ **Parte 1 (drag-and-drop)** implementada e smoke-testada (commit `32594ae0`).
