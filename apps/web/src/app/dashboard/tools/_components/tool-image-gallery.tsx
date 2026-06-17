@@ -1,8 +1,25 @@
 "use client";
 
+import {
+	closestCenter,
+	DndContext,
+	type DragEndEvent,
+	KeyboardSensor,
+	PointerSensor,
+	useSensor,
+	useSensors,
+} from "@dnd-kit/core";
+import {
+	arrayMove,
+	SortableContext,
+	sortableKeyboardCoordinates,
+	useSortable,
+	verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
-import { ArrowDown, ArrowUp, Star, Upload, X } from "lucide-react";
+import { GripVertical, Star, Upload, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { compressImageForUpload } from "@/lib/image-compression";
 import { notify } from "@/lib/notify";
@@ -30,6 +47,97 @@ function reindex(images: ToolImage[]): ToolImage[] {
 	return images.map((img, idx) => ({ ...img, sortOrder: idx }));
 }
 
+interface SortableImageRowProps {
+	image: ToolImage;
+	index: number;
+	onPromote: (index: number) => void;
+	onRemove: (index: number) => void;
+}
+
+function SortableImageRow({
+	image,
+	index,
+	onPromote,
+	onRemove,
+}: SortableImageRowProps) {
+	const sortableId = image.id ?? image.url;
+	const {
+		attributes,
+		listeners,
+		setNodeRef,
+		transform,
+		transition,
+		isDragging,
+	} = useSortable({ id: sortableId });
+	const isPrimary = index === 0;
+
+	return (
+		<li
+			className={
+				isPrimary
+					? "flex items-center gap-2 rounded-md border border-primary bg-primary/5 p-2"
+					: "flex items-center gap-2 rounded-md border border-border bg-card p-2"
+			}
+			ref={setNodeRef}
+			style={{
+				opacity: isDragging ? 0.5 : 1,
+				transform: CSS.Transform.toString(transform),
+				transition,
+			}}
+		>
+			<button
+				aria-label={`Reordenar imagem ${index + 1}`}
+				className="shrink-0 cursor-grab touch-none text-muted-foreground"
+				type="button"
+				{...attributes}
+				{...listeners}
+			>
+				<GripVertical aria-hidden className="size-3.5" />
+			</button>
+			{/** biome-ignore lint/performance/noImgElement: Supabase public URL, no Next Image remote config */}
+			{/** biome-ignore lint/correctness/useImageSize: fixed thumbnail via Tailwind */}
+			<img
+				alt={`Imagem ${index + 1}`}
+				className="h-12 w-12 shrink-0 rounded-md border border-border object-cover"
+				src={image.url}
+			/>
+			<div className="flex min-w-0 flex-1 flex-col">
+				<span className="truncate text-xs">Imagem {index + 1}</span>
+				{isPrimary && (
+					<span className="font-medium text-[10px] text-primary uppercase tracking-wide">
+						● Principal
+					</span>
+				)}
+			</div>
+			<div className="flex shrink-0 items-center gap-1">
+				<Button
+					aria-label="Definir como principal"
+					disabled={isPrimary}
+					onClick={() => onPromote(index)}
+					size="sm"
+					type="button"
+					variant="ghost"
+				>
+					<Star
+						className={
+							isPrimary ? "size-3.5 fill-primary text-primary" : "size-3.5"
+						}
+					/>
+				</Button>
+				<Button
+					aria-label="Remover imagem"
+					onClick={() => onRemove(index)}
+					size="sm"
+					type="button"
+					variant="ghost"
+				>
+					<X className="size-3.5" />
+				</Button>
+			</div>
+		</li>
+	);
+}
+
 export function ToolImageGallery({
 	value,
 	onChange,
@@ -43,6 +151,11 @@ export function ToolImageGallery({
 
 	const sorted = [...value].sort((a, b) => a.sortOrder - b.sortOrder);
 	const remaining = max - sorted.length;
+
+	const sensors = useSensors(
+		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+	);
 
 	const uploadFiles = useCallback(
 		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: upload com validação e fallback parcial; refactor em docs/plano-melhorias.md
@@ -139,34 +252,18 @@ export function ToolImageGallery({
 		}
 	}
 
-	function moveUp(index: number) {
-		if (index === 0) {
+	function handleDragEnd(event: DragEndEvent) {
+		const { active, over } = event;
+		if (!over || active.id === over.id) {
 			return;
 		}
-		const next = [...sorted];
-		const prev = next[index - 1];
-		const current = next[index];
-		if (!(prev && current)) {
+		const ids = sorted.map((img) => img.id ?? img.url);
+		const from = ids.indexOf(String(active.id));
+		const to = ids.indexOf(String(over.id));
+		if (from === -1 || to === -1) {
 			return;
 		}
-		next[index - 1] = current;
-		next[index] = prev;
-		onChange(reindex(next));
-	}
-
-	function moveDown(index: number) {
-		if (index === sorted.length - 1) {
-			return;
-		}
-		const next = [...sorted];
-		const current = next[index];
-		const following = next[index + 1];
-		if (!(current && following)) {
-			return;
-		}
-		next[index] = following;
-		next[index + 1] = current;
-		onChange(reindex(next));
+		onChange(reindex(arrayMove(sorted, from, to)));
 	}
 
 	function promoteToPrimary(index: number) {
@@ -219,86 +316,31 @@ export function ToolImageGallery({
 						Nenhuma imagem ainda
 					</div>
 				) : (
-					<ul className="flex flex-col gap-2">
-						{sorted.map((img, index) => {
-							const isPrimary = index === 0;
-							return (
-								<li
-									className={
-										isPrimary
-											? "flex items-center gap-2 rounded-md border border-primary bg-primary/5 p-2"
-											: "flex items-center gap-2 rounded-md border border-border bg-card p-2"
-									}
-									key={img.id ?? img.url}
-								>
-									{/** biome-ignore lint/performance/noImgElement: Supabase public URL, no Next Image remote config */}
-									{/** biome-ignore lint/correctness/useImageSize: fixed thumbnail via Tailwind */}
-									<img
-										alt={`Imagem ${index + 1}`}
-										className="h-12 w-12 shrink-0 rounded-md border border-border object-cover"
-										src={img.url}
+					<DndContext
+						collisionDetection={closestCenter}
+						id="tool-image-gallery"
+						onDragEnd={handleDragEnd}
+						sensors={sensors}
+					>
+						<SortableContext
+							items={sorted.map((img) => img.id ?? img.url)}
+							strategy={verticalListSortingStrategy}
+						>
+							<ul className="flex flex-col gap-2">
+								{sorted.map((img, index) => (
+									<SortableImageRow
+										image={img}
+										index={index}
+										key={img.id ?? img.url}
+										onPromote={promoteToPrimary}
+										onRemove={(i) => {
+											removeAt(i).catch(() => undefined);
+										}}
 									/>
-									<div className="flex min-w-0 flex-1 flex-col">
-										<span className="truncate text-xs">Imagem {index + 1}</span>
-										{isPrimary && (
-											<span className="font-medium text-[10px] text-primary uppercase tracking-wide">
-												● Principal
-											</span>
-										)}
-									</div>
-									<div className="flex shrink-0 items-center gap-1">
-										<Button
-											aria-label="Mover para cima"
-											disabled={index === 0}
-											onClick={() => moveUp(index)}
-											size="sm"
-											type="button"
-											variant="ghost"
-										>
-											<ArrowUp className="size-3.5" />
-										</Button>
-										<Button
-											aria-label="Mover para baixo"
-											disabled={index === sorted.length - 1}
-											onClick={() => moveDown(index)}
-											size="sm"
-											type="button"
-											variant="ghost"
-										>
-											<ArrowDown className="size-3.5" />
-										</Button>
-										<Button
-											aria-label="Definir como principal"
-											disabled={isPrimary}
-											onClick={() => promoteToPrimary(index)}
-											size="sm"
-											type="button"
-											variant="ghost"
-										>
-											<Star
-												className={
-													isPrimary
-														? "size-3.5 fill-primary text-primary"
-														: "size-3.5"
-												}
-											/>
-										</Button>
-										<Button
-											aria-label="Remover imagem"
-											onClick={() => {
-												removeAt(index).catch(() => undefined);
-											}}
-											size="sm"
-											type="button"
-											variant="ghost"
-										>
-											<X className="size-3.5" />
-										</Button>
-									</div>
-								</li>
-							);
-						})}
-					</ul>
+								))}
+							</ul>
+						</SortableContext>
+					</DndContext>
 				)}
 			</div>
 
