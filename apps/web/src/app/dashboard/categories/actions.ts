@@ -58,13 +58,17 @@ function revalidateCategoryTrees() {
 }
 
 export const listCategories = cache(
-	async (): Promise<CategoryListItem[]> =>
-		await db.select().from(category).orderBy(asc(category.path))
+	// defesa-em-profundidade: chamado apenas por Server Components
+	async (): Promise<CategoryListItem[]> => {
+		await requireCapability("categories.read");
+		return await db.select().from(category).orderBy(asc(category.path));
+	}
 );
 
 export async function getCategory(
 	id: string
 ): Promise<CategoryListItem | null> {
+	await requireCapability("categories.read");
 	const rows = await db
 		.select()
 		.from(category)
@@ -87,6 +91,7 @@ export interface CategoryTreeItem {
 }
 
 export async function listCategoriesForTree(): Promise<CategoryTreeItem[]> {
+	await requireCapability("categories.read");
 	const cats = await db
 		.select({
 			id: category.id,
@@ -136,6 +141,7 @@ export interface CategoryDetailData {
 export async function getCategoryDetail(
 	id: string
 ): Promise<CategoryDetailData | null> {
+	await requireCapability("categories.read");
 	const current = await getCategory(id);
 	if (!current) {
 		return null;
@@ -222,6 +228,7 @@ export async function getCategoryDetail(
 export async function getCategoryAncestors(
 	id: string
 ): Promise<{ id: string; name: string }[]> {
+	await requireCapability("categories.read");
 	const [self] = await db
 		.select({ parentId: category.parentId })
 		.from(category)
@@ -260,6 +267,7 @@ export interface CategoryAttributeView {
 export async function getCategoryAttributes(
 	categoryId: string
 ): Promise<CategoryAttributeView[]> {
+	await requireCapability("categories.read");
 	const ancestors = await getCategoryAncestors(categoryId);
 	const nameById = new Map(ancestors.map((c) => [c.id, c.name]));
 
@@ -299,6 +307,7 @@ export async function getCategoryProductsPage({
 	categoryId: string;
 	cursor: string | null;
 }): Promise<InfiniteResult<CategoryProductItem>> {
+	await requireCapability("categories.read");
 	const [self] = await db
 		.select({ path: category.path })
 		.from(category)
@@ -381,6 +390,7 @@ export async function getCategoryChildrenPage({
 	categoryId: string;
 	cursor: string | null;
 }): Promise<InfiniteResult<CategoryChildItem>> {
+	await requireCapability("categories.read");
 	const decoded = cursor ? decodeCursorAs(cursor, "categoryTree") : null;
 
 	const rows = await db
