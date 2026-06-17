@@ -8,6 +8,7 @@ import { z } from "zod";
 import type { ActionResult } from "@/lib/action-result";
 import { logger } from "@/lib/logger";
 import {
+	createSignedUrl,
 	ORDER_DOCUMENTS_BUCKET,
 	removeStorageObject,
 	uploadToPrivateBucket,
@@ -217,4 +218,57 @@ export async function deleteOrderAttachment(
 
 	revalidatePath(`${ORDERS_PATH}/${orderId}`);
 	return { ok: true, data: undefined };
+}
+
+/**
+ * Signs a private order attachment URL on demand.
+ *
+ * Re-authorizes against the attachment's actual order (never trusts a
+ * client-supplied orderId) — this is the IDOR choke point.
+ */
+export async function signOrderAttachment(
+	attachmentId: string
+): Promise<ActionResult<{ url: string }>> {
+	// Look up the attachment's storage path + its REAL order (never trust a client orderId)
+	const [existing] = await db
+		.select({
+			fileUrl: orderAttachment.fileUrl,
+			orderId: orderAttachment.orderId,
+		})
+		.from(orderAttachment)
+		.where(eq(orderAttachment.id, attachmentId))
+		.limit(1);
+
+	if (!existing) {
+		return { ok: false, error: "Anexo não encontrado" };
+	}
+
+	const { orderId, fileUrl } = existing;
+
+	try {
+		// Re-authorize: lockOrderAndAuthorize enforces capability + branch scope
+		// against the attachment's actual order. This is the IDOR choke point.
+		// Throws if the order is not found or the caller lacks permission.
+		await db.transaction(async (tx) => {
+			const auth = await lockOrderAndAuthorize(tx, "orders.read", orderId);
+			if (!auth) {
+				throw new Error("Pedido não encontrado");
+			}
+		});
+
+		const url = await createSignedUrl(ORDER_DOCUMENTS_BUCKET, fileUrl);
+		if (!url) {
+			return { ok: false, error: "Não foi possível gerar o link do anexo" };
+		}
+		return { ok: true, data: { url } };
+	} catch (error) {
+		logger.error("signOrderAttachment: falhou", error);
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para acessar este anexo." };
+		}
+		return {
+			ok: false,
+			error: error instanceof Error ? error.message : "Erro interno",
+		};
+	}
 }

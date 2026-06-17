@@ -17,6 +17,7 @@ import {
 } from "@/components/status-visual";
 import { formatDateTime } from "@/lib/format/datetime";
 import { notify } from "@/lib/notify";
+import { signOrderAttachment } from "../../_components/attachment-actions";
 import { togglePinNote } from "../../actions";
 import type {
 	OrderAttachmentItem,
@@ -56,6 +57,8 @@ function formatCurrency(amount: number): string {
 type FeedCategory = "documents" | "financeiro" | "notes" | "status";
 
 interface FeedItem {
+	/** Só em anexos: id do anexo + rótulo para assinatura sob demanda. */
+	attachment?: { attachmentId: string; label: string };
 	category: FeedCategory;
 	createdAt: Date;
 	detail?: string;
@@ -114,15 +117,12 @@ function normalizeAttachments(items: OrderAttachmentItem[]): FeedItem[] {
 		const sizeLabel = formatBytes(a.fileSize);
 		const subtitleParts = [a.uploaderName, sizeLabel].filter(Boolean);
 		return {
+			attachment: { attachmentId: a.id, label: a.label ?? a.fileName },
 			category: "documents" as FeedCategory,
 			createdAt: a.createdAt,
 			detail: a.description ?? undefined,
 			iconKey: "package" as StatusIconKey,
 			id: `documents-${a.id}`,
-			link:
-				a.url == null
-					? undefined
-					: { href: a.url, label: a.label ?? a.fileName },
 			subtitle: subtitleParts.join(" · "),
 			title: "Anexo adicionado",
 			tone: "info" as Tone,
@@ -263,6 +263,7 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 	const router = useRouter();
 	const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
 	const [isPending, startTransition] = useTransition();
+	const [signingId, setSigningId] = useState<string | null>(null);
 
 	function handleTogglePin(noteId: string, pinned: boolean) {
 		startTransition(async () => {
@@ -273,6 +274,20 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 				notify.error(result.error);
 			}
 		});
+	}
+
+	async function handleOpenAttachment(attachmentId: string) {
+		setSigningId(attachmentId);
+		try {
+			const res = await signOrderAttachment(attachmentId);
+			if (res.ok) {
+				window.open(res.data.url, "_blank", "noopener,noreferrer");
+			} else {
+				notify.error(res.error);
+			}
+		} finally {
+			setSigningId(null);
+		}
 	}
 
 	// Normalize all sources
@@ -419,6 +434,25 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 												{item.reason}
 											</p>
 										</div>
+									)}
+
+									{item.attachment && (
+										<button
+											className="mt-1.5 inline-flex items-center gap-1.5 text-primary text-sm hover:underline disabled:opacity-50"
+											disabled={signingId === item.attachment.attachmentId}
+											onClick={() => {
+												const { attachmentId } = item.attachment ?? {};
+												if (attachmentId) {
+													handleOpenAttachment(attachmentId);
+												}
+											}}
+											type="button"
+										>
+											<ExternalLinkIcon aria-hidden="true" className="size-3" />
+											{signingId === item.attachment.attachmentId
+												? "Abrindo…"
+												: item.attachment.label}
+										</button>
 									)}
 
 									{item.link && (
