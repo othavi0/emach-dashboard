@@ -13,7 +13,6 @@ import { useState } from "react";
 
 import type { Capability } from "@/lib/permissions";
 import { CommandPalette } from "./command-palette";
-import { MotionProvider } from "./motion-provider";
 import { DASHBOARD_HREF, NAV_GROUPS } from "./nav-config";
 import { NavGroup } from "./nav-group";
 import { type FooterUser, SidebarFooterUser } from "./sidebar-footer-user";
@@ -61,41 +60,37 @@ export function AppSidebar({
 		.filter((g) => g.items.some((item) => !item.disabled));
 
 	return (
-		<MotionProvider>
-			<Sidebar collapsible="icon">
-				<SidebarHeader>
-					<Link
-						aria-label="Emach — ir para o dashboard"
-						className="flex items-center justify-center px-2 py-2 group-data-[collapsible=icon]:px-0"
-						href={DASHBOARD_HREF}
-					>
-						<Image
-							alt="Emach"
-							className="h-7 w-auto group-data-[collapsible=icon]:hidden"
-							height={56}
-							priority
-							src="/emach-nome-branco.svg"
-							width={224}
-						/>
-					</Link>
-					<CommandPalette
-						canManageUsers={canManageUsers}
-						onOpenChange={setCommandOpen}
-						open={commandOpen}
+		<Sidebar collapsible="icon">
+			<SidebarHeader>
+				<Link
+					aria-label="Emach — ir para o dashboard"
+					className="flex items-center justify-center px-2 py-2 group-data-[collapsible=icon]:px-0"
+					href={DASHBOARD_HREF}
+				>
+					<Image
+						alt="Emach"
+						className="h-7 w-auto group-data-[collapsible=icon]:hidden"
+						height={56}
+						priority
+						src="/emach-nome-branco.svg"
+						width={224}
 					/>
-				</SidebarHeader>
+				</Link>
+				<CommandPalette
+					canManageUsers={canManageUsers}
+					onOpenChange={setCommandOpen}
+					open={commandOpen}
+				/>
+			</SidebarHeader>
 
-				<SidebarContent>
-					{groups.map((group) => (
-						<NavGroup badges={badges} group={group} key={group.label} />
-					))}
-				</SidebarContent>
+			<SidebarContent>
+				{groups.map((group) => (
+					<NavGroup badges={badges} group={group} key={group.label} />
+				))}
+			</SidebarContent>
 
-				<SidebarFooter>
-					{user && <SidebarFooterUser user={user} />}
-				</SidebarFooter>
-				<SidebarRail />
-			</Sidebar>
-		</MotionProvider>
+			<SidebarFooter>{user && <SidebarFooterUser user={user} />}</SidebarFooter>
+			<SidebarRail />
+		</Sidebar>
 	);
 }

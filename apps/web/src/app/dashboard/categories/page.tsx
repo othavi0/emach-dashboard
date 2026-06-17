@@ -6,15 +6,20 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
+import { Skeleton } from "@emach/ui/components/skeleton";
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
+import nextDynamic from "next/dynamic";
 import Link from "next/link";
-
 import { PageHeader } from "@/components/page-header";
 import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
-import { CategoriesTree } from "./_components/categories-tree";
 import { listCategoriesForTree } from "./actions";
+
+const CategoriesTree = nextDynamic(
+	() => import("./_components/categories-tree").then((m) => m.CategoriesTree),
+	{ loading: () => <Skeleton className="h-64 w-full" /> }
+);
 
 export const metadata: Metadata = {
 	title: "Categorias",

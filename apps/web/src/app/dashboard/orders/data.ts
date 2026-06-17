@@ -1,4 +1,3 @@
-import { cache } from "react";
 import { db } from "@emach/db";
 import {
 	REVENUE_ORDER_STATUSES,
@@ -7,6 +6,7 @@ import {
 import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
 import { toDate } from "@emach/db/utils";
+import { cache } from "react";
 
 export type { OrderStatus } from "@emach/db/schema/orders";
 
@@ -30,7 +30,6 @@ import {
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
-import { createSignedUrl, ORDER_DOCUMENTS_BUCKET } from "@/lib/storage";
 import { ALL_ORDERS_TAB, ORDER_TABS } from "./status-meta";
 
 export const ORDERS_PAGE_SIZE = 20;
@@ -138,8 +137,6 @@ export interface OrderAttachmentItem {
 	label: string | null;
 	mimeType: string | null;
 	uploaderName: string;
-	/** Signed URL (1-hour TTL). Null if signing failed — treat as temporarily unavailable. */
-	url: string | null;
 }
 
 export interface ShippingAddressSnapshot {
@@ -243,27 +240,25 @@ export function getOrderTabCountsKey(status: OrderStatus): string {
 	return status;
 }
 
-export const listOrderBranches = cache(
-	async (): Promise<BranchOption[]> => {
-		const session = await requireCurrentSession();
-		const scope = await getUserBranchScope(session);
-		const query = db
-			.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
-			.from(branch)
-			.orderBy(asc(branch.name));
-		if (scope.kind === "all") {
-			return query;
-		}
-		if (scope.branchIds.length === 0) {
-			return [];
-		}
-		return db
-			.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
-			.from(branch)
-			.where(inArray(branch.id, scope.branchIds))
-			.orderBy(asc(branch.name));
-	},
-);
+export const listOrderBranches = cache(async (): Promise<BranchOption[]> => {
+	const session = await requireCurrentSession();
+	const scope = await getUserBranchScope(session);
+	const query = db
+		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
+		.from(branch)
+		.orderBy(asc(branch.name));
+	if (scope.kind === "all") {
+		return query;
+	}
+	if (scope.branchIds.length === 0) {
+		return [];
+	}
+	return db
+		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
+		.from(branch)
+		.where(inArray(branch.id, scope.branchIds))
+		.orderBy(asc(branch.name));
+});
 
 export interface OrdersPageFiltersInput {
 	branchId?: string;
@@ -848,20 +843,18 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		return null;
 	}
 
-	// Private bucket: persist storage paths, sign on read (1-hour TTL).
-	const attachments: OrderAttachmentItem[] = await Promise.all(
-		attachmentRows.map(async (att) => ({
-			id: att.id,
-			fileName: att.fileName,
-			fileSize: att.fileSize,
-			mimeType: att.mimeType,
-			label: att.label,
-			description: att.description,
-			createdAt: att.createdAt,
-			uploaderName: att.uploaderName ?? "Sistema",
-			url: await createSignedUrl(ORDER_DOCUMENTS_BUCKET, att.fileUrl),
-		}))
-	);
+	// Private bucket: storage paths are persisted; URLs are signed on demand via
+	// signOrderAttachment (see _components/attachment-actions.ts).
+	const attachments: OrderAttachmentItem[] = attachmentRows.map((att) => ({
+		id: att.id,
+		fileName: att.fileName,
+		fileSize: att.fileSize,
+		mimeType: att.mimeType,
+		label: att.label,
+		description: att.description,
+		createdAt: att.createdAt,
+		uploaderName: att.uploaderName ?? "Sistema",
+	}));
 
 	return {
 		attachments,

@@ -1,13 +1,6 @@
 "use client";
 
-import {
-	animate,
-	motion,
-	useMotionValue,
-	useReducedMotion,
-	useTransform,
-} from "motion/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export type NumberFormat = "currency" | "number";
 
@@ -24,18 +17,30 @@ export function NumberTicker({
 	value: number;
 	format?: NumberFormat;
 }) {
-	const reduce = useReducedMotion();
-	const mv = useMotionValue(0);
-	const display = useTransform(mv, (n) => FORMATTERS[format](n));
+	const [display, setDisplay] = useState(0);
 
 	useEffect(() => {
+		const reduce = window.matchMedia(
+			"(prefers-reduced-motion: reduce)"
+		).matches;
 		if (reduce) {
-			mv.set(value);
+			setDisplay(value);
 			return;
 		}
-		const controls = animate(mv, value, { duration: 0.6, ease: "easeOut" });
-		return () => controls.stop();
-	}, [value, reduce, mv]);
+		const start = performance.now();
+		const duration = 600;
+		let raf = 0;
+		const tick = (now: number) => {
+			const t = Math.min(1, (now - start) / duration);
+			const eased = 1 - (1 - t) ** 3; // easeOutCubic
+			setDisplay(value * eased);
+			if (t < 1) {
+				raf = requestAnimationFrame(tick);
+			}
+		};
+		raf = requestAnimationFrame(tick);
+		return () => cancelAnimationFrame(raf);
+	}, [value]);
 
-	return <motion.span>{display}</motion.span>;
+	return <span>{FORMATTERS[format](display)}</span>;
 }
