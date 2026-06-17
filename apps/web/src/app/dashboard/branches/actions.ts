@@ -29,6 +29,8 @@ export async function fetchBranchActivityPage(
 	filters: BranchActivityFilters,
 	cursor: string | null
 ): Promise<InfiniteResult<BranchActivityRow>> {
+	// defesa-em-profundidade: impl em activity-data.ts já guarda
+	await requireCapability("branches.read");
 	return await fetchBranchActivityPageImpl(filters, cursor);
 }
 
@@ -62,6 +64,7 @@ function zodErrorMessage(error: unknown): string {
 export async function listBranches(opts?: {
 	activeOnly?: boolean;
 }): Promise<BranchListItem[]> {
+	await requireCapability("branches.read");
 	if (opts?.activeOnly) {
 		return await db
 			.select()
@@ -112,6 +115,7 @@ export async function fetchBranchesPage({
 	filters: BranchesFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<BranchListItem>> {
+	await requireCapability("branches.read");
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const conditions: ReturnType<typeof sql>[] = [];
 	if (filters.search) {
@@ -161,6 +165,7 @@ export async function fetchBranchesPage({
 }
 
 export async function getBranch(id: string): Promise<BranchListItem | null> {
+	await requireCapability("branches.read");
 	const rows = await db.select().from(branch).where(eq(branch.id, id)).limit(1);
 	return rows[0] ?? null;
 }
@@ -294,6 +299,7 @@ export async function fetchBranchesTablePage({
 	filters: BranchesFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<BranchTableRow>> {
+	await requireCapability("branches.read");
 	const page = await fetchBranchesPage({ filters, cursor });
 	if (page.items.length === 0) {
 		return { items: [], nextCursor: null };
