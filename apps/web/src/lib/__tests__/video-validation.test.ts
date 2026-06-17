@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { MAX_VIDEO_BYTES, validateVideoFile } from "../video-validation";
 
+const FORMAT_ERROR_RE = /MP4 ou WebM/;
+const SIZE_ERROR_RE = /50MB/;
+
 function fakeFile(type: string, size: number): File {
 	const f = new File(["x"], "clip", { type });
 	Object.defineProperty(f, "size", { value: size });
@@ -24,7 +27,7 @@ describe("validateVideoFile", () => {
 		const r = validateVideoFile(fakeFile("video/quicktime", 1_000_000));
 		expect(r.ok).toBe(false);
 		if (!r.ok) {
-			expect(r.error).toMatch(/MP4 ou WebM/);
+			expect(r.error).toMatch(FORMAT_ERROR_RE);
 		}
 	});
 
@@ -32,7 +35,7 @@ describe("validateVideoFile", () => {
 		const r = validateVideoFile(fakeFile("video/mp4", MAX_VIDEO_BYTES + 1));
 		expect(r.ok).toBe(false);
 		if (!r.ok) {
-			expect(r.error).toMatch(/50MB/);
+			expect(r.error).toMatch(SIZE_ERROR_RE);
 		}
 	});
 });
