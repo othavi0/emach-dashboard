@@ -22,6 +22,11 @@ import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
+import {
+	isCategoryComplete,
+	MIN_CATEGORY_ATTRIBUTES,
+} from "../categories/_lib/category-completeness";
+import { buildEffectiveAttributeCounts } from "../categories/_lib/effective-attributes";
 import { deleteToolImage } from "./_components/image-actions";
 import type { ToolStatusValue } from "./_components/tool-schema";
 import {
@@ -65,6 +70,24 @@ function toInt(value: number | undefined): number | null {
 function nullableText(value: string | undefined): string | null {
 	const trimmed = value?.trim();
 	return trimmed ? trimmed : null;
+}
+
+/**
+ * Gate de completude: a categoria *principal* define as specs disponíveis (cadeia
+ * própria + herdada). Se tiver menos de MIN_CATEGORY_ATTRIBUTES atributos
+ * efetivos, nenhuma ferramenta nela conseguiria atingir MIN_SPECS_ACTIVE — então
+ * bloqueamos cadastro/edição com a primária incompleta. Devolve a mensagem de
+ * erro, ou `null` se a categoria estiver completa.
+ */
+async function primaryCategoryIncompleteError(
+	primaryCategoryId: string
+): Promise<string | null> {
+	const counts = await buildEffectiveAttributeCounts();
+	const effective = counts.get(primaryCategoryId) ?? 0;
+	if (isCategoryComplete(effective)) {
+		return null;
+	}
+	return `A categoria principal está incompleta (${effective}/${MIN_CATEGORY_ATTRIBUTES} atributos efetivos). Adicione atributos à categoria antes de cadastrar ou ativar ferramentas nela.`;
 }
 
 function normalizeToolPayload(input: ToolFormValues) {
@@ -189,6 +212,12 @@ export async function createTool(
 	if (!parsed.success) {
 		return { ok: false, error: errorMessage(parsed.error) };
 	}
+	const categoryError = await primaryCategoryIncompleteError(
+		parsed.data.primaryCategoryId
+	);
+	if (categoryError) {
+		return { ok: false, error: categoryError };
+	}
 	const id = crypto.randomUUID();
 	const payload = normalizeToolPayload(parsed.data);
 	const slug = slugify(parsed.data.name);
@@ -292,6 +321,12 @@ export async function updateTool(
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: errorMessage(parsed.error) };
+	}
+	const categoryError = await primaryCategoryIncompleteError(
+		parsed.data.primaryCategoryId
+	);
+	if (categoryError) {
+		return { ok: false, error: categoryError };
 	}
 	const payload = normalizeToolPayload(parsed.data);
 

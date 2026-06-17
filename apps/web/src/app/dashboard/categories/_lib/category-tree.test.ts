@@ -17,6 +17,7 @@ const flat: FlatCategory[] = [
 		sortOrder: 1,
 		isActive: true,
 		productCount: 5,
+		attributeCount: 0,
 	},
 	{
 		id: "b",
@@ -27,6 +28,7 @@ const flat: FlatCategory[] = [
 		sortOrder: 0,
 		isActive: true,
 		productCount: 0,
+		attributeCount: 0,
 	},
 	{
 		id: "a1",
@@ -37,6 +39,7 @@ const flat: FlatCategory[] = [
 		sortOrder: 1,
 		isActive: true,
 		productCount: 2,
+		attributeCount: 0,
 	},
 	{
 		id: "a0",
@@ -47,6 +50,7 @@ const flat: FlatCategory[] = [
 		sortOrder: 0,
 		isActive: false,
 		productCount: 0,
+		attributeCount: 0,
 	},
 ];
 
@@ -69,6 +73,7 @@ describe("buildCategoryTree", () => {
 				sortOrder: 0,
 				isActive: true,
 				productCount: 0,
+				attributeCount: 0,
 			},
 		];
 		expect(buildCategoryTree(orphan).map((n) => n.id)).toEqual(["x"]);
@@ -116,6 +121,7 @@ describe("buildCategoryTree → rollupCount", () => {
 				sortOrder: 0,
 				isActive: true,
 				productCount: 1,
+				attributeCount: 0,
 			},
 			{
 				id: "c",
@@ -126,6 +132,7 @@ describe("buildCategoryTree → rollupCount", () => {
 				sortOrder: 0,
 				isActive: true,
 				productCount: 2,
+				attributeCount: 0,
 			},
 			{
 				id: "g",
@@ -136,6 +143,7 @@ describe("buildCategoryTree → rollupCount", () => {
 				sortOrder: 0,
 				isActive: true,
 				productCount: 4,
+				attributeCount: 0,
 			},
 		];
 		const tree = buildCategoryTree(deep);

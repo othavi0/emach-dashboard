@@ -1,4 +1,5 @@
 export interface FlatCategory {
+	attributeCount: number;
 	depth: number;
 	id: string;
 	isActive: boolean;

@@ -17,6 +17,7 @@ import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
+import { buildEffectiveAttributeCounts } from "./_lib/effective-attributes";
 import { type CategoryInput, categorySchema } from "./schema";
 
 const CATEGORIES_PATH = "/dashboard/categories";
@@ -71,6 +72,8 @@ export async function getCategory(
 }
 
 export interface CategoryTreeItem {
+	/** Atributos efetivos (próprios + herdados) — alimenta o gate de completude. */
+	attributeCount: number;
 	depth: number;
 	id: string;
 	isActive: boolean;
@@ -95,14 +98,17 @@ export async function listCategoriesForTree(): Promise<CategoryTreeItem[]> {
 		.from(category)
 		.orderBy(asc(category.path));
 
-	const counts = await db
-		.select({
-			categoryId: toolCategory.categoryId,
-			productCount: count(),
-		})
-		.from(toolCategory)
-		.where(eq(toolCategory.isPrimary, true))
-		.groupBy(toolCategory.categoryId);
+	const [counts, attributeCounts] = await Promise.all([
+		db
+			.select({
+				categoryId: toolCategory.categoryId,
+				productCount: count(),
+			})
+			.from(toolCategory)
+			.where(eq(toolCategory.isPrimary, true))
+			.groupBy(toolCategory.categoryId),
+		buildEffectiveAttributeCounts(),
+	]);
 
 	const countById = new Map(
 		counts.map((c) => [c.categoryId, Number(c.productCount)])
@@ -111,6 +117,7 @@ export async function listCategoriesForTree(): Promise<CategoryTreeItem[]> {
 	return cats.map((c) => ({
 		...c,
 		productCount: countById.get(c.id) ?? 0,
+		attributeCount: attributeCounts.get(c.id) ?? 0,
 	}));
 }
 

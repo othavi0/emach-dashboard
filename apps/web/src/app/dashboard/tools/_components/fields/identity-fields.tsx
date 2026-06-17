@@ -10,6 +10,10 @@ import { useMemo } from "react";
 import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
 import { LabeledField } from "@/components/labeled-field";
+import {
+	isCategoryComplete,
+	MIN_CATEGORY_ATTRIBUTES,
+} from "../../../categories/_lib/category-completeness";
 import { useToolFormContext } from "../tool-form-context";
 import { slugify } from "../tool-schema";
 import type { ToolFieldGroupProps } from "./types";
@@ -20,7 +24,14 @@ export function IdentityFields({
 	errors,
 	disabled,
 }: ToolFieldGroupProps) {
-	const { categories, mode, existingSlug } = useToolFormContext();
+	const { categories, definitionsByCategory, mode, existingSlug } =
+		useToolFormContext();
+
+	const effectiveAttrCount = (catId: string): number =>
+		definitionsByCategory[catId]?.length ?? 0;
+	const primaryIncomplete =
+		values.primaryCategoryId !== "" &&
+		!isCategoryComplete(effectiveAttrCount(values.primaryCategoryId));
 
 	const slugPreview = useMemo(() => {
 		if (mode === "edit" && existingSlug) {
@@ -102,6 +113,7 @@ export function IdentityFields({
 					{categories.map((cat) => {
 						const checked = values.categoryIds.includes(cat.id);
 						const isPrimary = values.primaryCategoryId === cat.id;
+						const incomplete = !isCategoryComplete(effectiveAttrCount(cat.id));
 						return (
 							<div
 								className="flex items-center justify-between gap-2"
@@ -121,39 +133,59 @@ export function IdentityFields({
 									>
 										{cat.name}
 									</label>
+									{incomplete && (
+										<span
+											className="rounded border border-warning/40 px-1.5 py-0.5 text-[10px] text-warning"
+											title={`Categoria incompleta: ${effectiveAttrCount(cat.id)} de ${MIN_CATEGORY_ATTRIBUTES} atributos. Não pode ser a categoria principal.`}
+										>
+											incompleta
+										</span>
+									)}
 								</div>
-								{checked && (
-									<button
-										aria-label={
-											isPrimary
-												? `${cat.name} é a categoria principal`
-												: `Tornar ${cat.name} principal`
-										}
-										aria-pressed={isPrimary}
-										className={
-											isPrimary
-												? "inline-flex items-center gap-1 rounded px-2 py-0.5 text-primary text-xs"
-												: "inline-flex items-center gap-1 rounded px-2 py-0.5 text-muted-foreground text-xs hover:text-foreground"
-										}
-										disabled={disabled}
-										onClick={() => onPatch({ primaryCategoryId: cat.id })}
-										type="button"
-									>
-										<Star
-											aria-hidden
-											className={
-												isPrimary ? "size-3.5 fill-primary" : "size-3.5"
+								{checked &&
+									(incomplete ? (
+										<span className="text-muted-foreground/70 text-xs">
+											não pode ser principal
+										</span>
+									) : (
+										<button
+											aria-label={
+												isPrimary
+													? `${cat.name} é a categoria principal`
+													: `Tornar ${cat.name} principal`
 											}
-										/>
-										{isPrimary ? "Principal" : "Tornar principal"}
-									</button>
-								)}
+											aria-pressed={isPrimary}
+											className={
+												isPrimary
+													? "inline-flex items-center gap-1 rounded px-2 py-0.5 text-primary text-xs"
+													: "inline-flex items-center gap-1 rounded px-2 py-0.5 text-muted-foreground text-xs hover:text-foreground"
+											}
+											disabled={disabled}
+											onClick={() => onPatch({ primaryCategoryId: cat.id })}
+											type="button"
+										>
+											<Star
+												aria-hidden
+												className={
+													isPrimary ? "size-3.5 fill-primary" : "size-3.5"
+												}
+											/>
+											{isPrimary ? "Principal" : "Tornar principal"}
+										</button>
+									))}
 							</div>
 						);
 					})}
 				</div>
 				<FieldError>{errors.categoryIds}</FieldError>
 				<FieldError>{errors.primaryCategoryId}</FieldError>
+				{primaryIncomplete && (
+					<p className="text-warning text-xs">
+						A categoria principal está incompleta (menos de{" "}
+						{MIN_CATEGORY_ATTRIBUTES} atributos). Escolha uma categoria completa
+						como principal ou adicione atributos a ela antes de salvar.
+					</p>
+				)}
 			</div>
 		</div>
 	);
