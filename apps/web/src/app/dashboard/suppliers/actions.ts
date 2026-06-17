@@ -12,7 +12,7 @@ import { getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
-import { normalizeCnpj } from "@/lib/validation/cnpj";
+import { normalizeCnpj } from "@/lib/cpf-cnpj";
 import {
 	type SupplierFormValues,
 	supplierSchema,
