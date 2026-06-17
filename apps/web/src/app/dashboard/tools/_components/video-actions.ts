@@ -12,7 +12,7 @@ export async function createToolVideoUploadUrl(input: {
 	| { ok: true; data: { bucket: string; path: string; token: string } }
 	| { ok: false; error: string }
 > {
-	await requireCapability("tools.update");
+	const session = await requireCapability("tools.update");
 	const ext =
 		ALLOWED_VIDEO_MIME[input.contentType as keyof typeof ALLOWED_VIDEO_MIME];
 	if (!ext) {
@@ -25,6 +25,12 @@ export async function createToolVideoUploadUrl(input: {
 	if (error || !data) {
 		return { ok: false, error: "Não foi possível iniciar o upload do vídeo." };
 	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "tool.video_uploaded",
+		targetType: "tool",
+		metadata: { path: data.path },
+	});
 	return {
 		ok: true,
 		data: { bucket: TOOL_VIDEOS_BUCKET, path: data.path, token: data.token },

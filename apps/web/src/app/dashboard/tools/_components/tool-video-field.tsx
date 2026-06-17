@@ -11,7 +11,7 @@ import {
 	MAX_VIDEO_DURATION_SECONDS,
 	validateVideoFile,
 } from "@/lib/video-validation";
-import { uploadToolImage } from "./image-actions";
+import { deleteToolImage, uploadToolImage } from "./image-actions";
 import {
 	createToolVideoUploadUrl,
 	deleteToolVideoObject,
@@ -101,8 +101,8 @@ export function ToolVideoField({
 		}
 		if (poster) {
 			// poster vive no bucket de imagens; reusa o delete de imagem
-			import("./image-actions").then(({ deleteToolImage }) =>
-				deleteToolImage(poster).catch(() => undefined)
+			deleteToolImage(poster).catch(() =>
+				notify.error("Não foi possível remover a capa do vídeo.")
 			);
 		}
 	}
