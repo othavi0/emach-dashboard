@@ -131,7 +131,7 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 
 ## Testes
 
-`bun --cwd apps/web test` (vitest, `environment: node`). Suíte verde (30 arquivos / 183 testes em 2026-06-07).
+`bun --cwd apps/web test` (vitest, `environment: node`). Suíte verde (54 arquivos / 359 testes em 2026-06-17).
 
 - **`server-only` em testes:** módulos que importam `server-only` (boundary do Next, ex: `src/lib/activity.ts`) são testáveis porque `vitest.config.ts` faz `resolve.alias['server-only'] → src/__mocks__/server-only.ts` (stub vazio). Ao adicionar teste para código que importa `server-only`, não precisa de `vi.mock` — o alias já resolve.
 - Mock de `@emach/db` por `vi.hoisted` + `vi.mock` (ver `__tests__/activity.test.ts` como referência de como mockar o query builder do Drizzle).
