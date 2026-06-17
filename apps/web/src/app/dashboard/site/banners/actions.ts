@@ -93,7 +93,7 @@ export async function createBanner(
 			metadata: { title: v.title },
 		});
 		revalidatePath(BANNERS_PATH);
-		revalidateTag("site-banners", {});
+		revalidateTag("site-banners", "max");
 		return { ok: true, data: { id } };
 	} catch (error) {
 		logger.error("createBanner", { err: error });
@@ -149,7 +149,7 @@ export async function updateBanner(
 			metadata: { title: v.title },
 		});
 		revalidatePath(BANNERS_PATH);
-		revalidateTag("site-banners", {});
+		revalidateTag("site-banners", "max");
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateBanner", { err: error });
@@ -177,7 +177,7 @@ export async function toggleBannerActive(
 			targetId: id,
 		});
 		revalidatePath(BANNERS_PATH);
-		revalidateTag("site-banners", {});
+		revalidateTag("site-banners", "max");
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("toggleBannerActive", { err: error });
@@ -199,7 +199,7 @@ export async function reorderBanners(
 			}
 		});
 		revalidatePath(BANNERS_PATH);
-		revalidateTag("site-banners", {});
+		revalidateTag("site-banners", "max");
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("reorderBanners", { err: error });
@@ -236,7 +236,7 @@ export async function deleteBanner(id: string): Promise<ActionResult> {
 			targetId: id,
 		});
 		revalidatePath(BANNERS_PATH);
-		revalidateTag("site-banners", {});
+		revalidateTag("site-banners", "max");
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("deleteBanner", { err: error });
