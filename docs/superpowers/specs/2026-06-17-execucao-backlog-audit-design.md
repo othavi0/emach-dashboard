@@ -185,3 +185,14 @@ de produto. Ficam como docs no backlog até aprovação da direção.
    worktree pode vazar pro HEAD do main tree. Mitigação: NÃO instruir executores a criar branch
    nomeada (a auto-branch `worktree-agent-*` da worktree basta); e SEMPRE conferir
    `git branch --show-current` do main tree antes de cherry-pick.**
+15. **028 BLOCKED — build falhou: "Only async functions are allowed to be exported in a 'use
+   server' file" (40 erros).** O refactor extraiu reads/helpers de `tools`/`promotions`
+   `actions.ts` para `data.ts`/`_lib` e deixou **re-export shims** no `actions.ts` (que é
+   `"use server"`). O Next proíbe exportar de um `"use server"` qualquer coisa que não seja async
+   function (tipos como valor, consts como `UUID_RE`). `check-types` E os testes passaram — só o
+   **build** pegou. **Lição dupla: (a) NUNCA re-exportar de um arquivo `"use server"` exceto async
+   functions; (b) `bun run build` é gate OBRIGATÓRIO para qualquer refactor que toque arquivos
+   `"use server"` — check-types/lint/test não bastam.** Revertido do `chore` (volta verde,
+   `0dcb5040`); a obra do 028 segue na worktree dele. **Abordagem corrigida p/ re-do:** mover
+   reads/helpers/tipos para `data.ts`/`_lib` E **atualizar os consumers** a importarem de lá (sem
+   shim em `actions.ts`); `actions.ts` fica só com as mutations + os imports que ele próprio usa.

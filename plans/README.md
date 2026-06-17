@@ -135,7 +135,7 @@ Esta rodada cobriu correctness/security/tests/tech-debt/deps/dx/docs/direction �
 | 025 | dedup-cnpj-validator | P2 | S | LOW | tech-debt | plans/023-*.md (characterization tests for cpf-cnpj.ts) | FIXED | DONE (onda 2, `3d622414`) |
 | 026 | update-tool-video-in-transaction | P3 | S | LOW | bug | none | FIXED | DONE (onda 2, `bee932ac`) |
 | 027 | security-response-headers | P2 | M | MED | security | none | FIXED | DONE (onda 2, `42906fd0`; CSP report-only) |
-| 028 | split-god-module-actions | P3 | M | MED | tech-debt | none | FIXED | TODO |
+| 028 | split-god-module-actions | P3 | M | MED | tech-debt | none | FIXED | BLOCKED (build falha: re-export em arquivo `"use server"` só aceita async fn — ver abaixo) |
 | 029 | decompose-branch-stock-edit-sheet | P3 | M | MED | tech-debt | none | FIXED | DONE (onda 1, `387e1491`; code-review OK, smoke visual 3 modos pré-merge-to-main) |
 | 030 | structured-logger | P3 | M | LOW | dx | none | FIXED | DONE (onda 1, `4334879c`; requestId threading deferido) |
 | 031 | dependency-hygiene | P3 | S | LOW | dependencies | none | PASS | DONE (onda 2, `6b242456`; bun.lock gitignore mantido por decisão; postcss pinado pelo next) |
