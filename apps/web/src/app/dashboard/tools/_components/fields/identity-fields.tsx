@@ -33,6 +33,24 @@ export function IdentityFields({
 		values.primaryCategoryId !== "" &&
 		!isCategoryComplete(effectiveAttrCount(values.primaryCategoryId));
 
+	// Escolhe a principal preferindo categoria completa: mantém a atual se ainda
+	// marcada e completa; senão a primeira completa marcada; senão a primeira
+	// marcada (deixa o gate/aviso guiarem) ou vazio.
+	function pickPrimary(ids: string[], current: string): string {
+		if (
+			current &&
+			ids.includes(current) &&
+			isCategoryComplete(effectiveAttrCount(current))
+		) {
+			return current;
+		}
+		return (
+			ids.find((id) => isCategoryComplete(effectiveAttrCount(id))) ??
+			ids[0] ??
+			""
+		);
+	}
+
 	const slugPreview = useMemo(() => {
 		if (mode === "edit" && existingSlug) {
 			return existingSlug;
@@ -42,20 +60,12 @@ export function IdentityFields({
 
 	function toggleCategory(catId: string, checked: boolean) {
 		onPatch((prev) => {
-			if (checked) {
-				const next = [...prev.categoryIds, catId];
-				return {
-					categoryIds: next,
-					primaryCategoryId: next.length === 1 ? catId : prev.primaryCategoryId,
-				};
-			}
-			const next = prev.categoryIds.filter((c) => c !== catId);
+			const next = checked
+				? [...prev.categoryIds, catId]
+				: prev.categoryIds.filter((c) => c !== catId);
 			return {
 				categoryIds: next,
-				primaryCategoryId:
-					prev.primaryCategoryId === catId
-						? (next[0] ?? "")
-						: prev.primaryCategoryId,
+				primaryCategoryId: pickPrimary(next, prev.primaryCategoryId),
 			};
 		});
 	}
@@ -180,7 +190,7 @@ export function IdentityFields({
 				<FieldError>{errors.categoryIds}</FieldError>
 				<FieldError>{errors.primaryCategoryId}</FieldError>
 				{primaryIncomplete && (
-					<p className="text-warning text-xs">
+					<p className="text-warning text-xs" data-error="true">
 						A categoria principal está incompleta (menos de{" "}
 						{MIN_CATEGORY_ATTRIBUTES} atributos). Escolha uma categoria completa
 						como principal ou adicione atributos a ela antes de salvar.

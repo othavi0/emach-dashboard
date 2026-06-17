@@ -26,7 +26,7 @@ import {
 	isCategoryComplete,
 	MIN_CATEGORY_ATTRIBUTES,
 } from "../categories/_lib/category-completeness";
-import { buildEffectiveAttributeCounts } from "../categories/_lib/effective-attributes";
+import { getEffectiveAttributeCount } from "../categories/_lib/effective-attributes";
 import { deleteToolImage } from "./_components/image-actions";
 import type { ToolStatusValue } from "./_components/tool-schema";
 import {
@@ -82,12 +82,25 @@ function nullableText(value: string | undefined): string | null {
 async function primaryCategoryIncompleteError(
 	primaryCategoryId: string
 ): Promise<string | null> {
-	const counts = await buildEffectiveAttributeCounts();
-	const effective = counts.get(primaryCategoryId) ?? 0;
+	const effective = await getEffectiveAttributeCount(primaryCategoryId);
 	if (isCategoryComplete(effective)) {
 		return null;
 	}
 	return `A categoria principal está incompleta (${effective}/${MIN_CATEGORY_ATTRIBUTES} atributos efetivos). Adicione atributos à categoria antes de cadastrar ou ativar ferramentas nela.`;
+}
+
+/** Categoria principal atual da ferramenta (para decidir se o gate se aplica no update). */
+async function currentPrimaryCategoryId(
+	toolId: string
+): Promise<string | null> {
+	const [row] = await db
+		.select({ categoryId: toolCategory.categoryId })
+		.from(toolCategory)
+		.where(
+			and(eq(toolCategory.toolId, toolId), eq(toolCategory.isPrimary, true))
+		)
+		.limit(1);
+	return row?.categoryId ?? null;
 }
 
 function normalizeToolPayload(input: ToolFormValues) {
@@ -322,11 +335,17 @@ export async function updateTool(
 	if (!parsed.success) {
 		return { ok: false, error: errorMessage(parsed.error) };
 	}
-	const categoryError = await primaryCategoryIncompleteError(
-		parsed.data.primaryCategoryId
-	);
-	if (categoryError) {
-		return { ok: false, error: categoryError };
+	// Gate só barra quando a primária MUDA para uma incompleta — não punir edição
+	// de tool cuja primária já existente degradou (deleção de atributo posterior),
+	// senão a ferramenta vira ineditável até alguém consertar a categoria.
+	const previousPrimary = await currentPrimaryCategoryId(id);
+	if (parsed.data.primaryCategoryId !== previousPrimary) {
+		const categoryError = await primaryCategoryIncompleteError(
+			parsed.data.primaryCategoryId
+		);
+		if (categoryError) {
+			return { ok: false, error: categoryError };
+		}
 	}
 	const payload = normalizeToolPayload(parsed.data);
 
