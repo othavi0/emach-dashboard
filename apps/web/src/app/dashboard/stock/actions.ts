@@ -346,6 +346,7 @@ export async function getStockMovements(
 	toolId: string,
 	limit = 50
 ): Promise<StockMovementRow[]> {
+	await requireCapability("stock.read");
 	return await db
 		.select({
 			id: stockMovement.id,
@@ -506,6 +507,7 @@ export async function getToolActivity(
 	toolId: string,
 	limit = 100
 ): Promise<ToolActivityRow[]> {
+	await requireCapability("stock.read");
 	return await db
 		.select({
 			id: stockMovement.id,
