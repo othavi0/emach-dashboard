@@ -10,9 +10,7 @@ const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
 	: null;
 
 const nextConfig: NextConfig = {
-	// typedRoutes temporariamente desabilitado durante Phase 1 foundation — muitas rotas
-	// criadas antes de seus pages existirem (stock, categories, suppliers, branches).
-	// Re-habilitar na Phase 2 quando todos os pages estiverem populados.
+	// typedRoutes desabilitado — habilitar requer auditoria de todos os hrefs do codebase.
 	typedRoutes: false,
 	reactCompiler: true,
 	experimental: {
