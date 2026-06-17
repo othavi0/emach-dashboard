@@ -1,6 +1,5 @@
 "use server";
 
-import { cache } from "react";
 import { db } from "@emach/db";
 import {
 	type AttributeDefinition,
@@ -10,6 +9,7 @@ import { category, toolCategory } from "@emach/db/schema/categories";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { and, asc, count, eq, inArray, like, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { cache } from "react";
 import { z } from "zod";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
@@ -58,9 +58,8 @@ function revalidateCategoryTrees() {
 }
 
 export const listCategories = cache(
-	async (): Promise<CategoryListItem[]> => {
-		return await db.select().from(category).orderBy(asc(category.path));
-	},
+	async (): Promise<CategoryListItem[]> =>
+		await db.select().from(category).orderBy(asc(category.path))
 );
 
 export async function getCategory(

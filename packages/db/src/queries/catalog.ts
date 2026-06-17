@@ -381,7 +381,9 @@ export async function getTools(
 		LIMIT ${limit} OFFSET ${offset}
 	`;
 
-	const countPromoJoin = input.onlyPromo === true ? sql` LEFT JOIN LATERAL (
+	const countPromoJoin =
+		input.onlyPromo === true
+			? sql` LEFT JOIN LATERAL (
 			SELECT p.id,
 				CASE
 					WHEN p.discount_type = 'fixed'
@@ -399,7 +401,8 @@ export async function getTools(
 			  )
 			ORDER BY final_price ASC
 			LIMIT 1
-		) active_promo ON true` : sql``;
+		) active_promo ON true`
+			: sql``;
 
 	const countSql = sql`
 		SELECT COUNT(DISTINCT t.id)::int AS total

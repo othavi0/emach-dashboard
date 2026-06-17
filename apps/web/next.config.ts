@@ -1,7 +1,9 @@
 import bundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
 
-const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
+const withBundleAnalyzer = bundleAnalyzer({
+	enabled: process.env.ANALYZE === "true",
+});
 
 const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
 	? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
