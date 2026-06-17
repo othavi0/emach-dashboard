@@ -35,6 +35,7 @@
     "db:studio": "turbo -F @emach/db db:studio",
     "check": "ultracite check",
     "fix": "ultracite fix",
+    "verify": "bun check-types && bun check && bun --cwd apps/web test",
     "guard:forms": "ast-grep scan",
     "guard:forms:test": "ast-grep test --skip-snapshot-tests"
   },

@@ -27,6 +27,9 @@ jobs:
       - name: Typecheck
         run: bun check-types
 
+      - name: Tests
+        run: bun --cwd apps/web test
+
       - name: Guard de forms — self-test da regra
         # Falha se a regra não carregar (ast-grep test sai 0 com "0 passed" quando
         # a config/regra some — sem este guard o CI ficaria verde sem enforcement).

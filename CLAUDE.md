@@ -53,7 +53,7 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 
 `bun check-types` não detecta SQL inválido em template strings nem queries com colunas removidas. Após mexer em schema/queries SSR: `bun dev:web` + visitar rotas afetadas. Stack trace rápido via `nextjs_call <port> get_errors` (MCP `next-devtools`).
 
-`check-types` (tsc) também **não pega regras de lint** (`useAwait`, `noNestedTernary`, etc.) — o CI roda `bun check` (ultracite). Antes de commitar/PR, rodar **`bun check`** além de `check-types`. Exceção: warnings que o código canônico de referência também tem (ex: `role="button"` em card clicável, nested-ternary em header contextual de detalhe espelhando `branches`) — manter por consistência, não corrigir divergindo do padrão.
+`check-types` (tsc) também **não pega regras de lint** (`useAwait`, `noNestedTernary`, etc.) — o CI roda `bun check` (ultracite). Antes de commitar/PR, rodar **`bun check`** além de `check-types`. Atalho: **`bun verify`** encadeia os três (`check-types && check && test`). Exceção: warnings que o código canônico de referência também tem (ex: `role="button"` em card clicável, nested-ternary em header contextual de detalhe espelhando `branches`) — manter por consistência, não corrigir divergindo do padrão.
 
 ## Onde estão os outros mistakes-logs
 
