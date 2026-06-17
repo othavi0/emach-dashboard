@@ -27,12 +27,22 @@ export const bannerCtaVariant = pgEnum("banner_cta_variant", [
 	"ghost",
 ]);
 
+// Como o fundo se comporta no mobile: herdar a imagem do desktop, usar imagem
+// mobile própria, ou não exibir fundo (só o gradiente da marca).
+export const bannerBackgroundMobileMode = pgEnum(
+	"banner_background_mobile_mode",
+	["inherit", "custom", "none"]
+);
+
 export const banner = pgTable(
 	"banner",
 	{
 		id: text("id").primaryKey(),
 		backgroundImageUrl: text("background_image_url"),
 		backgroundImageMobileUrl: text("background_image_mobile_url"),
+		backgroundMobileMode: bannerBackgroundMobileMode("background_mobile_mode")
+			.notNull()
+			.default("inherit"),
 		productImageUrl: text("product_image_url"),
 		productImageMobileUrl: text("product_image_mobile_url"),
 		title: text("title"),

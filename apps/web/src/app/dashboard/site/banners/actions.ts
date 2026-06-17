@@ -78,6 +78,7 @@ export async function createBanner(
 			id,
 			backgroundImageUrl: v.backgroundImageUrl,
 			backgroundImageMobileUrl: v.backgroundImageMobileUrl,
+			backgroundMobileMode: v.backgroundMobileMode,
 			productImageUrl: v.productImageUrl,
 			productImageMobileUrl: v.productImageMobileUrl,
 			title: v.title,
@@ -133,6 +134,7 @@ export async function updateBanner(
 			.set({
 				backgroundImageUrl: v.backgroundImageUrl,
 				backgroundImageMobileUrl: v.backgroundImageMobileUrl,
+				backgroundMobileMode: v.backgroundMobileMode,
 				productImageUrl: v.productImageUrl,
 				productImageMobileUrl: v.productImageMobileUrl,
 				title: v.title,
