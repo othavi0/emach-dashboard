@@ -347,16 +347,17 @@ export async function updateTool(
 	);
 
 	let toDelete: { id: string; url: string }[] = [];
-
-	// Captura URLs de vídeo/poster antes da transação para limpeza de storage pós-commit
-	const [prevVideo] = await db
-		.select({ url: tool.videoUrl, poster: tool.videoPosterUrl })
-		.from(tool)
-		.where(eq(tool.id, id));
+	let prevVideo: { url: string | null; poster: string | null } | undefined;
 
 	try {
 		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: transação coesa atualizando 5 entidades (tool, variants, images, categories, attribute assignments + values) com sincronização order-aware
 		await db.transaction(async (tx) => {
+			// Captura URLs de vídeo/poster dentro da transação — garante snapshot consistente
+			[prevVideo] = await tx
+				.select({ url: tool.videoUrl, poster: tool.videoPosterUrl })
+				.from(tool)
+				.where(eq(tool.id, id));
+
 			await tx.update(tool).set(payload).where(eq(tool.id, id));
 
 			// --- Variantes ---
