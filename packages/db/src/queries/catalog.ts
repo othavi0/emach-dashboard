@@ -439,6 +439,8 @@ export async function getToolBySlug(
 		       t.hs_code AS "hsCode",
 		       t.ncm, t.cest,
 		       t.visible_on_site AS "visibleOnSite",
+		       t.video_url AS "videoUrl",
+		       t.video_poster_url AS "videoPosterUrl",
 		       t.created_at AS "createdAt",
 		       t.updated_at AS "updatedAt"
 		FROM tool t
