@@ -32,14 +32,12 @@ export default async function ToolDetailPage({
 	searchParams,
 }: PageProps) {
 	const session = await requireCurrentSession();
-	const [canMutate, canDelete] = await Promise.all([
+	const [{ id }, { tab }] = await Promise.all([params, searchParams]);
+	const [canMutate, canDelete, detail] = await Promise.all([
 		can(session, "tools.update"),
 		can(session, "tools.delete"),
+		getToolDetail(id),
 	]);
-
-	const { id } = await params;
-	const { tab } = await searchParams;
-	const detail = await getToolDetail(id);
 
 	if (!detail) {
 		notFound();

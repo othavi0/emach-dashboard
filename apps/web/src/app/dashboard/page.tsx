@@ -15,12 +15,14 @@ import { formatDateShort } from "@/lib/format/datetime";
 import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { BranchFilter } from "./_components/branch-filter";
-import { NewClientsLine } from "./_components/charts/new-clients-line";
-import { OrderFunnel } from "./_components/charts/order-funnel";
-import { RatingBars } from "./_components/charts/rating-bars";
-import { RevenueArea } from "./_components/charts/revenue-area";
-import { StatusDonut } from "./_components/charts/status-donut";
-import { StockFlowArea } from "./_components/charts/stock-flow-area";
+import {
+	NewClientsLine,
+	OrderFunnel,
+	RatingBars,
+	RevenueArea,
+	StatusDonut,
+	StockFlowArea,
+} from "./_components/charts/lazy";
 import { KpiRow } from "./_components/kpi-row";
 import { ReorderTable } from "./_components/reorder-table";
 import { parseBranchParam } from "./_lib/dashboard-params";

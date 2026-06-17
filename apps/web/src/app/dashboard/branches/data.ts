@@ -102,29 +102,31 @@ export interface BranchDetailKpis {
 export async function getBranchDetailKpis(
 	branchId: string
 ): Promise<BranchDetailKpis> {
-	const [skus] = await db
-		.select({
-			n: sql<number>`count(distinct ${stockLevel.variantId})::int`,
-		})
-		.from(stockLevel)
-		.where(and(eq(stockLevel.branchId, branchId), gt(stockLevel.quantity, 0)));
-	const [value] = await db
-		.select({
-			v: sql<number>`coalesce(sum(${stockLevel.quantity} * coalesce(${toolVariant.priceAmount}, 0)), 0)::float`,
-		})
-		.from(stockLevel)
-		.leftJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
-		.where(eq(stockLevel.branchId, branchId));
-	const [team] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(userBranch)
-		.where(eq(userBranch.branchId, branchId));
-	const [recent] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(order)
-		.where(
-			sql`${order.branchId} = ${branchId} and ${order.createdAt} >= now() - interval '30 days'`
-		);
+	const [[skus], [value], [team], [recent]] = await Promise.all([
+		db
+			.select({
+				n: sql<number>`count(distinct ${stockLevel.variantId})::int`,
+			})
+			.from(stockLevel)
+			.where(and(eq(stockLevel.branchId, branchId), gt(stockLevel.quantity, 0))),
+		db
+			.select({
+				v: sql<number>`coalesce(sum(${stockLevel.quantity} * coalesce(${toolVariant.priceAmount}, 0)), 0)::float`,
+			})
+			.from(stockLevel)
+			.leftJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
+			.where(eq(stockLevel.branchId, branchId)),
+		db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(userBranch)
+			.where(eq(userBranch.branchId, branchId)),
+		db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(order)
+			.where(
+				sql`${order.branchId} = ${branchId} and ${order.createdAt} >= now() - interval '30 days'`
+			),
+	]);
 	return {
 		skuCount: skus?.n ?? 0,
 		stockValue: value?.v ?? 0,

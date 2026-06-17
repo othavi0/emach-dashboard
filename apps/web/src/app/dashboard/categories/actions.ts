@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { db } from "@emach/db";
 import {
 	type AttributeDefinition,
@@ -56,9 +57,11 @@ function revalidateCategoryTrees() {
 	revalidatePath("/dashboard/stock");
 }
 
-export async function listCategories(): Promise<CategoryListItem[]> {
-	return await db.select().from(category).orderBy(asc(category.path));
-}
+export const listCategories = cache(
+	async (): Promise<CategoryListItem[]> => {
+		return await db.select().from(category).orderBy(asc(category.path));
+	},
+);
 
 export async function getCategory(
 	id: string

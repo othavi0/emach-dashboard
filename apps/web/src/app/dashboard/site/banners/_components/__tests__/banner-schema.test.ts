@@ -5,6 +5,7 @@ const base = {
 	backgroundImageUrl:
 		"https://x.supabase.co/storage/v1/object/public/banner-images/a.jpg",
 	backgroundImageMobileUrl: null,
+	backgroundMobileMode: "inherit" as const,
 	productImageUrl: null,
 	productImageMobileUrl: null,
 	title: "Potência redefinida",

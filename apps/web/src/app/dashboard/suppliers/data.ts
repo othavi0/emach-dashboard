@@ -87,11 +87,12 @@ export async function getSupplierDetailKpis(
 ): Promise<SupplierDetailKpis> {
 	// Tools derivadas: todas com ≥1 entrada_compra deste fornecedor.
 	// lastToolAddedAt = data da última entrada_compra do fornecedor (não criação da tool).
-	const countRows = await db.execute<{
-		active: string;
-		inactive: string;
-		lastEntrada: string | null;
-	}>(sql`
+	const [countRows, catRows] = await Promise.all([
+		db.execute<{
+			active: string;
+			inactive: string;
+			lastEntrada: string | null;
+		}>(sql`
 		SELECT
 			count(*) FILTER (WHERE t.status = 'active')::int AS "active",
 			count(*) FILTER (WHERE t.status <> 'active')::int AS "inactive",
@@ -102,13 +103,13 @@ export async function getSupplierDetailKpis(
 			) AS "lastEntrada"
 		FROM tool t
 		WHERE t.id IN (${supplierToolIds(supplierId)})
-	`);
-
-	const catRows = await db.execute<{ n: string }>(sql`
+	`),
+		db.execute<{ n: string }>(sql`
 		SELECT count(DISTINCT tc.category_id)::int AS "n"
 		FROM tool_category tc
 		WHERE tc.tool_id IN (${supplierToolIds(supplierId)})
-	`);
+	`),
+	]);
 
 	const counts = countRows.rows[0];
 	const cats = catRows.rows[0];

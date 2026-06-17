@@ -145,13 +145,13 @@ export default async function UserDetailPage({
 			value: "activity",
 			label: "Atividade",
 			icon: <Activity aria-hidden className="size-3.5" />,
-			content: <ActivityTab userId={user.id} />,
+			content: sp.tab === "activity" ? <ActivityTab userId={user.id} /> : null,
 		},
 		{
 			value: "sessions",
 			label: "Sessões",
 			icon: <Monitor aria-hidden className="size-3.5" />,
-			content: <SessionsTab userId={user.id} />,
+			content: sp.tab === "sessions" ? <SessionsTab userId={user.id} /> : null,
 		},
 		{
 			value: "security",
