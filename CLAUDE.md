@@ -31,7 +31,7 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 - `<img>` puro — sempre `next/image` (exceto thumbs Supabase com biome-ignore).
 - `React.forwardRef` — React 19 usa `ref` como prop normal.
 - `useMemo`/`useCallback` manuais — React Compiler ativo (`next.config.ts: reactCompiler: true`).
-- Barrel files (`index.ts` re-export only). Exceção: `packages/db/src/schema/index.ts` (marcado com biome-ignore).
+- Barrel files (`index.ts` re-export only). Exceções marcadas com `biome-ignore lint/performance/noBarrelFile`: `packages/db/src/schema/index.ts` (API pública do pacote `@emach/db`) e `apps/web/src/lib/masks/index.ts` (import ergonômico das máscaras de input). Outros barrels em `src/index.ts` de pacotes que exportam lógica real (ex: `packages/db/src/index.ts`) **não são barrels** pela definição do biome — não precisam de anotação.
 - `async function` em Client Component — usar Server Component pra fetching.
 - `.forEach()` em hot path — `for...of`.
 - `new RegExp(...)` ou literal em loops — extrair top-level.
