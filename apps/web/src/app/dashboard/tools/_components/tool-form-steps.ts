@@ -69,7 +69,7 @@ export const STEP_FIELDS = {
 		"cest",
 		"hsCode",
 	],
-	publish: ["images", "status", "visibleOnSite"],
+	publish: ["images", "status", "visibleOnSite", "videoUrl", "videoPosterUrl"],
 } satisfies Record<ToolStepId, (keyof ToolFormValues)[]>;
 
 // Garante em tempo de compilação que todo campo do schema está coberto por algum

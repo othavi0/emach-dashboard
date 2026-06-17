@@ -76,6 +76,8 @@ export const tool = pgTable(
 		hsCode: text("hs_code"),
 		ncm: text("ncm"),
 		cest: text("cest"),
+		videoUrl: text("video_url"),
+		videoPosterUrl: text("video_poster_url"),
 		visibleOnSite: boolean("visible_on_site").notNull().default(true),
 		// Frete por-produto p/ itens > 30kg (teto SuperFrete). Null = "a combinar".
 		overweightShippingAmount: numeric("overweight_shipping_amount", {

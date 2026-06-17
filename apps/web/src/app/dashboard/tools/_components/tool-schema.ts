@@ -108,8 +108,17 @@ export const toolFormSchema = z
 			.record(z.string(), attributeValueInputSchema)
 			.default({}),
 		attributeAssignments: z.array(z.string()).default([]),
+		videoUrl: z.url("URL de vídeo inválida").nullable().default(null),
+		videoPosterUrl: z.url("URL de poster inválida").nullable().default(null),
 	})
 	.superRefine((data, ctx) => {
+		if (Boolean(data.videoUrl) !== Boolean(data.videoPosterUrl)) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["videoUrl"],
+				message: "Vídeo e poster devem ser definidos juntos",
+			});
+		}
 		if (data.status === "active" && data.images.length < MIN_IMAGES_ACTIVE) {
 			ctx.addIssue({
 				code: "custom",

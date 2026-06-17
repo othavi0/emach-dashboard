@@ -22,6 +22,7 @@ import {
 	TOOL_STATUS_OPTIONS,
 	type ToolFormValues,
 } from "../tool-schema";
+import { ToolVideoField } from "../tool-video-field";
 import type { ToolFieldGroupProps } from "./types";
 
 export function PublishFields({
@@ -44,6 +45,20 @@ export function PublishFields({
 					value={values.images}
 				/>
 				<FieldError>{errors.images}</FieldError>
+			</div>
+			<div className="flex flex-col gap-2">
+				<span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+					Vídeo (opcional)
+				</span>
+				<ToolVideoField
+					disabled={disabled}
+					onChange={(v) => onPatch(v)}
+					value={{
+						videoPosterUrl: values.videoPosterUrl ?? null,
+						videoUrl: values.videoUrl ?? null,
+					}}
+				/>
+				<FieldError>{errors.videoUrl}</FieldError>
 			</div>
 			<div className="grid gap-4 md:grid-cols-2">
 				<LabeledField

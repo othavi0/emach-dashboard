@@ -147,3 +147,34 @@ describe("toolFormSchema — regra de specs ao ativar", () => {
 		expect(r.success).toBe(false);
 	});
 });
+
+describe("toolFormSchema — campos de vídeo", () => {
+	it("aceita ferramenta sem vídeo (ambos null)", () => {
+		const r = toolFormSchema.safeParse(
+			baseTool({ videoUrl: null, videoPosterUrl: null })
+		);
+		expect(r.success).toBe(true);
+	});
+
+	it("aceita par de vídeo completo", () => {
+		const r = toolFormSchema.safeParse(
+			baseTool({
+				videoUrl: "https://x/v.mp4",
+				videoPosterUrl: "https://x/p.webp",
+			})
+		);
+		expect(r.success).toBe(true);
+	});
+
+	it("rejeita par incoerente (vídeo sem poster)", () => {
+		const r = toolFormSchema.safeParse(
+			baseTool({ videoUrl: "https://x/v.mp4", videoPosterUrl: null })
+		);
+		expect(r.success).toBe(false);
+		if (!r.success) {
+			expect(r.error.issues.some((i) => String(i.path[0]) === "videoUrl")).toBe(
+				true
+			);
+		}
+	});
+});

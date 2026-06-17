@@ -32,6 +32,7 @@ export const env = createEnv({
 			.default("development"),
 		SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 		NEXT_PUBLIC_SUPABASE_URL: z.url(),
+		NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY: z.string().min(1),
 		RESEND_API_KEY: z.string().min(1),
 		EMAIL_FROM: z.string().min(1),
 	},
