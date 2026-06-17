@@ -2,32 +2,83 @@
 
 import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
-import { Check } from "lucide-react";
+import { Check, CircleAlert } from "lucide-react";
 import { useState } from "react";
 
-import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
-import { notify } from "@/lib/notify";
+import { focusFirstError } from "@/lib/form-errors";
+import { DraftRecoveredBanner } from "./draft-recovered-banner";
 import { type ToolFormState, useToolFormState } from "./tool-form-state";
 import {
+	getStepErrorCount,
 	getStepFieldErrors,
 	STEP_FIELDS,
-	stepHasErrors,
+	stepsWithContent,
 	TOOL_STEPS,
 	type ToolStepId,
 } from "./tool-form-steps";
 import { toolFormSchema } from "./tool-schema";
 import { TOOL_SECTION_COMPONENTS } from "./tool-sections";
+import { useToolDraft } from "./use-tool-draft";
 import { useToolSubmit } from "./use-tool-submit";
+
+function renderStepMarker(
+	showError: boolean,
+	showDone: boolean,
+	errCount: number,
+	index: number
+) {
+	if (showError) {
+		return (
+			<span className="flex items-center gap-1 text-destructive">
+				<CircleAlert aria-hidden className="size-3.5" />
+				{errCount}
+			</span>
+		);
+	}
+	if (showDone) {
+		return <Check aria-hidden className="size-3.5 text-success" />;
+	}
+	return <span>{index + 1}</span>;
+}
 
 export function ToolWizard({
 	defaultValues,
 }: {
 	defaultValues?: Partial<ToolFormState>;
 }) {
-	const { values, patch, errors, setErrors } = useToolFormState(
+	const { values, patch, errors, setErrors, setValues } = useToolFormState(
 		defaultValues ?? {}
 	);
 	const [active, setActive] = useState(0);
+	const [visited, setVisited] = useState<Set<ToolStepId>>(() => new Set());
+
+	const { recovered, discard, clear } = useToolDraft({
+		values,
+		setValues,
+		onRestore: (restored) => setVisited(stepsWithContent(restored)),
+	});
+
+	// active é controlado por setActive com clamp — nunca sai dos bounds
+	// biome-ignore lint/style/noNonNullAssertion: array constante não-vazio, índice clamped
+	const step = TOOL_STEPS[Math.min(active, TOOL_STEPS.length - 1)]!;
+
+	// Recalcula os erros inline considerando todos os passos já visitados.
+	function errorsForVisited(visitedSet: Set<ToolStepId>) {
+		const merged: typeof errors = {};
+		for (const id of visitedSet) {
+			Object.assign(merged, getStepFieldErrors(values, id));
+		}
+		return merged;
+	}
+
+	// Troca de passo por QUALQUER meio (aba, Voltar, Próximo): marca o passo que
+	// sai como visitado, recalcula erros dos visitados e navega. Nunca bloqueia.
+	function goTo(index: number) {
+		const nextVisited = new Set(visited).add(step.id);
+		setVisited(nextVisited);
+		setErrors(errorsForVisited(nextVisited));
+		setActive(Math.min(Math.max(index, 0), TOOL_STEPS.length - 1));
+	}
 
 	const handleValidationFail = (errorKeys: string[]) => {
 		const idx = TOOL_STEPS.findIndex((s) =>
@@ -45,58 +96,53 @@ export function ToolWizard({
 		values,
 		setErrors,
 		onValidationFail: handleValidationFail,
+		onSuccess: clear,
 	});
 
-	// active é controlado por setActive com clamp — nunca sai dos bounds
-	// biome-ignore lint/style/noNonNullAssertion: array constante não-vazio, índice clamped
-	const step = TOOL_STEPS[Math.min(active, TOOL_STEPS.length - 1)]!;
 	const Fields = TOOL_SECTION_COMPONENTS[step.id];
 
 	// parse único por render — React Compiler memoiza sobre `values`;
-	// evita 6× safeParse no loop do stepper (um por stepDone)
+	// evita N× safeParse no loop do stepper (um por badge)
 	const parsed = toolFormSchema.safeParse(values);
-
-	function stepDone(stepId: ToolStepId): boolean {
-		return !stepHasErrors(parsed, stepId);
-	}
-
-	function next() {
-		const stepErrors = getStepFieldErrors(values, step.id);
-		if (Object.keys(stepErrors).length > 0 && !step.optional) {
-			setErrors(stepErrors);
-			notify.error(errorToastMessage(stepErrors));
-			focusFirstError();
-			return;
-		}
-		setActive((i) => Math.min(i + 1, TOOL_STEPS.length - 1));
-	}
 
 	return (
 		<div className="flex flex-col gap-6">
+			{recovered && (
+				<DraftRecoveredBanner
+					onDiscard={() => {
+						discard();
+						setVisited(new Set());
+						setErrors({});
+						setActive(0);
+					}}
+				/>
+			)}
 			<ol
 				aria-label="Etapas do cadastro"
 				className="flex flex-wrap gap-1 rounded-md bg-muted p-1 ring-1 ring-border/60"
 			>
 				{TOOL_STEPS.map((s, i) => {
-					const done = i !== active && stepDone(s.id);
 					const isActive = i === active;
+					const isVisited = visited.has(s.id);
+					const errCount = getStepErrorCount(parsed, s.id);
+					const showError = isVisited && !isActive && errCount > 0;
+					const showDone = isVisited && !isActive && errCount === 0;
 					return (
 						<li key={s.id}>
 							<button
 								aria-current={isActive ? "step" : undefined}
+								aria-label={
+									showError ? `${s.label}: ${errCount} pendência(s)` : s.label
+								}
 								className={
 									isActive
 										? "flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground text-xs"
 										: "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-muted-foreground text-xs hover:text-foreground"
 								}
-								onClick={() => setActive(i)}
+								onClick={() => goTo(i)}
 								type="button"
 							>
-								{done ? (
-									<Check aria-hidden className="size-3.5 text-success" />
-								) : (
-									<span>{i + 1}</span>
-								)}
+								{renderStepMarker(showError, showDone, errCount, i)}
 								{s.label}
 								{s.optional && (
 									<span className="text-[10px] opacity-70">(opcional)</span>
@@ -127,14 +173,14 @@ export function ToolWizard({
 			<div className="flex items-center justify-between">
 				<Button
 					disabled={active === 0}
-					onClick={() => setActive((i) => Math.max(i - 1, 0))}
+					onClick={() => goTo(active - 1)}
 					type="button"
 					variant="ghost"
 				>
 					‹ Voltar
 				</Button>
 				{active < TOOL_STEPS.length - 1 ? (
-					<Button onClick={next} type="button">
+					<Button onClick={() => goTo(active + 1)} type="button">
 						Próximo ›
 					</Button>
 				) : (

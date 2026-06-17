@@ -1,3 +1,4 @@
+import { EMPTY_TOOL_VALUES, type ToolFormState } from "./tool-form-state";
 import { type ToolFormValues, toolFormSchema } from "./tool-schema";
 
 export type ToolStepId =
@@ -128,4 +129,36 @@ export function firstStepWithError(values: unknown): ToolStepId | null {
 		}
 	}
 	return null;
+}
+
+export function getStepErrorCount(
+	result: ReturnType<typeof toolFormSchema.safeParse>,
+	stepId: ToolStepId
+): number {
+	if (result.success) {
+		return 0;
+	}
+	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
+	const seen = new Set<string>();
+	for (const issue of result.error.issues) {
+		const key = issue.path[0];
+		if (issue.path.length > 0 && fields.has(String(key))) {
+			seen.add(String(key));
+		}
+	}
+	return seen.size;
+}
+
+export function stepsWithContent(values: ToolFormState): Set<ToolStepId> {
+	const result = new Set<ToolStepId>();
+	for (const step of TOOL_STEPS) {
+		const fields = STEP_FIELDS[step.id] as (keyof ToolFormState)[];
+		const differs = fields.some(
+			(f) => JSON.stringify(values[f]) !== JSON.stringify(EMPTY_TOOL_VALUES[f])
+		);
+		if (differs) {
+			result.add(step.id);
+		}
+	}
+	return result;
 }
