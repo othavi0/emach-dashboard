@@ -121,12 +121,12 @@ Esta rodada cobriu correctness/security/tests/tech-debt/deps/dx/docs/direction â
 |-------|------|------------|---------|-------|-----------|------------|--------|--------|
 | 012 | capability-guards-read-actions | P1 | M | MED | security | none (014 recomendado em paralelo) | FIXED | TODO |
 | 013 | assign-branch-lock-authorization | P1 | S | LOW | security | none | PASS | TODO |
-| 014 | tests-branch-scope-capability | P1 | S | LOW | tests | none | FIXED | TODO |
-| 015 | tests-apply-stock-returns | P1 | S | LOW | tests | none | PASS | TODO |
-| 016 | consolidate-action-error-message | P1 | S | LOW | tech-debt | none | FIXED | TODO |
+| 014 | tests-branch-scope-capability | P1 | S | LOW | tests | none | FIXED | DONE (onda 1, `225eefca`) |
+| 015 | tests-apply-stock-returns | P1 | S | LOW | tests | none | PASS | DONE (onda 1, `225eefca`) |
+| 016 | consolidate-action-error-message | P1 | S | LOW | tech-debt | none | FIXED | DONE (onda 1, `225eefca`) |
 | 017 | ci-test-gate-and-verify-script | P1 | S | LOW | dx | none | FIXED | TODO |
-| 018 | env-example-required-vars | P2 | S | LOW | dx | none | FIXED | TODO |
-| 019 | fix-doc-drift | P2 | S | LOW | docs | none | FIXED | TODO |
+| 018 | env-example-required-vars | P2 | S | LOW | dx | none | FIXED | DONE (onda 1, `225eefca`) |
+| 019 | fix-doc-drift | P2 | S | LOW | docs | none | FIXED | DONE (onda 1, `225eefca`) |
 | 020 | fix-revalidate-tag-banners | P2 | S | LOW | bug | none | PASS | TODO |
 | 021 | invite-user-atomicity | P2 | M | MED | bug | none | FIXED | TODO |
 | 022 | unlink-branch-last-branch-race | P2 | S | LOW | bug | none | FIXED | TODO |

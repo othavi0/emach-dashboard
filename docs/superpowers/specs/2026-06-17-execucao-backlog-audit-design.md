@@ -86,6 +86,26 @@ de produto. Ficam como docs no backlog até aprovação da direção.
 > futuras. Cada entrada: plano, o que aconteceu, como foi resolvido, o que mudar
 > no processo/plano da próxima vez.
 
-- _(vazio no início — preencher conforme a execução: STOP conditions, drift,
-  desvios documentados, planos que precisaram de REVISE/BLOCK, surpresas de
-  worktree/build, falsos-positivos de escopo, etc.)_
+### Onda 1 (planos 014, 015, 016, 018, 019 — todos APPROVE, integrados em `225eefca`)
+
+1. **Worktree é cortado da BASE (`79379ef5`), não do tip da branch.** O git não permite dois
+   worktrees na mesma branch, e `chore/improve-audit-2026-06` está checked-out na árvore
+   principal — então `isolation: worktree` corta da base. Consequência: os planos commitados
+   (em `913b95f8`) **não ficam no working dir** do worktree (só no history compartilhado). Os
+   executores contornaram (`git show branch:plano`, ou `git merge` do tip). **Fix p/ próximas
+   ondas:** instruir o executor a `git merge chore/improve-audit-2026-06` no worktree ANTES de
+   editar — assim enxerga os planos E o trabalho já mergeado das ondas anteriores (pré-requisito
+   do modelo de ondas: Onda N+1 precisa ver os merges da Onda N).
+2. **`bun check` rodou em 0 arquivos nos worktrees → gate de lint VACUOUS.** Os 5 executores
+   reportaram "check exit 0", mas a saída era "Checked 0 files". O lint real (`organizeImports`
+   no 016; `noThenProperty` + format no 015) só apareceu no **gate integrado** rodado no main
+   tree pós-cherry-pick. **Conclusão firme:** o gate de lint confiável é o integrado (`bun check`
+   no main tree após cada onda) — o "check exit 0" do executor não é confiável. Mantido como
+   etapa obrigatória de review.
+3. **vitest — `vi.clearAllMocks()` NÃO limpa a fila de `mockReturnValueOnce`** (só
+   `vi.resetAllMocks()`). Um `mockReturnValueOnce` não-consumido (ex: early-return de
+   super_admin) vaza pro próximo `describe` e quebra a ordem da fila. Em describes que dependem
+   de ordem precisa de fila de mocks, usar `resetAllMocks`. (Descoberto pelo executor do 014.)
+4. **`noThenProperty` em mock de Drizzle é esperado.** O query builder do Drizzle é thenable;
+   um mock fiel precisa de `then` → `// biome-ignore lint/suspicious/noThenProperty: <motivo>`
+   justificado é o padrão (não reescrever o mock). Aplicado no 015.
