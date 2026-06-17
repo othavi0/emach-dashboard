@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-	applyStockReturns,
-	type ReturnItemInput,
-} from "../stock-returns";
+import { applyStockReturns, type ReturnItemInput } from "../stock-returns";
 
 // ---------------------------------------------------------------------------
 // Mock manual do `tx` do Drizzle.
@@ -28,10 +25,9 @@ function makeTx(
 			for: () => Promise.resolve(result),
 			// sem .for() o vitest vai awaitar o objeto chain — então também precisamos
 			// que o chain seja thenable quando não há .for()
-			then: (
-				resolve: (v: unknown[]) => void,
-				_reject?: (e: unknown) => void
-			) => Promise.resolve(result).then(resolve, _reject),
+			// biome-ignore lint/suspicious/noThenProperty: mock intencional do query builder thenable do Drizzle
+			then: (resolve: (v: unknown[]) => void, _reject?: (e: unknown) => void) =>
+				Promise.resolve(result).then(resolve, _reject),
 		};
 		return chain;
 	};
@@ -48,6 +44,7 @@ function makeTx(
 					return Promise.resolve(undefined);
 				},
 				// INSERT sem onConflictDoUpdate também é thenable
+				// biome-ignore lint/suspicious/noThenProperty: mock intencional do query builder thenable do Drizzle
 				then: (
 					resolve: (v: undefined) => void,
 					_reject?: (e: unknown) => void
@@ -172,7 +169,10 @@ describe("applyStockReturns", () => {
 	});
 
 	it("(3) 2 itens: 2 movimentos de estoque inseridos", async () => {
-		const item2: ReturnItemInput = { branchId: "branch-2", orderItemId: "oi-2" };
+		const item2: ReturnItemInput = {
+			branchId: "branch-2",
+			orderItemId: "oi-2",
+		};
 
 		// Por item: SELECT orderItem, SELECT stockLevel — 4 SELECTs no total
 		const tx = makeTx([

@@ -10,9 +10,8 @@ import { supplier, toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { revalidatePath } from "next/cache";
-
-import type { ActionResult } from "@/lib/action-result";
 import { actionErrorMessage } from "@/lib/action-error";
+import type { ActionResult } from "@/lib/action-result";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
 import {

@@ -7,10 +7,10 @@ import {
 } from "@emach/db/schema/attributes";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { requireCapability } from "@/lib/permissions";
-import { actionErrorMessage } from "@/lib/action-error";
 import {
 	type AttributeFormValues,
 	attributeFormSchema,

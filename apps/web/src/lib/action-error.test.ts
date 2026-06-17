@@ -6,7 +6,8 @@ describe("actionErrorMessage", () => {
 		// Drizzle 0.45.x: DrizzleQueryError com DatabaseError em .cause
 		const drizzleError = {
 			name: "DrizzleQueryError",
-			message: 'Failed query: delete from "attribute_definition" where "id" = $1',
+			message:
+				'Failed query: delete from "attribute_definition" where "id" = $1',
 			cause: {
 				name: "DatabaseError",
 				code: "23503",
@@ -22,16 +23,19 @@ describe("actionErrorMessage", () => {
 	});
 
 	it("não vaza SQL quando o erro Postgres está no topo (sem wrapper)", () => {
-		const pgError = { code: "23505", message: "duplicate key value violates unique constraint" };
+		const pgError = {
+			code: "23505",
+			message: "duplicate key value violates unique constraint",
+		};
 		expect(actionErrorMessage(pgError)).toBe(
 			"Não foi possível concluir a operação. Tente novamente."
 		);
 	});
 
 	it("devolve error.message para erros de domínio comuns (instanceof Error)", () => {
-		expect(actionErrorMessage(new Error("Estoque não pode ficar negativo"))).toBe(
-			"Estoque não pode ficar negativo"
-		);
+		expect(
+			actionErrorMessage(new Error("Estoque não pode ficar negativo"))
+		).toBe("Estoque não pode ficar negativo");
 	});
 
 	it("devolve fallback para valores não-Error", () => {
