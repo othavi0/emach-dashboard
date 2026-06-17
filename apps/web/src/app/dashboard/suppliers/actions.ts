@@ -55,6 +55,7 @@ export async function fetchSuppliersPage({
 	filters: SuppliersFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<SupplierBaseRow>> {
+	await requireCapability("suppliers.read");
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const conditions: ReturnType<typeof sql>[] = [];
 
@@ -116,6 +117,7 @@ export async function fetchSuppliersTablePage({
 	filters: SuppliersFiltersInput;
 	cursor: string | null;
 }) {
+	await requireCapability("suppliers.read");
 	const { getSupplierTableAggregates } = await import("./data");
 	const page = await fetchSuppliersPage({ filters, cursor });
 	if (page.items.length === 0) {
