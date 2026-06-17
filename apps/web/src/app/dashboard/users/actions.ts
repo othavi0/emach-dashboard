@@ -14,7 +14,7 @@ import { promotion } from "@emach/db/schema/promotions";
 import { stockMovement } from "@emach/db/schema/stock-movements";
 import { sendInviteEmail } from "@emach/email/send";
 import { env } from "@emach/env/server";
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import type { ActionResult } from "@/lib/action-result";
@@ -824,37 +824,56 @@ export async function unlinkUserFromBranch(
 
 	const { userId: targetUserId, branchId } = parsed.data;
 
-	// Last-branch guard: admin/user precisam de ≥1 filial
-	const [targetUser] = await db
-		.select({ role: userTable.role })
-		.from(userTable)
-		.where(eq(userTable.id, targetUserId))
-		.limit(1);
-	const [remaining] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(userBranch)
-		.where(
-			and(
-				eq(userBranch.userId, targetUserId),
-				ne(userBranch.branchId, branchId)
-			)
-		);
-	if (
-		targetUser &&
-		targetUser.role !== "super_admin" &&
-		(remaining?.n ?? 0) < 1
-	) {
+	// Last-branch guard atômico: lê role + lock nas linhas de user_branch
+	// dentro de uma única transação para eliminar race condition.
+	// Para super_admin o guard não se aplica.
+	const deleted = await db.transaction(async (tx) => {
+		const [targetUser] = await tx
+			.select({ role: userTable.role })
+			.from(userTable)
+			.where(eq(userTable.id, targetUserId))
+			.limit(1);
+
+		if (!targetUser) {
+			return "not_found" as const;
+		}
+
+		if (targetUser.role !== "super_admin") {
+			// Bloqueia as linhas de user_branch deste user para serializar
+			// chamadas concorrentes que testariam o mesmo invariante.
+			const locked = await tx
+				.select({ branchId: userBranch.branchId })
+				.from(userBranch)
+				.where(eq(userBranch.userId, targetUserId))
+				.for("update");
+
+			const remainingAfterDelete = locked.filter(
+				(r) => r.branchId !== branchId
+			).length;
+
+			if (remainingAfterDelete < 1) {
+				return "last_branch" as const;
+			}
+		}
+
+		const result = await tx
+			.delete(userBranch)
+			.where(
+				and(
+					eq(userBranch.userId, targetUserId),
+					eq(userBranch.branchId, branchId)
+				)
+			);
+
+		return result;
+	});
+
+	if (deleted === "last_branch") {
 		return { ok: false, error: "Usuário precisa de ao menos 1 filial" };
 	}
-
-	await db
-		.delete(userBranch)
-		.where(
-			and(
-				eq(userBranch.userId, targetUserId),
-				eq(userBranch.branchId, branchId)
-			)
-		);
+	if (deleted === "not_found") {
+		return { ok: false, error: "Usuário não encontrado" };
+	}
 
 	await logUserActivity({
 		actorUserId: actor.user.id,
