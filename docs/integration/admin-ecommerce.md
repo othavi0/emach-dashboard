@@ -33,6 +33,7 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `stock_movement`      | Shared           | Dashboard   | Dashboard escreve ajustes manuais (actor `user`). E-commerce escreve débitos de venda (`saida_venda`, actor `system`) na transição para `paid`. |
 | `user_branch`         | Dashboard        | Dashboard   | Escopo de staff × filial. E-commerce não usa.                                                    |
 | `store_settings`      | Dashboard        | E-commerce  | Singleton (`id='singleton'`) de configurações da loja: origem do despacho (`shipping_origin_branch_id` → `branch`) e política de seguro de frete. E-commerce lê via `getShippingSettings`. |
+| `banner`              | Dashboard        | E-commerce  | Banners do hero/carrossel da home. E-commerce lê para renderizar. Os campos de render (`layout`, escalas, `badge_text`, `countdown_target`, `background_mobile_mode`) devem ser honrados fielmente — ver "Render do hero". |
 | `promotion`           | Dashboard        | Ambos       | Promoções e cupons. E-commerce aplica desconto no checkout.                                      |
 | `promotion_tool`      | Dashboard        | Ambos       | Vínculo promoção ↔ tool. E-commerce lê para calcular preço final.                               |
 | `order`               | Shared           | Ambos       | Pedido. **E-commerce:** cria a linha e conduz o status até `paid` (campos de checkout, `paymentMethod`, `paymentProviderRef`, campos Asaas/NF-e, `notes`). **Admin:** assume de `paid` em diante — status, carimbos de tempo (`preparingAt`, `shippedAt`, `deliveredAt`, `canceledAt`, `returnedAt`, `refundedAt`), `branchId`, `shippingTrackingCode`. |
@@ -297,6 +298,20 @@ O admin não valida `discountValue` (R$ fixo) contra o preço da ferramenta — 
 desconto fixo pode exceder o preço. O **ecommerce** deve clampar o preço final
 em `max(0, preço - desconto)` ao aplicar promoções/cupons, nunca permitindo
 preço negativo. Desconto percentual já é limitado a 100% no admin.
+
+---
+
+## Render do hero (`banner`)
+
+O dashboard é a fonte de verdade da composição do banner; o storefront (`hero-carousel.tsx`) renderiza. O preview do dashboard espelha o que o storefront deve produzir — divergência entre os dois é bug (ver issue dashboard#204).
+
+**`background_mobile_mode`** (enum `banner_background_mobile_mode`: `inherit` | `custom` | `none`) controla o fundo em telas pequenas. O storefront **deve** honrar:
+
+- `inherit` — usar `background_image_url` (desktop) também no mobile.
+- `custom` — usar `background_image_mobile_url`; se nulo, cair para o desktop.
+- `none` — **não** exibir imagem de fundo no mobile (só o gradiente/fundo sólido da marca). Produto e demais slots continuam.
+
+Banners criados antes da coluna recebem `inherit` (default); o backfill marcou `custom` os que já tinham `background_image_mobile_url`, preservando o comportamento anterior (`mobileUrl ?? desktopUrl`).
 
 ---
 

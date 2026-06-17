@@ -13,9 +13,11 @@ export const BANNER_LAYOUTS = [
 	"text_right",
 ] as const;
 export const BANNER_CTA_VARIANTS = ["red", "dark", "white", "ghost"] as const;
+export const BANNER_BG_MOBILE_MODES = ["inherit", "custom", "none"] as const;
 
 export type BannerLayout = (typeof BANNER_LAYOUTS)[number];
 export type BannerCtaVariant = (typeof BANNER_CTA_VARIANTS)[number];
+export type BannerBgMobileMode = (typeof BANNER_BG_MOBILE_MODES)[number];
 
 const CTA_HREF_RE = /^(\/|https:\/\/)/;
 
@@ -26,6 +28,7 @@ export const bannerFormSchema = z
 	.object({
 		backgroundImageUrl: z.string().nullable(),
 		backgroundImageMobileUrl: z.string().nullable(),
+		backgroundMobileMode: z.enum(BANNER_BG_MOBILE_MODES),
 		productImageUrl: z.string().nullable(),
 		productImageMobileUrl: z.string().nullable(),
 		title: optionalText(80),

@@ -36,7 +36,13 @@ export function BannerLivePreview({
 			return null;
 		}
 		if (isMobile) {
-			return values.backgroundImageMobileUrl ?? values.backgroundImageUrl;
+			if (values.backgroundMobileMode === "none") {
+				return null;
+			}
+			if (values.backgroundMobileMode === "custom") {
+				return values.backgroundImageMobileUrl ?? values.backgroundImageUrl;
+			}
+			return values.backgroundImageUrl;
 		}
 		return values.backgroundImageUrl;
 	}

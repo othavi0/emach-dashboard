@@ -5,6 +5,7 @@ import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
 import { Slider } from "@emach/ui/components/slider";
 import { Switch } from "@emach/ui/components/switch";
+import { cn } from "@emach/ui/lib/utils";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
@@ -15,7 +16,11 @@ import { useFormErrors } from "@/lib/use-form-errors";
 import { createBanner, updateBanner } from "../actions";
 import { BannerLivePreview } from "./banner-live-preview";
 import { type BannerPreset, SLOT_FIELDS, type SlotKey } from "./banner-presets";
-import { type BannerFormValues, bannerFormSchema } from "./banner-schema";
+import {
+	type BannerBgMobileMode,
+	type BannerFormValues,
+	bannerFormSchema,
+} from "./banner-schema";
 import { CountdownField } from "./countdown-field";
 import { CtaVariantPicker } from "./cta-variant-picker";
 import { ImageUploadTile } from "./image-upload-tile";
@@ -32,9 +37,32 @@ const ALL_SLOTS: SlotKey[] = [
 	"cta",
 ];
 
+const BG_MOBILE_MODE_OPTIONS: {
+	value: BannerBgMobileMode;
+	label: string;
+	hint: string;
+}[] = [
+	{
+		value: "inherit",
+		label: "Herdar desktop",
+		hint: "Usa a imagem de fundo do desktop também no mobile.",
+	},
+	{
+		value: "custom",
+		label: "Imagem própria",
+		hint: "Envie uma imagem 9:16 dedicada ao mobile.",
+	},
+	{
+		value: "none",
+		label: "Sem fundo",
+		hint: "Mobile sem imagem — só o gradiente da marca.",
+	},
+];
+
 const EMPTY: BannerFormValues = {
 	backgroundImageUrl: null,
 	backgroundImageMobileUrl: null,
+	backgroundMobileMode: "inherit",
 	productImageUrl: null,
 	productImageMobileUrl: null,
 	title: null,
@@ -58,6 +86,7 @@ function initialValues(banner?: Banner): BannerFormValues {
 	return {
 		backgroundImageUrl: banner.backgroundImageUrl,
 		backgroundImageMobileUrl: banner.backgroundImageMobileUrl,
+		backgroundMobileMode: banner.backgroundMobileMode,
 		productImageUrl: banner.productImageUrl,
 		productImageMobileUrl: banner.productImageMobileUrl,
 		title: banner.title,
@@ -210,13 +239,50 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 							onChange={(u) => set("backgroundImageUrl", u)}
 							value={values.backgroundImageUrl}
 						/>
-						<ImageUploadTile
-							help="1080×1920 · 9:16 · ≤2MB · cai pro desktop se vazio"
-							label="Fundo · mobile"
-							maxBytes={2_097_152}
-							onChange={(u) => set("backgroundImageMobileUrl", u)}
-							value={values.backgroundImageMobileUrl}
-						/>
+						{values.backgroundMobileMode === "custom" && (
+							<ImageUploadTile
+								help="1080×1920 · 9:16 · ≤2MB · cai pro desktop se vazio"
+								label="Fundo · mobile"
+								maxBytes={2_097_152}
+								onChange={(u) => set("backgroundImageMobileUrl", u)}
+								value={values.backgroundImageMobileUrl}
+							/>
+						)}
+					</div>
+					<div className="mt-3">
+						<div className="mb-1.5 flex items-center gap-1">
+							<p className="text-muted-foreground text-xs">Fundo no mobile</p>
+							<HelpTooltip text="Controla se o banner mostra imagem de fundo em telas pequenas." />
+						</div>
+						<div className="grid grid-cols-3 gap-2">
+							{BG_MOBILE_MODE_OPTIONS.map((opt) => (
+								<button
+									className={cn(
+										"rounded-lg border p-2 text-center text-xs transition-colors",
+										values.backgroundMobileMode === opt.value
+											? "border-primary bg-primary/5 text-foreground"
+											: "border-border bg-card text-muted-foreground hover:border-border/60"
+									)}
+									key={opt.value}
+									onClick={() => {
+										set("backgroundMobileMode", opt.value);
+										if (opt.value !== "custom") {
+											set("backgroundImageMobileUrl", null);
+										}
+									}}
+									type="button"
+								>
+									{opt.label}
+								</button>
+							))}
+						</div>
+						<p className="mt-1.5 text-[11px] text-muted-foreground">
+							{
+								BG_MOBILE_MODE_OPTIONS.find(
+									(o) => o.value === values.backgroundMobileMode
+								)?.hint
+							}
+						</p>
 					</div>
 					<div className="mt-3">
 						<LabeledField
