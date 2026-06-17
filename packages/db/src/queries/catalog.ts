@@ -381,11 +381,7 @@ export async function getTools(
 		LIMIT ${limit} OFFSET ${offset}
 	`;
 
-	const countSql = sql`
-		SELECT COUNT(DISTINCT t.id)::int AS total
-		FROM tool t
-		INNER JOIN tool_variant dv ON dv.tool_id = t.id AND dv.is_default = true
-		LEFT JOIN LATERAL (
+	const countPromoJoin = input.onlyPromo === true ? sql` LEFT JOIN LATERAL (
 			SELECT p.id,
 				CASE
 					WHEN p.discount_type = 'fixed'
@@ -403,7 +399,12 @@ export async function getTools(
 			  )
 			ORDER BY final_price ASC
 			LIMIT 1
-		) active_promo ON true
+		) active_promo ON true` : sql``;
+
+	const countSql = sql`
+		SELECT COUNT(DISTINCT t.id)::int AS total
+		FROM tool t
+		INNER JOIN tool_variant dv ON dv.tool_id = t.id AND dv.is_default = true${countPromoJoin}
 		WHERE ${where}
 	`;
 
@@ -464,6 +465,7 @@ export async function getToolBySlug(
 		categoriesResult,
 		activePromoResult,
 		stockResult,
+		reviewStats,
 	] = await Promise.all([
 		db.execute<ToolDetailVariant>(sql`
 			SELECT id, tool_id AS "toolId", sku, voltage,
@@ -586,9 +588,8 @@ export async function getToolBySlug(
 			WHERE tv.tool_id = ${toolId}
 			GROUP BY tv.id
 		`),
+		getReviewStats(db, toolId),
 	]);
-
-	const reviewStats = await getReviewStats(db, toolId);
 
 	const variants = variantsResult.rows.map((v) =>
 		coerceDates(v, VARIANT_DATE_KEYS)
@@ -812,67 +813,64 @@ export async function getActivePromotions(
 		LIMIT ${limit}
 	`);
 
-	const result: PromotionWithTools[] = [];
-	for (const promo of promosRes.rows) {
-		coerceDates(promo, PROMOTION_DATE_KEYS);
+	const result = await Promise.all(
+		promosRes.rows.map(async (promo): Promise<PromotionWithTools> => {
+			coerceDates(promo, PROMOTION_DATE_KEYS);
 
-		// Escopo das tools: applies_to_all → todas as visíveis; senão, as vinculadas
-		// em promotion_tool (vazio = promoção inerte → tools:[]).
-		let toolScope = sql`true`;
-		if (!promo.appliesToAll) {
-			const toolIdsRes = await db.execute<{ tool_id: string }>(sql`
-				SELECT tool_id FROM promotion_tool WHERE promotion_id = ${promo.id}
-			`);
-			const toolIds = toolIdsRes.rows.map((r) => r.tool_id);
-			if (toolIds.length === 0) {
-				result.push({ ...promo, tools: [] });
-				continue;
+			// Escopo das tools: applies_to_all → todas as visíveis; senão, as vinculadas
+			// em promotion_tool (vazio = promoção inerte → tools:[]).
+			let toolScope = sql`true`;
+			if (!promo.appliesToAll) {
+				const toolIdsRes = await db.execute<{ tool_id: string }>(sql`
+					SELECT tool_id FROM promotion_tool WHERE promotion_id = ${promo.id}
+				`);
+				const toolIds = toolIdsRes.rows.map((r) => r.tool_id);
+				if (toolIds.length === 0) {
+					return { ...promo, tools: [] };
+				}
+				toolScope = sql`t.id = ANY(${arrayLiteral(toolIds, "text[]")})`;
 			}
-			toolScope = sql`t.id = ANY(${arrayLiteral(toolIds, "text[]")})`;
-		}
 
-		const toolsRes = await db.execute<ToolListRow>(sql`
-			SELECT
-				t.id, t.slug, t.name, t.status,
-				dv.id AS variant_id,
-				dv.sku AS variant_sku,
-				dv.voltage AS variant_voltage,
-				dv.price_amount::text AS variant_price,
-				CASE
-					WHEN ${promo.discountType}::text = 'fixed'
-						THEN GREATEST(dv.price_amount - ${promo.discountValue}::numeric, 0)::text
-					ELSE ROUND(dv.price_amount * (1 - ${promo.discountValue}::numeric / 100), 2)::text
-				END AS discounted_amount,
-				${promo.id}::text AS active_promotion_id,
-				(SELECT COUNT(*) > 1 FROM tool_variant tv2 WHERE tv2.tool_id = t.id) AS has_other_variants,
-				(SELECT url FROM tool_image WHERE tool_id = t.id ORDER BY sort_order ASC LIMIT 1) AS primary_image_url,
-				COALESCE((
-					SELECT SUM(sl.quantity) > 0
-					FROM stock_level sl
-					JOIN tool_variant tv ON tv.id = sl.variant_id
-					WHERE tv.tool_id = t.id
-				), false) AS in_stock,
-				(SELECT AVG(r.rating)::numeric(3,2)::text FROM review r WHERE r.tool_id = t.id AND r.status = ${APPROVED}) AS avg_rating,
-				(SELECT COUNT(*)::int FROM review r WHERE r.tool_id = t.id AND r.status = ${APPROVED}) AS review_count,
-				pc.id AS cat_id,
-				pc.slug AS cat_slug,
-				pc.name AS cat_name
-			FROM tool t
-			INNER JOIN tool_variant dv ON dv.tool_id = t.id AND dv.is_default = true
-			LEFT JOIN tool_category tc ON tc.tool_id = t.id AND tc.is_primary = true
-			LEFT JOIN category pc ON pc.id = tc.category_id
-			WHERE ${toolScope}
-			  AND t.visible_on_site = true
-			  AND ${STOREFRONT_STATUS_SQL}
-			ORDER BY t.created_at DESC
-			LIMIT ${TOOLS_PER_PROMO}
-		`);
+			const toolsRes = await db.execute<ToolListRow>(sql`
+				SELECT
+					t.id, t.slug, t.name, t.status,
+					dv.id AS variant_id,
+					dv.sku AS variant_sku,
+					dv.voltage AS variant_voltage,
+					dv.price_amount::text AS variant_price,
+					CASE
+						WHEN ${promo.discountType}::text = 'fixed'
+							THEN GREATEST(dv.price_amount - ${promo.discountValue}::numeric, 0)::text
+						ELSE ROUND(dv.price_amount * (1 - ${promo.discountValue}::numeric / 100), 2)::text
+					END AS discounted_amount,
+					${promo.id}::text AS active_promotion_id,
+					(SELECT COUNT(*) > 1 FROM tool_variant tv2 WHERE tv2.tool_id = t.id) AS has_other_variants,
+					(SELECT url FROM tool_image WHERE tool_id = t.id ORDER BY sort_order ASC LIMIT 1) AS primary_image_url,
+					COALESCE((
+						SELECT SUM(sl.quantity) > 0
+						FROM stock_level sl
+						JOIN tool_variant tv ON tv.id = sl.variant_id
+						WHERE tv.tool_id = t.id
+					), false) AS in_stock,
+					(SELECT AVG(r.rating)::numeric(3,2)::text FROM review r WHERE r.tool_id = t.id AND r.status = ${APPROVED}) AS avg_rating,
+					(SELECT COUNT(*)::int FROM review r WHERE r.tool_id = t.id AND r.status = ${APPROVED}) AS review_count,
+					pc.id AS cat_id,
+					pc.slug AS cat_slug,
+					pc.name AS cat_name
+				FROM tool t
+				INNER JOIN tool_variant dv ON dv.tool_id = t.id AND dv.is_default = true
+				LEFT JOIN tool_category tc ON tc.tool_id = t.id AND tc.is_primary = true
+				LEFT JOIN category pc ON pc.id = tc.category_id
+				WHERE ${toolScope}
+				  AND t.visible_on_site = true
+				  AND ${STOREFRONT_STATUS_SQL}
+				ORDER BY t.created_at DESC
+				LIMIT ${TOOLS_PER_PROMO}
+			`);
 
-		result.push({
-			...promo,
-			tools: toolsRes.rows.map(rowToToolListItem),
-		});
-	}
+			return { ...promo, tools: toolsRes.rows.map(rowToToolListItem) };
+		})
+	);
 
 	return result;
 }
