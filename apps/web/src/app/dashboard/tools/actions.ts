@@ -39,6 +39,7 @@ import {
 	updateVariantSchema,
 } from "./_components/tool-schema";
 import { resolveVariantDeletion } from "./_components/variant-deletion";
+import { deleteToolVideoObject } from "./_components/video-actions";
 
 const TOOLS_PATH = "/dashboard/tools";
 
@@ -121,6 +122,8 @@ function normalizeToolPayload(input: ToolFormValues) {
 		heightCm: input.heightCm.toFixed(2),
 		overweightShippingAmount: toNumericString(input.overweightShippingAmount),
 		visibleOnSite: input.visibleOnSite,
+		videoUrl: input.videoUrl,
+		videoPosterUrl: input.videoPosterUrl,
 	};
 }
 
@@ -355,6 +358,12 @@ export async function updateTool(
 
 	let toDelete: { id: string; url: string }[] = [];
 
+	// Captura URLs de vídeo/poster antes da transação para limpeza de storage pós-commit
+	const [prevVideo] = await db
+		.select({ url: tool.videoUrl, poster: tool.videoPosterUrl })
+		.from(tool)
+		.where(eq(tool.id, id));
+
 	try {
 		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: transação coesa atualizando 5 entidades (tool, variants, images, categories, attribute assignments + values) com sincronização order-aware
 		await db.transaction(async (tx) => {
@@ -521,6 +530,14 @@ export async function updateTool(
 		await Promise.allSettled(toDelete.map((row) => deleteToolImage(row.url)));
 	}
 
+	// Limpa objeto de vídeo/poster antigo quando foi removido ou substituído
+	if (prevVideo?.url && prevVideo.url !== parsed.data.videoUrl) {
+		await deleteToolVideoObject(prevVideo.url).catch(() => undefined);
+		if (prevVideo.poster) {
+			await deleteToolImage(prevVideo.poster).catch(() => undefined);
+		}
+	}
+
 	await logUserActivity({
 		actorUserId: session.user.id,
 		action: "tool.updated",
@@ -547,6 +564,11 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 		.from(toolImage)
 		.where(eq(toolImage.toolId, id));
 
+	const [videoRow] = await db
+		.select({ url: tool.videoUrl, poster: tool.videoPosterUrl })
+		.from(tool)
+		.where(eq(tool.id, id));
+
 	const [orderedForTool] = await db
 		.select({ n: sql<number>`count(*)::int` })
 		.from(orderItem)
@@ -568,6 +590,14 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 
 	if (urls.length > 0) {
 		await Promise.allSettled(urls.map((row) => deleteToolImage(row.url)));
+	}
+
+	// Limpa objeto de vídeo/poster do storage após exclusão da ferramenta
+	if (videoRow?.url) {
+		await deleteToolVideoObject(videoRow.url).catch(() => undefined);
+		if (videoRow.poster) {
+			await deleteToolImage(videoRow.poster).catch(() => undefined);
+		}
 	}
 
 	await logUserActivity({
