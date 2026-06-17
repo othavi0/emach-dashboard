@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { db } from "@emach/db";
 import { promotion, promotionTool } from "@emach/db/schema/promotions";
 import { tool } from "@emach/db/schema/tools";
@@ -1008,12 +1009,12 @@ export async function getPromotionStatusCounts(): Promise<PromotionStatusCounts>
 // getToolOptions — opções {id, name} de ferramentas p/ selects e filtros
 // ---------------------------------------------------------------------------
 
-export async function getToolOptions(): Promise<
-	{ id: string; name: string }[]
-> {
-	await requireCurrentSession();
-	return db
-		.select({ id: tool.id, name: tool.name })
-		.from(tool)
-		.orderBy(asc(tool.name));
-}
+export const getToolOptions = cache(
+	async (): Promise<{ id: string; name: string }[]> => {
+		await requireCurrentSession();
+		return db
+			.select({ id: tool.id, name: tool.name })
+			.from(tool)
+			.orderBy(asc(tool.name));
+	},
+);

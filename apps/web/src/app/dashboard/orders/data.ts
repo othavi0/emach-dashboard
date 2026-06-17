@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "@emach/db";
 import {
 	REVENUE_ORDER_STATUSES,
@@ -242,25 +243,27 @@ export function getOrderTabCountsKey(status: OrderStatus): string {
 	return status;
 }
 
-export async function listOrderBranches(): Promise<BranchOption[]> {
-	const session = await requireCurrentSession();
-	const scope = await getUserBranchScope(session);
-	const query = db
-		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
-		.from(branch)
-		.orderBy(asc(branch.name));
-	if (scope.kind === "all") {
-		return query;
-	}
-	if (scope.branchIds.length === 0) {
-		return [];
-	}
-	return db
-		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
-		.from(branch)
-		.where(inArray(branch.id, scope.branchIds))
-		.orderBy(asc(branch.name));
-}
+export const listOrderBranches = cache(
+	async (): Promise<BranchOption[]> => {
+		const session = await requireCurrentSession();
+		const scope = await getUserBranchScope(session);
+		const query = db
+			.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
+			.from(branch)
+			.orderBy(asc(branch.name));
+		if (scope.kind === "all") {
+			return query;
+		}
+		if (scope.branchIds.length === 0) {
+			return [];
+		}
+		return db
+			.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
+			.from(branch)
+			.where(inArray(branch.id, scope.branchIds))
+			.orderBy(asc(branch.name));
+	},
+);
 
 export interface OrdersPageFiltersInput {
 	branchId?: string;
