@@ -40,6 +40,8 @@ export const EMPTY_TOOL_VALUES: ToolFormState = {
 	primaryCategoryId: "",
 	visibleOnSite: true,
 	images: [],
+	videoUrl: null,
+	videoPosterUrl: null,
 	variants: [
 		{
 			sku: "",
