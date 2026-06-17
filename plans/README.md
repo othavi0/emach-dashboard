@@ -140,7 +140,7 @@ Esta rodada cobriu correctness/security/tests/tech-debt/deps/dx/docs/direction �
 | 030 | structured-logger | P3 | M | LOW | dx | none | FIXED | DONE (onda 1, `4334879c`; requestId threading deferido) |
 | 031 | dependency-hygiene | P3 | S | LOW | dependencies | none | PASS | DONE (onda 2, `6b242456`; bun.lock gitignore mantido por decisão; postcss pinado pelo next) |
 | 032 | barrel-annotations-and-precommit | P3 | S | LOW | dx | none | FIXED | DONE (onda 3, `1017337e`; hooks instalam no próximo `bun install` via prepare) |
-| 033 | env-import-better-auth-url | P3 | S | LOW | security | none | FIXED | TODO |
+| 033 | env-import-better-auth-url | P3 | S | LOW | security | none | FIXED | DONE (onda 4, `bc50c82b`) |
 | 034 | lgpd-anonymization-spike | P2 | M | MED | direction | none | FIXED | TODO |
 | 035 | refund-request-actions-spike | P3 | M | MED | direction | none | FIXED | TODO |
 | 036 | reorder-point-alerts-spike | P3 | M | LOW | direction | none | FIXED | TODO |
