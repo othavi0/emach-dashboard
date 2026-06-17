@@ -129,7 +129,7 @@ Esta rodada cobriu correctness/security/tests/tech-debt/deps/dx/docs/direction �
 | 019 | fix-doc-drift | P2 | S | LOW | docs | none | FIXED | DONE (onda 1, `225eefca`) |
 | 020 | fix-revalidate-tag-banners | P2 | S | LOW | bug | none | PASS | DONE (onda 2, `1d882cf8`; premissa do plano corrigida: Next 16 exige 2º arg → `"max"`) |
 | 021 | invite-user-atomicity | P2 | M | MED | bug | none | FIXED | DONE (onda 2, `5e4a531c`) |
-| 022 | unlink-branch-last-branch-race | P2 | S | LOW | bug | none | FIXED | TODO |
+| 022 | unlink-branch-last-branch-race | P2 | S | LOW | bug | none | FIXED | DONE (onda 3, `aaf2f159`) |
 | 023 | tests-cpf-cnpj | P2 | S | LOW | tests | none (pairs with 025) | FIXED | DONE (onda 1, `c2c3c735`) |
 | 024 | tests-cron-cancel-stale-orders | P2 | S | LOW | tests | none | FIXED | DONE (onda 1, `150d7c3f`) |
 | 025 | dedup-cnpj-validator | P2 | S | LOW | tech-debt | plans/023-*.md (characterization tests for cpf-cnpj.ts) | FIXED | DONE (onda 2, `3d622414`) |
@@ -139,7 +139,7 @@ Esta rodada cobriu correctness/security/tests/tech-debt/deps/dx/docs/direction �
 | 029 | decompose-branch-stock-edit-sheet | P3 | M | MED | tech-debt | none | FIXED | DONE (onda 1, `387e1491`; code-review OK, smoke visual 3 modos pré-merge-to-main) |
 | 030 | structured-logger | P3 | M | LOW | dx | none | FIXED | DONE (onda 1, `4334879c`; requestId threading deferido) |
 | 031 | dependency-hygiene | P3 | S | LOW | dependencies | none | PASS | DONE (onda 2, `6b242456`; bun.lock gitignore mantido por decisão; postcss pinado pelo next) |
-| 032 | barrel-annotations-and-precommit | P3 | S | LOW | dx | none | FIXED | TODO |
+| 032 | barrel-annotations-and-precommit | P3 | S | LOW | dx | none | FIXED | DONE (onda 3, `1017337e`; hooks instalam no próximo `bun install` via prepare) |
 | 033 | env-import-better-auth-url | P3 | S | LOW | security | none | FIXED | TODO |
 | 034 | lgpd-anonymization-spike | P2 | M | MED | direction | none | FIXED | TODO |
 | 035 | refund-request-actions-spike | P3 | M | MED | direction | none | FIXED | TODO |

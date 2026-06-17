@@ -162,3 +162,26 @@ de produto. Ficam como docs no backlog até aprovação da direção.
    funções; 025 = linha de import do `normalizeCnpj`). git auto-merge resolveu (regiões
    distintas). **Lição: o mapa de colisão por-arquivo deve considerar que um plano de "guards
    amplos" toca muitos arquivos que outros planos também tocam por motivos diferentes.**
+
+### Onda 3 (planos 022, 028, 032) — INCIDENTE de coordenação (mais importante de logar)
+
+13. **lefthook auto-postinstall poluiu o `.git/hooks` COMPARTILHADO.** O caveat que dei ao 032
+   cobria o `lefthook install` MANUAL, mas o pacote npm do lefthook tem um **postinstall próprio**
+   que roda `lefthook install` — então o `bun add -d lefthook` do 032 (na worktree dele) instalou
+   shims (`pre-commit`, `prepare-commit-msg`) no `.git/hooks`, que git-worktrees **compartilham**
+   ($GIT_COMMON_DIR/hooks). Esses shims firaram nos meus cherry-picks de integração: o `bun fix`
+   do pre-commit reordenou um import em `suppliers/actions.ts` mas deixou a mudança fora do commit
+   (commit `1017337e` saiu com import desordenado → CI falharia o lint). Corrigido: removi os
+   shims + commitei a ordenação (`82d327a3`). **Lição: qualquer plano que adiciona lefthook (ou
+   tool com postinstall que instala git hooks) num repo com worktrees ativos polui o hooks
+   compartilhado. Mitigação: durante integração multi-commit, (a) remover shims antes de cada
+   onda, (b) NÃO rodar `bun install` no main tree (reativa via prepare), (c) passar
+   `--ignore-scripts` em executores que precisam de `bun install` após o prepare existir.**
+14. **Isolamento de branch furou: `advisor/028` acabou checked-out no MAIN tree.** O executor 028
+   rodou `git checkout -b advisor/028-...` na worktree dele, mas o branch acabou HEAD do **main
+   tree** (o executor real ficou em `worktree-agent-aa075b8d`). Meus cherry-picks de 022+032
+   caíram em `advisor/028` em vez de `chore`. Reparo: `git checkout chore` + `git merge --ff-only`
+   o commit + deletar a `advisor/028` órfã. **Lição: `git checkout -b <nome>` de um executor em
+   worktree pode vazar pro HEAD do main tree. Mitigação: NÃO instruir executores a criar branch
+   nomeada (a auto-branch `worktree-agent-*` da worktree basta); e SEMPRE conferir
+   `git branch --show-current` do main tree antes de cherry-pick.**
