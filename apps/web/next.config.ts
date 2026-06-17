@@ -1,4 +1,7 @@
+import bundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
+
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
 
 const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
 	? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
@@ -16,6 +19,14 @@ const nextConfig: NextConfig = {
 			// Margem para o overhead do multipart FormData acima do maior cap.
 			bodySizeLimit: "8mb",
 		},
+		optimizePackageImports: [
+			"recharts",
+			"motion",
+			"lucide-react",
+			"@dnd-kit/core",
+			"@dnd-kit/sortable",
+			"@dnd-kit/utilities",
+		],
 	},
 	images: supabaseHostname
 		? {
@@ -30,4 +41,4 @@ const nextConfig: NextConfig = {
 		: undefined,
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);
