@@ -48,8 +48,9 @@ describe("stockEntrySchema", () => {
 		if (!result.success) {
 			const paths = result.error.issues.map((i) => i.path[0]);
 			expect(paths).toContain("quantity");
-			const msg = result.error.issues.find((i) => i.path[0] === "quantity")
-				?.message;
+			const msg = result.error.issues.find(
+				(i) => i.path[0] === "quantity"
+			)?.message;
 			expect(msg).toBe("Quantidade deve ser maior que zero");
 		}
 	});
@@ -103,9 +104,7 @@ describe("stockEntrySchema", () => {
 		expect(result.success).toBe(false);
 		if (!result.success) {
 			const issue = result.error.issues.find((i) => i.path[0] === "note");
-			expect(issue?.message).toBe(
-				"Observação não pode exceder 500 caracteres"
-			);
+			expect(issue?.message).toBe("Observação não pode exceder 500 caracteres");
 		}
 	});
 });
