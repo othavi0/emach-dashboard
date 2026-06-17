@@ -1,13 +1,36 @@
-const isDev = process.env.NODE_ENV !== "production";
+function serializePayload(value: unknown): unknown {
+	if (value instanceof Error) {
+		return { name: value.name, message: value.message, stack: value.stack };
+	}
+	return value;
+}
 
 export const logger = {
 	error(scope: string, error: unknown): void {
-		// Erros logam sempre — em produção o stderr é capturado pela observabilidade
-		// do host (Vercel). É o canal permitido pelo CLAUDE.md (não console cru).
-		console.error(`[${scope}]`, error);
+		if (process.env.NODE_ENV === "production") {
+			console.error(
+				JSON.stringify({
+					level: "error",
+					scope,
+					ts: new Date().toISOString(),
+					payload: serializePayload(error),
+				})
+			);
+		} else {
+			console.error(`[${scope}]`, error);
+		}
 	},
 	info(scope: string, payload?: unknown): void {
-		if (isDev) {
+		if (process.env.NODE_ENV === "production") {
+			console.log(
+				JSON.stringify({
+					level: "info",
+					scope,
+					ts: new Date().toISOString(),
+					payload: serializePayload(payload),
+				})
+			);
+		} else {
 			console.info(`[${scope}]`, payload ?? "");
 		}
 	},
