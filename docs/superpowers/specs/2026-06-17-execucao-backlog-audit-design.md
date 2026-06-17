@@ -134,3 +134,31 @@ de produto. Ficam como docs no backlog até aprovação da direção.
 8. **030: requestId threading deferido** (scope guard respeitado — 62 call-sites intactos).
    Caminho futuro documentado: `AsyncLocalStorage` em `middleware.ts` lido dentro do logger, sem
    tocar a API pública.
+
+### Onda 2 (planos 012, 020, 021, 025, 026, 027, 031)
+
+9. **A review manual pegou um BUG REAL no 012 — o achado mais importante da execução.** O
+   refactor de `fetchDashboardActivity` (filtrar segmentos do feed por capability) tornou as
+   sub-queries condicionais, **introduzindo o caso de 1 bloco** (usuário com só uma das 3 caps
+   stock/orders/reviews). Sem wrap em derived table, `(SELECT...ORDER BY...) ORDER BY...` →
+   Postgres "multiple ORDER BY clauses not allowed" em runtime. `check-types` E os testes NÃO
+   pegaram (não exercitam o SQL de 1-bloco — exatamente a classe de bug que o
+   `packages/db/CLAUDE.md` diz só aparecer em smoke). Fix do integrador: `SELECT * FROM
+   (${union}) AS feed` (commit `a59bbf19`). **Lição dupla: (a) todo refactor que torna um UNION
+   condicional precisa do wrap derived-table; (b) foi a leitura manual do diff que pegou — nenhum
+   gate automático pegaria. A review cuidadosa de planos auth/SQL-críticos vale o custo.** Smoke
+   do feed com usuário de 1-cap = pré-prod.
+10. **Um plano podia estar errado: 020 corrigido pelo executor via doc oficial.** O finding
+   BUG-04 assumia que o 2º arg de `revalidateTag` era removível. No Next 16 ele é OBRIGATÓRIO e a
+   forma de 1-arg está deprecada. O executor investigou o type def, escolheu `"max"`, e eu
+   confirmei na doc oficial (context7: `"max"` = profile recomendado, stale-while-revalidate).
+   Desvio documentado e correto. **Lição: finding de auditoria pode carregar premissa de versão
+   errada — executor que investiga a API real vale mais que executor que segue o plano cegamente.**
+11. **`SendMessage` indisponível → REVISE virou fix-forward do integrador.** Não há tool pra
+   resumir um executor já despachado. Para o bug do 012, em vez de re-despachar, corrigi forward
+   no main (fix preciso e documentado no CLAUDE.md). Alternativa p/ bugs maiores: despachar um
+   Agent novo apontando pro worktree existente.
+12. **Overlap não previsto no mapa: 012 ∩ 025 em `suppliers/actions.ts`** (012 = guards nas
+   funções; 025 = linha de import do `normalizeCnpj`). git auto-merge resolveu (regiões
+   distintas). **Lição: o mapa de colisão por-arquivo deve considerar que um plano de "guards
+   amplos" toca muitos arquivos que outros planos também tocam por motivos diferentes.**
