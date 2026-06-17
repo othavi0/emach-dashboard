@@ -46,6 +46,7 @@ O server action de hoje sobe via base64/FormData e está capado em 5MB (`bodySiz
 
 **Client Supabase novo** — `apps/web/src/lib/supabase-browser.ts`:
 - `createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY)` sem persistência de sessão. Singleton exportado. O token assinado é o que autoriza o upload — a chave pública só identifica o projeto.
+- **Validar a env:** `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` ainda **não** está no schema de `packages/env/src/server.ts` (só `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`). Adicionar `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY: z.string().min(1)` ao schema — senão a ausência em prod (Vercel) não falha no boot e o `createClient` recebe `undefined` → `TypeError: Invalid URL` no primeiro upload. O prefixo `NEXT_PUBLIC_` basta pro Next expor ao browser, mas a env precisa estar declarada no schema pra ser validada.
 
 **Server action** — `apps/web/src/app/dashboard/tools/_components/video-actions.ts` (`"use server"`):
 - `createToolVideoUploadUrl(input: { contentType: string })`:
@@ -53,7 +54,7 @@ O server action de hoje sobe via base64/FormData e está capado em 5MB (`bodySiz
   2. Valida `contentType ∈ { video/mp4, video/webm }` (defesa server-side mínima; bytes não são vistos aqui).
   3. `path = \`${crypto.randomUUID()}.${ext}\``.
   4. `supabaseAdmin.storage.from(TOOL_VIDEOS_BUCKET).createSignedUploadUrl(path)` → retorna `ActionResult<{ path, token }>`.
-- `deleteToolVideoObject(url: string)`: `requireCapability("tools.update")` + `extractPublicUrlPath` + `removeStorageObject(TOOL_VIDEOS_BUCKET, path)`. Espelha `deleteToolImage`. Idem para o poster (via bucket de imagens, reusando `deleteToolImage`).
+- `deleteToolVideoObject(url: string)`: `requireCapability("tools.delete")` + `extractPublicUrlPath` + `removeStorageObject(TOOL_VIDEOS_BUCKET, path)`. **Espelha `deleteToolImage`, que usa `tools.delete`** (não `tools.update`) — manter a simetria com o delete de imagens. Idem para o poster (via bucket de imagens, reusando `deleteToolImage`).
 - Auditoria: `logUserActivity` em upload (`tool.video_uploaded`) e delete (`tool.video_deleted`), padrão de `image-actions.ts`.
 
 **Fluxo client** (no `tool-video-field.tsx`):
@@ -99,7 +100,8 @@ Util client puro de DOM — `apps/web/src/lib/video-poster.ts`:
 - `actions.ts`:
   - `createTool`: incluir `videoUrl`/`videoPosterUrl` no insert de `tool`.
   - `updateTool`: setar as colunas; se a URL antiga existia e mudou/foi removida, `deleteToolVideoObject(antiga)` + delete do poster antigo (best-effort, após o commit da transação, como já é feito com imagens em `Promise.allSettled`).
-- Campos **opcionais** → não entram em `STEP_FIELDS` (que governa navegação a passo com erro de campo **obrigatório**). Se tiverem erro de validação, mostrar no bloco do componente.
+  - `deleteTool`: **incluir `tool.video_url` e `tool.video_poster_url` no cleanup.** Hoje (`actions.ts` ~491-517) o `deleteTool` só busca URLs de `toolImage`; como as colunas de vídeo ficam em `tool` direto, sem isso o objeto em `tool-videos` e o poster viram órfãos permanentes ao deletar a ferramenta. Buscar as 2 colunas antes do delete e somá-las ao `Promise.allSettled` de limpeza.
+- **`STEP_FIELDS` (exhaustiveness assert):** `tool-form-steps.ts` tem um assert type-level que cobre **toda** chave de `ToolFormValues` — não só as obrigatórias. Adicionar `videoUrl`/`videoPosterUrl` ao step `publish` em `STEP_FIELDS` é **obrigatório** mesmo sendo campos opcionais, senão o build quebra (`["faltam campos em STEP_FIELDS:", "videoUrl" | "videoPosterUrl"]`). Os erros de validação continuam exibidos no bloco do componente (não como navegação de passo).
 
 ## 9. Tratamento de erro
 
@@ -125,12 +127,14 @@ Util client puro de DOM — `apps/web/src/lib/video-poster.ts`:
 |---|---|
 | `packages/db/src/schema/tools.ts` | +2 colunas em `tool` |
 | `apps/web/src/lib/supabase-server.ts` | +`TOOL_VIDEOS_BUCKET` |
+| `packages/env/src/server.ts` | +validação de `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` |
 | `apps/web/src/lib/supabase-browser.ts` | **novo** — client browser |
 | `apps/web/src/lib/video-poster.ts` | **novo** — captura de frame |
 | `apps/web/src/app/dashboard/tools/_components/video-actions.ts` | **novo** — signed URL + delete |
 | `apps/web/src/app/dashboard/tools/_components/tool-video-field.tsx` | **novo** — UI |
 | `apps/web/src/app/dashboard/tools/_components/tool-schema.ts` | +campos zod |
 | `apps/web/src/app/dashboard/tools/_components/tool-form-state.ts` | +defaults |
+| `apps/web/src/app/dashboard/tools/_components/tool-form-steps.ts` | +`videoUrl`/`videoPosterUrl` no step `publish` (exhaustiveness assert) |
 | `apps/web/src/app/dashboard/tools/_components/tool-sections.ts` (ou o passo de publish) | renderizar o novo campo |
 | `apps/web/src/app/dashboard/tools/actions.ts` | persistência + delete de órfão |
 | Supabase (infra) | criar bucket `tool-videos` |
