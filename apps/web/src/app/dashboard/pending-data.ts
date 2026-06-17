@@ -225,7 +225,7 @@ export async function fetchDashboardActivity(
 	]);
 
 	// Se o usuário não tem nenhuma capability, retornar vazio (fail-closed).
-	if (!canStock && !canOrders && !canReviews) {
+	if (!(canStock || canOrders || canReviews)) {
 		return { items: [], nextCursor: null };
 	}
 
@@ -281,6 +281,9 @@ export async function fetchDashboardActivity(
 	}
 
 	const unionQuery = sql.join(subqueries, sql` UNION ALL `);
+	// Envolver o UNION numa derived table: com 1 bloco só (usuário com apenas uma
+	// das capabilities) o ORDER BY externo colidiria com o ORDER BY interno
+	// ("multiple ORDER BY clauses not allowed"). Ver packages/db/CLAUDE.md.
 	const result = await db.execute<{
 		aux: string | null;
 		created_at: string;
@@ -290,7 +293,7 @@ export async function fetchDashboardActivity(
 		primary: string;
 		secondary: string | null;
 	}>(sql`
-		${unionQuery}
+		SELECT * FROM (${unionQuery}) AS feed
 		ORDER BY created_at DESC, id DESC
 		LIMIT ${BATCH_SIZE + 1}
 	`);
