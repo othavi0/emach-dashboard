@@ -25,6 +25,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
+import { HelpTooltip } from "@/components/help-tooltip";
 import { notify } from "@/lib/notify";
 
 import {
@@ -265,13 +266,15 @@ function TreeRow({
 				/>
 				<span className="flex-1" />
 				{!isCategoryComplete(node.attributeCount) && (
-					<Badge
-						className="border-warning/40 text-warning"
-						title={`Categoria incompleta: ${node.attributeCount} de ${MIN_CATEGORY_ATTRIBUTES} atributos efetivos (próprios + herdados). Ferramentas só podem ser cadastradas/ativadas em categorias completas.`}
-						variant="outline"
-					>
-						Incompleta · {node.attributeCount}/{MIN_CATEGORY_ATTRIBUTES}
-					</Badge>
+					<span className="inline-flex items-center gap-1">
+						<Badge className="border-warning/40 text-warning" variant="outline">
+							Incompleta · {node.attributeCount}/{MIN_CATEGORY_ATTRIBUTES}
+						</Badge>
+						<HelpTooltip
+							label="Por que a categoria está incompleta"
+							text={`Tem ${node.attributeCount} de ${MIN_CATEGORY_ATTRIBUTES} atributos efetivos (próprios + herdados). Ferramentas só podem ser cadastradas e ativadas em categorias completas.`}
+						/>
+					</span>
 				)}
 				<Badge variant={node.isActive ? "success" : "outline"}>
 					{node.isActive ? "Ativa" : "Inativa"}
