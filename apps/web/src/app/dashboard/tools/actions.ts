@@ -14,6 +14,7 @@ import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
+import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { getUserBranchScope } from "@/lib/branch-scope";
@@ -42,17 +43,6 @@ import { resolveVariantDeletion } from "./_components/variant-deletion";
 import { deleteToolVideoObject } from "./_components/video-actions";
 
 const TOOLS_PATH = "/dashboard/tools";
-
-function errorMessage(error: unknown): string {
-	// Erro do Postgres (drizzle embrulha em .cause): nunca vazar SQL cru no toast.
-	if (getPgError(error)) {
-		return "Não foi possível concluir a operação. Tente novamente.";
-	}
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro inesperado";
-}
 
 function toNumericString(value: number | null | undefined): string | null {
 	if (typeof value !== "number" || Number.isNaN(value)) {
@@ -226,7 +216,7 @@ export async function createTool(
 	const session = await requireCapability("tools.create");
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: errorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 	const categoryError = await primaryCategoryIncompleteError(
 		parsed.data.primaryCategoryId
@@ -315,7 +305,7 @@ export async function createTool(
 			}
 		});
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await logUserActivity({
@@ -336,7 +326,7 @@ export async function updateTool(
 	const session = await requireCapability("tools.update");
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: errorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 	// Gate só barra quando a primária MUDA para uma incompleta — não punir edição
 	// de tool cuja primária já existente degradou (deleção de atributo posterior),
@@ -357,16 +347,17 @@ export async function updateTool(
 	);
 
 	let toDelete: { id: string; url: string }[] = [];
-
-	// Captura URLs de vídeo/poster antes da transação para limpeza de storage pós-commit
-	const [prevVideo] = await db
-		.select({ url: tool.videoUrl, poster: tool.videoPosterUrl })
-		.from(tool)
-		.where(eq(tool.id, id));
+	let prevVideo: { url: string | null; poster: string | null } | undefined;
 
 	try {
 		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: transação coesa atualizando 5 entidades (tool, variants, images, categories, attribute assignments + values) com sincronização order-aware
 		await db.transaction(async (tx) => {
+			// Captura URLs de vídeo/poster dentro da transação — garante snapshot consistente
+			[prevVideo] = await tx
+				.select({ url: tool.videoUrl, poster: tool.videoPosterUrl })
+				.from(tool)
+				.where(eq(tool.id, id));
+
 			await tx.update(tool).set(payload).where(eq(tool.id, id));
 
 			// --- Variantes ---
@@ -523,7 +514,7 @@ export async function updateTool(
 			}
 		});
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	if (toDelete.length > 0) {
@@ -585,7 +576,7 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 	try {
 		await db.delete(tool).where(eq(tool.id, id));
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	if (urls.length > 0) {

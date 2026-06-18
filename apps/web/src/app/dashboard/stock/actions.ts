@@ -10,9 +10,8 @@ import { supplier, toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { revalidatePath } from "next/cache";
-
+import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
-import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 
 import {
@@ -48,18 +47,6 @@ interface AdjustStockSuccess {
 	movementId: string | null;
 	newQty: number;
 	previousQty: number;
-}
-
-function errorMessage(error: unknown): string {
-	// Erro do Postgres (drizzle embrulha em .cause): nunca vazar SQL+params no toast.
-	if (getPgError(error)) {
-		return "Não foi possível concluir a operação. Tente novamente.";
-	}
-	// Erros de domínio (ex: "Estoque não pode ficar negativo") são seguros de exibir.
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro desconhecido";
 }
 
 // ─── Helper transacional ──────────────────────────────────────────────────────
@@ -202,7 +189,7 @@ export async function recordStockEntry(
 		revalidatePath(`/dashboard/suppliers/${supplierId}`);
 		return { ok: true, data: result };
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -233,7 +220,7 @@ export async function recordStockWriteOff(
 		await revalidateStockPaths(variantId, branchId);
 		return { ok: true, data: result };
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -264,7 +251,7 @@ export async function adjustStock(
 		await revalidateStockPaths(variantId, branchId);
 		return { ok: true, data: result };
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -330,7 +317,7 @@ export async function updateStockThresholds(
 
 		return { ok: true, data: undefined };
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -359,6 +346,7 @@ export async function getStockMovements(
 	toolId: string,
 	limit = 50
 ): Promise<StockMovementRow[]> {
+	await requireCapability("stock.read");
 	return await db
 		.select({
 			id: stockMovement.id,
@@ -519,6 +507,7 @@ export async function getToolActivity(
 	toolId: string,
 	limit = 100
 ): Promise<ToolActivityRow[]> {
+	await requireCapability("stock.read");
 	return await db
 		.select({
 			id: stockMovement.id,

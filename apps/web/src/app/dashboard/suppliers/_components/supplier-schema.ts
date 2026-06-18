@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { isValidCnpj } from "@/lib/validation/cnpj";
+import { isValidCnpj } from "@/lib/cpf-cnpj";
 import { isValidPhoneBr } from "@/lib/validation/phone-br";
 
 const URL_RE = /^https?:\/\/.+/i;

@@ -110,6 +110,14 @@ function mockOverrides(rows: { capability: string; effect: string }[]) {
 	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
 }
 
+function mockBranchRows(branchIds: string[]) {
+	const where = vi.fn(() =>
+		Promise.resolve(branchIds.map((branchId) => ({ branchId })))
+	);
+	const from = vi.fn(() => ({ where }));
+	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+}
+
 describe("requireCapabilityWithContext — guards mantidos", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -335,5 +343,77 @@ describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)"
 		expect(caps.has("permissions.manage")).toBe(true);
 		// Não busca overrides para super_admin (early-return antes do db.select).
 		expect(db.select).not.toHaveBeenCalled();
+	});
+});
+
+describe("requireCapabilityWithContext — branch-scoping (assertBranchScope)", () => {
+	beforeEach(() => {
+		// resetAllMocks (não clearAllMocks) para limpar a fila mockReturnValueOnce
+		// que pode ter sobras de testes anteriores (ex: super_admin ignora overrides
+		// chama mockOverrides mas não consome o slot — early-return antes do db.select).
+		vi.resetAllMocks();
+	});
+
+	it("admin com targetBranchIds fora do escopo → rejeita", async () => {
+		// ID único = cache miss em getUserBranchScope (React.cache).
+		const s = {
+			user: { id: "bs-admin-1", status: "active", role: "admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		// 1º db.select: overrides (admin não tem early-return em getUserCapabilities).
+		mockOverrides([]);
+		// 2º db.select: userBranch rows → admin tem só b-sp.
+		mockBranchRows(["b-sp"]);
+		await expect(
+			requireCapabilityWithContext("orders.update_status", {
+				targetBranchIds: ["b-rj"],
+			})
+		).rejects.toThrow("Filial fora do seu escopo: b-rj");
+	});
+
+	it("admin com targetBranchIds dentro do escopo → resolve", async () => {
+		const s = {
+			user: { id: "bs-admin-2", status: "active", role: "admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
+		mockBranchRows(["b-sp"]);
+		await expect(
+			requireCapabilityWithContext("orders.update_status", {
+				targetBranchIds: ["b-sp"],
+			})
+		).resolves.toBe(s);
+	});
+
+	it("super_admin resolve para qualquer branch sem consultar escopo", async () => {
+		const s = {
+			user: { id: "bs-sa-1", status: "active", role: "super_admin" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		// super_admin: early-return em getUserCapabilities E em assertBranchScope.
+		// db.select NÃO deve ser chamado.
+		await expect(
+			requireCapabilityWithContext("orders.update_status", {
+				targetBranchIds: ["b-rj", "b-sp", "b-bh"],
+			})
+		).resolves.toBe(s);
+		expect(db.select).not.toHaveBeenCalled();
+	});
+
+	it("user sem vínculo (fail-closed) → rejeita para qualquer branch", async () => {
+		// Fail-closed: getUserBranchScope retorna branchIds:[] + includeUnassigned:false.
+		// Qualquer targetBranchIds → "Filial fora do seu escopo".
+		const s = {
+			user: { id: "bs-user-blind-1", status: "active", role: "user" },
+		} as never;
+		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		mockOverrides([]);
+		// Sem vínculo: DB retorna 0 rows.
+		mockBranchRows([]);
+		await expect(
+			requireCapabilityWithContext("orders.update_status", {
+				targetBranchIds: ["b-sp"],
+			})
+		).rejects.toThrow("Filial fora do seu escopo: b-sp");
 	});
 });

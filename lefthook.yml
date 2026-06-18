@@ -1,0 +1,17 @@
+# Lefthook — git hooks para o monorepo emach-dashboard
+# Docs: https://lefthook.dev/configuration/
+#
+# O hook `pre-commit` espelha o PostToolUse do harness Claude Code
+# (.claude/settings.json: `bun fix`), tornando o auto-format consistente
+# para commits humanos e outros clientes git.
+#
+# ATENÇÃO: não remover o PostToolUse do harness — lefthook e harness são
+# complementares (harness roda em Write/Edit; lefthook roda no git commit).
+# Os dois são idempotentes juntos.
+
+pre-commit:
+  jobs:
+    - name: lint-fix
+      run: bun fix
+    - name: stage-fixes
+      run: git add -u

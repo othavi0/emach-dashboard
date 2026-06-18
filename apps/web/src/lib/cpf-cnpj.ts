@@ -108,3 +108,10 @@ export function documentZodRefine(value: string): boolean {
 	}
 	return isValidDocument(value);
 }
+
+/**
+ * Alias de normalizeDocument restrito a CNPJ.
+ * Mantido para compatibilidade com importadores de validation/cnpj.
+ * Prefer normalizeDocument para uso genérico.
+ */
+export const normalizeCnpj = normalizeDocument;

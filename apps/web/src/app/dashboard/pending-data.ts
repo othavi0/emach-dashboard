@@ -215,22 +215,33 @@ export async function fetchExpiringPromotions(
 export async function fetchDashboardActivity(
 	cursor: string | null
 ): Promise<InfiniteResult<ActivityEvent>> {
-	await requireCurrentSession();
+	const session = await requireCurrentSession();
+	// Filtra sub-queries pelo capability da sessão — espelha fetchDashboardCounts.
+	// Usuário sem a capability não vê o segmento (retorna 0 linhas para ele).
+	const [canStock, canOrders, canReviews] = await Promise.all([
+		can(session, "stock.read"),
+		can(session, "orders.read"),
+		can(session, "reviews.read"),
+	]);
+
+	// Se o usuário não tem nenhuma capability, retornar vazio (fail-closed).
+	if (!(canStock || canOrders || canReviews)) {
+		return { items: [], nextCursor: null };
+	}
+
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
 	const keyset = (col: string, idExpr: string) =>
 		decoded
 			? sql`WHERE (${sql.raw(col)}, ${sql.raw(idExpr)}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 			: sql``;
-	const result = await db.execute<{
-		aux: string | null;
-		created_at: string;
-		href: string | null;
-		id: string;
-		kind: "order" | "review" | "stock";
-		primary: string;
-		secondary: string | null;
-	}>(sql`
-		(
+
+	// Constrói sub-queries condicionalmente; une com UNION ALL apenas os segmentos
+	// que o usuário pode ver.
+	// TODO(plan-012): branch-scope granular — ver plans/012-capability-guards-read-actions.md#maintenance-notes
+	const subqueries: ReturnType<typeof sql>[] = [];
+
+	if (canStock) {
+		subqueries.push(sql`(
 			SELECT 'stock-' || sm.id AS id, 'stock'::text AS kind, sm.created_at,
 				CASE WHEN sm.delta > 0 THEN '+' || sm.delta || ' un. ' || COALESCE(tv.sku, 'variante')
 					ELSE sm.delta || ' un. ' || COALESCE(tv.sku, 'variante') END AS primary,
@@ -240,9 +251,11 @@ export async function fetchDashboardActivity(
 			LEFT JOIN branch b ON b.id = sm.branch_id
 			${keyset("sm.created_at", "'stock-' || sm.id")}
 			ORDER BY sm.created_at DESC, 'stock-' || sm.id DESC LIMIT ${BATCH_SIZE + 1}
-		)
-		UNION ALL
-		(
+		)`);
+	}
+
+	if (canOrders) {
+		subqueries.push(sql`(
 			SELECT 'order-' || osh.id AS id, 'order'::text AS kind, osh.created_at,
 				'#' || o.number AS primary,
 				NULL::text AS secondary, '/dashboard/orders/' || o.id AS href,
@@ -251,9 +264,11 @@ export async function fetchDashboardActivity(
 			JOIN "order" o ON o.id = osh.order_id
 			${keyset("osh.created_at", "'order-' || osh.id")}
 			ORDER BY osh.created_at DESC, 'order-' || osh.id DESC LIMIT ${BATCH_SIZE + 1}
-		)
-		UNION ALL
-		(
+		)`);
+	}
+
+	if (canReviews) {
+		subqueries.push(sql`(
 			SELECT 'review-' || r.id AS id, 'review'::text AS kind, r.created_at,
 				'Review ' || r.rating || '★ · ' || COALESCE(t.name, 'ferramenta') AS primary,
 				NULL::text AS secondary, '/dashboard/reviews/' || r.id AS href,
@@ -262,7 +277,23 @@ export async function fetchDashboardActivity(
 			LEFT JOIN tool t ON t.id = r.tool_id
 			${keyset("r.created_at", "'review-' || r.id")}
 			ORDER BY r.created_at DESC, 'review-' || r.id DESC LIMIT ${BATCH_SIZE + 1}
-		)
+		)`);
+	}
+
+	const unionQuery = sql.join(subqueries, sql` UNION ALL `);
+	// Envolver o UNION numa derived table: com 1 bloco só (usuário com apenas uma
+	// das capabilities) o ORDER BY externo colidiria com o ORDER BY interno
+	// ("multiple ORDER BY clauses not allowed"). Ver packages/db/CLAUDE.md.
+	const result = await db.execute<{
+		aux: string | null;
+		created_at: string;
+		href: string | null;
+		id: string;
+		kind: "order" | "review" | "stock";
+		primary: string;
+		secondary: string | null;
+	}>(sql`
+		SELECT * FROM (${unionQuery}) AS feed
 		ORDER BY created_at DESC, id DESC
 		LIMIT ${BATCH_SIZE + 1}
 	`);

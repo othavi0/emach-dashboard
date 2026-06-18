@@ -110,3 +110,58 @@ Status: TODO | IN PROGRESS | DONE | BLOCKED (com motivo) | REJECTED (com motivo)
 - Rotas `stock/branches`, `stock/movements`, `reviews`, `promotions` em
   profundidade de query.
 - Tree-shaking do barrel de `@emach/ui` (`packages/ui`).
+
+---
+
+## Audit fresco — todas as categorias (rodada 2026-06-17, commit 79379ef5, branch chore/improve-audit-2026-06)
+
+Esta rodada cobriu correctness/security/tests/tech-debt/deps/dx/docs/direction — todas as categorias exceto performance, que já foi auditada em profundidade nos planos 001-011 acima. Foi gerada pela skill `improve` em escopo completo contra o commit `79379ef5` no branch `chore/improve-audit-2026-06`.
+
+| Plano | Slug | Prioridade | Esforço | Risco | Categoria | Depende de | Review | Status |
+|-------|------|------------|---------|-------|-----------|------------|--------|--------|
+| 012 | capability-guards-read-actions | P1 | M | MED | security | none (014 recomendado em paralelo) | FIXED | DONE (onda 2, `ad24705c`; +fix 1-bloco `a59bbf19`; smoke 1-cap activity feed pré-prod) |
+| 013 | assign-branch-lock-authorization | P1 | S | LOW | security | none | PASS | DONE (onda 1, `8fccf543`; smoke multi-role recomendado pré-prod) |
+| 014 | tests-branch-scope-capability | P1 | S | LOW | tests | none | FIXED | DONE (onda 1, `225eefca`) |
+| 015 | tests-apply-stock-returns | P1 | S | LOW | tests | none | PASS | DONE (onda 1, `225eefca`) |
+| 016 | consolidate-action-error-message | P1 | S | LOW | tech-debt | none | FIXED | DONE (onda 1, `225eefca`) |
+| 017 | ci-test-gate-and-verify-script | P1 | S | LOW | dx | none | FIXED | DONE (onda 1, `98fda766`) |
+| 018 | env-example-required-vars | P2 | S | LOW | dx | none | FIXED | DONE (onda 1, `225eefca`) |
+| 019 | fix-doc-drift | P2 | S | LOW | docs | none | FIXED | DONE (onda 1, `225eefca`) |
+| 020 | fix-revalidate-tag-banners | P2 | S | LOW | bug | none | PASS | DONE (onda 2, `1d882cf8`; premissa do plano corrigida: Next 16 exige 2º arg → `"max"`) |
+| 021 | invite-user-atomicity | P2 | M | MED | bug | none | FIXED | DONE (onda 2, `5e4a531c`) |
+| 022 | unlink-branch-last-branch-race | P2 | S | LOW | bug | none | FIXED | DONE (onda 3, `aaf2f159`) |
+| 023 | tests-cpf-cnpj | P2 | S | LOW | tests | none (pairs with 025) | FIXED | DONE (onda 1, `c2c3c735`) |
+| 024 | tests-cron-cancel-stale-orders | P2 | S | LOW | tests | none | FIXED | DONE (onda 1, `150d7c3f`) |
+| 025 | dedup-cnpj-validator | P2 | S | LOW | tech-debt | plans/023-*.md (characterization tests for cpf-cnpj.ts) | FIXED | DONE (onda 2, `3d622414`) |
+| 026 | update-tool-video-in-transaction | P3 | S | LOW | bug | none | FIXED | DONE (onda 2, `bee932ac`) |
+| 027 | security-response-headers | P2 | M | MED | security | none | FIXED | DONE (onda 2, `42906fd0`; CSP report-only) |
+| 028 | split-god-module-actions | P3 | M | MED | tech-debt | none | FIXED | BLOCKED (build falha: re-export em arquivo `"use server"` só aceita async fn — ver abaixo) |
+| 029 | decompose-branch-stock-edit-sheet | P3 | M | MED | tech-debt | none | FIXED | DONE (onda 1, `387e1491`; code-review OK, smoke visual 3 modos pré-merge-to-main) |
+| 030 | structured-logger | P3 | M | LOW | dx | none | FIXED | DONE (onda 1, `4334879c`; requestId threading deferido) |
+| 031 | dependency-hygiene | P3 | S | LOW | dependencies | none | PASS | DONE (onda 2, `6b242456`; bun.lock gitignore mantido por decisão; postcss pinado pelo next) |
+| 032 | barrel-annotations-and-precommit | P3 | S | LOW | dx | none | FIXED | DONE (onda 3, `1017337e`; hooks instalam no próximo `bun install` via prepare) |
+| 033 | env-import-better-auth-url | P3 | S | LOW | security | none | FIXED | DONE (onda 4, `bc50c82b`) |
+| 034 | lgpd-anonymization-spike | P2 | M | MED | direction | none | FIXED | TODO |
+| 035 | refund-request-actions-spike | P3 | M | MED | direction | none | FIXED | TODO |
+| 036 | reorder-point-alerts-spike | P3 | M | LOW | direction | none | FIXED | TODO |
+| 037 | bulk-moderation-actions-spike | P3 | M | LOW | direction | none | PASS | TODO |
+
+### Notas de dependência (rodada 2026-06-17)
+
+- **012** (capability guards em read actions) recomenda **014** (testes de branch-scope/capability) antes ou em paralelo — os testes caracterizam o comportamento atual e evitam regressão silenciosa ao adicionar os guards.
+- **025** (dedup CNPJ validator) depende de **023** (testes de characterization de cpf-cnpj.ts) — consolidar sem cobertura de testes é risco de regressão.
+- **028** e **029** são refactors de risco MED — rodar smoke visual nas rotas afetadas (actions de pedidos e sheet de estoque de filial) antes de marcar DONE.
+- **034-037** são SPIKE/DESIGN — aprovar a direção com o produto antes de iniciar qualquer implementação; entregável é um documento de decisão, não código.
+
+### Findings considered and rejected (rodada 2026-06-17)
+
+- Credenciais reais em `apps/web/.env.example` (SECURITY-01): REJEITADO — alucinação do auditor; o arquivo só contém placeholders (`"<32+ chars random>"`, `"eyJ..."`, `"<password>"`, `"<64 chars hex>"`) e o relatório inventou chaves (RESEND/GOOGLE/UPSTASH/SUPERFRETE) que não existem nele. Verificado lendo o arquivo.
+- `updateToolVariant` sem branch-scope (SECURITY-09): REJEITADO — catálogo é global por design (ADR-0016); mutação de variante de tool é intencionalmente não branch-scoped.
+- `sql.raw` com strings hardcoded (SECURITY-10): REJEITADO — todos os inputs são literais de compile-time; seguro hoje, risco apenas latente; LOW.
+- dev-preview só checa `NODE_ENV` no layout (SECURITY-11): REJEITADO — o guard funciona (`notFound` em prod); só fragilidade futura, LOW.
+- shadcn/hono advisories (DEPS-05): REJEITADO — dev-only (gerador de código), não afeta build de produção.
+- Falhas de `banner-schema.test.ts`: REJEITADO — não falham mais (54/359 verdes); eram pré-existentes já corrigidas.
+
+### Não auditado nesta rodada
+
+Performance foi auditada na rodada anterior (001-011). Itens de Tier 4 e Direction são backlog — os planos 034-037 capturam as oportunidades de direção identificadas, mas dependem de aprovação de produto antes de execução.

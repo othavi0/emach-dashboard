@@ -409,13 +409,26 @@ export async function assignBranch(
 
 	const { orderId, branchId } = parsed.data;
 
-	// Branch-scoping: actor must have access to the branch being assigned.
-	await requireCapabilityWithContext("orders.update_status", {
-		targetBranchIds: [branchId],
-	});
-
 	try {
 		await db.transaction(async (tx) => {
+			// Lock the order row and authorize against the *current* branchId —
+			// closes the cross-branch hijack window (SECURITY-02).
+			const locked = await lockOrderAndAuthorize(
+				tx,
+				"orders.update_status",
+				orderId
+			);
+
+			if (!locked) {
+				throw new Error("Pedido não encontrado");
+			}
+
+			// After the lock, also assert the actor can write to the *destination*
+			// branch (e.g. an admin must have scope there too).
+			await requireCapabilityWithContext("orders.update_status", {
+				targetBranchIds: [branchId],
+			});
+
 			await tx.update(order).set({ branchId }).where(eq(order.id, orderId));
 
 			const [branchRow] = await tx
@@ -428,7 +441,7 @@ export async function assignBranch(
 				orderId,
 				eventType: "branch_assigned",
 				metadata: { branchId, branchName: branchRow?.name ?? branchId },
-				actorUserId: null,
+				actorUserId: locked.session.user.id, // BUG-02 fix: ação humana
 			});
 		});
 
@@ -436,6 +449,12 @@ export async function assignBranch(
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("assignBranch", error);
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para alterar este pedido." };
+		}
+		if (error instanceof Error && error.message === "Pedido não encontrado") {
+			return { ok: false, error: "Pedido não encontrado" };
+		}
 		return { ok: false, error: "Erro ao atribuir filial" };
 	}
 }

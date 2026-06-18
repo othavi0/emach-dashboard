@@ -5,14 +5,14 @@ import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
 import { supplier } from "@emach/db/schema/tools";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { getUserBranchScope } from "@/lib/branch-scope";
+import { normalizeCnpj } from "@/lib/cpf-cnpj";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
-import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
-import { normalizeCnpj } from "@/lib/validation/cnpj";
 import {
 	type SupplierFormValues,
 	supplierSchema,
@@ -46,17 +46,6 @@ function normalizePayload(input: SupplierFormValues) {
 	};
 }
 
-function errorMessage(error: unknown): string {
-	// Erro do Postgres (drizzle embrulha em .cause): nunca vazar SQL cru no toast.
-	if (getPgError(error)) {
-		return "Não foi possível concluir a operação. Tente novamente.";
-	}
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro inesperado";
-}
-
 type SupplierBaseRow = typeof supplier.$inferSelect;
 
 export async function fetchSuppliersPage({
@@ -66,6 +55,7 @@ export async function fetchSuppliersPage({
 	filters: SuppliersFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<SupplierBaseRow>> {
+	await requireCapability("suppliers.read");
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const conditions: ReturnType<typeof sql>[] = [];
 
@@ -127,6 +117,7 @@ export async function fetchSuppliersTablePage({
 	filters: SuppliersFiltersInput;
 	cursor: string | null;
 }) {
+	await requireCapability("suppliers.read");
 	const { getSupplierTableAggregates } = await import("./data");
 	const page = await fetchSuppliersPage({ filters, cursor });
 	if (page.items.length === 0) {
@@ -157,7 +148,7 @@ export async function createSupplier(
 
 	const parsed = supplierSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: errorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 
 	const id = crypto.randomUUID();
@@ -166,7 +157,7 @@ export async function createSupplier(
 	try {
 		await db.insert(supplier).values({ id, ...payload });
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await db.insert(supplierAuditLog).values({
@@ -198,7 +189,7 @@ export async function updateSupplier(
 
 	const parsed = supplierSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: errorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 
 	const payload = normalizePayload(parsed.data);
@@ -223,7 +214,7 @@ export async function updateSupplier(
 	try {
 		await db.update(supplier).set(payload).where(eq(supplier.id, id));
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await db.insert(supplierAuditLog).values({
@@ -269,7 +260,7 @@ async function setSupplierStatus(
 	try {
 		await db.update(supplier).set({ status: next }).where(eq(supplier.id, id));
 	} catch (error) {
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await db.insert(supplierAuditLog).values({

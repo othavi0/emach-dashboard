@@ -4,9 +4,9 @@ import { db } from "@emach/db";
 import { banner } from "@emach/db/schema/banner";
 import { and, asc, count, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
-import { getPgError } from "@/lib/db-error";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import {
@@ -16,16 +16,6 @@ import {
 } from "./_components/banner-schema";
 
 const BANNERS_PATH = "/dashboard/site/banners";
-
-function errorMessage(error: unknown): string {
-	if (getPgError(error)) {
-		return "Não foi possível concluir a operação. Tente novamente.";
-	}
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro inesperado";
-}
 
 async function countActive(excludeId?: string): Promise<number> {
 	const where = excludeId
@@ -103,11 +93,11 @@ export async function createBanner(
 			metadata: { title: v.title },
 		});
 		revalidatePath(BANNERS_PATH);
-		revalidateTag("site-banners", {});
+		revalidateTag("site-banners", "max");
 		return { ok: true, data: { id } };
 	} catch (error) {
 		logger.error("createBanner", { err: error });
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -159,11 +149,11 @@ export async function updateBanner(
 			metadata: { title: v.title },
 		});
 		revalidatePath(BANNERS_PATH);
-		revalidateTag("site-banners", {});
+		revalidateTag("site-banners", "max");
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateBanner", { err: error });
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -187,11 +177,11 @@ export async function toggleBannerActive(
 			targetId: id,
 		});
 		revalidatePath(BANNERS_PATH);
-		revalidateTag("site-banners", {});
+		revalidateTag("site-banners", "max");
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("toggleBannerActive", { err: error });
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -209,11 +199,11 @@ export async function reorderBanners(
 			}
 		});
 		revalidatePath(BANNERS_PATH);
-		revalidateTag("site-banners", {});
+		revalidateTag("site-banners", "max");
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("reorderBanners", { err: error });
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
@@ -246,10 +236,10 @@ export async function deleteBanner(id: string): Promise<ActionResult> {
 			targetId: id,
 		});
 		revalidatePath(BANNERS_PATH);
-		revalidateTag("site-banners", {});
+		revalidateTag("site-banners", "max");
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("deleteBanner", { err: error });
-		return { ok: false, error: errorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
