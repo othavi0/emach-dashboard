@@ -100,11 +100,13 @@ sinalizar as esperas same-path.
 ## Acessibilidade e motion (defaults de boa prática)
 
 - A barra é `aria-hidden`.
-- Região `aria-live="polite"` visualmente escondida anuncia "Carregando…" no
-  início da navegação — a barra visual sozinha não é anunciada a leitor de tela.
-  (Avaliar na implementação se o BProgress já oferece hook de start/stop para
-  alimentar a região; senão, um pequeno componente cliente que observa o estado
-  via `useProgress`.)
+- Região `aria-live="polite"` visualmente escondida (`NavigationAnnouncer`)
+  anuncia "Página carregada" na **conclusão** da navegação (observa `usePathname`,
+  que só atualiza no commit) — a barra visual sozinha não é anunciada a leitor de
+  tela. Decisão: anunciar na conclusão (não "Carregando…" no início) é mais
+  adequado para `aria-live="polite"` — evita anunciar um estado que pode resolver
+  em <100ms. Detectar o início exigiria internals do BProgress; a conclusão é
+  suficiente e robusta.
 - `prefers-reduced-motion`: manter a barra (transição de posição é suave); sem
   efeitos extras.
 
