@@ -18,6 +18,7 @@ import { REVIEW_STATUS_LABELS, type ReviewStatus } from "./reviews/status-meta";
 
 export interface DashboardCounts {
 	orders: number;
+	pendingUsers: number;
 	promotionsExpiring: number;
 	reviews: number;
 	stock: number;
@@ -336,9 +337,10 @@ export const fetchDashboardCounts = cache(
 		// Counts de domínios restritos só são computados/expostos com a capability:
 		// protege o endpoint (server action) e o badge da sidebar (layout), não só a
 		// renderização da UI. Sem acesso → `0` (a subquery nem roda).
-		const [canReviews, canPromotions] = await Promise.all([
+		const [canReviews, canPromotions, canApproveUsers] = await Promise.all([
 			can(session, "reviews.read"),
 			can(session, "promotions.read"),
+			can(session, "users.approve"),
 		]);
 		const reviewsExpr = canReviews
 			? sql`(SELECT COUNT(*)::int FROM review WHERE status = 'pending')`
@@ -348,8 +350,15 @@ export const fetchDashboardCounts = cache(
 				WHERE active = true AND ends_at IS NOT NULL
 				AND ends_at BETWEEN now() AND now() + INTERVAL '7 days')`
 			: sql`0`;
+		// Contagem de usuários pendentes (badge da sidebar) é fundida nesta mesma
+		// query — antes era um round-trip separado no layout. Gated por
+		// users.approve (mesmo cap que controla a visibilidade do grupo Administração).
+		const pendingUsersExpr = canApproveUsers
+			? sql`(SELECT COUNT(*)::int FROM "user" WHERE status = 'pending')`
+			: sql`0`;
 		const result = await db.execute<{
 			orders: number;
+			pending_users: number;
 			promotions_expiring: number;
 			reviews: number;
 			stock: number;
@@ -359,7 +368,8 @@ export const fetchDashboardCounts = cache(
 				WHERE quantity = 0 OR (reorder_point > 0 AND quantity <= reorder_point)) AS stock,
 			(SELECT COUNT(*)::int FROM "order" WHERE status = 'paid') AS orders,
 			${reviewsExpr} AS reviews,
-			${promotionsExpr} AS promotions_expiring
+			${promotionsExpr} AS promotions_expiring,
+			${pendingUsersExpr} AS pending_users
 	`);
 		const row = result.rows[0];
 		if (!row) {
@@ -367,6 +377,7 @@ export const fetchDashboardCounts = cache(
 		}
 		return {
 			orders: row.orders,
+			pendingUsers: row.pending_users,
 			promotionsExpiring: row.promotions_expiring,
 			reviews: row.reviews,
 			stock: row.stock,

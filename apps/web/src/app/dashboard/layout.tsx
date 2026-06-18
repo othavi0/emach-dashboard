@@ -1,11 +1,8 @@
-import { db } from "@emach/db";
-import { user as userTable } from "@emach/db/schema/auth";
 import {
 	SidebarInset,
 	SidebarProvider,
 	SidebarTrigger,
 } from "@emach/ui/components/sidebar";
-import { count, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -42,18 +39,12 @@ export default async function DashboardLayout({
 	]);
 	const capabilities = [...capsSet];
 
-	const [pendingCountRow, counts] = await Promise.all([
-		canManageUsers
-			? db
-					.select({ value: count() })
-					.from(userTable)
-					.where(eq(userTable.status, "pending"))
-					.then((rows) => rows[0])
-			: Promise.resolve(undefined),
-		fetchDashboardCounts(),
-	]);
-
-	const pendingCount = Number(pendingCountRow?.value ?? 0);
+	// Counts NÃO são aguardados: a promise flui para a sidebar e cada badge a
+	// consome sob <Suspense> (use()), permitindo que a casca da nav (que só
+	// depende de session+capabilities) renderize imediatamente. fetchDashboardCounts
+	// é memoizado por request (cache()), então a page (PendingSection) compartilha
+	// a mesma query sem round-trip extra.
+	const countsPromise = fetchDashboardCounts();
 
 	const cookieStore = await cookies();
 	const sidebarOpen = parseSidebarCookie(
@@ -65,10 +56,7 @@ export default async function DashboardLayout({
 			<AppSidebar
 				canManageUsers={canManageUsers}
 				capabilities={capabilities}
-				orderCount={counts.orders}
-				pendingCount={pendingCount}
-				reviewCount={counts.reviews}
-				stockCount={counts.stock}
+				countsPromise={countsPromise}
 				user={{
 					id: session.user.id,
 					name: session.user.name,

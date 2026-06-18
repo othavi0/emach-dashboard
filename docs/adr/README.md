@@ -27,6 +27,7 @@ Decisões de arquitetura do dashboard. Cada ADR registra **uma** decisão não-�
 | [0017](0017-permissoes-por-usuario.md)                   | Permissões por usuário (overrides de capability)     | 2026-06-15 | Aceito — estende 0016           |
 | [0018](0018-read-actions-enforçam-capability.md)         | Read server actions enforçam capability              | 2026-06-17 | Aceito — estende 0016           |
 | [0019](0019-split-god-module-data-lib.md)                | Split de god-module em `data.ts` + `_lib` + `actions.ts` | 2026-06-18 | Aceito — estende 0018       |
+| [0020](0020-cookie-cache-sessao-dashboard.md)           | `cookieCache` na sessão do dashboard (staleness aceita) | 2026-06-18 | Aceito — relaciona 0016     |
 
 ## Cadeias de decisão
 

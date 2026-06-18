@@ -54,6 +54,21 @@ export const authDashboard = betterAuth({
 	},
 	secret: env.BETTER_AUTH_SECRET,
 	baseURL: dashboardBaseURL,
+	session: {
+		// cookieCache: serve a sessão de um cookie assinado por até maxAge,
+		// evitando o round-trip ao Postgres em todo request (o gargalo de
+		// latência percebida no hard load do dashboard — issue #223).
+		// TRADE-OFF P0 (aceito conscientemente, ADR-0020): o gate de status/role
+		// passa a ter staleness de até maxAge — um usuário recém-suspenso ou
+		// rebaixado mantém acesso até o cookie cache expirar. O cookie vive no
+		// browser do alvo e NÃO é invalidável remotamente; suspendUser/updateUser/
+		// deleteUser já deletam as sessões no DB, então o lockout efetiva quando o
+		// cache expira (≤ maxAge). Manter maxAge curto.
+		cookieCache: {
+			enabled: true,
+			maxAge: 60,
+		},
+	},
 	plugins: [nextCookies()],
 	databaseHooks: {
 		session: {

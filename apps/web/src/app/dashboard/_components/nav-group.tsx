@@ -6,15 +6,16 @@ import {
 	SidebarGroupLabel,
 	SidebarMenu,
 } from "@emach/ui/components/sidebar";
-import type { BadgeKey, NavGroupConfig } from "./nav-config";
+import type { DashboardCounts } from "../pending-data";
+import type { NavGroupConfig } from "./nav-config";
 import { NavItem } from "./nav-item";
 
 export function NavGroup({
 	group,
-	badges,
+	countsPromise,
 }: {
 	group: NavGroupConfig;
-	badges: Partial<Record<BadgeKey, number>>;
+	countsPromise: Promise<DashboardCounts>;
 }) {
 	return (
 		<SidebarGroup>
@@ -27,10 +28,7 @@ export function NavGroup({
 							key={item.href}
 							style={{ animationDelay: `${index * 25}ms` }}
 						>
-							<NavItem
-								badgeCount={item.badgeKey ? badges[item.badgeKey] : undefined}
-								item={item}
-							/>
+							<NavItem countsPromise={countsPromise} item={item} />
 						</div>
 					))}
 				</SidebarMenu>
