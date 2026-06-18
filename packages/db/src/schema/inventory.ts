@@ -87,6 +87,14 @@ export const stockLevel = pgTable(
 		primaryKey({ columns: [table.variantId, table.branchId] }),
 		index("stock_level_variant_id_idx").on(table.variantId),
 		index("stock_level_branch_id_idx").on(table.branchId),
+		// Índice parcial para o count de estoque pendente (badge da sidebar +
+		// painel de pendências): cobre exatamente o predicado da query, evitando
+		// seq scan. O `WHERE` espelha fetchDashboardCounts/fetchPendingStock.
+		index("stock_level_pending_idx")
+			.on(table.quantity)
+			.where(
+				sql`${table.quantity} = 0 OR (${table.reorderPoint} > 0 AND ${table.quantity} <= ${table.reorderPoint})`
+			),
 		check("min_qty_non_negative", sql`${table.minQty} >= 0`),
 		check("reorder_point_non_negative", sql`${table.reorderPoint} >= 0`),
 		check("reorder_gte_min", sql`${table.reorderPoint} >= ${table.minQty}`),

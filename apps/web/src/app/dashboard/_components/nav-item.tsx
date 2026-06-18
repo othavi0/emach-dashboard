@@ -1,26 +1,27 @@
 "use client";
 
 import {
-	SidebarMenuBadge,
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@emach/ui/components/sidebar";
 import { cn } from "@emach/ui/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
+import type { DashboardCounts } from "../pending-data";
+import { NavBadge } from "./nav-badge";
 import { isNavItemActive, type NavItemConfig } from "./nav-config";
 
 export function NavItem({
 	item,
-	badgeCount,
+	countsPromise,
 }: {
 	item: NavItemConfig;
-	badgeCount?: number;
+	countsPromise: Promise<DashboardCounts>;
 }) {
 	const pathname = usePathname();
 	const active = isNavItemActive(pathname, item.href, item.exact);
 	const Icon = item.icon;
-	const showBadge = typeof badgeCount === "number" && badgeCount > 0;
 
 	if (item.disabled) {
 		return (
@@ -56,10 +57,10 @@ export function NavItem({
 				}
 				tooltip={item.label}
 			/>
-			{showBadge && (
-				<SidebarMenuBadge className="bg-secondary text-secondary-foreground peer-data-active/menu-button:text-secondary-foreground">
-					{badgeCount}
-				</SidebarMenuBadge>
+			{item.badgeKey && (
+				<Suspense fallback={null}>
+					<NavBadge badgeKey={item.badgeKey} countsPromise={countsPromise} />
+				</Suspense>
 			)}
 		</SidebarMenuItem>
 	);

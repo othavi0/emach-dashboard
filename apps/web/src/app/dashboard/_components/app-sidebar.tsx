@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import type { Capability } from "@/lib/permissions";
+import type { DashboardCounts } from "../pending-data";
 import { CommandPalette } from "./command-palette";
 import { DASHBOARD_HREF, NAV_GROUPS } from "./nav-config";
 import { NavGroup } from "./nav-group";
@@ -20,29 +21,17 @@ import { type FooterUser, SidebarFooterUser } from "./sidebar-footer-user";
 interface AppSidebarProps {
 	canManageUsers: boolean;
 	capabilities: Capability[];
-	orderCount: number;
-	pendingCount: number;
-	reviewCount: number;
-	stockCount: number;
+	countsPromise: Promise<DashboardCounts>;
 	user: FooterUser | null | undefined;
 }
 
 export function AppSidebar({
 	canManageUsers,
 	capabilities,
-	orderCount,
-	reviewCount,
-	pendingCount,
-	stockCount,
+	countsPromise,
 	user,
 }: AppSidebarProps) {
 	const [commandOpen, setCommandOpen] = useState(false);
-	const badges = {
-		orders: orderCount,
-		reviews: reviewCount,
-		users: pendingCount,
-		stock: stockCount,
-	} as const;
 
 	const capSet = new Set(capabilities);
 
@@ -85,7 +74,11 @@ export function AppSidebar({
 
 			<SidebarContent>
 				{groups.map((group) => (
-					<NavGroup badges={badges} group={group} key={group.label} />
+					<NavGroup
+						countsPromise={countsPromise}
+						group={group}
+						key={group.label}
+					/>
 				))}
 			</SidebarContent>
 
