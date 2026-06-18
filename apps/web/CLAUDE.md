@@ -16,6 +16,8 @@ Dashboard Next 16 / React 19. Regras gerais (auth invariantes, anti-patterns, go
 
 **O padrão obrigatório em server actions continua sendo `await requireCapability(cap)` ou `requireCapabilityWithContext(cap, ctx)`** — assim, quando religar, todos os endpoints já estão cobertos sem varredura. **Nunca remover essas chamadas; novos endpoints precisam delas.**
 
+**Inclui as READ actions** (`fetch*`/`list*`/`get*` exportadas de um `actions.ts`): são endpoints POST chamáveis por qualquer sessão, **não só as mutations**. O audit de 2026-06 achou ~15 reads sem guard (branches/suppliers/stock/categories) e adicionou `<recurso>.read`. **Exceção:** funções em `data.ts`/`*-data.ts` são `server-only` (não-endpoints, guardadas pelo caller) — não precisam de guard próprio. Ver ADR-0018.
+
 Guard-rails mantidos dentro dos no-ops:
 
 - `ensureActive(session)` — bloqueia `pending` / `suspended` (defesa-em-profundidade).
@@ -119,6 +121,8 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 
 `cacheTag` por feature (`'orders'`, `'customers'`, `'site-banners'`...). `revalidateTag` em mutations. Ver skill `next-cache-components`.
 
+- **Next 16 exige o 2º arg `revalidateTag(tag, profile)`** — a forma de 1 arg está **deprecada** e quebra o build (`check-types` aceita, build NÃO). Usar `revalidateTag(tag, "max")` (profile recomendado, stale-while-revalidate). Canônico: `site/banners/actions.ts`.
+
 **Dedup request-scoped sem Cache Components:** fetcher chamado em mais de um lugar no mesmo render (ex: `fetchDashboardCounts` no `layout.tsx` para badges **e** na `page.tsx` para o painel) → envolver em `cache()` do `react`. Dedupa a query no mesmo request sem precisar ligar `use cache`/Cache Components. Só funciona para a **mesma** função com os mesmos args; queries diferentes que contam o mesmo dado não deduplicam (ver issue de extrair counts num único fetch).
 
 ## Listas drag-reorder (dnd-kit)
@@ -129,9 +133,12 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 
 `tsc` não detecta SQL inválido em template strings nem queries com colunas removidas. Após mexer em schema ou queries SSR: `bun dev:web` + visitar rotas afetadas. Stack trace via `nextjs_call <port> get_errors` (MCP `next-devtools`).
 
+**`bun run build` é gate obrigatório após refatorar arquivo `"use server"`.** Re-exportar de um `"use server"` qualquer coisa que **não seja async function** (tipo, const) quebra o build com `Only async functions are allowed to be exported in a "use server" file` — `check-types`/lint/test **não pegam** (regra só do build). Ao mover reads/tipos de um `actions.ts` pra `data.ts`/`_lib`, **atualize os consumers** a importarem de lá; **não** deixe re-export shim no `actions.ts`. (Incidente: split de god-module bloqueado, 2026-06.)
+
 ## Testes
 
-`bun --cwd apps/web test` (vitest, `environment: node`). Suíte verde (54 arquivos / 359 testes em 2026-06-17).
+`bun --cwd apps/web test` (vitest, `environment: node`). Suíte verde (68 arquivos / 481 testes em 2026-06-17, pós-audit).
 
 - **`server-only` em testes:** módulos que importam `server-only` (boundary do Next, ex: `src/lib/activity.ts`) são testáveis porque `vitest.config.ts` faz `resolve.alias['server-only'] → src/__mocks__/server-only.ts` (stub vazio). Ao adicionar teste para código que importa `server-only`, não precisa de `vi.mock` — o alias já resolve.
 - Mock de `@emach/db` por `vi.hoisted` + `vi.mock` (ver `__tests__/activity.test.ts` como referência de como mockar o query builder do Drizzle).
+- **No CI a suíte precisa de env dummy:** importar `@emach/db` dispara a validação de `@emach/env` no load. O step `Tests` do `ci.yml` provê valores **dummy** (não-secrets) que satisfazem o schema Zod; local o `.env` cobre. Sem env → `Invalid environment variables` no CI (mesmo com o DB mockado). Adicionar var nova obrigatória em `packages/env/src/server.ts` exige atualizar o bloco `env:` do CI.

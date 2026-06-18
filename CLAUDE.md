@@ -44,6 +44,7 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 
 - **`createDb()` × `db` singleton:** `packages/auth/*` usa `createDb()` pra evitar ciclo de import com env; resto usa `db`. Não consolidar.
 - **Hook auto-format PostToolUse:** `.claude/settings.json` roda `bun fix` após `Write`/`Edit`. Pode reordenar campos e quebrar `old_string` de Edits subsequentes — re-ler se falhar.
+- **lefthook pre-commit (ADR-/plano 032):** `lefthook` (devDep) instala git hooks via script `prepare` (em todo `bun install`) que rodam `bun fix` + `git add -u` no `git commit`. ⚠️ git **worktrees compartilham `.git/hooks`** — em integração multi-commit usando worktrees, os hooks firam nos commits do main tree (podem reformatar e deixar a mudança fora do commit). Se atrapalhar, scrub: `for h in .git/hooks/*; do grep -qil lefthook "$h" && rm -f "$h"; done` (reinstala no próximo `bun install`).
 - **Server actions com upload base64:** limite Next 16 default é 1MB. Configurado em `apps/web/next.config.ts` como `experimental.serverActions.bodySizeLimit = "8mb"`.
 - **Drizzle-kit push + TTY:** rename ambíguo de coluna falha sem TTY. Em dev, dropar+recriar schema é o caminho mais previsível.
 - **`db.execute()` raw devolve timestamp como string** (drizzle 0.45.x bug). Coercer com `toDate` de `@emach/db/utils` no boundary. Detalhes em `packages/db/CLAUDE.md`.
