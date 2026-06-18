@@ -152,7 +152,11 @@ export const order = pgTable(
 		index("order_client_id_idx").on(table.clientId),
 		index("order_branch_id_idx").on(table.branchId),
 		index("order_status_created_idx").on(table.status, table.createdAt.desc()),
-		index("order_number_idx").on(table.number),
+		index("order_branch_status_created_idx").on(
+			table.branchId,
+			table.status,
+			table.createdAt.desc()
+		),
 	]
 );
 
