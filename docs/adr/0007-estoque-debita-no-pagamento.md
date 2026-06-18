@@ -1,4 +1,8 @@
-# Débito de estoque ocorre na transição para `paid`, não na criação do pedido
+# ADR 0007 — Débito de estoque ocorre na transição para `paid`, não na criação do pedido
+
+**Data:** 2026-05-18
+**Status:** Aceito
+**Relaciona:** ADR-0005 (eixo único de status), ADR-0006 (push-only).
 
 ## Contexto
 

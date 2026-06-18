@@ -30,7 +30,7 @@ Regras:
 
 `bun run build` é **gate obrigatório** após refatorar qualquer arquivo `"use server"`.
 
-## Considered options
+## Opções consideradas
 
 - **A (escolhida)** — `data.ts` server-only + atualizar consumers (sem shim). Imune à regra do `"use server"`, alinhado ao ADR-0018, custo = tocar os consumers (mecânico).
 - **B (rejeitada)** — `data.ts` com `"use server"` + re-export shim. É a tentativa que quebrou o build; `export type`/re-export num `"use server"` é proibido em runtime.

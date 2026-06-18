@@ -74,7 +74,7 @@ Aba "Permissões" em `dashboard/users/[id]` — grid tri-state por grupo de capa
 
 `permissions.manage` pertence ao conjunto `SELF_RESTRICTED` — nenhum usuário pode alterar a própria capability de gestão de permissões via `setUserCapability`.
 
-## Considered options
+## Opções consideradas
 
 - **A (escolhida)** — registry declarativo + tabela de overrides + resolução efetiva cacheada. Extensível por 1 entrada; rollout aditivo (tabela vazia = comportamento idêntico ao role puro); auditado; sem churn no banco para novas capabilities.
 - **B — plugin `access-control` do Better Auth** — oferece statements `role/resource/action` com wildcards e um `ac.userHasPermission()`. Rejeitado: o plugin é role-based puro (sem override per-user nativo); a semântica de statement inspirou o formato de metadata do registry, mas o mecanismo de override teria de ser construído em cima de qualquer forma. Adotar o plugin adicionaria uma abstração extra sem eliminar a tabela de overrides.
@@ -86,7 +86,7 @@ Aba "Permissões" em `dashboard/users/[id]` — grid tri-state por grupo de capa
 
 **Cleanup de dados legados (opcional, idempotente):** como a Camada 1 já neutraliza overrides legados sobre super_admins, é só higiene — `DELETE FROM user_capability_override WHERE user_id IN (SELECT id FROM "user" WHERE role = 'super_admin');` (push-only, ADR-0006 — script SQL pontual, não migration versionada).
 
-## Consequences
+## Consequências
 
 - **Extensibilidade:** nova capability = 1 entrada no catálogo; UI, validação e resolução acompanham automaticamente.
 - **`can` virou async:** todos os callsites que chamavam `can(session, cap)` foram migrados para `await can(session, cap)`. Callsites em Server Components (RSC) e server actions usam `await`; client-only contexts devem usar o subset de helpers sync (`roleHasCapability`) ou receber o resultado pré-computado via prop/context.

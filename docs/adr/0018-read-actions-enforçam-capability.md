@@ -34,7 +34,7 @@ endpoints** (não chamáveis direto; só importadas por Server Components/action
 recebem guard próprio; o caller é responsável. Manter a separação: lógica de leitura reutilizável
 vive em `data.ts` (server-only); o wrapper-endpoint em `actions.ts` (`"use server"`) carrega o guard.
 
-## Considered options
+## Opções consideradas
 
 - **A (escolhida)** — guard explícito em cada read action de `actions.ts` + filtro por-segmento
   no feed. Custo baixo (mecânico), fecha o gap sem mexer na arquitetura; consistente com o padrão
