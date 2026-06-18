@@ -22,8 +22,9 @@ Combinar dois mecanismos:
    React transition que **segura a página atual visível** até os dados resolverem,
    trocando de uma vez no commit. É exatamente o "congelar" desejado.
 2. **`@bprogress/next`** (reimplementação TS mantida do NProgress) para a barra
-   global. Intercepta navegação globalmente (`<Link>`, `router.push`,
-   voltar/avançar) e **completa a barra quando a URL muda no commit** — como o
+   global. Intercepta cliques em `<a>`/`<Link>` e os métodos do router
+   (`router.push`/`replace`) e **completa a barra quando a URL muda no commit**
+   (não cobre o voltar/avançar nativo do browser — ver tabela de Comportamento) — como o
    commit só ocorre quando os dados chegam (sem `loading.tsx`), a barra corre
    exatamente durante o "segurar".
 
@@ -82,9 +83,10 @@ implementação — pode ter mudado):
 
 | Cenário | Resultado |
 |---|---|
-| Soft nav (sidebar, link interno, `router.push`, voltar/avançar) p/ outro pathname | Página atual congela; barra coral 2px corre no topo; troca no commit |
+| Soft nav (sidebar, link interno, `router.push`) p/ outro pathname | Página atual congela; barra coral 2px corre no topo; troca no commit |
 | Navegação para a mesma URL exata | Sem barra (`disableSameURL`, default `true`) |
 | Troca de `?tab=` / filtro URL / `?edit=1` drawer (mesmo pathname) | Sem barra (`targetPreprocessor`) |
+| Voltar/avançar nativo do browser (popstate) | **Sem barra** — o BProgress não intercepta popstate (não há listener no código-fonte). Aceito: medido que essas navegações são servidas instantâneas do client router cache do Next (sem refetch no servidor), logo não há espera a sinalizar. |
 | Hard load / F5 / URL direta | Sidebar + conteúdo em branco até a query resolver (sem skeleton) — regressão aceita no caso raro |
 
 ### Política de query-param (decisão explícita)
@@ -131,7 +133,7 @@ sinalizar as esperas same-path.
   - Trocar `?tab=` numa entidade (ex: detalhe de filial) → **sem** barra.
   - Abrir drawer `?edit=1` (se aplicável) → **sem** barra.
   - F5 numa rota → **sem** skeleton (sidebar + conteúdo em branco até a query).
-  - Voltar/avançar do browser → barra aparece.
+  - Voltar/avançar do browser → **sem** barra (servido do cache, instantâneo) — comportamento aceito.
 - Validar ao vivo que o `targetPreprocessor` suprime corretamente as mudanças
   same-path e que `router.push`/`router.replace`/popstate são todos cobertos pelo
   BProgress da forma esperada (ponto de incerteza a confirmar no browser).
