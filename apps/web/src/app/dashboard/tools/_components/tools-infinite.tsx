@@ -4,8 +4,8 @@ import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
 import { ToolCardGrid } from "@/app/dashboard/_components/tool-card-grid";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { useInfiniteList } from "@/lib/use-infinite-list";
-
-import { fetchToolsPage, type ToolsFiltersInput } from "../actions";
+import { fetchToolsPageAction } from "../actions";
+import type { ToolsFiltersInput } from "../data";
 
 interface ToolsInfiniteProps {
 	filters: ToolsFiltersInput;
@@ -22,7 +22,7 @@ export function ToolsInfinite({
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
-		fetchPage: (cursor) => fetchToolsPage({ filters, cursor }),
+		fetchPage: (cursor) => fetchToolsPageAction({ filters, cursor }),
 		resetKey,
 	});
 
