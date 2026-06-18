@@ -22,15 +22,23 @@ const AUTH_ROUTES = [
 
 export default function AppHeader() {
 	const pathname = usePathname();
-	const router = useRouter();
-	const { data: session, isPending } = authClient.useSession();
 
 	const isDashboardRoute = pathname.startsWith(DASHBOARD_ROUTE);
 	const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
+	// Gate por pathname ANTES de qualquer hook de rede: em rota de dashboard/auth o
+	// header não aparece, então não montamos o componente que chama useSession() —
+	// evita um /api/auth/get-session redundante em todo full-load do dashboard.
 	if (isDashboardRoute || isAuthRoute) {
 		return null;
 	}
+
+	return <AppHeaderContent />;
+}
+
+function AppHeaderContent() {
+	const router = useRouter();
+	const { data: session, isPending } = authClient.useSession();
 
 	const handleSignOut = async () => {
 		await authClient.signOut({
@@ -83,10 +91,9 @@ export default function AppHeader() {
 					{session?.user ? (
 						<nav className="flex items-center gap-2">
 							<Link
-								aria-current={isDashboardRoute ? "page" : undefined}
 								className={cn(
 									buttonVariants({
-										variant: isDashboardRoute ? "secondary" : "ghost",
+										variant: "ghost",
 										size: "sm",
 									})
 								)}
