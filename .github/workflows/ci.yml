@@ -29,6 +29,20 @@ jobs:
 
       - name: Tests
         run: bun --cwd apps/web test
+        env:
+          # Valores DUMMY só p/ satisfazer a validação de @emach/env no import de
+          # @emach/db durante os testes (que mockam o DB). NÃO são secrets reais.
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          BETTER_AUTH_SECRET: ci-test-better-auth-secret-0000000000000000
+          BETTER_AUTH_URL: http://localhost:3001
+          CRON_SECRET: ci-test-cron-secret-00000000000000000000000
+          CORS_ORIGIN: http://localhost:3001
+          SUPABASE_SERVICE_ROLE_KEY: ci-test-service-role-key
+          NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY: sb_publishable_ci_test
+          RESEND_API_KEY: re_ci_test
+          EMAIL_FROM: ci@test.local
+          NODE_ENV: test
 
       - name: Guard de forms — self-test da regra
         # Falha se a regra não carregar (ast-grep test sai 0 com "0 passed" quando
