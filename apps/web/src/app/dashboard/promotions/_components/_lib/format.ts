@@ -1,5 +1,5 @@
 import { formatDate, formatDateTime } from "@/lib/format/datetime";
-import type { PromotionStatus } from "../../actions";
+import type { PromotionStatus } from "../../data";
 
 const NUMBER_FMT = new Intl.NumberFormat("pt-BR", {
 	minimumFractionDigits: 2,

@@ -17,7 +17,7 @@ import {
 	formatDiscount,
 } from "../../_components/_lib/format";
 import { CopyCodeButton } from "../../_components/copy-code-button";
-import type { PromotionDetail, PromotionStatus } from "../../actions";
+import type { PromotionDetail, PromotionStatus } from "../../data";
 
 const MARKER =
 	"font-sans font-semibold text-muted-foreground text-xs uppercase tracking-wider";

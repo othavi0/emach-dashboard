@@ -10,7 +10,7 @@ import {
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { formatDiscount } from "../../_components/_lib/format";
-import type { PromotionDetail } from "../../actions";
+import type { PromotionDetail } from "../../data";
 
 export function ToolsTab({ detail }: { detail: PromotionDetail }) {
 	if (detail.tools.length === 0) {

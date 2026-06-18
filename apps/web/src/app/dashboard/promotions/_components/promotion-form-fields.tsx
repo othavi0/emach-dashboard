@@ -30,7 +30,7 @@ import { MaskedInput } from "@/components/masked-input";
 import { MoneyInput } from "@/components/money-input";
 import { integerMask } from "@/lib/masks";
 
-import { countToolsWithActivePromotion } from "../actions";
+import { countToolsWithActivePromotionAction } from "../actions";
 import type { PromotionFormValues } from "./promotion-schema";
 
 // ---------------------------------------------------------------------------
@@ -277,13 +277,14 @@ export function PromotionFormFields({
 		}
 		let cancelled = false;
 		startTransition(() => {
-			countToolsWithActivePromotion(values.toolIds, excludePromotionId).then(
-				(count) => {
-					if (!cancelled) {
-						setConflictCount(count);
-					}
+			countToolsWithActivePromotionAction(
+				values.toolIds,
+				excludePromotionId
+			).then((count) => {
+				if (!cancelled) {
+					setConflictCount(count);
 				}
-			);
+			});
 		});
 		return () => {
 			cancelled = true;

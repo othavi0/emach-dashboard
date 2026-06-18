@@ -3,7 +3,7 @@
 import { Badge } from "@emach/ui/components/badge";
 import { CalendarX, CheckCircle2, Clock, PauseCircle } from "lucide-react";
 
-import type { PromotionStatus } from "../actions";
+import type { PromotionStatus } from "../data";
 import { statusLabel } from "./_lib/format";
 
 interface PromotionStatusBadgeProps {

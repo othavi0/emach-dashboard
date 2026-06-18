@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { EntityIdentityHeader } from "@/components/entity/entity-identity-header";
 import { formatJanela } from "../../_components/_lib/format";
 import { PromotionStatusBadge } from "../../_components/promotion-status-badge";
-import type { PromotionDetail } from "../../actions";
+import type { PromotionDetail } from "../../data";
 
 export function PromotionIdentity({
 	detail,

@@ -7,11 +7,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { notify } from "@/lib/notify";
 import { DeletePromotionDialog } from "../../_components/delete-promotion-dialog";
-import {
-	duplicatePromotion,
-	type PromotionDetail,
-	togglePromotionActive,
-} from "../../actions";
+import { duplicatePromotion, togglePromotionActive } from "../../actions";
+import type { PromotionDetail } from "../../data";
 
 export function PromotionHeaderActions({
 	canDelete,
