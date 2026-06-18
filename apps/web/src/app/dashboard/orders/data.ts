@@ -19,8 +19,10 @@ import {
 	orderStatusHistory,
 	refundRequest,
 } from "@emach/db/schema/orders";
-import { asc, desc, eq, inArray, type SQL, sql } from "drizzle-orm";
+import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 import {
+	type BranchScope,
 	getUserBranchScope,
 	isBlindScope,
 	orderBranchCondition,
@@ -532,54 +534,89 @@ export async function getRecentOrderActivity(
 	}));
 }
 
+interface OrderTabCounts {
+	all_count: number;
+	canceled: number;
+	delivered: number;
+	paid: number;
+	payment_failed: number;
+	pending_payment: number;
+	preparing: number;
+	returned: number;
+	shipped: number;
+	[key: string]: number;
+}
+
+function emptyTabCounts(): OrderTabCounts {
+	return {
+		all_count: 0,
+		pending_payment: 0,
+		payment_failed: 0,
+		paid: 0,
+		preparing: 0,
+		shipped: 0,
+		delivered: 0,
+		returned: 0,
+		canceled: 0,
+	};
+}
+
+// TTL curto: os counts são um badge informativo e a tabela `order` também é
+// escrita pelo app ecommerce (banco compartilhado), que NÃO dispara revalidação
+// no dashboard. O TTL limita a defasagem máxima; mutações do dashboard revalidam
+// via ORDERS_COUNTS_TAG. A LISTA de pedidos segue sem cache (sempre fresca).
+const ORDERS_COUNTS_TTL_SECONDS = 30;
+export const ORDERS_COUNTS_TAG = "orders-counts";
+
+// Cacheado por branch-scope: o `scope` entra na chave do unstable_cache (os args
+// fazem parte da chave), então cada filial tem sua própria entrada — sem vazar
+// contagem de uma filial para outra. `scope` é puro/serializável e a query é
+// reconstruída a partir dele (nada de session/headers aqui dentro).
+const computeOrdersTabCounts = unstable_cache(
+	async (scope: BranchScope): Promise<OrderTabCounts> => {
+		const branchFilter = orderBranchConditionNoAlias(scope);
+		const result = await db.execute<{ status: OrderStatus; count: number }>(sql`
+			SELECT status, COUNT(*)::int AS count
+			FROM "order"
+			${branchFilter ? sql`WHERE ${branchFilter}` : sql``}
+			GROUP BY status
+		`);
+
+		const counts = emptyTabCounts();
+		for (const row of result.rows) {
+			counts.all_count += row.count;
+			// `canceled`/`refunded` somam na mesma tab; os demais mapeiam 1:1. O
+			// switch estreita row.status para o literal, então a indexação é type-safe.
+			switch (row.status) {
+				case "canceled":
+				case "refunded":
+					counts.canceled += row.count;
+					break;
+				case "pending_payment":
+				case "payment_failed":
+				case "paid":
+				case "preparing":
+				case "shipped":
+				case "delivered":
+				case "returned":
+					counts[row.status] = row.count;
+					break;
+				default:
+					break;
+			}
+		}
+		return counts;
+	},
+	["orders-tab-counts"],
+	{ revalidate: ORDERS_COUNTS_TTL_SECONDS, tags: [ORDERS_COUNTS_TAG] }
+);
+
 export async function getOrdersTabCounts(): Promise<Record<string, number>> {
 	const scope = await getUserBranchScope(await requireCurrentSession());
 	if (isBlindScope(scope)) {
-		return {
-			all_count: 0,
-			pending_payment: 0,
-			payment_failed: 0,
-			paid: 0,
-			preparing: 0,
-			shipped: 0,
-			delivered: 0,
-			returned: 0,
-			canceled: 0,
-		};
+		return emptyTabCounts();
 	}
-
-	// Subqueries usam a tabela sem alias → condição com coluna `branch_id`.
-	const branchFilter = orderBranchConditionNoAlias(scope);
-
-	const and = (base: SQL, extra: SQL | undefined): SQL =>
-		extra ? sql`${base} AND ${extra}` : base;
-
-	const result = await db.execute<Record<string, number>>(sql`
-		SELECT
-			(SELECT COUNT(*)::int FROM "order" ${branchFilter ? sql`WHERE ${branchFilter}` : sql``}) AS all_count,
-			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'pending_payment'`, branchFilter)}) AS pending_payment,
-			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'payment_failed'`, branchFilter)}) AS payment_failed,
-			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'paid'`, branchFilter)}) AS paid,
-			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'preparing'`, branchFilter)}) AS preparing,
-			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'shipped'`, branchFilter)}) AS shipped,
-			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'delivered'`, branchFilter)}) AS delivered,
-			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status = 'returned'`, branchFilter)}) AS returned,
-			(SELECT COUNT(*)::int FROM "order" WHERE ${and(sql`status IN ('canceled', 'refunded')`, branchFilter)}) AS canceled
-	`);
-
-	return (
-		result.rows[0] ?? {
-			all_count: 0,
-			pending_payment: 0,
-			payment_failed: 0,
-			paid: 0,
-			preparing: 0,
-			shipped: 0,
-			delivered: 0,
-			returned: 0,
-			canceled: 0,
-		}
-	);
+	return computeOrdersTabCounts(scope);
 }
 
 export type OrderReviewState =

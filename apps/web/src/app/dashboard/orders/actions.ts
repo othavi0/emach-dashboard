@@ -11,7 +11,7 @@ import {
 	orderStatusHistory,
 } from "@emach/db/schema/orders";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
 import type { ActionResult } from "@/lib/action-result";
@@ -26,6 +26,7 @@ import {
 import { applyStockReturns } from "./_lib/stock-returns";
 import {
 	fetchOrdersPage as fetchOrdersPageImpl,
+	ORDERS_COUNTS_TAG,
 	type OrderListItem,
 	type OrdersPageFiltersInput,
 } from "./data";
@@ -280,6 +281,7 @@ export async function updateOrderStatus(
 		});
 
 		revalidatePath(ORDERS_PATH);
+		revalidateTag(ORDERS_COUNTS_TAG, "max");
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
 		return { ok: true, data: undefined };
 	} catch (error) {
@@ -554,6 +556,7 @@ export async function markShippingReviewed(
 		});
 
 		revalidatePath(ORDERS_PATH);
+		revalidateTag(ORDERS_COUNTS_TAG, "max");
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
 		return { ok: true, data: undefined };
 	} catch (error) {
@@ -622,6 +625,7 @@ export async function refundOrder(
 		});
 
 		revalidatePath(ORDERS_PATH);
+		revalidateTag(ORDERS_COUNTS_TAG, "max");
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
 		return { ok: true, data: undefined };
 	} catch (error) {
