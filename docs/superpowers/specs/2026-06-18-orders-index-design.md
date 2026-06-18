@@ -31,7 +31,6 @@ baixo custo**, cujo ganho só se materializa com crescimento — não é mensur�
 - **Lista admin filial-scoped:** `WHERE branch_id IN (…) AND status IN (…) ORDER BY created_at DESC LIMIT 21`
 - **Counts (pós-refactor):** `WHERE branch_id IN (…) GROUP BY status`
 - **super_admin:** `WHERE status IN (…) ORDER BY created_at DESC` → já coberto por `order_status_created_idx`.
-- **Busca textual:** `o.number ILIKE '%q%' OR c.name ILIKE '%q%'` → seqscan (curinga inicial). **Fora de escopo** (ver Decisões).
 
 ## Mudanças (2)
 
@@ -65,8 +64,5 @@ requer OK explícito no momento de executar. `CREATE INDEX` em 12 linhas é inst
 
 ## Decisões / fora de escopo
 
-- **pg_trgm (busca `ILIKE`): fora.** A milhares/ano o seqscan da busca é sub-ms;
-  extensão + 2 índices GIN (`order.number`, `client.name`) é otimização prematura.
-  Reavaliar quando a busca ficar lenta ou o volume passar a dezenas de milhares.
 - **Sem índice extra dedicado a counts** (`(branch_id, status)`): o composto
   `(branch_id, status, created_at DESC)` já serve os counts pelo prefixo `branch_id, status`.
