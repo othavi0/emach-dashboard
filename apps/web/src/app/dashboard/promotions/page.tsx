@@ -26,7 +26,7 @@ import {
 	type ListPromotionsOptions,
 	type PromotionSort,
 	type PromotionStatus,
-} from "./actions";
+} from "./data";
 
 export const metadata: Metadata = {
 	title: "Promoções",

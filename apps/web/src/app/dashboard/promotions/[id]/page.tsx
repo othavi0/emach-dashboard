@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
-import { getPromotion } from "../actions";
+import { getPromotion } from "../data";
 import { OverviewTab } from "./_components/overview-tab";
 import { PromotionHeaderActions } from "./_components/promotion-header-actions";
 import { PromotionIdentity } from "./_components/promotion-identity";

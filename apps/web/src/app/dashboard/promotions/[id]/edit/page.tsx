@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PromotionForm } from "../../_components/promotion-form";
 import type { PromotionFormValues } from "../../_components/promotion-schema";
-import { getPromotion, getToolOptions } from "../../actions";
+import { getPromotion, getToolOptions } from "../../data";
 import { PromotionIdentity } from "../_components/promotion-identity";
 
 interface PageProps {

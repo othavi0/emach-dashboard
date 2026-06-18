@@ -133,7 +133,9 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 
 `tsc` não detecta SQL inválido em template strings nem queries com colunas removidas. Após mexer em schema ou queries SSR: `bun dev:web` + visitar rotas afetadas. Stack trace via `nextjs_call <port> get_errors` (MCP `next-devtools`).
 
-**`bun run build` é gate obrigatório após refatorar arquivo `"use server"`.** Re-exportar de um `"use server"` qualquer coisa que **não seja async function** (tipo, const) quebra o build com `Only async functions are allowed to be exported in a "use server" file` — `check-types`/lint/test **não pegam** (regra só do build). Ao mover reads/tipos de um `actions.ts` pra `data.ts`/`_lib`, **atualize os consumers** a importarem de lá; **não** deixe re-export shim no `actions.ts`. (Incidente: split de god-module bloqueado, 2026-06.)
+**`bun run build` é gate obrigatório após refatorar arquivo `"use server"`.** Re-exportar de um `"use server"` qualquer coisa que **não seja async function** (tipo, const) quebra o build com `Only async functions are allowed to be exported in a "use server" file` — `check-types`/lint/test **não pegam** (regra só do build). Ao mover reads/tipos de um `actions.ts` pra `data.ts`/`_lib`, **atualize os consumers** a importarem de lá; **não** deixe re-export shim no `actions.ts`. (Incidente: split de god-module bloqueado, 2026-06; resolvido no plano 028 re-do.)
+
+**Padrão canônico de split de god-module `actions.ts` (ADR-0019):** 3 camadas — `data.ts` (`import "server-only"`, reads+tipos+builders) + `_lib/*-query-helpers.ts` (helpers puros, sem auth) + `actions.ts` (`"use server"`, só mutations + thin wrappers de read com guard). Read chamado de Client Component ganha wrapper `"use server"` que faz `requireCapability` e delega ao `data.ts` (padrão `fetchToolsPageAction`/`fetchLedgerPageAction`); read só-server importa direto de `data.ts`. Helper sync **não pode ser exportado de `"use server"` pra teste** (mesma regra) → mover-pro-`_lib`-então-testar. Exemplares: `tools/`, `promotions/`, `stock/`.
 
 ## Testes
 

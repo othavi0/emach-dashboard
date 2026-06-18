@@ -1,7 +1,7 @@
 import { Star, Tag, Ticket } from "lucide-react";
 import Link from "next/link";
 
-import type { PromotionListItem } from "../actions";
+import type { PromotionListItem } from "../data";
 import {
 	daysRemainingDisplay,
 	formatDiscount,

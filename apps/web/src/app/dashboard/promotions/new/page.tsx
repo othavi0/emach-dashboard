@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PromotionForm } from "../_components/promotion-form";
 import type { PromotionFormValues } from "../_components/promotion-schema";
-import { getToolOptions } from "../actions";
+import { getToolOptions } from "../data";
 
 export const metadata: Metadata = {
 	title: "Nova promoção",

@@ -22,7 +22,7 @@ import {
 	type ToolSort,
 	type ToolsFiltersInput,
 	type ToolsListMode,
-} from "./actions";
+} from "./data";
 
 export const metadata: Metadata = {
 	title: "Ferramentas",

@@ -31,7 +31,7 @@ import { FiltersBar } from "@/components/filters-bar";
 import { MaskedInput } from "@/components/masked-input";
 import { percentageMask } from "@/lib/masks";
 import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
-import type { PromotionSort } from "../actions";
+import type { PromotionSort } from "../data";
 
 const BASE = "/dashboard/promotions";
 const TRACKED = [

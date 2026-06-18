@@ -5,11 +5,8 @@ import { Tag } from "lucide-react";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
-import {
-	fetchPromotionsPage,
-	type ListPromotionsOptions,
-	type PromotionListItem,
-} from "../actions";
+import { fetchPromotionsPageAction } from "../actions";
+import type { ListPromotionsOptions, PromotionListItem } from "../data";
 import { PromotionCard } from "./promotion-card";
 
 interface PromotionsGridProps {
@@ -27,7 +24,7 @@ export function PromotionsGrid({
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
-		fetchPage: (cursor) => fetchPromotionsPage({ filters, cursor }),
+		fetchPage: (cursor) => fetchPromotionsPageAction({ filters, cursor }),
 		resetKey,
 	});
 
