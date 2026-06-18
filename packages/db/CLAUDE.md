@@ -89,7 +89,7 @@ O mesmo bypass do column mapper devolve nomes **literais do Postgres em snake_ca
 
 Feed multi-fonte que monta os SELECTs condicionalmente (filtro de tipo) e junta com `UNION ALL`: cada subquery tem `(SELECT ... ORDER BY ... LIMIT)` e há um `ORDER BY ... LIMIT` externo. Com **2+ blocos** funciona (o externo aplica ao UNION). Com **1 bloco só** (usuário filtrou para um tipo, ou deep-link `?type=`), o `UNION ALL` some e sobra `(SELECT ... ORDER BY ...) ORDER BY ...` → Postgres rejeita: **`multiple ORDER BY clauses not allowed`**.
 
-**Regra:** sempre envolver o union em derived table — `SELECT * FROM ( <blocos> ) AS feed ORDER BY ... LIMIT ...`. Vale para 1 ou N blocos. Canônico: `branches/[id]/activity-data.ts`. **Smoke do caminho de 1 bloco** (não só o default com todos): o erro só aparece quando a lista de blocos colapsa para um — testar o filtro/deep-link de tipo único, não confiar no estado inicial.
+**Regra:** sempre envolver o union em derived table — `SELECT * FROM ( <blocos> ) AS feed ORDER BY ... LIMIT ...`. Vale para 1 ou N blocos. Canônicos: `branches/[id]/activity-data.ts` e `dashboard/pending-data.ts` (`fetchDashboardActivity` — colapsa para 1 bloco quando o usuário tem só 1 de stock/orders/reviews.read; plano 012). **Smoke do caminho de 1 bloco** (não só o default com todos): o erro só aparece quando a lista de blocos colapsa para um — testar o filtro/deep-link de tipo único, não confiar no estado inicial. (Confirmado no Postgres real 2026-06: forma sem wrap → `ERROR 42601`; com wrap → OK.)
 
 ## Armadilha: o erro do Postgres vem em `.cause`, não em `.message`
 
