@@ -1,5 +1,18 @@
-# Descontos de Promotion nunca empilham
+# ADR 0002 — Descontos de Promotion nunca empilham
 
-Uma Tool pode estar associada a várias Promotions ao mesmo tempo — a tabela `promotion_tool` é N:N — e um Promocode é uma Promotion como outra qualquer. Mesmo assim, decidimos que descontos **nunca empilham**: quando mais de uma Promotion cobre a mesma Tool, aplica-se apenas **um** desconto — o de maior efeito —, no máximo um por Tool. Descartamos soma ou composição de descontos para manter o preço previsível e proteger a margem sem depender de um guard de desconto máximo. Como o schema sugere o oposto (o join N:N), essa regra precisa estar explícita para quem computa o preço no checkout do e-commerce.
+**Data:** 2026-05-17
+**Status:** Aceito
+
+## Contexto
+
+Uma Tool pode estar associada a várias Promotions ao mesmo tempo — a tabela `promotion_tool` é N:N — e um Promocode é uma Promotion como outra qualquer. O schema (o join N:N) sugere que descontos poderiam compor.
+
+## Decisão
+
+Descontos **nunca empilham**: quando mais de uma Promotion cobre a mesma Tool, aplica-se apenas **um** desconto — o de maior efeito —, no máximo um por Tool. Descartamos soma ou composição de descontos para manter o preço previsível e proteger a margem sem depender de um guard de desconto máximo. Como o schema sugere o oposto, essa regra precisa estar explícita para quem computa o preço no checkout do e-commerce.
+
+## Consequências
+
+- Quem computa preço no checkout aplica só o desconto de maior efeito por Tool.
 
 > **Atualização (2026-06-05, PR #120):** o modelo de desconto deixou de ser só percentual. `promotion` agora tem `discount_type` (`percent` | `fixed`) + `discount_value` (substituindo `discount_pct`). A regra de não-empilhamento **continua**, mas "maior desconto" passou a significar **maior desconto efetivo** — `catalog.ts` resolve por **menor preço resultante** comparando promoção global (`applies_to_all`) e específica, em % ou R$. Cupom (`type='promocode'`) e promoção automática (`type='promotion'`) também nunca somam: o catálogo decide a vitrine, o cupom decide o checkout. Ver `docs/integration/admin-ecommerce.md`.

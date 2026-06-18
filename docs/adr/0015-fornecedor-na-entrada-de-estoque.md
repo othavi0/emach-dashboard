@@ -1,4 +1,8 @@
-# Proveniência de Fornecedor vive na entrada de estoque, não na Tool
+# ADR 0015 — Proveniência de Fornecedor vive na entrada de estoque, não na Tool
+
+**Data:** 2026-06-14
+**Status:** Aceito
+**Relaciona:** ADR-0006 (push-only), ADR-0009 (schema sync com o ecommerce).
 
 ## Contexto
 

@@ -1,8 +1,16 @@
-# Schema do ecommerce sincroniza do dashboard via CI (PR automático)
+# ADR 0009 — Schema do ecommerce sincroniza do dashboard via CI (PR automático)
+
+**Data:** 2026-05-18
+**Status:** Aceito
+**Relaciona:** ADR-0004 (DB compartilhada), ADR-0006 (push-only).
+
+## Contexto
 
 O dashboard e o site e-commerce são monorepos separados que compartilham o mesmo banco Postgres (ADR-0004), e cada um tem sua própria cópia das definições Drizzle em `packages/db/src/`. Essa cópia era sincronizada à mão — a `packages/db/CLAUDE.md` instruía "cópia byte-a-byte manual a cada mudança" — e o drift virou inevitável: em 2026-05-18, 8 de 13 arquivos de `schema/` divergiam entre os repos, e a própria doc do ecommerce ainda mencionava `apiKey` e migrations (ambos removidos). Como o `db:push` espelha a branch em checkout (ADR-0006), quem faz push por último define o banco e o outro app fica com types mentindo.
 
-Decidimos automatizar: um GitHub Action no repo `emach-dashboard` (fonte de verdade), disparado em push na `main` quando `packages/db/src/**` muda, abre um Pull Request no repo `emach-ecommerce` espelhando `schema/`, `queries/` e `sql/triggers.sql`.
+## Decisão
+
+Automatizar: um GitHub Action no repo `emach-dashboard` (fonte de verdade), disparado em push na `main` quando `packages/db/src/**` muda, abre um Pull Request no repo `emach-ecommerce` espelhando `schema/`, `queries/` e `sql/triggers.sql`.
 
 Os repos seguem separados — os deploys são independentes e o dashboard vai virar ferramenta interna além de site. Por isso não foi adotado nem o monorepo único (juntaria os deploys) nem o pacote `@emach/db` publicado num registry (cobra cerimônia de `publish`/versão sem haver consumidor externo nem produção — ver ADR-0006). O espelhamento via CI é a menor mudança que elimina o sync manual sem inventar modelo mental novo.
 

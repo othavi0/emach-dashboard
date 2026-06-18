@@ -69,3 +69,17 @@ Roles dashboard: `user.role` enum `super_admin/admin/manager/user`; `user.status
 | Glossário de domínio                                                                                         | `CONTEXT.md`                                   |
 
 Stack / scripts / envs → `package.json`, `packages/env/src/server.ts`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues e PRDs vivem como GitHub issues em `othavioquiliao/emach-dashboard` (via `gh` CLI). PRs externos **não** são superfície de triagem. Ver `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Vocabulário canônico de 5 labels sem override (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). Ver `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: um `CONTEXT.md` + `docs/adr/` na raiz cobrem o monorepo inteiro. Ver `docs/agents/domain.md`.

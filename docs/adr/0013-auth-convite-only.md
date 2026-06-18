@@ -24,7 +24,7 @@ Decidimos migrar para **convite-only**: não há auto-cadastro; o acesso nasce d
 - **`user.status` muda de semântica:** `pending` agora é "convidado, aguardando aceite" — não mais "auto-cadastrado aguardando aprovação manual". `pending → active` ocorre no aceite, não numa aprovação. `suspended` inalterado.
 - **"Convite/Invitation" passa a ser conceito do domínio** (revertendo a consequência de ADR-0010 que o negava). Materializado em `user.inviteToken`/`inviteTokenExpiresAt`, sem tabela própria.
 - Não há mais triagem de spam nem `rejectUser` de auto-cadastro como fluxo cotidiano; remover acesso é `suspended`/delete.
-- O enum `user_status` continua `pending/active/suspended` (sem migration — push-only, ADR-0006). O guard-rail de status (bloquear `pending`/`suspended`) permanece (ADR-0012).
+- O enum `user_status` continua `pending/active/suspended` (sem migration — push-only, ADR-0006). O guard-rail de status (bloquear `pending`/`suspended`) permanece (ADR-0016, que religou os gates substituindo o ADR-0012).
 - A última pessoa `super_admin` `active` continua protegida (last-super-admin guard).
 
 ## Reabertura

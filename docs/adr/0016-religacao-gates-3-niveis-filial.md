@@ -25,13 +25,13 @@ Religar a autorização com **dois eixos ortogonais**:
 
 **Invariante novo:** todo `admin`/`user` pertence a ≥1 filial (exigido no convite; last-branch guard ao desvincular). Staff sem filial = **fail-closed** (vê/age sobre nada). Só `super_admin` é sem-filial.
 
-## Considered options
+## Opções consideradas
 
 - **A (escolhida)** — reativar a camada de capability + reconstruir `getUserBranchScope`. Reaproveita os 138 callsites intactos e o scaffolding de filtro já presente em Pedidos; menor delta.
 - **B** — política unificada `can(session, action, resource)` num ponto só. Rejeitada: rewrite dos 138 callsites sem ganho de segurança.
 - **C** — Row-Level Security no Postgres para o escopo de filial. Rejeitada: o banco é **compartilhado com a loja e-commerce** (ADR-0004) e a coordenação é via schema, não via RLS; políticas por linha afetariam o outro app. (RLS no projeto existe só como deny-all do PostgREST — ADR-0014 — não como scoping de domínio.)
 
-## Consequences
+## Consequências
 
 - **Fail-closed + `userBranch` despovoado = todos cegos** no religamento. Mitigação obrigatória: migração `manager → admin` e povoamento de `userBranch` para todo admin/user ativo **antes** de religar (verificação SQL no spec).
 - Agregados de estoque ("Estoque geral") passam a ser **role-relativos na exibição** — números diferentes conforme quem olha.

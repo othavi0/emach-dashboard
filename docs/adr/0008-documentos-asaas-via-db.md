@@ -1,4 +1,8 @@
-# Documentos do Asaas chegam ao dashboard pelo banco de dados — o dashboard nunca chama a API do Asaas
+# ADR 0008 — Documentos do Asaas chegam ao dashboard pelo banco de dados — o dashboard nunca chama a API do Asaas
+
+**Data:** 2026-05-18
+**Status:** Aceito
+**Relaciona:** ADR-0004 (integração só DB compartilhada).
 
 ## Contexto
 

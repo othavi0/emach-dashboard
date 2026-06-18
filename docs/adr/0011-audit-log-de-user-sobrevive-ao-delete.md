@@ -1,8 +1,22 @@
-# Audit log de user sobrevive ao delete via actor snapshot
+# ADR 0011 — Audit log de user sobrevive ao delete via actor snapshot
 
-`userActivityLog.actorUserId` está declarado em `packages/db/src/schema/user-activity.ts:12` com `onDelete: 'cascade'` — deletar um User apaga em cascata todo o histórico do que ele fez. Isso compromete o invariante 4 do CONTEXT.md ("toda mutação auditável tem um Actor") quando o Actor é removido: a auditoria deixa de existir junto com a pessoa. Avaliamos três caminhos: (a) `restrict` (proíbe deletar quem tem atividade), (b) `set null` com snapshot do nome em `metadata`, e (c) manter cascade. Decidimos pelo (b).
+**Data:** 2026-05-26
+**Status:** Aceito
+**Relaciona:** preserva o invariante 4 do CONTEXT.md (toda mutação auditável tem Actor); depende de ADR-0006 (push-only).
 
-O padrão de "anonimizar FKs antes do DELETE" já é usado em `apps/web/src/app/dashboard/users/actions.ts:401-420` para `stockMovement`, `orderStatusHistory`, `orderNote` e `promotion` — onde `actorType` vira `'system'` e `actorId` vira `null`. Adotar o mesmo princípio em `userActivityLog` mantém coerência arquitetural e preserva auditoria post-mortem. `restrict` foi rejeitado porque, com signup público (ADR-0010), o admin precisa poder deletar contas de spam que clicaram em algo trivial antes da rejeição — `restrict` transformaria todo rejeitado em "suspended pra sempre", inflando a tabela.
+## Contexto
+
+`userActivityLog.actorUserId` está declarado em `packages/db/src/schema/user-activity.ts:12` com `onDelete: 'cascade'` — deletar um User apaga em cascata todo o histórico do que ele fez. Isso compromete o invariante 4 do CONTEXT.md ("toda mutação auditável tem um Actor") quando o Actor é removido: a auditoria deixa de existir junto com a pessoa.
+
+## Decisão
+
+Avaliamos três caminhos: (a) `restrict` (proíbe deletar quem tem atividade), (b) `set null` com snapshot do nome em `metadata`, e (c) manter cascade. Decidimos pelo (b).
+
+O padrão de "anonimizar FKs antes do DELETE" já é usado em `apps/web/src/app/dashboard/users/actions.ts:401-420` para `stockMovement`, `orderStatusHistory`, `orderNote` e `promotion` — onde `actorType` vira `'system'` e `actorId` vira `null`. Adotar o mesmo princípio em `userActivityLog` mantém coerência arquitetural e preserva auditoria post-mortem.
+
+`restrict` foi rejeitado porque o admin precisa poder deletar contas sem atividade relevante sem que `restrict` as transforme em "suspended pra sempre", inflando a tabela.
+
+> **Nota histórica (premissa revista por [ADR-0013](0013-auth-convite-only.md)):** a justificativa original para rejeitar `restrict` apoiava-se no signup público (ADR-0010) — "o admin precisa deletar contas de spam que clicaram em algo trivial antes da rejeição". Com convite-only (ADR-0013) não há mais auto-cadastro nem spam, mas a decisão por `set null` **permanece válida**: deletar convidados que nunca aceitaram (ou ex-staff) ainda exige preservar a auditoria sem travar o delete.
 
 ## Consequências
 

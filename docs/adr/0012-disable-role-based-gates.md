@@ -1,7 +1,7 @@
 # ADR 0012 — Desligar bloqueios role-based mantendo roles como rótulo
 
 **Data:** 2026-05-27
-**Status:** Aceito
+**Status:** **Superseded por [ADR-0016](0016-religacao-gates-3-niveis-filial.md) (2026-06-15).** Os gates foram religados — não em 4 níveis restaurados, mas em 3 níveis com escopo de filial. O texto abaixo fica como registro histórico do período sem gates; o "Plano de reativação" foi cumprido (com redesenho) pelo ADR-0016.
 **Substitui:** parcialmente o regime de capabilities introduzido em `apps/web/src/lib/permissions.ts`.
 
 ## Contexto
@@ -36,7 +36,9 @@ Guard-rails mantidos:
 - Filtro de filial em orders/stock desaparece — todos veem tudo.
 - Não religar antes de produção é risco material — registrar como gap em `packages/db/CLAUDE.md`.
 
-## Plano de reativação
+## Plano de reativação (cumprido pelo ADR-0016)
+
+O plano original previa restaurar a matriz preservada quase tal qual ("reativar = restaurar 3 arquivos"). Na prática o ADR-0016 **redesenhou** a autorização em vez de restaurar: 3 níveis (não 4), `admin` filial-scoped, `getUserBranchScope` reconstruído. Os passos abaixo ficam como registro do que se imaginava na época:
 
 1. Copiar `apps/web/src/lib/permissions.disabled.ts` de volta pra `permissions.ts` (sobrescrever).
 2. Restaurar consulta original em `apps/web/src/lib/branch-scope.ts` (recuperável via `git log -p -- apps/web/src/lib/branch-scope.ts`).
@@ -46,7 +48,9 @@ Guard-rails mantidos:
 6. Remover item de gap em `packages/db/CLAUDE.md`.
 7. Atualizar `CLAUDE.md` raiz desfazendo a nota de no-op.
 
-## Não decidido
+## Resolvido pelo ADR-0016
 
-- Quando exatamente religar (depende do entry em produção).
-- Se a matriz reativada será idêntica à preservada ou redesenhada com base no aprendizado do período sem gates.
+As duas perguntas deixadas em aberto foram respondidas no religamento:
+
+- **Quando religar:** antes da produção, junto com convite-only (ADR-0013) e o povoamento de `user_branch`.
+- **Matriz idêntica ou redesenhada:** **redesenhada** — 3 níveis com filial, não a matriz de 4 níveis preservada.

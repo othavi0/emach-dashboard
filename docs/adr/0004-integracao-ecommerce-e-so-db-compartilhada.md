@@ -1,3 +1,16 @@
-# Integração com o e-commerce é só DB compartilhada — sem API
+# ADR 0004 — Integração com o e-commerce é só DB compartilhada — sem API
 
-O dashboard e o site e-commerce compartilham o mesmo banco Postgres e cada um escreve via Drizzle; a coordenação acontece exclusivamente pelo schema compartilhado. Não existe — nem está previsto — uma API entre os dois apps. Em consequência, **API Keys não fazem parte do domínio**: a tabela `api_key`, o valor `apiKey` do enum `actor_type`, as colunas `actorApiKeyId` / `apiKeyId` das tabelas de auditoria, o trecho relativo a `apiKey` nos CHECKs de coerência e a capability `apikeys.manage` são legado a remover. Mutações automáticas sem usuário humano — inclusive as escritas do app e-commerce, como o débito de estoque por venda — têm Actor `system`. Reabrir essa decisão significaria introduzir uma camada de API inteira.
+**Data:** 2026-05-17
+**Status:** Aceito
+
+## Contexto
+
+O dashboard e o site e-commerce compartilham o mesmo banco Postgres e cada um escreve via Drizzle; a coordenação acontece exclusivamente pelo schema compartilhado. Não existe — nem está previsto — uma API entre os dois apps.
+
+## Decisão
+
+A integração entre os dois apps é só o banco compartilhado. Em consequência, **API Keys não fazem parte do domínio**: a tabela `api_key`, o valor `apiKey` do enum `actor_type`, as colunas `actorApiKeyId` / `apiKeyId` das tabelas de auditoria, o trecho relativo a `apiKey` nos CHECKs de coerência e a capability `apikeys.manage` são legado a remover. Mutações automáticas sem usuário humano — inclusive as escritas do app e-commerce, como o débito de estoque por venda — têm Actor `system`.
+
+## Consequências
+
+- Reabrir essa decisão significaria introduzir uma camada de API inteira.
