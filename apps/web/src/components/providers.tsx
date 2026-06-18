@@ -2,8 +2,9 @@
 
 import { ProgressProvider } from "@bprogress/next/app";
 import { Toaster } from "@emach/ui/components/sonner";
+import { NavigationAnnouncer } from "@/components/navigation-announcer";
 
-/** Returns true when target and current differ only in search/hash (same pathname + origin). */
+/** Returns true when target and current differ only in search params (same pathname + origin). */
 function isSameURLWithoutSearch(target: URL, current: URL): boolean {
 	return (
 		target.pathname === current.pathname && target.origin === current.origin
@@ -15,6 +16,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 		<ProgressProvider
 			color="oklch(0.65 0.13 38)"
 			delay={0}
+			disableSameURL
 			height="2px"
 			options={{ showSpinner: false }}
 			targetPreprocessor={(target) => {
@@ -24,6 +26,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 			}}
 		>
 			{children}
+			<NavigationAnnouncer />
 			<Toaster richColors />
 		</ProgressProvider>
 	);
