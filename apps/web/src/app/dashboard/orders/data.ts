@@ -31,8 +31,8 @@ import {
 	orderBranchConditionNoAlias,
 	orderInScope,
 } from "@/lib/branch-scope";
-import { decodeCursor, encodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { decodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE, paginate, type InfiniteResult } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 import { ALL_ORDERS_TAB, ORDER_TABS } from "./status-meta";
 
@@ -361,7 +361,7 @@ export async function fetchOrdersPage({
 		LIMIT ${BATCH_SIZE + 1}
 	`);
 
-	const mapped = rows.rows.map((row) => ({
+	return paginate(rows.rows, (row) => ({
 		id: row.id,
 		number: row.number,
 		status: row.status,
@@ -371,21 +371,12 @@ export async function fetchOrdersPage({
 		clientName: row.client_name,
 		branchName: row.branch_name,
 		shippingUnverified: row.shipping_unverified,
+	}), (last) => ({
+		v: 1,
+		sort: "newest" as const,
+		createdAt: toDate(last.created_at).toISOString(),
+		id: last.id,
 	}));
-
-	const hasMore = mapped.length > BATCH_SIZE;
-	const items = hasMore ? mapped.slice(0, BATCH_SIZE) : mapped;
-	const last = items.at(-1);
-	const nextCursor =
-		hasMore && last
-			? encodeCursor({
-					v: 1,
-					sort: "newest",
-					createdAt: last.createdAt.toISOString(),
-					id: last.id,
-				})
-			: null;
-	return { items, nextCursor };
 }
 
 export async function listOrders(
