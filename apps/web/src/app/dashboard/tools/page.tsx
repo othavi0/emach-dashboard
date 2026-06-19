@@ -11,6 +11,7 @@ import {
 import { asc } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { getActiveBranches } from "@/app/dashboard/branches/data";
 import { PageHeader } from "@/components/page-header";
@@ -51,7 +52,15 @@ async function fetchCategories() {
 
 const VALID_SORTS: readonly ToolSort[] = ["newest", "name"];
 
-export default async function ToolsPage({ searchParams }: PageProps) {
+export default function ToolsPage({ searchParams }: PageProps) {
+	return (
+		<Suspense>
+			<ToolsPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function ToolsPageContent({ searchParams }: PageProps) {
 	const session = await requireCapabilityOrRedirect(
 		"tools.read",
 		"/dashboard/sem-acesso?recurso=Ferramentas"

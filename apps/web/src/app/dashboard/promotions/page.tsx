@@ -14,6 +14,7 @@ import {
 import { ChevronDown, Plus, Tag, Ticket } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -43,8 +44,6 @@ interface PageProps {
 		discountMax?: string;
 	}>;
 }
-
-export const dynamic = "force-dynamic";
 
 const VALID_STATUS = new Set<PromotionStatus>([
 	"active",
@@ -100,7 +99,15 @@ function buildStatusHref(
 	return qs ? `/dashboard/promotions?${qs}` : "/dashboard/promotions";
 }
 
-export default async function PromotionsPage({ searchParams }: PageProps) {
+export default function PromotionsPage({ searchParams }: PageProps) {
+	return (
+		<Suspense>
+			<PromotionsPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function PromotionsPageContent({ searchParams }: PageProps) {
 	const session = await requireCapabilityOrRedirect(
 		"promotions.read",
 		"/dashboard/sem-acesso?recurso=Promoções"

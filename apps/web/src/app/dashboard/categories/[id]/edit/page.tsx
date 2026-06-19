@@ -8,6 +8,7 @@ import { category } from "@emach/db/schema/categories";
 import { count, eq, inArray } from "drizzle-orm";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -20,8 +21,6 @@ import { getCategory, listCategories } from "../../data";
 export const metadata: Metadata = {
 	title: "Editar categoria",
 };
-
-export const dynamic = "force-dynamic";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -106,7 +105,15 @@ async function loadAttributeRows(
 	return { inheritedRows, ownRows };
 }
 
-export default async function EditCategoryPage({ params }: PageProps) {
+export default function EditCategoryPage({ params }: PageProps) {
+	return (
+		<Suspense>
+			<EditCategoryPageContent params={params} />
+		</Suspense>
+	);
+}
+
+async function EditCategoryPageContent({ params }: PageProps) {
 	const session = await requireCapabilityOrRedirect("categories.manage");
 	const { id } = await params;
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PromotionForm } from "../_components/promotion-form";
 import type { PromotionFormValues } from "../_components/promotion-schema";
@@ -44,7 +45,15 @@ const PROMOTION_DEFAULTS: PromotionFormValues = {
 	toolIds: [],
 };
 
-export default async function NewPromotionPage({ searchParams }: PageProps) {
+export default function NewPromotionPage({ searchParams }: PageProps) {
+	return (
+		<Suspense>
+			<NewPromotionPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function NewPromotionPageContent({ searchParams }: PageProps) {
 	await requireCapabilityOrRedirect("promotions.manage");
 
 	const { type } = await searchParams;

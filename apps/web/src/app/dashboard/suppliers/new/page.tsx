@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { requireCapability } from "@/lib/permissions";
 import { SupplierForm } from "../_components/supplier-form";
@@ -7,7 +8,15 @@ export const metadata: Metadata = {
 	title: "Novo fornecedor",
 };
 
-export default async function NewSupplierPage() {
+export default function NewSupplierPage() {
+	return (
+		<Suspense>
+			<NewSupplierPageContent />
+		</Suspense>
+	);
+}
+
+async function NewSupplierPageContent() {
 	await requireCapability("suppliers.manage");
 
 	return (

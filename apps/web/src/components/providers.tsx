@@ -2,6 +2,7 @@
 
 import { ProgressProvider } from "@bprogress/next/app";
 import { Toaster } from "@emach/ui/components/sonner";
+import { Suspense } from "react";
 import { NavigationAnnouncer } from "@/components/navigation-announcer";
 
 /** Returns true when target and current differ only in search params (same pathname + origin). */
@@ -26,7 +27,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 			}}
 		>
 			{children}
-			<NavigationAnnouncer />
+			<Suspense>
+				<NavigationAnnouncer />
+			</Suspense>
 			<Toaster richColors />
 		</ProgressProvider>
 	);

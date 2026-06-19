@@ -3,6 +3,7 @@ import { FolderTree, Info, Package, Pencil, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
@@ -23,8 +24,6 @@ export const metadata: Metadata = {
 	title: "Detalhe da categoria",
 };
 
-export const dynamic = "force-dynamic";
-
 interface PageProps {
 	params: Promise<{ id: string }>;
 	searchParams: Promise<{ tab?: string }>;
@@ -38,10 +37,18 @@ function CountBadge({ value }: { value: number }) {
 	);
 }
 
-export default async function CategoryDetailPage({
+export default function CategoryDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
+	return (
+		<Suspense>
+			<CategoryDetailPageContent params={params} searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function CategoryDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCapabilityOrRedirect("categories.read");
 	const [canDelete, canManage] = await Promise.all([
 		can(session, "categories.delete"),

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PromotionForm } from "../../_components/promotion-form";
@@ -15,9 +16,15 @@ export const metadata: Metadata = {
 	title: "Editar promoção",
 };
 
-export const dynamic = "force-dynamic";
+export default function EditPromotionPage({ params }: PageProps) {
+	return (
+		<Suspense>
+			<EditPromotionPageContent params={params} />
+		</Suspense>
+	);
+}
 
-export default async function EditPromotionPage({ params }: PageProps) {
+async function EditPromotionPageContent({ params }: PageProps) {
 	await requireCapabilityOrRedirect("promotions.manage");
 
 	const { id } = await params;

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
 	title: "Estoque da filial",
@@ -10,10 +11,21 @@ interface PageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default async function BranchStockRedirect({
+export default function BranchStockRedirect({
 	params,
 	searchParams,
 }: PageProps) {
+	return (
+		<Suspense>
+			<BranchStockRedirectContent params={params} searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function BranchStockRedirectContent({
+	params,
+	searchParams,
+}: PageProps): Promise<never> {
 	const { id } = await params;
 	const sp = await searchParams;
 

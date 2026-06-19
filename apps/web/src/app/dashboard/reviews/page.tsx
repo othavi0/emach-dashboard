@@ -7,6 +7,7 @@ import {
 } from "@emach/ui/components/empty";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -24,9 +25,15 @@ interface ReviewsPageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export const dynamic = "force-dynamic";
+export default function ReviewsPage({ searchParams }: ReviewsPageProps) {
+	return (
+		<Suspense>
+			<ReviewsPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
 
-export default async function ReviewsPage({ searchParams }: ReviewsPageProps) {
+async function ReviewsPageContent({ searchParams }: ReviewsPageProps) {
 	await requireCapabilityOrRedirect(
 		"reviews.read",
 		"/dashboard/sem-acesso?recurso=Avaliações"

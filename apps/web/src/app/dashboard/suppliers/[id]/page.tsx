@@ -3,6 +3,7 @@ import { Boxes, Factory, History, Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
@@ -29,10 +30,18 @@ interface PageProps {
 	searchParams: Promise<{ edit?: string; q?: string; tab?: string }>;
 }
 
-export default async function SupplierDetailPage({
+export default function SupplierDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
+	return (
+		<Suspense>
+			<SupplierDetailPageContent params={params} searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function SupplierDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCapabilityOrRedirect("suppliers.read");
 	const canManage = await can(session, "suppliers.manage");
 

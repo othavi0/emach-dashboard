@@ -2,6 +2,7 @@ import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
 import { asc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -15,8 +16,6 @@ export const metadata: Metadata = {
 	title: "Movimentações de estoque",
 };
 
-export const dynamic = "force-dynamic";
-
 interface PageProps {
 	searchParams: Promise<{
 		actorId?: string;
@@ -28,7 +27,15 @@ interface PageProps {
 	}>;
 }
 
-export default async function StockMovementsPage({ searchParams }: PageProps) {
+export default function StockMovementsPage({ searchParams }: PageProps) {
+	return (
+		<Suspense>
+			<StockMovementsPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function StockMovementsPageContent({ searchParams }: PageProps) {
 	await requireCapabilityOrRedirect("stock.read");
 
 	const sp = await searchParams;

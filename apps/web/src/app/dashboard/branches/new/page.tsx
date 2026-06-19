@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { requireCapability } from "@/lib/permissions";
 import { BranchForm } from "../_components/branch-form";
@@ -7,7 +8,15 @@ export const metadata: Metadata = {
 	title: "Nova filial",
 };
 
-export default async function NewBranchPage() {
+export default function NewBranchPage() {
+	return (
+		<Suspense>
+			<NewBranchPageContent />
+		</Suspense>
+	);
+}
+
+async function NewBranchPageContent() {
 	await requireCapability("branches.manage");
 
 	return (

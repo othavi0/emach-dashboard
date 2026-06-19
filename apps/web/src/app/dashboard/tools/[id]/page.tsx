@@ -1,6 +1,7 @@
 import { Activity, Boxes, Info, Star, Tag } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
@@ -27,10 +28,15 @@ interface PageProps {
 	searchParams: Promise<{ tab?: string }>;
 }
 
-export default async function ToolDetailPage({
-	params,
-	searchParams,
-}: PageProps) {
+export default function ToolDetailPage({ params, searchParams }: PageProps) {
+	return (
+		<Suspense>
+			<ToolDetailPageContent params={params} searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCurrentSession();
 	const [{ id }, { tab }] = await Promise.all([params, searchParams]);
 	const [canMutate, canDelete, detail] = await Promise.all([

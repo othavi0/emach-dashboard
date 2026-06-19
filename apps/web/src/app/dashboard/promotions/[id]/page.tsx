@@ -3,6 +3,7 @@ import { Info, Settings2, Wrench } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
@@ -22,12 +23,18 @@ interface PageProps {
 	searchParams: Promise<{ tab?: string }>;
 }
 
-export const dynamic = "force-dynamic";
-
-export default async function PromotionDetailPage({
+export default function PromotionDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
+	return (
+		<Suspense>
+			<PromotionDetailPageContent params={params} searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function PromotionDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCapabilityOrRedirect("promotions.manage");
 	const canDelete = await can(session, "promotions.delete");
 
