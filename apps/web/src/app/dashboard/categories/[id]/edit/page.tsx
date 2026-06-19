@@ -15,7 +15,7 @@ import type { InheritedRow, OwnRow } from "../../_components/attributes-table";
 import { CategoryAttributesPanel } from "../../_components/category-attributes-panel";
 import { CategoryForm } from "../../_components/category-form";
 import { breadcrumbFromPath, buildNameBySlug } from "../../_lib/category-tree";
-import { getCategory, listCategories } from "../../actions";
+import { getCategory, listCategories } from "../../data";
 
 export const metadata: Metadata = {
 	title: "Editar categoria",

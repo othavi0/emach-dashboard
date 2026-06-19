@@ -8,9 +8,9 @@ import {
 import { toolCategory } from "@emach/db/schema/categories";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
-import { getUserBranchScope } from "@/lib/branch-scope";
+import { branchAndFilter, getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 import {
 	isCategoryComplete,
@@ -217,24 +217,12 @@ export async function fetchToolsPage({
 
 	// Branch filter fragments for stock subqueries.
 	// Prioridade: filtro explícito do usuário > scope do usuário > sem filtro (super_admin).
-	function buildStockBranchFilter(alias: string): ReturnType<typeof sql> {
-		if (filters.branchId) {
-			return sql` AND ${sql.raw(alias)}.branch_id = ${filters.branchId}`;
-		}
-		if (scope.kind === "scoped") {
-			if (scope.branchIds.length === 0) {
-				return sql` AND false`;
-			}
-			return sql` AND ${sql.raw(alias)}.branch_id IN (${sql.join(
-				scope.branchIds.map((id) => sql`${id}`),
-				sql`, `
-			)})`;
-		}
-		return sql``;
-	}
-
-	const branchStockFilter = buildStockBranchFilter("sl");
-	const branchStockFilter2 = buildStockBranchFilter("sl2");
+	const branchStockFilter = filters.branchId
+		? sql` AND sl.branch_id = ${filters.branchId}`
+		: branchAndFilter(scope, sql`sl.branch_id`);
+	const branchStockFilter2 = filters.branchId
+		? sql` AND sl2.branch_id = ${filters.branchId}`
+		: branchAndFilter(scope, sql`sl2.branch_id`);
 
 	const rows = await db.execute<ToolPageRow>(sql`
 		SELECT
@@ -266,36 +254,35 @@ export async function fetchToolsPage({
 		LIMIT ${BATCH_SIZE + 1}
 	`);
 
-	const all = rows.rows.map((r) => ({
-		id: r.id,
-		name: r.name,
-		imageUrl: r.image_url,
-		sku: r.default_sku,
-		variantCount: Number(r.variant_count ?? 0),
-		variantSummaries: (r.variant_voltages ?? []).filter(
-			(v): v is string => typeof v === "string"
-		),
-		primaryCategoryName: r.primary_category_name,
-		status: r.status as ToolStatusValue,
-		totalStock: Number(r.total_stock ?? 0),
-		branches: (r.branches_breakdown ?? []).map((b) => ({
-			branchId: b.branch_id,
-			branchName: b.branch_name,
-			quantity: b.quantity,
-		})),
-		__createdAt: r.created_at,
-		__name: r.name,
-	}));
-
-	const hasMore = all.length > BATCH_SIZE;
-	const items = hasMore ? all.slice(0, BATCH_SIZE) : all;
-	const last = items.at(-1);
-	const nextCursor =
-		hasMore && last ? buildToolsNextCursor(filters.sort, last) : null;
-
-	const cleanItems: ToolCardData[] = items.map(
-		({ __createdAt: _c, __name: _n, ...rest }) => rest
+	return paginate(
+		rows.rows,
+		(r) =>
+			({
+				id: r.id,
+				name: r.name,
+				imageUrl: r.image_url,
+				sku: r.default_sku,
+				variantCount: Number(r.variant_count ?? 0),
+				variantSummaries: (r.variant_voltages ?? []).filter(
+					(v): v is string => typeof v === "string"
+				),
+				primaryCategoryName: r.primary_category_name,
+				status: r.status as ToolStatusValue,
+				totalStock: Number(r.total_stock ?? 0),
+				branches: (r.branches_breakdown ?? []).map((b) => ({
+					branchId: b.branch_id,
+					branchName: b.branch_name,
+					quantity: b.quantity,
+				})),
+			}) as ToolCardData,
+		(last) =>
+			filters.sort === "name"
+				? { v: 1, sort: "name" as const, name: last.name, id: last.id }
+				: {
+						v: 1,
+						sort: "newest" as const,
+						createdAt: last.created_at,
+						id: last.id,
+					}
 	);
-
-	return { items: cleanItems, nextCursor };
 }

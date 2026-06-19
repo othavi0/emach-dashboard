@@ -10,7 +10,7 @@ import {
 } from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
 import { toolVariant } from "@emach/db/schema/tools";
-import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
 
 export interface EligibleUserOption {
 	email: string;
@@ -173,14 +173,14 @@ export interface BranchOrderRow {
 	id: string;
 	number: string;
 	status: string;
-	totalAmount: string;
+	totalAmount: number;
 }
 
 export async function getBranchRecentOrders(
 	branchId: string,
 	limit = 20
 ): Promise<BranchOrderRow[]> {
-	return await db
+	const rows = await db
 		.select({
 			id: order.id,
 			number: order.number,
@@ -192,6 +192,11 @@ export async function getBranchRecentOrders(
 		.where(eq(order.branchId, branchId))
 		.orderBy(desc(order.createdAt))
 		.limit(limit);
+
+	return rows.map((row) => ({
+		...row,
+		totalAmount: Number(row.totalAmount),
+	}));
 }
 
 export interface BranchTableRow {
@@ -255,4 +260,17 @@ export async function getBranchTableAggregates(
 		}
 	}
 	return map;
+}
+
+export interface ActiveBranchOption {
+	id: string;
+	name: string;
+}
+
+export function getActiveBranches(): Promise<ActiveBranchOption[]> {
+	return db
+		.select({ id: branch.id, name: branch.name })
+		.from(branch)
+		.where(eq(branch.status, "active"))
+		.orderBy(asc(branch.name));
 }

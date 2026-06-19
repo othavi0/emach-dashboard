@@ -14,6 +14,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
+import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import type { InfiniteResult } from "@/lib/infinite";
@@ -59,6 +60,7 @@ export async function fetchOrdersPage(args: {
 	filters: OrdersPageFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<OrderListItem>> {
+	await requireCapability("orders.read");
 	return await fetchOrdersPageImpl(args);
 }
 
@@ -66,12 +68,14 @@ export async function fetchPendingOrdersPage(args: {
 	statuses: OrderStatus[];
 	cursor: string | null;
 }): Promise<InfiniteResult<PendingRow>> {
+	await requireCapability("orders.read");
 	return await fetchPendingOrdersPageImpl(args);
 }
 
 export async function fetchPendingAwaitingOrdersPage(
 	cursor: string | null
 ): Promise<InfiniteResult<PendingRow>> {
+	await requireCapability("orders.read");
 	return await fetchPendingOrdersPageImpl({
 		statuses: ["paid", "pending_payment"],
 		cursor,
@@ -81,6 +85,7 @@ export async function fetchPendingAwaitingOrdersPage(
 export async function fetchPendingFlowOrdersPage(
 	cursor: string | null
 ): Promise<InfiniteResult<PendingRow>> {
+	await requireCapability("orders.read");
 	return await fetchPendingOrdersPageImpl({
 		statuses: ["preparing", "shipped"],
 		cursor,
@@ -90,6 +95,7 @@ export async function fetchPendingFlowOrdersPage(
 export async function fetchOrderActivityPage(
 	cursor: string | null
 ): Promise<InfiniteResult<ActivityEvent>> {
+	await requireCapability("orders.read");
 	return await fetchOrderActivityPageImpl(cursor);
 }
 
@@ -104,11 +110,6 @@ const STATUS_TIMESTAMP_MAP: Partial<Record<OrderStatus, string>> = {
 };
 
 type OrderTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-/** Capability guards throw `Error("Forbidden: ...")` — detect those here. */
-function isCapabilityError(error: unknown): boolean {
-	return error instanceof Error && error.message.startsWith("Forbidden:");
-}
 
 interface LockedOrderAuth {
 	branchId: string | null;

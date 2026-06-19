@@ -13,7 +13,7 @@ import {
 	STOCK_MOVEMENT_REASON_SHORT,
 	STOCK_MOVEMENT_REASONS,
 } from "@/app/dashboard/stock/_components/stock-movement-schema";
-import type { PeriodPreset } from "@/app/dashboard/stock/actions";
+import type { PeriodPreset } from "@/app/dashboard/stock/tool-activity-data";
 
 const PERIOD_OPTIONS: Array<{ label: string; value: PeriodPreset }> = [
 	{ value: "today", label: "Hoje" },

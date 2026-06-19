@@ -20,11 +20,6 @@ import { HelpTooltip } from "@/components/help-tooltip";
 import { LabeledField } from "@/components/labeled-field";
 import { notify } from "@/lib/notify";
 import { useFormErrors } from "@/lib/use-form-errors";
-
-import {
-	createCategoryAttribute,
-	updateCategoryAttribute,
-} from "../_lib/attribute-actions";
 import {
 	ATTRIBUTE_INPUT_TYPE_LABELS,
 	ATTRIBUTE_INPUT_TYPES,
@@ -32,6 +27,10 @@ import {
 	attributeFormSchema,
 	slugifyLabel,
 } from "../_lib/attribute-schema";
+import {
+	createCategoryAttribute,
+	updateCategoryAttribute,
+} from "../attribute-actions";
 
 interface AttributeFormProps {
 	attributeId?: string;

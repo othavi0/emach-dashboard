@@ -1,3 +1,5 @@
+import "server-only";
+
 import { db } from "@emach/db";
 import { toDate } from "@emach/db/utils";
 

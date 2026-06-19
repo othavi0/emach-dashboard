@@ -15,7 +15,7 @@ import {
 	type AttributeFormValues,
 	attributeFormSchema,
 	buildOptionsField,
-} from "./attribute-schema";
+} from "./_lib/attribute-schema";
 
 function normalize(input: AttributeFormValues, categoryId: string) {
 	return {

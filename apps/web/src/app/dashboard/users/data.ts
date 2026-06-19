@@ -26,7 +26,7 @@ import {
 import type { BranchScope } from "@/lib/branch-scope";
 
 import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { getBranchTableAggregates } from "../branches/data";
 
 // ============================================================================
@@ -163,6 +163,8 @@ export async function fetchUsersPage(
 		.orderBy(desc(userTable.createdAt), desc(userTable.id))
 		.limit(limit + 1);
 
+	// NOTE(045): paginate() não se aplica — limit é variável (filters.limit),
+	// não o BATCH_SIZE fixo. Manter hand-rolled para preservar flexibilidade.
 	const hasMore = rows.length > limit;
 	const items = (hasMore ? rows.slice(0, limit) : rows) as UserListRow[];
 	const last = items.at(-1);
@@ -207,28 +209,21 @@ export async function fetchPendingUsersPage(cursor: string | null): Promise<
 		.orderBy(desc(userTable.createdAt), desc(userTable.id))
 		.limit(BATCH_SIZE + 1);
 
-	const hasMore = rows.length > BATCH_SIZE;
-	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
-	const last = items.at(-1);
-	const nextCursor =
-		hasMore && last
-			? encodeCursor({
-					v: 1,
-					sort: "newest",
-					createdAt: last.createdAt.toISOString(),
-					id: last.id,
-				})
-			: null;
-
-	return {
-		items: items.map((r) => ({
+	return paginate(
+		rows,
+		(r) => ({
 			href: `/dashboard/users/${r.id}`,
 			id: r.id,
 			primary: r.name,
 			secondary: r.email,
-		})),
-		nextCursor,
-	};
+		}),
+		(last) => ({
+			v: 1,
+			sort: "newest" as const,
+			createdAt: last.createdAt.toISOString(),
+			id: last.id,
+		})
+	);
 }
 
 // ============================================================================

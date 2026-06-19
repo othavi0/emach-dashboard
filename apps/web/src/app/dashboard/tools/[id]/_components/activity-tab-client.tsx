@@ -4,12 +4,12 @@ import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
 import { useMemo, useState } from "react";
 
-import {
-	fetchToolActivityPage,
-	type PeriodPreset,
-	type ToolActivityFilters,
-	type ToolActivityRow,
-} from "@/app/dashboard/stock/actions";
+import { fetchToolActivityPageAction } from "@/app/dashboard/stock/actions";
+import type {
+	PeriodPreset,
+	ToolActivityFilters,
+	ToolActivityRow,
+} from "@/app/dashboard/stock/tool-activity-data";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
 import { ActivityFilters } from "./activity-filters";
@@ -50,7 +50,7 @@ export function ActivityTabClient({
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems,
 		initialCursor,
-		fetchPage: (cursor) => fetchToolActivityPage(filters, cursor),
+		fetchPage: (cursor) => fetchToolActivityPageAction(filters, cursor),
 		resetKey,
 	});
 

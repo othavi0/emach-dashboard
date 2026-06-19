@@ -17,7 +17,7 @@ import {
 	isCategoryComplete,
 	MIN_CATEGORY_ATTRIBUTES,
 } from "../../_lib/category-completeness";
-import type { CategoryAttributeView } from "../../actions";
+import type { CategoryAttributeView } from "../../data";
 
 interface Props {
 	attributes: CategoryAttributeView[];

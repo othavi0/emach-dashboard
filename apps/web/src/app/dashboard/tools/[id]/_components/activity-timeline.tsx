@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Pencil, X } from "lucide-react";
 import { STOCK_MOVEMENT_REASON_LABELS } from "@/app/dashboard/stock/_components/stock-movement-schema";
-import type { ToolActivityRow } from "@/app/dashboard/stock/actions";
+import type { ToolActivityRow } from "@/app/dashboard/stock/tool-activity-data";
 import {
 	formatDayMonthShort,
 	formatDayMonthShortYear,

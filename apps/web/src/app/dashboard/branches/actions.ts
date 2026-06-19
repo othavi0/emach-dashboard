@@ -6,10 +6,11 @@ import { branch, userBranch } from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
-import { decodeCursor, encodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { decodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 import {
 	type BranchFormValues,
@@ -52,13 +53,6 @@ function normalizePayload(input: BranchFormValues) {
 		responsibleUserId: input.responsibleUserId ?? null,
 		cepRanges: input.cepRanges ?? null,
 	};
-}
-
-function zodErrorMessage(error: unknown): string {
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro de validação";
 }
 
 export async function listBranches(opts?: {
@@ -146,22 +140,19 @@ export async function fetchBranchesPage({
 		.where(whereExpr)
 		.orderBy(...orderExprs)
 		.limit(BATCH_SIZE + 1);
-	const hasMore = rows.length > BATCH_SIZE;
-	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
-	const last = items.at(-1);
-	let nextCursor: string | null = null;
-	if (hasMore && last) {
-		nextCursor =
+	return paginate(
+		rows,
+		(r) => r,
+		(last) =>
 			filters.sort === "name"
-				? encodeCursor({ v: 1, sort: "name", name: last.name, id: last.id })
-				: encodeCursor({
+				? { v: 1, sort: "name" as const, name: last.name, id: last.id }
+				: {
 						v: 1,
-						sort: "newest",
+						sort: "newest" as const,
 						createdAt: last.createdAt.toISOString(),
 						id: last.id,
-					});
-	}
-	return { items, nextCursor };
+					}
+	);
 }
 
 export async function getBranch(id: string): Promise<BranchListItem | null> {
@@ -185,7 +176,7 @@ export async function fetchBranchOrdersPage({
 			sql`(${order.createdAt}, ${order.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		);
 	}
-	const rows = await db
+	const rawRows = await db
 		.select({
 			id: order.id,
 			number: order.number,
@@ -197,19 +188,19 @@ export async function fetchBranchOrdersPage({
 		.where(sql.join(conditions, sql` AND `))
 		.orderBy(desc(order.createdAt), desc(order.id))
 		.limit(BATCH_SIZE + 1);
-	const hasMore = rows.length > BATCH_SIZE;
-	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
-	const last = items.at(-1);
-	const nextCursor =
-		hasMore && last
-			? encodeCursor({
-					v: 1,
-					sort: "newest",
-					createdAt: last.createdAt.toISOString(),
-					id: last.id,
-				})
-			: null;
-	return { items, nextCursor };
+	return paginate(
+		rawRows,
+		(row) => ({
+			...row,
+			totalAmount: Number(row.totalAmount),
+		}),
+		(last) => ({
+			v: 1,
+			sort: "newest" as const,
+			createdAt: last.createdAt.toISOString(),
+			id: last.id,
+		})
+	);
 }
 
 export async function createBranch(
@@ -219,7 +210,7 @@ export async function createBranch(
 
 	const parsed = branchSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: zodErrorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 
 	const id = crypto.randomUUID();
@@ -228,7 +219,7 @@ export async function createBranch(
 	try {
 		await db.insert(branch).values({ id, ...payload });
 	} catch (error) {
-		return { ok: false, error: zodErrorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await logUserActivity({
@@ -250,7 +241,7 @@ export async function updateBranch(
 
 	const parsed = branchSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: zodErrorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 
 	const payload = normalizePayload(parsed.data);
@@ -277,7 +268,7 @@ export async function updateBranch(
 	try {
 		await db.update(branch).set(payload).where(eq(branch.id, id));
 	} catch (error) {
-		return { ok: false, error: zodErrorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await logUserActivity({

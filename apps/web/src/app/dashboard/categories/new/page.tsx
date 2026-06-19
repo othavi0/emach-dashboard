@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { AttributesLocked } from "../_components/attributes-locked";
 import { CategoryForm } from "../_components/category-form";
-import { listCategories } from "../actions";
+import { listCategories } from "../data";
 
 export const metadata: Metadata = {
 	title: "Nova categoria",

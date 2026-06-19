@@ -1,8 +1,5 @@
-import { db } from "@emach/db";
-import { branch } from "@emach/db/schema/inventory";
-import { asc, eq } from "drizzle-orm";
-
-import { fetchToolActivityPage } from "@/app/dashboard/stock/actions";
+import { getActiveBranches } from "@/app/dashboard/branches/data";
+import { fetchToolActivityPage } from "@/app/dashboard/stock/tool-activity-data";
 
 import { ActivityTabClient } from "./activity-tab-client";
 
@@ -14,14 +11,6 @@ const DEFAULT_REASONS = [
 	"outro",
 ];
 
-function fetchActiveBranches() {
-	return db
-		.select({ id: branch.id, name: branch.name })
-		.from(branch)
-		.where(eq(branch.status, "active"))
-		.orderBy(asc(branch.name));
-}
-
 interface ActivityTabProps {
 	toolId: string;
 }
@@ -32,7 +21,7 @@ export async function ActivityTab({ toolId }: ActivityTabProps) {
 			{ toolId, period: "30d", reasons: DEFAULT_REASONS },
 			null
 		),
-		fetchActiveBranches(),
+		getActiveBranches(),
 	]);
 
 	return (

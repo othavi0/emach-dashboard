@@ -7,36 +7,44 @@ vi.mock("@/lib/permissions", () => ({
 }));
 
 import { requireCapability } from "@/lib/permissions";
-import { getCategory, listCategoriesForTree } from "../actions";
+import { getCategoryChildrenPage, getCategoryProductsPage } from "../actions";
 
 const FORBIDDEN = new Error(
 	'Forbidden: capability "categories.read" requerida'
 );
 
-describe("getCategory — guard", () => {
+describe("getCategoryProductsPage — guard", () => {
 	it("rejeita quando requireCapability lança", async () => {
 		vi.mocked(requireCapability).mockRejectedValueOnce(FORBIDDEN);
-		await expect(getCategory("cat-id")).rejects.toThrow("categories.read");
+		await expect(
+			getCategoryProductsPage({ categoryId: "cat-id", cursor: null })
+		).rejects.toThrow("categories.read");
 	});
 
 	it("chama requireCapability com categories.read como primeira instrução", async () => {
 		vi.mocked(requireCapability).mockRejectedValueOnce(FORBIDDEN);
-		await expect(getCategory("cat-id")).rejects.toThrow();
+		await expect(
+			getCategoryProductsPage({ categoryId: "cat-id", cursor: null })
+		).rejects.toThrow();
 		expect(vi.mocked(requireCapability)).toHaveBeenCalledWith(
 			"categories.read"
 		);
 	});
 });
 
-describe("listCategoriesForTree — guard", () => {
+describe("getCategoryChildrenPage — guard", () => {
 	it("rejeita quando requireCapability lança", async () => {
 		vi.mocked(requireCapability).mockRejectedValueOnce(FORBIDDEN);
-		await expect(listCategoriesForTree()).rejects.toThrow("categories.read");
+		await expect(
+			getCategoryChildrenPage({ categoryId: "cat-id", cursor: null })
+		).rejects.toThrow("categories.read");
 	});
 
 	it("chama requireCapability com categories.read como primeira instrução", async () => {
 		vi.mocked(requireCapability).mockRejectedValueOnce(FORBIDDEN);
-		await expect(listCategoriesForTree()).rejects.toThrow();
+		await expect(
+			getCategoryChildrenPage({ categoryId: "cat-id", cursor: null })
+		).rejects.toThrow();
 		expect(vi.mocked(requireCapability)).toHaveBeenCalledWith(
 			"categories.read"
 		);

@@ -202,6 +202,9 @@ export async function getSupplierStockTools({
 		LIMIT ${BATCH_SIZE + 1}
 	`);
 
+	// NOTE(045): paginate() não se aplica aqui — o enriquecimento assíncrono
+	// (getToolCardMeta) ocorre entre o slice e a montagem de items, quebrando o
+	// contrato do mapRow síncrono de paginate(). Manter hand-rolled.
 	const rawRows = result.rows;
 	const hasMore = rawRows.length > BATCH_SIZE;
 	const pageRows = hasMore ? rawRows.slice(0, BATCH_SIZE) : rawRows;

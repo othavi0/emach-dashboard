@@ -5,6 +5,7 @@ import { orderAttachment } from "@emach/db/schema/orders";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logger } from "@/lib/logger";
 import {
@@ -36,11 +37,6 @@ const addAttachmentSchema = z.object({
 });
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Capability guards throw `Error("Forbidden: ...")` — detect those here. */
-function isCapabilityError(error: unknown): boolean {
-	return error instanceof Error && error.message.startsWith("Forbidden:");
-}
 
 // ─── Actions ───────────────────────────────────────────────────────────────────
 
