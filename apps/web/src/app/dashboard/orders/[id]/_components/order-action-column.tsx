@@ -1,6 +1,5 @@
 "use client";
 
-import { matchBranchByCep } from "@emach/db/queries/branch-cep";
 import { Button } from "@emach/ui/components/button";
 import {
 	Card,
@@ -23,6 +22,7 @@ import { Textarea } from "@emach/ui/components/textarea";
 import { TriangleAlertIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { matchBranchByCep } from "@/lib/cep-match";
 import { notify } from "@/lib/notify";
 import { CancelOrderDialog } from "../../_components/cancel-order-dialog";
 import { RefundDialog } from "../../_components/refund-dialog";
