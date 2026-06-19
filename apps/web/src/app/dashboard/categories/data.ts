@@ -423,9 +423,9 @@ export async function getCategoryChildrenPage({
 }
 
 export async function getAttributeUsage(id: string): Promise<number> {
-	const rows = await db
-		.select({ toolId: toolAttributeValue.toolId })
+	const [row] = await db
+		.select({ value: count() })
 		.from(toolAttributeValue)
 		.where(eq(toolAttributeValue.attributeId, id));
-	return rows.length;
+	return Number(row?.value ?? 0);
 }
