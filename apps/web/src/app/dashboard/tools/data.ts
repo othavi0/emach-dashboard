@@ -10,7 +10,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
 import { branchAndFilter, getUserBranchScope } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, paginate, type InfiniteResult } from "@/lib/infinite";
+import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 import {
 	isCategoryComplete,
@@ -256,27 +256,33 @@ export async function fetchToolsPage({
 
 	return paginate(
 		rows.rows,
-		(r) => ({
-			id: r.id,
-			name: r.name,
-			imageUrl: r.image_url,
-			sku: r.default_sku,
-			variantCount: Number(r.variant_count ?? 0),
-			variantSummaries: (r.variant_voltages ?? []).filter(
-				(v): v is string => typeof v === "string"
-			),
-			primaryCategoryName: r.primary_category_name,
-			status: r.status as ToolStatusValue,
-			totalStock: Number(r.total_stock ?? 0),
-			branches: (r.branches_breakdown ?? []).map((b) => ({
-				branchId: b.branch_id,
-				branchName: b.branch_name,
-				quantity: b.quantity,
-			})),
-		}) as ToolCardData,
+		(r) =>
+			({
+				id: r.id,
+				name: r.name,
+				imageUrl: r.image_url,
+				sku: r.default_sku,
+				variantCount: Number(r.variant_count ?? 0),
+				variantSummaries: (r.variant_voltages ?? []).filter(
+					(v): v is string => typeof v === "string"
+				),
+				primaryCategoryName: r.primary_category_name,
+				status: r.status as ToolStatusValue,
+				totalStock: Number(r.total_stock ?? 0),
+				branches: (r.branches_breakdown ?? []).map((b) => ({
+					branchId: b.branch_id,
+					branchName: b.branch_name,
+					quantity: b.quantity,
+				})),
+			}) as ToolCardData,
 		(last) =>
 			filters.sort === "name"
 				? { v: 1, sort: "name" as const, name: last.name, id: last.id }
-				: { v: 1, sort: "newest" as const, createdAt: last.created_at, id: last.id }
+				: {
+						v: 1,
+						sort: "newest" as const,
+						createdAt: last.created_at,
+						id: last.id,
+					}
 	);
 }

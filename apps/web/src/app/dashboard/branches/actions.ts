@@ -10,7 +10,7 @@ import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, paginate, type InfiniteResult } from "@/lib/infinite";
+import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 import {
 	type BranchFormValues,
@@ -140,10 +140,18 @@ export async function fetchBranchesPage({
 		.where(whereExpr)
 		.orderBy(...orderExprs)
 		.limit(BATCH_SIZE + 1);
-	return paginate(rows, (r) => r, (last) =>
-		filters.sort === "name"
-			? { v: 1, sort: "name" as const, name: last.name, id: last.id }
-			: { v: 1, sort: "newest" as const, createdAt: last.createdAt.toISOString(), id: last.id }
+	return paginate(
+		rows,
+		(r) => r,
+		(last) =>
+			filters.sort === "name"
+				? { v: 1, sort: "name" as const, name: last.name, id: last.id }
+				: {
+						v: 1,
+						sort: "newest" as const,
+						createdAt: last.createdAt.toISOString(),
+						id: last.id,
+					}
 	);
 }
 
@@ -180,15 +188,19 @@ export async function fetchBranchOrdersPage({
 		.where(sql.join(conditions, sql` AND `))
 		.orderBy(desc(order.createdAt), desc(order.id))
 		.limit(BATCH_SIZE + 1);
-	return paginate(rawRows, (row) => ({
-		...row,
-		totalAmount: Number(row.totalAmount),
-	}), (last) => ({
-		v: 1,
-		sort: "newest" as const,
-		createdAt: last.createdAt.toISOString(),
-		id: last.id,
-	}));
+	return paginate(
+		rawRows,
+		(row) => ({
+			...row,
+			totalAmount: Number(row.totalAmount),
+		}),
+		(last) => ({
+			v: 1,
+			sort: "newest" as const,
+			createdAt: last.createdAt.toISOString(),
+			id: last.id,
+		})
+	);
 }
 
 export async function createBranch(

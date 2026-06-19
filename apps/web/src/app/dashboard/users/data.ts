@@ -26,7 +26,7 @@ import {
 import type { BranchScope } from "@/lib/branch-scope";
 
 import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, paginate, type InfiniteResult } from "@/lib/infinite";
+import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { getBranchTableAggregates } from "../branches/data";
 
 // ============================================================================
@@ -209,17 +209,21 @@ export async function fetchPendingUsersPage(cursor: string | null): Promise<
 		.orderBy(desc(userTable.createdAt), desc(userTable.id))
 		.limit(BATCH_SIZE + 1);
 
-	return paginate(rows, (r) => ({
-		href: `/dashboard/users/${r.id}`,
-		id: r.id,
-		primary: r.name,
-		secondary: r.email,
-	}), (last) => ({
-		v: 1,
-		sort: "newest" as const,
-		createdAt: last.createdAt.toISOString(),
-		id: last.id,
-	}));
+	return paginate(
+		rows,
+		(r) => ({
+			href: `/dashboard/users/${r.id}`,
+			id: r.id,
+			primary: r.name,
+			secondary: r.email,
+		}),
+		(last) => ({
+			v: 1,
+			sort: "newest" as const,
+			createdAt: last.createdAt.toISOString(),
+			id: last.id,
+		})
+	);
 }
 
 // ============================================================================

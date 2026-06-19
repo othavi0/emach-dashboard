@@ -4,7 +4,7 @@ import { db } from "@emach/db";
 import { sql } from "drizzle-orm";
 import { getUserBranchScope, inScope } from "@/lib/branch-scope";
 import { decodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, paginate, type InfiniteResult } from "@/lib/infinite";
+import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 
 export interface BranchStockRow {
@@ -194,24 +194,43 @@ export async function fetchBranchStockPage({
 		return { items, nextCursor: null };
 	}
 
-	return paginate(result.rows, (row) => ({
-		toolId: row.tool_id,
-		toolName: row.tool_name,
-		variantId: row.variant_id,
-		sku: row.sku,
-		voltage: row.voltage,
-		imageUrl: row.image_url,
-		quantity: Number(row.quantity ?? 0),
-		minQty: Number(row.min_qty ?? 0),
-		reorderPoint: Number(row.reorder_point ?? 0),
-	}), (last) => {
-		if (filters.sort === "name") {
-			return { v: 1, sort: "name" as const, name: last.tool_name, id: last.variant_id };
+	return paginate(
+		result.rows,
+		(row) => ({
+			toolId: row.tool_id,
+			toolName: row.tool_name,
+			variantId: row.variant_id,
+			sku: row.sku,
+			voltage: row.voltage,
+			imageUrl: row.image_url,
+			quantity: Number(row.quantity ?? 0),
+			minQty: Number(row.min_qty ?? 0),
+			reorderPoint: Number(row.reorder_point ?? 0),
+		}),
+		(last) => {
+			if (filters.sort === "name") {
+				return {
+					v: 1,
+					sort: "name" as const,
+					name: last.tool_name,
+					id: last.variant_id,
+				};
+			}
+			if (filters.sort === "stockLow") {
+				return {
+					v: 1,
+					sort: "stockLow" as const,
+					totalStock: Number(last.quantity ?? 0),
+					id: last.variant_id,
+				};
+			}
+			// stockHigh
+			return {
+				v: 1,
+				sort: "stockHigh" as const,
+				totalStock: Number(last.quantity ?? 0),
+				id: last.variant_id,
+			};
 		}
-		if (filters.sort === "stockLow") {
-			return { v: 1, sort: "stockLow" as const, totalStock: Number(last.quantity ?? 0), id: last.variant_id };
-		}
-		// stockHigh
-		return { v: 1, sort: "stockHigh" as const, totalStock: Number(last.quantity ?? 0), id: last.variant_id };
-	});
+	);
 }
