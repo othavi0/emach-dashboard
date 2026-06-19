@@ -44,4 +44,43 @@ describe("actionErrorMessage", () => {
 		expect(actionErrorMessage(undefined)).toBe("Erro desconhecido");
 		expect(actionErrorMessage(42)).toBe("Erro desconhecido");
 	});
+
+	it("não vaza SQL de INSERT em DrizzleQueryError (risco real de branches/actions)", () => {
+		const drizzleInsertError = {
+			name: "DrizzleQueryError",
+			message:
+				'Failed query: INSERT INTO "branch" ("id","name") VALUES ($1,$2) -- params: ["uuid-x","Filial Centro"]',
+			cause: {
+				name: "DatabaseError",
+				code: "23505",
+				message: 'duplicate key value violates unique constraint "branch_name_key"',
+				constraint: "branch_name_key",
+			},
+		};
+		const msg = actionErrorMessage(drizzleInsertError);
+		expect(msg).toBe("Não foi possível concluir a operação. Tente novamente.");
+		expect(msg).not.toContain("Failed query");
+		expect(msg).not.toContain("INSERT");
+		expect(msg).not.toContain("params");
+	});
+
+	it("não vaza SQL de UPDATE em DrizzleQueryError (risco real de site/settings/actions)", () => {
+		const drizzleUpdateError = {
+			name: "DrizzleQueryError",
+			message:
+				'Failed query: UPDATE "store_settings" SET "shipping_origin_branch_id" = $1 WHERE "id" = $2 -- params: ["branch-id","singleton"]',
+			cause: {
+				name: "DatabaseError",
+				code: "23503",
+				message:
+					'insert or update on table "store_settings" violates foreign key constraint "fk_shipping_origin"',
+				constraint: "fk_shipping_origin",
+			},
+		};
+		const msg = actionErrorMessage(drizzleUpdateError);
+		expect(msg).toBe("Não foi possível concluir a operação. Tente novamente.");
+		expect(msg).not.toContain("Failed query");
+		expect(msg).not.toContain("UPDATE");
+		expect(msg).not.toContain("params");
+	});
 });

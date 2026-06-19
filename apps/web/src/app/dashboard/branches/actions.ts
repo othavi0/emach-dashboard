@@ -6,6 +6,7 @@ import { branch, userBranch } from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
@@ -54,12 +55,6 @@ function normalizePayload(input: BranchFormValues) {
 	};
 }
 
-function zodErrorMessage(error: unknown): string {
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro de validação";
-}
 
 export async function listBranches(opts?: {
 	activeOnly?: boolean;
@@ -219,7 +214,7 @@ export async function createBranch(
 
 	const parsed = branchSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: zodErrorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 
 	const id = crypto.randomUUID();
@@ -228,7 +223,7 @@ export async function createBranch(
 	try {
 		await db.insert(branch).values({ id, ...payload });
 	} catch (error) {
-		return { ok: false, error: zodErrorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await logUserActivity({
@@ -250,7 +245,7 @@ export async function updateBranch(
 
 	const parsed = branchSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: zodErrorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 
 	const payload = normalizePayload(parsed.data);
@@ -277,7 +272,7 @@ export async function updateBranch(
 	try {
 		await db.update(branch).set(payload).where(eq(branch.id, id));
 	} catch (error) {
-		return { ok: false, error: zodErrorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await logUserActivity({
