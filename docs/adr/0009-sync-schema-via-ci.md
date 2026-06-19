@@ -10,7 +10,7 @@ O dashboard e o site e-commerce são monorepos separados que compartilham o mesm
 
 ## Decisão
 
-Automatizar: um GitHub Action no repo `emach-dashboard` (fonte de verdade), disparado em push na `main` quando `packages/db/src/**` muda, abre um Pull Request no repo `emach-ecommerce` espelhando `schema/`, `queries/` e `sql/triggers.sql`.
+Automatizar: um GitHub Action no repo `emach-dashboard` (fonte de verdade), disparado em push na `main` quando `packages/db/src/**` muda, abre um Pull Request no repo `emach-ecommerce` espelhando `schema/`, `queries/`, `utils.ts` e `sql/triggers.sql`. (`utils.ts` entrou na superfície porque os arquivos de `queries/` importam helpers dele — ex. `coerceDates`; sem espelhá-lo, o build dos query files sincronizados quebra no ecommerce.)
 
 Os repos seguem separados — os deploys são independentes e o dashboard vai virar ferramenta interna além de site. Por isso não foi adotado nem o monorepo único (juntaria os deploys) nem o pacote `@emach/db` publicado num registry (cobra cerimônia de `publish`/versão sem haver consumidor externo nem produção — ver ADR-0006). O espelhamento via CI é a menor mudança que elimina o sync manual sem inventar modelo mental novo.
 
