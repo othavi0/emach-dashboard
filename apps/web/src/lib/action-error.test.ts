@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { actionErrorMessage } from "./action-error";
 
 describe("actionErrorMessage", () => {
@@ -83,5 +84,14 @@ describe("actionErrorMessage", () => {
 		expect(msg).not.toContain("Failed query");
 		expect(msg).not.toContain("UPDATE");
 		expect(msg).not.toContain("params");
+	});
+
+	it("devolve a mensagem do primeiro issue de um ZodError (feedback field-level)", () => {
+		const schema = z.object({ cpf: z.string().min(11, "CPF inválido") });
+		const result = schema.safeParse({ cpf: "123" });
+		expect(result.success).toBe(false);
+		if (!result.success) {
+			expect(actionErrorMessage(result.error)).toBe("CPF inválido");
+		}
 	});
 });

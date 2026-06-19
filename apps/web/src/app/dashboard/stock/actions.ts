@@ -12,7 +12,10 @@ import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import type { InfiniteResult } from "@/lib/infinite";
 
-import { requireCapabilityWithContext } from "@/lib/permissions";
+import {
+	requireCapability,
+	requireCapabilityWithContext,
+} from "@/lib/permissions";
 import {
 	type StockEntryInput,
 	type StockRecountInput,
@@ -338,6 +341,9 @@ export async function fetchVariantBranchMovementsPageAction(
 	branchId: string,
 	cursor: string | null
 ): Promise<InfiniteResult<StockMovementRow>> {
+	await requireCapabilityWithContext("stock.read", {
+		targetBranchIds: [branchId],
+	});
 	return await _fetchVariantBranchMovementsPage(variantId, branchId, cursor);
 }
 
@@ -345,6 +351,9 @@ export async function getReservedQtyByVariantBranchAction(
 	variantId: string,
 	branchId: string
 ): Promise<number> {
+	await requireCapabilityWithContext("stock.read", {
+		targetBranchIds: [branchId],
+	});
 	return await _getReservedQtyByVariantBranch(variantId, branchId);
 }
 
@@ -352,6 +361,13 @@ export async function fetchToolActivityPageAction(
 	filters: ToolActivityFilters,
 	cursor: string | null
 ): Promise<InfiniteResult<ToolActivityRow>> {
+	if (filters.branchId) {
+		await requireCapabilityWithContext("stock.read", {
+			targetBranchIds: [filters.branchId],
+		});
+	} else {
+		await requireCapability("stock.read");
+	}
 	return await _fetchToolActivityPage(filters, cursor);
 }
 
@@ -359,5 +375,8 @@ export async function fetchBranchStockPageAction(args: {
 	filters: BranchStockFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<BranchStockRow>> {
+	// A camada data (fetchBranchStockPage) já valida branch-scope (fail-closed,
+	// retorna vazio fora do escopo); aqui só falta a capability no boundary.
+	await requireCapability("stock.read");
 	return await _fetchBranchStockPage(args);
 }

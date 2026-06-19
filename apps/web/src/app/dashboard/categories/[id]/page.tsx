@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
-import { can, requireCapability } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 
 import {
 	getCategoryAncestors,
@@ -42,7 +42,7 @@ export default async function CategoryDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
-	const session = await requireCapability("categories.read");
+	const session = await requireCapabilityOrRedirect("categories.read");
 	const [canDelete, canManage] = await Promise.all([
 		can(session, "categories.delete"),
 		can(session, "categories.manage"),
