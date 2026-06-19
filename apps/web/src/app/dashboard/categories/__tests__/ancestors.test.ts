@@ -53,7 +53,7 @@ describe("getCategoryAncestors", () => {
 
 		expect(result).toEqual([{ id: "a", name: "A" }]);
 		// depth deve ser omitido do retorno
-		expect(Object.keys(result[0])).toEqual(["id", "name"]);
+		expect(Object.keys(result[0] ?? {})).toEqual(["id", "name"]);
 	});
 
 	it("emite exatamente 1 query ao DB para qualquer profundidade de ancestral", async () => {
