@@ -12,9 +12,8 @@ import type { Metadata } from "next";
 import nextDynamic from "next/dynamic";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
-import { can } from "@/lib/permissions";
-import { requireCurrentSession } from "@/lib/session";
-import { listCategoriesForTree } from "./actions";
+import { can, requireCapability } from "@/lib/permissions";
+import { listCategoriesForTree } from "./data";
 
 const CategoriesTree = nextDynamic(
 	() => import("./_components/categories-tree").then((m) => m.CategoriesTree),
@@ -28,7 +27,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function CategoriesPage() {
-	const session = await requireCurrentSession();
+	const session = await requireCapability("categories.read");
 	const [canMutate, canDelete] = await Promise.all([
 		can(session, "categories.manage"),
 		can(session, "categories.delete"),

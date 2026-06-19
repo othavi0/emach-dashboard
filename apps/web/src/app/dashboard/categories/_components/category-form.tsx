@@ -24,11 +24,8 @@ import { useFormErrors } from "@/lib/use-form-errors";
 
 import { slugifyLabel } from "../_lib/attribute-schema";
 import { breadcrumbFromPath, buildNameBySlug } from "../_lib/category-tree";
-import {
-	type CategoryListItem,
-	createCategory,
-	updateCategory,
-} from "../actions";
+import type { CategoryListItem } from "../data";
+import { createCategory, updateCategory } from "../actions";
 import { type CategoryInput, categorySchema } from "../schema";
 
 const NO_PARENT = "__none__";

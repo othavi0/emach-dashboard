@@ -5,11 +5,8 @@ import Link from "next/link";
 
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { useInfiniteList } from "@/lib/use-infinite-list";
-
-import {
-	type CategoryProductItem,
-	getCategoryProductsPage,
-} from "../../actions";
+import { getCategoryProductsPage } from "../../actions";
+import type { CategoryProductItem } from "../../data";
 
 interface Props {
 	categoryId: string;
