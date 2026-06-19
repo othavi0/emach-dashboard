@@ -5,11 +5,10 @@ import { useState } from "react";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import type { ActiveSupplierOption } from "@/lib/suppliers";
 import { useInfiniteList } from "@/lib/use-infinite-list";
-
-import {
-	type BranchStockFiltersInput,
-	type BranchStockRow,
-	fetchBranchStockPage,
+import { fetchBranchStockPageAction } from "../actions";
+import type {
+	BranchStockFiltersInput,
+	BranchStockRow,
 } from "../branch-stock-data";
 import { BranchStockCardGrid } from "./branch-stock-card-grid";
 import { BranchStockEditSheet } from "./branch-stock-edit-sheet";
@@ -39,7 +38,7 @@ export function BranchStockInfinite({
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
-		fetchPage: (cursor) => fetchBranchStockPage({ filters, cursor }),
+		fetchPage: (cursor) => fetchBranchStockPageAction({ filters, cursor }),
 		resetKey,
 	});
 

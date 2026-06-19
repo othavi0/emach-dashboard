@@ -2,7 +2,7 @@ import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
 import { asc, eq } from "drizzle-orm";
 
-import { fetchToolActivityPage } from "@/app/dashboard/stock/actions";
+import { fetchToolActivityPage } from "@/app/dashboard/stock/tool-activity-data";
 
 import { ActivityTabClient } from "./activity-tab-client";
 

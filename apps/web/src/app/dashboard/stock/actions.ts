@@ -1,26 +1,19 @@
 "use server";
 
 import { db } from "@emach/db";
-import { user } from "@emach/db/schema/auth";
-import { branch, stockLevel } from "@emach/db/schema/inventory";
-import { order, orderItem } from "@emach/db/schema/orders";
+import { stockLevel } from "@emach/db/schema/inventory";
 import type { StockMovementReason } from "@emach/db/schema/stock-movements";
 import { stockMovement } from "@emach/db/schema/stock-movements";
-import { supplier, toolVariant } from "@emach/db/schema/tools";
-import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { toolVariant } from "@emach/db/schema/tools";
+import { and, eq } from "drizzle-orm";
 
 import { revalidatePath } from "next/cache";
 import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
-import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import type { InfiniteResult } from "@/lib/infinite";
 
+import { requireCapabilityWithContext } from "@/lib/permissions";
 import {
-	requireCapability,
-	requireCapabilityWithContext,
-} from "@/lib/permissions";
-import { requireCurrentSession } from "@/lib/session";
-import {
-	type STOCK_MOVEMENT_REASONS,
 	type StockEntryInput,
 	type StockRecountInput,
 	type StockWriteOffInput,
@@ -34,13 +27,27 @@ import {
 	stockThresholdSchema,
 } from "./_components/stock-threshold-schema";
 import {
-	computePeriodCutoff,
-	encodeMovementCursor,
-	movementKeysetCondition,
-	type PeriodPreset,
-} from "./_lib/movements-shared";
+	fetchBranchStockPage as _fetchBranchStockPage,
+	type BranchStockFiltersInput,
+	type BranchStockRow,
+} from "./branch-stock-data";
+import {
+	fetchVariantBranchMovementsPage as _fetchVariantBranchMovementsPage,
+	getReservedQtyByVariantBranch as _getReservedQtyByVariantBranch,
+	type StockMovementRow,
+} from "./movements-data";
+import {
+	fetchToolActivityPage as _fetchToolActivityPage,
+	type ToolActivityFilters,
+	type ToolActivityRow,
+} from "./tool-activity-data";
 
 export type { PeriodPreset } from "./_lib/movements-shared";
+export type { StockMovementRow } from "./movements-data";
+export type {
+	ToolActivityFilters,
+	ToolActivityRow,
+} from "./tool-activity-data";
 
 interface AdjustStockSuccess {
 	delta: number;
@@ -321,291 +328,36 @@ export async function updateStockThresholds(
 	}
 }
 
-// ─── Tipos de leitura ─────────────────────────────────────────────────────────
+// ─── Wrappers de leitura para Client Components ───────────────────────────────
+// Estas funções são "use server" endpoints que delegam à camada data (server-only).
+// Client Components chamam estas; Server Components importam direto de movements-data
+// ou tool-activity-data.
 
-export interface StockMovementRow {
-	actorId: string | null;
-	actorName: string | null;
-	branchId: string | null;
-	branchName: string | null;
-	createdAt: Date;
-	delta: number;
-	id: string;
-	newQty: number;
-	previousQty: number;
-	reason: string | null;
-	reasonNote: string | null;
-	supplierId: string | null;
-	supplierName: string | null;
-}
-
-/**
- * Lista movimentos de estoque para todas as variantes de uma tool.
- */
-export async function getStockMovements(
-	toolId: string,
-	limit = 50
-): Promise<StockMovementRow[]> {
-	await requireCapability("stock.read");
-	return await db
-		.select({
-			id: stockMovement.id,
-			createdAt: stockMovement.createdAt,
-			branchId: stockMovement.branchId,
-			branchName: branch.name,
-			previousQty: stockMovement.previousQty,
-			newQty: stockMovement.newQty,
-			delta: stockMovement.delta,
-			reason: stockMovement.reason,
-			reasonNote: stockMovement.reasonNote,
-			actorId: stockMovement.actorId,
-			actorName: user.name,
-			supplierId: stockMovement.supplierId,
-			supplierName: supplier.name,
-		})
-		.from(stockMovement)
-		.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
-		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
-		.leftJoin(user, eq(stockMovement.actorId, user.id))
-		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
-		.where(eq(toolVariant.toolId, toolId))
-		.orderBy(desc(stockMovement.createdAt))
-		.limit(limit);
-}
-
-/**
- * Lista movimentos de estoque de uma variante específica em uma filial.
- */
-export async function getStockMovementsByVariantBranch(
-	variantId: string,
-	branchId: string,
-	limit = 5
-): Promise<StockMovementRow[]> {
-	await requireCurrentSession();
-	return await db
-		.select({
-			id: stockMovement.id,
-			createdAt: stockMovement.createdAt,
-			branchId: stockMovement.branchId,
-			branchName: branch.name,
-			previousQty: stockMovement.previousQty,
-			newQty: stockMovement.newQty,
-			delta: stockMovement.delta,
-			reason: stockMovement.reason,
-			reasonNote: stockMovement.reasonNote,
-			actorId: stockMovement.actorId,
-			actorName: user.name,
-			supplierId: stockMovement.supplierId,
-			supplierName: supplier.name,
-		})
-		.from(stockMovement)
-		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
-		.leftJoin(user, eq(stockMovement.actorId, user.id))
-		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
-		.where(
-			and(
-				eq(stockMovement.variantId, variantId),
-				eq(stockMovement.branchId, branchId)
-			)
-		)
-		.orderBy(desc(stockMovement.createdAt))
-		.limit(limit);
-}
-
-/**
- * Página de movimentos de uma variante numa filial (keyset por createdAt+id).
- * Usado pelo scroll interno + lazy load do card "Movimentos recentes" da drawer.
- */
-export async function fetchVariantBranchMovementsPage(
+export async function fetchVariantBranchMovementsPageAction(
 	variantId: string,
 	branchId: string,
 	cursor: string | null
 ): Promise<InfiniteResult<StockMovementRow>> {
-	await requireCurrentSession();
-
-	const conditions = [
-		eq(stockMovement.variantId, variantId),
-		eq(stockMovement.branchId, branchId),
-	];
-
-	const cursorClause = movementKeysetCondition(cursor);
-	if (cursorClause) {
-		conditions.push(cursorClause);
-	}
-
-	const rows = await db
-		.select({
-			id: stockMovement.id,
-			createdAt: stockMovement.createdAt,
-			branchId: stockMovement.branchId,
-			branchName: branch.name,
-			previousQty: stockMovement.previousQty,
-			newQty: stockMovement.newQty,
-			delta: stockMovement.delta,
-			reason: stockMovement.reason,
-			reasonNote: stockMovement.reasonNote,
-			actorId: stockMovement.actorId,
-			actorName: user.name,
-			supplierId: stockMovement.supplierId,
-			supplierName: supplier.name,
-		})
-		.from(stockMovement)
-		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
-		.leftJoin(user, eq(stockMovement.actorId, user.id))
-		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
-		.where(and(...conditions))
-		.orderBy(desc(stockMovement.createdAt), desc(stockMovement.id))
-		.limit(BATCH_SIZE + 1);
-
-	const hasMore = rows.length > BATCH_SIZE;
-	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
-	const nextCursor = encodeMovementCursor(items.at(-1), hasMore);
-
-	return { items, nextCursor };
+	return await _fetchVariantBranchMovementsPage(variantId, branchId, cursor);
 }
 
-export async function getReservedQtyByVariantBranch(
+export async function getReservedQtyByVariantBranchAction(
 	variantId: string,
 	branchId: string
 ): Promise<number> {
-	await requireCurrentSession();
-	const [row] = await db
-		.select({
-			reserved: sql<number>`coalesce(sum(${orderItem.quantity}), 0)::int`,
-		})
-		.from(orderItem)
-		.innerJoin(order, eq(orderItem.orderId, order.id))
-		.where(
-			and(
-				eq(orderItem.variantId, variantId),
-				eq(order.branchId, branchId),
-				inArray(order.status, ["paid", "preparing"])
-			)
-		);
-	return row?.reserved ?? 0;
+	return await _getReservedQtyByVariantBranch(variantId, branchId);
 }
 
-export interface ToolActivityRow {
-	actorId: string | null;
-	actorName: string | null;
-	branchId: string | null;
-	branchName: string | null;
-	createdAt: Date;
-	delta: number;
-	id: string;
-	newQty: number;
-	previousQty: number;
-	reason: string | null;
-	reasonNote: string | null;
-	supplierId: string | null;
-	supplierName: string | null;
-	variantSku: string;
-	variantVoltage: string | null;
-}
-
-export async function getToolActivity(
-	toolId: string,
-	limit = 100
-): Promise<ToolActivityRow[]> {
-	await requireCapability("stock.read");
-	return await db
-		.select({
-			id: stockMovement.id,
-			createdAt: stockMovement.createdAt,
-			branchId: stockMovement.branchId,
-			branchName: branch.name,
-			previousQty: stockMovement.previousQty,
-			newQty: stockMovement.newQty,
-			delta: stockMovement.delta,
-			reason: stockMovement.reason,
-			reasonNote: stockMovement.reasonNote,
-			actorId: stockMovement.actorId,
-			actorName: user.name,
-			supplierId: stockMovement.supplierId,
-			supplierName: supplier.name,
-			variantSku: toolVariant.sku,
-			variantVoltage: toolVariant.voltage,
-		})
-		.from(stockMovement)
-		.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
-		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
-		.leftJoin(user, eq(stockMovement.actorId, user.id))
-		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
-		.where(eq(toolVariant.toolId, toolId))
-		.orderBy(desc(stockMovement.createdAt))
-		.limit(limit);
-}
-
-// Tool activity — cursor pagination + filters
-// ---------------------------------------------------------------------------
-
-export interface ToolActivityFilters {
-	branchId?: string;
-	period: PeriodPreset;
-	reasons?: string[];
-	toolId: string;
-}
-
-export async function fetchToolActivityPage(
+export async function fetchToolActivityPageAction(
 	filters: ToolActivityFilters,
 	cursor: string | null
 ): Promise<InfiniteResult<ToolActivityRow>> {
-	await requireCapability("stock.read");
+	return await _fetchToolActivityPage(filters, cursor);
+}
 
-	const conditions = [eq(toolVariant.toolId, filters.toolId)];
-
-	if (filters.branchId) {
-		conditions.push(eq(stockMovement.branchId, filters.branchId));
-	}
-	if (filters.reasons && filters.reasons.length > 0) {
-		conditions.push(
-			inArray(
-				stockMovement.reason,
-				filters.reasons as (typeof STOCK_MOVEMENT_REASONS)[number][]
-			)
-		);
-	}
-
-	const cutoff = computePeriodCutoff(filters.period);
-	if (cutoff) {
-		conditions.push(gte(stockMovement.createdAt, cutoff));
-	}
-
-	const cursorClause = movementKeysetCondition(cursor);
-	if (cursorClause) {
-		conditions.push(cursorClause);
-	}
-
-	const rows = await db
-		.select({
-			id: stockMovement.id,
-			createdAt: stockMovement.createdAt,
-			branchId: stockMovement.branchId,
-			branchName: branch.name,
-			previousQty: stockMovement.previousQty,
-			newQty: stockMovement.newQty,
-			delta: stockMovement.delta,
-			reason: stockMovement.reason,
-			reasonNote: stockMovement.reasonNote,
-			actorId: stockMovement.actorId,
-			actorName: user.name,
-			supplierId: stockMovement.supplierId,
-			supplierName: supplier.name,
-			variantSku: toolVariant.sku,
-			variantVoltage: toolVariant.voltage,
-		})
-		.from(stockMovement)
-		.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
-		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
-		.leftJoin(user, eq(stockMovement.actorId, user.id))
-		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
-		.where(and(...conditions))
-		.orderBy(desc(stockMovement.createdAt), desc(stockMovement.id))
-		.limit(BATCH_SIZE + 1);
-
-	const hasMore = rows.length > BATCH_SIZE;
-	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
-	const nextCursor = encodeMovementCursor(items.at(-1), hasMore);
-
-	return { items, nextCursor };
+export async function fetchBranchStockPageAction(args: {
+	filters: BranchStockFiltersInput;
+	cursor: string | null;
+}): Promise<InfiniteResult<BranchStockRow>> {
+	return await _fetchBranchStockPage(args);
 }
