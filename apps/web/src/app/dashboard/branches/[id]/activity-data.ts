@@ -4,8 +4,8 @@ import { db } from "@emach/db";
 import { toDate } from "@emach/db/utils";
 import { sql } from "drizzle-orm";
 
-import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { decodeCursorAs } from "@/lib/cursor";
+import { BATCH_SIZE, paginate, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 
 export type BranchActivityKind = "stock" | "order" | "user";
@@ -240,9 +240,7 @@ export async function fetchBranchActivityPage(
 		LIMIT ${ctx.limit}
 	`);
 
-	const hasMore = result.rows.length > BATCH_SIZE;
-	const pageRows = hasMore ? result.rows.slice(0, BATCH_SIZE) : result.rows;
-	const items: BranchActivityRow[] = pageRows.map((r) => ({
+	return paginate(result.rows, (r) => ({
 		id: r.id,
 		kind: r.kind,
 		at: toDate(r.created_at),
@@ -260,20 +258,12 @@ export async function fetchBranchActivityPage(
 		href: r.href,
 		supplierId: r.supplier_id,
 		supplierName: r.supplier_name,
+	}), (last) => ({
+		v: 1,
+		sort: "activity" as const,
+		id: last.id,
+		createdAt: toDate(last.created_at).toISOString(),
 	}));
-
-	const last = pageRows.at(-1);
-	const nextCursor =
-		hasMore && last
-			? encodeCursor({
-					v: 1,
-					sort: "activity",
-					id: last.id,
-					createdAt: toDate(last.created_at).toISOString(),
-				})
-			: null;
-
-	return { items, nextCursor };
 }
 
 /** Ferramentas com movimentação registrada nesta filial (para o filtro). */
