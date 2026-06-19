@@ -185,7 +185,7 @@ export async function fetchBranchOrdersPage({
 			sql`(${order.createdAt}, ${order.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		);
 	}
-	const rows = await db
+	const rawRows = await db
 		.select({
 			id: order.id,
 			number: order.number,
@@ -197,6 +197,10 @@ export async function fetchBranchOrdersPage({
 		.where(sql.join(conditions, sql` AND `))
 		.orderBy(desc(order.createdAt), desc(order.id))
 		.limit(BATCH_SIZE + 1);
+	const rows = rawRows.map((row) => ({
+		...row,
+		totalAmount: Number(row.totalAmount),
+	}));
 	const hasMore = rows.length > BATCH_SIZE;
 	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
 	const last = items.at(-1);

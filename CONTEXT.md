@@ -170,5 +170,9 @@ Decisões arquiteturais ficam em `docs/adr/`:
 - **ADR-0015** — Proveniência de Fornecedor vive na entrada de estoque (N:N derivado), não na Tool; admin tem três operações de estoque (entrada/baixa/ajuste).
 - **ADR-0016** — Religar gates com 3 níveis (`manager` aposentado) e Branch-scoping em dois planos (visibilidade + ação); admin filial-scoped, fail-closed, invariante "todo admin/user tem ≥1 filial". Substitui ADR-0012.
 - **ADR-0017** — Overrides de capability por usuário: registry declarativo (`capabilities.ts`), tabela `user_capability_override` (text livre, não pgEnum), `can()` async com request-cache, anti-escalada em grant, auditoria em `userActivityLog`. Estende ADR-0016.
+- **ADR-0018** — Read server actions enforçam capability (não só mutations): toda fn exportada de `actions.ts` recebe `requireCapability(<recurso>.read)` como primeira instrução; funções em `data.ts`/`*-data.ts` são `server-only` (não-endpoint) — o caller é responsável pelo guard. Estende ADR-0016.
+- **ADR-0019** — Split de god-module em `data.ts` (server-only) + `_lib` + `actions.ts` enxuto: 3 camadas — `data.ts` (`import "server-only"`, reads+tipos+builders) + `_lib/*` (helpers puros, sem auth) + `actions.ts` (`"use server"`, só mutations + thin wrappers com guard). `bun run build` é gate obrigatório após refatorar `"use server"`. Estende ADR-0018.
+- **ADR-0020** — ~~`cookieCache` na sessão do dashboard (staleness de gate aceita).~~ **Superado por ADR-0021.**
+- **ADR-0021** — Remoção do `cookieCache` da sessão do dashboard: RSC não propaga `Set-Cookie` no App Router, então o cache nunca era renovado em SSR; a liability de staleness P0 superou o ganho medido (~dezenas de ms). Sessão volta a ler o Postgres em todo request. Substitui ADR-0020.
 
 Se um output contradiz um ADR existente, sinalize explicitamente em vez de sobrescrever em silêncio.

@@ -173,14 +173,14 @@ export interface BranchOrderRow {
 	id: string;
 	number: string;
 	status: string;
-	totalAmount: string;
+	totalAmount: number;
 }
 
 export async function getBranchRecentOrders(
 	branchId: string,
 	limit = 20
 ): Promise<BranchOrderRow[]> {
-	return await db
+	const rows = await db
 		.select({
 			id: order.id,
 			number: order.number,
@@ -192,6 +192,11 @@ export async function getBranchRecentOrders(
 		.where(eq(order.branchId, branchId))
 		.orderBy(desc(order.createdAt))
 		.limit(limit);
+
+	return rows.map((row) => ({
+		...row,
+		totalAmount: Number(row.totalAmount),
+	}));
 }
 
 export interface BranchTableRow {

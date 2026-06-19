@@ -34,7 +34,7 @@ export function BranchOrderCard({ order }: { order: BranchOrderRow }) {
 
 			<div className="flex flex-col items-center border-border border-t py-2.5">
 				<span className="font-bold text-[18px] text-foreground tabular-nums">
-					{BRL.format(Number.parseFloat(order.totalAmount))}
+					{BRL.format(order.totalAmount)}
 				</span>
 				<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 					Total
