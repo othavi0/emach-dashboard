@@ -102,18 +102,45 @@ export async function getActivePromotions(
 		LIMIT ${limit}
 	`);
 
-	const result = await Promise.all(
-		promosRes.rows.map(async (promo): Promise<PromotionWithTools> => {
-			coerceDates(promo, PROMOTION_DATE_KEYS);
+	const promos = promosRes.rows;
+	for (const promo of promos) {
+		coerceDates(promo, PROMOTION_DATE_KEYS);
+	}
 
-			// Escopo das tools: applies_to_all → todas as visíveis; senão, as vinculadas
-			// em promotion_tool (vazio = promoção inerte → tools:[]).
+	// Batch-fetch all promotion_tool rows in ONE query instead of N.
+	// Promotions with applies_to_all = true need no lookup.
+	const targetedPromoIds = promos
+		.filter((p) => !p.appliesToAll)
+		.map((p) => p.id);
+
+	// Map<promotionId, toolId[]> — empty array means "no linked tools" (promo is inert).
+	const toolIdMap = new Map<string, string[]>();
+	if (targetedPromoIds.length > 0) {
+		const ptRes = await db.execute<{
+			promotion_id: string;
+			tool_id: string;
+		}>(sql`
+			SELECT promotion_id, tool_id
+			FROM promotion_tool
+			WHERE promotion_id = ANY(${arrayLiteral(targetedPromoIds, "text[]")})
+		`);
+		for (const row of ptRes.rows) {
+			const existing = toolIdMap.get(row.promotion_id);
+			if (existing) {
+				existing.push(row.tool_id);
+			} else {
+				toolIdMap.set(row.promotion_id, [row.tool_id]);
+			}
+		}
+	}
+
+	// Fetch tools per promotion (N queries — necessary because each carries its own
+	// discount params). Cost is now 1 + 1 + N instead of 1 + 2N.
+	const result = await Promise.all(
+		promos.map(async (promo): Promise<PromotionWithTools> => {
 			let toolScope = sql`true`;
 			if (!promo.appliesToAll) {
-				const toolIdsRes = await db.execute<{ tool_id: string }>(sql`
-					SELECT tool_id FROM promotion_tool WHERE promotion_id = ${promo.id}
-				`);
-				const toolIds = toolIdsRes.rows.map((r) => r.tool_id);
+				const toolIds = toolIdMap.get(promo.id) ?? [];
 				if (toolIds.length === 0) {
 					return { ...promo, tools: [] };
 				}
