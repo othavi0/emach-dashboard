@@ -10,8 +10,8 @@ import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { normalizeCnpj } from "@/lib/cpf-cnpj";
-import { decodeCursor, encodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { decodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE, paginate, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 import {
 	type SupplierFormValues,
@@ -92,22 +92,11 @@ export async function fetchSuppliersPage({
 		.orderBy(...orderExprs)
 		.limit(BATCH_SIZE + 1);
 
-	const hasMore = rows.length > BATCH_SIZE;
-	const items = hasMore ? rows.slice(0, BATCH_SIZE) : rows;
-	const last = items.at(-1);
-	let nextCursor: string | null = null;
-	if (hasMore && last) {
-		nextCursor =
-			filters.sort === "name"
-				? encodeCursor({ v: 1, sort: "name", name: last.name, id: last.id })
-				: encodeCursor({
-						v: 1,
-						sort: "newest",
-						createdAt: last.createdAt.toISOString(),
-						id: last.id,
-					});
-	}
-	return { items, nextCursor };
+	return paginate(rows, (r) => r, (last) =>
+		filters.sort === "name"
+			? { v: 1, sort: "name" as const, name: last.name, id: last.id }
+			: { v: 1, sort: "newest" as const, createdAt: last.createdAt.toISOString(), id: last.id }
+	);
 }
 
 export async function fetchSuppliersTablePage({
