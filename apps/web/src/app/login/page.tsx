@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-
+import { Suspense } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "@/components/auth/login-form";
 import { getCurrentSession, getUserStatus } from "@/lib/session";
@@ -11,9 +11,8 @@ export const metadata: Metadata = {
 	title: "Entrar",
 };
 
-export default async function LoginPage() {
+async function LoginRedirectGate() {
 	const session = await getCurrentSession();
-
 	if (session?.user) {
 		const status = getUserStatus(session);
 		if (status === "pending") {
@@ -24,10 +23,18 @@ export default async function LoginPage() {
 		}
 		redirect("/dashboard");
 	}
+	return null;
+}
 
+export default function LoginPage() {
 	return (
-		<AuthShell>
-			<LoginForm />
-		</AuthShell>
+		<>
+			<Suspense fallback={null}>
+				<LoginRedirectGate />
+			</Suspense>
+			<AuthShell>
+				<LoginForm />
+			</AuthShell>
+		</>
 	);
 }

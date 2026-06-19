@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-
+import { Suspense } from "react";
 import { getCurrentSession } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -9,8 +9,16 @@ export const metadata: Metadata = {
 	title: "Emach Dashboard",
 };
 
-export default async function HomePage() {
+async function HomeRedirect() {
 	const session = await getCurrentSession();
-
 	redirect(session?.user ? "/dashboard" : "/login");
+	return null;
+}
+
+export default function HomePage() {
+	return (
+		<Suspense fallback={null}>
+			<HomeRedirect />
+		</Suspense>
+	);
 }
