@@ -27,7 +27,8 @@ Decisões de arquitetura do dashboard. Cada ADR registra **uma** decisão não-�
 | [0017](0017-permissoes-por-usuario.md)                   | Permissões por usuário (overrides de capability)     | 2026-06-15 | Aceito — estende 0016           |
 | [0018](0018-read-actions-enforçam-capability.md)         | Read server actions enforçam capability              | 2026-06-17 | Aceito — estende 0016           |
 | [0019](0019-split-god-module-data-lib.md)                | Split de god-module em `data.ts` + `_lib` + `actions.ts` | 2026-06-18 | Aceito — estende 0018       |
-| [0020](0020-cookie-cache-sessao-dashboard.md)           | `cookieCache` na sessão do dashboard (staleness aceita) | 2026-06-18 | Aceito — relaciona 0016     |
+| [0020](0020-cookie-cache-sessao-dashboard.md)           | `cookieCache` na sessão do dashboard (staleness aceita) | 2026-06-18 | ⚠️ Superseded por [0021](0021-remocao-cookie-cache-sessao-dashboard.md) |
+| [0021](0021-remocao-cookie-cache-sessao-dashboard.md)   | Remoção do `cookieCache` da sessão do dashboard      | 2026-06-18 | Aceito — substitui 0020         |
 
 ## Cadeias de decisão
 
@@ -37,6 +38,7 @@ Alguns ADRs formam linha evolutiva — ler na ordem dá o estado atual:
 - **Autorização / gates:** [0012](0012-disable-role-based-gates.md) (gates desligados, superseded) → **[0016](0016-religacao-gates-3-niveis-filial.md)** (religados, 3 níveis + filial) → [0017](0017-permissoes-por-usuario.md) (overrides por usuário) → [0018](0018-read-actions-enforçam-capability.md) (reads também enforçam) → [0019](0019-split-god-module-data-lib.md) (fronteira `data.ts` × `actions.ts`).
 - **Integração com o e-commerce:** [0004](0004-integracao-ecommerce-e-so-db-compartilhada.md) (só DB, sem API) fundamenta [0008](0008-documentos-asaas-via-db.md) (Asaas via DB) e [0009](0009-sync-schema-via-ci.md) (sync de schema via CI).
 - **Schema workflow:** [0006](0006-db-workflow-push-only.md) (push-only) sustenta o modo de aplicar mudanças em [0005](0005-order-tem-eixo-unico-de-status.md), [0009](0009-sync-schema-via-ci.md), [0014](0014-rls-deny-all-postgrest.md), [0015](0015-fornecedor-na-entrada-de-estoque.md).
+- **Sessão / `cookieCache`:** [0020](0020-cookie-cache-sessao-dashboard.md) (cookieCache habilitado, superseded) → **[0021](0021-remocao-cookie-cache-sessao-dashboard.md)** (removido — a medição de prod do #223 mostrou que não entregava no caminho SSR).
 
 ## Como adicionar um ADR
 
