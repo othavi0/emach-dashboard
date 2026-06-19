@@ -3,8 +3,8 @@ import "server-only";
 import { db } from "@emach/db";
 import { sql } from "drizzle-orm";
 import { getUserBranchScope, inScope } from "@/lib/branch-scope";
-import { decodeCursor, encodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { decodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE, paginate, type InfiniteResult } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 
 export interface BranchStockRow {
@@ -176,7 +176,25 @@ export async function fetchBranchStockPage({
 		LIMIT ${BATCH_SIZE + 1}
 	`);
 
-	const all = result.rows.map((row) => ({
+	// "urgency" sort tem nextCursor null (sem cursor keyset — carregada de uma vez).
+	// Os demais sorts usam paginate() normalmente.
+	if (filters.sort === "urgency") {
+		const pageRows = result.rows.slice(0, BATCH_SIZE);
+		const items: BranchStockRow[] = pageRows.map((row) => ({
+			toolId: row.tool_id,
+			toolName: row.tool_name,
+			variantId: row.variant_id,
+			sku: row.sku,
+			voltage: row.voltage,
+			imageUrl: row.image_url,
+			quantity: Number(row.quantity ?? 0),
+			minQty: Number(row.min_qty ?? 0),
+			reorderPoint: Number(row.reorder_point ?? 0),
+		}));
+		return { items, nextCursor: null };
+	}
+
+	return paginate(result.rows, (row) => ({
 		toolId: row.tool_id,
 		toolName: row.tool_name,
 		variantId: row.variant_id,
@@ -186,38 +204,14 @@ export async function fetchBranchStockPage({
 		quantity: Number(row.quantity ?? 0),
 		minQty: Number(row.min_qty ?? 0),
 		reorderPoint: Number(row.reorder_point ?? 0),
-	}));
-
-	const hasMore = all.length > BATCH_SIZE;
-	const items = hasMore ? all.slice(0, BATCH_SIZE) : all;
-	const last = items.at(-1);
-	let nextCursor: string | null = null;
-
-	if (hasMore && last) {
+	}), (last) => {
 		if (filters.sort === "name") {
-			nextCursor = encodeCursor({
-				v: 1,
-				sort: "name",
-				name: last.toolName,
-				id: last.variantId,
-			});
-		} else if (filters.sort === "stockLow") {
-			nextCursor = encodeCursor({
-				v: 1,
-				sort: "stockLow",
-				totalStock: last.quantity,
-				id: last.variantId,
-			});
-		} else if (filters.sort === "stockHigh") {
-			nextCursor = encodeCursor({
-				v: 1,
-				sort: "stockHigh",
-				totalStock: last.quantity,
-				id: last.variantId,
-			});
+			return { v: 1, sort: "name" as const, name: last.tool_name, id: last.variant_id };
 		}
-		// "urgency": nextCursor permanece null
-	}
-
-	return { items, nextCursor };
+		if (filters.sort === "stockLow") {
+			return { v: 1, sort: "stockLow" as const, totalStock: Number(last.quantity ?? 0), id: last.variant_id };
+		}
+		// stockHigh
+		return { v: 1, sort: "stockHigh" as const, totalStock: Number(last.quantity ?? 0), id: last.variant_id };
+	});
 }
