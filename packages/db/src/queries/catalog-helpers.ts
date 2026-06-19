@@ -5,19 +5,6 @@ import type { Voltage } from "../schema/tools";
 // Helpers internos compartilhados entre queries de catálogo.
 // Não exportar via @emach/db — uso exclusivo dentro de queries/.
 
-export function coerceDates<T extends object>(
-	obj: T,
-	keys: readonly (keyof T)[]
-): T {
-	for (const k of keys) {
-		const v = obj[k];
-		if (v !== null && v !== undefined && !(v instanceof Date)) {
-			(obj as Record<keyof T, unknown>)[k] = new Date(v as string);
-		}
-	}
-	return obj;
-}
-
 export const TOOL_DATE_KEYS = ["createdAt", "updatedAt"] as const;
 export const VARIANT_DATE_KEYS = ["createdAt", "updatedAt"] as const;
 export const IMAGE_DATE_KEYS = ["createdAt"] as const;

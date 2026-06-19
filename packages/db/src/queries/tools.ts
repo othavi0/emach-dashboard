@@ -6,11 +6,11 @@ import type {
 } from "../schema/attributes";
 import type { Promotion } from "../schema/promotions";
 import type { Tool, ToolImage, ToolVariant, Voltage } from "../schema/tools";
+import { coerceDates } from "../utils";
 import type { AnyDb, ToolListItem, ToolListRow } from "./catalog-helpers";
 import {
 	APPROVED,
 	arrayLiteral,
-	coerceDates,
 	DEFAULT_LIST_LIMIT,
 	DEFAULT_SEARCH_LIMIT,
 	IMAGE_DATE_KEYS,
