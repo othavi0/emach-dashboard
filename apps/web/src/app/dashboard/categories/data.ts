@@ -10,6 +10,7 @@ import { category, toolCategory } from "@emach/db/schema/categories";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { and, asc, count, eq, inArray, like, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { cache } from "react";
 import { decodeCursorAs } from "@/lib/cursor";
 import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
@@ -229,36 +230,27 @@ export async function getCategoryDetail(
 }
 
 /** Cadeia de ancestrais da raiz até o pai imediato (para o breadcrumb). */
-export async function getCategoryAncestors(
-	id: string
-): Promise<{ id: string; name: string }[]> {
-	const [self] = await db
-		.select({ parentId: category.parentId })
-		.from(category)
-		.where(eq(category.id, id))
-		.limit(1);
-
-	const chain: { id: string; name: string }[] = [];
-	let cursor: string | null = self?.parentId ?? null;
-	while (cursor) {
-		const [row]: { id: string; name: string; parentId: string | null }[] =
-			await db
-				.select({
-					id: category.id,
-					name: category.name,
-					parentId: category.parentId,
-				})
-				.from(category)
-				.where(eq(category.id, cursor))
-				.limit(1);
-		if (!row) {
-			break;
-		}
-		chain.push({ id: row.id, name: row.name });
-		cursor = row.parentId;
+export const getCategoryAncestors = cache(
+	async (id: string): Promise<{ id: string; name: string }[]> => {
+		const rows = await db.execute<{ id: string; name: string; depth: number }>(
+			sql`
+				WITH RECURSIVE ancestors AS (
+					SELECT c.id, c.name, c.parent_id, c.depth
+					FROM category c
+					WHERE c.id = (SELECT parent_id FROM category WHERE id = ${id})
+					UNION ALL
+					SELECT c.id, c.name, c.parent_id, c.depth
+					FROM category c
+					JOIN ancestors a ON c.id = a.parent_id
+				)
+				SELECT id, name, depth
+				FROM ancestors
+				ORDER BY depth ASC
+			`
+		);
+		return rows.rows.map((r) => ({ id: r.id, name: r.name }));
 	}
-	return chain.reverse();
-}
+);
 
 /** Atributos próprios da categoria + herdados da cadeia ancestral. */
 export async function getCategoryAttributes(
