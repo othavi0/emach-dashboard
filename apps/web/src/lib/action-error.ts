@@ -17,3 +17,11 @@ export function actionErrorMessage(error: unknown): string {
 	}
 	return "Erro desconhecido";
 }
+
+/**
+ * Capability guards throw `Error("Forbidden: ...")` — detect those here.
+ * Use in `catch` blocks after `requireCapability*` calls.
+ */
+export function isCapabilityError(error: unknown): boolean {
+	return error instanceof Error && error.message.startsWith("Forbidden:");
+}
