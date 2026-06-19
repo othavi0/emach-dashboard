@@ -8,6 +8,7 @@ import {
 } from "@emach/db/schema/store-settings";
 import { asc, eq, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
@@ -24,12 +25,6 @@ import {
 const SETTINGS_PATH = "/dashboard/site/settings";
 const SINGLETON_ID = "singleton";
 
-function zodErrorMessage(error: unknown): string {
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro de validação";
-}
 
 /** Lê o singleton; cria com defaults na primeira leitura (lazy bootstrap). */
 export async function getOrCreateShippingSettings(): Promise<StoreSettings> {
@@ -84,7 +79,7 @@ export async function updateShippingSettings(
 
 	const parsed = shippingSettingsSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: zodErrorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 
 	const payload = {
@@ -103,7 +98,7 @@ export async function updateShippingSettings(
 			});
 	} catch (error) {
 		logger.error("updateShippingSettings falhou", error);
-		return { ok: false, error: zodErrorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	await logUserActivity({
@@ -127,7 +122,7 @@ export async function updateSocialSettings(
 
 	const parsed = socialSettingsSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: zodErrorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 	const d = parsed.data;
 
@@ -155,7 +150,7 @@ export async function updateSocialSettings(
 			});
 	} catch (error) {
 		logger.error("updateSocialSettings falhou", error);
-		return { ok: false, error: zodErrorMessage(error) };
+		return { ok: false, error: actionErrorMessage(error) };
 	}
 
 	const visibleNetworks = [

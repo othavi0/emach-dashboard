@@ -14,6 +14,7 @@ import { z } from "zod";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursorAs } from "@/lib/cursor";
+import { actionErrorMessage } from "@/lib/action-error";
 import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
@@ -24,13 +25,6 @@ import { type CategoryInput, categorySchema } from "./schema";
 const CATEGORIES_PATH = "/dashboard/categories";
 
 export type CategoryListItem = typeof category.$inferSelect;
-
-function zodErrorMessage(error: unknown): string {
-	if (error instanceof Error) {
-		return error.message;
-	}
-	return "Erro de validação";
-}
 
 function mapWriteError(e: unknown): string {
 	const pg = getPgError(e);
@@ -456,7 +450,7 @@ export async function createCategory(
 
 	const parsed = categorySchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: zodErrorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 
 	const id = crypto.randomUUID();
@@ -495,7 +489,7 @@ export async function updateCategory(
 
 	const parsed = categorySchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: zodErrorMessage(parsed.error) };
+		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 
 	try {
