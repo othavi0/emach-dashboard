@@ -55,7 +55,6 @@ function normalizePayload(input: BranchFormValues) {
 	};
 }
 
-
 export async function listBranches(opts?: {
 	activeOnly?: boolean;
 }): Promise<BranchListItem[]> {

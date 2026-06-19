@@ -25,7 +25,6 @@ import {
 const SETTINGS_PATH = "/dashboard/site/settings";
 const SINGLETON_ID = "singleton";
 
-
 /** Lê o singleton; cria com defaults na primeira leitura (lazy bootstrap). */
 export async function getOrCreateShippingSettings(): Promise<StoreSettings> {
 	const existing = await db

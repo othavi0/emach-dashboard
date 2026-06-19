@@ -19,7 +19,10 @@ vi.mock("../pending-data", () => ({
 }));
 
 // Also mock next/cache and @emach/db to avoid runtime errors
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
+vi.mock("next/cache", () => ({
+	revalidatePath: vi.fn(),
+	revalidateTag: vi.fn(),
+}));
 vi.mock("@emach/db", () => ({ db: {}, createDb: vi.fn(() => ({})) }));
 vi.mock("@/lib/logger", () => ({ logger: { error: vi.fn() } }));
 vi.mock("@/lib/session", () => ({
@@ -68,7 +71,9 @@ describe("fetchPendingAwaitingOrdersPage — guard", () => {
 describe("fetchPendingFlowOrdersPage — guard", () => {
 	it("rejeita quando requireCapability lança", async () => {
 		vi.mocked(requireCapability).mockRejectedValueOnce(FORBIDDEN);
-		await expect(fetchPendingFlowOrdersPage(null)).rejects.toThrow("orders.read");
+		await expect(fetchPendingFlowOrdersPage(null)).rejects.toThrow(
+			"orders.read"
+		);
 	});
 });
 

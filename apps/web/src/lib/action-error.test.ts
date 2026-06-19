@@ -53,7 +53,8 @@ describe("actionErrorMessage", () => {
 			cause: {
 				name: "DatabaseError",
 				code: "23505",
-				message: 'duplicate key value violates unique constraint "branch_name_key"',
+				message:
+					'duplicate key value violates unique constraint "branch_name_key"',
 				constraint: "branch_name_key",
 			},
 		};

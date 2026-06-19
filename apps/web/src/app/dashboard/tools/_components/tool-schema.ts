@@ -1,4 +1,3 @@
-import type { AttributeDefinition } from "@emach/db/schema/attributes";
 import { z } from "zod";
 
 export const VOLTAGE_OPTIONS = ["127V", "220V", "Bivolt", "380V"] as const;
