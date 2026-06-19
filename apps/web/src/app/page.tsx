@@ -16,6 +16,8 @@ async function HomeRedirect() {
 }
 
 export default function HomePage() {
+	// Sob cacheComponents a rota "/" serve um shell estático em branco enquanto
+	// HomeRedirect resolve o redirect assíncrono — antes era redirect HTTP imediato.
 	return (
 		<Suspense fallback={null}>
 			<HomeRedirect />

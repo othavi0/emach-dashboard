@@ -27,6 +27,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 			}}
 		>
 			{children}
+			{/* NavigationAnnouncer usa usePathname() ("use client"). Sob Next 16 cacheComponents,
+			    componentes "use client" com leitura de pathname dinâmico devem ficar dentro de
+			    <Suspense> ou o build falha (leitura dinâmica não cabe no shell estático). */}
 			<Suspense>
 				<NavigationAnnouncer />
 			</Suspense>
