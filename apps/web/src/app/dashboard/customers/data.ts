@@ -24,8 +24,8 @@ import { tool } from "@emach/db/schema/tools";
 import { toDate } from "@emach/db/utils";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 
-import { decodeCursor, encodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
+import { decodeCursor } from "@/lib/cursor";
+import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 
 import type { CustomersListFilters } from "./schema";
 
@@ -309,60 +309,54 @@ export async function listCustomers({
 		LIMIT ${BATCH_SIZE + 1}
 	`);
 
-	const mapped: CustomerListItem[] = rows.rows.map((r) => ({
-		id: r.id,
-		name: r.name,
-		email: r.email,
-		emailVerified: r.email_verified,
-		image: r.image,
-		document: r.document,
-		status: r.status,
-		clientType: r.client_type,
-		ltv: Number(r.ltv ?? 0),
-		ordersCount: Number(r.orders_count ?? 0),
-		lastOrderAt: toDate(r.last_order_at),
-		lastOrderStatus: r.last_order_status,
-		createdAt: toDate(r.created_at),
-	}));
-
-	const hasMore = mapped.length > BATCH_SIZE;
-	const items = hasMore ? mapped.slice(0, BATCH_SIZE) : mapped;
-	const last = items.at(-1);
-
-	let nextCursor: string | null = null;
-	if (hasMore && last) {
-		if (sort === "createdDesc") {
-			nextCursor = encodeCursor({
-				v: 1,
-				sort: "newest",
-				createdAt: last.createdAt.toISOString(),
-				id: last.id,
-			});
-		} else if (sort === "ltvDesc") {
-			nextCursor = encodeCursor({
-				v: 1,
-				sort: "ltvDesc",
-				ltv: last.ltv,
-				id: last.id,
-			});
-		} else if (sort === "lastOrderDesc") {
-			nextCursor = encodeCursor({
-				v: 1,
-				sort: "lastOrderDesc",
-				lastOrderAt: last.lastOrderAt ? last.lastOrderAt.toISOString() : null,
-				id: last.id,
-			});
-		} else {
-			nextCursor = encodeCursor({
-				v: 1,
-				sort: "nameAsc",
-				name: last.name,
-				id: last.id,
-			});
+	return paginate(
+		rows.rows,
+		(r) => ({
+			id: r.id,
+			name: r.name,
+			email: r.email,
+			emailVerified: r.email_verified,
+			image: r.image,
+			document: r.document,
+			status: r.status,
+			clientType: r.client_type,
+			ltv: Number(r.ltv ?? 0),
+			ordersCount: Number(r.orders_count ?? 0),
+			lastOrderAt: toDate(r.last_order_at),
+			lastOrderStatus: r.last_order_status,
+			createdAt: toDate(r.created_at),
+		}),
+		(last) => {
+			if (sort === "createdDesc") {
+				return {
+					v: 1,
+					sort: "newest" as const,
+					createdAt: toDate(last.created_at).toISOString(),
+					id: last.id,
+				};
+			}
+			if (sort === "ltvDesc") {
+				return {
+					v: 1,
+					sort: "ltvDesc" as const,
+					ltv: Number(last.ltv ?? 0),
+					id: last.id,
+				};
+			}
+			if (sort === "lastOrderDesc") {
+				const at = last.last_order_at
+					? toDate(last.last_order_at).toISOString()
+					: null;
+				return {
+					v: 1,
+					sort: "lastOrderDesc" as const,
+					lastOrderAt: at,
+					id: last.id,
+				};
+			}
+			return { v: 1, sort: "nameAsc" as const, name: last.name, id: last.id };
 		}
-	}
-
-	return { items, nextCursor };
+	);
 }
 
 // ============================================================================
