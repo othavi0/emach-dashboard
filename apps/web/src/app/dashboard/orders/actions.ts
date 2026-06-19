@@ -59,6 +59,7 @@ export async function fetchOrdersPage(args: {
 	filters: OrdersPageFiltersInput;
 	cursor: string | null;
 }): Promise<InfiniteResult<OrderListItem>> {
+	await requireCapability("orders.read");
 	return await fetchOrdersPageImpl(args);
 }
 
@@ -66,12 +67,14 @@ export async function fetchPendingOrdersPage(args: {
 	statuses: OrderStatus[];
 	cursor: string | null;
 }): Promise<InfiniteResult<PendingRow>> {
+	await requireCapability("orders.read");
 	return await fetchPendingOrdersPageImpl(args);
 }
 
 export async function fetchPendingAwaitingOrdersPage(
 	cursor: string | null
 ): Promise<InfiniteResult<PendingRow>> {
+	await requireCapability("orders.read");
 	return await fetchPendingOrdersPageImpl({
 		statuses: ["paid", "pending_payment"],
 		cursor,
@@ -81,6 +84,7 @@ export async function fetchPendingAwaitingOrdersPage(
 export async function fetchPendingFlowOrdersPage(
 	cursor: string | null
 ): Promise<InfiniteResult<PendingRow>> {
+	await requireCapability("orders.read");
 	return await fetchPendingOrdersPageImpl({
 		statuses: ["preparing", "shipped"],
 		cursor,
@@ -90,6 +94,7 @@ export async function fetchPendingFlowOrdersPage(
 export async function fetchOrderActivityPage(
 	cursor: string | null
 ): Promise<InfiniteResult<ActivityEvent>> {
+	await requireCapability("orders.read");
 	return await fetchOrderActivityPageImpl(cursor);
 }
 
