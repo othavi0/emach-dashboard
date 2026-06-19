@@ -1,6 +1,5 @@
 import { db } from "@emach/db";
 import { category } from "@emach/db/schema/categories";
-import { branch } from "@emach/db/schema/inventory";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
 	Empty,
@@ -9,10 +8,11 @@ import {
 	EmptyHeader,
 	EmptyTitle,
 } from "@emach/ui/components/empty";
-import { asc, eq } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { getActiveBranches } from "@/app/dashboard/branches/data";
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { ToolFilters } from "./_components/tool-filters";
@@ -47,14 +47,6 @@ async function fetchCategories() {
 		.select({ id: category.id, name: category.name })
 		.from(category)
 		.orderBy(asc(category.path));
-}
-
-async function fetchActiveBranches() {
-	return db
-		.select({ id: branch.id, name: branch.name })
-		.from(branch)
-		.where(eq(branch.status, "active"))
-		.orderBy(asc(branch.name));
 }
 
 const VALID_SORTS: readonly ToolSort[] = ["newest", "name"];
@@ -94,7 +86,7 @@ export default async function ToolsPage({ searchParams }: PageProps) {
 	const [first, categories, branches] = await Promise.all([
 		fetchToolsPage({ filters, cursor: null }),
 		fetchCategories(),
-		fetchActiveBranches(),
+		getActiveBranches(),
 	]);
 
 	const hasFilters = Boolean(

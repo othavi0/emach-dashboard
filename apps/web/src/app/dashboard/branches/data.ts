@@ -10,7 +10,7 @@ import {
 } from "@emach/db/schema/inventory";
 import { order } from "@emach/db/schema/orders";
 import { toolVariant } from "@emach/db/schema/tools";
-import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
 
 export interface EligibleUserOption {
 	email: string;
@@ -260,4 +260,17 @@ export async function getBranchTableAggregates(
 		}
 	}
 	return map;
+}
+
+export interface ActiveBranchOption {
+	id: string;
+	name: string;
+}
+
+export function getActiveBranches(): Promise<ActiveBranchOption[]> {
+	return db
+		.select({ id: branch.id, name: branch.name })
+		.from(branch)
+		.where(eq(branch.status, "active"))
+		.orderBy(asc(branch.name));
 }

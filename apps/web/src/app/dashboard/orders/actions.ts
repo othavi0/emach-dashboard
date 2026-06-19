@@ -14,6 +14,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import type { ActivityEvent } from "@/components/activity-feed";
 import type { PendingRow } from "@/components/pending-panel";
+import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import type { InfiniteResult } from "@/lib/infinite";
@@ -109,11 +110,6 @@ const STATUS_TIMESTAMP_MAP: Partial<Record<OrderStatus, string>> = {
 };
 
 type OrderTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-/** Capability guards throw `Error("Forbidden: ...")` — detect those here. */
-function isCapabilityError(error: unknown): boolean {
-	return error instanceof Error && error.message.startsWith("Forbidden:");
-}
 
 interface LockedOrderAuth {
 	branchId: string | null;

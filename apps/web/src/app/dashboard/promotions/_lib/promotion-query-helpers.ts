@@ -1,7 +1,7 @@
 import type { db } from "@emach/db";
 import { promotion } from "@emach/db/schema/promotions";
 import { type AnyColumn, and, eq, ne, type sql } from "drizzle-orm";
-
+import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import type { Cursor } from "@/lib/cursor";
 import { logger } from "@/lib/logger";
@@ -19,7 +19,7 @@ export function dbErrorMessage(error: unknown): string {
 }
 
 export function safeRequireRole(error: unknown): ActionResult<never> {
-	if (error instanceof Error && error.message.startsWith("Forbidden:")) {
+	if (isCapabilityError(error)) {
 		return { ok: false, error: "Acesso negado" };
 	}
 	throw error;

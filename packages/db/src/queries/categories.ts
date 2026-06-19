@@ -1,11 +1,11 @@
 import { sql } from "drizzle-orm";
 
 import type { Category } from "../schema/categories";
+import { coerceDates } from "../utils";
 import type { AnyDb } from "./catalog-helpers";
 import {
 	arrayLiteral,
 	CATEGORY_DATE_KEYS,
-	coerceDates,
 	STOREFRONT_STATUS_SQL,
 } from "./catalog-helpers";
 

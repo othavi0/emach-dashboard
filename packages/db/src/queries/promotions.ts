@@ -1,11 +1,11 @@
 import { sql } from "drizzle-orm";
 
 import type { Promotion } from "../schema/promotions";
+import { coerceDates } from "../utils";
 import type { AnyDb, ToolListItem, ToolListRow } from "./catalog-helpers";
 import {
 	APPROVED,
 	arrayLiteral,
-	coerceDates,
 	DEFAULT_PROMO_LIMIT,
 	PROMOTION_DATE_KEYS,
 	rowToToolListItem,

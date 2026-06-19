@@ -4,10 +4,10 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { order, orderItem } from "../schema/orders";
 import type { Review } from "../schema/reviews";
 import { review } from "../schema/reviews";
+import { coerceDates } from "../utils";
 import type { AnyDb } from "./catalog-helpers";
 import {
 	APPROVED,
-	coerceDates,
 	formatReviewerName,
 	REVIEW_DATE_KEYS,
 } from "./catalog-helpers";
