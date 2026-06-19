@@ -6,14 +6,13 @@ import { notFound } from "next/navigation";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
-import { can } from "@/lib/permissions";
-import { requireCurrentSession } from "@/lib/session";
+import { can, requireCapability } from "@/lib/permissions";
 
 import {
 	getCategoryAncestors,
 	getCategoryAttributes,
 	getCategoryDetail,
-} from "../actions";
+} from "../data";
 import { CategoryDetailActions } from "./_components/category-detail-actions";
 import { CategoryDetailHeader } from "./_components/category-detail-header";
 import { OverviewTab } from "./_components/overview-tab";
@@ -43,7 +42,7 @@ export default async function CategoryDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
-	const session = await requireCurrentSession();
+	const session = await requireCapability("categories.read");
 	const [canDelete, canManage] = await Promise.all([
 		can(session, "categories.delete"),
 		can(session, "categories.manage"),

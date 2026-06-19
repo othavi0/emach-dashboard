@@ -17,7 +17,7 @@ import { Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { notify } from "@/lib/notify";
 
-import { deleteCategoryAttribute } from "../_lib/attribute-actions";
+import { deleteCategoryAttribute } from "../attribute-actions";
 
 interface DeleteAttributeDialogProps {
 	attributeId: string;
