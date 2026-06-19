@@ -20,12 +20,12 @@ import { notify } from "@/lib/notify";
 import type { ActiveSupplierOption } from "@/lib/suppliers";
 
 import {
-	fetchVariantBranchMovementsPage,
-	getReservedQtyByVariantBranch,
-	type StockMovementRow,
+	fetchVariantBranchMovementsPageAction,
+	getReservedQtyByVariantBranchAction,
 	updateStockThresholds,
 } from "../actions";
 import type { BranchStockRow } from "../branch-stock-data";
+import type { StockMovementRow } from "../movements-data";
 import { StockEntryForm } from "./stock-entry-form";
 import { STOCK_MOVEMENT_REASON_LABELS } from "./stock-movement-schema";
 import { StockRecountForm } from "./stock-recount-form";
@@ -137,7 +137,7 @@ function MovementsCard({ branchId, toolId, variantId }: MovementsCardProps) {
 	// key={variantId} no caller remonta este card por variante → carrega a 1ª página.
 	useEffect(() => {
 		startTransition(async () => {
-			const r = await fetchVariantBranchMovementsPage(
+			const r = await fetchVariantBranchMovementsPageAction(
 				variantId,
 				branchId,
 				null
@@ -154,7 +154,7 @@ function MovementsCard({ branchId, toolId, variantId }: MovementsCardProps) {
 		}
 		const current = cursor;
 		startTransition(async () => {
-			const r = await fetchVariantBranchMovementsPage(
+			const r = await fetchVariantBranchMovementsPageAction(
 				variantId,
 				branchId,
 				current
@@ -385,7 +385,7 @@ export function BranchStockEditSheet({
 		setReservedQty(null);
 
 		startAdjustTransition(async () => {
-			const reserved = await getReservedQtyByVariantBranch(
+			const reserved = await getReservedQtyByVariantBranchAction(
 				row.variantId,
 				branchId
 			);
