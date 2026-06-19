@@ -1,3 +1,5 @@
+import "server-only";
+
 import { db } from "@emach/db";
 import {
 	ACTIVE_ORDER_STATUSES,
