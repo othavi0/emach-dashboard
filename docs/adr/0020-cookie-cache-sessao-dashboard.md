@@ -1,7 +1,7 @@
 # ADR 0020 — `cookieCache` na sessão do dashboard (staleness de gate aceita)
 
 **Data:** 2026-06-18
-**Status:** Aceito
+**Status:** ⚠️ Superseded por [ADR-0021](0021-remocao-cookie-cache-sessao-dashboard.md) (medição de prod do #223 mostrou que o `cookieCache` não entregava no caminho SSR).
 **Relaciona:** ADR-0016 (gates de 3 níveis — gate de `status`/`role`), ADR-0013 (convite-only). Issue #223 (perf: DashboardLayout bloqueia shell no hard load).
 
 ## Contexto

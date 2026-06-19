@@ -54,21 +54,13 @@ export const authDashboard = betterAuth({
 	},
 	secret: env.BETTER_AUTH_SECRET,
 	baseURL: dashboardBaseURL,
-	session: {
-		// cookieCache: serve a sessão de um cookie assinado por até maxAge,
-		// evitando o round-trip ao Postgres em todo request (o gargalo de
-		// latência percebida no hard load do dashboard — issue #223).
-		// TRADE-OFF P0 (aceito conscientemente, ADR-0020): o gate de status/role
-		// passa a ter staleness de até maxAge — um usuário recém-suspenso ou
-		// rebaixado mantém acesso até o cookie cache expirar. O cookie vive no
-		// browser do alvo e NÃO é invalidável remotamente; suspendUser/updateUser/
-		// deleteUser já deletam as sessões no DB, então o lockout efetiva quando o
-		// cache expira (≤ maxAge). Manter maxAge curto.
-		cookieCache: {
-			enabled: true,
-			maxAge: 60,
-		},
-	},
+	// Sessão lida do Postgres em todo request (sem cookieCache). A medição de
+	// produção do #223 (ADR-0021, supersede ADR-0020) mostrou que o cookieCache
+	// não entregava no caminho SSR — o render RSC do layout lê mas não escreve o
+	// cookie `session_data`, e sem middleware nada o refresca, então o hard load
+	// caía no DB de qualquer forma. Em prod warm o read é barato (~178ms ≈ rede),
+	// e remover o cache devolve o gate de status/role a leitura sempre fresca
+	// (sem janela de staleness P0).
 	plugins: [nextCookies()],
 	databaseHooks: {
 		session: {
