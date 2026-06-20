@@ -18,9 +18,11 @@ O plano original da Opção A (trocar `fallback={null}` no `<Suspense>` **intern
 - **Coerência verificada por workflow** (16 agentes) + leitura própria dos cards → variantes corrigidas (reviews=media, promotions=identity, orders=identity grid; revertidas minhas escolhas "table" erradas).
 - **Gate verde:** `bun run verify` (check-types + lint + 513 testes) + build PPR (todas as rotas `◐`). Smoke visual: tools (skeleton na nav capturado), orders + promotions (conteúdo identity confere).
 
-**Decisão chave:** `loading.tsx` (não Suspense interno) é o fallback de nav; o Suspense interno fica **puro** (só satisfação do build do cacheComponents). Reintroduz os `loading.tsx` que o #222 removeu — justificado: o freeze do #222 morreu sob cacheComponents.
+**Decisão chave (refinada após bug "ta igual antes"):** o `<Suspense fallback={null}>` interno (Task 5) **tinha que ser REMOVIDO**, não mantido — ele era a casca estática prerenderizada e, no prefetch, **vencia o `loading.tsx`**, renderizando NULL (preto) na nav. Sem ele, o read dinâmico suspende direto no boundary do `loading.tsx` → casca estática = skeleton. **Validado em prod local** (`next build` + `next start`): tools (media) e suppliers (identity) mostram skeleton, sem preto (o **dev** engana — não prerenderiza casca; só `next start` mostra o comportamento real). A home preserva os 5 Suspense internos de streaming.
 
-**Falta:** abrir o PR. (Em dev, rota fria mostra o freeze-de-compile antes do skeleton — artefato dev-only; em prod o skeleton aparece direto.)
+**Freeze (#222) descartado:** sob cacheComponents não dá pra segurar a página (PPR exige Suspense em volta do read dinâmico, que sempre mostra fallback). Skeleton-sem-preto entrega o mesmo objetivo.
+
+**Commits do fix:** `8d9770ae` (loading.tsx + skeletons) + `ac97c63b` (remove Suspense interno das 33 páginas). **PR #232 ABERTO e atualizado.** Falta só mergear (CI).
 
 ## Estado atual
 
