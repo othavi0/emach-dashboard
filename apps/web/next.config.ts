@@ -59,7 +59,6 @@ const nextConfig: NextConfig = {
 	// typedRoutes desabilitado — habilitar requer auditoria de todos os hrefs do codebase.
 	typedRoutes: false,
 	reactCompiler: true,
-	cacheComponents: true,
 	experimental: {
 		serverActions: {
 			// Banners aceitam master de alta qualidade (fundo/produto até 4MB).
