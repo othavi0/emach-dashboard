@@ -29,6 +29,7 @@ Decisões de arquitetura do dashboard. Cada ADR registra **uma** decisão não-�
 | [0019](0019-split-god-module-data-lib.md)                | Split de god-module em `data.ts` + `_lib` + `actions.ts` | 2026-06-18 | Aceito — estende 0018       |
 | [0020](0020-cookie-cache-sessao-dashboard.md)           | `cookieCache` na sessão do dashboard (staleness aceita) | 2026-06-18 | ⚠️ Superseded por [0021](0021-remocao-cookie-cache-sessao-dashboard.md) |
 | [0021](0021-remocao-cookie-cache-sessao-dashboard.md)   | Remoção do `cookieCache` da sessão do dashboard      | 2026-06-18 | Aceito — substitui 0020         |
+| [0022](0022-nao-adotar-cache-components-ppr.md)         | Não adotar Cache Components (PPR) no dashboard        | 2026-06-19 | Aceito                          |
 
 ## Cadeias de decisão
 
@@ -39,6 +40,7 @@ Alguns ADRs formam linha evolutiva — ler na ordem dá o estado atual:
 - **Integração com o e-commerce:** [0004](0004-integracao-ecommerce-e-so-db-compartilhada.md) (só DB, sem API) fundamenta [0008](0008-documentos-asaas-via-db.md) (Asaas via DB) e [0009](0009-sync-schema-via-ci.md) (sync de schema via CI).
 - **Schema workflow:** [0006](0006-db-workflow-push-only.md) (push-only) sustenta o modo de aplicar mudanças em [0005](0005-order-tem-eixo-unico-de-status.md), [0009](0009-sync-schema-via-ci.md), [0014](0014-rls-deny-all-postgrest.md), [0015](0015-fornecedor-na-entrada-de-estoque.md).
 - **Sessão / `cookieCache`:** [0020](0020-cookie-cache-sessao-dashboard.md) (cookieCache habilitado, superseded) → **[0021](0021-remocao-cookie-cache-sessao-dashboard.md)** (removido — a medição de prod do #223 mostrou que não entregava no caminho SSR).
+- **Navegação / first-paint:** #222 (freeze + barra de progresso, remove `loading.tsx`) → 006-B tentou PPR (`cacheComponents`) para a casca estática → **[0022](0022-nao-adotar-cache-components-ppr.md)** (PPR é incompatível com o freeze; revertido, mantém o #222).
 
 ## Como adicionar um ADR
 

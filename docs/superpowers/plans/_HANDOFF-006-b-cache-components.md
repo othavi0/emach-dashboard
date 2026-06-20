@@ -1,12 +1,22 @@
-# Handoff — 006-B Cache Components (Fase 1 ✅) + próximo: Opção A (skeletons de navegação)
+# Handoff — 006-B Cache Components → REVERTIDO (mantém freeze #222)
 
 > **Para retomar numa sessão nova, cole:** **"continue de @docs/superpowers/plans/_HANDOFF-006-b-cache-components.md"**
 >
 > Gerado 2026-06-19. Branch: `feat/006-b-cache-components` (cortada da `main` pós-#230).
 
-## TL;DR (1 frase)
+## ✅ DESFECHO FINAL (2026-06-19)
 
-Fase 1 do Cache Components **+ Opção A (skeletons de navegação) DONE** na branch `feat/006-b-cache-components` — falta só **abrir o PR** (`finishing-a-development-branch`).
+**Cache Components (PPR) foi tentado e REVERTIDO.** Descobriu-se que o PPR é **incompatível com o freeze de navegação do #222** (a casca estática da rota nova aparece na hora → força skeleton ou tela preta; não dá pra segurar a página). Decisão registrada no **ADR-0022**. O dashboard **mantém o freeze do #222** (sem `loading.tsx`, páginas dinâmicas, barra de progresso). Validado em prod local.
+
+**Estado:** `cacheComponents: false`; 33 `loading.tsx` + `page-skeletons.tsx` removidos; split do `DashboardChrome` mantido. **PR #232** atualizado (título/descrição refletem o desfecho). Gate verde (check-types + lint + 513 testes + build com rotas `ƒ`). Falta só **mergear** (squash recomendado).
+
+**Aprendizado-chave:** o `next dev` engana (não prerenderiza a casca estática) — comportamento de nav sob/sem PPR só é confiável em `next build` + `next start`. Detalhes no ADR-0022.
+
+> O conteúdo abaixo é o histórico da execução (a tentativa de skeletons, já revertida) — mantido como registro.
+
+## TL;DR (histórico — abordagem revertida)
+
+Fase 1 do Cache Components **+ Opção A (skeletons de navegação)** foram implementadas, mas **revertidas** (ver Desfecho Final acima) por incompatibilidade com o freeze do #222.
 
 ## ⚡ ATUALIZAÇÃO 2026-06-19 — Opção A concluída (mecanismo corrigido)
 
