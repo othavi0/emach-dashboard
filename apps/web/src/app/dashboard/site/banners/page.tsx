@@ -12,6 +12,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
+import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { fetchBanners } from "./actions";
 
 const BannerList = dynamic(
@@ -28,6 +29,7 @@ export default function BannersPage() {
 }
 
 async function BannersPageContent() {
+	await requireCapabilityOrRedirect("site.update_banners");
 	const banners = await fetchBanners();
 
 	return (
