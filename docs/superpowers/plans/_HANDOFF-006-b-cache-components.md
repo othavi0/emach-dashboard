@@ -6,7 +6,21 @@
 
 ## TL;DR (1 frase)
 
-A Fase 1 do Cache Components está **feita, revisada (Opus: "merge Yes"), build PPR verde e smoke super_admin limpo** na branch `feat/006-b-cache-components` — falta **(1)** aplicar a **Opção A (skeletons por página)** pra matar o "flash preto" de navegação que o PPR introduziu, e **(2)** abrir o PR (`finishing-a-development-branch`).
+Fase 1 do Cache Components **+ Opção A (skeletons de navegação) DONE** na branch `feat/006-b-cache-components` — falta só **abrir o PR** (`finishing-a-development-branch`).
+
+## ⚡ ATUALIZAÇÃO 2026-06-19 — Opção A concluída (mecanismo corrigido)
+
+O plano original da Opção A (trocar `fallback={null}` no `<Suspense>` **interno** da page) estava **errado** — o piloto provou que o Suspense interno **não** serve de fallback de navegação (continua preto). O mecanismo canônico do Next sob `cacheComponents` é o **`loading.tsx` por segmento**.
+
+**Feito:**
+- `apps/web/src/components/page-skeletons.tsx` — **7 arquétipos coerentes**: `ListPageSkeleton` (variantes `media`/`identity`/`table`), `DetailPageSkeleton` (±`sideColumn`), `FormPageSkeleton`, `TreePageSkeleton`, `OrdersListSkeleton`, `DashboardHomeSkeleton`, `SettingsPageSkeleton`.
+- **33 `loading.tsx`** — um por rota-folha, mapeado ao arquétipo certo. (3 rotas de stock = redirects puros → **sem** loading.tsx.)
+- **Coerência verificada por workflow** (16 agentes) + leitura própria dos cards → variantes corrigidas (reviews=media, promotions=identity, orders=identity grid; revertidas minhas escolhas "table" erradas).
+- **Gate verde:** `bun run verify` (check-types + lint + 513 testes) + build PPR (todas as rotas `◐`). Smoke visual: tools (skeleton na nav capturado), orders + promotions (conteúdo identity confere).
+
+**Decisão chave:** `loading.tsx` (não Suspense interno) é o fallback de nav; o Suspense interno fica **puro** (só satisfação do build do cacheComponents). Reintroduz os `loading.tsx` que o #222 removeu — justificado: o freeze do #222 morreu sob cacheComponents.
+
+**Falta:** abrir o PR. (Em dev, rota fria mostra o freeze-de-compile antes do skeleton — artefato dev-only; em prod o skeleton aparece direto.)
 
 ## Estado atual
 
