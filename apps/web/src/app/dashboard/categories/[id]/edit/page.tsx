@@ -8,7 +8,6 @@ import { category } from "@emach/db/schema/categories";
 import { count, eq, inArray } from "drizzle-orm";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -106,11 +105,7 @@ async function loadAttributeRows(
 }
 
 export default function EditCategoryPage({ params }: PageProps) {
-	return (
-		<Suspense>
-			<EditCategoryPageContent params={params} />
-		</Suspense>
-	);
+	return <EditCategoryPageContent params={params} />;
 }
 
 async function EditCategoryPageContent({ params }: PageProps) {

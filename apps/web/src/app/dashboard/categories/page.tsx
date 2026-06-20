@@ -11,7 +11,6 @@ import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import nextDynamic from "next/dynamic";
 import Link from "next/link";
-import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { listCategoriesForTree } from "./data";
@@ -26,11 +25,7 @@ export const metadata: Metadata = {
 };
 
 export default function CategoriesPage() {
-	return (
-		<Suspense>
-			<CategoriesPageContent />
-		</Suspense>
-	);
+	return <CategoriesPageContent />;
 }
 
 async function CategoriesPageContent() {

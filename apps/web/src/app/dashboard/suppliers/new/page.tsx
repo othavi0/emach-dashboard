@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { requireCapability } from "@/lib/permissions";
 import { SupplierForm } from "../_components/supplier-form";
@@ -9,11 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default function NewSupplierPage() {
-	return (
-		<Suspense>
-			<NewSupplierPageContent />
-		</Suspense>
-	);
+	return <NewSupplierPageContent />;
 }
 
 async function NewSupplierPageContent() {

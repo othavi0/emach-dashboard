@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PromotionForm } from "../../_components/promotion-form";
@@ -17,11 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default function EditPromotionPage({ params }: PageProps) {
-	return (
-		<Suspense>
-			<EditPromotionPageContent params={params} />
-		</Suspense>
-	);
+	return <EditPromotionPageContent params={params} />;
 }
 
 async function EditPromotionPageContent({ params }: PageProps) {

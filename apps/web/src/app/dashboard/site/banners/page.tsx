@@ -10,7 +10,7 @@ import { Skeleton } from "@emach/ui/components/skeleton";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Suspense } from "react";
+
 import { PageHeader } from "@/components/page-header";
 import { fetchBanners } from "./actions";
 
@@ -24,11 +24,7 @@ export const metadata: Metadata = {
 };
 
 export default function BannersPage() {
-	return (
-		<Suspense>
-			<BannersPageContent />
-		</Suspense>
-	);
+	return <BannersPageContent />;
 }
 
 async function BannersPageContent() {

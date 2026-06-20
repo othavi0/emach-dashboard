@@ -14,7 +14,6 @@ import {
 import { ChevronDown, Plus, Tag, Ticket } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -100,11 +99,7 @@ function buildStatusHref(
 }
 
 export default function PromotionsPage({ searchParams }: PageProps) {
-	return (
-		<Suspense>
-			<PromotionsPageContent searchParams={searchParams} />
-		</Suspense>
-	);
+	return <PromotionsPageContent searchParams={searchParams} />;
 }
 
 async function PromotionsPageContent({ searchParams }: PageProps) {

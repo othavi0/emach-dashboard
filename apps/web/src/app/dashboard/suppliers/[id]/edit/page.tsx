@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
-import { Suspense } from "react";
 
 export const metadata: Metadata = {
 	title: "Editar fornecedor",
@@ -11,11 +10,7 @@ export default function SupplierEditRedirect({
 }: {
 	params: Promise<{ id: string }>;
 }) {
-	return (
-		<Suspense>
-			<SupplierEditRedirectContent params={params} />
-		</Suspense>
-	);
+	return <SupplierEditRedirectContent params={params} />;
 }
 
 async function SupplierEditRedirectContent({

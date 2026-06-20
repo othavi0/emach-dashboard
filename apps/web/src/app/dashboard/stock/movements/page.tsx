@@ -2,7 +2,6 @@ import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
 import { asc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
-import { Suspense } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -28,11 +27,7 @@ interface PageProps {
 }
 
 export default function StockMovementsPage({ searchParams }: PageProps) {
-	return (
-		<Suspense>
-			<StockMovementsPageContent searchParams={searchParams} />
-		</Suspense>
-	);
+	return <StockMovementsPageContent searchParams={searchParams} />;
 }
 
 async function StockMovementsPageContent({ searchParams }: PageProps) {

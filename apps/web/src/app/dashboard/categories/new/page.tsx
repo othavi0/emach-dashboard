@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { AttributesLocked } from "../_components/attributes-locked";
@@ -17,11 +16,7 @@ interface NewCategoryPageProps {
 export default function NewCategoryPage({
 	searchParams,
 }: NewCategoryPageProps) {
-	return (
-		<Suspense>
-			<NewCategoryPageContent searchParams={searchParams} />
-		</Suspense>
-	);
+	return <NewCategoryPageContent searchParams={searchParams} />;
 }
 
 async function NewCategoryPageContent({ searchParams }: NewCategoryPageProps) {

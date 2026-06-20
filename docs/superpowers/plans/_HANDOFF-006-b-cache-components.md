@@ -1,12 +1,22 @@
-# Handoff — 006-B Cache Components (Fase 1 ✅) + próximo: Opção A (skeletons de navegação)
+# Handoff — 006-B Cache Components → REVERTIDO (mantém freeze #222)
 
 > **Para retomar numa sessão nova, cole:** **"continue de @docs/superpowers/plans/_HANDOFF-006-b-cache-components.md"**
 >
 > Gerado 2026-06-19. Branch: `feat/006-b-cache-components` (cortada da `main` pós-#230).
 
-## TL;DR (1 frase)
+## ✅ DESFECHO FINAL (2026-06-19)
 
-Fase 1 do Cache Components **+ Opção A (skeletons de navegação) DONE** na branch `feat/006-b-cache-components` — falta só **abrir o PR** (`finishing-a-development-branch`).
+**Cache Components (PPR) foi tentado e REVERTIDO.** Descobriu-se que o PPR é **incompatível com o freeze de navegação do #222** (a casca estática da rota nova aparece na hora → força skeleton ou tela preta; não dá pra segurar a página). Decisão registrada no **ADR-0022**. O dashboard **mantém o freeze do #222** (sem `loading.tsx`, páginas dinâmicas, barra de progresso). Validado em prod local.
+
+**Estado:** `cacheComponents: false`; 33 `loading.tsx` + `page-skeletons.tsx` removidos; split do `DashboardChrome` mantido. **PR #232** atualizado (título/descrição refletem o desfecho). Gate verde (check-types + lint + 513 testes + build com rotas `ƒ`). Falta só **mergear** (squash recomendado).
+
+**Aprendizado-chave:** o `next dev` engana (não prerenderiza a casca estática) — comportamento de nav sob/sem PPR só é confiável em `next build` + `next start`. Detalhes no ADR-0022.
+
+> O conteúdo abaixo é o histórico da execução (a tentativa de skeletons, já revertida) — mantido como registro.
+
+## TL;DR (histórico — abordagem revertida)
+
+Fase 1 do Cache Components **+ Opção A (skeletons de navegação)** foram implementadas, mas **revertidas** (ver Desfecho Final acima) por incompatibilidade com o freeze do #222.
 
 ## ⚡ ATUALIZAÇÃO 2026-06-19 — Opção A concluída (mecanismo corrigido)
 
@@ -18,9 +28,11 @@ O plano original da Opção A (trocar `fallback={null}` no `<Suspense>` **intern
 - **Coerência verificada por workflow** (16 agentes) + leitura própria dos cards → variantes corrigidas (reviews=media, promotions=identity, orders=identity grid; revertidas minhas escolhas "table" erradas).
 - **Gate verde:** `bun run verify` (check-types + lint + 513 testes) + build PPR (todas as rotas `◐`). Smoke visual: tools (skeleton na nav capturado), orders + promotions (conteúdo identity confere).
 
-**Decisão chave:** `loading.tsx` (não Suspense interno) é o fallback de nav; o Suspense interno fica **puro** (só satisfação do build do cacheComponents). Reintroduz os `loading.tsx` que o #222 removeu — justificado: o freeze do #222 morreu sob cacheComponents.
+**Decisão chave (refinada após bug "ta igual antes"):** o `<Suspense fallback={null}>` interno (Task 5) **tinha que ser REMOVIDO**, não mantido — ele era a casca estática prerenderizada e, no prefetch, **vencia o `loading.tsx`**, renderizando NULL (preto) na nav. Sem ele, o read dinâmico suspende direto no boundary do `loading.tsx` → casca estática = skeleton. **Validado em prod local** (`next build` + `next start`): tools (media) e suppliers (identity) mostram skeleton, sem preto (o **dev** engana — não prerenderiza casca; só `next start` mostra o comportamento real). A home preserva os 5 Suspense internos de streaming.
 
-**Falta:** abrir o PR. (Em dev, rota fria mostra o freeze-de-compile antes do skeleton — artefato dev-only; em prod o skeleton aparece direto.)
+**Freeze (#222) descartado:** sob cacheComponents não dá pra segurar a página (PPR exige Suspense em volta do read dinâmico, que sempre mostra fallback). Skeleton-sem-preto entrega o mesmo objetivo.
+
+**Commits do fix:** `8d9770ae` (loading.tsx + skeletons) + `ac97c63b` (remove Suspense interno das 33 páginas). **PR #232 ABERTO e atualizado.** Falta só mergear (CI).
 
 ## Estado atual
 

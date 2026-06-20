@@ -119,6 +119,8 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 
 ## Cache (Next 16)
 
+- **NÃO habilitar `cacheComponents` (PPR) — ADR-0022.** Foi tentado (006-B) e revertido: o PPR mostra a casca estática da rota nova **na hora** na navegação → força skeleton ou tela preta, **incompatível com o freeze de navegação do #222** (segura a página atual + barra de progresso). Ganho marginal num dashboard autenticado. Corolário: navegação **não usa `loading.tsx`** (o freeze depende da ausência dele). Comportamento de nav sob/sem PPR **só é confiável em `next build` + `next start`** — o `next dev` não prerenderiza a casca e engana.
+
 `cacheTag` por feature (`'orders'`, `'customers'`, `'site-banners'`...). `revalidateTag` em mutations. Ver skill `next-cache-components`.
 
 - **Next 16 exige o 2º arg `revalidateTag(tag, profile)`** — a forma de 1 arg está **deprecada** e quebra o build (`check-types` aceita, build NÃO). Usar `revalidateTag(tag, "max")` (profile recomendado, stale-while-revalidate). Canônico: `site/banners/actions.ts`.

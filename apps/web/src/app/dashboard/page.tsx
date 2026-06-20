@@ -72,11 +72,7 @@ export default function DashboardPage({
 }: {
 	searchParams: Promise<{ branch?: string | string[] }>;
 }) {
-	return (
-		<Suspense>
-			<DashboardPageContent searchParams={searchParams} />
-		</Suspense>
-	);
+	return <DashboardPageContent searchParams={searchParams} />;
 }
 
 async function DashboardPageContent({

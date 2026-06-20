@@ -1,7 +1,6 @@
 import { buttonVariants } from "@emach/ui/components/button";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -22,11 +21,7 @@ interface PageProps {
 }
 
 export default function SuppliersPage({ searchParams }: PageProps) {
-	return (
-		<Suspense>
-			<SuppliersPageContent searchParams={searchParams} />
-		</Suspense>
-	);
+	return <SuppliersPageContent searchParams={searchParams} />;
 }
 
 async function SuppliersPageContent({ searchParams }: PageProps) {

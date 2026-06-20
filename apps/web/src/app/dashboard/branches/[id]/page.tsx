@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
+
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -43,9 +43,7 @@ interface PageProps {
 
 export default function BranchDetailPage({ params, searchParams }: PageProps) {
 	return (
-		<Suspense>
-			<BranchDetailPageContent params={params} searchParams={searchParams} />
-		</Suspense>
+		<BranchDetailPageContent params={params} searchParams={searchParams} />
 	);
 }
 

@@ -8,7 +8,6 @@ import {
 } from "@emach/ui/components/empty";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
 import { PendingPanel, type PendingTab } from "@/components/pending-panel";
@@ -40,11 +39,7 @@ interface PageProps {
 }
 
 export default function OrdersPage({ searchParams }: PageProps) {
-	return (
-		<Suspense>
-			<OrdersPageContent searchParams={searchParams} />
-		</Suspense>
-	);
+	return <OrdersPageContent searchParams={searchParams} />;
 }
 
 async function OrdersPageContent({ searchParams }: PageProps) {

@@ -12,7 +12,6 @@ import {
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { Suspense } from "react";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { roleDefaultCapabilities } from "@/lib/capabilities";
@@ -52,11 +51,7 @@ interface PageProps {
 }
 
 export default function UserDetailPage({ params, searchParams }: PageProps) {
-	return (
-		<Suspense>
-			<UserDetailPageContent params={params} searchParams={searchParams} />
-		</Suspense>
-	);
+	return <UserDetailPageContent params={params} searchParams={searchParams} />;
 }
 
 async function UserDetailPageContent({ params, searchParams }: PageProps) {
