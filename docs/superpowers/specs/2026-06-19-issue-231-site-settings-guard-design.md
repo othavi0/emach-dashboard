@@ -82,6 +82,11 @@ Espelha o padrão das reads de `banners/actions.ts` (`fetchBanners` → `require
 
 Ambos valem um issue de cleanup separado.
 
+> **Addendum (2026-06-20):** ambos os itens acima foram resolvidos no PR #235
+> (`chore/site-guards-cleanup`) — guard `requireCapabilityOrRedirect` no topo dos
+> pages de banners + remoção da cap morta `site.read` do catálogo (47→46). Este
+> spec permanece como registro da decisão do #231.
+
 ## Verificação
 
 - `bun verify` (check-types + check + test) — gate.
