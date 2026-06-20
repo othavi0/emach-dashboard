@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 import { type EntityTab, EntityTabs } from "@/components/entity/entity-tabs";
 import { PageHeader } from "@/components/page-header";
-import { requireCurrentSession } from "@/lib/session";
+import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { ShippingPreviewRail } from "./_components/shipping-preview-rail";
 import { ShippingSettingsForm } from "./_components/shipping-settings-form";
 import { SocialPreviewRail } from "./_components/social-preview-rail";
@@ -25,7 +25,7 @@ export default function SettingsPage() {
 }
 
 async function SettingsPageContent() {
-	await requireCurrentSession();
+	await requireCapabilityOrRedirect("site.update_settings");
 
 	const [settings, originOptions] = await Promise.all([
 		getOrCreateShippingSettings(),

@@ -27,6 +27,8 @@ const SINGLETON_ID = "singleton";
 
 /** Lê o singleton; cria com defaults na primeira leitura (lazy bootstrap). */
 export async function getOrCreateShippingSettings(): Promise<StoreSettings> {
+	await requireCapability("site.update_settings");
+
 	const existing = await db
 		.select()
 		.from(storeSettings)
@@ -63,6 +65,8 @@ export interface OriginBranchOption {
 
 /** Filiais ativas com CEP preenchido — candidatas a origem do despacho. */
 export async function listOriginBranchOptions(): Promise<OriginBranchOption[]> {
+	await requireCapability("site.update_settings");
+
 	const rows = await db
 		.select({ id: branch.id, name: branch.name, cep: branch.cep })
 		.from(branch)
