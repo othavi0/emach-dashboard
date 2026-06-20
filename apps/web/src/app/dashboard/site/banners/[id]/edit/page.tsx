@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { BannerForm } from "../../_components/banner-form";
 import { fetchBanner } from "../../actions";
 
@@ -21,6 +22,7 @@ async function EditBannerPageContent({
 }: {
 	params: Promise<{ id: string }>;
 }) {
+	await requireCapabilityOrRedirect("site.update_banners");
 	const { id } = await params;
 	const banner = await fetchBanner(id);
 	if (!banner) {

@@ -32,7 +32,7 @@ Modelo completo: `docs/adr/0016-religacao-gates-3-niveis-filial.md` + `docs/supe
 
 ### Overrides por usuário (ADR-0017)
 
-Catálogo em **`src/lib/capabilities.ts`** (47 caps, metadata `group/resource/action/defaultRoles`). Nova feature = 1 entrada → aparece na UI e nasce deny-by-default para roles fora de `defaultRoles`. `Capability` type derivado das keys (sem pgEnum).
+Catálogo em **`src/lib/capabilities.ts`** (46 caps, metadata `group/resource/action/defaultRoles`). Nova feature = 1 entrada → aparece na UI e nasce deny-by-default para roles fora de `defaultRoles`. `Capability` type derivado das keys (sem pgEnum).
 
 - **`can(session, cap)`** — **async**, resolve role ± overrides via `getUserCapabilities(session)` (request-cache, `cache()` do React, mesmo padrão de `getUserBranchScope`). Todos os callsites foram migrados para `await can(...)`.
 - **`roleHasCapability(role, cap)`** — sync, apenas o default do role (sem overrides); usar quando override não é relevante (ex: UI que exibe o default do role como sugestão).

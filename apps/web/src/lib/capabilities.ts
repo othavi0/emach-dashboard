@@ -259,13 +259,6 @@ export const CAPABILITIES = {
 		defaultRoles: SA,
 	},
 	// ── Site ──────────────────────────────────────────────────
-	"site.read": {
-		group: "Site",
-		resource: "Site",
-		action: "Ver",
-		description: "Visualizar configurações do site",
-		defaultRoles: SA,
-	},
 	"site.update_banners": {
 		group: "Site",
 		resource: "Site",

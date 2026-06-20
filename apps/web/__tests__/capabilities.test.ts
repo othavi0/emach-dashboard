@@ -71,7 +71,7 @@ describe("registry de capabilities", () => {
 	});
 
 	it("admin mantém as caps que mudaram de nível na matriz operacional do user", () => {
-		// suppliers.manage migrou SA→SAU; customers/reviews/promotions/site.read
+		// suppliers.manage migrou SA→SAU; customers/reviews/promotions
 		// migraram SAU→SA. admin permanece com todas — regressão explícita da feature
 		// do role user (o loop acima cobre isso só implicitamente).
 		const adminCaps = roleDefaultCapabilities("admin");
@@ -80,7 +80,6 @@ describe("registry de capabilities", () => {
 			"customers.read",
 			"reviews.read",
 			"promotions.read",
-			"site.read",
 		] as const) {
 			expect(adminCaps.has(c), `admin deve manter ${c}`).toBe(true);
 		}
