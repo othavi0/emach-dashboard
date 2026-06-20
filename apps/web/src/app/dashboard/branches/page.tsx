@@ -1,7 +1,6 @@
 import { buttonVariants } from "@emach/ui/components/button";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -21,11 +20,7 @@ interface PageProps {
 }
 
 export default function BranchesPage({ searchParams }: PageProps) {
-	return (
-		<Suspense>
-			<BranchesPageContent searchParams={searchParams} />
-		</Suspense>
-	);
+	return <BranchesPageContent searchParams={searchParams} />;
 }
 
 async function BranchesPageContent({ searchParams }: PageProps) {

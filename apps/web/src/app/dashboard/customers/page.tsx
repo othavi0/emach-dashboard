@@ -8,7 +8,6 @@ import {
 } from "@emach/ui/components/empty";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
@@ -37,11 +36,7 @@ interface PageProps {
 }
 
 export default function CustomersPage({ searchParams }: PageProps) {
-	return (
-		<Suspense>
-			<CustomersPageContent searchParams={searchParams} />
-		</Suspense>
-	);
+	return <CustomersPageContent searchParams={searchParams} />;
 }
 
 async function CustomersPageContent({ searchParams }: PageProps) {

@@ -9,7 +9,6 @@ import {
 import { asc } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
 import { getUserBranchScope } from "@/lib/branch-scope";
@@ -64,11 +63,7 @@ function buildStatusHref(
 }
 
 export default function UsersPage({ searchParams }: PageProps) {
-	return (
-		<Suspense>
-			<UsersPageContent searchParams={searchParams} />
-		</Suspense>
-	);
+	return <UsersPageContent searchParams={searchParams} />;
 }
 
 async function UsersPageContent({ searchParams }: PageProps) {

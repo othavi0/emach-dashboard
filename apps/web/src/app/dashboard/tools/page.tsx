@@ -11,7 +11,6 @@ import {
 import { asc } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 
 import { getActiveBranches } from "@/app/dashboard/branches/data";
 import { PageHeader } from "@/components/page-header";
@@ -53,11 +52,10 @@ async function fetchCategories() {
 const VALID_SORTS: readonly ToolSort[] = ["newest", "name"];
 
 export default function ToolsPage({ searchParams }: PageProps) {
-	return (
-		<Suspense>
-			<ToolsPageContent searchParams={searchParams} />
-		</Suspense>
-	);
+	// O fallback de navegação é o loading.tsx do segmento (casca estática = skeleton).
+	// Sem <Suspense> interno aqui: o read dinâmico suspende direto nesse boundary,
+	// senão a casca estática ficaria null (preta) e venceria o loading.tsx no prefetch.
+	return <ToolsPageContent searchParams={searchParams} />;
 }
 
 async function ToolsPageContent({ searchParams }: PageProps) {

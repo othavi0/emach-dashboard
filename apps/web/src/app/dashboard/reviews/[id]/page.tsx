@@ -2,7 +2,6 @@ import { buttonVariants } from "@emach/ui/components/button";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { ModerateActions } from "../_components/moderate-actions";
 import { ReviewDetailCard } from "../_components/review-detail-card";
@@ -17,11 +16,7 @@ interface ReviewDetailPageProps {
 }
 
 export default function ReviewDetailPage({ params }: ReviewDetailPageProps) {
-	return (
-		<Suspense>
-			<ReviewDetailPageContent params={params} />
-		</Suspense>
-	);
+	return <ReviewDetailPageContent params={params} />;
 }
 
 async function ReviewDetailPageContent({ params }: ReviewDetailPageProps) {

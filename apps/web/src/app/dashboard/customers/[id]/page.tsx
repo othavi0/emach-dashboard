@@ -1,7 +1,6 @@
 import type { ClientAuditAction } from "@emach/db/schema/client-audit";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { CustomerHeader } from "../_components/customer-header";
@@ -64,9 +63,7 @@ export default function CustomerDetailPage({
 	searchParams,
 }: PageProps) {
 	return (
-		<Suspense>
-			<CustomerDetailPageContent params={params} searchParams={searchParams} />
-		</Suspense>
+		<CustomerDetailPageContent params={params} searchParams={searchParams} />
 	);
 }
 

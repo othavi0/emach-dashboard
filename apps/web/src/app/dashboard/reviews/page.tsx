@@ -7,7 +7,6 @@ import {
 } from "@emach/ui/components/empty";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -26,11 +25,7 @@ interface ReviewsPageProps {
 }
 
 export default function ReviewsPage({ searchParams }: ReviewsPageProps) {
-	return (
-		<Suspense>
-			<ReviewsPageContent searchParams={searchParams} />
-		</Suspense>
-	);
+	return <ReviewsPageContent searchParams={searchParams} />;
 }
 
 async function ReviewsPageContent({ searchParams }: ReviewsPageProps) {

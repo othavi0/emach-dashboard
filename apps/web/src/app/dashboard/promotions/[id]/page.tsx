@@ -3,7 +3,6 @@ import { Info, Settings2, Wrench } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
@@ -28,9 +27,7 @@ export default function PromotionDetailPage({
 	searchParams,
 }: PageProps) {
 	return (
-		<Suspense>
-			<PromotionDetailPageContent params={params} searchParams={searchParams} />
-		</Suspense>
+		<PromotionDetailPageContent params={params} searchParams={searchParams} />
 	);
 }
 

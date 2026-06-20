@@ -1,6 +1,5 @@
 import { Badge } from "@emach/ui/components/badge";
 import type { Metadata } from "next";
-import { Suspense } from "react";
 
 import { type EntityTab, EntityTabs } from "@/components/entity/entity-tabs";
 import { PageHeader } from "@/components/page-header";
@@ -22,11 +21,7 @@ export const metadata: Metadata = {
 const GRID = "grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]";
 
 export default function SettingsPage() {
-	return (
-		<Suspense>
-			<SettingsPageContent />
-		</Suspense>
-	);
+	return <SettingsPageContent />;
 }
 
 async function SettingsPageContent() {

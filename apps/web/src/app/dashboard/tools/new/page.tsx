@@ -3,7 +3,6 @@ import { attributeDefinition } from "@emach/db/schema/attributes";
 import { category } from "@emach/db/schema/categories";
 import { asc } from "drizzle-orm";
 import type { Metadata } from "next";
-import { Suspense } from "react";
 
 import { requireCapability } from "@/lib/permissions";
 import { buildDefinitionsByCategory } from "../_components/attribute-helpers";
@@ -15,11 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default function NewToolPage() {
-	return (
-		<Suspense>
-			<NewToolPageContent />
-		</Suspense>
-	);
+	return <NewToolPageContent />;
 }
 
 async function NewToolPageContent() {

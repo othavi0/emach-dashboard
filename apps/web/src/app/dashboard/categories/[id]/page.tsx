@@ -3,7 +3,6 @@ import { FolderTree, Info, Package, Pencil, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
@@ -42,9 +41,7 @@ export default function CategoryDetailPage({
 	searchParams,
 }: PageProps) {
 	return (
-		<Suspense>
-			<CategoryDetailPageContent params={params} searchParams={searchParams} />
-		</Suspense>
+		<CategoryDetailPageContent params={params} searchParams={searchParams} />
 	);
 }
 

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { BannerForm } from "../../_components/banner-form";
 import { fetchBanner } from "../../actions";
@@ -14,11 +13,7 @@ export default function EditBannerPage({
 }: {
 	params: Promise<{ id: string }>;
 }) {
-	return (
-		<Suspense>
-			<EditBannerPageContent params={params} />
-		</Suspense>
-	);
+	return <EditBannerPageContent params={params} />;
 }
 
 async function EditBannerPageContent({
