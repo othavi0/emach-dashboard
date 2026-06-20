@@ -9,6 +9,7 @@ import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { asc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { requireCapability } from "@/lib/permissions";
 import { buildDefinitionsByCategory } from "../../_components/attribute-helpers";
@@ -109,7 +110,15 @@ function toFormValues(
 	};
 }
 
-export default async function EditToolPage({ params }: PageProps) {
+export default function EditToolPage({ params }: PageProps) {
+	return (
+		<Suspense>
+			<EditToolPageContent params={params} />
+		</Suspense>
+	);
+}
+
+async function EditToolPageContent({ params }: PageProps) {
 	await requireCapability("tools.update");
 	const { id } = await params;
 

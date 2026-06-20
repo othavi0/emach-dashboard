@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import type { EntityTab } from "@/components/entity/entity-tabs";
 import { EntityTabs } from "@/components/entity/entity-tabs";
 import { can, requireCapability } from "@/lib/permissions";
@@ -30,8 +31,6 @@ export const metadata: Metadata = {
 	title: "Detalhe do pedido",
 };
 
-export const dynamic = "force-dynamic";
-
 function TabCount({ n }: { n: number }) {
 	return (
 		<span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-secondary px-1 font-medium text-secondary-foreground text-xs tabular-nums">
@@ -40,7 +39,19 @@ function TabCount({ n }: { n: number }) {
 	);
 }
 
-export default async function OrderDetailPage({
+export default function OrderDetailPage({
+	params,
+}: {
+	params: Promise<{ id: string }>;
+}) {
+	return (
+		<Suspense>
+			<OrderDetailPageContent params={params} />
+		</Suspense>
+	);
+}
+
+async function OrderDetailPageContent({
 	params,
 }: {
 	params: Promise<{ id: string }>;

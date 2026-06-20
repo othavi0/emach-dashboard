@@ -9,9 +9,6 @@ import { NextResponse } from "next/server";
 
 import { logger } from "@/lib/logger";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 const STALE_INTERVAL = sql`interval '72 hours'`;
 const REASON =
 	"Cancelado automaticamente por inatividade (>72h sem pagamento confirmado)";

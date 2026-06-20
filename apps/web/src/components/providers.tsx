@@ -2,6 +2,7 @@
 
 import { ProgressProvider } from "@bprogress/next/app";
 import { Toaster } from "@emach/ui/components/sonner";
+import { Suspense } from "react";
 import { NavigationAnnouncer } from "@/components/navigation-announcer";
 
 /** Returns true when target and current differ only in search params (same pathname + origin). */
@@ -26,7 +27,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 			}}
 		>
 			{children}
-			<NavigationAnnouncer />
+			{/* NavigationAnnouncer usa usePathname() ("use client"). Sob Next 16 cacheComponents,
+			    componentes "use client" com leitura de pathname dinâmico devem ficar dentro de
+			    <Suspense> ou o build falha (leitura dinâmica não cabe no shell estático). */}
+			<Suspense>
+				<NavigationAnnouncer />
+			</Suspense>
 			<Toaster richColors />
 		</ProgressProvider>
 	);

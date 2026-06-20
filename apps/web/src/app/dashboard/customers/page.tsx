@@ -8,6 +8,7 @@ import {
 } from "@emach/ui/components/empty";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
@@ -35,9 +36,15 @@ interface PageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export const dynamic = "force-dynamic";
+export default function CustomersPage({ searchParams }: PageProps) {
+	return (
+		<Suspense>
+			<CustomersPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
 
-export default async function CustomersPage({ searchParams }: PageProps) {
+async function CustomersPageContent({ searchParams }: PageProps) {
 	const session = await requireCapabilityOrRedirect(
 		"customers.read",
 		"/dashboard/sem-acesso?recurso=Clientes"

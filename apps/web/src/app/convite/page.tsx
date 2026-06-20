@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { getInviteByToken } from "@/app/dashboard/users/data";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { InviteAcceptForm } from "@/components/auth/invite-accept-form";
-
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
 	description:
@@ -15,7 +14,19 @@ export const metadata: Metadata = {
 	title: "Convite",
 };
 
-export default async function InvitePage({
+export default function InvitePage({
+	searchParams,
+}: {
+	searchParams: Promise<{ token?: string }>;
+}) {
+	return (
+		<Suspense>
+			<InvitePageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function InvitePageContent({
 	searchParams,
 }: {
 	searchParams: Promise<{ token?: string }>;

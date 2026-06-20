@@ -11,6 +11,7 @@ import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import nextDynamic from "next/dynamic";
 import Link from "next/link";
+import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { listCategoriesForTree } from "./data";
@@ -24,9 +25,15 @@ export const metadata: Metadata = {
 	title: "Categorias",
 };
 
-export const dynamic = "force-dynamic";
+export default function CategoriesPage() {
+	return (
+		<Suspense>
+			<CategoriesPageContent />
+		</Suspense>
+	);
+}
 
-export default async function CategoriesPage() {
+async function CategoriesPageContent() {
 	const session = await requireCapabilityOrRedirect("categories.read");
 	const [canMutate, canDelete] = await Promise.all([
 		can(session, "categories.manage"),

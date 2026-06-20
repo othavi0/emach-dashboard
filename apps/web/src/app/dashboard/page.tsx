@@ -67,7 +67,19 @@ const PROMO_STATUS_CONFIG = {
 	inativa: { label: "Inativa" },
 } satisfies ChartConfig;
 
-export default async function DashboardPage({
+export default function DashboardPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ branch?: string | string[] }>;
+}) {
+	return (
+		<Suspense>
+			<DashboardPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function DashboardPageContent({
 	searchParams,
 }: {
 	searchParams: Promise<{ branch?: string | string[] }>;

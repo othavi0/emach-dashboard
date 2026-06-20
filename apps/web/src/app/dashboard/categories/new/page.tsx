@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { AttributesLocked } from "../_components/attributes-locked";
@@ -9,15 +10,21 @@ export const metadata: Metadata = {
 	title: "Nova categoria",
 };
 
-export const dynamic = "force-dynamic";
-
 interface NewCategoryPageProps {
 	searchParams: Promise<{ parent?: string }>;
 }
 
-export default async function NewCategoryPage({
+export default function NewCategoryPage({
 	searchParams,
 }: NewCategoryPageProps) {
+	return (
+		<Suspense>
+			<NewCategoryPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function NewCategoryPageContent({ searchParams }: NewCategoryPageProps) {
 	await requireCapabilityOrRedirect("categories.manage");
 	const { parent } = await searchParams;
 	const categories = await listCategories();

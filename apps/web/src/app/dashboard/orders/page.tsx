@@ -8,6 +8,7 @@ import {
 } from "@emach/ui/components/empty";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
 import { PendingPanel, type PendingTab } from "@/components/pending-panel";
@@ -38,9 +39,15 @@ interface PageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export const dynamic = "force-dynamic";
+export default function OrdersPage({ searchParams }: PageProps) {
+	return (
+		<Suspense>
+			<OrdersPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
 
-export default async function OrdersPage({ searchParams }: PageProps) {
+async function OrdersPageContent({ searchParams }: PageProps) {
 	await requireCapability("orders.read");
 	const raw = await searchParams;
 	const parsed = ordersListFiltersSchema.safeParse(raw);

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
 	title: "Estoque por filial",
@@ -17,9 +18,17 @@ interface PageProps {
 
 // Rota consolidada (#77): o estoque por filial vive na tab de cada filial
 // (`/dashboard/branches/[id]?tab=stock`). Esta rota órfã vira redirect.
-export default async function BranchesStockRedirect({
+export default function BranchesStockRedirect({ searchParams }: PageProps) {
+	return (
+		<Suspense>
+			<BranchesStockRedirectContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function BranchesStockRedirectContent({
 	searchParams,
-}: PageProps) {
+}: PageProps): Promise<never> {
 	const sp = await searchParams;
 
 	if (!sp.branch) {

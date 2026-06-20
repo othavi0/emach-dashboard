@@ -76,8 +76,21 @@ function SidebarProvider({
 
 	// This is the internal state of the sidebar.
 	// We use openProp and setOpenProp for control from outside the component.
-	// defaultOpen is read from a cookie server-side (layout.tsx) → no hydration flash.
+	// defaultOpen is the initial value; the cookie is synced client-side after mount.
 	const [_open, _setOpen] = useState(defaultOpen);
+	// O layout não lê mais o cookie server-side (cacheComponents: o read dinâmico
+	// impediria o static shell de prerenderizar). SSR + 1º render client usam
+	// defaultOpen (sem hydration mismatch); este efeito sincroniza pro valor
+	// persistido no cookie logo após o mount.
+	useEffect(() => {
+		const match = document.cookie
+			.split(";")
+			.map((c) => c.trim())
+			.find((c) => c.startsWith("sidebar_state="));
+		if (match) {
+			_setOpen(match.split("=")[1] !== "false");
+		}
+	}, []);
 	const open = openProp ?? _open;
 	const setOpen = useCallback(
 		(value: boolean | ((value: boolean) => boolean)) => {

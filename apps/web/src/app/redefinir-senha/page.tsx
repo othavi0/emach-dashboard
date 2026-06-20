@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
@@ -12,7 +13,19 @@ export const metadata: Metadata = {
 	title: "Redefinir senha",
 };
 
-export default async function ResetPasswordPage({
+export default function ResetPasswordPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ token?: string }>;
+}) {
+	return (
+		<Suspense>
+			<ResetPasswordPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function ResetPasswordPageContent({
 	searchParams,
 }: {
 	searchParams: Promise<{ token?: string }>;

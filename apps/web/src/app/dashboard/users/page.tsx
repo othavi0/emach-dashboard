@@ -9,6 +9,7 @@ import {
 import { asc } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PageHeader } from "@/components/page-header";
 import { getUserBranchScope } from "@/lib/branch-scope";
@@ -29,8 +30,6 @@ import {
 export const metadata: Metadata = {
 	title: "Usuários",
 };
-
-export const dynamic = "force-dynamic";
 
 type Status = "active" | "pending" | "suspended";
 
@@ -64,7 +63,15 @@ function buildStatusHref(
 	return qs ? `/dashboard/users?${qs}` : "/dashboard/users";
 }
 
-export default async function UsersPage({ searchParams }: PageProps) {
+export default function UsersPage({ searchParams }: PageProps) {
+	return (
+		<Suspense>
+			<UsersPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function UsersPageContent({ searchParams }: PageProps) {
 	const actorSession = await requireCapabilityOrRedirect("users.manage");
 	const sp = await searchParams;
 

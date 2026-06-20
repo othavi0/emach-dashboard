@@ -1,6 +1,7 @@
 import type { ClientAuditAction } from "@emach/db/schema/client-audit";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { CustomerHeader } from "../_components/customer-header";
@@ -58,12 +59,18 @@ function parsePage(raw: unknown): number {
 	return Number.isFinite(n) && n > 0 ? n : 1;
 }
 
-export const dynamic = "force-dynamic";
-
-export default async function CustomerDetailPage({
+export default function CustomerDetailPage({
 	params,
 	searchParams,
 }: PageProps) {
+	return (
+		<Suspense>
+			<CustomerDetailPageContent params={params} searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function CustomerDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCapabilityOrRedirect(
 		"customers.read",
 		"/dashboard/sem-acesso?recurso=Clientes"

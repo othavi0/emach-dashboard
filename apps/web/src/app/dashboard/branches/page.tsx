@@ -1,6 +1,7 @@
 import { buttonVariants } from "@emach/ui/components/button";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -12,8 +13,6 @@ export const metadata: Metadata = {
 	title: "Filiais",
 };
 
-export const dynamic = "force-dynamic";
-
 interface PageProps {
 	searchParams: Promise<{
 		search?: string;
@@ -21,7 +20,15 @@ interface PageProps {
 	}>;
 }
 
-export default async function BranchesPage({ searchParams }: PageProps) {
+export default function BranchesPage({ searchParams }: PageProps) {
+	return (
+		<Suspense>
+			<BranchesPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function BranchesPageContent({ searchParams }: PageProps) {
 	const session = await requireCapabilityOrRedirect("branches.read");
 	const canManage = await can(session, "branches.manage");
 	const sp = await searchParams;

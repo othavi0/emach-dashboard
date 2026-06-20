@@ -9,6 +9,7 @@ import {
 import { ShieldAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
 	title: "Acesso negado",
@@ -18,7 +19,15 @@ interface PageProps {
 	searchParams: Promise<{ recurso?: string }>;
 }
 
-export default async function SemAcessoPage({ searchParams }: PageProps) {
+export default function SemAcessoPage({ searchParams }: PageProps) {
+	return (
+		<Suspense>
+			<SemAcessoPageContent searchParams={searchParams} />
+		</Suspense>
+	);
+}
+
+async function SemAcessoPageContent({ searchParams }: PageProps) {
 	const { recurso } = await searchParams;
 	const alvo = recurso ? `a seção "${recurso}"` : "esta seção";
 

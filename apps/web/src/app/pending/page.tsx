@@ -1,7 +1,7 @@
 import { Clock } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-
+import { Suspense } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthStatusPanel } from "@/components/auth/auth-status-panel";
 import { getCurrentSession, getUserStatus } from "@/lib/session";
@@ -9,14 +9,11 @@ import { getCurrentSession, getUserStatus } from "@/lib/session";
 export const metadata: Metadata = {
 	description:
 		"Acompanhe o status de aprovação da sua conta no dashboard administrativo da Emach Ferramentas.",
-	robots: {
-		follow: false,
-		index: false,
-	},
+	robots: { follow: false, index: false },
 	title: "Conta em aprovação",
 };
 
-export default async function PendingPage() {
+async function PendingRedirectGate() {
 	const session = await getCurrentSession();
 	if (!session?.user) {
 		redirect("/login");
@@ -28,15 +25,23 @@ export default async function PendingPage() {
 	if (status === "suspended") {
 		redirect("/suspended");
 	}
+	return null;
+}
 
+export default function PendingPage() {
 	return (
-		<AuthShell>
-			<AuthStatusPanel
-				description="Um administrador vai revisar seu cadastro. Você terá acesso após a aprovação."
-				icon={<Clock aria-hidden className="size-5" />}
-				title="Conta aguardando aprovação"
-				tone="warning"
-			/>
-		</AuthShell>
+		<>
+			<Suspense fallback={null}>
+				<PendingRedirectGate />
+			</Suspense>
+			<AuthShell>
+				<AuthStatusPanel
+					description="Um administrador vai revisar seu cadastro. Você terá acesso após a aprovação."
+					icon={<Clock aria-hidden className="size-5" />}
+					title="Conta aguardando aprovação"
+					tone="warning"
+				/>
+			</AuthShell>
+		</>
 	);
 }
