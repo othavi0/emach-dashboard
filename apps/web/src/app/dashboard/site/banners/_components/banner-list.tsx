@@ -49,6 +49,10 @@ export function BannerList({ banners }: { banners: Banner[] }) {
 		});
 	}
 
+	function handleDelete(id: string) {
+		setOrder((prev) => prev.filter((b) => b.id !== id));
+	}
+
 	function handleDragEnd(event: DragEndEvent) {
 		const { active: a, over } = event;
 		if (!over || a.id === over.id) {
@@ -112,6 +116,7 @@ export function BannerList({ banners }: { banners: Banner[] }) {
 								<BannerCard
 									item={b}
 									key={b.id}
+									onDelete={handleDelete}
 									onToggle={handleToggle}
 									order={i + 1}
 									sortable
@@ -137,6 +142,7 @@ export function BannerList({ banners }: { banners: Banner[] }) {
 						<BannerCard
 							item={b}
 							key={b.id}
+							onDelete={handleDelete}
 							onToggle={handleToggle}
 							sortable={false}
 						/>

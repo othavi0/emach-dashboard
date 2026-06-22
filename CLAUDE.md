@@ -27,7 +27,7 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 
 - `console.log/warn/error` em produção. Usar `logger` de `apps/web/src/lib/logger.ts`.
 - `: any`, `<any>`, `as any`, `@ts-ignore`, `@ts-expect-error` (exceto `.next/` gerado).
-- `key={index}` em `.map()` — IDs estáveis. Exceções com `biome-ignore` documentado.
+- `key={index}` em `.map()` — preferir IDs estáveis; exceção (lista curta de primitivos sem ID, inputs controlados) documentada com comentário inline `//`. **Não** usar `biome-ignore lint/suspicious/noArrayIndexKey`: a regra não é enforçada pelo preset ultracite aqui, então o ignore vira warning `suppressions/unused`.
 - `<img>` puro — sempre `next/image` (exceto thumbs Supabase com biome-ignore).
 - `React.forwardRef` — React 19 usa `ref` como prop normal.
 - `useMemo`/`useCallback` manuais — React Compiler ativo (`next.config.ts: reactCompiler: true`).
