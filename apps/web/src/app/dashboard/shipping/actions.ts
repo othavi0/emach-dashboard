@@ -2,7 +2,12 @@
 
 import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
-import { carrier, shippingBox } from "@emach/db/schema/shipping";
+import {
+	carrier,
+	carrierRate,
+	carrierZone,
+	shippingBox,
+} from "@emach/db/schema/shipping";
 import {
 	type StoreSettings,
 	storeSettings,
@@ -26,6 +31,12 @@ import {
 	type ShippingSettingsFormValues,
 	shippingSettingsSchema,
 } from "./_components/shipping-schema";
+import {
+	type RateRow,
+	ratesSchema,
+	type ZoneFormValues,
+	zoneSchema,
+} from "./_components/zone-schema";
 import type { CarrierBaseRow } from "./data";
 
 const SHIPPING_PATH = "/dashboard/shipping";
@@ -308,4 +319,121 @@ export async function deleteCarrier(
 	});
 	revalidatePath(SHIPPING_PATH);
 	return { ok: true, data: { id } };
+}
+
+export async function upsertZone(
+	carrierId: string,
+	zoneId: string | null,
+	input: ZoneFormValues
+): Promise<ActionResult<{ id: string }>> {
+	const session = await requireCapability("shipping.manage");
+	const parsed = zoneSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: actionErrorMessage(parsed.error) };
+	}
+	const id = zoneId ?? crypto.randomUUID();
+	try {
+		if (zoneId) {
+			await db
+				.update(carrierZone)
+				.set({
+					name: parsed.data.name,
+					cepRanges: parsed.data.cepRanges,
+					deliveryDays: parsed.data.deliveryDays ?? null,
+					minFreightAmount:
+						parsed.data.minFreightAmount == null
+							? null
+							: parsed.data.minFreightAmount.toString(),
+				})
+				.where(eq(carrierZone.id, zoneId));
+		} else {
+			await db.insert(carrierZone).values({
+				id,
+				carrierId,
+				name: parsed.data.name,
+				cepRanges: parsed.data.cepRanges,
+				deliveryDays: parsed.data.deliveryDays ?? null,
+				minFreightAmount:
+					parsed.data.minFreightAmount == null
+						? null
+						: parsed.data.minFreightAmount.toString(),
+			});
+		}
+	} catch (error) {
+		logger.error("upsertZone falhou", error);
+		return { ok: false, error: actionErrorMessage(error) };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "shipping.zone.upserted",
+		targetId: id,
+		targetType: "carrier_zone",
+		metadata: { carrierId, name: parsed.data.name },
+	});
+	revalidatePath(`/dashboard/shipping/carriers/${carrierId}`);
+	return { ok: true, data: { id } };
+}
+
+export async function deleteZone(
+	carrierId: string,
+	zoneId: string
+): Promise<ActionResult<{ id: string }>> {
+	const session = await requireCapability("shipping.manage");
+	try {
+		await db.delete(carrierZone).where(eq(carrierZone.id, zoneId));
+	} catch (error) {
+		logger.error("deleteZone falhou", error);
+		return { ok: false, error: actionErrorMessage(error) };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "shipping.zone.deleted",
+		targetId: zoneId,
+		targetType: "carrier_zone",
+		metadata: { carrierId },
+	});
+	revalidatePath(`/dashboard/shipping/carriers/${carrierId}`);
+	return { ok: true, data: { id: zoneId } };
+}
+
+export async function saveZoneRates(
+	carrierId: string,
+	zoneId: string,
+	rows: RateRow[]
+): Promise<ActionResult<{ count: number }>> {
+	const session = await requireCapability("shipping.manage");
+	const parsed = ratesSchema.safeParse(rows);
+	if (!parsed.success) {
+		return { ok: false, error: actionErrorMessage(parsed.error) };
+	}
+	try {
+		await db.transaction(async (tx) => {
+			await tx.delete(carrierRate).where(eq(carrierRate.zoneId, zoneId));
+			if (parsed.data.length > 0) {
+				await tx.insert(carrierRate).values(
+					parsed.data.map((r) => ({
+						id: crypto.randomUUID(),
+						carrierId,
+						zoneId,
+						weightFromKg: r.weightFromKg.toString(),
+						weightToKg: r.weightToKg == null ? null : r.weightToKg.toString(),
+						baseAmount: r.baseAmount.toString(),
+						perKgAmount: r.perKgAmount.toString(),
+					}))
+				);
+			}
+		});
+	} catch (error) {
+		logger.error("saveZoneRates falhou", error);
+		return { ok: false, error: actionErrorMessage(error) };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "shipping.rates.saved",
+		targetId: zoneId,
+		targetType: "carrier_zone",
+		metadata: { carrierId, count: parsed.data.length },
+	});
+	revalidatePath(`/dashboard/shipping/carriers/${carrierId}`);
+	return { ok: true, data: { count: parsed.data.length } };
 }

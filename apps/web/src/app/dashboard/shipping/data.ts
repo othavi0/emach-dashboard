@@ -1,7 +1,12 @@
 import "server-only";
 
 import { db } from "@emach/db";
-import { carrier, shippingBox } from "@emach/db/schema/shipping";
+import {
+	carrier,
+	carrierRate,
+	carrierZone,
+	shippingBox,
+} from "@emach/db/schema/shipping";
 import { asc, desc, eq, sql } from "drizzle-orm";
 
 import { decodeCursor } from "@/lib/cursor";
@@ -118,4 +123,50 @@ export async function getCarrierDetail(
 		icmsPercent: row.icmsPercent,
 		notes: row.notes,
 	};
+}
+
+export interface ZoneWithRates {
+	cepRanges: { from: string; to: string; label?: string }[];
+	deliveryDays: number | null;
+	id: string;
+	minFreightAmount: string | null;
+	name: string;
+	rates: {
+		id: string;
+		weightFromKg: string;
+		weightToKg: string | null;
+		baseAmount: string;
+		perKgAmount: string;
+	}[];
+}
+
+export async function getCarrierZones(
+	carrierId: string
+): Promise<ZoneWithRates[]> {
+	const zones = await db
+		.select()
+		.from(carrierZone)
+		.where(eq(carrierZone.carrierId, carrierId))
+		.orderBy(asc(carrierZone.sortOrder), asc(carrierZone.name));
+	const rates = await db
+		.select()
+		.from(carrierRate)
+		.where(eq(carrierRate.carrierId, carrierId))
+		.orderBy(asc(carrierRate.weightFromKg));
+	return zones.map((z) => ({
+		id: z.id,
+		name: z.name,
+		cepRanges: z.cepRanges as { from: string; to: string; label?: string }[],
+		deliveryDays: z.deliveryDays,
+		minFreightAmount: z.minFreightAmount,
+		rates: rates
+			.filter((r) => r.zoneId === z.id)
+			.map((r) => ({
+				id: r.id,
+				weightFromKg: r.weightFromKg,
+				weightToKg: r.weightToKg,
+				baseAmount: r.baseAmount,
+				perKgAmount: r.perKgAmount,
+			})),
+	}));
 }
