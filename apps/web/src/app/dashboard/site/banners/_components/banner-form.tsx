@@ -6,6 +6,7 @@ import { Input } from "@emach/ui/components/input";
 import { Slider } from "@emach/ui/components/slider";
 import { Switch } from "@emach/ui/components/switch";
 import { cn } from "@emach/ui/lib/utils";
+import { TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FieldError } from "@/components/field-error";
@@ -27,6 +28,7 @@ import { ImageUploadTile } from "./image-upload-tile";
 import { LayoutPicker } from "./layout-picker";
 import { PresetCards } from "./preset-cards";
 import { SlotSection } from "./slot-section";
+import { SpecsEditor } from "./specs-editor";
 
 const ALL_SLOTS: SlotKey[] = [
 	"background",
@@ -35,6 +37,7 @@ const ALL_SLOTS: SlotKey[] = [
 	"badge",
 	"countdown",
 	"cta",
+	"specs",
 ];
 
 const BG_MOBILE_MODE_OPTIONS: {
@@ -62,7 +65,7 @@ const BG_MOBILE_MODE_OPTIONS: {
 const EMPTY: BannerFormValues = {
 	backgroundImageUrl: null,
 	backgroundImageMobileUrl: null,
-	backgroundMobileMode: "inherit",
+	backgroundMobileMode: "none",
 	productImageUrl: null,
 	productImageMobileUrl: null,
 	title: null,
@@ -114,6 +117,7 @@ function deriveSlots(v: BannerFormValues): Record<SlotKey, boolean> {
 		badge: v.badgeText !== null,
 		countdown: v.countdownTarget !== null,
 		cta: v.ctaLabel !== null || v.ctaHref !== null,
+		specs: v.specs !== null && v.specs.length > 0,
 	};
 }
 
@@ -185,6 +189,12 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 				}
 			}
 		}
+		if (Array.isArray(clean.specs)) {
+			const trimmed = clean.specs
+				.map((s) => s.trim())
+				.filter((s) => s.length > 0);
+			clean.specs = trimmed.length > 0 ? trimmed : null;
+		}
 		const parsed = bannerFormSchema.safeParse(clean);
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
@@ -251,6 +261,7 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 							/>
 						)}
 					</div>
+					<FieldError>{errors.backgroundImageMobileUrl}</FieldError>
 					<div className="mt-3">
 						<div className="mb-1.5 flex items-center gap-1">
 							<p className="text-muted-foreground text-xs">Fundo no mobile</p>
@@ -285,6 +296,13 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 								)?.hint
 							}
 						</p>
+						{values.backgroundMobileMode === "inherit" && (
+							<p className="mt-1.5 flex items-start gap-1 text-[11px] text-amber-600 dark:text-amber-500">
+								<TriangleAlert className="mt-0.5 size-3 shrink-0" />
+								Artes widescreen são cortadas no mobile — prefira "Sem fundo" ou
+								"Imagem própria".
+							</p>
+						)}
 					</div>
 					<div className="mt-3">
 						<LabeledField
@@ -392,6 +410,19 @@ export function BannerForm({ banner }: { banner?: Banner }) {
 							)}
 						</LabeledField>
 					</div>
+				</SlotSection>
+
+				<SlotSection
+					enabled={slots.specs}
+					id="slot-specs"
+					onToggle={(on) => toggleSlot("specs", on)}
+					title="Ficha técnica"
+				>
+					<SpecsEditor
+						onChange={(next) => set("specs", next)}
+						value={values.specs}
+					/>
+					<FieldError>{errors.specs}</FieldError>
 				</SlotSection>
 
 				<SlotSection
