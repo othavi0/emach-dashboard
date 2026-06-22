@@ -10,6 +10,7 @@ const base = {
 	productImageMobileUrl: null,
 	title: "Potência redefinida",
 	subtitle: null,
+	specs: null,
 	altText: "EMACH — Potência",
 	badgeText: null,
 	ctaLabel: "Ver Catálogo",
@@ -111,6 +112,73 @@ describe("bannerFormSchema", () => {
 		expect(
 			bannerFormSchema.safeParse({ ...base, ctaVariant: "blue" }).success
 		).toBe(false);
+	});
+
+	it("aceita specs nulo, vazio e dentro dos limites", () => {
+		expect(bannerFormSchema.safeParse({ ...base, specs: null }).success).toBe(
+			true
+		);
+		expect(bannerFormSchema.safeParse({ ...base, specs: [] }).success).toBe(
+			true
+		);
+		expect(
+			bannerFormSchema.safeParse({ ...base, specs: ["1200W", "800 RPM"] })
+				.success
+		).toBe(true);
+	});
+
+	it("rejeita specs com mais de 6 itens", () => {
+		const r = bannerFormSchema.safeParse({
+			...base,
+			specs: ["1", "2", "3", "4", "5", "6", "7"],
+		});
+		expect(r.success).toBe(false);
+	});
+
+	it("rejeita item de spec com mais de 24 caracteres", () => {
+		const r = bannerFormSchema.safeParse({
+			...base,
+			specs: ["a".repeat(25)],
+		});
+		expect(r.success).toBe(false);
+	});
+
+	it("rejeita item de spec vazio", () => {
+		const r = bannerFormSchema.safeParse({ ...base, specs: [""] });
+		expect(r.success).toBe(false);
+	});
+
+	it("exige imagem mobile quando modo custom e há fundo", () => {
+		const r = bannerFormSchema.safeParse({
+			...base,
+			backgroundMobileMode: "custom",
+			backgroundImageMobileUrl: null,
+		});
+		expect(r.success).toBe(false);
+	});
+
+	it("aceita custom com imagem mobile preenchida", () => {
+		const r = bannerFormSchema.safeParse({
+			...base,
+			backgroundMobileMode: "custom",
+			backgroundImageMobileUrl:
+				"https://x.supabase.co/storage/v1/object/public/banner-images/m.jpg",
+		});
+		expect(r.success).toBe(true);
+	});
+
+	it("ignora exigência de imagem mobile quando não há fundo", () => {
+		const r = bannerFormSchema.safeParse({
+			...base,
+			backgroundImageUrl: null,
+			altText: null,
+			title: "Só título",
+			ctaLabel: null,
+			ctaHref: null,
+			backgroundMobileMode: "custom",
+			backgroundImageMobileUrl: null,
+		});
+		expect(r.success).toBe(true);
 	});
 
 	it("expõe MAX_ACTIVE_BANNERS = 6", () => {

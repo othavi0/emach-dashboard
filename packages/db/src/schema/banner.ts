@@ -3,6 +3,7 @@ import {
 	boolean,
 	check,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
@@ -42,11 +43,14 @@ export const banner = pgTable(
 		backgroundImageMobileUrl: text("background_image_mobile_url"),
 		backgroundMobileMode: bannerBackgroundMobileMode("background_mobile_mode")
 			.notNull()
-			.default("inherit"),
+			.default("none"),
 		productImageUrl: text("product_image_url"),
 		productImageMobileUrl: text("product_image_mobile_url"),
 		title: text("title"),
 		subtitle: text("subtitle"),
+		// Ficha técnica do hero: lista de strings curtas (ex: ["1200W", "800 RPM"]).
+		// Renderizada como DOM no storefront (#229), não queimada na arte. null/[] = sem painel.
+		specs: jsonb("specs").$type<string[]>(),
 		altText: text("alt_text"),
 		badgeText: text("badge_text"),
 		ctaLabel: text("cta_label"),

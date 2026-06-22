@@ -6,7 +6,8 @@ export type SlotKey =
 	| "title"
 	| "badge"
 	| "countdown"
-	| "cta";
+	| "cta"
+	| "specs";
 
 export const SLOT_FIELDS: Record<SlotKey, (keyof BannerFormValues)[]> = {
 	background: ["backgroundImageUrl", "backgroundImageMobileUrl", "altText"],
@@ -15,6 +16,7 @@ export const SLOT_FIELDS: Record<SlotKey, (keyof BannerFormValues)[]> = {
 	badge: ["badgeText"],
 	countdown: ["countdownTarget"],
 	cta: ["ctaLabel", "ctaHref"],
+	specs: ["specs"],
 };
 
 export const SLOT_LABELS: Record<SlotKey, string> = {
@@ -24,6 +26,7 @@ export const SLOT_LABELS: Record<SlotKey, string> = {
 	badge: "Badge / selo",
 	countdown: "Countdown",
 	cta: "Botão (CTA)",
+	specs: "Ficha técnica",
 };
 
 export interface BannerPreset {
