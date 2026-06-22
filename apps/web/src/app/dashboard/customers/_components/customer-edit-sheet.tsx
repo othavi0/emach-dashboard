@@ -172,10 +172,10 @@ export function CustomerEditSheet({ customer }: Props) {
 					id="customer-document"
 					label="Documento"
 				>
-					{() => (
+					{(field) => (
 						<Input
+							{...field}
 							disabled
-							id="customer-document"
 							readOnly
 							value={
 								customer.document

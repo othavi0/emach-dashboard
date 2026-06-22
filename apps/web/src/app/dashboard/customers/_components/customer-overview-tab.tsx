@@ -5,6 +5,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@emach/ui/components/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@emach/ui/components/empty";
 import {
 	Table,
 	TableBody,
@@ -163,9 +164,11 @@ export function CustomerOverviewTab({ customer, kpis, recentOrders }: Props) {
 				</CardHeader>
 				<CardContent>
 					{recentOrders.length === 0 ? (
-						<p className="text-muted-foreground text-sm">
-							Nenhum pedido ainda.
-						</p>
+						<Empty>
+							<EmptyHeader>
+								<EmptyTitle>Nenhum pedido ainda</EmptyTitle>
+							</EmptyHeader>
+						</Empty>
 					) : (
 						<Table>
 							<TableHeader>

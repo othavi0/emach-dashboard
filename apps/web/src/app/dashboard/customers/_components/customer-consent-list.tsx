@@ -41,51 +41,45 @@ export function CustomerConsentList({
 						{KIND_ORDER.map((kind) => {
 							const entries = consentByKind[kind] ?? [];
 							return (
-								<Card key={kind}>
-									<CardHeader className="pb-2">
-										<CardTitle className="text-sm">
-											{KIND_LABELS[kind] ?? kind}
-										</CardTitle>
-									</CardHeader>
-									<CardContent>
-										{entries.length === 0 ? (
-											<p className="text-muted-foreground text-xs">
-												Nenhum registro para este tipo.
-											</p>
-										) : (
-											<div className="flex flex-col gap-2">
-												{entries.map((entry) => (
-													<div
-														className="flex flex-col gap-0.5 border-border border-l-2 pl-3 text-xs"
-														key={entry.id}
-													>
-														<div className="flex items-center gap-2">
-															<Badge
-																className="text-[10px]"
-																variant={
-																	entry.granted ? "success" : "secondary"
-																}
-															>
-																{entry.granted ? "Concedido" : "Revogado"}
-															</Badge>
-															<code className="font-mono text-muted-foreground">
-																v{entry.version}
-															</code>
-														</div>
-														<p className="text-muted-foreground">
-															{formatDateTime(entry.grantedAt)}
-														</p>
-														{entry.revokedAt && (
-															<p className="text-muted-foreground">
-																Revogado em {formatDateTime(entry.revokedAt)}
-															</p>
-														)}
+								<div className="rounded-lg border border-border p-4" key={kind}>
+									<h3 className="mb-2 font-medium text-sm">
+										{KIND_LABELS[kind] ?? kind}
+									</h3>
+									{entries.length === 0 ? (
+										<p className="text-muted-foreground text-xs">
+											Nenhum registro para este tipo.
+										</p>
+									) : (
+										<div className="flex flex-col gap-2">
+											{entries.map((entry) => (
+												<div
+													className="flex flex-col gap-0.5 border-border border-l-2 pl-3 text-xs"
+													key={entry.id}
+												>
+													<div className="flex items-center gap-2">
+														<Badge
+															className="text-[10px]"
+															variant={entry.granted ? "success" : "secondary"}
+														>
+															{entry.granted ? "Concedido" : "Revogado"}
+														</Badge>
+														<code className="font-mono text-muted-foreground">
+															v{entry.version}
+														</code>
 													</div>
-												))}
-											</div>
-										)}
-									</CardContent>
-								</Card>
+													<p className="text-muted-foreground">
+														{formatDateTime(entry.grantedAt)}
+													</p>
+													{entry.revokedAt && (
+														<p className="text-muted-foreground">
+															Revogado em {formatDateTime(entry.revokedAt)}
+														</p>
+													)}
+												</div>
+											))}
+										</div>
+									)}
+								</div>
 							);
 						})}
 					</div>
