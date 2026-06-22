@@ -22,7 +22,7 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `supplier`            | Dashboard        | E-commerce  | Fornecedores. E-commerce lê para exibir informações de fabricante.                               |
 | `category`            | Dashboard        | Ambos       | Árvore de categorias. E-commerce lê para navegação de catálogo.                                  |
 | `tool_category`       | Dashboard        | Ambos       | Vínculo tool ↔ categoria. E-commerce lê para filtrar por categoria.                              |
-| `tool`                | Dashboard        | Ambos       | Produto-pai. E-commerce lê para exibir catálogo. `overweight_shipping_amount` (numeric, nullable): frete fixo p/ item > 30kg — null = "a combinar" (acima do teto SuperFrete). |
+| `tool`                | Dashboard        | Ambos       | Produto-pai. E-commerce lê para exibir catálogo. `overweight_shipping_amount` (numeric, nullable): frete fixo p/ item > 30kg — null = "a combinar". Colunas de frete motor: `packaging_weight_kg`, `stackable`, `ships_in_own_box` — ver "Motor de cotação próprio". |
 | `tool_variant`        | Dashboard        | Ambos       | Variante vendável (SKU, preço, voltagem). E-commerce lê para carrinho e checkout.                |
 | `tool_image`          | Dashboard        | Ambos       | Imagens do produto. E-commerce exibe na vitrine.                                                 |
 | `attribute_definition`| Dashboard        | Ambos       | Specs técnicas dinâmicas. E-commerce lê para exibir ficha técnica.                              |
@@ -77,6 +77,79 @@ Helper compartilhado em `@emach/db/queries/store-settings`:
 - **Frete grátis** não vive aqui: é só via cupom/promoção (`promotion`). O `R$ 299` hardcoded no storefront é bug a remover (issue separado no emach-ecommerce).
 
 A troca efetiva no storefront (`getOriginBranchCep` → `getShippingSettings`, aplicar política/cap, remover frete grátis hardcoded) é trabalho do repo emach-ecommerce, após o schema/query sincronizarem via CI (ADR-0009).
+
+---
+
+## Motor de cotação próprio (substitui SuperFrete)
+
+O dashboard passou a gerenciar tabelas de frete próprias, consumidas por um motor puro. O storefront deve **substituir** a cotação SuperFrete por este motor para itens dentro da capacidade de caixas cadastradas.
+
+### Tabelas novas no schema compartilhado
+
+| Tabela          | Dono primário | Quem lê    | Notas                                                                                         |
+| --------------- | ------------- | ---------- | --------------------------------------------------------------------------------------------- |
+| `carrier`       | Dashboard     | E-commerce | Transportadora: nome, CNPJ, divisor de cubagem, GRIS, ad valorem, pedágio, ICMS.            |
+| `carrier_zone`  | Dashboard     | E-commerce | Zona de CEPs da transportadora: faixas `{ from, to }` em 8 dígitos, prazo (dias úteis), frete mínimo. |
+| `carrier_rate`  | Dashboard     | E-commerce | Faixa de peso por zona: `weight_from_kg`, `weight_to_kg` (null = ∞), `base_amount`, `per_kg_amount`. |
+| `shipping_box`  | Dashboard     | E-commerce | Caixa do catálogo: dimensões internas (cm), peso máximo e tara (kg).                         |
+
+### Colunas novas em `tool`
+
+| Coluna                  | Tipo                    | Default | Semântica                                                                                  |
+| ----------------------- | ----------------------- | ------- | ------------------------------------------------------------------------------------------ |
+| `packaging_weight_kg`   | `numeric(10,3)`         | `0`     | Peso da embalagem/proteção. Peso de despacho = `weight_kg + packaging_weight_kg`.         |
+| `stackable`             | `boolean`               | `true`  | Pode empilhar sobre/sob outros itens na consolidação de volume.                            |
+| `ships_in_own_box`      | `boolean`               | `false` | Viaja em embalagem própria (ex: item longo/frágil); não consolida com outros itens.       |
+
+### Funções do motor (`@emach/db/queries/shipping*`)
+
+Sincronizadas ao ecommerce via CI (ADR-0009). **Não chamar SuperFrete para itens dentro do catálogo.**
+
+```ts
+import { getActiveCarriersWithTables, getActiveBoxes } from "@emach/db/queries/shipping";
+import { quoteShipping, type QuoteItem } from "@emach/db/queries/shipping-quote";
+
+// Montar QuoteItem[] a partir dos tool_variant do carrinho:
+const items: QuoteItem[] = cartItems.map((item) => ({
+  qty: item.quantity,
+  weightKg: Number(item.weight_kg),
+  lengthCm: Number(item.length_cm),
+  widthCm: Number(item.width_cm),
+  heightCm: Number(item.height_cm),
+  packagingWeightKg: Number(item.packaging_weight_kg ?? 0),
+  stackable: item.stackable ?? true,
+  shipsInOwnBox: item.ships_in_own_box ?? false,
+}));
+
+const [carriers, boxes] = await Promise.all([
+  getActiveCarriersWithTables(db),
+  getActiveBoxes(db),
+]);
+
+const result = quoteShipping({
+  items,
+  destinationCep: address.zipCode,
+  declaredValue: orderTotal,
+  carriers,
+  boxes,
+});
+// result.options  → transportadoras com valor (ordenadas por preço crescente)
+// result.unquotable → transportadoras sem cotação + motivo
+```
+
+### Tratamento de `UnquotableReason`
+
+| Motivo           | Causa                                            | Exibir ao cliente                   |
+| ---------------- | ------------------------------------------------ | ------------------------------------ |
+| `no_zone`        | CEP do destino fora de todas as faixas da transportadora | "Frete a combinar"              |
+| `no_rate`        | Peso total do pacote fora de todas as faixas de preço    | "Frete a combinar"              |
+| `out_of_catalog` | Item maior/mais pesado que a maior caixa cadastrada      | "Frete a combinar"              |
+
+Qualquer motivo de `unquotable` deve ser apresentado ao cliente como **"Frete a combinar"** (sem expor o código técnico). O campo `tool.overweight_shipping_amount` (já existente) pode ser usado como valor fixo alternativo quando não-nulo — null = "a combinar" mesmo.
+
+### Não-regressão com SuperFrete
+
+O motor novo **não** cobre cotação por API externa (prazos de Correios/parceiros). Se `result.options` estiver vazio e `result.unquotable` contiver todos os carriers, o storefront pode cair para o fallback SuperFrete **apenas como contingência**. A integração SuperFrete para itens dentro do catálogo de caixas é substituída por este motor.
 
 ---
 

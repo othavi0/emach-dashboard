@@ -7,6 +7,7 @@ import {
 	carrierZone,
 	shippingBox,
 } from "@emach/db/schema/shipping";
+import { tool } from "@emach/db/schema/tools";
 import { asc, desc, eq, sql } from "drizzle-orm";
 
 import { decodeCursor } from "@/lib/cursor";
@@ -138,6 +139,46 @@ export interface ZoneWithRates {
 		baseAmount: string;
 		perKgAmount: string;
 	}[];
+}
+
+export interface ToolForQuote {
+	heightCm: string;
+	id: string;
+	lengthCm: string;
+	name: string;
+	packagingWeightKg: string;
+	shipsInOwnBox: boolean;
+	stackable: boolean;
+	weightKg: string;
+	widthCm: string;
+}
+
+export async function getToolsForQuote(): Promise<ToolForQuote[]> {
+	const rows = await db
+		.select({
+			id: tool.id,
+			name: tool.name,
+			weightKg: tool.weightKg,
+			lengthCm: tool.lengthCm,
+			widthCm: tool.widthCm,
+			heightCm: tool.heightCm,
+			packagingWeightKg: tool.packagingWeightKg,
+			stackable: tool.stackable,
+			shipsInOwnBox: tool.shipsInOwnBox,
+		})
+		.from(tool)
+		.orderBy(asc(tool.name));
+	return rows.map((r) => ({
+		id: r.id,
+		name: r.name,
+		weightKg: r.weightKg,
+		lengthCm: r.lengthCm,
+		widthCm: r.widthCm,
+		heightCm: r.heightCm,
+		packagingWeightKg: r.packagingWeightKg,
+		stackable: r.stackable,
+		shipsInOwnBox: r.shipsInOwnBox,
+	}));
 }
 
 export async function getCarrierZones(

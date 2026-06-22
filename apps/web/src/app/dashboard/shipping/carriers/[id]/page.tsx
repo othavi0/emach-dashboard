@@ -6,6 +6,7 @@ import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { getCarrierDetail } from "../../data";
 import { CarrierEditSheet } from "./_components/carrier-edit-sheet";
 import { CarrierIdentity } from "./_components/carrier-identity";
+import { CarrierPreviewTab } from "./_components/carrier-preview-tab";
 import { SurchargesTab } from "./_components/surcharges-tab";
 import { ZonesTab } from "./_components/zones-tab";
 
@@ -46,11 +47,7 @@ async function CarrierDetailContent({ params, searchParams }: PageProps) {
 			value: "preview",
 			label: "Preview",
 			content:
-				sp.tab === "preview" ? (
-					<div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground text-sm">
-						Em construção — Task 12
-					</div>
-				) : null,
+				sp.tab === "preview" ? <CarrierPreviewTab carrierId={id} /> : null,
 		},
 	];
 
