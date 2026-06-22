@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { type EntityTab, EntityTabs } from "@/components/entity/entity-tabs";
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { BoxesTab } from "./_components/boxes-tab";
 import { ShippingPreviewRail } from "./_components/shipping-preview-rail";
 import { ShippingSettingsForm } from "./_components/shipping-settings-form";
 import {
@@ -47,11 +48,7 @@ async function ShippingPageContent({ searchParams }: PageProps) {
 		{
 			value: "caixas",
 			label: "Caixas",
-			content: (
-				<div className="rounded-md border border-border border-dashed bg-muted/40 p-8 text-center text-muted-foreground text-sm">
-					Em construção.
-				</div>
-			),
+			content: sp.tab === "caixas" ? <BoxesTab /> : null,
 		},
 		{
 			value: "config",

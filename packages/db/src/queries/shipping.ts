@@ -13,14 +13,14 @@ import {
 import type { QuoteBox, QuoteCarrier } from "./shipping-quote";
 
 // Schema subset mínimo p/ o db.query relational funcionar tipado.
-type ShippingSchema = {
+interface ShippingSchema {
 	carrier: typeof carrier;
+	carrierRate: typeof carrierRate;
+	carrierRateRelations: typeof carrierRateRelations;
 	carrierRelations: typeof carrierRelations;
 	carrierZone: typeof carrierZone;
 	carrierZoneRelations: typeof carrierZoneRelations;
-	carrierRate: typeof carrierRate;
-	carrierRateRelations: typeof carrierRateRelations;
-};
+}
 
 type AnyDb = NodePgDatabase<Record<string, unknown>>;
 type ShippingDb = NodePgDatabase<ShippingSchema>;

@@ -2,6 +2,7 @@
 
 import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
+import { shippingBox } from "@emach/db/schema/shipping";
 import {
 	type StoreSettings,
 	storeSettings,
@@ -13,6 +14,8 @@ import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
+import type { BoxFormValues } from "./_components/box-schema";
+import { boxSchema } from "./_components/box-schema";
 import {
 	type ShippingSettingsFormValues,
 	shippingSettingsSchema,
@@ -112,4 +115,76 @@ export async function updateShippingSettings(
 	});
 	revalidatePath(SHIPPING_PATH);
 	return { ok: true, data: { id: SINGLETON_ID } };
+}
+
+export async function createBox(
+	input: BoxFormValues
+): Promise<ActionResult<{ id: string }>> {
+	const session = await requireCapability("shipping.manage");
+	const parsed = boxSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: actionErrorMessage(parsed.error) };
+	}
+	const id = crypto.randomUUID();
+	try {
+		await db.insert(shippingBox).values({
+			id,
+			name: parsed.data.name,
+			internalLengthCm: parsed.data.internalLengthCm.toString(),
+			internalWidthCm: parsed.data.internalWidthCm.toString(),
+			internalHeightCm: parsed.data.internalHeightCm.toString(),
+			maxWeightKg: parsed.data.maxWeightKg.toString(),
+			tareWeightKg: parsed.data.tareWeightKg.toString(),
+			active: parsed.data.active,
+		});
+	} catch (error) {
+		logger.error("createBox falhou", error);
+		return { ok: false, error: actionErrorMessage(error) };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "shipping.box.created",
+		targetId: id,
+		targetType: "shipping_box",
+		metadata: { name: parsed.data.name },
+	});
+	revalidatePath(SHIPPING_PATH);
+	return { ok: true, data: { id } };
+}
+
+export async function updateBox(
+	id: string,
+	input: BoxFormValues
+): Promise<ActionResult<{ id: string }>> {
+	const session = await requireCapability("shipping.manage");
+	const parsed = boxSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: actionErrorMessage(parsed.error) };
+	}
+	try {
+		await db
+			.update(shippingBox)
+			.set({
+				name: parsed.data.name,
+				internalLengthCm: parsed.data.internalLengthCm.toString(),
+				internalWidthCm: parsed.data.internalWidthCm.toString(),
+				internalHeightCm: parsed.data.internalHeightCm.toString(),
+				maxWeightKg: parsed.data.maxWeightKg.toString(),
+				tareWeightKg: parsed.data.tareWeightKg.toString(),
+				active: parsed.data.active,
+			})
+			.where(eq(shippingBox.id, id));
+	} catch (error) {
+		logger.error("updateBox falhou", error);
+		return { ok: false, error: actionErrorMessage(error) };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "shipping.box.updated",
+		targetId: id,
+		targetType: "shipping_box",
+		metadata: { name: parsed.data.name },
+	});
+	revalidatePath(SHIPPING_PATH);
+	return { ok: true, data: { id } };
 }

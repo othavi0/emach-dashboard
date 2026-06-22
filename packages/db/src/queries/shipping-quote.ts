@@ -162,6 +162,7 @@ function round2(n: number): number {
 	return Math.round(n * 100) / 100;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: cotação multi-transportadora com fallbacks — refatorar em issue separada
 export function quoteShipping(input: {
 	items: QuoteItem[];
 	destinationCep: string;

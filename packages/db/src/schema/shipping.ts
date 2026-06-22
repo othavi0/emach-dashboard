@@ -13,7 +13,11 @@ import {
 } from "drizzle-orm/pg-core";
 
 // Mesmo shape de branch.cep_ranges (queries/branch-cep.ts: CepRange).
-export type CarrierCepRange = { from: string; to: string; label?: string };
+export interface CarrierCepRange {
+	from: string;
+	label?: string;
+	to: string;
+}
 
 export const carrier = pgTable(
 	"carrier",
