@@ -33,6 +33,12 @@ export const bannerFormSchema = z
 		productImageMobileUrl: z.string().nullable(),
 		title: optionalText(80),
 		subtitle: optionalText(140),
+		specs: z
+			.array(
+				z.string().trim().min(1, "Spec vazia").max(24, "Máx 24 caracteres")
+			)
+			.max(6, "Máx 6 specs")
+			.nullable(),
 		altText: optionalText(160),
 		badgeText: optionalText(16),
 		ctaLabel: optionalText(30),
@@ -58,6 +64,18 @@ export const bannerFormSchema = z
 				code: z.ZodIssueCode.custom,
 				path: ["altText"],
 				message: "Texto alternativo é obrigatório quando há imagem de fundo.",
+			});
+		}
+		if (
+			v.backgroundImageUrl &&
+			v.backgroundMobileMode === "custom" &&
+			!v.backgroundImageMobileUrl
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["backgroundImageMobileUrl"],
+				message:
+					"Envie uma imagem mobile (9:16) ou troque o modo do fundo no mobile.",
 			});
 		}
 		const hasLabel = Boolean(v.ctaLabel);
