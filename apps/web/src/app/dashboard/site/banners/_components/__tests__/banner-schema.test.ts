@@ -127,6 +127,14 @@ describe("bannerFormSchema", () => {
 		).toBe(true);
 	});
 
+	it("aceita specs com exatamente 6 itens (boundary)", () => {
+		const r = bannerFormSchema.safeParse({
+			...base,
+			specs: ["1", "2", "3", "4", "5", "6"],
+		});
+		expect(r.success).toBe(true);
+	});
+
 	it("rejeita specs com mais de 6 itens", () => {
 		const r = bannerFormSchema.safeParse({
 			...base,
