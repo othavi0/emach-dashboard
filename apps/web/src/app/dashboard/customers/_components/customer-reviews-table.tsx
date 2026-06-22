@@ -12,6 +12,12 @@ import {
 } from "@emach/ui/components/alert-dialog";
 import { Badge } from "@emach/ui/components/badge";
 import { Button, buttonVariants } from "@emach/ui/components/button";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@emach/ui/components/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@emach/ui/components/empty";
 import {
 	Table,
@@ -93,11 +99,18 @@ export function CustomerReviewsTable({
 
 	if (items.length === 0) {
 		return (
-			<Empty>
-				<EmptyHeader>
-					<EmptyTitle>Nenhuma avaliação encontrada</EmptyTitle>
-				</EmptyHeader>
-			</Empty>
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-sm">Avaliações</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<Empty>
+						<EmptyHeader>
+							<EmptyTitle>Nenhuma avaliação encontrada</EmptyTitle>
+						</EmptyHeader>
+					</Empty>
+				</CardContent>
+			</Card>
 		);
 	}
 
@@ -141,120 +154,145 @@ export function CustomerReviewsTable({
 
 	return (
 		<>
-			<Table>
-				<TableHeader>
-					<TableRow>
-						<TableHead>Ferramenta</TableHead>
-						<TableHead>Rating</TableHead>
-						<TableHead>Título</TableHead>
-						<TableHead>Status</TableHead>
-						{canModerate && <TableHead className="text-right">Ações</TableHead>}
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{items.map((review) => {
-						const statusVariant =
-							REVIEW_STATUS_VARIANTS[review.status] ?? "secondary";
-						const statusLabel =
-							REVIEW_STATUS_LABELS[review.status] ?? review.status;
-						const isReviewPending = review.status === "pending";
-
-						return (
-							<TableRow key={review.id}>
-								<TableCell className="max-w-[180px] truncate font-medium text-sm">
-									{review.toolName}
-								</TableCell>
-								<TableCell>
-									<StarRating rating={review.rating} />
-								</TableCell>
-								<TableCell className="max-w-[200px] truncate text-muted-foreground text-sm">
-									{review.title ?? "—"}
-								</TableCell>
-								<TableCell>
-									<Badge variant={statusVariant}>{statusLabel}</Badge>
-								</TableCell>
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-sm">Avaliações</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Ferramenta</TableHead>
+								<TableHead>Rating</TableHead>
+								<TableHead>Título / Texto</TableHead>
+								<TableHead>Status</TableHead>
 								{canModerate && (
-									<TableCell className="text-right">
-										{isReviewPending && (
-											<div className="flex items-center justify-end gap-1">
-												<Tooltip>
-													<TooltipTrigger
-														render={
-															<Button
-																aria-label="Aprovar avaliação"
-																disabled={isPending}
-																onClick={() => handleApprove(review.id)}
-																size="icon-sm"
-																variant="secondary"
-															>
-																<CheckCircleIcon
-																	aria-hidden
-																	className="size-3.5 text-success"
-																/>
-															</Button>
-														}
-													/>
-													<TooltipContent>Aprovar</TooltipContent>
-												</Tooltip>
-												<Tooltip>
-													<TooltipTrigger
-														render={
-															<Button
-																aria-label="Rejeitar avaliação"
-																disabled={isPending}
-																onClick={() => {
-																	setPendingAction({
-																		reviewId: review.id,
-																		status: "rejected",
-																	});
-																	setNote("");
-																}}
-																size="icon-sm"
-																variant="secondary"
-															>
-																<XCircleIcon
-																	aria-hidden
-																	className="size-3.5 text-destructive"
-																/>
-															</Button>
-														}
-													/>
-													<TooltipContent>Rejeitar</TooltipContent>
-												</Tooltip>
-												<Tooltip>
-													<TooltipTrigger
-														render={
-															<Button
-																aria-label="Marcar como spam"
-																disabled={isPending}
-																onClick={() => {
-																	setPendingAction({
-																		reviewId: review.id,
-																		status: "spam",
-																	});
-																	setNote("");
-																}}
-																size="icon-sm"
-																variant="secondary"
-															>
-																<BanIcon
-																	aria-hidden
-																	className="size-3.5 text-destructive"
-																/>
-															</Button>
-														}
-													/>
-													<TooltipContent>Spam</TooltipContent>
-												</Tooltip>
-											</div>
-										)}
-									</TableCell>
+									<TableHead className="text-right">Ações</TableHead>
 								)}
 							</TableRow>
-						);
-					})}
-				</TableBody>
-			</Table>
+						</TableHeader>
+						<TableBody>
+							{items.map((review) => {
+								const statusVariant =
+									REVIEW_STATUS_VARIANTS[review.status] ?? "secondary";
+								const statusLabel =
+									REVIEW_STATUS_LABELS[review.status] ?? review.status;
+								const isReviewPending = review.status === "pending";
+
+								return (
+									<TableRow key={review.id}>
+										<TableCell className="max-w-[180px] truncate font-medium text-sm">
+											{review.toolName}
+										</TableCell>
+										<TableCell>
+											<StarRating rating={review.rating} />
+										</TableCell>
+										<TableCell className="max-w-[280px]">
+											<div className="flex flex-col gap-0.5">
+												{review.title ? (
+													<span className="font-medium text-sm">
+														{review.title}
+													</span>
+												) : null}
+												<span className="text-muted-foreground text-sm">
+													{review.body}
+												</span>
+											</div>
+										</TableCell>
+										<TableCell>
+											<div className="flex flex-col gap-0.5">
+												<Badge variant={statusVariant}>{statusLabel}</Badge>
+												{review.moderationNote ? (
+													<p className="text-muted-foreground text-xs">
+														Nota de moderação: {review.moderationNote}
+													</p>
+												) : null}
+											</div>
+										</TableCell>
+										{canModerate && (
+											<TableCell className="text-right">
+												{isReviewPending && (
+													<div className="flex items-center justify-end gap-1">
+														<Tooltip>
+															<TooltipTrigger
+																render={
+																	<Button
+																		aria-label="Aprovar avaliação"
+																		disabled={isPending}
+																		onClick={() => handleApprove(review.id)}
+																		size="icon-sm"
+																		variant="secondary"
+																	>
+																		<CheckCircleIcon
+																			aria-hidden
+																			className="size-3.5 text-success"
+																		/>
+																	</Button>
+																}
+															/>
+															<TooltipContent>Aprovar</TooltipContent>
+														</Tooltip>
+														<Tooltip>
+															<TooltipTrigger
+																render={
+																	<Button
+																		aria-label="Rejeitar avaliação"
+																		disabled={isPending}
+																		onClick={() => {
+																			setPendingAction({
+																				reviewId: review.id,
+																				status: "rejected",
+																			});
+																			setNote("");
+																		}}
+																		size="icon-sm"
+																		variant="secondary"
+																	>
+																		<XCircleIcon
+																			aria-hidden
+																			className="size-3.5 text-destructive"
+																		/>
+																	</Button>
+																}
+															/>
+															<TooltipContent>Rejeitar</TooltipContent>
+														</Tooltip>
+														<Tooltip>
+															<TooltipTrigger
+																render={
+																	<Button
+																		aria-label="Marcar como spam"
+																		disabled={isPending}
+																		onClick={() => {
+																			setPendingAction({
+																				reviewId: review.id,
+																				status: "spam",
+																			});
+																			setNote("");
+																		}}
+																		size="icon-sm"
+																		variant="secondary"
+																	>
+																		<BanIcon
+																			aria-hidden
+																			className="size-3.5 text-destructive"
+																		/>
+																	</Button>
+																}
+															/>
+															<TooltipContent>Spam</TooltipContent>
+														</Tooltip>
+													</div>
+												)}
+											</TableCell>
+										)}
+									</TableRow>
+								);
+							})}
+						</TableBody>
+					</Table>
+				</CardContent>
+			</Card>
 
 			<AlertDialog
 				onOpenChange={(open) => {

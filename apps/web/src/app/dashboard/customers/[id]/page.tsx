@@ -1,11 +1,41 @@
 import type { ClientAuditAction } from "@emach/db/schema/client-audit";
+import {
+	FileClock,
+	MapPin,
+	Monitor,
+	ShieldCheck,
+	ShoppingCart,
+	Star,
+	User,
+} from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 
+import { type EntityTab, EntityTabs } from "@/components/entity/entity-tabs";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
-import { CustomerHeader } from "../_components/customer-header";
-import { CustomerKpisHeader } from "../_components/customer-kpis-header";
-import { CustomerTabs } from "../_components/customer-tabs";
+import { CustomerAddressesList } from "../_components/customer-addresses-list";
+import { CustomerAuditTable } from "../_components/customer-audit-table";
+import { CustomerConsentList } from "../_components/customer-consent-list";
+import { CustomerEditSheet } from "../_components/customer-edit-sheet";
+import { CustomerIdentity } from "../_components/customer-identity";
+import { CustomerOrdersTable } from "../_components/customer-orders-table";
+import { CustomerOverviewTab } from "../_components/customer-overview-tab";
+import { CustomerReviewsTable } from "../_components/customer-reviews-table";
+import { CustomerSessionsTable } from "../_components/customer-sessions-table";
+import { EditCustomerButton } from "../_components/edit-customer-button";
+import { ResetPasswordDialog } from "../_components/reset-password-dialog";
+import { RevokeAllSessionsDialog } from "../_components/revoke-all-sessions-dialog";
+import type {
+	CustomerAddressRow,
+	CustomerAuditRow,
+	CustomerConsentByKind,
+	CustomerDetail,
+	CustomerKpis,
+	CustomerOrdersResult,
+	CustomerReviewRow,
+	CustomerSessionRow,
+} from "../data";
 import {
 	getCustomerAddresses,
 	getCustomerAudit,
@@ -18,25 +48,14 @@ import {
 } from "../data";
 import { auditFilterSchema } from "../schema";
 
-export const metadata: Metadata = {
-	title: "Detalhe do cliente",
-};
+export const metadata: Metadata = { title: "Detalhe do cliente" };
 
 interface PageProps {
 	params: Promise<{ id: string }>;
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-type TabKey =
-	| "perfil"
-	| "enderecos"
-	| "pedidos"
-	| "avaliacoes"
-	| "consentimento"
-	| "sessoes"
-	| "auditoria";
-
-const VALID_TABS: TabKey[] = [
+const VALID_TABS = [
 	"perfil",
 	"enderecos",
 	"pedidos",
@@ -44,10 +63,14 @@ const VALID_TABS: TabKey[] = [
 	"consentimento",
 	"sessoes",
 	"auditoria",
-];
+] as const;
+type TabKey = (typeof VALID_TABS)[number];
 
 function parseTab(raw: unknown): TabKey {
-	if (typeof raw === "string" && (VALID_TABS as string[]).includes(raw)) {
+	if (
+		typeof raw === "string" &&
+		(VALID_TABS as readonly string[]).includes(raw)
+	) {
 		return raw as TabKey;
 	}
 	return "perfil";
@@ -56,6 +79,168 @@ function parseTab(raw: unknown): TabKey {
 function parsePage(raw: unknown): number {
 	const n = typeof raw === "string" ? Number.parseInt(raw, 10) : 1;
 	return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function pick(raw: string | string[] | undefined): string | undefined {
+	return Array.isArray(raw) ? raw[0] : raw;
+}
+
+interface TabData {
+	addresses: CustomerAddressRow[] | null;
+	auditAction: string | undefined;
+	auditItems: CustomerAuditRow[] | null;
+	canManageSessions: boolean;
+	canModerateReviews: boolean;
+	consentByKind: CustomerConsentByKind | null;
+	currentTab: TabKey;
+	customer: CustomerDetail;
+	kpis: CustomerKpis | null;
+	ordersResult: CustomerOrdersResult | null;
+	recentOrders: CustomerOrdersResult | null;
+	reviews: CustomerReviewRow[] | null;
+	sessions: CustomerSessionRow[] | null;
+}
+
+function buildTabs(data: TabData): EntityTab[] {
+	const {
+		currentTab,
+		customer,
+		kpis,
+		recentOrders,
+		addresses,
+		ordersResult,
+		reviews,
+		consentByKind,
+		sessions,
+		auditItems,
+		auditAction,
+		canModerateReviews,
+		canManageSessions,
+	} = data;
+
+	const onOverview = currentTab === "perfil";
+
+	return [
+		{
+			value: "perfil",
+			label: "Visão geral",
+			icon: <User aria-hidden className="size-3.5" />,
+			content:
+				onOverview && kpis ? (
+					<CustomerOverviewTab
+						customer={customer}
+						kpis={kpis}
+						recentOrders={recentOrders?.items.slice(0, 3) ?? []}
+					/>
+				) : null,
+		},
+		{
+			value: "enderecos",
+			label: "Endereços",
+			icon: <MapPin aria-hidden className="size-3.5" />,
+			content:
+				currentTab === "enderecos" && addresses ? (
+					<CustomerAddressesList addresses={addresses} />
+				) : null,
+		},
+		{
+			value: "pedidos",
+			label: "Pedidos",
+			icon: <ShoppingCart aria-hidden className="size-3.5" />,
+			content:
+				currentTab === "pedidos" && ordersResult ? (
+					<CustomerOrdersTable clientId={customer.id} result={ordersResult} />
+				) : null,
+		},
+		{
+			value: "avaliacoes",
+			label: "Avaliações",
+			icon: <Star aria-hidden className="size-3.5" />,
+			content:
+				currentTab === "avaliacoes" && reviews ? (
+					<CustomerReviewsTable
+						canModerate={canModerateReviews}
+						items={reviews}
+					/>
+				) : null,
+		},
+		{
+			value: "consentimento",
+			label: "Consentimento",
+			icon: <ShieldCheck aria-hidden className="size-3.5" />,
+			content:
+				currentTab === "consentimento" && consentByKind ? (
+					<CustomerConsentList consentByKind={consentByKind} />
+				) : null,
+		},
+		{
+			value: "sessoes",
+			label: "Sessões",
+			icon: <Monitor aria-hidden className="size-3.5" />,
+			content:
+				currentTab === "sessoes" && sessions ? (
+					<CustomerSessionsTable
+						canManage={canManageSessions}
+						clientId={customer.id}
+						sessions={sessions}
+					/>
+				) : null,
+		},
+		{
+			value: "auditoria",
+			label: "Auditoria",
+			icon: <FileClock aria-hidden className="size-3.5" />,
+			content:
+				currentTab === "auditoria" && auditItems ? (
+					<CustomerAuditTable
+						clientId={customer.id}
+						currentAction={auditAction}
+						items={auditItems}
+					/>
+				) : null,
+		},
+	];
+}
+
+interface HeaderActionProps {
+	canEdit: boolean;
+	canManageSessions: boolean;
+	canResetPassword: boolean;
+	currentTab: TabKey;
+	customer: CustomerDetail;
+	sessions: CustomerSessionRow[] | null;
+}
+
+function buildHeaderAction({
+	currentTab,
+	canEdit,
+	canResetPassword,
+	canManageSessions,
+	customer,
+	sessions,
+}: HeaderActionProps): ReactNode {
+	if (currentTab === "perfil" && canEdit) {
+		return <EditCustomerButton />;
+	}
+	if (currentTab === "sessoes") {
+		return (
+			<>
+				{canResetPassword ? (
+					<ResetPasswordDialog
+						clientId={customer.id}
+						clientName={customer.name}
+					/>
+				) : null}
+				{canManageSessions && sessions && sessions.length > 0 ? (
+					<RevokeAllSessionsDialog
+						clientId={customer.id}
+						sessionCount={sessions.length}
+					/>
+				) : null}
+			</>
+		);
+	}
+	return null;
 }
 
 export default function CustomerDetailPage({
@@ -76,14 +261,10 @@ async function CustomerDetailPageContent({ params, searchParams }: PageProps) {
 	const { id } = await params;
 	const raw = await searchParams;
 
-	const currentTab = parseTab(Array.isArray(raw.tab) ? raw.tab[0] : raw.tab);
-	const editMode = (Array.isArray(raw.edit) ? raw.edit[0] : raw.edit) === "1";
-	const page = parsePage(Array.isArray(raw.page) ? raw.page[0] : raw.page);
-	const rawAuditAction = Array.isArray(raw.auditAction)
-		? raw.auditAction[0]
-		: raw.auditAction;
+	const currentTab = parseTab(pick(raw.tab));
+	const page = parsePage(pick(raw.page));
 	const parsedAudit = auditFilterSchema.safeParse({
-		action: rawAuditAction,
+		action: pick(raw.auditAction),
 	});
 	const auditAction = parsedAudit.success ? parsedAudit.data.action : undefined;
 
@@ -95,56 +276,67 @@ async function CustomerDetailPageContent({ params, searchParams }: PageProps) {
 			can(session, "customers.manage_sessions"),
 		]);
 
-	// Always-loaded data
-	const [customer, kpis, addresses] = await Promise.all([
-		getCustomerDetail(id),
-		getCustomerKpis(id),
-		getCustomerAddresses(id),
-	]);
-
+	const customer = await getCustomerDetail(id);
 	if (!customer) {
 		notFound();
 	}
 
-	// Tab-conditional data
-	const [ordersResult, reviews, consentByKind, sessions, auditItems] =
-		await Promise.all([
-			currentTab === "pedidos" ? getCustomerOrders(id, page) : null,
-			currentTab === "avaliacoes" ? getCustomerReviews(id) : null,
-			currentTab === "consentimento" ? getCustomerConsent(id) : null,
-			currentTab === "sessoes" ? getCustomerSessions(id) : null,
-			currentTab === "auditoria"
-				? getCustomerAudit(id, {
-						action: auditAction as ClientAuditAction | undefined,
-					})
-				: null,
-		]);
+	const onOverview = currentTab === "perfil";
+
+	const [
+		kpis,
+		recentOrders,
+		addresses,
+		ordersResult,
+		reviews,
+		consentByKind,
+		sessions,
+		auditItems,
+	] = await Promise.all([
+		onOverview ? getCustomerKpis(id) : null,
+		onOverview ? getCustomerOrders(id, 1) : null,
+		currentTab === "enderecos" ? getCustomerAddresses(id) : null,
+		currentTab === "pedidos" ? getCustomerOrders(id, page) : null,
+		currentTab === "avaliacoes" ? getCustomerReviews(id) : null,
+		currentTab === "consentimento" ? getCustomerConsent(id) : null,
+		currentTab === "sessoes" ? getCustomerSessions(id) : null,
+		currentTab === "auditoria"
+			? getCustomerAudit(id, {
+					action: auditAction as ClientAuditAction | undefined,
+				})
+			: null,
+	]);
+
+	const tabs = buildTabs({
+		currentTab,
+		customer,
+		kpis,
+		recentOrders,
+		addresses,
+		ordersResult,
+		reviews,
+		consentByKind,
+		sessions,
+		auditItems,
+		auditAction,
+		canModerateReviews,
+		canManageSessions,
+	});
+
+	const headerAction = buildHeaderAction({
+		currentTab,
+		canEdit,
+		canResetPassword,
+		canManageSessions,
+		customer,
+		sessions,
+	});
 
 	return (
-		<div className="flex flex-col gap-6">
-			<CustomerHeader
-				canEdit={canEdit}
-				canResetPassword={canResetPassword}
-				customer={customer}
-			/>
-
-			<CustomerKpisHeader kpis={kpis} />
-
-			<CustomerTabs
-				addresses={addresses}
-				auditAction={auditAction}
-				auditItems={auditItems}
-				canEdit={canEdit}
-				canManageSessions={canManageSessions}
-				canModerateReviews={canModerateReviews}
-				consentByKind={consentByKind}
-				currentTab={currentTab}
-				customer={customer}
-				editMode={editMode}
-				ordersResult={ordersResult}
-				reviews={reviews}
-				sessions={sessions}
-			/>
+		<div className="flex flex-col gap-6 p-6">
+			<CustomerIdentity actions={headerAction} customer={customer} />
+			<EntityTabs defaultValue="perfil" tabs={tabs} />
+			{canEdit ? <CustomerEditSheet customer={customer} /> : null}
 		</div>
 	);
 }

@@ -3,6 +3,12 @@
 import type { ClientAuditAction } from "@emach/db/schema/client-audit";
 import { Badge } from "@emach/ui/components/badge";
 import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@emach/ui/components/card";
+import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
@@ -87,8 +93,9 @@ export function CustomerAuditTable({
 	}
 
 	return (
-		<div className="flex flex-col gap-4">
-			<div className="flex justify-end">
+		<Card>
+			<CardHeader className="flex flex-row items-center justify-between">
+				<CardTitle className="text-sm">Auditoria</CardTitle>
 				<div className="w-64">
 					<Select
 						onValueChange={handleActionFilter}
@@ -115,91 +122,94 @@ export function CustomerAuditTable({
 						</SelectContent>
 					</Select>
 				</div>
-			</div>
+			</CardHeader>
+			<CardContent>
+				{items.length === 0 ? (
+					<Empty>
+						<EmptyHeader>
+							<EmptyTitle>Nenhum registro de auditoria</EmptyTitle>
+						</EmptyHeader>
+					</Empty>
+				) : (
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Ação</TableHead>
+								<TableHead>Ator</TableHead>
+								<TableHead>Diff</TableHead>
+								<TableHead>Motivo</TableHead>
+								<TableHead>Data</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{items.map((entry) => {
+								const variant = ACTION_VARIANTS[entry.action] ?? "secondary";
+								const label = ACTION_LABELS[entry.action] ?? entry.action;
+								const hasDiff =
+									entry.beforeJson !== null || entry.afterJson !== null;
 
-			{items.length === 0 ? (
-				<Empty>
-					<EmptyHeader>
-						<EmptyTitle>Nenhum registro de auditoria</EmptyTitle>
-					</EmptyHeader>
-				</Empty>
-			) : (
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>Ação</TableHead>
-							<TableHead>Ator</TableHead>
-							<TableHead>Diff</TableHead>
-							<TableHead>Motivo</TableHead>
-							<TableHead>Data</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{items.map((entry) => {
-							const variant = ACTION_VARIANTS[entry.action] ?? "secondary";
-							const label = ACTION_LABELS[entry.action] ?? entry.action;
-							const hasDiff =
-								entry.beforeJson !== null || entry.afterJson !== null;
-
-							return (
-								<TableRow key={entry.id}>
-									<TableCell>
-										<Badge variant={variant}>{label}</Badge>
-									</TableCell>
-									<TableCell className="text-sm">{entry.actorLabel}</TableCell>
-									<TableCell className="text-sm">
-										{hasDiff ? (
-											<Collapsible>
-												<CollapsibleTrigger className="flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground">
-													Ver diff
-													<ChevronDownIcon className="size-3" />
-												</CollapsibleTrigger>
-												<CollapsibleContent>
-													<pre className="mt-1 max-w-xs overflow-auto rounded bg-muted px-2 py-1 font-mono text-[10px]">
-														{entry.beforeJson !== null && (
-															<div className="text-destructive">
-																{"- "}
-																{JSON.stringify(entry.beforeJson, null, 2)}
-															</div>
-														)}
-														{entry.afterJson !== null && (
-															<div className="text-success">
-																{"+ "}
-																{JSON.stringify(entry.afterJson, null, 2)}
-															</div>
-														)}
-													</pre>
-												</CollapsibleContent>
-											</Collapsible>
-										) : (
-											<span className="text-muted-foreground">—</span>
-										)}
-									</TableCell>
-									<TableCell className="max-w-[160px] text-sm">
-										{entry.reason ? (
-											<Tooltip>
-												<TooltipTrigger>
-													<span className="block truncate text-muted-foreground">
+								return (
+									<TableRow key={entry.id}>
+										<TableCell>
+											<Badge variant={variant}>{label}</Badge>
+										</TableCell>
+										<TableCell className="text-sm">
+											{entry.actorLabel}
+										</TableCell>
+										<TableCell className="text-sm">
+											{hasDiff ? (
+												<Collapsible>
+													<CollapsibleTrigger className="flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground">
+														Ver diff
+														<ChevronDownIcon className="size-3" />
+													</CollapsibleTrigger>
+													<CollapsibleContent>
+														<pre className="mt-1 max-w-xs overflow-auto rounded bg-muted px-2 py-1 font-mono text-[10px]">
+															{entry.beforeJson !== null && (
+																<div className="text-destructive">
+																	{"- "}
+																	{JSON.stringify(entry.beforeJson, null, 2)}
+																</div>
+															)}
+															{entry.afterJson !== null && (
+																<div className="text-success">
+																	{"+ "}
+																	{JSON.stringify(entry.afterJson, null, 2)}
+																</div>
+															)}
+														</pre>
+													</CollapsibleContent>
+												</Collapsible>
+											) : (
+												<span className="text-muted-foreground">—</span>
+											)}
+										</TableCell>
+										<TableCell className="max-w-[160px] text-sm">
+											{entry.reason ? (
+												<Tooltip>
+													<TooltipTrigger>
+														<span className="block truncate text-muted-foreground">
+															{entry.reason}
+														</span>
+													</TooltipTrigger>
+													<TooltipContent className="max-w-xs">
 														{entry.reason}
-													</span>
-												</TooltipTrigger>
-												<TooltipContent className="max-w-xs">
-													{entry.reason}
-												</TooltipContent>
-											</Tooltip>
-										) : (
-											<span className="text-muted-foreground">—</span>
-										)}
-									</TableCell>
-									<TableCell className="text-muted-foreground text-sm">
-										{formatDateTime(entry.createdAt)}
-									</TableCell>
-								</TableRow>
-							);
-						})}
-					</TableBody>
-				</Table>
-			)}
-		</div>
+													</TooltipContent>
+												</Tooltip>
+											) : (
+												<span className="text-muted-foreground">—</span>
+											)}
+										</TableCell>
+										<TableCell className="text-muted-foreground text-sm">
+											{formatDateTime(entry.createdAt)}
+										</TableCell>
+									</TableRow>
+								);
+							})}
+						</TableBody>
+					</Table>
+				)}
+			</CardContent>
+		</Card>
 	);
 }
