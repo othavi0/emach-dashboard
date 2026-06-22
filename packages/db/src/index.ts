@@ -65,6 +65,15 @@ import {
 } from "./schema/promotions";
 import { review, reviewRelations } from "./schema/reviews";
 import {
+	carrier,
+	carrierRate,
+	carrierRateRelations,
+	carrierRelations,
+	carrierZone,
+	carrierZoneRelations,
+	shippingBox,
+} from "./schema/shipping";
+import {
 	stockMovement,
 	stockMovementRelations,
 } from "./schema/stock-movements";
@@ -116,6 +125,13 @@ const schema = {
 	promotionToolRelations,
 	review,
 	reviewRelations,
+	carrier,
+	carrierRate,
+	carrierRateRelations,
+	carrierRelations,
+	carrierZone,
+	carrierZoneRelations,
+	shippingBox,
 	session,
 	sessionRelations,
 	stockLevel,
