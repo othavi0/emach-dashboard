@@ -35,6 +35,7 @@ const LEGACY_SUPER_EXCLUSIVE: readonly Capability[] = [
 	"categories.delete",
 	"promotions.delete",
 	"attributes.delete",
+	"shipping.manage",
 ];
 
 describe("registry de capabilities", () => {
