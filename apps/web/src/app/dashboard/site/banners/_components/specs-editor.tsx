@@ -18,7 +18,7 @@ export function SpecsEditor({
 	return (
 		<div className="flex flex-col gap-2">
 			{items.map((item, i) => (
-				// biome-ignore lint/suspicious/noArrayIndexKey: lista curta de strings sem ID estável, inputs controlados
+				// key por índice ok: lista curta (≤6) de strings sem ID estável, inputs controlados, sem reordenação
 				<div className="flex items-center gap-2" key={i}>
 					<Input
 						maxLength={MAX_SPEC_LEN}
