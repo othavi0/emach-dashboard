@@ -61,9 +61,8 @@ export function RateTableEditor({
 }: Props) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
-	const { errors, reportValidationError, clearErrors } = useFormErrors<{
-		_form?: string;
-	}>();
+	const { errors, reportValidationError, clearErrors } =
+		useFormErrors<Record<string, string>>();
 
 	const [rows, setRows] = useState<RateRowState[]>(
 		initialRates.map((r) => ({
@@ -125,52 +124,52 @@ export function RateTableEditor({
 						<span />
 					</div>
 					{rows.map((row, idx) => (
-						<div
-							className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] items-start gap-2"
-							key={idx}
-						>
-							<MaskedInput
-								disabled={!canManage || isPending}
-								mask={decimalMask}
-								onChange={(v) => patchRow(idx, { weightFromKg: v ?? 0 })}
-								placeholder="0"
-								value={row.weightFromKg}
-							/>
-							<MaskedInput
-								disabled={!canManage || isPending}
-								mask={decimalMask}
-								onChange={(v) =>
-									patchRow(idx, {
-										weightToKg: v === undefined ? null : v,
-									})
-								}
-								placeholder="∞"
-								value={row.weightToKg ?? undefined}
-							/>
-							<MoneyInput
-								disabled={!canManage || isPending}
-								onChange={(v) => patchRow(idx, { baseAmount: v ?? 0 })}
-								value={row.baseAmount}
-							/>
-							<MoneyInput
-								disabled={!canManage || isPending}
-								onChange={(v) => patchRow(idx, { perKgAmount: v ?? 0 })}
-								value={row.perKgAmount}
-							/>
-							{canManage ? (
-								<Button
-									aria-label="Remover faixa"
-									disabled={isPending}
-									onClick={() => removeRow(idx)}
-									size="icon"
-									type="button"
-									variant="ghost"
-								>
-									<Trash2 className="size-4" />
-								</Button>
-							) : (
-								<span />
-							)}
+						<div className="col-span-5 flex flex-col gap-1" key={idx}>
+							<div className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] items-start gap-2">
+								<MaskedInput
+									disabled={!canManage || isPending}
+									mask={decimalMask}
+									onChange={(v) => patchRow(idx, { weightFromKg: v ?? 0 })}
+									placeholder="0"
+									value={row.weightFromKg}
+								/>
+								<MaskedInput
+									disabled={!canManage || isPending}
+									mask={decimalMask}
+									onChange={(v) =>
+										patchRow(idx, {
+											weightToKg: v === undefined ? null : v,
+										})
+									}
+									placeholder="∞"
+									value={row.weightToKg ?? undefined}
+								/>
+								<MoneyInput
+									disabled={!canManage || isPending}
+									onChange={(v) => patchRow(idx, { baseAmount: v ?? 0 })}
+									value={row.baseAmount}
+								/>
+								<MoneyInput
+									disabled={!canManage || isPending}
+									onChange={(v) => patchRow(idx, { perKgAmount: v ?? 0 })}
+									value={row.perKgAmount}
+								/>
+								{canManage ? (
+									<Button
+										aria-label="Remover faixa"
+										disabled={isPending}
+										onClick={() => removeRow(idx)}
+										size="icon"
+										type="button"
+										variant="ghost"
+									>
+										<Trash2 className="size-4" />
+									</Button>
+								) : (
+									<span />
+								)}
+							</div>
+							<FieldError>{errors[String(idx)]}</FieldError>
 						</div>
 					))}
 				</div>
