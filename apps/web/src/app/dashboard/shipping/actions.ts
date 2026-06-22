@@ -247,3 +247,65 @@ export async function createCarrier(
 	revalidatePath(SHIPPING_PATH);
 	return { ok: true, data: { id } };
 }
+
+export async function updateCarrier(
+	id: string,
+	input: CarrierFormValues
+): Promise<ActionResult<{ id: string }>> {
+	const session = await requireCapability("shipping.manage");
+	const parsed = carrierSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: actionErrorMessage(parsed.error) };
+	}
+	try {
+		await db
+			.update(carrier)
+			.set({
+				name: parsed.data.name,
+				cnpj: parsed.data.cnpj ? normalizeCnpj(parsed.data.cnpj) : null,
+				active: parsed.data.active,
+				cubageDivisor: parsed.data.cubageDivisor,
+				grisPercent: numOrNull(parsed.data.grisPercent),
+				grisMinAmount: numOrNull(parsed.data.grisMinAmount),
+				advaloremPercent: numOrNull(parsed.data.advaloremPercent),
+				tollAmount: numOrNull(parsed.data.tollAmount),
+				icmsPercent: numOrNull(parsed.data.icmsPercent),
+				notes: parsed.data.notes || null,
+			})
+			.where(eq(carrier.id, id));
+	} catch (error) {
+		logger.error("updateCarrier falhou", error);
+		return { ok: false, error: actionErrorMessage(error) };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "shipping.carrier.updated",
+		targetId: id,
+		targetType: "carrier",
+		metadata: { name: parsed.data.name },
+	});
+	revalidatePath(SHIPPING_PATH);
+	revalidatePath(`/dashboard/shipping/carriers/${id}`);
+	return { ok: true, data: { id } };
+}
+
+export async function deleteCarrier(
+	id: string
+): Promise<ActionResult<{ id: string }>> {
+	const session = await requireCapability("shipping.manage");
+	try {
+		await db.delete(carrier).where(eq(carrier.id, id));
+	} catch (error) {
+		logger.error("deleteCarrier falhou", error);
+		return { ok: false, error: actionErrorMessage(error) };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "shipping.carrier.deleted",
+		targetId: id,
+		targetType: "carrier",
+		metadata: {},
+	});
+	revalidatePath(SHIPPING_PATH);
+	return { ok: true, data: { id } };
+}

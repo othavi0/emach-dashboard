@@ -2,7 +2,7 @@ import "server-only";
 
 import { db } from "@emach/db";
 import { carrier, shippingBox } from "@emach/db/schema/shipping";
-import { asc, desc, sql } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 
 import { decodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
@@ -78,4 +78,44 @@ export async function getBoxes(): Promise<ShippingBoxRow[]> {
 		tareWeightKg: b.tareWeightKg,
 		active: b.active,
 	}));
+}
+
+export interface CarrierDetail {
+	active: boolean;
+	advaloremPercent: string | null;
+	cnpj: string | null;
+	cubageDivisor: number;
+	grisMinAmount: string | null;
+	grisPercent: string | null;
+	icmsPercent: string | null;
+	id: string;
+	name: string;
+	notes: string | null;
+	tollAmount: string | null;
+}
+
+export async function getCarrierDetail(
+	id: string
+): Promise<CarrierDetail | null> {
+	const [row] = await db
+		.select()
+		.from(carrier)
+		.where(eq(carrier.id, id))
+		.limit(1);
+	if (!row) {
+		return null;
+	}
+	return {
+		id: row.id,
+		name: row.name,
+		cnpj: row.cnpj,
+		active: row.active,
+		cubageDivisor: row.cubageDivisor,
+		grisPercent: row.grisPercent,
+		grisMinAmount: row.grisMinAmount,
+		advaloremPercent: row.advaloremPercent,
+		tollAmount: row.tollAmount,
+		icmsPercent: row.icmsPercent,
+		notes: row.notes,
+	};
 }
