@@ -13,7 +13,9 @@ import {
 import type { QuoteBox, QuoteCarrier } from "./shipping-quote";
 
 // Schema subset mínimo p/ o db.query relational funcionar tipado.
-interface ShippingSchema {
+// `extends Record<string, unknown>` dá a index-signature exigida pelo
+// constraint de NodePgDatabase (interface pura não satisfaz Record<string,unknown>).
+interface ShippingSchema extends Record<string, unknown> {
 	carrier: typeof carrier;
 	carrierRate: typeof carrierRate;
 	carrierRateRelations: typeof carrierRateRelations;
