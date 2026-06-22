@@ -84,6 +84,17 @@ export const tool = pgTable(
 			precision: 10,
 			scale: 2,
 		}),
+		// Peso da embalagem (espuma/proteção). Despacho = weightKg + packagingWeightKg.
+		packagingWeightKg: numeric("packaging_weight_kg", {
+			precision: 10,
+			scale: 3,
+		})
+			.notNull()
+			.default("0"),
+		// Pode empilhar sobre/sob outros itens na consolidação de frete.
+		stackable: boolean("stackable").notNull().default(true),
+		// Viaja sozinho — usa as próprias dims embaladas (ex: lixadeira telescópica 180cm).
+		shipsInOwnBox: boolean("ships_in_own_box").notNull().default(false),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
@@ -117,6 +128,10 @@ export const tool = pgTable(
 		check(
 			"overweight_shipping_non_negative",
 			sql`${table.overweightShippingAmount} IS NULL OR ${table.overweightShippingAmount} >= 0`
+		),
+		check(
+			"packaging_weight_non_negative",
+			sql`${table.packagingWeightKg} >= 0`
 		),
 	]
 );
