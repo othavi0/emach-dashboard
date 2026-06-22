@@ -33,7 +33,9 @@ do que ele pede já existe:
 
 Fora de escopo (YAGNI): header "FICHA TÉCNICA" configurável (label fixo no storefront);
 pares label/valor `<dl>` (lista simples basta); remover `inherit` do enum (arriscado em
-push-only — o aviso resolve).
+push-only — o aviso resolve); **derivar specs de uma tool vinculada** — o `banner` não tem
+FK `toolId` (só `productImageUrl`) e o issue pede campos estruturados, não integração com o
+catálogo; specs são entrada manual (`string[]`). Vincular tool ao banner é feature à parte.
 
 ## A. Fix mobile bg
 
