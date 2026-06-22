@@ -167,6 +167,7 @@ export async function getToolsForQuote(): Promise<ToolForQuote[]> {
 			shipsInOwnBox: tool.shipsInOwnBox,
 		})
 		.from(tool)
+		.where(eq(tool.status, "active"))
 		.orderBy(asc(tool.name));
 	return rows.map((r) => ({
 		id: r.id,
