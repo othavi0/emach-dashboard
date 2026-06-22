@@ -553,9 +553,19 @@ export function packItems(items: QuoteItem[], boxes: QuoteBox[]): ShippingPackag
 	// bin (máxima consolidação). Unidade grande/pesada demais até pra maior
 	// caixa → pacote próprio marcado out_of_catalog ("a combinar").
 	const largest = boxesAsc.at(-1);
+	if (!largest) {
+		// Sem catálogo de caixas → tudo "a combinar".
+		for (const u of rest) {
+			packages.push({
+				lengthCm: u.lengthCm, widthCm: u.widthCm, heightCm: u.heightCm,
+				weightKg: dispatchWeight(u), outOfCatalog: true,
+			});
+		}
+		return packages;
+	}
 	const bins: QuoteItem[][] = [];
 	for (const u of rest) {
-		if (!largest || !fitsSet([u], largest)) {
+		if (!fitsSet([u], largest)) {
 			packages.push({
 				lengthCm: u.lengthCm,
 				widthCm: u.widthCm,
