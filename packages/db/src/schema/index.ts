@@ -12,6 +12,7 @@ export * from "./orders";
 export * from "./promotions";
 export * from "./reviews";
 export * from "./shared-enums";
+export * from "./shipping";
 export * from "./stock-movements";
 export * from "./store-settings";
 export * from "./supplier-audit";
