@@ -20,9 +20,11 @@ import { deleteBanner } from "../actions";
 export function DeleteBannerDialog({
 	bannerId,
 	bannerTitle,
+	onDeleted,
 }: {
 	bannerId: string;
 	bannerTitle: string;
+	onDeleted?: () => void;
 }) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
@@ -60,6 +62,7 @@ export function DeleteBannerDialog({
 								if (r.ok) {
 									notify.success("Banner excluído");
 									setOpen(false);
+									onDeleted?.();
 									router.refresh();
 								} else {
 									notify.error(r.error);

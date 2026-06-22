@@ -25,11 +25,13 @@ export function BannerCard({
 	order,
 	sortable,
 	onToggle,
+	onDelete,
 }: {
 	item: Banner;
 	order?: number;
 	sortable: boolean;
 	onToggle: (id: string, active: boolean) => void;
+	onDelete: (id: string) => void;
 }) {
 	const {
 		attributes,
@@ -177,6 +179,7 @@ export function BannerCard({
 					<DeleteBannerDialog
 						bannerId={item.id}
 						bannerTitle={item.title ?? "banner"}
+						onDeleted={() => onDelete(item.id)}
 					/>
 				</div>
 				<Switch
