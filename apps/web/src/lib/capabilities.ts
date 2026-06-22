@@ -280,6 +280,21 @@ export const CAPABILITIES = {
 		description: "Publicar anúncios",
 		defaultRoles: S,
 	},
+	// ── Frete ─────────────────────────────────────────────────
+	"shipping.read": {
+		group: "Frete",
+		resource: "Frete",
+		action: "Ver",
+		description: "Visualizar transportadoras, tabelas e caixas",
+		defaultRoles: SA,
+	},
+	"shipping.manage": {
+		group: "Frete",
+		resource: "Frete",
+		action: "Gerenciar",
+		description: "Criar/editar transportadoras, tabelas, caixas e config",
+		defaultRoles: S,
+	},
 	// ── Usuários ──────────────────────────────────────────────
 	"users.manage": {
 		group: "Usuários",
@@ -388,6 +403,7 @@ const RESOURCE_SECTION: Record<string, NavSection> = {
 	Avaliações: "Relacionamento",
 	Promoções: "Relacionamento",
 	Site: "Sistema",
+	Frete: "Sistema",
 	Usuários: "Administração",
 	Permissões: "Administração",
 	Auditoria: "Administração",
