@@ -132,6 +132,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 		label: "Sistema",
 		items: [
 			{
+				label: "Frete",
+				href: "/dashboard/shipping" as Route,
+				icon: Truck,
+				capability: "shipping.read",
+			},
+			{
 				label: "Configurações",
 				href: "/dashboard/site/settings" as Route,
 				icon: Settings,

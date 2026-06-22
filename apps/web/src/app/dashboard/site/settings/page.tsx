@@ -1,18 +1,14 @@
 import { Badge } from "@emach/ui/components/badge";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { type EntityTab, EntityTabs } from "@/components/entity/entity-tabs";
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
-import { ShippingPreviewRail } from "./_components/shipping-preview-rail";
-import { ShippingSettingsForm } from "./_components/shipping-settings-form";
 import { SocialPreviewRail } from "./_components/social-preview-rail";
 import type { SocialState } from "./_components/social-schema";
 import { SocialSettingsForm } from "./_components/social-settings-form";
-import {
-	getOrCreateShippingSettings,
-	listOriginBranchOptions,
-} from "./actions";
+import { getOrCreateShippingSettings } from "./actions";
 
 export const metadata: Metadata = {
 	title: "Configurações do site",
@@ -20,21 +16,23 @@ export const metadata: Metadata = {
 
 const GRID = "grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]";
 
-export default function SettingsPage() {
-	return <SettingsPageContent />;
+interface PageProps {
+	searchParams: Promise<{ tab?: string }>;
 }
 
-async function SettingsPageContent() {
+export default function SettingsPage({ searchParams }: PageProps) {
+	return <SettingsPageContent searchParams={searchParams} />;
+}
+
+async function SettingsPageContent({ searchParams }: PageProps) {
 	await requireCapabilityOrRedirect("site.update_settings");
+	const sp = await searchParams;
 
-	const [settings, originOptions] = await Promise.all([
-		getOrCreateShippingSettings(),
-		listOriginBranchOptions(),
-	]);
+	if (sp.tab === "frete") {
+		redirect("/dashboard/shipping?tab=config");
+	}
 
-	const originLabel =
-		originOptions.find((o) => o.id === settings.shippingOriginBranchId)?.name ??
-		null;
+	const settings = await getOrCreateShippingSettings();
 
 	// Mapeia as colunas planas do singleton para o shape que o form/preview consome.
 	const socialState: SocialState = {
@@ -58,27 +56,6 @@ async function SettingsPageContent() {
 	};
 
 	const tabs: EntityTab[] = [
-		{
-			value: "frete",
-			label: "Frete",
-			content: (
-				<div className={GRID}>
-					<ShippingSettingsForm
-						originOptions={originOptions}
-						settings={{
-							originBranchId: settings.shippingOriginBranchId,
-							insurancePolicy: settings.shippingInsurancePolicy,
-							insuranceCapAmount: Number(settings.shippingInsuranceCapAmount),
-						}}
-					/>
-					<ShippingPreviewRail
-						insuranceCapAmount={Number(settings.shippingInsuranceCapAmount)}
-						insurancePolicy={settings.shippingInsurancePolicy}
-						originLabel={originLabel}
-					/>
-				</div>
-			),
-		},
 		{
 			value: "redes",
 			label: "Contato / Redes",
@@ -108,10 +85,10 @@ async function SettingsPageContent() {
 	return (
 		<>
 			<PageHeader
-				description="Ajustes globais da loja — frete, redes sociais e localização da cotação."
+				description="Ajustes globais da loja — redes sociais e localização da cotação."
 				title="Configurações"
 			/>
-			<EntityTabs defaultValue="frete" tabs={tabs} />
+			<EntityTabs defaultValue="redes" tabs={tabs} />
 		</>
 	);
 }

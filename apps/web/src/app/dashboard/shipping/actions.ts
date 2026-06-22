@@ -1,11 +1,12 @@
 "use server";
 
 import { db } from "@emach/db";
+import { branch } from "@emach/db/schema/inventory";
 import {
 	type StoreSettings,
 	storeSettings,
 } from "@emach/db/schema/store-settings";
-import { eq } from "drizzle-orm";
+import { asc, eq, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
@@ -13,16 +14,16 @@ import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import {
-	type SocialSettingsFormValues,
-	socialSettingsSchema,
-} from "./_components/social-schema";
+	type ShippingSettingsFormValues,
+	shippingSettingsSchema,
+} from "./_components/shipping-schema";
 
-const SETTINGS_PATH = "/dashboard/site/settings";
+const SHIPPING_PATH = "/dashboard/shipping";
 const SINGLETON_ID = "singleton";
 
 /** Lê o singleton; cria com defaults na primeira leitura (lazy bootstrap). */
 export async function getOrCreateShippingSettings(): Promise<StoreSettings> {
-	await requireCapability("site.update_settings");
+	await requireCapability("shipping.read");
 
 	const existing = await db
 		.select()
@@ -52,29 +53,38 @@ export async function getOrCreateShippingSettings(): Promise<StoreSettings> {
 	return row;
 }
 
-export async function updateSocialSettings(
-	input: SocialSettingsFormValues
-): Promise<ActionResult<{ id: string }>> {
-	const session = await requireCapability("site.update_settings");
+export interface OriginBranchOption {
+	cep: string;
+	id: string;
+	name: string;
+}
 
-	const parsed = socialSettingsSchema.safeParse(input);
+/** Filiais ativas com CEP preenchido — candidatas a origem do despacho. */
+export async function listOriginBranchOptions(): Promise<OriginBranchOption[]> {
+	await requireCapability("shipping.read");
+
+	const rows = await db
+		.select({ id: branch.id, name: branch.name, cep: branch.cep })
+		.from(branch)
+		.where(isNotNull(branch.cep))
+		.orderBy(asc(branch.name));
+	return rows.filter((r): r is OriginBranchOption => Boolean(r.cep));
+}
+
+export async function updateShippingSettings(
+	input: ShippingSettingsFormValues
+): Promise<ActionResult<{ id: string }>> {
+	const session = await requireCapability("shipping.manage");
+
+	const parsed = shippingSettingsSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
-	const d = parsed.data;
 
-	// Sem URL → força oculto (defesa-em-profundidade; o form já desabilita o switch).
 	const payload = {
-		socialInstagramUrl: d.instagramUrl ?? null,
-		socialInstagramVisible: Boolean(d.instagramUrl) && d.instagramVisible,
-		socialLinkedinUrl: d.linkedinUrl ?? null,
-		socialLinkedinVisible: Boolean(d.linkedinUrl) && d.linkedinVisible,
-		socialFacebookUrl: d.facebookUrl ?? null,
-		socialFacebookVisible: Boolean(d.facebookUrl) && d.facebookVisible,
-		socialXUrl: d.xUrl ?? null,
-		socialXVisible: Boolean(d.xUrl) && d.xVisible,
-		socialYoutubeUrl: d.youtubeUrl ?? null,
-		socialYoutubeVisible: Boolean(d.youtubeUrl) && d.youtubeVisible,
+		shippingOriginBranchId: parsed.data.originBranchId ?? null,
+		shippingInsurancePolicy: parsed.data.insurancePolicy,
+		shippingInsuranceCapAmount: parsed.data.insuranceCapAmount.toFixed(2),
 	};
 
 	try {
@@ -86,25 +96,20 @@ export async function updateSocialSettings(
 				set: payload,
 			});
 	} catch (error) {
-		logger.error("updateSocialSettings falhou", error);
+		logger.error("updateShippingSettings falhou", error);
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 
-	const visibleNetworks = [
-		payload.socialInstagramVisible && "instagram",
-		payload.socialLinkedinVisible && "linkedin",
-		payload.socialFacebookVisible && "facebook",
-		payload.socialXVisible && "x",
-		payload.socialYoutubeVisible && "youtube",
-	].filter(Boolean);
-
 	await logUserActivity({
 		actorUserId: session.user.id,
-		action: "settings.social.updated",
+		action: "settings.shipping.updated",
 		targetId: SINGLETON_ID,
 		targetType: "store_settings",
-		metadata: { visible: visibleNetworks },
+		metadata: {
+			insurancePolicy: payload.shippingInsurancePolicy,
+			originBranchId: payload.shippingOriginBranchId,
+		},
 	});
-	revalidatePath(SETTINGS_PATH);
+	revalidatePath(SHIPPING_PATH);
 	return { ok: true, data: { id: SINGLETON_ID } };
 }
