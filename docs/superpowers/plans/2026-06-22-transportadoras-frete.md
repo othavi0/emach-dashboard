@@ -487,27 +487,30 @@ function dispatchWeight(u: QuoteItem): number {
 	return u.weightKg + u.packagingWeightKg;
 }
 
-interface Bin {
-	box: QuoteBox;
-	units: QuoteItem[];
-	weight: number; // soma de dispatchWeight (sem tara)
-}
-
-function fitsInBin(u: QuoteItem, bin: Bin): boolean {
-	if (!fitsByDims(u, bin.box)) return false;
-	if (bin.weight + dispatchWeight(u) + bin.box.tareWeightKg > bin.box.maxWeightKg) {
-		return false;
+// Um conjunto de unidades cabe numa caixa se: cada unidade cabe por eixo
+// (com rotação), o peso total (+ tara) ≤ máximo, e o volume ocupado total ≤
+// volume interno × fator de folga.
+function fitsSet(units: QuoteItem[], box: QuoteBox): boolean {
+	let weight = box.tareWeightKg;
+	let occupied = 0;
+	for (const u of units) {
+		if (!fitsByDims(u, box)) return false;
+		weight += dispatchWeight(u);
+		occupied += occupiedVolume(u, box);
 	}
-	const usedVol =
-		bin.units.reduce((s, x) => s + occupiedVolume(x, bin.box), 0) +
-		occupiedVolume(u, bin.box);
-	return usedVol <= boxVolume(bin.box) * FILL_FACTOR;
+	return weight <= box.maxWeightKg && occupied <= boxVolume(box) * FILL_FACTOR;
 }
 
-function fitsAlone(u: QuoteItem, box: QuoteBox): boolean {
-	if (!fitsByDims(u, box)) return false;
-	if (dispatchWeight(u) + box.tareWeightKg > box.maxWeightKg) return false;
-	return occupiedVolume(u, box) <= boxVolume(box) * FILL_FACTOR;
+function emitPackage(units: QuoteItem[], box: QuoteBox): ShippingPackage {
+	let weight = box.tareWeightKg;
+	for (const u of units) weight += dispatchWeight(u);
+	return {
+		lengthCm: box.internalLengthCm,
+		widthCm: box.internalWidthCm,
+		heightCm: box.internalHeightCm,
+		weightKg: weight,
+		outOfCatalog: false,
+	};
 }
 
 export function packItems(items: QuoteItem[], boxes: QuoteBox[]): ShippingPackage[] {
@@ -519,7 +522,7 @@ export function packItems(items: QuoteItem[], boxes: QuoteBox[]): ShippingPackag
 		for (let i = 0; i < it.qty; i++) units.push({ ...it, qty: 1 });
 	}
 
-	// shipsInOwnBox → cada unidade é seu próprio pacote.
+	// shipsInOwnBox → cada unidade é seu próprio pacote (usa as próprias dims).
 	for (const u of units.filter((x) => x.shipsInOwnBox)) {
 		packages.push({
 			lengthCm: u.lengthCm,
@@ -530,24 +533,29 @@ export function packItems(items: QuoteItem[], boxes: QuoteBox[]): ShippingPackag
 		});
 	}
 
-	// FFD: maiores volumes primeiro.
+	// Itens a consolidar, maiores volumes primeiro.
 	const rest = units
 		.filter((x) => !x.shipsInOwnBox)
 		.sort((a, b) => unitVolume(b) - unitVolume(a));
-	const sortedBoxes = [...boxes].sort((a, b) => boxVolume(a) - boxVolume(b));
-	const bins: Bin[] = [];
+	if (rest.length === 0) return packages;
 
+	const boxesAsc = [...boxes].sort((a, b) => boxVolume(a) - boxVolume(b));
+
+	// Consolidação: a MENOR caixa única que cabe TODOS os itens → 1 pacote.
+	// (É o que evita cobrar N× — ex: 4 furadeiras numa box-xl em vez de 4 box-s.)
+	const single = boxesAsc.find((box) => fitsSet(rest, box));
+	if (single) {
+		packages.push(emitPackage(rest, single));
+		return packages;
+	}
+
+	// Nenhuma caixa única cabe tudo → multi-caixa, enchendo a MAIOR caixa por
+	// bin (máxima consolidação). Unidade grande/pesada demais até pra maior
+	// caixa → pacote próprio marcado out_of_catalog ("a combinar").
+	const largest = boxesAsc.at(-1);
+	const bins: QuoteItem[][] = [];
 	for (const u of rest) {
-		const bin = bins.find((b) => fitsInBin(u, b));
-		if (bin) {
-			bin.units.push(u);
-			bin.weight += dispatchWeight(u);
-			continue;
-		}
-		const box = sortedBoxes.find((b) => fitsAlone(u, b));
-		if (box) {
-			bins.push({ box, units: [u], weight: dispatchWeight(u) });
-		} else {
+		if (!largest || !fitsSet([u], largest)) {
 			packages.push({
 				lengthCm: u.lengthCm,
 				widthCm: u.widthCm,
@@ -555,18 +563,13 @@ export function packItems(items: QuoteItem[], boxes: QuoteBox[]): ShippingPackag
 				weightKg: dispatchWeight(u),
 				outOfCatalog: true,
 			});
+			continue;
 		}
+		const bin = bins.find((b) => fitsSet([...b, u], largest));
+		if (bin) bin.push(u);
+		else bins.push([u]);
 	}
-
-	for (const bin of bins) {
-		packages.push({
-			lengthCm: bin.box.internalLengthCm,
-			widthCm: bin.box.internalWidthCm,
-			heightCm: bin.box.internalHeightCm,
-			weightKg: bin.weight + bin.box.tareWeightKg,
-			outOfCatalog: false,
-		});
-	}
+	for (const bin of bins) packages.push(emitPackage(bin, largest));
 
 	return packages;
 }
