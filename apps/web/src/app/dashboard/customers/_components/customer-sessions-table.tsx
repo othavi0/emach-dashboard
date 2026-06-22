@@ -1,5 +1,11 @@
 "use client";
 
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@emach/ui/components/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@emach/ui/components/empty";
 import {
 	Table,
@@ -16,8 +22,8 @@ import {
 } from "@emach/ui/components/tooltip";
 
 import { formatDateTime } from "@/lib/format/datetime";
+import { formatSessionIp } from "../_lib/format-session-ip";
 import type { CustomerSessionRow } from "../data";
-import { RevokeAllSessionsDialog } from "./revoke-all-sessions-dialog";
 import { RevokeSessionDialog } from "./revoke-session-dialog";
 
 const RELATIVE = new Intl.RelativeTimeFormat("pt-BR", {
@@ -58,90 +64,84 @@ export function CustomerSessionsTable({
 	clientId,
 	canManage,
 }: CustomerSessionsTableProps) {
-	if (sessions.length === 0) {
-		return (
-			<Empty>
-				<EmptyHeader>
-					<EmptyTitle>Nenhuma sessão ativa</EmptyTitle>
-				</EmptyHeader>
-			</Empty>
-		);
-	}
-
 	return (
-		<div className="flex flex-col gap-4">
-			{canManage && (
-				<div className="flex justify-end">
-					<RevokeAllSessionsDialog
-						clientId={clientId}
-						sessionCount={sessions.length}
-					/>
-				</div>
-			)}
-
-			<Table>
-				<TableHeader>
-					<TableRow>
-						<TableHead>Criada em</TableHead>
-						<TableHead>Expira em</TableHead>
-						<TableHead>IP</TableHead>
-						<TableHead>User Agent</TableHead>
-						<TableHead>Última atividade</TableHead>
-						{canManage && (
-							<TableHead className="w-16 text-right">Ação</TableHead>
-						)}
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{sessions.map((session) => (
-						<TableRow key={session.id}>
-							<TableCell className="text-muted-foreground text-sm">
-								{formatDateTime(session.createdAt)}
-							</TableCell>
-							<TableCell className="text-muted-foreground text-sm">
-								{formatDateTime(session.expiresAt)}
-							</TableCell>
-							<TableCell className="font-mono text-muted-foreground text-xs">
-								{session.ipAddress ?? "—"}
-							</TableCell>
-							<TableCell className="max-w-[200px] text-sm">
-								{session.userAgent ? (
-									<Tooltip>
-										<TooltipTrigger
-											render={
-												<span className="block truncate text-muted-foreground">
-													{summarizeUserAgent(session.userAgent)}
-												</span>
-											}
-										/>
-										<TooltipContent className="max-w-xs break-all">
-											{session.userAgent}
-										</TooltipContent>
-									</Tooltip>
-								) : (
-									<span className="text-muted-foreground">—</span>
+		<Card>
+			<CardHeader>
+				<CardTitle className="text-sm">Sessões ativas</CardTitle>
+			</CardHeader>
+			<CardContent>
+				{sessions.length === 0 ? (
+					<Empty>
+						<EmptyHeader>
+							<EmptyTitle>Nenhuma sessão ativa</EmptyTitle>
+						</EmptyHeader>
+					</Empty>
+				) : (
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Criada em</TableHead>
+								<TableHead>Expira em</TableHead>
+								<TableHead>IP</TableHead>
+								<TableHead>User Agent</TableHead>
+								<TableHead>Última atividade</TableHead>
+								{canManage && (
+									<TableHead className="w-16 text-right">Ação</TableHead>
 								)}
-							</TableCell>
-							<TableCell className="text-muted-foreground text-sm">
-								{formatRelative(session.updatedAt)}
-							</TableCell>
-							{canManage && (
-								<TableCell className="text-right">
-									<RevokeSessionDialog
-										clientId={clientId}
-										sessionId={session.id}
-										userAgentSummary={
-											session.userAgent
-												? summarizeUserAgent(session.userAgent)
-												: undefined
-										}
-									/>
-								</TableCell>
-							)}
-						</TableRow>
-					))}
-				</TableBody>
-			</Table>
-		</div>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{sessions.map((session) => (
+								<TableRow key={session.id}>
+									<TableCell className="text-muted-foreground text-sm">
+										{formatDateTime(session.createdAt)}
+									</TableCell>
+									<TableCell className="text-muted-foreground text-sm">
+										{formatDateTime(session.expiresAt)}
+									</TableCell>
+									<TableCell className="font-mono text-muted-foreground text-xs">
+										{formatSessionIp(session.ipAddress)}
+									</TableCell>
+									<TableCell className="max-w-[200px] text-sm">
+										{session.userAgent ? (
+											<Tooltip>
+												<TooltipTrigger
+													render={
+														<span className="block truncate text-muted-foreground">
+															{summarizeUserAgent(session.userAgent)}
+														</span>
+													}
+												/>
+												<TooltipContent className="max-w-xs break-all">
+													{session.userAgent}
+												</TooltipContent>
+											</Tooltip>
+										) : (
+											<span className="text-muted-foreground">—</span>
+										)}
+									</TableCell>
+									<TableCell className="text-muted-foreground text-sm">
+										{formatRelative(session.updatedAt)}
+									</TableCell>
+									{canManage && (
+										<TableCell className="text-right">
+											<RevokeSessionDialog
+												clientId={clientId}
+												sessionId={session.id}
+												userAgentSummary={
+													session.userAgent
+														? summarizeUserAgent(session.userAgent)
+														: undefined
+												}
+											/>
+										</TableCell>
+									)}
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				)}
+			</CardContent>
+		</Card>
 	);
 }
