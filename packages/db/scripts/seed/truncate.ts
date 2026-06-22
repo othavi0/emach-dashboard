@@ -32,6 +32,10 @@ const DEMO_TABLES = [
 	"review",
 	"promotion",
 	"promotion_tool",
+	"carrier_rate",
+	"carrier_zone",
+	"carrier",
+	"shipping_box",
 ] as const;
 
 export async function truncateDemo(tx: Tx): Promise<void> {

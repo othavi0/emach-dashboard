@@ -9,6 +9,7 @@ import { seedCore } from "./seed/core";
 import { seedInventory } from "./seed/inventory";
 import { seedMarketing } from "./seed/marketing";
 import { seedSales } from "./seed/sales";
+import { seedShipping } from "./seed/shipping";
 import { truncateDemo } from "./seed/truncate";
 import { verifySeed } from "./seed/verify";
 
@@ -51,6 +52,7 @@ async function main() {
 		await seedClients(tx, ctx);
 		await seedSales(tx, ctx);
 		await seedMarketing(tx, ctx);
+		await seedShipping(tx);
 		await verifySeed(tx);
 	});
 	console.log("[seed-demo] OK");
