@@ -60,7 +60,8 @@ export function BannerLivePreview({
 	const hasContent =
 		(slots.title && values.title) ||
 		(slots.badge && values.badgeText) ||
-		(slots.countdown && values.countdownTarget);
+		(slots.countdown && values.countdownTarget) ||
+		(slots.specs && (values.specs?.length ?? 0) > 0);
 
 	return (
 		<div className="sticky top-4 flex flex-col gap-2 self-start">
@@ -152,6 +153,19 @@ export function BannerLivePreview({
 						)}
 						{slots.title && values.subtitle && (
 							<p className="text-[11px] text-white/85">{values.subtitle}</p>
+						)}
+						{slots.specs && values.specs && values.specs.length > 0 && (
+							<ul className="mt-1 flex flex-wrap gap-1">
+								{values.specs.map((spec, i) => (
+									// key por índice ok: lista curta (≤6) de strings sem ID estável, sem reordenação
+									<li
+										className="rounded-sm bg-white/15 px-1.5 py-0.5 font-[family-name:var(--font-barlow-condensed)] font-medium text-[10px] text-white uppercase"
+										key={i}
+									>
+										{spec}
+									</li>
+								))}
+							</ul>
 						)}
 						{slots.countdown && values.countdownTarget && (
 							<Countdown target={values.countdownTarget} />
