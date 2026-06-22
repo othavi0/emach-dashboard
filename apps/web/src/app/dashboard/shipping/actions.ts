@@ -2,7 +2,7 @@
 
 import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
-import { shippingBox } from "@emach/db/schema/shipping";
+import { carrier, shippingBox } from "@emach/db/schema/shipping";
 import {
 	type StoreSettings,
 	storeSettings,
@@ -12,14 +12,21 @@ import { revalidatePath } from "next/cache";
 import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
+import { normalizeCnpj } from "@/lib/cpf-cnpj";
+import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import type { BoxFormValues } from "./_components/box-schema";
 import { boxSchema } from "./_components/box-schema";
 import {
+	type CarrierFormValues,
+	carrierSchema,
+} from "./_components/carrier-schema";
+import {
 	type ShippingSettingsFormValues,
 	shippingSettingsSchema,
 } from "./_components/shipping-schema";
+import type { CarrierBaseRow } from "./data";
 
 const SHIPPING_PATH = "/dashboard/shipping";
 const SINGLETON_ID = "singleton";
@@ -183,6 +190,58 @@ export async function updateBox(
 		action: "shipping.box.updated",
 		targetId: id,
 		targetType: "shipping_box",
+		metadata: { name: parsed.data.name },
+	});
+	revalidatePath(SHIPPING_PATH);
+	return { ok: true, data: { id } };
+}
+
+export async function fetchCarriersPage({
+	cursor,
+}: {
+	cursor: string | null;
+}): Promise<InfiniteResult<CarrierBaseRow>> {
+	await requireCapability("shipping.read");
+	const { getCarriersPage } = await import("./data");
+	return getCarriersPage({ cursor });
+}
+
+function numOrNull(v: number | null | undefined): string | null {
+	return v === null || v === undefined ? null : v.toString();
+}
+
+export async function createCarrier(
+	input: CarrierFormValues
+): Promise<ActionResult<{ id: string }>> {
+	const session = await requireCapability("shipping.manage");
+	const parsed = carrierSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: actionErrorMessage(parsed.error) };
+	}
+	const id = crypto.randomUUID();
+	try {
+		await db.insert(carrier).values({
+			id,
+			name: parsed.data.name,
+			cnpj: parsed.data.cnpj ? normalizeCnpj(parsed.data.cnpj) : null,
+			active: parsed.data.active,
+			cubageDivisor: parsed.data.cubageDivisor,
+			grisPercent: numOrNull(parsed.data.grisPercent),
+			grisMinAmount: numOrNull(parsed.data.grisMinAmount),
+			advaloremPercent: numOrNull(parsed.data.advaloremPercent),
+			tollAmount: numOrNull(parsed.data.tollAmount),
+			icmsPercent: numOrNull(parsed.data.icmsPercent),
+			notes: parsed.data.notes || null,
+		});
+	} catch (error) {
+		logger.error("createCarrier falhou", error);
+		return { ok: false, error: actionErrorMessage(error) };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "shipping.carrier.created",
+		targetId: id,
+		targetType: "carrier",
 		metadata: { name: parsed.data.name },
 	});
 	revalidatePath(SHIPPING_PATH);

@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 
 import { type EntityTab, EntityTabs } from "@/components/entity/entity-tabs";
 import { PageHeader } from "@/components/page-header";
-import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { BoxesTab } from "./_components/boxes-tab";
+import { CarriersTab } from "./_components/carriers-tab";
+import { ShippingHeaderAction } from "./_components/shipping-header-action";
 import { ShippingPreviewRail } from "./_components/shipping-preview-rail";
 import { ShippingSettingsForm } from "./_components/shipping-settings-form";
 import {
@@ -24,26 +26,25 @@ export default function ShippingPage({ searchParams }: PageProps) {
 }
 
 async function ShippingPageContent({ searchParams }: PageProps) {
-	await requireCapabilityOrRedirect("shipping.read");
+	const session = await requireCapabilityOrRedirect("shipping.read");
 	const sp = await searchParams;
 
-	const [settings, originOptions] = await Promise.all([
+	const [settings, originOptions, canManage] = await Promise.all([
 		getOrCreateShippingSettings(),
 		listOriginBranchOptions(),
+		can(session, "shipping.manage"),
 	]);
 	const originLabel =
 		originOptions.find((o) => o.id === settings.shippingOriginBranchId)?.name ??
 		null;
 
+	const activeTab = sp.tab ?? "transportadoras";
+
 	const tabs: EntityTab[] = [
 		{
 			value: "transportadoras",
 			label: "Transportadoras",
-			content: (
-				<div className="rounded-md border border-border border-dashed bg-muted/40 p-8 text-center text-muted-foreground text-sm">
-					Em construção.
-				</div>
-			),
+			content: <CarriersTab />,
 		},
 		{
 			value: "caixas",
@@ -76,6 +77,9 @@ async function ShippingPageContent({ searchParams }: PageProps) {
 	return (
 		<div className="flex flex-col gap-6">
 			<PageHeader
+				action={
+					canManage ? <ShippingHeaderAction tab={activeTab} /> : undefined
+				}
 				description="Transportadoras, tabelas de frete e caixas de envio."
 				title="Frete"
 			/>
