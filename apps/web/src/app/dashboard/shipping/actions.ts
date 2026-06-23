@@ -224,43 +224,6 @@ function numOrNull(v: number | null | undefined): string | null {
 	return v === null || v === undefined ? null : v.toString();
 }
 
-export async function createCarrier(
-	input: CarrierFormValues
-): Promise<ActionResult<{ id: string }>> {
-	const session = await requireCapability("shipping.manage");
-	const parsed = carrierSchema.safeParse(input);
-	if (!parsed.success) {
-		return { ok: false, error: actionErrorMessage(parsed.error) };
-	}
-	const id = crypto.randomUUID();
-	try {
-		await db.insert(carrier).values({
-			id,
-			name: parsed.data.name,
-			cnpj: parsed.data.cnpj ? normalizeCnpj(parsed.data.cnpj) : null,
-			active: parsed.data.active,
-			cubageDivisor: parsed.data.cubageDivisor,
-			grisPercent: numOrNull(parsed.data.grisPercent),
-			grisMinAmount: numOrNull(parsed.data.grisMinAmount),
-			advaloremPercent: numOrNull(parsed.data.advaloremPercent),
-			icmsPercent: numOrNull(parsed.data.icmsPercent),
-			notes: parsed.data.notes || null,
-		});
-	} catch (error) {
-		logger.error("createCarrier falhou", error);
-		return { ok: false, error: actionErrorMessage(error) };
-	}
-	await logUserActivity({
-		actorUserId: session.user.id,
-		action: "shipping.carrier.created",
-		targetId: id,
-		targetType: "carrier",
-		metadata: { name: parsed.data.name },
-	});
-	revalidatePath(SHIPPING_PATH);
-	return { ok: true, data: { id } };
-}
-
 export async function createCarrierWithZones(
 	input: CreateCarrierFormValues
 ): Promise<ActionResult<{ id: string }>> {

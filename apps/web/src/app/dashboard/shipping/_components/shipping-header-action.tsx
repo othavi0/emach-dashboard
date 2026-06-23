@@ -2,7 +2,7 @@
 
 import { Button } from "@emach/ui/components/button";
 import { Plus } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface ShippingHeaderActionProps {
 	tab: string;
@@ -10,8 +10,6 @@ interface ShippingHeaderActionProps {
 
 export function ShippingHeaderAction({ tab }: ShippingHeaderActionProps) {
 	const router = useRouter();
-	const pathname = usePathname();
-	const params = useSearchParams();
 
 	if (tab === "caixas" || tab === "config") {
 		return null;
@@ -19,9 +17,7 @@ export function ShippingHeaderAction({ tab }: ShippingHeaderActionProps) {
 
 	// Default and "transportadoras" tab
 	const handleClick = () => {
-		const sp = new URLSearchParams(params);
-		sp.set("newCarrier", "1");
-		router.push(`${pathname}?${sp.toString()}`, { scroll: false });
+		router.push("/dashboard/shipping/carriers/new");
 	};
 
 	return (
