@@ -4,7 +4,10 @@ import type { CepRangeValue } from "@/app/dashboard/branches/_components/cep-ran
 import { isValidCnpj } from "@/lib/cpf-cnpj";
 import { ratesSchema, zoneSchema } from "./zone-schema";
 
-const pctRequired = z.number().min(0, "≥ 0").max(100, "≤ 100");
+const pctRequired = z
+	.number({ error: "Obrigatório" })
+	.min(0, "≥ 0")
+	.max(100, "≤ 100");
 const money = z
 	.number()
 	.nonnegative("≥ 0")
@@ -29,7 +32,10 @@ export const carrierSchema = z.object({
 	grisPercent: pctRequired,
 	grisMinAmount: money,
 	advaloremPercent: pctRequired,
-	icmsPercent: z.number().min(0, "≥ 0").max(99.99, "< 100"),
+	icmsPercent: z
+		.number({ error: "Obrigatório" })
+		.min(0, "≥ 0")
+		.max(99.99, "< 100"),
 	notes: z.string().trim().max(1000).optional().or(z.literal("")),
 });
 

@@ -315,6 +315,9 @@ export async function updateCarrier(
 			})
 			.where(eq(carrier.id, id));
 	} catch (error) {
+		if (getPgError(error)?.code === "23505") {
+			return { ok: false, error: "CNPJ já cadastrado em outra transportadora" };
+		}
 		logger.error("updateCarrier falhou", error);
 		return { ok: false, error: actionErrorMessage(error) };
 	}

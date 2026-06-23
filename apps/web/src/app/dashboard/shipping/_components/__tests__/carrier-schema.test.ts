@@ -48,6 +48,59 @@ describe("carrierSchema", () => {
 				.success
 		).toBe(false);
 	});
+	it("exibe mensagem amigável (PT) para grisPercent nulo", () => {
+		const result = carrierSchema.safeParse({
+			...validCarrier,
+			grisPercent: null,
+		});
+		expect(result.success).toBe(false);
+		if (result.success) {
+			return;
+		}
+		const issue = result.error.issues.find((i) => i.path[0] === "grisPercent");
+		expect(issue?.message).toContain("Obrigatório");
+		expect(issue?.message).not.toContain("expected number");
+	});
+	it("exibe mensagem amigável (PT) para advaloremPercent nulo", () => {
+		const result = carrierSchema.safeParse({
+			...validCarrier,
+			advaloremPercent: null,
+		});
+		expect(result.success).toBe(false);
+		if (result.success) {
+			return;
+		}
+		const issue = result.error.issues.find(
+			(i) => i.path[0] === "advaloremPercent"
+		);
+		expect(issue?.message).toContain("Obrigatório");
+		expect(issue?.message).not.toContain("expected number");
+	});
+	it("exibe mensagem amigável (PT) para icmsPercent nulo", () => {
+		const result = carrierSchema.safeParse({
+			...validCarrier,
+			icmsPercent: null,
+		});
+		expect(result.success).toBe(false);
+		if (result.success) {
+			return;
+		}
+		const issue = result.error.issues.find((i) => i.path[0] === "icmsPercent");
+		expect(issue?.message).toContain("Obrigatório");
+		expect(issue?.message).not.toContain("expected number");
+	});
+	it("mantém mensagem de range para grisPercent inválido (não nulo)", () => {
+		const result = carrierSchema.safeParse({
+			...validCarrier,
+			grisPercent: -1,
+		});
+		expect(result.success).toBe(false);
+		if (result.success) {
+			return;
+		}
+		const issue = result.error.issues.find((i) => i.path[0] === "grisPercent");
+		expect(issue?.message).toBe("≥ 0");
+	});
 	it("não conhece o campo tollAmount", () => {
 		expect("tollAmount" in carrierSchema.shape).toBe(false);
 	});
