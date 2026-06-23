@@ -128,7 +128,7 @@ Em `apps/web/src/app/dashboard/orders/_components/order-card.tsx`: remover o `RE
 
 - [ ] **Step 6: Verificar tipos e rodar o teste**
 
-Run: `bun --cwd apps/web exec tsc --noEmit -p . && bun --cwd apps/web test datetime`
+Run: `bunx tsc --noEmit -p apps/web/tsconfig.json && bun --cwd apps/web test datetime`
 Expected: sem erros de tipo; testes PASS.
 
 - [ ] **Step 7: Commit**
@@ -293,7 +293,7 @@ Expected: PASS (2 testes).
 
 - [ ] **Step 6: Verificar tipos**
 
-Run: `bun --cwd apps/web exec tsc --noEmit -p .`
+Run: `bunx tsc --noEmit -p apps/web/tsconfig.json`
 Expected: sem erros. (Nota: `getCustomerOrders` ainda existe e seu mapeamento agora carece de `branchName`/`firstItemName` — adicionar `branchName: null, firstItemName: null` ao objeto que ele monta para satisfazer o tipo, já que será removido na Task 5.)
 
 - [ ] **Step 7: Commit**
@@ -376,7 +376,7 @@ Expected: PASS.
 
 - [ ] **Step 5: Verificar tipos**
 
-Run: `bun --cwd apps/web exec tsc --noEmit -p .`
+Run: `bunx tsc --noEmit -p apps/web/tsconfig.json`
 Expected: sem erros.
 
 - [ ] **Step 6: Commit**
@@ -550,12 +550,12 @@ export function CustomerOrdersInfinite({
 
 - [ ] **Step 2: Verificar tipos**
 
-Run: `bun --cwd apps/web exec tsc --noEmit -p .`
+Run: `bunx tsc --noEmit -p apps/web/tsconfig.json`
 Expected: sem erros. Se `<Table>` não aceitar `className`, aplicar `table-fixed` via wrapper ou conferir a API em `packages/ui/src/components/table.tsx` e ajustar (sem `as any`).
 
 - [ ] **Step 3: Lint**
 
-Run: `bun --cwd apps/web exec ultracite check src/app/dashboard/customers/_components/customer-orders-infinite.tsx`
+Run: `bunx ultracite check apps/web/src/app/dashboard/customers/_components/customer-orders-infinite.tsx`
 Expected: sem violações (atenção a `key` estável — usa `order.id` ✓ — e a `useMemo`/`useCallback` proibidos — nenhum ✓).
 
 - [ ] **Step 4: Commit**
@@ -648,7 +648,7 @@ Expected: nenhum resultado (todos migrados).
 
 - [ ] **Step 4: Typecheck + lint + testes**
 
-Run: `bun --cwd apps/web exec tsc --noEmit -p . && bun check && bun --cwd apps/web test`
+Run: `bunx tsc --noEmit -p apps/web/tsconfig.json && bun check && bun --cwd apps/web test`
 Expected: sem erros de tipo, sem violações de lint, suíte verde.
 
 - [ ] **Step 5: Build (gate obrigatório por `"use server"`)**
