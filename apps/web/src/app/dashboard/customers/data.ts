@@ -71,19 +71,14 @@ export interface CustomerKpis {
 }
 
 export interface CustomerOrderRow {
+	branchName: string | null;
 	createdAt: Date;
+	firstItemName: string | null;
 	id: string;
 	itemsCount: number;
 	number: string;
 	status: OrderStatus;
 	totalAmount: number;
-}
-
-export interface CustomerOrdersResult {
-	items: CustomerOrderRow[];
-	page: number;
-	total: number;
-	totalPages: number;
 }
 
 export interface CustomerReviewRow {
@@ -423,52 +418,57 @@ export async function getCustomerKpis(id: string): Promise<CustomerKpis> {
 	};
 }
 
-export const CUSTOMER_ORDERS_PAGE_SIZE = 20;
-
-export async function getCustomerOrders(
-	id: string,
-	page = 1
-): Promise<CustomerOrdersResult> {
-	const pageNum = Math.max(1, page);
-	const offset = (pageNum - 1) * CUSTOMER_ORDERS_PAGE_SIZE;
+export async function listCustomerOrders(input: {
+	clientId: string;
+	cursor: string | null;
+}): Promise<InfiniteResult<CustomerOrderRow>> {
+	const decoded = input.cursor ? decodeCursor(input.cursor) : null;
+	const keyset =
+		decoded?.sort === "newest"
+			? sql`AND (o.created_at, o.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
+			: sql``;
 
 	const rows = await db.execute<{
+		branch_name: string | null;
 		created_at: Date;
+		first_item_name: string | null;
 		id: string;
-		items_count: number;
+		items_count: string;
 		number: string;
 		status: OrderStatus;
 		total_amount: string;
-		total_count: number;
 	}>(sql`
 		SELECT
 			o.id, o.number, o.status, o.total_amount, o.created_at,
 			(SELECT COUNT(*)::int FROM order_item oi WHERE oi.order_id = o.id) AS items_count,
-			COUNT(*) OVER()::int AS total_count
+			(SELECT oi.name FROM order_item oi WHERE oi.order_id = o.id ORDER BY oi.id LIMIT 1) AS first_item_name,
+			b.name AS branch_name
 		FROM "order" o
-		WHERE o.client_id = ${id}
+		LEFT JOIN branch b ON b.id = o.branch_id
+		WHERE o.client_id = ${input.clientId} ${keyset}
 		ORDER BY o.created_at DESC, o.id DESC
-		LIMIT ${CUSTOMER_ORDERS_PAGE_SIZE}
-		OFFSET ${offset}
+		LIMIT ${BATCH_SIZE + 1}
 	`);
 
-	const total = rows.rows[0]?.total_count ?? 0;
-	const totalPages =
-		total === 0 ? 1 : Math.ceil(total / CUSTOMER_ORDERS_PAGE_SIZE);
-
-	return {
-		items: rows.rows.map((r) => ({
+	return paginate(
+		rows.rows,
+		(r) => ({
 			id: r.id,
 			number: r.number,
 			status: r.status,
 			totalAmount: Number(r.total_amount),
 			createdAt: toDate(r.created_at),
 			itemsCount: Number(r.items_count),
-		})),
-		page: pageNum,
-		total,
-		totalPages,
-	};
+			firstItemName: r.first_item_name,
+			branchName: r.branch_name,
+		}),
+		(last) => ({
+			v: 1,
+			sort: "newest" as const,
+			createdAt: toDate(last.created_at).toISOString(),
+			id: last.id,
+		})
+	);
 }
 
 export async function getCustomerReviews(
