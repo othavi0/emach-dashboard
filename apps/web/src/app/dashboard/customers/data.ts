@@ -71,7 +71,9 @@ export interface CustomerKpis {
 }
 
 export interface CustomerOrderRow {
+	branchName: string | null;
 	createdAt: Date;
+	firstItemName: string | null;
 	id: string;
 	itemsCount: number;
 	number: string;
@@ -464,11 +466,66 @@ export async function getCustomerOrders(
 			totalAmount: Number(r.total_amount),
 			createdAt: toDate(r.created_at),
 			itemsCount: Number(r.items_count),
+			branchName: null,
+			firstItemName: null,
 		})),
 		page: pageNum,
 		total,
 		totalPages,
 	};
+}
+
+export async function listCustomerOrders(input: {
+	clientId: string;
+	cursor: string | null;
+}): Promise<InfiniteResult<CustomerOrderRow>> {
+	const decoded = input.cursor ? decodeCursor(input.cursor) : null;
+	const keyset =
+		decoded?.sort === "newest"
+			? sql`AND (o.created_at, o.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
+			: sql``;
+
+	const rows = await db.execute<{
+		branch_name: string | null;
+		created_at: Date;
+		first_item_name: string | null;
+		id: string;
+		items_count: number;
+		number: string;
+		status: OrderStatus;
+		total_amount: string;
+	}>(sql`
+		SELECT
+			o.id, o.number, o.status, o.total_amount, o.created_at,
+			(SELECT COUNT(*)::int FROM order_item oi WHERE oi.order_id = o.id) AS items_count,
+			(SELECT oi.name FROM order_item oi WHERE oi.order_id = o.id ORDER BY oi.id LIMIT 1) AS first_item_name,
+			b.name AS branch_name
+		FROM "order" o
+		LEFT JOIN branch b ON b.id = o.branch_id
+		WHERE o.client_id = ${input.clientId} ${keyset}
+		ORDER BY o.created_at DESC, o.id DESC
+		LIMIT ${BATCH_SIZE + 1}
+	`);
+
+	return paginate(
+		rows.rows,
+		(r) => ({
+			id: r.id,
+			number: r.number,
+			status: r.status,
+			totalAmount: Number(r.total_amount),
+			createdAt: toDate(r.created_at),
+			itemsCount: Number(r.items_count),
+			firstItemName: r.first_item_name,
+			branchName: r.branch_name,
+		}),
+		(last) => ({
+			v: 1,
+			sort: "newest" as const,
+			createdAt: toDate(last.created_at).toISOString(),
+			id: last.id,
+		})
+	);
 }
 
 export async function getCustomerReviews(
