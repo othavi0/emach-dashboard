@@ -22,7 +22,7 @@ describe("listCustomerOrders", () => {
 	beforeEach(() => execute.mockReset());
 
 	it("mapeia campos enriquecidos e tipa total como número", async () => {
-		execute.mockResolvedValue({ rows: [row(1)] });
+		execute.mockResolvedValue({ rows: [row(1), row(2)] });
 		const res = await listCustomerOrders({ clientId: "c1", cursor: null });
 		expect(res.items[0]).toMatchObject({
 			number: "EM-2026-001",
@@ -31,6 +31,8 @@ describe("listCustomerOrders", () => {
 			firstItemName: "Furadeira 750W",
 			branchName: null,
 		});
+		expect(res.items[0]?.createdAt).toBeInstanceOf(Date);
+		expect(res.items[1]?.branchName).toBe("Matriz");
 		expect(res.nextCursor).toBeNull();
 	});
 

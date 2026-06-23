@@ -490,7 +490,7 @@ export async function listCustomerOrders(input: {
 		created_at: Date;
 		first_item_name: string | null;
 		id: string;
-		items_count: number;
+		items_count: string;
 		number: string;
 		status: OrderStatus;
 		total_amount: string;
