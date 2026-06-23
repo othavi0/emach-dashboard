@@ -13,6 +13,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { type EntityTab, EntityTabs } from "@/components/entity/entity-tabs";
+import type { InfiniteResult } from "@/lib/infinite";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { CustomerAddressesList } from "../_components/customer-addresses-list";
 import { CustomerAuditTable } from "../_components/customer-audit-table";
@@ -32,7 +33,7 @@ import type {
 	CustomerConsentByKind,
 	CustomerDetail,
 	CustomerKpis,
-	CustomerOrdersResult,
+	CustomerOrderRow,
 	CustomerReviewRow,
 	CustomerSessionRow,
 } from "../data";
@@ -42,9 +43,9 @@ import {
 	getCustomerConsent,
 	getCustomerDetail,
 	getCustomerKpis,
-	getCustomerOrders,
 	getCustomerReviews,
 	getCustomerSessions,
+	listCustomerOrders,
 } from "../data";
 import { auditFilterSchema } from "../schema";
 
@@ -76,11 +77,6 @@ function parseTab(raw: unknown): TabKey {
 	return "perfil";
 }
 
-function parsePage(raw: unknown): number {
-	const n = typeof raw === "string" ? Number.parseInt(raw, 10) : 1;
-	return Number.isFinite(n) && n > 0 ? n : 1;
-}
-
 function pick(raw: string | string[] | undefined): string | undefined {
 	return Array.isArray(raw) ? raw[0] : raw;
 }
@@ -95,8 +91,7 @@ interface TabData {
 	currentTab: TabKey;
 	customer: CustomerDetail;
 	kpis: CustomerKpis | null;
-	ordersResult: CustomerOrdersResult | null;
-	recentOrders: CustomerOrdersResult | null;
+	recentOrders: InfiniteResult<CustomerOrderRow> | null;
 	reviews: CustomerReviewRow[] | null;
 	sessions: CustomerSessionRow[] | null;
 }
@@ -108,7 +103,6 @@ function buildTabs(data: TabData): EntityTab[] {
 		kpis,
 		recentOrders,
 		addresses,
-		ordersResult,
 		reviews,
 		consentByKind,
 		sessions,
@@ -148,8 +142,8 @@ function buildTabs(data: TabData): EntityTab[] {
 			label: "Pedidos",
 			icon: <ShoppingCart aria-hidden className="size-3.5" />,
 			content:
-				currentTab === "pedidos" && ordersResult ? (
-					<CustomerOrdersTable clientId={customer.id} result={ordersResult} />
+				currentTab === "pedidos" ? (
+					<CustomerOrdersTable clientId={customer.id} />
 				) : null,
 		},
 		{
@@ -262,7 +256,6 @@ async function CustomerDetailPageContent({ params, searchParams }: PageProps) {
 	const raw = await searchParams;
 
 	const currentTab = parseTab(pick(raw.tab));
-	const page = parsePage(pick(raw.page));
 	const parsedAudit = auditFilterSchema.safeParse({
 		action: pick(raw.auditAction),
 	});
@@ -287,16 +280,14 @@ async function CustomerDetailPageContent({ params, searchParams }: PageProps) {
 		kpis,
 		recentOrders,
 		addresses,
-		ordersResult,
 		reviews,
 		consentByKind,
 		sessions,
 		auditItems,
 	] = await Promise.all([
 		onOverview ? getCustomerKpis(id) : null,
-		onOverview ? getCustomerOrders(id, 1) : null,
+		onOverview ? listCustomerOrders({ clientId: id, cursor: null }) : null,
 		currentTab === "enderecos" ? getCustomerAddresses(id) : null,
-		currentTab === "pedidos" ? getCustomerOrders(id, page) : null,
 		currentTab === "avaliacoes" ? getCustomerReviews(id) : null,
 		currentTab === "consentimento" ? getCustomerConsent(id) : null,
 		currentTab === "sessoes" ? getCustomerSessions(id) : null,
@@ -313,7 +304,6 @@ async function CustomerDetailPageContent({ params, searchParams }: PageProps) {
 		kpis,
 		recentOrders,
 		addresses,
-		ordersResult,
 		reviews,
 		consentByKind,
 		sessions,

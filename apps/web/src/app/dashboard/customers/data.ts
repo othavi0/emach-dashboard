@@ -81,13 +81,6 @@ export interface CustomerOrderRow {
 	totalAmount: number;
 }
 
-export interface CustomerOrdersResult {
-	items: CustomerOrderRow[];
-	page: number;
-	total: number;
-	totalPages: number;
-}
-
 export interface CustomerReviewRow {
 	body: string;
 	createdAt: Date;
@@ -422,56 +415,6 @@ export async function getCustomerKpis(id: string): Promise<CustomerKpis> {
 		lastOrderAt: toDate(r?.last_order_at ?? null),
 		lastOrderStatus: r?.last_order_status ?? null,
 		daysSinceCreated: Number(r?.days_since_created ?? 0),
-	};
-}
-
-export const CUSTOMER_ORDERS_PAGE_SIZE = 20;
-
-export async function getCustomerOrders(
-	id: string,
-	page = 1
-): Promise<CustomerOrdersResult> {
-	const pageNum = Math.max(1, page);
-	const offset = (pageNum - 1) * CUSTOMER_ORDERS_PAGE_SIZE;
-
-	const rows = await db.execute<{
-		created_at: Date;
-		id: string;
-		items_count: number;
-		number: string;
-		status: OrderStatus;
-		total_amount: string;
-		total_count: number;
-	}>(sql`
-		SELECT
-			o.id, o.number, o.status, o.total_amount, o.created_at,
-			(SELECT COUNT(*)::int FROM order_item oi WHERE oi.order_id = o.id) AS items_count,
-			COUNT(*) OVER()::int AS total_count
-		FROM "order" o
-		WHERE o.client_id = ${id}
-		ORDER BY o.created_at DESC, o.id DESC
-		LIMIT ${CUSTOMER_ORDERS_PAGE_SIZE}
-		OFFSET ${offset}
-	`);
-
-	const total = rows.rows[0]?.total_count ?? 0;
-	const totalPages =
-		total === 0 ? 1 : Math.ceil(total / CUSTOMER_ORDERS_PAGE_SIZE);
-
-	return {
-		items: rows.rows.map((r) => ({
-			id: r.id,
-			number: r.number,
-			status: r.status,
-			totalAmount: Number(r.total_amount),
-			createdAt: toDate(r.created_at),
-			itemsCount: Number(r.items_count),
-			branchName: null,
-			firstItemName: null,
-		})),
-		page: pageNum,
-		total,
-		totalPages,
 	};
 }
 
