@@ -14,7 +14,7 @@ export const CARRIER_STEPS: {
 	},
 	{
 		id: "zonas",
-		label: "Zonas & peço",
+		label: "Zonas & preço",
 		description: "Cobertura por CEP e tabela de peso",
 	},
 ];

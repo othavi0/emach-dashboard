@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { FieldError } from "@/components/field-error";
-import { focusFirstError } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { useFormErrors } from "@/lib/use-form-errors";
 
@@ -98,8 +97,6 @@ export function CarrierWizard() {
 			if (failing) {
 				setActive(failing.id);
 			}
-			// Double-rAF: cobre o commit do novo passo antes de focar
-			focusFirstError();
 			return;
 		}
 		startTransition(async () => {
