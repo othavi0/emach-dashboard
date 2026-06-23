@@ -33,21 +33,20 @@ export function ZoneFieldset({
 	const patch = (next: Partial<ZoneDraft>) => onChange({ ...value, ...next });
 
 	return (
-		<fieldset className="flex flex-col gap-4 rounded-md border border-border bg-card p-4">
-			<div className="flex items-center justify-between">
-				<legend className="font-semibold text-sm">Zona {index + 1}</legend>
-				{onRemove ? (
-					<Button
-						disabled={disabled}
-						onClick={onRemove}
-						size="icon"
-						type="button"
-						variant="ghost"
-					>
-						<Trash2 aria-hidden className="size-4" />
-					</Button>
-				) : null}
-			</div>
+		<fieldset className="relative flex flex-col gap-4 rounded-md border border-border bg-card p-4">
+			<legend className="px-1 font-semibold text-sm">Zona {index + 1}</legend>
+			{onRemove ? (
+				<Button
+					className="absolute top-2 right-2"
+					disabled={disabled}
+					onClick={onRemove}
+					size="icon"
+					type="button"
+					variant="ghost"
+				>
+					<Trash2 aria-hidden className="size-4" />
+				</Button>
+			) : null}
 
 			<LabeledField id={`zone-${index}-name`} label="Nome da zona" required>
 				{(field) => (
