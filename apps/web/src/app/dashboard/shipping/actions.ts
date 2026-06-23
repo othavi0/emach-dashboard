@@ -304,13 +304,13 @@ export async function updateCarrier(
 			.update(carrier)
 			.set({
 				name: parsed.data.name,
-				cnpj: parsed.data.cnpj ? normalizeCnpj(parsed.data.cnpj) : null,
+				cnpj: normalizeCnpj(parsed.data.cnpj),
 				active: parsed.data.active,
 				cubageDivisor: parsed.data.cubageDivisor,
-				grisPercent: numOrNull(parsed.data.grisPercent),
+				grisPercent: parsed.data.grisPercent.toString(),
 				grisMinAmount: numOrNull(parsed.data.grisMinAmount),
-				advaloremPercent: numOrNull(parsed.data.advaloremPercent),
-				icmsPercent: numOrNull(parsed.data.icmsPercent),
+				advaloremPercent: parsed.data.advaloremPercent.toString(),
+				icmsPercent: parsed.data.icmsPercent.toString(),
 				notes: parsed.data.notes || null,
 			})
 			.where(eq(carrier.id, id));
