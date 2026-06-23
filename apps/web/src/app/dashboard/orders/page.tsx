@@ -13,7 +13,6 @@ import { PageHeader } from "@/components/page-header";
 import { PendingPanel, type PendingTab } from "@/components/pending-panel";
 import { can, requireCapability } from "@/lib/permissions";
 import { ExportCsvLink } from "./_components/export-csv-link";
-import { OrderKpisRow } from "./_components/order-kpis";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrdersInfinite } from "./_components/orders-infinite";
 import {
@@ -24,7 +23,6 @@ import {
 } from "./actions";
 import {
 	fetchOrdersPage,
-	getOrderKpis,
 	getOrdersTabCounts,
 	listOrderBranches,
 	type OrderListFilters,
@@ -75,29 +73,21 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		unverifiedShipping,
 	};
 
-	const [
-		branches,
-		counts,
-		kpis,
-		pendingAwaiting,
-		pendingFlow,
-		activity,
-		result,
-	] = await Promise.all([
-		listOrderBranches(),
-		getOrdersTabCounts(),
-		getOrderKpis(),
-		fetchPendingOrdersPage({
-			statuses: ["paid", "pending_payment"],
-			cursor: null,
-		}),
-		fetchPendingOrdersPage({
-			statuses: ["preparing", "shipped"],
-			cursor: null,
-		}),
-		fetchOrderActivityPage(null),
-		fetchOrdersPage({ filters: pageFilters, cursor: null }),
-	]);
+	const [branches, counts, pendingAwaiting, pendingFlow, activity, result] =
+		await Promise.all([
+			listOrderBranches(),
+			getOrdersTabCounts(),
+			fetchPendingOrdersPage({
+				statuses: ["paid", "pending_payment"],
+				cursor: null,
+			}),
+			fetchPendingOrdersPage({
+				statuses: ["preparing", "shipped"],
+				cursor: null,
+			}),
+			fetchOrderActivityPage(null),
+			fetchOrdersPage({ filters: pageFilters, cursor: null }),
+		]);
 
 	// O tab default ("A preparar") não conta como filtro ativo — só desvios dele.
 	const hasFilters = Boolean(
@@ -144,8 +134,6 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 				description="Listagem operacional com busca por número e cliente, filtros por data e filial e atalhos para fulfillment."
 				title="Pedidos"
 			/>
-
-			<OrderKpisRow counts={counts} kpis={kpis} />
 
 			<section className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<PendingPanel

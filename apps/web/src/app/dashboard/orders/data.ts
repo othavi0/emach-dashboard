@@ -1,10 +1,6 @@
 import "server-only";
 
 import { db } from "@emach/db";
-import {
-	REVENUE_ORDER_STATUSES,
-	sqlStatusList,
-} from "@emach/db/queries/order-status-groups";
 import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
 import { toDate } from "@emach/db/utils";
@@ -991,69 +987,5 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			}),
 			createdAt: e.createdAt,
 		})),
-	};
-}
-
-export interface OrderKpis {
-	averageTicket: number;
-	paidPercent: number;
-	revenueToday: number;
-	revenueYesterday: number;
-}
-
-export async function getOrderKpis(): Promise<OrderKpis> {
-	const scope = await getUserBranchScope(await requireCurrentSession());
-	if (isBlindScope(scope)) {
-		return {
-			revenueToday: 0,
-			revenueYesterday: 0,
-			averageTicket: 0,
-			paidPercent: 0,
-		};
-	}
-
-	// Query usa FROM "order" sem alias → condição referencia branch_id diretamente.
-	const branchFilter = orderBranchConditionNoAlias(scope);
-
-	const result = await db.execute<{
-		revenue_today: string | null;
-		revenue_yesterday: string | null;
-		average_ticket: string | null;
-		paid_percent: string | null;
-	}>(sql`
-		SELECT
-			SUM(total_amount) FILTER (
-				WHERE status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)})
-				AND created_at::date = CURRENT_DATE
-			) AS revenue_today,
-			SUM(total_amount) FILTER (
-				WHERE status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)})
-				AND created_at::date = CURRENT_DATE - INTERVAL '1 day'
-			) AS revenue_yesterday,
-			AVG(total_amount) FILTER (
-				WHERE status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)})
-				AND created_at > now() - INTERVAL '30 days'
-			) AS average_ticket,
-			CASE
-				WHEN COUNT(*) FILTER (WHERE created_at > now() - INTERVAL '30 days') = 0 THEN 0
-				ELSE (
-					COUNT(*) FILTER (
-						WHERE status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)})
-						AND created_at > now() - INTERVAL '30 days'
-					)::numeric
-					/ COUNT(*) FILTER (WHERE created_at > now() - INTERVAL '30 days')::numeric
-					* 100
-				)
-			END AS paid_percent
-		FROM "order"
-		${branchFilter ? sql`WHERE ${branchFilter}` : sql``}
-	`);
-
-	const row = result.rows[0];
-	return {
-		revenueToday: Number(row?.revenue_today ?? 0),
-		revenueYesterday: Number(row?.revenue_yesterday ?? 0),
-		averageTicket: Number(row?.average_ticket ?? 0),
-		paidPercent: Number(row?.paid_percent ?? 0),
 	};
 }
