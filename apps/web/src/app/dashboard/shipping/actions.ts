@@ -18,6 +18,7 @@ import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { normalizeCnpj } from "@/lib/cpf-cnpj";
+import { getPgError } from "@/lib/db-error";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
@@ -25,7 +26,9 @@ import type { BoxFormValues } from "./_components/box-schema";
 import { boxSchema } from "./_components/box-schema";
 import {
 	type CarrierFormValues,
+	type CreateCarrierFormValues,
 	carrierSchema,
+	createCarrierSchema,
 } from "./_components/carrier-schema";
 import {
 	type ShippingSettingsFormValues,
@@ -253,6 +256,72 @@ export async function createCarrier(
 		targetId: id,
 		targetType: "carrier",
 		metadata: { name: parsed.data.name },
+	});
+	revalidatePath(SHIPPING_PATH);
+	return { ok: true, data: { id } };
+}
+
+export async function createCarrierWithZones(
+	input: CreateCarrierFormValues
+): Promise<ActionResult<{ id: string }>> {
+	const session = await requireCapability("shipping.manage");
+	const parsed = createCarrierSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: actionErrorMessage(parsed.error) };
+	}
+	const d = parsed.data;
+	const id = crypto.randomUUID();
+	try {
+		await db.transaction(async (tx) => {
+			await tx.insert(carrier).values({
+				id,
+				name: d.name,
+				cnpj: normalizeCnpj(d.cnpj),
+				active: d.active,
+				cubageDivisor: d.cubageDivisor,
+				grisPercent: d.grisPercent.toString(),
+				grisMinAmount: numOrNull(d.grisMinAmount),
+				advaloremPercent: d.advaloremPercent.toString(),
+				icmsPercent: d.icmsPercent.toString(),
+				notes: d.notes || null,
+			});
+			for (const [index, zone] of d.zones.entries()) {
+				const zoneId = crypto.randomUUID();
+				await tx.insert(carrierZone).values({
+					id: zoneId,
+					carrierId: id,
+					name: zone.name,
+					cepRanges: zone.cepRanges,
+					deliveryDays: zone.deliveryDays ?? null,
+					minFreightAmount: numOrNull(zone.minFreightAmount),
+					sortOrder: index,
+				});
+				await tx.insert(carrierRate).values(
+					zone.rates.map((r) => ({
+						id: crypto.randomUUID(),
+						carrierId: id,
+						zoneId,
+						weightFromKg: r.weightFromKg.toString(),
+						weightToKg: r.weightToKg == null ? null : r.weightToKg.toString(),
+						baseAmount: r.baseAmount.toString(),
+						perKgAmount: r.perKgAmount.toString(),
+					}))
+				);
+			}
+		});
+	} catch (error) {
+		if (getPgError(error)?.code === "23505") {
+			return { ok: false, error: "CNPJ já cadastrado em outra transportadora" };
+		}
+		logger.error("createCarrierWithZones falhou", error);
+		return { ok: false, error: actionErrorMessage(error) };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "shipping.carrier.created",
+		targetId: id,
+		targetType: "carrier",
+		metadata: { name: d.name, zones: d.zones.length },
 	});
 	revalidatePath(SHIPPING_PATH);
 	return { ok: true, data: { id } };
