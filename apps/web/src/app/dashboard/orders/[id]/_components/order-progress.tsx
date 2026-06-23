@@ -48,6 +48,8 @@ type TimestampFields = Pick<
 	| "shippedAt"
 	| "deliveredAt"
 	| "canceledAt"
+	| "returnedAt"
+	| "refundedAt"
 >;
 
 type LinearStep =
@@ -63,6 +65,17 @@ const STEP_TIMESTAMP: Record<LinearStep, keyof TimestampFields> = {
 	preparing: "preparingAt",
 	shipped: "shippedAt",
 	delivered: "deliveredAt",
+};
+
+// Cada estado terminal tem um timestamp dedicado (exceto payment_failed — ver #4).
+const TERMINAL_TIMESTAMP: Record<
+	TerminalState,
+	"canceledAt" | "returnedAt" | "refundedAt" | null
+> = {
+	canceled: "canceledAt",
+	payment_failed: null,
+	refunded: "refundedAt",
+	returned: "returnedAt",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -143,6 +156,10 @@ interface OrderProgressProps {
 
 export function OrderProgress({ order }: OrderProgressProps) {
 	const isTerminal = TERMINAL_STATUSES.has(order.status);
+	const terminalTsKey = isTerminal
+		? TERMINAL_TIMESTAMP[order.status as TerminalState]
+		: null;
+	const terminalTs = terminalTsKey ? formatTs(order[terminalTsKey]) : null;
 
 	return (
 		<div className="rounded-lg border border-border bg-card px-5 py-4">
@@ -209,6 +226,11 @@ export function OrderProgress({ order }: OrderProgressProps) {
 						Estado final:
 					</span>
 					<OrderStatusBadge status={order.status} />
+					{terminalTs ? (
+						<span className="ml-auto text-[11px] text-muted-foreground/60 tabular-nums">
+							{terminalTs}
+						</span>
+					) : null}
 				</div>
 			)}
 		</div>
