@@ -47,6 +47,15 @@ export const TONE_TEXT: Record<Tone, string> = {
 	warning: "text-warning",
 };
 
+// Fundo tingido (10% alpha) por tone — para tiles/âncoras que carregam a cor da
+// role como superfície (ex: tile de status no card de pedido).
+export const TONE_TINT_BG: Record<Tone, string> = {
+	destructive: "bg-destructive/10",
+	info: "bg-info/10",
+	success: "bg-success/10",
+	warning: "bg-warning/10",
+};
+
 export const TONE_BADGE_VARIANT: Record<Tone, Tone> = {
 	destructive: "destructive",
 	info: "info",
