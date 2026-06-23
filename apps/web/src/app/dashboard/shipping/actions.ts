@@ -240,7 +240,6 @@ export async function createCarrier(
 			grisPercent: numOrNull(parsed.data.grisPercent),
 			grisMinAmount: numOrNull(parsed.data.grisMinAmount),
 			advaloremPercent: numOrNull(parsed.data.advaloremPercent),
-			tollAmount: numOrNull(parsed.data.tollAmount),
 			icmsPercent: numOrNull(parsed.data.icmsPercent),
 			notes: parsed.data.notes || null,
 		});
@@ -279,7 +278,6 @@ export async function updateCarrier(
 				grisPercent: numOrNull(parsed.data.grisPercent),
 				grisMinAmount: numOrNull(parsed.data.grisMinAmount),
 				advaloremPercent: numOrNull(parsed.data.advaloremPercent),
-				tollAmount: numOrNull(parsed.data.tollAmount),
 				icmsPercent: numOrNull(parsed.data.icmsPercent),
 				notes: parsed.data.notes || null,
 			})

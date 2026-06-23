@@ -9,20 +9,11 @@ import { useFormErrors } from "@/lib/use-form-errors";
 
 import { createCarrier } from "../actions";
 import { CarrierFormFields } from "./carrier-form-fields";
-import { type CarrierFormValues, carrierSchema } from "./carrier-schema";
-
-const defaultValues: CarrierFormValues = {
-	name: "",
-	cnpj: "",
-	active: true,
-	cubageDivisor: 6000,
-	grisPercent: null,
-	grisMinAmount: null,
-	advaloremPercent: null,
-	tollAmount: null,
-	icmsPercent: null,
-	notes: "",
-};
+import {
+	type CarrierDraft,
+	carrierSchema,
+	EMPTY_CARRIER_DRAFT,
+} from "./carrier-schema";
 
 export function CarrierCreateSheet() {
 	const router = useRouter();
@@ -30,14 +21,14 @@ export function CarrierCreateSheet() {
 	const params = useSearchParams();
 	const open = params.get("newCarrier") === "1";
 
-	const [values, setValues] = useState<CarrierFormValues>(defaultValues);
+	const [values, setValues] = useState<CarrierDraft>(EMPTY_CARRIER_DRAFT);
 	const { errors, reportValidationError, clearErrors } =
-		useFormErrors<CarrierFormValues>();
+		useFormErrors<CarrierDraft>();
 	const [submitting, startTransition] = useTransition();
 
 	useEffect(() => {
 		if (open) {
-			setValues(defaultValues);
+			setValues(EMPTY_CARRIER_DRAFT);
 			clearErrors();
 		}
 	}, [open, clearErrors]);

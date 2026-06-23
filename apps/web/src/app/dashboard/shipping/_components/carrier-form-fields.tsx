@@ -10,15 +10,15 @@ import { MaskedInput } from "@/components/masked-input";
 import { MoneyInput } from "@/components/money-input";
 import { cnpjMask, integerMask, percentageMask } from "@/lib/masks";
 
-import type { CarrierFormValues } from "./carrier-schema";
+import type { CarrierDraft } from "./carrier-schema";
 
-type Patch = (next: Partial<CarrierFormValues>) => void;
+type Patch = (next: Partial<CarrierDraft>) => void;
 
 interface Props {
 	disabled?: boolean;
-	errors?: Partial<Record<keyof CarrierFormValues, string>>;
+	errors?: Partial<Record<keyof CarrierDraft, string>>;
 	onPatch: Patch;
-	values: CarrierFormValues;
+	values: CarrierDraft;
 }
 
 export function CarrierFormFields({
@@ -42,7 +42,7 @@ export function CarrierFormFields({
 				)}
 			</LabeledField>
 
-			<LabeledField error={errors.cnpj} id="carrier-cnpj" label="CNPJ">
+			<LabeledField error={errors.cnpj} id="carrier-cnpj" label="CNPJ" required>
 				{(field) => (
 					<MaskedInput
 						{...field}
@@ -89,6 +89,7 @@ export function CarrierFormFields({
 					}
 					id="carrier-gris-pct"
 					label="GRIS (%)"
+					required
 				>
 					{(field) => (
 						<MaskedInput
@@ -121,45 +122,28 @@ export function CarrierFormFields({
 				</LabeledField>
 			</div>
 
-			<div className="grid grid-cols-2 gap-3">
-				<LabeledField
-					error={errors.advaloremPercent}
-					help={
-						<HelpTooltip text="Ad valorem: % sobre o valor da NF para seguro de carga." />
-					}
-					id="carrier-advalorem"
-					label="Ad valorem (%)"
-				>
-					{(field) => (
-						<MaskedInput
-							{...field}
-							disabled={disabled}
-							mask={percentageMask}
-							onChange={(v) =>
-								onPatch({ advaloremPercent: v === undefined ? null : v })
-							}
-							placeholder="0,30"
-							value={values.advaloremPercent ?? undefined}
-						/>
-					)}
-				</LabeledField>
-
-				<LabeledField
-					error={errors.tollAmount}
-					id="carrier-toll"
-					label="Pedágio (R$)"
-				>
-					{(field) => (
-						<MoneyInput
-							aria-invalid={field["aria-invalid"]}
-							disabled={disabled}
-							id={field.id}
-							onChange={(v) => onPatch({ tollAmount: v })}
-							value={values.tollAmount ?? null}
-						/>
-					)}
-				</LabeledField>
-			</div>
+			<LabeledField
+				error={errors.advaloremPercent}
+				help={
+					<HelpTooltip text="Ad valorem: % sobre o valor da NF para seguro de carga." />
+				}
+				id="carrier-advalorem"
+				label="Ad valorem (%)"
+				required
+			>
+				{(field) => (
+					<MaskedInput
+						{...field}
+						disabled={disabled}
+						mask={percentageMask}
+						onChange={(v) =>
+							onPatch({ advaloremPercent: v === undefined ? null : v })
+						}
+						placeholder="0,30"
+						value={values.advaloremPercent ?? undefined}
+					/>
+				)}
+			</LabeledField>
 
 			<LabeledField
 				error={errors.icmsPercent}
@@ -168,6 +152,7 @@ export function CarrierFormFields({
 				}
 				id="carrier-icms"
 				label="ICMS (%)"
+				required
 			>
 				{(field) => (
 					<MaskedInput
