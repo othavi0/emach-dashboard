@@ -25,6 +25,8 @@ export interface CepRangeValue {
 interface Props {
 	disabled?: boolean;
 	onChange: (next: CepRangeValue[]) => void;
+	/** Trava a digitação manual: faixas só entram via preset (Brasil/estado). */
+	presetOnly?: boolean;
 	value: CepRangeValue[];
 }
 
@@ -40,7 +42,12 @@ function normalize(rows: CepRangeValue[]): CepRangeValue[] {
 	});
 }
 
-export function CepRangesEditor({ value, onChange, disabled }: Props) {
+export function CepRangesEditor({
+	value,
+	onChange,
+	disabled,
+	presetOnly,
+}: Props) {
 	function patchRow(idx: number, patch: Partial<CepRangeValue>) {
 		onChange(
 			normalize(value.map((r, i) => (i === idx ? { ...r, ...patch } : r)))
@@ -106,6 +113,7 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 							id={`cep-from-${idx}`}
 							mask={cepMask}
 							onChange={(v) => patchRow(idx, { from: v ?? "" })}
+							readOnly={presetOnly}
 							value={row.from}
 						/>
 					</div>
@@ -116,6 +124,7 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 							id={`cep-to-${idx}`}
 							mask={cepMask}
 							onChange={(v) => patchRow(idx, { to: v ?? "" })}
+							readOnly={presetOnly}
 							value={row.to}
 						/>
 					</div>
@@ -153,15 +162,17 @@ export function CepRangesEditor({ value, onChange, disabled }: Props) {
 					</p>
 				) : (
 					<>
-						<Button
-							disabled={disabled || value.length >= MAX_RANGES}
-							onClick={addRow}
-							size="sm"
-							type="button"
-							variant="outline"
-						>
-							<Plus className="size-4" /> Adicionar faixa
-						</Button>
+						{presetOnly ? null : (
+							<Button
+								disabled={disabled || value.length >= MAX_RANGES}
+								onClick={addRow}
+								size="sm"
+								type="button"
+								variant="outline"
+							>
+								<Plus className="size-4" /> Adicionar faixa
+							</Button>
+						)}
 						<Button
 							disabled={disabled}
 							onClick={addBrasil}

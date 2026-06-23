@@ -65,6 +65,7 @@ export function ZoneFieldset({
 				<CepRangesEditor
 					disabled={disabled}
 					onChange={(cepRanges) => patch({ cepRanges })}
+					presetOnly
 					value={value.cepRanges}
 				/>
 			</div>

@@ -248,6 +248,7 @@ export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 					<CepRangesEditor
 						disabled={disabled}
 						onChange={setCepRanges}
+						presetOnly
 						value={cepRanges}
 					/>
 					<FieldError>{errors.cepRanges}</FieldError>
