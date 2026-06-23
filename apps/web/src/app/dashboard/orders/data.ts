@@ -192,7 +192,9 @@ export interface OrderDetail {
 	/** Asaas payment receipt URL. Read-only in admin. */
 	paymentReceiptUrl: string | null;
 	preparingAt: Date | null;
+	refundedAt: Date | null;
 	refundRequests: OrderRefundItem[];
+	returnedAt: Date | null;
 	shippedAt: Date | null;
 	shippingAddress: ShippingAddressSnapshot;
 	shippingAmount: number;
@@ -717,6 +719,8 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				branch_id: string | null;
 				branch_name: string | null;
 				canceled_at: Date | null;
+				returned_at: Date | null;
+				refunded_at: Date | null;
 				client_email: string;
 				client_id: string;
 				client_name: string;
@@ -769,6 +773,8 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				o.shipped_at,
 				o.delivered_at,
 				o.canceled_at,
+				o.returned_at,
+				o.refunded_at,
 				o.branch_id,
 				o.payment_receipt_url,
 				o.nfe_number,
@@ -926,6 +932,8 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		shippedAt: toDate(row.shipped_at),
 		deliveredAt: toDate(row.delivered_at),
 		canceledAt: toDate(row.canceled_at),
+		returnedAt: toDate(row.returned_at),
+		refundedAt: toDate(row.refunded_at),
 		items: items.map((item) => ({
 			id: item.id,
 			orderId: item.orderId,
