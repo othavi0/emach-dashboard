@@ -17,7 +17,7 @@ const RE_MES = /m[eê]s/;
 const RE_ANO = /ano/;
 
 describe("formatRelative", () => {
-	afterEach(() => vi.useRealTimers());
+	afterEach(() => vi.restoreAllMocks());
 
 	function withNow(fn: () => void) {
 		vi.spyOn(Date, "now").mockReturnValue(NOW);
