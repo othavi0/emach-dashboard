@@ -1,7 +1,7 @@
 import { MapPinIcon } from "lucide-react";
 import Link from "next/link";
 
-import { formatDateTime } from "@/lib/format/datetime";
+import { formatDateTime, formatRelative } from "@/lib/format/datetime";
 import { getInitials } from "@/lib/format/name";
 import type { OrderListItem } from "../data";
 import { OrderStatusBadge } from "./order-status-badge";
@@ -13,30 +13,8 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat("pt-BR", {
 	style: "currency",
 });
 
-const RELATIVE_FORMATTER = new Intl.RelativeTimeFormat("pt-BR", {
-	numeric: "auto",
-	style: "short",
-});
-
 function formatCurrency(value: number) {
 	return CURRENCY_FORMATTER.format(value);
-}
-
-function formatRelativeDate(value: Date) {
-	const diffMs = value.getTime() - Date.now();
-	const diffMinutes = Math.round(diffMs / 60_000);
-
-	if (Math.abs(diffMinutes) < 60) {
-		return RELATIVE_FORMATTER.format(diffMinutes, "minute");
-	}
-
-	const diffHours = Math.round(diffMinutes / 60);
-	if (Math.abs(diffHours) < 24) {
-		return RELATIVE_FORMATTER.format(diffHours, "hour");
-	}
-
-	const diffDays = Math.round(diffHours / 24);
-	return RELATIVE_FORMATTER.format(diffDays, "day");
 }
 
 export function OrderCard({ item }: { item: OrderListItem }) {
@@ -89,7 +67,7 @@ export function OrderCard({ item }: { item: OrderListItem }) {
 						className="font-bold text-[13px] text-foreground tabular-nums"
 						title={formatDateTime(item.createdAt)}
 					>
-						{formatRelativeDate(item.createdAt)}
+						{formatRelative(item.createdAt)}
 					</span>
 					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
 						Data
