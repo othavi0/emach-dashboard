@@ -17,7 +17,12 @@ import type { ActionResult } from "@/lib/action-result";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
-import { type CustomerListItem, listCustomers } from "./data";
+import {
+	type CustomerListItem,
+	type CustomerOrderRow,
+	listCustomerOrders,
+	listCustomers,
+} from "./data";
 import {
 	type CustomerPendingKind,
 	fetchCustomerActivityPage as fetchCustomerActivityPageImpl,
@@ -58,6 +63,14 @@ export async function fetchCustomersPage(input: {
 		? parsed.data
 		: customersListFiltersSchema.parse({});
 	return listCustomers({ filters, cursor: input.cursor });
+}
+
+export async function fetchCustomerOrdersPage(input: {
+	clientId: string;
+	cursor: string | null;
+}): Promise<InfiniteResult<CustomerOrderRow>> {
+	await requireCapability("customers.read");
+	return listCustomerOrders({ clientId: input.clientId, cursor: input.cursor });
 }
 
 // ============================================================================
