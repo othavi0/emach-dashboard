@@ -18,6 +18,7 @@ import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { normalizeCnpj } from "@/lib/cpf-cnpj";
+import { getPgError } from "@/lib/db-error";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
@@ -25,7 +26,9 @@ import type { BoxFormValues } from "./_components/box-schema";
 import { boxSchema } from "./_components/box-schema";
 import {
 	type CarrierFormValues,
+	type CreateCarrierFormValues,
 	carrierSchema,
+	createCarrierSchema,
 } from "./_components/carrier-schema";
 import {
 	type ShippingSettingsFormValues,
@@ -221,31 +224,59 @@ function numOrNull(v: number | null | undefined): string | null {
 	return v === null || v === undefined ? null : v.toString();
 }
 
-export async function createCarrier(
-	input: CarrierFormValues
+export async function createCarrierWithZones(
+	input: CreateCarrierFormValues
 ): Promise<ActionResult<{ id: string }>> {
 	const session = await requireCapability("shipping.manage");
-	const parsed = carrierSchema.safeParse(input);
+	const parsed = createCarrierSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
+	const d = parsed.data;
 	const id = crypto.randomUUID();
 	try {
-		await db.insert(carrier).values({
-			id,
-			name: parsed.data.name,
-			cnpj: parsed.data.cnpj ? normalizeCnpj(parsed.data.cnpj) : null,
-			active: parsed.data.active,
-			cubageDivisor: parsed.data.cubageDivisor,
-			grisPercent: numOrNull(parsed.data.grisPercent),
-			grisMinAmount: numOrNull(parsed.data.grisMinAmount),
-			advaloremPercent: numOrNull(parsed.data.advaloremPercent),
-			tollAmount: numOrNull(parsed.data.tollAmount),
-			icmsPercent: numOrNull(parsed.data.icmsPercent),
-			notes: parsed.data.notes || null,
+		await db.transaction(async (tx) => {
+			await tx.insert(carrier).values({
+				id,
+				name: d.name,
+				cnpj: normalizeCnpj(d.cnpj),
+				active: d.active,
+				cubageDivisor: d.cubageDivisor,
+				grisPercent: d.grisPercent.toString(),
+				grisMinAmount: numOrNull(d.grisMinAmount),
+				advaloremPercent: d.advaloremPercent.toString(),
+				icmsPercent: d.icmsPercent.toString(),
+				notes: d.notes || null,
+			});
+			for (const [index, zone] of d.zones.entries()) {
+				const zoneId = crypto.randomUUID();
+				await tx.insert(carrierZone).values({
+					id: zoneId,
+					carrierId: id,
+					name: zone.name,
+					cepRanges: zone.cepRanges,
+					deliveryDays: zone.deliveryDays ?? null,
+					minFreightAmount: numOrNull(zone.minFreightAmount),
+					sortOrder: index,
+				});
+				await tx.insert(carrierRate).values(
+					zone.rates.map((r) => ({
+						id: crypto.randomUUID(),
+						carrierId: id,
+						zoneId,
+						weightFromKg: r.weightFromKg.toString(),
+						weightToKg: r.weightToKg == null ? null : r.weightToKg.toString(),
+						baseAmount: r.baseAmount.toString(),
+						perKgAmount: r.perKgAmount.toString(),
+					}))
+				);
+			}
 		});
 	} catch (error) {
-		logger.error("createCarrier falhou", error);
+		if (getPgError(error)?.code === "23505") {
+			return { ok: false, error: "CNPJ já cadastrado em outra transportadora" };
+		}
+		logger.error("createCarrierWithZones falhou", error);
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 	await logUserActivity({
@@ -253,7 +284,7 @@ export async function createCarrier(
 		action: "shipping.carrier.created",
 		targetId: id,
 		targetType: "carrier",
-		metadata: { name: parsed.data.name },
+		metadata: { name: d.name, zones: d.zones.length },
 	});
 	revalidatePath(SHIPPING_PATH);
 	return { ok: true, data: { id } };
@@ -273,18 +304,20 @@ export async function updateCarrier(
 			.update(carrier)
 			.set({
 				name: parsed.data.name,
-				cnpj: parsed.data.cnpj ? normalizeCnpj(parsed.data.cnpj) : null,
+				cnpj: normalizeCnpj(parsed.data.cnpj),
 				active: parsed.data.active,
 				cubageDivisor: parsed.data.cubageDivisor,
-				grisPercent: numOrNull(parsed.data.grisPercent),
+				grisPercent: parsed.data.grisPercent.toString(),
 				grisMinAmount: numOrNull(parsed.data.grisMinAmount),
-				advaloremPercent: numOrNull(parsed.data.advaloremPercent),
-				tollAmount: numOrNull(parsed.data.tollAmount),
-				icmsPercent: numOrNull(parsed.data.icmsPercent),
+				advaloremPercent: parsed.data.advaloremPercent.toString(),
+				icmsPercent: parsed.data.icmsPercent.toString(),
 				notes: parsed.data.notes || null,
 			})
 			.where(eq(carrier.id, id));
 	} catch (error) {
+		if (getPgError(error)?.code === "23505") {
+			return { ok: false, error: "CNPJ já cadastrado em outra transportadora" };
+		}
 		logger.error("updateCarrier falhou", error);
 		return { ok: false, error: actionErrorMessage(error) };
 	}

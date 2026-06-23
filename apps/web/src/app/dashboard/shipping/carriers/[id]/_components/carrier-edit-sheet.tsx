@@ -7,7 +7,7 @@ import { notify } from "@/lib/notify";
 import { useFormErrors } from "@/lib/use-form-errors";
 import { CarrierFormFields } from "../../../_components/carrier-form-fields";
 import {
-	type CarrierFormValues,
+	type CarrierDraft,
 	carrierSchema,
 } from "../../../_components/carrier-schema";
 import { updateCarrier } from "../../../actions";
@@ -17,7 +17,7 @@ interface Props {
 	detail: CarrierDetail;
 }
 
-function toFormValues(d: CarrierDetail): CarrierFormValues {
+function toFormValues(d: CarrierDetail): CarrierDraft {
 	return {
 		name: d.name,
 		cnpj: d.cnpj ?? "",
@@ -27,7 +27,6 @@ function toFormValues(d: CarrierDetail): CarrierFormValues {
 		grisMinAmount: d.grisMinAmount === null ? null : Number(d.grisMinAmount),
 		advaloremPercent:
 			d.advaloremPercent === null ? null : Number(d.advaloremPercent),
-		tollAmount: d.tollAmount === null ? null : Number(d.tollAmount),
 		icmsPercent: d.icmsPercent === null ? null : Number(d.icmsPercent),
 		notes: d.notes ?? "",
 	};
@@ -39,11 +38,11 @@ export function CarrierEditSheet({ detail }: Props) {
 	const params = useSearchParams();
 	const open = params.get("edit") === "1";
 
-	const [values, setValues] = useState<CarrierFormValues>(() =>
+	const [values, setValues] = useState<CarrierDraft>(() =>
 		toFormValues(detail)
 	);
 	const { errors, reportValidationError, clearErrors } =
-		useFormErrors<CarrierFormValues>();
+		useFormErrors<CarrierDraft>();
 	const [submitting, startTransition] = useTransition();
 
 	useEffect(() => {

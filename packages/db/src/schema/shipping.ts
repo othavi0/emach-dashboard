@@ -24,15 +24,18 @@ export const carrier = pgTable(
 	{
 		id: text("id").primaryKey(),
 		name: text("name").notNull(),
-		cnpj: text("cnpj"),
+		cnpj: text("cnpj").notNull(),
 		active: boolean("active").notNull().default(true),
 		// Divisor de peso cubado: Correios/aéreo 6000; rodoviário pode variar.
 		cubageDivisor: integer("cubage_divisor").notNull().default(6000),
-		grisPercent: numeric("gris_percent", { precision: 5, scale: 2 }),
+		grisPercent: numeric("gris_percent", { precision: 5, scale: 2 }).notNull(),
 		grisMinAmount: numeric("gris_min_amount", { precision: 10, scale: 2 }),
-		advaloremPercent: numeric("advalorem_percent", { precision: 5, scale: 2 }),
+		advaloremPercent: numeric("advalorem_percent", {
+			precision: 5,
+			scale: 2,
+		}).notNull(),
 		tollAmount: numeric("toll_amount", { precision: 10, scale: 2 }),
-		icmsPercent: numeric("icms_percent", { precision: 5, scale: 2 }),
+		icmsPercent: numeric("icms_percent", { precision: 5, scale: 2 }).notNull(),
 		notes: text("notes"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
@@ -44,9 +47,7 @@ export const carrier = pgTable(
 	},
 	(table) => [
 		index("carrier_active_idx").on(table.active, table.createdAt.desc()),
-		uniqueIndex("carrier_cnpj_unique_when_present")
-			.on(table.cnpj)
-			.where(sql`${table.cnpj} IS NOT NULL`),
+		uniqueIndex("carrier_cnpj_unique").on(table.cnpj),
 		check("carrier_cubage_divisor_positive", sql`${table.cubageDivisor} > 0`),
 		check(
 			"carrier_percents_valid",

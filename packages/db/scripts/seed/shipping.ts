@@ -85,14 +85,14 @@ export async function seedShipping(tx: Tx): Promise<void> {
 	await tx.insert(carrier).values({
 		id: carrierId,
 		name: "Transportadora Exemplo",
-		cnpj: null,
+		cnpj: "04884082000135",
 		active: true,
 		cubageDivisor: 6000,
-		grisPercent: "0.30",
+		grisPercent: "0.50",
 		grisMinAmount: null,
-		advaloremPercent: null,
+		advaloremPercent: "0.30",
 		tollAmount: null,
-		icmsPercent: null,
+		icmsPercent: "12.00",
 		notes: "Transportadora de demonstração — dados fictícios.",
 	});
 

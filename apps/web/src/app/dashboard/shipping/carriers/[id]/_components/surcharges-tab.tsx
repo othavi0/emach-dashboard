@@ -50,7 +50,6 @@ export function SurchargesTab({ detail }: Props) {
 				<Row label="GRIS (%)" value={fmtPct(detail.grisPercent)} />
 				<Row label="GRIS mínimo" value={fmtMoney(detail.grisMinAmount)} />
 				<Row label="Ad valorem (%)" value={fmtPct(detail.advaloremPercent)} />
-				<Row label="Pedágio" value={fmtMoney(detail.tollAmount)} />
 				<Row label="ICMS (%)" value={fmtPct(detail.icmsPercent)} />
 			</div>
 			{detail.notes ? (
