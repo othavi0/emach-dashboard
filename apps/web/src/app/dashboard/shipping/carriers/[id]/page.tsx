@@ -35,7 +35,7 @@ async function CarrierDetailContent({ params, searchParams }: PageProps) {
 	const tabs: EntityTab[] = [
 		{
 			value: "sobretaxas",
-			label: "Sobretaxas",
+			label: "Dados & sobretaxas",
 			content: <SurchargesTab detail={detail} />,
 		},
 		{
