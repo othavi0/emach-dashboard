@@ -26,7 +26,7 @@ import {
 	TooltipTrigger,
 } from "@emach/ui/components/tooltip";
 import { CheckCircle2, Lock } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { notify } from "@/lib/notify";
 
 import { DeleteToolDialog } from "../../_components/delete-tool-dialog";
@@ -42,6 +42,7 @@ import type { ToolDetailVariant } from "../_lib/tool-detail-data";
 interface VariantsTabProps {
 	canDelete: boolean;
 	canMutate: boolean;
+	highlightVariantId?: string;
 	orderedVariantIds: string[];
 	toolId: string;
 	toolName: string;
@@ -79,6 +80,7 @@ export function VariantsTab({
 	toolName,
 	canMutate,
 	canDelete,
+	highlightVariantId,
 	orderedVariantIds,
 }: VariantsTabProps) {
 	if (variants.length === 0) {
@@ -90,7 +92,12 @@ export function VariantsTab({
 	}
 
 	if (!canMutate) {
-		return <VariantsReadOnly variants={variants} />;
+		return (
+			<VariantsReadOnly
+				highlightVariantId={highlightVariantId}
+				variants={variants}
+			/>
+		);
 	}
 
 	const orderedSet = new Set(orderedVariantIds);
@@ -116,6 +123,7 @@ export function VariantsTab({
 							<EditableRow
 								canDelete={canDelete}
 								hasOrders={orderedSet.has(v.id)}
+								isHighlighted={v.id === highlightVariantId}
 								isOnlyVariant={variants.length === 1}
 								key={v.id}
 								toolId={toolId}
@@ -158,6 +166,7 @@ export function VariantsTab({
 interface EditableRowProps {
 	canDelete: boolean;
 	hasOrders: boolean;
+	isHighlighted?: boolean;
 	isOnlyVariant: boolean;
 	toolId: string;
 	variant: ToolDetailVariant;
@@ -168,10 +177,18 @@ function EditableRow({
 	toolId,
 	canDelete,
 	hasOrders,
+	isHighlighted,
 	isOnlyVariant,
 }: EditableRowProps) {
 	const initial = makeRowState(variant);
 	const [state, setState] = useState<RowState>(initial);
+	const rowRef = useRef<HTMLTableRowElement>(null);
+
+	useEffect(() => {
+		if (isHighlighted && rowRef.current) {
+			rowRef.current.scrollIntoView({ block: "center" });
+		}
+	}, [isHighlighted]);
 	const [savedTick, setSavedTick] = useState(false);
 	const [pending, startTransition] = useTransition();
 	const [defaultPending, startDefaultTransition] = useTransition();
@@ -276,7 +293,11 @@ function EditableRow({
 	}
 
 	return (
-		<TableRow>
+		<TableRow
+			className={isHighlighted ? "bg-accent/40" : undefined}
+			data-highlight={isHighlighted ? "true" : undefined}
+			ref={rowRef}
+		>
 			<TableCell>
 				<Input
 					className="h-8 font-mono text-xs"
@@ -368,7 +389,62 @@ function DisabledDeleteIcon({ reason }: { reason: string }) {
 	);
 }
 
-function VariantsReadOnly({ variants }: { variants: ToolDetailVariant[] }) {
+function ReadOnlyRow({
+	fmt,
+	highlightVariantId,
+	v,
+}: {
+	fmt: (val: string | null) => string;
+	highlightVariantId?: string;
+	v: ToolDetailVariant;
+}) {
+	const isHighlighted = v.id === highlightVariantId;
+	const rowRef = useRef<HTMLTableRowElement>(null);
+
+	useEffect(() => {
+		if (isHighlighted && rowRef.current) {
+			rowRef.current.scrollIntoView({ block: "center" });
+		}
+	}, [isHighlighted]);
+
+	return (
+		<TableRow
+			className={isHighlighted ? "bg-accent/40" : undefined}
+			data-highlight={isHighlighted ? "true" : undefined}
+			ref={rowRef}
+		>
+			<TableCell className="font-mono text-xs">{v.sku}</TableCell>
+			<TableCell className="font-mono text-xs">{v.barcode}</TableCell>
+			<TableCell>{v.voltage ?? "—"}</TableCell>
+			<TableCell className="text-right tabular-nums">
+				{fmt(v.priceAmount)}
+			</TableCell>
+			<TableCell className="text-center">
+				{v.isDefault ? (
+					<CheckCircle2
+						aria-label="Variante padrão"
+						className="inline size-3.5 text-primary"
+					/>
+				) : (
+					<span className="text-muted-foreground">—</span>
+				)}
+			</TableCell>
+			<TableCell>
+				<Badge variant={v.visibleOnSite ? "success" : "secondary"}>
+					{v.visibleOnSite ? "Ativa" : "Oculta"}
+				</Badge>
+			</TableCell>
+		</TableRow>
+	);
+}
+
+function VariantsReadOnly({
+	variants,
+	highlightVariantId,
+}: {
+	highlightVariantId?: string;
+	variants: ToolDetailVariant[];
+}) {
 	const PRICE = new Intl.NumberFormat("pt-BR", {
 		style: "currency",
 		currency: "BRL",
@@ -390,29 +466,12 @@ function VariantsReadOnly({ variants }: { variants: ToolDetailVariant[] }) {
 			</TableHeader>
 			<TableBody>
 				{variants.map((v) => (
-					<TableRow key={v.id}>
-						<TableCell className="font-mono text-xs">{v.sku}</TableCell>
-						<TableCell className="font-mono text-xs">{v.barcode}</TableCell>
-						<TableCell>{v.voltage ?? "—"}</TableCell>
-						<TableCell className="text-right tabular-nums">
-							{fmt(v.priceAmount)}
-						</TableCell>
-						<TableCell className="text-center">
-							{v.isDefault ? (
-								<CheckCircle2
-									aria-label="Variante padrão"
-									className="inline size-3.5 text-primary"
-								/>
-							) : (
-								<span className="text-muted-foreground">—</span>
-							)}
-						</TableCell>
-						<TableCell>
-							<Badge variant={v.visibleOnSite ? "success" : "secondary"}>
-								{v.visibleOnSite ? "Ativa" : "Oculta"}
-							</Badge>
-						</TableCell>
-					</TableRow>
+					<ReadOnlyRow
+						fmt={fmt}
+						highlightVariantId={highlightVariantId}
+						key={v.id}
+						v={v}
+					/>
 				))}
 			</TableBody>
 		</Table>

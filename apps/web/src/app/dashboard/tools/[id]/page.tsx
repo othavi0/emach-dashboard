@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 interface PageProps {
 	params: Promise<{ id: string }>;
-	searchParams: Promise<{ tab?: string }>;
+	searchParams: Promise<{ tab?: string; variant?: string }>;
 }
 
 export default function ToolDetailPage({ params, searchParams }: PageProps) {
@@ -33,7 +33,7 @@ export default function ToolDetailPage({ params, searchParams }: PageProps) {
 
 async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCurrentSession();
-	const [{ id }, { tab }] = await Promise.all([params, searchParams]);
+	const [{ id }, { tab, variant }] = await Promise.all([params, searchParams]);
 	const [canMutate, canDelete, detail] = await Promise.all([
 		can(session, "tools.update"),
 		can(session, "tools.delete"),
@@ -44,7 +44,8 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 		notFound();
 	}
 
-	const current = tab ?? "visao-geral";
+	// Se ?variant= estiver presente, forçar a aba Variantes independente de ?tab=.
+	const current = variant ? "variantes" : (tab ?? "visao-geral");
 	const isOverview = current === "visao-geral";
 
 	// Carrega o resumo de reviews só quando a aba está ativa (lazy).
@@ -81,6 +82,7 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 					<VariantsTab
 						canDelete={canDelete}
 						canMutate={canMutate}
+						highlightVariantId={variant}
 						orderedVariantIds={detail.orderedVariantIds}
 						toolId={detail.tool.id}
 						toolName={detail.tool.name}
