@@ -25,7 +25,7 @@ export const TOOL_STEPS: ToolStep[] = [
 	{
 		id: "variants",
 		label: "Variantes & preço",
-		description: "SKUs vendáveis, voltagem e preço",
+		description: "SKUs vendáveis, códigos de barras, voltagem e preço",
 	},
 	{
 		id: "specs",
