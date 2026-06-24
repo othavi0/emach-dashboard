@@ -26,6 +26,7 @@ interface VariantsEditorProps {
 
 const EMPTY_VARIANT: ToolVariantInput = {
 	sku: "",
+	barcode: "",
 	voltage: "",
 	priceAmount: 0,
 	isDefault: false,

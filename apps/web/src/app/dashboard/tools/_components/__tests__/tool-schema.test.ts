@@ -82,7 +82,13 @@ function baseTool(overrides: Record<string, unknown> = {}) {
 			{ url: "https://x/3.jpg", sortOrder: 2 },
 		],
 		variants: [
-			{ sku: "SKU-1", priceAmount: 100, isDefault: true, sortOrder: 0 },
+			{
+				sku: "SKU-1",
+				barcode: "BAR-1",
+				priceAmount: 100,
+				isDefault: true,
+				sortOrder: 0,
+			},
 		],
 		attributeAssignments: ["a", "b", "c", "d"],
 		attributeValues: {
@@ -176,5 +182,49 @@ describe("toolFormSchema — campos de vídeo", () => {
 				true
 			);
 		}
+	});
+});
+
+describe("toolFormSchema — barcode duplicado entre variantes", () => {
+	it("rejeita duas variantes com o mesmo barcode", () => {
+		const r = toolFormSchema.safeParse(
+			baseTool({
+				variants: [
+					{
+						sku: "S1",
+						barcode: "DUP",
+						priceAmount: 100,
+						isDefault: true,
+						sortOrder: 0,
+					},
+					{
+						sku: "S2",
+						barcode: "DUP",
+						priceAmount: 100,
+						isDefault: false,
+						sortOrder: 1,
+					},
+				],
+			})
+		);
+		expect(r.success).toBe(false);
+		if (!r.success) {
+			expect(
+				r.error.issues.some(
+					(i) => i.path[0] === "variants" && i.path[2] === "barcode"
+				)
+			).toBe(true);
+		}
+	});
+
+	it("rejeita variante sem barcode", () => {
+		const r = toolFormSchema.safeParse(
+			baseTool({
+				variants: [
+					{ sku: "S1", priceAmount: 100, isDefault: true, sortOrder: 0 },
+				],
+			})
+		);
+		expect(r.success).toBe(false);
 	});
 });

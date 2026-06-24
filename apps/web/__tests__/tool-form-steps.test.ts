@@ -30,6 +30,7 @@ const EMPTY = {
 	variants: [
 		{
 			sku: "",
+			barcode: "",
 			voltage: "",
 			priceAmount: 0,
 			isDefault: true,
@@ -105,7 +106,13 @@ describe("firstStepWithError", () => {
 			categoryIds: ["c1"],
 			primaryCategoryId: "c1",
 			variants: [
-				{ sku: "SKU-1", priceAmount: 10, isDefault: true, sortOrder: 0 },
+				{
+					sku: "SKU-1",
+					barcode: "BAR-1",
+					priceAmount: 10,
+					isDefault: true,
+					sortOrder: 0,
+				},
 			],
 		};
 		expect(firstStepWithError(values)).toBeNull();
