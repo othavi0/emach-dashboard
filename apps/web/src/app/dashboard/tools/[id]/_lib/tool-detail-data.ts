@@ -52,6 +52,7 @@ export interface ToolStockRow {
 	minQty: number;
 	quantity: number;
 	reorderPoint: number;
+	variantBarcode: string;
 	variantId: string;
 	variantSku: string;
 	variantVoltage: string | null;
@@ -152,6 +153,7 @@ export const getToolDetail = cache(
 					.select({
 						variantId: toolVariant.id,
 						variantSku: toolVariant.sku,
+						variantBarcode: toolVariant.barcode,
 						variantVoltage: toolVariant.voltage,
 						branchId: branch.id,
 						branchName: branch.name,

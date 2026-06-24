@@ -8,6 +8,7 @@ import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 
 export interface BranchStockRow {
+	barcode: string;
 	imageUrl: string | null;
 	minQty: number;
 	quantity: number;
@@ -31,6 +32,7 @@ export interface BranchStockFiltersInput {
 }
 
 interface BranchStockDbRow extends Record<string, unknown> {
+	barcode: string;
 	image_url: string | null;
 	min_qty: number;
 	quantity: number;
@@ -122,8 +124,9 @@ export async function fetchBranchStockPage({
 	const whereParts: ReturnType<typeof sql>[] = [];
 
 	if (trimmedSearch) {
+		const pattern = `%${trimmedSearch}%`;
 		whereParts.push(
-			sql`(t.name ILIKE ${`%${trimmedSearch}%`} OR tv.sku ILIKE ${`%${trimmedSearch}%`})`
+			sql`(t.name ILIKE ${pattern} OR tv.sku ILIKE ${pattern} OR tv.barcode ILIKE ${pattern})`
 		);
 	}
 
@@ -158,6 +161,7 @@ export async function fetchBranchStockPage({
 			t.name AS tool_name,
 			tv.id AS variant_id,
 			tv.sku,
+			tv.barcode,
 			tv.voltage::text AS voltage,
 			(
 				SELECT ti.url FROM tool_image ti
@@ -181,6 +185,7 @@ export async function fetchBranchStockPage({
 	if (filters.sort === "urgency") {
 		const pageRows = result.rows.slice(0, BATCH_SIZE);
 		const items: BranchStockRow[] = pageRows.map((row) => ({
+			barcode: row.barcode,
 			toolId: row.tool_id,
 			toolName: row.tool_name,
 			variantId: row.variant_id,
@@ -197,6 +202,7 @@ export async function fetchBranchStockPage({
 	return paginate(
 		result.rows,
 		(row) => ({
+			barcode: row.barcode,
 			toolId: row.tool_id,
 			toolName: row.tool_name,
 			variantId: row.variant_id,

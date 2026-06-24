@@ -43,6 +43,7 @@ export function EstoqueTab({
 
 	const selectedRow: BranchStockRow | null = selected
 		? {
+				barcode: selected.variantBarcode,
 				imageUrl: toolImageUrl,
 				minQty: selected.minQty,
 				quantity: selected.quantity,
