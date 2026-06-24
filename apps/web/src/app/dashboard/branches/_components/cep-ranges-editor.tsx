@@ -143,6 +143,35 @@ export function CepRangesEditor({
 		);
 	}
 
+	function renderPresetChip(row: CepRangeValue, idx: number) {
+		return (
+			<li
+				className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+				key={`cep-${idx}-${row.from}`}
+			>
+				<span className="text-sm">
+					{row.label ? (
+						<span className="font-medium">{row.label} · </span>
+					) : null}
+					<span className="text-muted-foreground">
+						{cepMask.format(row.from)}–{cepMask.format(row.to)}
+					</span>
+				</span>
+				{disabled ? null : (
+					<Button
+						aria-label="Remover estado da cobertura"
+						onClick={() => removeRow(idx)}
+						size="icon-sm"
+						type="button"
+						variant="ghost"
+					>
+						<Trash2 className="size-4" />
+					</Button>
+				)}
+			</li>
+		);
+	}
+
 	const brasilTodo = isBrasilTodoOnly(value);
 
 	return (
@@ -152,7 +181,9 @@ export function CepRangesEditor({
 					Nenhuma faixa configurada. A filial não será sugerida por CEP.
 				</p>
 			) : (
-				<ul className="flex flex-col gap-3">{value.map(renderRow)}</ul>
+				<ul className="flex flex-col gap-3">
+					{value.map(presetOnly ? renderPresetChip : renderRow)}
+				</ul>
 			)}
 			<div className="flex flex-wrap items-center gap-2">
 				{brasilTodo ? (

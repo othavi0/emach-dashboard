@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@emach/ui/components/button";
-import { Input } from "@emach/ui/components/input";
 import { Trash2 } from "lucide-react";
 
 import { CepRangesEditor } from "@/app/dashboard/branches/_components/cep-ranges-editor";
@@ -47,18 +46,6 @@ export function ZoneFieldset({
 					<Trash2 aria-hidden className="size-4" />
 				</Button>
 			) : null}
-
-			<LabeledField id={`zone-${index}-name`} label="Nome da zona" required>
-				{(field) => (
-					<Input
-						{...field}
-						disabled={disabled}
-						onChange={(e) => patch({ name: e.target.value })}
-						placeholder="Ex: Sul"
-						value={value.name}
-					/>
-				)}
-			</LabeledField>
 
 			<div className="flex flex-col gap-1">
 				<span className="font-medium text-sm">Faixas de CEP</span>

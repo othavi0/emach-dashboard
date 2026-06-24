@@ -11,7 +11,6 @@ import {
 	AlertDialogTitle,
 } from "@emach/ui/components/alert-dialog";
 import { Button } from "@emach/ui/components/button";
-import { Input } from "@emach/ui/components/input";
 import { Separator } from "@emach/ui/components/separator";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Plus, Trash2 } from "lucide-react";
@@ -128,7 +127,6 @@ export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 	const [isDeleting, startDeleteTransition] = useTransition();
 	const { errors, clearErrors } = useFormErrors<ZoneFormValues>();
 
-	const [name, setName] = useState(zone?.name ?? "");
 	const [cepRanges, setCepRanges] = useState<CepRangeValue[]>(
 		(zone?.cepRanges ?? []) as CepRangeValue[]
 	);
@@ -146,11 +144,11 @@ export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 		}
 		return (
 			<Button
+				className="h-auto w-full justify-center border-dashed py-6"
 				onClick={() => {
 					clearErrors();
 					setExpanded(true);
 				}}
-				size="sm"
 				type="button"
 				variant="outline"
 			>
@@ -162,7 +160,6 @@ export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		const values: ZoneFormValues = {
-			name,
 			cepRanges,
 			deliveryDays,
 			minFreightAmount,
@@ -173,7 +170,6 @@ export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 				notify.success(zone ? "Zona atualizada" : "Zona criada");
 				if (!zone) {
 					setExpanded(false);
-					setName("");
 					setCepRanges([]);
 					setDeliveryDays(null);
 					setMinFreightAmount(null);
@@ -224,23 +220,6 @@ export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 			)}
 
 			<form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-				<LabeledField
-					error={errors.name}
-					id={`zone-name-${zone?.id ?? "new"}`}
-					label="Nome"
-					required
-				>
-					{(field) => (
-						<Input
-							{...field}
-							disabled={disabled}
-							onChange={(e) => setName(e.target.value)}
-							placeholder="Ex.: Sul e Sudeste"
-							value={name}
-						/>
-					)}
-				</LabeledField>
-
 				<div className="flex flex-col gap-2">
 					<span className="font-medium text-sm leading-none">
 						Faixas de CEP
@@ -320,7 +299,7 @@ export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 
 			{zone && (
 				<>
-					<Separator className="my-4" />
+					<Separator className="-mx-4 my-4 w-auto" />
 					<RateTableEditor
 						canManage={canManage}
 						carrierId={carrierId}

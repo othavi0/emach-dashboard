@@ -79,7 +79,6 @@ export interface ZoneDraft {
 	cepRanges: CepRangeValue[];
 	deliveryDays: number | null;
 	minFreightAmount: number | null;
-	name: string;
 	rates: RateRowDraft[];
 }
 
