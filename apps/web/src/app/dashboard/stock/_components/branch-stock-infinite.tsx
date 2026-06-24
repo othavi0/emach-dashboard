@@ -73,7 +73,7 @@ export function BranchStockInfinite({
 		if (result.ok && result.data) {
 			setSelectedRow(result.data);
 		} else {
-			notify.error("Código não encontrado");
+			notify.warning("Código não encontrado");
 		}
 		setScannerValue("");
 		scannerRef.current?.focus();
@@ -83,6 +83,7 @@ export function BranchStockInfinite({
 		<div aria-live="polite">
 			<div className="mb-4">
 				<Input
+					aria-label="Escanear código de barras"
 					onChange={(e) => setScannerValue(e.target.value)}
 					onKeyDown={handleScannerKeyDown}
 					placeholder="Escanear ou digitar código de barras"

@@ -44,8 +44,9 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 		notFound();
 	}
 
-	// Se ?variant= estiver presente, forçar a aba Variantes independente de ?tab=.
-	const current = variant ? "variantes" : (tab ?? "visao-geral");
+	// ?variant= define o default (aba Variantes) só quando nenhuma aba explícita foi escolhida;
+	// um ?tab= explícito sempre vence (senão clicar outra aba com ?variant= na URL renderiza vazio).
+	const current = tab ?? (variant ? "variantes" : "visao-geral");
 	const isOverview = current === "visao-geral";
 
 	// Carrega o resumo de reviews só quando a aba está ativa (lazy).

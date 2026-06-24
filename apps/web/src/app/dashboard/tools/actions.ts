@@ -475,7 +475,7 @@ export async function updateToolVariant(
 			updateFields.sku = fields.sku;
 		}
 		if (fields.barcode !== undefined) {
-			updateFields.barcode = fields.barcode;
+			updateFields.barcode = fields.barcode.trim();
 		}
 		if (fields.voltage !== undefined) {
 			updateFields.voltage = fields.voltage;
