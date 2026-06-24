@@ -307,7 +307,7 @@ export async function getToolBySlug(
 		reviewStats,
 	] = await Promise.all([
 		db.execute<ToolDetailVariant>(sql`
-			SELECT id, tool_id AS "toolId", sku, voltage,
+			SELECT id, tool_id AS "toolId", sku, barcode, voltage,
 			       price_amount AS "priceAmount",
 			       is_default AS "isDefault",
 			       sort_order AS "sortOrder",

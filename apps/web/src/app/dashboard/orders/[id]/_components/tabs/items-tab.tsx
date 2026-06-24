@@ -49,6 +49,9 @@ export function ItemsTab({ order }: { order: OrderDetail }) {
 											{item.manufacturerName && (
 												<span>Marca: {item.manufacturerName}</span>
 											)}
+											{item.barcode && (
+												<span>Cód. de barras: {item.barcode}</span>
+											)}
 										</div>
 									</div>
 								</TableCell>

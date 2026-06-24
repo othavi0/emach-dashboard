@@ -67,12 +67,12 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 					className="whitespace-nowrap text-muted-foreground text-xs"
 					htmlFor="tool-q"
 				>
-					Buscar por nome
+					Buscar por nome ou código de barras
 				</label>
 				<Input
 					id="tool-q"
 					onChange={(e) => setSearch(e.target.value)}
-					placeholder="Ex: furadeira"
+					placeholder="Ex: furadeira ou código de barras"
 					value={search}
 				/>
 			</div>

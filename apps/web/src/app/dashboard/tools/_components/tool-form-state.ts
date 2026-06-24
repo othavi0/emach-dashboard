@@ -45,6 +45,7 @@ export const EMPTY_TOOL_VALUES: ToolFormState = {
 	variants: [
 		{
 			sku: "",
+			barcode: "",
 			voltage: "",
 			priceAmount: 0,
 			isDefault: true,

@@ -54,6 +54,7 @@ function toFormValues(
 		return {
 			id: v.id,
 			sku: v.sku ?? "",
+			barcode: v.barcode ?? "",
 			voltage: (v.voltage ?? "") as (typeof VOLTAGE_OPTIONS)[number] | "",
 			priceAmount: Number.isFinite(priceNum) ? priceNum : 0,
 			isDefault: v.isDefault,

@@ -44,6 +44,7 @@ export function EntityTabs({
 			return;
 		}
 		const sp = new URLSearchParams(params);
+		sp.delete("variant");
 		if (next === defaultValue) {
 			sp.delete(paramName);
 		} else {

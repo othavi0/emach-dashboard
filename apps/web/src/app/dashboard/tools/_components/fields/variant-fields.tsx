@@ -13,8 +13,8 @@ export function VariantFields({
 	return (
 		<div className="flex flex-col gap-4">
 			<p className="flex items-center gap-1.5 text-muted-foreground text-xs">
-				Cada variante é uma SKU vendável. Use voltagens distintas (127V/220V)
-				como linhas separadas.
+				Cada variante tem SKU, código de barras e preço próprios. Use voltagens
+				distintas (127V/220V) como linhas separadas.
 				<HelpTooltip text="A variante padrão é a SKU pré-selecionada na loja quando o cliente abre a ferramenta. Exatamente uma por produto." />
 			</p>
 			<VariantsEditor

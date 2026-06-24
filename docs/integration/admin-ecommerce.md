@@ -218,6 +218,7 @@ auto-promo**. A invariante `subtotal − discount + shipping = total` fecha nume
 | `line_total`       | `numeric(12,2)` em BRL  | Sim         | `unit_price * quantity`.                                                        |
 | `discount_amount`  | `numeric(12,2)` em BRL  | Sim         | Desconto aplicado neste item (default `0`).                                     |
 | `sku`              | `text`                  | Não         | Snapshot do SKU da variante. Recomendado para rastreabilidade fiscal.           |
+| `barcode`          | `text`                  | Não         | Snapshot do `tool_variant.barcode`; gravar se disponível. Pedidos anteriores à introdução do campo ficam null. |
 | `model`            | `text`                  | Não         | Snapshot do modelo.                                                             |
 | `voltage`          | `text`                  | Não         | Snapshot da voltagem da variante.                                               |
 | `ncm`              | `text`                  | Não         | Código NCM — obrigatório para emissão de NF-e. Gravar se disponível no catálogo. |

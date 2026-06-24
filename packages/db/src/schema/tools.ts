@@ -144,6 +144,7 @@ export const toolVariant = pgTable(
 			.notNull()
 			.references(() => tool.id, { onDelete: "cascade" }),
 		sku: text("sku").notNull().unique(),
+		barcode: text("barcode").notNull(),
 		voltage: voltageEnum("voltage"),
 		priceAmount: numeric("price_amount", { precision: 10, scale: 2 }).notNull(),
 		isDefault: boolean("is_default").notNull().default(false),
@@ -160,6 +161,7 @@ export const toolVariant = pgTable(
 	(table) => [
 		index("tool_variant_tool_id_idx").on(table.toolId),
 		unique("tool_variant_tool_sort_unique").on(table.toolId, table.sortOrder),
+		unique("tool_variant_barcode_key").on(table.barcode),
 		uniqueIndex("tool_variant_one_default_per_tool")
 			.on(table.toolId)
 			.where(sql`${table.isDefault} = true`),

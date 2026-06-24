@@ -91,6 +91,7 @@ export function BranchStockCard({ onSelect, row }: BranchStockCardProps) {
 					<p className="line-clamp-1 text-muted-foreground text-xs">
 						SKU {row.sku}
 						{row.voltage ? ` · ${row.voltage}` : ""}
+						{row.barcode ? ` · ${row.barcode}` : ""}
 					</p>
 				</div>
 			</div>

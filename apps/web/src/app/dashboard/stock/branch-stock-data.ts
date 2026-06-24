@@ -8,6 +8,7 @@ import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 
 export interface BranchStockRow {
+	barcode: string;
 	imageUrl: string | null;
 	minQty: number;
 	quantity: number;
@@ -31,6 +32,7 @@ export interface BranchStockFiltersInput {
 }
 
 interface BranchStockDbRow extends Record<string, unknown> {
+	barcode: string;
 	image_url: string | null;
 	min_qty: number;
 	quantity: number;
@@ -105,6 +107,51 @@ function buildBranchStatusPredicate(status: BranchStockStatus | undefined) {
 	return null;
 }
 
+export async function lookupVariantByBarcode(
+	branchId: string,
+	barcode: string
+): Promise<BranchStockRow | null> {
+	const result = await db.execute<BranchStockDbRow>(sql`
+		SELECT
+			t.id AS tool_id,
+			t.name AS tool_name,
+			tv.id AS variant_id,
+			tv.sku,
+			tv.barcode,
+			tv.voltage::text AS voltage,
+			(
+				SELECT ti.url FROM tool_image ti
+				WHERE ti.tool_id = t.id
+				ORDER BY ti.sort_order ASC
+				LIMIT 1
+			) AS image_url,
+			COALESCE(sl.quantity, 0)::int AS quantity,
+			COALESCE(sl.min_qty, 0)::int AS min_qty,
+			COALESCE(sl.reorder_point, 0)::int AS reorder_point
+		FROM tool_variant tv
+		JOIN tool t ON t.id = tv.tool_id
+		LEFT JOIN stock_level sl ON sl.variant_id = tv.id AND sl.branch_id = ${branchId}
+		WHERE tv.barcode = ${barcode}
+		LIMIT 1
+	`);
+	const row = result.rows[0];
+	if (!row) {
+		return null;
+	}
+	return {
+		barcode: row.barcode,
+		toolId: row.tool_id,
+		toolName: row.tool_name,
+		variantId: row.variant_id,
+		sku: row.sku,
+		voltage: row.voltage,
+		imageUrl: row.image_url,
+		quantity: Number(row.quantity ?? 0),
+		minQty: Number(row.min_qty ?? 0),
+		reorderPoint: Number(row.reorder_point ?? 0),
+	};
+}
+
 export async function fetchBranchStockPage({
 	filters,
 	cursor,
@@ -122,8 +169,9 @@ export async function fetchBranchStockPage({
 	const whereParts: ReturnType<typeof sql>[] = [];
 
 	if (trimmedSearch) {
+		const pattern = `%${trimmedSearch}%`;
 		whereParts.push(
-			sql`(t.name ILIKE ${`%${trimmedSearch}%`} OR tv.sku ILIKE ${`%${trimmedSearch}%`})`
+			sql`(t.name ILIKE ${pattern} OR tv.sku ILIKE ${pattern} OR tv.barcode ILIKE ${pattern})`
 		);
 	}
 
@@ -158,6 +206,7 @@ export async function fetchBranchStockPage({
 			t.name AS tool_name,
 			tv.id AS variant_id,
 			tv.sku,
+			tv.barcode,
 			tv.voltage::text AS voltage,
 			(
 				SELECT ti.url FROM tool_image ti
@@ -181,6 +230,7 @@ export async function fetchBranchStockPage({
 	if (filters.sort === "urgency") {
 		const pageRows = result.rows.slice(0, BATCH_SIZE);
 		const items: BranchStockRow[] = pageRows.map((row) => ({
+			barcode: row.barcode,
 			toolId: row.tool_id,
 			toolName: row.tool_name,
 			variantId: row.variant_id,
@@ -197,6 +247,7 @@ export async function fetchBranchStockPage({
 	return paginate(
 		result.rows,
 		(row) => ({
+			barcode: row.barcode,
 			toolId: row.tool_id,
 			toolName: row.tool_name,
 			variantId: row.variant_id,

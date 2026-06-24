@@ -31,6 +31,7 @@ import {
 } from "./_components/stock-threshold-schema";
 import {
 	fetchBranchStockPage as _fetchBranchStockPage,
+	lookupVariantByBarcode as _lookupVariantByBarcode,
 	type BranchStockFiltersInput,
 	type BranchStockRow,
 } from "./branch-stock-data";
@@ -369,6 +370,17 @@ export async function fetchToolActivityPageAction(
 		await requireCapability("stock.read");
 	}
 	return await _fetchToolActivityPage(filters, cursor);
+}
+
+export async function lookupVariantByBarcodeAction(
+	barcode: string,
+	branchId: string
+): Promise<ActionResult<BranchStockRow | null>> {
+	await requireCapabilityWithContext("stock.read", {
+		targetBranchIds: [branchId],
+	});
+	const row = await _lookupVariantByBarcode(branchId, barcode.trim());
+	return { ok: true, data: row };
 }
 
 export async function fetchBranchStockPageAction(args: {

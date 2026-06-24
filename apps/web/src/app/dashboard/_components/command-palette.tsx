@@ -17,7 +17,12 @@ import type { SearchResults } from "../_lib/global-search";
 import { globalSearch } from "../search-actions";
 import { NAV_GROUPS } from "./nav-config";
 
-const EMPTY: SearchResults = { tools: [], orders: [], clients: [] };
+const EMPTY: SearchResults = {
+	tools: [],
+	orders: [],
+	clients: [],
+	variants: [],
+};
 
 export function CommandPalette({
 	open,
@@ -84,7 +89,12 @@ export function CommandPalette({
 	const visibleNav = trimmed
 		? navItems.filter((i) => i.label.toLowerCase().includes(trimmed))
 		: navItems;
-	const allHits = [...results.tools, ...results.orders, ...results.clients];
+	const allHits = [
+		...results.variants,
+		...results.tools,
+		...results.orders,
+		...results.clients,
+	];
 	const isEmpty = visibleNav.length === 0 && allHits.length === 0;
 
 	return (
@@ -123,7 +133,11 @@ export function CommandPalette({
 							<CommandGroup heading="Resultados">
 								{allHits.map((hit) => (
 									<CommandItem
-										key={`${hit.group}-${hit.id}`}
+										key={
+											hit.variantId
+												? `variant-${hit.variantId}`
+												: `${hit.group}-${hit.id}`
+										}
 										onSelect={() => go(hit.href)}
 									>
 										<span>{hit.label}</span>

@@ -70,6 +70,7 @@ export interface BranchOption {
 }
 
 export interface OrderDetailItem {
+	barcode: string | null;
 	cest: string | null;
 	discountAmount: number;
 	heightCm: number | null;
@@ -935,6 +936,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			orderId: item.orderId,
 			toolId: item.toolId,
 			sku: item.sku,
+			barcode: item.barcode,
 			name: item.name,
 			model: item.model,
 			voltage: item.voltage,

@@ -55,6 +55,7 @@ export function normalizeVariantValues(
 ): Omit<typeof toolVariant.$inferInsert, "id" | "toolId"> {
 	return {
 		sku: v.sku.trim(),
+		barcode: v.barcode.trim(),
 		voltage: v.voltage ? v.voltage : null,
 		priceAmount: v.priceAmount.toFixed(2),
 		isDefault: v.isDefault,

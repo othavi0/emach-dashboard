@@ -174,6 +174,7 @@ export const orderItem = pgTable(
 			.notNull()
 			.references(() => toolVariant.id, { onDelete: "restrict" }),
 		sku: text("sku"),
+		barcode: text("barcode"),
 		name: text("name").notNull(),
 		model: text("model"),
 		voltage: text("voltage"),

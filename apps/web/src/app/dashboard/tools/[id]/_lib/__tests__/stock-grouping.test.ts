@@ -11,6 +11,7 @@ function cell(p: Partial<ToolStockRow>): ToolStockRow {
 		minQty: 0,
 		quantity: 0,
 		reorderPoint: 0,
+		variantBarcode: "0000000000000",
 		variantId: "v1",
 		variantSku: "SKU-1",
 		variantVoltage: null,

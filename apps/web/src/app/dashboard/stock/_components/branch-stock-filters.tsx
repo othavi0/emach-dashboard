@@ -77,7 +77,7 @@ export function BranchStockFilters({
 				<Input
 					id="bs-search"
 					onChange={(e) => setSearch(e.target.value)}
-					placeholder="Nome ou SKU"
+					placeholder="Nome, SKU ou cód. barras"
 					value={search}
 				/>
 			</div>

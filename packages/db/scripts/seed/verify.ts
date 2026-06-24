@@ -131,6 +131,15 @@ const CHECKS: { name: string; query: string }[] = [
 			  )
 		`,
 	},
+	{
+		name: "tool_variant com barcode nulo",
+		query: "SELECT count(*) AS n FROM tool_variant WHERE barcode IS NULL",
+	},
+	{
+		name: "barcodes duplicados em tool_variant",
+		query:
+			"SELECT count(*) AS n FROM (SELECT barcode FROM tool_variant GROUP BY barcode HAVING count(*) > 1) d",
+	},
 ];
 
 export async function verifySeed(tx: Tx): Promise<void> {

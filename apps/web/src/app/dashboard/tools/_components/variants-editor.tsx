@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@emach/ui/components/button";
+import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import { RadioGroup, RadioGroupItem } from "@emach/ui/components/radio-group";
 import {
@@ -26,6 +27,7 @@ interface VariantsEditorProps {
 
 const EMPTY_VARIANT: ToolVariantInput = {
 	sku: "",
+	barcode: "",
 	voltage: "",
 	priceAmount: 0,
 	isDefault: false,
@@ -49,12 +51,30 @@ function computeDuplicateSkus(variants: ToolVariantInput[]): Set<string> {
 	return dups;
 }
 
+function computeDuplicateBarcodes(variants: ToolVariantInput[]): Set<string> {
+	const seen = new Map<string, number>();
+	const dups = new Set<string>();
+	for (const v of variants) {
+		const key = v.barcode.trim().toLowerCase();
+		if (!key) {
+			continue;
+		}
+		const count = (seen.get(key) ?? 0) + 1;
+		seen.set(key, count);
+		if (count > 1) {
+			dups.add(key);
+		}
+	}
+	return dups;
+}
+
 export function VariantsEditor({
 	value,
 	onChange,
 	error,
 }: VariantsEditorProps) {
 	const duplicateSkus = computeDuplicateSkus(value);
+	const duplicateBarcodes = computeDuplicateBarcodes(value);
 
 	function update(index: number, patch: Partial<ToolVariantInput>) {
 		const next = value.map((v, i) => (i === index ? { ...v, ...patch } : v));
@@ -96,9 +116,12 @@ export function VariantsEditor({
 			{value.map((variant, index) => {
 				const skuKey = variant.sku.trim().toLowerCase();
 				const isSkuDuplicate = skuKey !== "" && duplicateSkus.has(skuKey);
+				const barcodeKey = variant.barcode.trim().toLowerCase();
+				const isBarcodeDuplicate =
+					barcodeKey !== "" && duplicateBarcodes.has(barcodeKey);
 				return (
 					<div
-						className="grid gap-3 rounded-md border border-border bg-card p-4 md:grid-cols-[2fr_1fr_1fr_auto]"
+						className="grid gap-3 rounded-md border border-border bg-card p-4 md:grid-cols-[2fr_2fr_1fr_1fr_auto]"
 						key={index}
 					>
 						<div className="flex flex-col gap-2">
@@ -117,6 +140,25 @@ export function VariantsEditor({
 							{isSkuDuplicate && (
 								<p className="text-destructive text-xs">
 									SKU duplicado entre variantes
+								</p>
+							)}
+						</div>
+						<div className="flex flex-col gap-2">
+							<Label htmlFor={`var-barcode-${index}`}>
+								Código de barras
+								<span className="text-destructive"> *</span>
+							</Label>
+							<Input
+								aria-invalid={isBarcodeDuplicate || undefined}
+								aria-required="true"
+								className="font-mono"
+								id={`var-barcode-${index}`}
+								onChange={(e) => update(index, { barcode: e.target.value })}
+								value={variant.barcode}
+							/>
+							{isBarcodeDuplicate && (
+								<p className="text-destructive text-xs">
+									Código de barras duplicado entre variantes
 								</p>
 							)}
 						</div>

@@ -42,6 +42,7 @@ const requiredPositiveNumber = z
 export const toolVariantSchema = z.object({
 	id: z.string().optional(),
 	sku: z.string().min(1, "SKU obrigatório"),
+	barcode: z.string().trim().min(1, "Código de barras obrigatório").max(128),
 	voltage: z.enum(VOLTAGE_OPTIONS).optional().or(z.literal("")),
 	priceAmount: z
 		.number()
@@ -55,6 +56,7 @@ export type ToolVariantInput = z.infer<typeof toolVariantSchema>;
 export const updateVariantSchema = z.object({
 	variantId: z.string().min(1),
 	sku: z.string().min(1).max(64).optional(),
+	barcode: z.string().trim().min(1).max(128).optional(),
 	voltage: z.enum(VOLTAGE_OPTIONS).nullable().optional(),
 	priceAmount: z
 		.string()
@@ -71,6 +73,40 @@ export const attributeValueInputSchema = z.object({
 	valueBool: z.boolean().nullable().optional(),
 });
 export type AttributeValueInput = z.infer<typeof attributeValueInputSchema>;
+
+function checkVariantDuplicates(
+	variants: ToolVariantInput[],
+	ctx: z.RefinementCtx
+) {
+	const skus = new Set<string>();
+	for (let i = 0; i < variants.length; i++) {
+		const sku = variants[i]?.sku;
+		if (sku && skus.has(sku)) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["variants", i, "sku"],
+				message: "SKU duplicado entre variantes",
+			});
+		}
+		if (sku) {
+			skus.add(sku);
+		}
+	}
+	const barcodes = new Set<string>();
+	for (let i = 0; i < variants.length; i++) {
+		const code = variants[i]?.barcode;
+		if (code && barcodes.has(code)) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["variants", i, "barcode"],
+				message: "Código de barras duplicado entre variantes",
+			});
+		}
+		if (code) {
+			barcodes.add(code);
+		}
+	}
+}
 
 export const toolFormSchema = z
 	.object({
@@ -148,20 +184,7 @@ export const toolFormSchema = z
 				message: "Marque exatamente uma variante como padrão",
 			});
 		}
-		const skus = new Set<string>();
-		for (let i = 0; i < data.variants.length; i++) {
-			const sku = data.variants[i]?.sku;
-			if (sku && skus.has(sku)) {
-				ctx.addIssue({
-					code: "custom",
-					path: ["variants", i, "sku"],
-					message: "SKU duplicado entre variantes",
-				});
-			}
-			if (sku) {
-				skus.add(sku);
-			}
-		}
+		checkVariantDuplicates(data.variants, ctx);
 		const assignmentSet = new Set(data.attributeAssignments);
 		for (const slug of Object.keys(data.attributeValues)) {
 			if (!assignmentSet.has(slug)) {
