@@ -40,6 +40,7 @@ import {
 	type ZoneFormValues,
 	zoneSchema,
 } from "./_components/zone-schema";
+import { deriveZoneName } from "./_lib/derive-zone-name";
 import type { CarrierBaseRow } from "./data";
 
 const SHIPPING_PATH = "/dashboard/shipping";
@@ -253,7 +254,7 @@ export async function createCarrierWithZones(
 				await tx.insert(carrierZone).values({
 					id: zoneId,
 					carrierId: id,
-					name: zone.name,
+					name: deriveZoneName(zone.cepRanges),
 					cepRanges: zone.cepRanges,
 					deliveryDays: zone.deliveryDays ?? null,
 					minFreightAmount: numOrNull(zone.minFreightAmount),
@@ -365,12 +366,13 @@ export async function upsertZone(
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 	const id = zoneId ?? crypto.randomUUID();
+	const zoneName = deriveZoneName(parsed.data.cepRanges);
 	try {
 		if (zoneId) {
 			await db
 				.update(carrierZone)
 				.set({
-					name: parsed.data.name,
+					name: zoneName,
 					cepRanges: parsed.data.cepRanges,
 					deliveryDays: parsed.data.deliveryDays ?? null,
 					minFreightAmount:
@@ -383,7 +385,7 @@ export async function upsertZone(
 			await db.insert(carrierZone).values({
 				id,
 				carrierId,
-				name: parsed.data.name,
+				name: zoneName,
 				cepRanges: parsed.data.cepRanges,
 				deliveryDays: parsed.data.deliveryDays ?? null,
 				minFreightAmount:
@@ -401,7 +403,7 @@ export async function upsertZone(
 		action: "shipping.zone.upserted",
 		targetId: id,
 		targetType: "carrier_zone",
-		metadata: { carrierId, name: parsed.data.name },
+		metadata: { carrierId, name: zoneName },
 	});
 	revalidatePath(`/dashboard/shipping/carriers/${carrierId}`);
 	return { ok: true, data: { id } };
