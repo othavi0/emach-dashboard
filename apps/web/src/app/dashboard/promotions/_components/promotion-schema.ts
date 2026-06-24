@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { saoPauloDayKey } from "@/lib/format/date-input";
+import { HOME_MIN_PRODUCTS } from "../_lib/featured-home";
 
 const ASCII_PRINTABLE_REGEX = /^[\x20-\x7E]+$/;
 
@@ -105,6 +106,22 @@ export const promotionSchema = z
 			ctx.addIssue({
 				code: "custom",
 				message: "Selecione ao menos uma ferramenta",
+				path: ["toolIds"],
+			});
+		}
+
+		// Promoção destacada precisa de ao menos HOME_MIN_PRODUCTS produtos
+		// específicos para o storefront renderizar a seção da home.
+		if (
+			data.featured &&
+			data.type === "promotion" &&
+			!data.appliesToAll &&
+			data.toolIds.length < HOME_MIN_PRODUCTS
+		) {
+			ctx.addIssue({
+				code: "custom",
+				message:
+					"Promoção destacada precisa de ao menos 2 produtos para aparecer na home",
 				path: ["toolIds"],
 			});
 		}
