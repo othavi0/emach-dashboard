@@ -19,8 +19,8 @@ import { cache } from "react";
 import { decodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
+import { computeStatus } from "./_lib/featured-home";
 import {
-	computeStatus,
 	makePromotionCursor,
 	promotionStatusCondition,
 } from "./_lib/promotion-query-helpers";

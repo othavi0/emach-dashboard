@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeStatus } from "../promotion-query-helpers";
+import { computeStatus } from "../featured-home";
 
 const day = (offsetDays: number): Date =>
 	new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);

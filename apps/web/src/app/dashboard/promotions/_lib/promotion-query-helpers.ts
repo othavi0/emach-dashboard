@@ -6,6 +6,7 @@ import type { ActionResult } from "@/lib/action-result";
 import type { Cursor } from "@/lib/cursor";
 import { logger } from "@/lib/logger";
 import type { PromotionFormValues } from "../_components/promotion-schema";
+import { computeStatus } from "./featured-home";
 import { featuredConflictMessage } from "./featured-message";
 import type { PromotionSort, PromotionStatus } from "./promotion-types";
 
@@ -103,24 +104,6 @@ export function buildCouponFields(data: PromotionFormValues): {
 // ---------------------------------------------------------------------------
 // Status helpers
 // ---------------------------------------------------------------------------
-
-export function computeStatus(p: {
-	active: boolean;
-	startsAt: Date | null;
-	endsAt: Date | null;
-}): PromotionStatus {
-	const now = new Date();
-	if (p.endsAt && p.endsAt < now) {
-		return "expired";
-	}
-	if (!p.active) {
-		return "inactive";
-	}
-	if (p.startsAt && p.startsAt > now) {
-		return "scheduled";
-	}
-	return "active";
-}
 
 /**
  * Bloqueia marcar uma promoção como destaque enquanto já houver outro destaque

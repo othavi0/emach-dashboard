@@ -30,6 +30,14 @@ import { MaskedInput } from "@/components/masked-input";
 import { MoneyInput } from "@/components/money-input";
 import { integerMask } from "@/lib/masks";
 
+import {
+	computeHomeVisibility,
+	computeStatus,
+	HOME_MAX_PRODUCTS,
+	HOME_MIN_PRODUCTS,
+	type HomeInvisibleReason,
+	type HomeVisibility,
+} from "../_lib/featured-home";
 import { countToolsWithActivePromotionAction } from "../actions";
 import type { PromotionFormValues } from "./promotion-schema";
 
@@ -250,6 +258,36 @@ function Section({
 	);
 }
 
+// Mensagem do indicador de visibilidade quando a promoção destacada NÃO aparece
+// na home. `not_featured` não é exibido (o indicador só renderiza com featured).
+const HOME_HINT_MESSAGES: Record<HomeInvisibleReason, string> = {
+	not_featured: "",
+	too_few_products: `Não aparecerá na home: faltam produtos (mínimo de ${HOME_MIN_PRODUCTS}).`,
+	inactive: "Não aparecerá na home enquanto estiver inativa.",
+	expired: "Não aparecerá na home: vigência expirada.",
+	scheduled: "Aparecerá na home quando a vigência começar.",
+};
+
+/** Indicador ao vivo do estado de visibilidade da promoção na home do site. */
+function HomeVisibilityHint({ visibility }: { visibility: HomeVisibility }) {
+	if (visibility.visible) {
+		return (
+			<p className="-mt-1 font-medium text-success text-xs">
+				Aparecerá na home.
+			</p>
+		);
+	}
+
+	return (
+		<p
+			className={`-mt-1 flex items-start gap-1.5 font-medium text-xs ${visibility.reason === "scheduled" ? "text-muted-foreground" : "text-warning"}`}
+		>
+			<AlertCircle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+			<span>{HOME_HINT_MESSAGES[visibility.reason]}</span>
+		</p>
+	);
+}
+
 // ---------------------------------------------------------------------------
 // PromotionFormFields — campos controlados (values + onPatch)
 // ---------------------------------------------------------------------------
@@ -265,6 +303,22 @@ export function PromotionFormFields({
 }: PromotionFormFieldsProps) {
 	const type = values.type as PromotionType;
 	const isCoupon = type === "promocode";
+
+	const homeVisibility = computeHomeVisibility({
+		featured: values.featured,
+		appliesToAll: values.appliesToAll,
+		toolCount: values.toolIds.length,
+		status: computeStatus({
+			active: values.active,
+			startsAt: values.startsAt ?? null,
+			endsAt: values.endsAt ?? null,
+		}),
+	});
+
+	const overCap =
+		values.featured &&
+		!values.appliesToAll &&
+		values.toolIds.length > HOME_MAX_PRODUCTS;
 
 	// Aviso não-bloqueante: ferramentas com promoção ativa
 	const [conflictCount, setConflictCount] = useState(0);
@@ -529,9 +583,12 @@ export function PromotionFormFields({
 							</div>
 							<p className="-mt-2 text-muted-foreground text-xs">
 								Aparece em destaque no topo da home. Só uma promoção pode ser
-								destaque por vez — não é possível ativar enquanto houver outro
-								destaque vigente.
+								destaque por vez, e ela precisa de ao menos 2 produtos
+								vinculados para aparecer.
 							</p>
+							{values.featured && (
+								<HomeVisibilityHint visibility={homeVisibility} />
+							)}
 						</>
 					)}
 				</Section>
@@ -591,6 +648,18 @@ export function PromotionFormFields({
 											? "1 desta já tem promoção"
 											: `${conflictCount} destas já têm promoção`}{" "}
 										— o site aplica o maior desconto.
+									</span>
+								</div>
+							)}
+							{overCap && (
+								<div className="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-muted-foreground text-xs">
+									<AlertCircle
+										aria-hidden
+										className="mt-0.5 size-3.5 shrink-0"
+									/>
+									<span>
+										A home exibe os 4 produtos mais recentes; os demais aparecem
+										só em "Ver todas as ofertas".
 									</span>
 								</div>
 							)}

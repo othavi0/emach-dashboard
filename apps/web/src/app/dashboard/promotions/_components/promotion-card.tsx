@@ -1,6 +1,6 @@
-import { Star, Tag, Ticket } from "lucide-react";
+import { AlertTriangle, Star, Tag, Ticket } from "lucide-react";
 import Link from "next/link";
-
+import { computeHomeVisibility } from "../_lib/featured-home";
 import type { PromotionListItem } from "../data";
 import {
 	daysRemainingDisplay,
@@ -23,6 +23,12 @@ export function PromotionCard({ promotion }: { promotion: PromotionListItem }) {
 	} else if (remaining.tone === "warning") {
 		remainingTone = "text-amber-500";
 	}
+	const homeVisibility = computeHomeVisibility({
+		featured: promotion.featured,
+		appliesToAll: promotion.appliesToAll,
+		toolCount: promotion.tools.length,
+		status: promotion.status,
+	});
 
 	return (
 		<Link
@@ -45,12 +51,26 @@ export function PromotionCard({ promotion }: { promotion: PromotionListItem }) {
 						{isCoupon ? "Cupom" : "Automática"}
 						{isCoupon && promotion.code ? ` · ${promotion.code}` : ""}
 					</p>
-					{promotion.featured && (
-						<span className="mt-1 inline-flex items-center gap-1 font-medium text-[10px] text-primary uppercase tracking-wide">
-							<Star aria-hidden className="size-3 fill-current" />
-							Destaque no home
-						</span>
-					)}
+					{promotion.featured &&
+						(homeVisibility.visible ? (
+							<span className="mt-1 inline-flex items-center gap-1 font-medium text-[10px] text-primary uppercase tracking-wide">
+								<Star aria-hidden className="size-3 fill-current" />
+								Visível na home
+							</span>
+						) : (
+							<span
+								className={`mt-1 inline-flex items-center gap-1 font-medium text-[10px] uppercase tracking-wide ${homeVisibility.reason === "scheduled" ? "text-muted-foreground" : "text-warning"}`}
+							>
+								<AlertTriangle aria-hidden className="size-3" />
+								{homeVisibility.reason === "too_few_products" &&
+									"Destaque sem efeito: faltam produtos"}
+								{homeVisibility.reason === "inactive" &&
+									"Destaque sem efeito: inativa"}
+								{homeVisibility.reason === "expired" &&
+									"Destaque sem efeito: expirada"}
+								{homeVisibility.reason === "scheduled" && "Destaque agendado"}
+							</span>
+						))}
 				</div>
 				<PromotionStatusBadge status={promotion.status} />
 			</div>

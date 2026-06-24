@@ -2,6 +2,53 @@ import { describe, expect, it } from "vitest";
 import { startOfDaySaoPaulo } from "@/lib/format/date-input";
 import { createPromotionSchema, promotionSchema } from "../promotion-schema";
 
+const featuredBase = {
+	type: "promotion" as const,
+	title: "Liquida",
+	description: null,
+	discountType: "percent" as const,
+	discountValue: 10,
+	appliesToAll: false,
+	active: true,
+	featured: true,
+	startsAt: null,
+	endsAt: null,
+	toolIds: ["t1", "t2"],
+};
+
+describe("promotionSchema — destaque exige 2 produtos", () => {
+	it("bloqueia featured + ferramentas específicas + 1 produto", () => {
+		const r = promotionSchema.safeParse({ ...featuredBase, toolIds: ["t1"] });
+		expect(r.success).toBe(false);
+		if (!r.success) {
+			const issue = r.error.issues.find((i) => i.path[0] === "toolIds");
+			expect(issue?.message).toContain("ao menos 2 produtos");
+		}
+	});
+
+	it("aceita featured + ferramentas específicas + 2 produtos", () => {
+		expect(promotionSchema.safeParse(featuredBase).success).toBe(true);
+	});
+
+	it("aceita featured + appliesToAll mesmo sem produtos", () => {
+		const r = promotionSchema.safeParse({
+			...featuredBase,
+			appliesToAll: true,
+			toolIds: [],
+		});
+		expect(r.success).toBe(true);
+	});
+
+	it("não aplica o mínimo de 2 quando não é featured (só o de 1)", () => {
+		const r = promotionSchema.safeParse({
+			...featuredBase,
+			featured: false,
+			toolIds: ["t1"],
+		});
+		expect(r.success).toBe(true);
+	});
+});
+
 const base = {
 	title: "Promo",
 	description: null,
