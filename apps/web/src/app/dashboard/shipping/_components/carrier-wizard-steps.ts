@@ -35,7 +35,6 @@ export const CARRIER_STEP_FIELDS = {
 } satisfies Record<CarrierStepId, (keyof CreateCarrierDraft)[]>;
 
 export const EMPTY_ZONE = {
-	name: "",
 	cepRanges: [],
 	deliveryDays: null,
 	minFreightAmount: null,
