@@ -38,6 +38,7 @@ export function BranchStockInfinite({
 }: BranchStockInfiniteProps) {
 	const [selectedRow, setSelectedRow] = useState<BranchStockRow | null>(null);
 	const [scannerValue, setScannerValue] = useState("");
+	const [scanning, setScanning] = useState(false);
 	const scannerRef = useRef<HTMLInputElement>(null);
 
 	const resetKey = JSON.stringify(filters);
@@ -69,14 +70,26 @@ export function BranchStockInfinite({
 		}
 
 		// 2. Fallback: buscar via server action com branch-scope
-		const result = await lookupVariantByBarcodeAction(value, branchId);
-		if (result.ok && result.data) {
-			setSelectedRow(result.data);
-		} else {
-			notify.warning("Código não encontrado");
+		if (scanning) {
+			return;
 		}
-		setScannerValue("");
-		scannerRef.current?.focus();
+		setScanning(true);
+		try {
+			const result = await lookupVariantByBarcodeAction(value, branchId);
+			if (result.ok) {
+				if (result.data) {
+					setSelectedRow(result.data);
+				} else {
+					notify.warning("Código não encontrado");
+				}
+			} else {
+				notify.error("Erro ao buscar código — tente novamente");
+			}
+		} finally {
+			setScanning(false);
+			setScannerValue("");
+			scannerRef.current?.focus();
+		}
 	}
 
 	return (
@@ -84,6 +97,7 @@ export function BranchStockInfinite({
 			<div className="mb-4">
 				<Input
 					aria-label="Escanear código de barras"
+					disabled={scanning}
 					onChange={(e) => setScannerValue(e.target.value)}
 					onKeyDown={handleScannerKeyDown}
 					placeholder="Escanear ou digitar código de barras"

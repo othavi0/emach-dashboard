@@ -133,7 +133,11 @@ export function CommandPalette({
 							<CommandGroup heading="Resultados">
 								{allHits.map((hit) => (
 									<CommandItem
-										key={`${hit.group}-${hit.id}`}
+										key={
+											hit.variantId
+												? `variant-${hit.variantId}`
+												: `${hit.group}-${hit.id}`
+										}
 										onSelect={() => go(hit.href)}
 									>
 										<span>{hit.label}</span>

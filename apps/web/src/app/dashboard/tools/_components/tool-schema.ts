@@ -42,7 +42,7 @@ const requiredPositiveNumber = z
 export const toolVariantSchema = z.object({
 	id: z.string().optional(),
 	sku: z.string().min(1, "SKU obrigatório"),
-	barcode: z.string().min(1, "Código de barras obrigatório"),
+	barcode: z.string().trim().min(1, "Código de barras obrigatório").max(128),
 	voltage: z.enum(VOLTAGE_OPTIONS).optional().or(z.literal("")),
 	priceAmount: z
 		.number()
@@ -56,7 +56,7 @@ export type ToolVariantInput = z.infer<typeof toolVariantSchema>;
 export const updateVariantSchema = z.object({
 	variantId: z.string().min(1),
 	sku: z.string().min(1).max(64).optional(),
-	barcode: z.string().min(1).max(128).optional(),
+	barcode: z.string().trim().min(1).max(128).optional(),
 	voltage: z.enum(VOLTAGE_OPTIONS).nullable().optional(),
 	priceAmount: z
 		.string()

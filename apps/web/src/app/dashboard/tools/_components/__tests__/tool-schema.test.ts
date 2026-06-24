@@ -227,4 +227,35 @@ describe("toolFormSchema — barcode duplicado entre variantes", () => {
 		);
 		expect(r.success).toBe(false);
 	});
+
+	it("rejeita barcode duplicado após trim ('BAR' e 'BAR ')", () => {
+		const r = toolFormSchema.safeParse(
+			baseTool({
+				variants: [
+					{
+						sku: "S1",
+						barcode: "BAR",
+						priceAmount: 100,
+						isDefault: true,
+						sortOrder: 0,
+					},
+					{
+						sku: "S2",
+						barcode: "BAR ",
+						priceAmount: 100,
+						isDefault: false,
+						sortOrder: 1,
+					},
+				],
+			})
+		);
+		expect(r.success).toBe(false);
+		if (!r.success) {
+			expect(
+				r.error.issues.some(
+					(i) => i.path[0] === "variants" && i.path[2] === "barcode"
+				)
+			).toBe(true);
+		}
+	});
 });
