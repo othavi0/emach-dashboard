@@ -49,6 +49,7 @@ interface VariantsTabProps {
 }
 
 interface RowState {
+	barcode: string;
 	priceAmount: string;
 	sku: string;
 	voltage: string | null;
@@ -56,6 +57,7 @@ interface RowState {
 
 function makeRowState(v: ToolDetailVariant): RowState {
 	return {
+		barcode: v.barcode ?? "",
 		sku: v.sku,
 		voltage: v.voltage,
 		priceAmount: v.priceAmount,
@@ -66,7 +68,8 @@ function isDirty(initial: RowState, current: RowState): boolean {
 	return (
 		initial.sku !== current.sku ||
 		initial.voltage !== current.voltage ||
-		initial.priceAmount !== current.priceAmount
+		initial.priceAmount !== current.priceAmount ||
+		initial.barcode !== current.barcode
 	);
 }
 
@@ -100,6 +103,7 @@ export function VariantsTab({
 					<TableHeader>
 						<TableRow>
 							<TableHead>SKU</TableHead>
+							<TableHead>Código de barras</TableHead>
 							<TableHead>Voltagem</TableHead>
 							<TableHead className="text-right">Preço (R$)</TableHead>
 							<TableHead className="text-center">Padrão</TableHead>
@@ -179,6 +183,7 @@ function EditableRow({
 			const result = await updateToolVariant({
 				variantId: variant.id,
 				sku: state.sku === initial.sku ? undefined : state.sku,
+				barcode: state.barcode === initial.barcode ? undefined : state.barcode,
 				voltage:
 					state.voltage === initial.voltage
 						? undefined
@@ -280,6 +285,13 @@ function EditableRow({
 				/>
 			</TableCell>
 			<TableCell>
+				<Input
+					className="h-8 w-[160px] font-mono text-xs"
+					onChange={(e) => setState({ ...state, barcode: e.target.value })}
+					value={state.barcode}
+				/>
+			</TableCell>
+			<TableCell>
 				<Select
 					onValueChange={(value) =>
 						setState({ ...state, voltage: value === "_none_" ? null : value })
@@ -369,6 +381,7 @@ function VariantsReadOnly({ variants }: { variants: ToolDetailVariant[] }) {
 			<TableHeader>
 				<TableRow>
 					<TableHead>SKU</TableHead>
+					<TableHead>Código de barras</TableHead>
 					<TableHead>Voltagem</TableHead>
 					<TableHead className="text-right">Preço</TableHead>
 					<TableHead className="text-center">Padrão</TableHead>
@@ -379,6 +392,7 @@ function VariantsReadOnly({ variants }: { variants: ToolDetailVariant[] }) {
 				{variants.map((v) => (
 					<TableRow key={v.id}>
 						<TableCell className="font-mono text-xs">{v.sku}</TableCell>
+						<TableCell className="font-mono text-xs">{v.barcode}</TableCell>
 						<TableCell>{v.voltage ?? "—"}</TableCell>
 						<TableCell className="text-right tabular-nums">
 							{fmt(v.priceAmount)}
