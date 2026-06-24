@@ -72,7 +72,7 @@ export async function runGlobalSearch(query: string): Promise<SearchResults> {
 			variantId: r.variant_id,
 			label: r.name,
 			sublabel: r.sku ?? undefined,
-			href: `/dashboard/tools/${r.id}?variant=${r.variant_id}`,
+			href: `/dashboard/tools/${r.id}?tab=variantes&variant=${r.variant_id}`,
 			group: "Ferramentas",
 		})),
 	};
