@@ -144,11 +144,11 @@ export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 		}
 		return (
 			<Button
+				className="h-auto w-full justify-center border-dashed py-6"
 				onClick={() => {
 					clearErrors();
 					setExpanded(true);
 				}}
-				size="sm"
 				type="button"
 				variant="outline"
 			>
@@ -299,7 +299,7 @@ export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 
 			{zone && (
 				<>
-					<Separator className="my-4" />
+					<Separator className="-mx-4 my-4 w-auto" />
 					<RateTableEditor
 						canManage={canManage}
 						carrierId={carrierId}
