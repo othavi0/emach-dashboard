@@ -1,6 +1,9 @@
 import type { AttributeDefinition } from "@emach/db/schema/attributes";
 import { describe, expect, it } from "vitest";
-import { attributeValueRow } from "../../_lib/tool-query-helpers";
+import {
+	attributeValueRow,
+	normalizeVariantValues,
+} from "../../_lib/tool-query-helpers";
 
 const def = (
 	inputType: AttributeDefinition["inputType"]
@@ -16,6 +19,20 @@ const def = (
 	sortOrder: 0,
 	createdAt: new Date("2026-01-01T00:00:00Z"),
 	updatedAt: new Date("2026-01-01T00:00:00Z"),
+});
+
+describe("normalizeVariantValues", () => {
+	it("normaliza barcode com trim", () => {
+		const out = normalizeVariantValues({
+			sku: "S1",
+			barcode: "  7891234567890 ",
+			voltage: "",
+			priceAmount: 100,
+			isDefault: true,
+			sortOrder: 0,
+		});
+		expect(out.barcode).toBe("7891234567890");
+	});
 });
 
 describe("attributeValueRow", () => {

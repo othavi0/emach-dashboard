@@ -474,6 +474,9 @@ export async function updateToolVariant(
 		if (fields.sku !== undefined) {
 			updateFields.sku = fields.sku;
 		}
+		if (fields.barcode !== undefined) {
+			updateFields.barcode = fields.barcode;
+		}
 		if (fields.voltage !== undefined) {
 			updateFields.voltage = fields.voltage;
 		}
@@ -498,8 +501,16 @@ export async function updateToolVariant(
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateToolVariant falhou", error);
-		// SKU duplicado: unique_violation do Postgres (code 23505, em e.cause).
-		if (getPgError(error)?.code === "23505") {
+		// unique_violation do Postgres (SQLSTATE 23505, em e.cause via getPgError).
+		// Diferencia constraint de barcode vs SKU; fallback genérico para outros casos.
+		const pg = getPgError(error);
+		if (pg?.code === "23505") {
+			if (pg.constraint === "tool_variant_barcode_key") {
+				return {
+					ok: false,
+					error: "Código de barras já cadastrado em outra variante",
+				};
+			}
 			return { ok: false, error: "SKU já existe para outra variante" };
 		}
 		return { ok: false, error: "Não foi possível atualizar a variante" };
