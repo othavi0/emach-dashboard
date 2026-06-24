@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+/**
+ * Validação mantida de propósito (defesa em profundidade). As zonas de
+ * transportadora travaram os campos De/Até em readOnly (entram só via preset),
+ * mas esta validação segue ativa para: entrada manual nas **filiais**
+ * (digitação livre), dados **legados** anteriores ao travamento, e escritas do
+ * app **e-commerce** que compartilha o banco. Não simplificar.
+ */
 export const cepRangeSchema = z
 	.object({
 		from: z
