@@ -18,7 +18,6 @@ export const cepRangeSchema = z
 	});
 
 export const zoneSchema = z.object({
-	name: z.string().trim().min(1, "Nome obrigatório").max(80),
 	cepRanges: z
 		.array(cepRangeSchema)
 		.min(1, "Adicione ao menos uma faixa de CEP")
