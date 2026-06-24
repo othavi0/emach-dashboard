@@ -30,6 +30,11 @@ import { MaskedInput } from "@/components/masked-input";
 import { MoneyInput } from "@/components/money-input";
 import { integerMask } from "@/lib/masks";
 
+import {
+	computeHomeVisibility,
+	computeStatus,
+	HOME_MAX_PRODUCTS,
+} from "../_lib/featured-home";
 import { countToolsWithActivePromotionAction } from "../actions";
 import type { PromotionFormValues } from "./promotion-schema";
 
@@ -265,6 +270,22 @@ export function PromotionFormFields({
 }: PromotionFormFieldsProps) {
 	const type = values.type as PromotionType;
 	const isCoupon = type === "promocode";
+
+	const homeVisibility = computeHomeVisibility({
+		featured: values.featured,
+		appliesToAll: values.appliesToAll,
+		toolCount: values.toolIds.length,
+		status: computeStatus({
+			active: values.active,
+			startsAt: values.startsAt ?? null,
+			endsAt: values.endsAt ?? null,
+		}),
+	});
+
+	const overCap =
+		values.featured &&
+		!values.appliesToAll &&
+		values.toolIds.length > HOME_MAX_PRODUCTS;
 
 	// Aviso não-bloqueante: ferramentas com promoção ativa
 	const [conflictCount, setConflictCount] = useState(0);
@@ -529,9 +550,32 @@ export function PromotionFormFields({
 							</div>
 							<p className="-mt-2 text-muted-foreground text-xs">
 								Aparece em destaque no topo da home. Só uma promoção pode ser
-								destaque por vez — não é possível ativar enquanto houver outro
-								destaque vigente.
+								destaque por vez, e ela precisa de ao menos 2 produtos
+								vinculados para aparecer.
 							</p>
+							{values.featured &&
+								(homeVisibility.visible ? (
+									<p className="-mt-1 font-medium text-success text-xs">
+										Aparecerá na home.
+									</p>
+								) : (
+									<p className="-mt-1 flex items-start gap-1.5 font-medium text-warning text-xs">
+										<AlertCircle
+											aria-hidden
+											className="mt-0.5 size-3.5 shrink-0"
+										/>
+										<span>
+											{homeVisibility.reason === "too_few_products" &&
+												"Não aparecerá na home: faltam produtos (mínimo de 2)."}
+											{homeVisibility.reason === "inactive" &&
+												"Não aparecerá na home enquanto estiver inativa."}
+											{homeVisibility.reason === "expired" &&
+												"Não aparecerá na home: vigência expirada."}
+											{homeVisibility.reason === "scheduled" &&
+												"Aparecerá na home quando a vigência começar."}
+										</span>
+									</p>
+								))}
 						</>
 					)}
 				</Section>
@@ -591,6 +635,18 @@ export function PromotionFormFields({
 											? "1 desta já tem promoção"
 											: `${conflictCount} destas já têm promoção`}{" "}
 										— o site aplica o maior desconto.
+									</span>
+								</div>
+							)}
+							{overCap && (
+								<div className="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-muted-foreground text-xs">
+									<AlertCircle
+										aria-hidden
+										className="mt-0.5 size-3.5 shrink-0"
+									/>
+									<span>
+										A home exibe os 4 produtos mais recentes; os demais aparecem
+										só em "Ver todas as ofertas".
 									</span>
 								</div>
 							)}
