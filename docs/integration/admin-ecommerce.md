@@ -402,3 +402,21 @@ Quando qualquer arquivo em `packages/db/src/schema/` for alterado:
 4. Para drops ou renames de colunas: coordenar o deploy — um app pode gravar em coluna que o outro ainda não viu ou já não vê.
 
 A fonte de verdade é sempre o dashboard (este repositório). O e-commerce **nunca altera o schema** de forma unilateral — mudanças começam aqui e propagam. Ver ADR-0006 e ADR-0009.
+
+---
+
+## Seção de promoção em destaque (home)
+
+O storefront renderiza a promoção `featured` da home com regras de layout que
+dependem da quantidade de produtos vinculados:
+
+- **Mínimo de 2 produtos** — com menos de 2 produtos específicos, a seção **não
+  renderiza**.
+- **Teto de 4 produtos** — a home exibe os 4 mais recentes (`created_at`); os
+  demais só em "Ver todas as ofertas".
+
+O dashboard espelha esses números em
+`apps/web/src/app/dashboard/promotions/_lib/featured-home.ts`
+(`HOME_MIN_PRODUCTS = 2`, `HOME_MAX_PRODUCTS = 4`) para validar/avisar no form e
+na listagem. **Alterar o layout no storefront exige atualizar essas constantes
+no dashboard junto** (sincronia manual — não há import cross-repo).
