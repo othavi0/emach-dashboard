@@ -144,6 +144,7 @@ export const toolVariant = pgTable(
 			.notNull()
 			.references(() => tool.id, { onDelete: "cascade" }),
 		sku: text("sku").notNull().unique(),
+		barcode: text("barcode"),
 		voltage: voltageEnum("voltage"),
 		priceAmount: numeric("price_amount", { precision: 10, scale: 2 }).notNull(),
 		isDefault: boolean("is_default").notNull().default(false),
