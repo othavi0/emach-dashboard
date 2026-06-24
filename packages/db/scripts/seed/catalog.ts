@@ -355,6 +355,7 @@ const SUPPLIER_NAMES = [
 // ---------------------------------------------------------------------------
 
 interface VariantDef {
+	barcode: string;
 	isDefault: boolean;
 	priceAmount: string;
 	sku: string;
@@ -414,6 +415,7 @@ const TOOLS: ToolDef[] = [
 		variants: [
 			{
 				sku: "DHP453Z-127",
+				barcode: "DHP453Z-127",
 				voltage: "127V",
 				priceAmount: "349.90",
 				isDefault: true,
@@ -421,6 +423,7 @@ const TOOLS: ToolDef[] = [
 			},
 			{
 				sku: "DHP453Z-220",
+				barcode: "DHP453Z-220",
 				voltage: "220V",
 				priceAmount: "349.90",
 				isDefault: false,
@@ -454,6 +457,7 @@ const TOOLS: ToolDef[] = [
 		variants: [
 			{
 				sku: "DDF458Z-18V",
+				barcode: "DDF458Z-18V",
 				voltage: undefined,
 				priceAmount: "589.90",
 				isDefault: true,
@@ -481,6 +485,7 @@ const TOOLS: ToolDef[] = [
 		variants: [
 			{
 				sku: "GKS185S-127",
+				barcode: "GKS185S-127",
 				voltage: "127V",
 				priceAmount: "849.00",
 				isDefault: true,
@@ -488,6 +493,7 @@ const TOOLS: ToolDef[] = [
 			},
 			{
 				sku: "GKS185S-220",
+				barcode: "GKS185S-220",
 				voltage: "220V",
 				priceAmount: "849.00",
 				isDefault: false,
@@ -495,6 +501,7 @@ const TOOLS: ToolDef[] = [
 			},
 			{
 				sku: "GKS185S-BIV",
+				barcode: "GKS185S-BIV",
 				voltage: "Bivolt",
 				priceAmount: "899.00",
 				isDefault: false,
@@ -523,6 +530,7 @@ const TOOLS: ToolDef[] = [
 		variants: [
 			{
 				sku: "ST8000E-127",
+				barcode: "ST8000E-127",
 				voltage: "127V",
 				priceAmount: "399.90",
 				isDefault: true,
@@ -530,6 +538,7 @@ const TOOLS: ToolDef[] = [
 			},
 			{
 				sku: "ST8000E-220",
+				barcode: "ST8000E-220",
 				voltage: "220V",
 				priceAmount: "399.90",
 				isDefault: false,
@@ -554,6 +563,7 @@ const TOOLS: ToolDef[] = [
 		variants: [
 			{
 				sku: "GWS720-115-BIV",
+				barcode: "GWS720-115-BIV",
 				voltage: "Bivolt",
 				priceAmount: "299.90",
 				isDefault: true,
@@ -581,6 +591,7 @@ const TOOLS: ToolDef[] = [
 		variants: [
 			{
 				sku: "GSS280AVE-127",
+				barcode: "GSS280AVE-127",
 				voltage: "127V",
 				priceAmount: "249.90",
 				isDefault: true,
@@ -588,6 +599,7 @@ const TOOLS: ToolDef[] = [
 			},
 			{
 				sku: "GSS280AVE-220",
+				barcode: "GSS280AVE-220",
 				voltage: "220V",
 				priceAmount: "249.90",
 				isDefault: false,
@@ -618,6 +630,7 @@ const TOOLS: ToolDef[] = [
 		variants: [
 			{
 				sku: "CSA100B-127",
+				barcode: "CSA100B-127",
 				voltage: "127V",
 				priceAmount: "1849.00",
 				isDefault: true,
@@ -625,6 +638,7 @@ const TOOLS: ToolDef[] = [
 			},
 			{
 				sku: "CSA100B-220",
+				barcode: "CSA100B-220",
 				voltage: "220V",
 				priceAmount: "1849.00",
 				isDefault: false,
@@ -652,6 +666,7 @@ const TOOLS: ToolDef[] = [
 		variants: [
 			{
 				sku: "MC-27H-UN",
+				barcode: "MC-27H-UN",
 				voltage: undefined,
 				priceAmount: "89.90",
 				isDefault: true,
@@ -678,6 +693,7 @@ const TOOLS: ToolDef[] = [
 		variants: [
 			{
 				sku: "AU-8-BC-UN",
+				barcode: "AU-8-BC-UN",
 				voltage: undefined,
 				priceAmount: "49.90",
 				isDefault: true,
@@ -705,6 +721,7 @@ const TOOLS: ToolDef[] = [
 		variants: [
 			{
 				sku: "PE-82600-127",
+				barcode: "PE-82600-127",
 				voltage: "127V",
 				priceAmount: "479.90",
 				isDefault: true,
@@ -729,6 +746,7 @@ const TOOLS: ToolDef[] = [
 		variants: [
 			{
 				sku: "DC-115-INOX-10-UN",
+				barcode: "DC-115-INOX-10-UN",
 				voltage: undefined,
 				priceAmount: "69.90",
 				isDefault: true,
@@ -899,6 +917,7 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 				id: variantId,
 				toolId,
 				sku: varDef.sku,
+				barcode: varDef.barcode,
 				voltage: varDef.voltage ?? null,
 				priceAmount: varDef.priceAmount,
 				isDefault: varDef.isDefault,
