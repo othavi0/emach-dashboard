@@ -107,7 +107,11 @@ export function buildToolsWhereClause(
 ) {
 	const whereParts: ReturnType<typeof sql>[] = [];
 	if (filters.search) {
-		whereParts.push(sql`t.name ILIKE ${`%${filters.search}%`}`);
+		const searchPattern = `%${filters.search}%`;
+		whereParts.push(sql`(
+			t.name ILIKE ${searchPattern}
+			OR EXISTS (SELECT 1 FROM tool_variant tv WHERE tv.tool_id = t.id AND tv.barcode ILIKE ${searchPattern})
+		)`);
 	}
 	if (filters.categoryId) {
 		whereParts.push(

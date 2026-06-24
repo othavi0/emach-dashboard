@@ -4,12 +4,14 @@ export interface SearchHit {
 	id: string;
 	label: string;
 	sublabel?: string;
+	variantId?: string;
 }
 
 export interface SearchResults {
 	clients: SearchHit[];
 	orders: SearchHit[];
 	tools: SearchHit[];
+	variants: SearchHit[];
 }
 
 export function isSearchable(query: string): boolean {

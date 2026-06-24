@@ -10,11 +10,12 @@ const LIMIT = 5;
 
 export async function runGlobalSearch(query: string): Promise<SearchResults> {
 	if (!isSearchable(query)) {
-		return { tools: [], orders: [], clients: [] };
+		return { tools: [], orders: [], clients: [], variants: [] };
 	}
 	const pattern = buildSearchPattern(query);
+	const trimmed = query.trim();
 
-	const [tools, orders, clients] = await Promise.all([
+	const [tools, orders, clients, barcodeVariant] = await Promise.all([
 		db.execute<{ id: string; name: string; model: string | null }>(sql`
 			SELECT id, name, model FROM tool
 			WHERE lower(name) LIKE ${pattern} OR lower(coalesce(model, '')) LIKE ${pattern}
@@ -30,6 +31,17 @@ export async function runGlobalSearch(query: string): Promise<SearchResults> {
 			SELECT id, name, document FROM client
 			WHERE lower(name) LIKE ${pattern} OR coalesce(document, '') LIKE ${pattern}
 			ORDER BY name ASC LIMIT ${LIMIT}
+		`),
+		db.execute<{
+			variant_id: string;
+			id: string;
+			name: string;
+			sku: string | null;
+		}>(sql`
+			SELECT tv.id AS variant_id, t.id, t.name, tv.sku
+			FROM tool_variant tv JOIN tool t ON t.id = tv.tool_id
+			WHERE tv.barcode = ${trimmed}
+			LIMIT 1
 		`),
 	]);
 
@@ -54,6 +66,14 @@ export async function runGlobalSearch(query: string): Promise<SearchResults> {
 			sublabel: r.document ?? undefined,
 			href: `/dashboard/customers/${r.id}`,
 			group: "Clientes",
+		})),
+		variants: barcodeVariant.rows.map((r) => ({
+			id: r.id,
+			variantId: r.variant_id,
+			label: r.name,
+			sublabel: r.sku ?? undefined,
+			href: `/dashboard/tools/${r.id}?variant=${r.variant_id}`,
+			group: "Ferramentas",
 		})),
 	};
 }
