@@ -34,6 +34,9 @@ import {
 	computeHomeVisibility,
 	computeStatus,
 	HOME_MAX_PRODUCTS,
+	HOME_MIN_PRODUCTS,
+	type HomeInvisibleReason,
+	type HomeVisibility,
 } from "../_lib/featured-home";
 import { countToolsWithActivePromotionAction } from "../actions";
 import type { PromotionFormValues } from "./promotion-schema";
@@ -252,6 +255,36 @@ function Section({
 			<h3 className="font-medium text-sm">{title}</h3>
 			{children}
 		</div>
+	);
+}
+
+// Mensagem do indicador de visibilidade quando a promoção destacada NÃO aparece
+// na home. `not_featured` não é exibido (o indicador só renderiza com featured).
+const HOME_HINT_MESSAGES: Record<HomeInvisibleReason, string> = {
+	not_featured: "",
+	too_few_products: `Não aparecerá na home: faltam produtos (mínimo de ${HOME_MIN_PRODUCTS}).`,
+	inactive: "Não aparecerá na home enquanto estiver inativa.",
+	expired: "Não aparecerá na home: vigência expirada.",
+	scheduled: "Aparecerá na home quando a vigência começar.",
+};
+
+/** Indicador ao vivo do estado de visibilidade da promoção na home do site. */
+function HomeVisibilityHint({ visibility }: { visibility: HomeVisibility }) {
+	if (visibility.visible) {
+		return (
+			<p className="-mt-1 font-medium text-success text-xs">
+				Aparecerá na home.
+			</p>
+		);
+	}
+
+	return (
+		<p
+			className={`-mt-1 flex items-start gap-1.5 font-medium text-xs ${visibility.reason === "scheduled" ? "text-muted-foreground" : "text-warning"}`}
+		>
+			<AlertCircle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+			<span>{HOME_HINT_MESSAGES[visibility.reason]}</span>
+		</p>
 	);
 }
 
@@ -553,29 +586,9 @@ export function PromotionFormFields({
 								destaque por vez, e ela precisa de ao menos 2 produtos
 								vinculados para aparecer.
 							</p>
-							{values.featured &&
-								(homeVisibility.visible ? (
-									<p className="-mt-1 font-medium text-success text-xs">
-										Aparecerá na home.
-									</p>
-								) : (
-									<p className="-mt-1 flex items-start gap-1.5 font-medium text-warning text-xs">
-										<AlertCircle
-											aria-hidden
-											className="mt-0.5 size-3.5 shrink-0"
-										/>
-										<span>
-											{homeVisibility.reason === "too_few_products" &&
-												"Não aparecerá na home: faltam produtos (mínimo de 2)."}
-											{homeVisibility.reason === "inactive" &&
-												"Não aparecerá na home enquanto estiver inativa."}
-											{homeVisibility.reason === "expired" &&
-												"Não aparecerá na home: vigência expirada."}
-											{homeVisibility.reason === "scheduled" &&
-												"Aparecerá na home quando a vigência começar."}
-										</span>
-									</p>
-								))}
+							{values.featured && (
+								<HomeVisibilityHint visibility={homeVisibility} />
+							)}
 						</>
 					)}
 				</Section>

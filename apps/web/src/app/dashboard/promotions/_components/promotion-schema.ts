@@ -120,8 +120,7 @@ export const promotionSchema = z
 		) {
 			ctx.addIssue({
 				code: "custom",
-				message:
-					"Promoção destacada precisa de ao menos 2 produtos para aparecer na home",
+				message: `Promoção destacada precisa de ao menos ${HOME_MIN_PRODUCTS} produtos para aparecer na home`,
 				path: ["toolIds"],
 			});
 		}
