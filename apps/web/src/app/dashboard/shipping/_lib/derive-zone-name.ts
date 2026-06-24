@@ -39,7 +39,7 @@ export function deriveZoneName(cepRanges: Range[]): string {
 	}
 	if (ufs.length === 1) {
 		const preset = UF_CEP_PRESETS.find((p) => p.uf === ufs[0]);
-		return preset?.name ?? (ufs[0] as string);
+		return preset?.name ?? ufs[0] ?? "Faixa personalizada";
 	}
 	if (ufs.length <= 3) {
 		return ufs.join(", ");
