@@ -25,6 +25,7 @@ import type {
 	OrderEventItem,
 	OrderHistoryItem,
 	OrderNoteItem,
+	OrderPickingTimelineRow,
 	OrderRefundItem,
 } from "../../data";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_META } from "../../status-meta";
@@ -200,6 +201,56 @@ function normalizeRefunds(items: OrderRefundItem[]): FeedItem[] {
 	});
 }
 
+function normalizePickings(items: OrderPickingTimelineRow[]): FeedItem[] {
+	const feedItems: FeedItem[] = [];
+	for (const p of items) {
+		feedItems.push({
+			category: "status" as FeedCategory,
+			createdAt: p.startedAt,
+			iconKey: "package" as StatusIconKey,
+			id: `picking-start-${p.id}`,
+			subtitle: p.pickerName,
+			title: "Separação iniciada",
+			tone: "info" as Tone,
+		});
+		if (p.status === "completed" && p.completedAt) {
+			feedItems.push({
+				category: "status" as FeedCategory,
+				createdAt: p.completedAt,
+				iconKey: "check" as StatusIconKey,
+				id: `picking-end-${p.id}`,
+				subtitle: p.pickerName,
+				title: "Separação concluída",
+				tone: "success" as Tone,
+			});
+		}
+		if (p.status === "exception") {
+			feedItems.push({
+				category: "status" as FeedCategory,
+				createdAt: p.completedAt ?? p.startedAt,
+				iconKey: "xCircle" as StatusIconKey,
+				id: `picking-end-${p.id}`,
+				reason: p.exceptionReason ?? undefined,
+				subtitle: p.pickerName,
+				title: "Separação com pendência",
+				tone: "destructive" as Tone,
+			});
+		}
+		if (p.status === "canceled") {
+			feedItems.push({
+				category: "status" as FeedCategory,
+				createdAt: p.completedAt ?? p.startedAt,
+				iconKey: "ban" as StatusIconKey,
+				id: `picking-cancel-${p.id}`,
+				subtitle: p.pickerName,
+				title: "Separação cancelada",
+				tone: "warning" as Tone,
+			});
+		}
+	}
+	return feedItems;
+}
+
 // ─── Tone → bg color class ────────────────────────────────────────────────────
 
 const TONE_DOT: Record<Tone, string> = {
@@ -297,6 +348,7 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 		...normalizeAttachments(order.attachments),
 		...normalizeEvents(order.events),
 		...normalizeRefunds(order.refundRequests),
+		...normalizePickings(order.pickings),
 	].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
 	// Notas fixadas vivem numa seção própria no topo, fora da cronologia.

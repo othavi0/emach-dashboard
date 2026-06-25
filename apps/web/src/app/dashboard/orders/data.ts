@@ -14,6 +14,7 @@ import {
 	orderEvent,
 	orderItem,
 	orderNote,
+	orderPicking,
 	orderStatusHistory,
 	refundRequest,
 } from "@emach/db/schema/orders";
@@ -140,6 +141,15 @@ export interface OrderAttachmentItem {
 	uploaderName: string;
 }
 
+export interface OrderPickingTimelineRow {
+	completedAt: Date | null;
+	exceptionReason: string | null;
+	id: string;
+	pickerName: string;
+	startedAt: Date;
+	status: "canceled" | "completed" | "exception" | "in_progress";
+}
+
 export interface ShippingAddressSnapshot {
 	city?: string;
 	complement?: string;
@@ -188,6 +198,7 @@ export interface OrderDetail {
 	paymentProviderRef: string | null;
 	/** Asaas payment receipt URL. Read-only in admin. */
 	paymentReceiptUrl: string | null;
+	pickings: OrderPickingTimelineRow[];
 	preparingAt: Date | null;
 	refundedAt: Date | null;
 	refundRequests: OrderRefundItem[];
@@ -710,46 +721,54 @@ export async function getOrderReviewsOverview(
 
 export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 	const scope = await getUserBranchScope(await requireCurrentSession());
-	const [base, items, history, notes, attachmentRows, refundRows, eventRows] =
-		await Promise.all([
-			db.execute<{
-				branch_id: string | null;
-				branch_name: string | null;
-				canceled_at: Date | null;
-				returned_at: Date | null;
-				refunded_at: Date | null;
-				client_email: string;
-				client_id: string;
-				client_name: string;
-				client_phone: string | null;
-				created_at: Date;
-				delivered_at: Date | null;
-				id: string;
-				nfe_number: string | null;
-				customer_notes: string | null;
-				nfe_status: string | null;
-				nfe_url: string | null;
-				nfe_xml_url: string | null;
-				number: string;
-				paid_at: Date | null;
-				payment_method: string | null;
-				payment_provider_ref: string | null;
-				payment_receipt_url: string | null;
-				shipping_address: ShippingAddressSnapshot;
-				shipping_amount: string;
-				shipping_method: string | null;
-				shipping_tracking_code: string | null;
-				shipping_unverified: boolean;
-				shipped_at: Date | null;
-				status: OrderStatus;
-				subtotal_amount: string;
-				total_amount: string;
-				discount_amount: string;
-				client_document: string | null;
-				client_image: string | null;
-				client_type: string | null;
-				preparing_at: Date | null;
-			}>(sql`
+	const [
+		base,
+		items,
+		history,
+		notes,
+		attachmentRows,
+		refundRows,
+		eventRows,
+		pickingRows,
+	] = await Promise.all([
+		db.execute<{
+			branch_id: string | null;
+			branch_name: string | null;
+			canceled_at: Date | null;
+			returned_at: Date | null;
+			refunded_at: Date | null;
+			client_email: string;
+			client_id: string;
+			client_name: string;
+			client_phone: string | null;
+			created_at: Date;
+			delivered_at: Date | null;
+			id: string;
+			nfe_number: string | null;
+			customer_notes: string | null;
+			nfe_status: string | null;
+			nfe_url: string | null;
+			nfe_xml_url: string | null;
+			number: string;
+			paid_at: Date | null;
+			payment_method: string | null;
+			payment_provider_ref: string | null;
+			payment_receipt_url: string | null;
+			shipping_address: ShippingAddressSnapshot;
+			shipping_amount: string;
+			shipping_method: string | null;
+			shipping_tracking_code: string | null;
+			shipping_unverified: boolean;
+			shipped_at: Date | null;
+			status: OrderStatus;
+			subtotal_amount: string;
+			total_amount: string;
+			discount_amount: string;
+			client_document: string | null;
+			client_image: string | null;
+			client_type: string | null;
+			preparing_at: Date | null;
+		}>(sql`
 			SELECT
 				o.id,
 				o.number,
@@ -793,83 +812,95 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			WHERE o.id = ${id}
 			LIMIT 1
 		`),
-			db
-				.select()
-				.from(orderItem)
-				.where(eq(orderItem.orderId, id))
-				.orderBy(asc(orderItem.name)),
-			db
-				.select({
-					actorType: orderStatusHistory.actorType,
-					actorUserName: user.name,
-					createdAt: orderStatusHistory.createdAt,
-					fromStatus: orderStatusHistory.fromStatus,
-					id: orderStatusHistory.id,
-					reason: orderStatusHistory.reason,
-					toStatus: orderStatusHistory.toStatus,
-				})
-				.from(orderStatusHistory)
-				.leftJoin(user, eq(orderStatusHistory.actorUserId, user.id))
-				.where(eq(orderStatusHistory.orderId, id))
-				.orderBy(desc(orderStatusHistory.createdAt)),
-			db
-				.select({
-					authorName: user.name,
-					body: orderNote.body,
-					createdAt: orderNote.createdAt,
-					id: orderNote.id,
-					pinned: orderNote.pinned,
-					statusAtCreation: orderNote.statusAtCreation,
-				})
-				.from(orderNote)
-				.leftJoin(user, eq(orderNote.authorId, user.id))
-				.where(eq(orderNote.orderId, id))
-				.orderBy(desc(orderNote.createdAt)),
-			db
-				.select({
-					id: orderAttachment.id,
-					fileUrl: orderAttachment.fileUrl,
-					fileName: orderAttachment.fileName,
-					description: orderAttachment.description,
-					fileSize: orderAttachment.fileSize,
-					mimeType: orderAttachment.mimeType,
-					label: orderAttachment.label,
-					createdAt: orderAttachment.createdAt,
-					uploaderName: user.name,
-				})
-				.from(orderAttachment)
-				.leftJoin(user, eq(orderAttachment.uploadedBy, user.id))
-				.where(eq(orderAttachment.orderId, id))
-				.orderBy(desc(orderAttachment.createdAt)),
-			db
-				.select({
-					id: refundRequest.id,
-					reasonCategory: refundRequest.reasonCategory,
-					reasonText: refundRequest.reasonText,
-					status: refundRequest.status,
-					amount: refundRequest.amount,
-					asaasRefundRef: refundRequest.asaasRefundRef,
-					rejectionReason: refundRequest.rejectionReason,
-					requestedAt: refundRequest.requestedAt,
-					resolvedAt: refundRequest.resolvedAt,
-				})
-				.from(refundRequest)
-				.where(eq(refundRequest.orderId, id))
-				.orderBy(desc(refundRequest.requestedAt)),
-			db
-				.select({
-					id: orderEvent.id,
-					eventType: orderEvent.eventType,
-					metadata: orderEvent.metadata,
-					actorType: orderEvent.actorType,
-					actorUserName: user.name,
-					createdAt: orderEvent.createdAt,
-				})
-				.from(orderEvent)
-				.leftJoin(user, eq(orderEvent.actorUserId, user.id))
-				.where(eq(orderEvent.orderId, id))
-				.orderBy(desc(orderEvent.createdAt)),
-		]);
+		db
+			.select()
+			.from(orderItem)
+			.where(eq(orderItem.orderId, id))
+			.orderBy(asc(orderItem.name)),
+		db
+			.select({
+				actorType: orderStatusHistory.actorType,
+				actorUserName: user.name,
+				createdAt: orderStatusHistory.createdAt,
+				fromStatus: orderStatusHistory.fromStatus,
+				id: orderStatusHistory.id,
+				reason: orderStatusHistory.reason,
+				toStatus: orderStatusHistory.toStatus,
+			})
+			.from(orderStatusHistory)
+			.leftJoin(user, eq(orderStatusHistory.actorUserId, user.id))
+			.where(eq(orderStatusHistory.orderId, id))
+			.orderBy(desc(orderStatusHistory.createdAt)),
+		db
+			.select({
+				authorName: user.name,
+				body: orderNote.body,
+				createdAt: orderNote.createdAt,
+				id: orderNote.id,
+				pinned: orderNote.pinned,
+				statusAtCreation: orderNote.statusAtCreation,
+			})
+			.from(orderNote)
+			.leftJoin(user, eq(orderNote.authorId, user.id))
+			.where(eq(orderNote.orderId, id))
+			.orderBy(desc(orderNote.createdAt)),
+		db
+			.select({
+				id: orderAttachment.id,
+				fileUrl: orderAttachment.fileUrl,
+				fileName: orderAttachment.fileName,
+				description: orderAttachment.description,
+				fileSize: orderAttachment.fileSize,
+				mimeType: orderAttachment.mimeType,
+				label: orderAttachment.label,
+				createdAt: orderAttachment.createdAt,
+				uploaderName: user.name,
+			})
+			.from(orderAttachment)
+			.leftJoin(user, eq(orderAttachment.uploadedBy, user.id))
+			.where(eq(orderAttachment.orderId, id))
+			.orderBy(desc(orderAttachment.createdAt)),
+		db
+			.select({
+				id: refundRequest.id,
+				reasonCategory: refundRequest.reasonCategory,
+				reasonText: refundRequest.reasonText,
+				status: refundRequest.status,
+				amount: refundRequest.amount,
+				asaasRefundRef: refundRequest.asaasRefundRef,
+				rejectionReason: refundRequest.rejectionReason,
+				requestedAt: refundRequest.requestedAt,
+				resolvedAt: refundRequest.resolvedAt,
+			})
+			.from(refundRequest)
+			.where(eq(refundRequest.orderId, id))
+			.orderBy(desc(refundRequest.requestedAt)),
+		db
+			.select({
+				id: orderEvent.id,
+				eventType: orderEvent.eventType,
+				metadata: orderEvent.metadata,
+				actorType: orderEvent.actorType,
+				actorUserName: user.name,
+				createdAt: orderEvent.createdAt,
+			})
+			.from(orderEvent)
+			.leftJoin(user, eq(orderEvent.actorUserId, user.id))
+			.where(eq(orderEvent.orderId, id))
+			.orderBy(desc(orderEvent.createdAt)),
+		db
+			.select({
+				id: orderPicking.id,
+				status: orderPicking.status,
+				pickerName: orderPicking.pickerName,
+				startedAt: orderPicking.startedAt,
+				completedAt: orderPicking.completedAt,
+				exceptionReason: orderPicking.exceptionReason,
+			})
+			.from(orderPicking)
+			.where(eq(orderPicking.orderId, id))
+			.orderBy(asc(orderPicking.startedAt)),
+	]);
 
 	const row = base.rows[0];
 	if (!row) {
@@ -988,6 +1019,14 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				actorUserName: e.actorUserName,
 			}),
 			createdAt: e.createdAt,
+		})),
+		pickings: pickingRows.map((p) => ({
+			id: p.id,
+			status: p.status,
+			pickerName: p.pickerName,
+			startedAt: p.startedAt,
+			completedAt: p.completedAt,
+			exceptionReason: p.exceptionReason,
 		})),
 	};
 }
