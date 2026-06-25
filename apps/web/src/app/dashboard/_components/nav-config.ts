@@ -7,6 +7,7 @@ import {
 	LayoutDashboard,
 	type LucideIcon,
 	Megaphone,
+	PackageCheck,
 	Settings,
 	ShieldCheck,
 	ShoppingCart,
@@ -58,6 +59,12 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				href: "/dashboard/orders" as Route,
 				icon: ShoppingCart,
 				badgeKey: "orders",
+			},
+			{
+				label: "Separação",
+				href: "/dashboard/separacao" as Route,
+				icon: PackageCheck,
+				capability: "orders.pick",
 			},
 			{
 				label: "Filiais",
