@@ -80,6 +80,11 @@ export interface CategoryTreeCursor extends CursorBase {
 	sortOrder: number;
 }
 
+export interface PaidAtAscCursor extends CursorBase {
+	paidAt: string;
+	sort: "paidAtAsc";
+}
+
 export type Cursor =
 	| NewestCursor
 	| NameCursor
@@ -95,7 +100,8 @@ export type Cursor =
 	| PromoCreatedAscCursor
 	| PromoDiscountCursor
 	| PromoEndsAtAscCursor
-	| CategoryTreeCursor;
+	| CategoryTreeCursor
+	| PaidAtAscCursor;
 
 export function encodeCursor(c: Cursor): string {
 	return Buffer.from(JSON.stringify(c)).toString("base64url");
