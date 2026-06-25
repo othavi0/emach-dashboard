@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@emach/ui/components/input";
 import { BarcodeIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -32,10 +33,10 @@ export function ScanInput({ disabled, onScan }: ScanInputProps) {
 					aria-hidden
 					className="size-[22px] shrink-0 text-primary"
 				/>
-				<input
+				<Input
 					aria-label="Escanear código de barras"
 					autoFocus
-					className="flex-1 bg-transparent text-[16px] text-foreground outline-none placeholder:text-muted-foreground"
+					className="flex-1 border-0 bg-transparent text-[16px] text-foreground placeholder:text-muted-foreground focus-visible:ring-0"
 					disabled={disabled}
 					onChange={(e) => setValue(e.target.value)}
 					onKeyDown={handleKeyDown}

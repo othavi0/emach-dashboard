@@ -11,6 +11,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@emach/ui/components/alert-dialog";
+import { Button } from "@emach/ui/components/button";
 import { Textarea } from "@emach/ui/components/textarea";
 import {
 	ArrowLeftIcon,
@@ -263,14 +264,15 @@ function FocusCard({
 					/>
 				</div>
 
-				<button
-					className="mt-1 w-fit rounded-lg border border-border px-3 py-1.5 font-medium text-[12px] text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:pointer-events-none disabled:opacity-50"
+				<Button
+					className="mt-1 w-fit"
 					disabled={item.notFound || isReporting}
 					onClick={() => onReportOpen(item.id)}
-					type="button"
+					size="sm"
+					variant="outline"
 				>
 					Item não encontrado
-				</button>
+				</Button>
 			</div>
 		</div>
 	);
@@ -561,9 +563,6 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 			? Math.round((summary.pickedUnits / summary.totalUnits) * 100)
 			: 0;
 	const scanDisabled = isScanning || isCompleting || isReporting;
-	const btnClass = allDone
-		? "bg-primary text-primary-foreground hover:opacity-90"
-		: "cursor-not-allowed border border-border bg-muted text-muted-foreground";
 	const exceptionColor = summary.exceptions > 0 ? "text-destructive" : "";
 	const gateText =
 		summary.exceptions > 0
@@ -682,14 +681,13 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 						</div>
 					</div>
 
-					<button
-						className={`w-full rounded-[9px] px-4 py-3 font-semibold text-[14px] transition-colors ${btnClass}`}
+					<Button
+						className="w-full"
 						disabled={!allDone || isCompleting}
 						onClick={handleComplete}
-						type="button"
 					>
 						{isCompleting ? "Concluindo…" : "Concluir separação"}
-					</button>
+					</Button>
 
 					{!allDone && (
 						<p className="flex items-center justify-center gap-1.5 text-[12px] text-warning">

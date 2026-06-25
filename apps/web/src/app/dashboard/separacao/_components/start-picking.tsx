@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@emach/ui/components/button";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
@@ -30,14 +31,9 @@ export function StartPicking({ orderId }: StartPickingProps) {
 			<p className="text-muted-foreground text-sm">
 				Nenhuma separação em andamento para este pedido.
 			</p>
-			<button
-				className="rounded-lg bg-primary px-6 py-3 font-semibold text-[14px] text-primary-foreground disabled:opacity-50"
-				disabled={isPending}
-				onClick={handleStart}
-				type="button"
-			>
+			<Button disabled={isPending} onClick={handleStart} size="lg">
 				{isPending ? "Iniciando…" : "Iniciar separação"}
-			</button>
+			</Button>
 		</div>
 	);
 }
