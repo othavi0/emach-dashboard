@@ -593,6 +593,14 @@ export const orderPickingItemRelations = relations(
 			fields: [orderPickingItem.pickingId],
 			references: [orderPicking.id],
 		}),
+		orderItem: one(orderItem, {
+			fields: [orderPickingItem.orderItemId],
+			references: [orderItem.id],
+		}),
+		variant: one(toolVariant, {
+			fields: [orderPickingItem.variantId],
+			references: [toolVariant.id],
+		}),
 	})
 );
 
@@ -602,6 +610,14 @@ export const orderPickingScanRelations = relations(
 		picking: one(orderPicking, {
 			fields: [orderPickingScan.pickingId],
 			references: [orderPicking.id],
+		}),
+		pickingItem: one(orderPickingItem, {
+			fields: [orderPickingScan.pickingItemId],
+			references: [orderPickingItem.id],
+		}),
+		scannedByUser: one(user, {
+			fields: [orderPickingScan.scannedBy],
+			references: [user.id],
 		}),
 	})
 );
