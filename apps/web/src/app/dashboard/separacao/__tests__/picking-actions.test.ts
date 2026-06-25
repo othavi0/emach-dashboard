@@ -107,6 +107,7 @@ function makeMockTx(selectResults: unknown[][]) {
 			},
 		};
 		chain.from = vi.fn(() => chain);
+		chain.leftJoin = vi.fn(() => chain);
 		chain.where = vi.fn(() => chain);
 		chain.for = vi.fn(() => chain);
 		chain.limit = vi.fn(() => Promise.resolve(result));

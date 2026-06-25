@@ -80,10 +80,20 @@ export async function startPicking(
 				pickerName: session.user.name ?? session.user.id,
 			});
 
-			// Load order items to create picking items
+			// Load order items to create picking items (left join variant for barcode fallback)
 			const items = await tx
-				.select()
+				.select({
+					id: orderItem.id,
+					variantId: orderItem.variantId,
+					sku: orderItem.sku,
+					name: orderItem.name,
+					barcode: orderItem.barcode,
+					voltage: orderItem.voltage,
+					quantity: orderItem.quantity,
+					variantBarcode: toolVariant.barcode,
+				})
 				.from(orderItem)
+				.leftJoin(toolVariant, eq(orderItem.variantId, toolVariant.id))
 				.where(eq(orderItem.orderId, orderId));
 
 			for (const item of items) {
@@ -95,7 +105,8 @@ export async function startPicking(
 					variantSnapshot: {
 						sku: item.sku ?? null,
 						name: item.name,
-						barcode: item.barcode ?? null,
+						// COALESCE: preferir barcode do snapshot do pedido; fallback para barcode atual da variante
+						barcode: item.barcode ?? item.variantBarcode ?? null,
 						voltage: item.voltage ?? null,
 					},
 					qtyExpected: item.quantity,
@@ -161,7 +172,7 @@ export async function scanItem(
 	code: string
 ): Promise<ActionResult<ScanResult>> {
 	try {
-		const { scanResult, orderId } = await db.transaction(async (tx: Tx) => {
+		const scanResult = await db.transaction(async (tx: Tx) => {
 			// Load picking to get orderId
 			const [picking] = await tx
 				.select()
@@ -223,19 +234,13 @@ export async function scanItem(
 			const matchResult = matchPickItem(pickItems, code, variantIdFromBarcode);
 
 			if ("error" in matchResult) {
-				return {
-					scanResult: { kind: "not_in_order" } satisfies ScanResult,
-					orderId: picking.orderId,
-				};
+				return { kind: "not_in_order" } satisfies ScanResult;
 			}
 
 			const matched = matchResult.item;
 
 			if (!canScanMore(matched)) {
-				return {
-					scanResult: { kind: "already_complete" } satisfies ScanResult,
-					orderId: picking.orderId,
-				};
+				return { kind: "already_complete" } satisfies ScanResult;
 			}
 
 			const newQtyPicked = matched.qtyPicked + 1;
@@ -259,17 +264,15 @@ export async function scanItem(
 			});
 
 			return {
-				scanResult: {
-					kind: "accepted",
-					pickingItemId: matched.id,
-					qtyPicked: newQtyPicked,
-					qtyExpected: matched.qtyExpected,
-				} satisfies ScanResult,
-				orderId: picking.orderId,
-			};
+				kind: "accepted",
+				pickingItemId: matched.id,
+				qtyPicked: newQtyPicked,
+				qtyExpected: matched.qtyExpected,
+			} satisfies ScanResult;
 		});
 
-		revalidatePickingPaths(orderId);
+		// scanItem é hot-path (N bipagens por sessão): não revalida aqui.
+		// Revalidação ocorre em completePicking / reportMissing / cancelPicking.
 		return { ok: true, data: scanResult };
 	} catch (error) {
 		logger.error("scanItem", error);

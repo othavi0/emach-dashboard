@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import { notify } from "@/lib/notify";
 import { isPickingComplete, summarizePicking } from "../_lib/picking-logic";
@@ -408,39 +408,53 @@ function usePickingState(
 	const [reportReason, setReportReason] = useState("");
 	const [isReporting, startReporting] = useTransition();
 
+	// Fila sequencial de scans: evita under-pick silencioso quando o operador
+	// bipa rapidamente (ou bipa a mesma unidade N vezes em qty>1).
+	const queueRef = useRef<string[]>([]);
+	const drainingRef = useRef(false);
+
 	function clearFeedback() {
 		setTimeout(() => setFeedback(null), 3000);
 	}
 
 	async function handleScan(code: string) {
-		if (isScanning) {
+		queueRef.current.push(code);
+		if (drainingRef.current) {
 			return;
 		}
+		drainingRef.current = true;
 		setIsScanning(true);
 		try {
-			const result = await scanItem(picking.id, code);
-			if (!result.ok) {
-				notify.error(result.error);
-				setFeedback("not_in_order");
+			while (queueRef.current.length > 0) {
+				const next = queueRef.current.shift();
+				if (next === undefined) {
+					break;
+				}
+				const result = await scanItem(picking.id, next);
+				if (!result.ok) {
+					notify.error(result.error);
+					setFeedback("not_in_order");
+					clearFeedback();
+					continue;
+				}
+				const scan = result.data;
+				if (scan.kind === "accepted") {
+					setLocalItems((prev) =>
+						prev.map((it) =>
+							it.id === scan.pickingItemId
+								? { ...it, qtyPicked: scan.qtyPicked }
+								: it
+						)
+					);
+					setFocusedId(scan.pickingItemId);
+					setFeedback("accepted");
+				} else {
+					setFeedback(scan.kind);
+				}
 				clearFeedback();
-				return;
 			}
-			const scan = result.data;
-			if (scan.kind === "accepted") {
-				setLocalItems((prev) =>
-					prev.map((it) =>
-						it.id === scan.pickingItemId
-							? { ...it, qtyPicked: scan.qtyPicked }
-							: it
-					)
-				);
-				setFocusedId(scan.pickingItemId);
-				setFeedback("accepted");
-			} else {
-				setFeedback(scan.kind);
-			}
-			clearFeedback();
 		} finally {
+			drainingRef.current = false;
 			setIsScanning(false);
 		}
 	}
