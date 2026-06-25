@@ -4,6 +4,7 @@ import {
 	TabsList,
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
+import { PenLine, Target } from "lucide-react";
 
 import { getUserActivity, getUserAffectedActivity } from "../../data";
 import { ActivityAffectingUserView } from "./activity-affecting-user-view";
@@ -18,8 +19,14 @@ export async function ActivityTab({ userId }: { userId: string }) {
 	return (
 		<Tabs defaultValue="affecting">
 			<TabsList>
-				<TabsTrigger value="affecting">Feito com</TabsTrigger>
-				<TabsTrigger value="by">Feito por</TabsTrigger>
+				<TabsTrigger value="affecting">
+					<Target aria-hidden className="size-3.5" />
+					Feito com
+				</TabsTrigger>
+				<TabsTrigger value="by">
+					<PenLine aria-hidden className="size-3.5" />
+					Feito por
+				</TabsTrigger>
 			</TabsList>
 			<TabsContent value="affecting">
 				<ActivityAffectingUserView

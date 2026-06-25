@@ -1,4 +1,5 @@
 import { Badge } from "@emach/ui/components/badge";
+import { MapPin, Share2 } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -59,6 +60,7 @@ async function SettingsPageContent({ searchParams }: PageProps) {
 		{
 			value: "redes",
 			label: "Contato / Redes",
+			icon: <Share2 aria-hidden className="size-3.5" />,
 			content: (
 				<div className={GRID}>
 					<SocialSettingsForm settings={socialState} />
@@ -69,6 +71,7 @@ async function SettingsPageContent({ searchParams }: PageProps) {
 		{
 			value: "local",
 			label: "Localização",
+			icon: <MapPin aria-hidden className="size-3.5" />,
 			badge: (
 				<Badge className="ml-1" variant="secondary">
 					Em breve
