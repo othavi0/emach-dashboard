@@ -7,7 +7,7 @@ import {
 	orderPickingItem,
 } from "@emach/db/schema/orders";
 import { toDate } from "@emach/db/utils";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
 	type BranchScope,
 	isBlindScope,
@@ -78,13 +78,17 @@ export async function getPickingForOrder(
  * Gating: true se existe uma sessão de separação completada para este pedido.
  */
 export async function hasCompletedPicking(orderId: string): Promise<boolean> {
-	const result = await db.execute<{ exists: string }>(sql`
-		SELECT 1 AS exists
-		FROM order_picking
-		WHERE order_id = ${orderId} AND status = 'completed'
-		LIMIT 1
-	`);
-	return result.rows.length > 0;
+	const [row] = await db
+		.select({ ok: sql<number>`1` })
+		.from(orderPicking)
+		.where(
+			and(
+				eq(orderPicking.orderId, orderId),
+				eq(orderPicking.status, "completed")
+			)
+		)
+		.limit(1);
+	return row !== undefined;
 }
 
 /**
@@ -124,7 +128,7 @@ export async function fetchPickingQueuePage(args: {
 		number: string;
 		order_id: string;
 		order_status: OrderStatus;
-		paid_at: Date;
+		paid_at: string;
 		picked_units: string | null;
 		picker_name: string | null;
 		picking_id: string | null;
@@ -191,9 +195,9 @@ export async function fetchPickingQueuePage(args: {
 			LIMIT ${BATCH_SIZE + 1}
 		`);
 	} else {
-		// excecoes: pedidos com order_picking em exception (pega pedido mais recente por ordem)
+		// excecoes: pedidos com sessão order_picking em exception
 		rows = await db.execute<QueueRaw>(sql`
-			SELECT DISTINCT ON (o.id)
+			SELECT
 				o.id AS order_id,
 				o.number,
 				c.name AS client_name,
@@ -214,25 +218,15 @@ export async function fetchPickingQueuePage(args: {
 			JOIN client c ON c.id = o.client_id
 			LEFT JOIN branch b ON b.id = o.branch_id
 			JOIN order_picking op ON op.order_id = o.id AND op.status = 'exception'
-			WHERE true
+			WHERE EXISTS (
+				SELECT 1 FROM order_picking op2
+				WHERE op2.order_id = o.id AND op2.status = 'exception'
+			)
 				${branchFragment}
 				${cursorFragment}
-			ORDER BY o.id ASC, op.started_at DESC
+			ORDER BY o.paid_at ASC, o.id ASC
 			LIMIT ${BATCH_SIZE + 1}
 		`);
-		// Note: DISTINCT ON + outer ORDER BY by paid_at would conflict; for exceptions
-		// we order by paid_at in a derived table wrapper.
-		const allRows = rows.rows;
-		// Sort in application layer for exceptions (small result sets typical)
-		allRows.sort((a, b) => {
-			const aTime = a.paid_at ? new Date(a.paid_at).getTime() : 0;
-			const bTime = b.paid_at ? new Date(b.paid_at).getTime() : 0;
-			if (aTime !== bTime) {
-				return aTime - bTime;
-			}
-			return a.order_id < b.order_id ? -1 : 1;
-		});
-		rows = { rows: allRows };
 	}
 
 	return paginate(
