@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
-import type { BranchScope } from "@/lib/branch-scope";
+import { getUserBranchScope } from "@/lib/branch-scope";
 import { getPgError } from "@/lib/db-error";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
@@ -519,19 +519,17 @@ export async function cancelPicking(pickingId: string): Promise<ActionResult> {
 
 export async function fetchPickingQueuePageAction(args: {
 	cursor: string | null;
-	scope: BranchScope;
 	tab: "a_separar" | "em_separacao" | "excecoes";
 }) {
-	await requireCapability("orders.pick");
-	return fetchPickingQueuePage(args);
+	const session = await requireCapability("orders.pick");
+	const scope = await getUserBranchScope(session);
+	return fetchPickingQueuePage({ ...args, scope });
 }
 
-export async function getActivePickingForUserAction(
-	userId: string,
-	scope: BranchScope
-) {
-	await requireCapability("orders.pick");
-	return getActivePickingForUser(userId, scope);
+export async function getActivePickingForUserAction() {
+	const session = await requireCapability("orders.pick");
+	const scope = await getUserBranchScope(session);
+	return getActivePickingForUser(session.user.id, scope);
 }
 
 export async function getPickingForOrderAction(orderId: string) {

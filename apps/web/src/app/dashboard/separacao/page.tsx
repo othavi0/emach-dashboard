@@ -95,7 +95,6 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 				counts={counts}
 				initial={initialResult.items}
 				initialCursor={initialResult.nextCursor}
-				scope={scope}
 			/>
 		</>
 	);

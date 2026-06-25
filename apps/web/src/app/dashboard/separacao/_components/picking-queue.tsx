@@ -9,7 +9,6 @@ import {
 import Link from "next/link";
 
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
-import type { BranchScope } from "@/lib/branch-scope";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 import { fetchPickingQueuePageAction } from "../actions";
 import type { PickingQueueRow } from "../data";
@@ -30,7 +29,6 @@ interface PickingQueueProps {
 	counts: { a_separar: number; em_separacao: number; excecoes: number };
 	initial: PickingQueueRow[];
 	initialCursor: string | null;
-	scope: BranchScope;
 }
 
 export function PickingQueue({
@@ -38,13 +36,12 @@ export function PickingQueue({
 	counts,
 	initial,
 	initialCursor,
-	scope,
 }: PickingQueueProps) {
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
 		fetchPage: (cursor) =>
-			fetchPickingQueuePageAction({ cursor, scope, tab: activeTab }),
+			fetchPickingQueuePageAction({ cursor, tab: activeTab }),
 		resetKey: activeTab,
 	});
 

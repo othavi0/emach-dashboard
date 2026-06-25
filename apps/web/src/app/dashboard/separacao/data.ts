@@ -5,6 +5,7 @@ import {
 	type OrderPicking,
 	type OrderPickingItem,
 	type OrderStatus,
+	order,
 	orderPicking,
 	orderPickingItem,
 } from "@emach/db/schema/orders";
@@ -32,6 +33,21 @@ export interface PickingQueueRow {
 	// Present only for "em_separacao" and "excecoes" tabs
 	pickingId?: string;
 	unitCount: number;
+}
+
+/**
+ * Retorna o branchId do pedido (para validação de escopo antes de renderizar).
+ * Retorna null se o pedido não existir.
+ */
+export async function getOrderBranchId(
+	orderId: string
+): Promise<{ branchId: string | null } | null> {
+	const [row] = await db
+		.select({ branchId: order.branchId })
+		.from(order)
+		.where(eq(order.id, orderId))
+		.limit(1);
+	return row ?? null;
 }
 
 /**

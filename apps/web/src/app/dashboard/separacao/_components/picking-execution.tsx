@@ -433,8 +433,7 @@ function usePickingState(
 				const result = await scanItem(picking.id, next);
 				if (!result.ok) {
 					notify.error(result.error);
-					setFeedback("not_in_order");
-					clearFeedback();
+					setFeedback(null);
 					continue;
 				}
 				const scan = result.data;

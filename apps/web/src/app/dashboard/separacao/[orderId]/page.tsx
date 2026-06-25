@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
+import { getUserBranchScope, orderInScope } from "@/lib/branch-scope";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PickingExecution } from "../_components/picking-execution";
 import { StartPicking } from "../_components/start-picking";
-import { getPickingForOrder } from "../data";
+import { getOrderBranchId, getPickingForOrder } from "../data";
 
 export const metadata: Metadata = {
 	title: "Execução de separação",
@@ -15,7 +17,16 @@ interface PageProps {
 
 export default async function SeparacaoOrderPage({ params }: PageProps) {
 	const { orderId } = await params;
-	await requireCapabilityOrRedirect("orders.pick");
+	const session = await requireCapabilityOrRedirect("orders.pick");
+	const scope = await getUserBranchScope(session);
+
+	const orderRow = await getOrderBranchId(orderId);
+	if (!orderRow) {
+		notFound();
+	}
+	if (!orderInScope(scope, orderRow.branchId)) {
+		notFound();
+	}
 
 	const result = await getPickingForOrder(orderId);
 
