@@ -1,3 +1,4 @@
+import { Package, Settings, Truck } from "lucide-react";
 import type { Metadata } from "next";
 
 import { type EntityTab, EntityTabs } from "@/components/entity/entity-tabs";
@@ -44,16 +45,19 @@ async function ShippingPageContent({ searchParams }: PageProps) {
 		{
 			value: "transportadoras",
 			label: "Transportadoras",
+			icon: <Truck aria-hidden className="size-3.5" />,
 			content: <CarriersTab />,
 		},
 		{
 			value: "caixas",
 			label: "Caixas",
+			icon: <Package aria-hidden className="size-3.5" />,
 			content: sp.tab === "caixas" ? <BoxesTab /> : null,
 		},
 		{
 			value: "config",
 			label: "Configurações",
+			icon: <Settings aria-hidden className="size-3.5" />,
 			content: (
 				<div className={GRID}>
 					<ShippingSettingsForm

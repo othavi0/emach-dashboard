@@ -1,3 +1,4 @@
+import { Eye, FileText, Map as MapIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { EntityTab } from "@/components/entity/entity-tabs";
@@ -36,16 +37,19 @@ async function CarrierDetailContent({ params, searchParams }: PageProps) {
 		{
 			value: "sobretaxas",
 			label: "Dados & sobretaxas",
+			icon: <FileText aria-hidden className="size-3.5" />,
 			content: <SurchargesTab detail={detail} />,
 		},
 		{
 			value: "zonas",
 			label: "Zonas & Tabela",
+			icon: <MapIcon aria-hidden className="size-3.5" />,
 			content: sp.tab === "zonas" ? <ZonesTab carrierId={id} /> : null,
 		},
 		{
 			value: "preview",
 			label: "Preview",
+			icon: <Eye aria-hidden className="size-3.5" />,
 			content:
 				sp.tab === "preview" ? <CarrierPreviewTab carrierId={id} /> : null,
 		},
