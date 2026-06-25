@@ -2,6 +2,8 @@ import "server-only";
 
 import { db } from "@emach/db";
 import {
+	type OrderPicking,
+	type OrderPickingItem,
 	type OrderStatus,
 	orderPicking,
 	orderPickingItem,
@@ -15,8 +17,6 @@ import {
 } from "@/lib/branch-scope";
 import { decodeCursorAs } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
-
-export type { OrderPicking, OrderPickingItem } from "@emach/db/schema/orders";
 
 export interface PickingQueueRow {
 	branchId: string | null;
@@ -120,7 +120,7 @@ export async function fetchPickingQueuePage(args: {
 		cursorFragment = sql` AND (o.paid_at, o.id) > (${c.paidAt}::timestamptz, ${c.id})`;
 	}
 
-	interface QueueRaw {
+	interface QueueRaw extends Record<string, unknown> {
 		branch_id: string | null;
 		branch_name: string | null;
 		client_name: string;
