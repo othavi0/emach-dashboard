@@ -41,6 +41,9 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `order_status_history`| Shared           | Dashboard   | E-commerce registra transições até `paid`; dashboard registra de `paid` em diante.               |
 | `order_note`          | Dashboard        | Dashboard   | Notas internas do staff. O e-commerce nunca lê nem escreve.                                      |
 | `order_attachment`    | Dashboard        | Dashboard   | Anexos internos (documentos de despacho, etc.). O e-commerce nunca lê nem escreve.               |
+| `order_picking`       | Dashboard        | Dashboard   | Sessão de separação física (picking) de `paid`/`preparing` em diante: quem separou, status, carimbos. O e-commerce nunca lê nem escreve; chega via sync (ADR-0009) mas **não exige mudança no checkout**. |
+| `order_picking_item`  | Dashboard        | Dashboard   | Itens da sessão de separação (qtd esperada × bipada, falta). O e-commerce nunca lê nem escreve.   |
+| `order_picking_scan`  | Dashboard        | Dashboard   | Log de cada bipagem (quem, quando, código lido). O e-commerce nunca lê nem escreve.              |
 | `review`              | E-commerce       | Ambos       | Avaliação criada pelo cliente. Dashboard lê para moderação; nunca cria review.                   |
 | `consent_log`         | E-commerce       | Dashboard   | Consentimentos LGPD do cliente. Dashboard lê para auditoria de compliance.                       |
 | `client_audit_log`    | Dashboard        | Dashboard   | Mutações de dados de cliente feitas pelo staff. E-commerce não toca.                             |
