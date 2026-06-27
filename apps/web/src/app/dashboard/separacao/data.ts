@@ -111,7 +111,8 @@ export async function hasCompletedPicking(orderId: string): Promise<boolean> {
  * Fila de separação paginada (keyset cursor, orderBy paidAt asc).
  *
  * Tabs:
- * - "a_separar"   → pedidos status='paid' sem sessão ativa
+ * - "a_separar"   → pedidos que precisam ser separados: status='paid' ou
+ *   'preparing' (ex: separação cancelada) sem sessão in_progress/exception/completed
  * - "em_separacao" → pedidos status='preparing' com sessão order_picking in_progress
  * - "excecoes"    → pedidos com sessão order_picking status='exception'
  */
@@ -171,10 +172,11 @@ export async function fetchPickingQueuePage(args: {
 			FROM "order" o
 			JOIN client c ON c.id = o.client_id
 			LEFT JOIN branch b ON b.id = o.branch_id
-			WHERE o.status = 'paid'
+			WHERE o.status IN ('paid', 'preparing')
 				AND NOT EXISTS (
 					SELECT 1 FROM order_picking op
-					WHERE op.order_id = o.id AND op.status = 'in_progress'
+					WHERE op.order_id = o.id
+						AND op.status IN ('in_progress', 'exception', 'completed')
 				)
 				${branchFragment}
 				${cursorFragment}

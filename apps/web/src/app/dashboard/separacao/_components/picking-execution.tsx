@@ -15,6 +15,7 @@ import { Button } from "@emach/ui/components/button";
 import { Textarea } from "@emach/ui/components/textarea";
 import {
 	ArrowLeftIcon,
+	BanIcon,
 	CheckIcon,
 	ImageIcon,
 	LockIcon,
@@ -28,7 +29,12 @@ import { useRef, useState, useTransition } from "react";
 
 import { notify } from "@/lib/notify";
 import { isPickingComplete, summarizePicking } from "../_lib/picking-logic";
-import { completePicking, reportMissing, scanItem } from "../actions";
+import {
+	cancelPicking,
+	completePicking,
+	reportMissing,
+	scanItem,
+} from "../actions";
 import { ScanInput } from "./scan-input";
 
 // ─── tipos ──────────────────────────────────────────────────────────────────
@@ -409,6 +415,8 @@ function usePickingState(
 	const [reportingItemId, setReportingItemId] = useState<string | null>(null);
 	const [reportReason, setReportReason] = useState("");
 	const [isReporting, startReporting] = useTransition();
+	const [isCancelOpen, setIsCancelOpen] = useState(false);
+	const [isCanceling, startCanceling] = useTransition();
 
 	// Fila sequencial de scans: evita under-pick silencioso quando o operador
 	// bipa rapidamente (ou bipa a mesma unidade N vezes em qty>1).
@@ -471,6 +479,18 @@ function usePickingState(
 		});
 	}
 
+	function handleCancel() {
+		startCanceling(async () => {
+			const result = await cancelPicking(picking.id);
+			if (result.ok) {
+				router.push("/dashboard/separacao");
+			} else {
+				notify.error(result.error);
+				setIsCancelOpen(false);
+			}
+		});
+	}
+
 	function handleReportOpen(itemId: string) {
 		setReportingItemId(itemId);
 		setReportReason("");
@@ -516,10 +536,14 @@ function usePickingState(
 		reportingItemId,
 		reportReason,
 		isReporting,
+		isCancelOpen,
+		isCanceling,
+		setIsCancelOpen,
 		setReportingItemId,
 		setReportReason,
 		handleScan,
 		handleComplete,
+		handleCancel,
 		handleReportOpen,
 		handleReportConfirm,
 	};
@@ -542,10 +566,14 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 		reportingItemId,
 		reportReason,
 		isReporting,
+		isCancelOpen,
+		isCanceling,
+		setIsCancelOpen,
 		setReportingItemId,
 		setReportReason,
 		handleScan,
 		handleComplete,
+		handleCancel,
 		handleReportOpen,
 		handleReportConfirm,
 	} = usePickingState(picking, items);
@@ -695,6 +723,17 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 							{gateText}
 						</p>
 					)}
+
+					<Button
+						className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+						disabled={isCanceling}
+						onClick={() => setIsCancelOpen(true)}
+						size="sm"
+						variant="ghost"
+					>
+						<BanIcon aria-hidden className="size-3.5 shrink-0" />
+						Cancelar separação
+					</Button>
 				</div>
 			</div>
 
@@ -741,6 +780,42 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 							onClick={handleReportConfirm}
 						>
 							{isReporting ? "Registrando…" : "Confirmar exceção"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			{/* Dialog — cancelar separação */}
+			<AlertDialog
+				onOpenChange={(open) => {
+					if (!(open || isCanceling)) {
+						setIsCancelOpen(false);
+					}
+				}}
+				open={isCancelOpen}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Cancelar separação?</AlertDialogTitle>
+						<AlertDialogDescription>
+							A sessão de separação será descartada e as bipagens registradas
+							serão perdidas. O pedido permanece em preparação e pode ser
+							separado novamente. Esta ação não pode ser desfeita.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel
+							disabled={isCanceling}
+							onClick={() => setIsCancelOpen(false)}
+						>
+							Voltar
+						</AlertDialogCancel>
+						<AlertDialogAction
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+							disabled={isCanceling}
+							onClick={handleCancel}
+						>
+							{isCanceling ? "Cancelando…" : "Cancelar separação"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
