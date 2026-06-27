@@ -70,13 +70,13 @@ export function PickingOrderCard({ row, tab }: PickingOrderCardProps) {
 
 	return (
 		<Link
-			className="group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color] hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			className="group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			href={`/dashboard/separacao/${row.orderId}`}
 		>
 			{/* Header */}
 			<div className="flex items-start justify-between gap-3 px-4 pt-4 pb-1">
 				<div className="min-w-0">
-					<p className="truncate font-semibold text-[16px] leading-tight tracking-tight">
+					<p className="truncate font-semibold text-base leading-tight tracking-tight">
 						{row.number}
 					</p>
 					<p className="truncate text-[13px] text-muted-foreground">

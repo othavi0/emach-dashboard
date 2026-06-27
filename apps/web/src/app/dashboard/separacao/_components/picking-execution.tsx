@@ -209,7 +209,7 @@ function FocusCard({
 
 	return (
 		<div
-			className={`flex gap-4 rounded-2xl border-2 bg-surface-deep p-5 transition-colors ${getFocusBorder(feedback)}`}
+			className={`flex gap-4 rounded-lg border-2 bg-card p-5 transition-colors ${getFocusBorder(feedback)}`}
 		>
 			<div className="flex size-24 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground">
 				<ImageIcon aria-hidden className="size-9" strokeWidth={1.5} />
@@ -295,7 +295,7 @@ function FeedbackLegend({ feedback }: FeedbackLegendProps) {
 				Feedback do scan
 			</p>
 			<div
-				className={`flex items-center gap-3 rounded-[9px] border p-3 transition-colors ${
+				className={`flex items-center gap-3 rounded-md border p-3 transition-colors ${
 					feedback === "accepted"
 						? "border-success/30 bg-success/10"
 						: "border-border bg-card"
@@ -312,7 +312,7 @@ function FeedbackLegend({ feedback }: FeedbackLegendProps) {
 				</div>
 			</div>
 			<div
-				className={`flex items-center gap-3 rounded-[9px] border p-3 transition-colors ${
+				className={`flex items-center gap-3 rounded-md border p-3 transition-colors ${
 					feedback === "already_complete"
 						? "border-warning/30 bg-warning/10"
 						: "border-border bg-card"
@@ -329,7 +329,7 @@ function FeedbackLegend({ feedback }: FeedbackLegendProps) {
 				</div>
 			</div>
 			<div
-				className={`flex items-center gap-3 rounded-[9px] border p-3 transition-colors ${
+				className={`flex items-center gap-3 rounded-md border p-3 transition-colors ${
 					feedback === "not_in_order"
 						? "border-destructive/30 bg-destructive/10"
 						: "border-border bg-card"
@@ -361,7 +361,7 @@ function ChecklistItemRow({ item, focusedId }: ChecklistItemRowProps) {
 
 	return (
 		<div
-			className={`flex items-center gap-3 rounded-[9px] border px-3 py-2.5 ${
+			className={`flex items-center gap-3 rounded-md border px-3 py-2.5 ${
 				state === "cur" ? "border-primary/40 bg-muted" : "border-transparent"
 			}`}
 		>
@@ -610,7 +610,7 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 						<ArrowLeftIcon aria-hidden className="size-4" />
 					</Link>
 					<div className="min-w-0">
-						<p className="font-semibold text-[16px] leading-tight">
+						<p className="font-semibold text-base leading-tight">
 							Separação em andamento
 						</p>
 						<p className="flex items-center gap-2 text-[12px] text-muted-foreground">
@@ -666,7 +666,7 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 							onReportOpen={handleReportOpen}
 						/>
 					) : (
-						<div className="flex items-center justify-center rounded-2xl border border-border border-dashed bg-surface-deep p-8">
+						<div className="flex items-center justify-center rounded-lg border border-border border-dashed bg-surface-deep p-8">
 							<p className="text-[13px] text-muted-foreground">
 								Todos os itens foram conferidos
 							</p>
