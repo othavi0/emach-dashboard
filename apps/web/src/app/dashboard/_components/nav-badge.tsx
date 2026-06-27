@@ -9,6 +9,7 @@ import type { BadgeKey } from "./nav-config";
 // "users" → pendingUsers; as demais batem 1:1.
 const FIELD_BY_BADGE: Record<BadgeKey, keyof DashboardCounts> = {
 	orders: "orders",
+	picking: "picking",
 	reviews: "reviews",
 	stock: "stock",
 	users: "pendingUsers",

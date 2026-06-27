@@ -276,6 +276,67 @@ export async function fetchPickingQueuePage(args: {
 	);
 }
 
+export interface PickingQueueCounts {
+	a_separar: number;
+	em_separacao: number;
+	excecoes: number;
+}
+
+/**
+ * Contagem real (COUNT(*)) das 3 tabs da fila, branch-scoped. Substitui contar
+ * `items.length` da 1ª página (capado em BATCH_SIZE) — o cabeçalho precisa do
+ * total, não da página. Uma query só (3 subqueries) em vez de 3 fetches de página.
+ */
+export async function fetchPickingQueueCounts(
+	scope: BranchScope
+): Promise<PickingQueueCounts> {
+	if (isBlindScope(scope)) {
+		return { a_separar: 0, em_separacao: 0, excecoes: 0 };
+	}
+
+	const branchCondition = orderBranchCondition(scope);
+	const branchFragment = branchCondition ? sql` AND ${branchCondition}` : sql``;
+
+	const result = await db.execute<{
+		a_separar: number;
+		em_separacao: number;
+		excecoes: number;
+	}>(sql`
+		SELECT
+			(
+				SELECT COUNT(*)::int FROM "order" o
+				WHERE o.status IN ('paid', 'preparing')
+					AND NOT EXISTS (
+						SELECT 1 FROM order_picking op
+						WHERE op.order_id = o.id
+							AND op.status IN ('in_progress', 'exception', 'completed')
+					)
+					${branchFragment}
+			) AS a_separar,
+			(
+				SELECT COUNT(*)::int FROM "order" o
+				JOIN order_picking op ON op.order_id = o.id AND op.status = 'in_progress'
+				WHERE o.status = 'preparing'
+					${branchFragment}
+			) AS em_separacao,
+			(
+				SELECT COUNT(*)::int FROM "order" o
+				WHERE EXISTS (
+					SELECT 1 FROM order_picking op
+					WHERE op.order_id = o.id AND op.status = 'exception'
+				)
+					${branchFragment}
+			) AS excecoes
+	`);
+
+	const row = result.rows[0];
+	return {
+		a_separar: row?.a_separar ?? 0,
+		em_separacao: row?.em_separacao ?? 0,
+		excecoes: row?.excecoes ?? 0,
+	};
+}
+
 /**
  * Sessão in_progress do próprio usuário — dados para o banner de retomada.
  */

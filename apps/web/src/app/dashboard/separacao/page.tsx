@@ -5,7 +5,11 @@ import { getUserBranchScope } from "@/lib/branch-scope";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PickingQueue } from "./_components/picking-queue";
 import { ResumeBanner } from "./_components/resume-banner";
-import { fetchPickingQueuePage, getActivePickingForUser } from "./data";
+import {
+	fetchPickingQueueCounts,
+	fetchPickingQueuePage,
+	getActivePickingForUser,
+} from "./data";
 
 export const metadata: Metadata = {
 	title: "Separação",
@@ -30,26 +34,12 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 	const activeTab: Tab =
 		rawTab === "em_separacao" || rawTab === "excecoes" ? rawTab : "a_separar";
 
-	// Carrega as 3 tabs em paralelo para os contadores do cabeçalho e a tab ativa
-	const [resultA, resultEm, resultEx, activePicking] = await Promise.all([
-		fetchPickingQueuePage({ cursor: null, scope, tab: "a_separar" }),
-		fetchPickingQueuePage({ cursor: null, scope, tab: "em_separacao" }),
-		fetchPickingQueuePage({ cursor: null, scope, tab: "excecoes" }),
+	// Contadores reais (COUNT) das 3 tabs + apenas a página da tab ativa.
+	const [counts, initialResult, activePicking] = await Promise.all([
+		fetchPickingQueueCounts(scope),
+		fetchPickingQueuePage({ cursor: null, scope, tab: activeTab }),
 		getActivePickingForUser(session.user.id, scope),
 	]);
-
-	const counts = {
-		a_separar: resultA.items.length,
-		em_separacao: resultEm.items.length,
-		excecoes: resultEx.items.length,
-	};
-
-	let initialResult = resultA;
-	if (activeTab === "em_separacao") {
-		initialResult = resultEm;
-	} else if (activeTab === "excecoes") {
-		initialResult = resultEx;
-	}
 
 	return (
 		<>

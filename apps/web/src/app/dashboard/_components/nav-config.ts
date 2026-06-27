@@ -19,7 +19,7 @@ import {
 import type { Route } from "next";
 import type { Capability } from "@/lib/permissions";
 
-export type BadgeKey = "orders" | "stock" | "reviews" | "users";
+export type BadgeKey = "orders" | "picking" | "stock" | "reviews" | "users";
 
 export interface NavItemConfig {
 	badgeKey?: BadgeKey;
@@ -65,6 +65,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				href: "/dashboard/separacao" as Route,
 				icon: PackageCheck,
 				capability: "orders.pick",
+				badgeKey: "picking",
 			},
 			{
 				label: "Filiais",
