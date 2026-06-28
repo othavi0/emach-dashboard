@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@emach/db";
 import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
+import { toolImage } from "@emach/db/schema/tools";
 import { toDate } from "@emach/db/utils";
 import { cache } from "react";
 
@@ -76,6 +77,8 @@ export interface OrderDetailItem {
 	discountAmount: number;
 	heightCm: number | null;
 	id: string;
+	/** Imagem primária da ferramenta atual (best-effort por toolId; null se sem foto). */
+	imageUrl: string | null;
 	lengthCm: number | null;
 	lineTotal: number;
 	manufacturerName: string | null;
@@ -730,6 +733,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		refundRows,
 		eventRows,
 		pickingRows,
+		imageRows,
 	] = await Promise.all([
 		db.execute<{
 			branch_id: string | null;
@@ -900,6 +904,25 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			.from(orderPicking)
 			.where(eq(orderPicking.orderId, id))
 			.orderBy(asc(orderPicking.startedAt)),
+		// Imagem primária por ferramenta (best-effort): o item é snapshot fiscal e
+		// não guarda imagem; buscamos a foto atual da tool (menor sortOrder) via
+		// subquery em orderItem, mantendo a query paralela ao restante do detalhe.
+		db
+			.selectDistinctOn([toolImage.toolId], {
+				toolId: toolImage.toolId,
+				url: toolImage.url,
+			})
+			.from(toolImage)
+			.where(
+				inArray(
+					toolImage.toolId,
+					db
+						.select({ toolId: orderItem.toolId })
+						.from(orderItem)
+						.where(eq(orderItem.orderId, id))
+				)
+			)
+			.orderBy(toolImage.toolId, asc(toolImage.sortOrder)),
 	]);
 
 	const row = base.rows[0];
@@ -910,6 +933,8 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 	if (!orderInScope(scope, row.branch_id)) {
 		return null;
 	}
+
+	const imageByTool = new Map(imageRows.map((r) => [r.toolId, r.url]));
 
 	// Private bucket: storage paths are persisted; URLs are signed on demand via
 	// signOrderAttachment (see _components/attachment-actions.ts).
@@ -966,6 +991,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			id: item.id,
 			orderId: item.orderId,
 			toolId: item.toolId,
+			imageUrl: imageByTool.get(item.toolId) ?? null,
 			sku: item.sku,
 			barcode: item.barcode,
 			name: item.name,
