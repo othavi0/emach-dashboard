@@ -24,6 +24,7 @@ import {
 	requireCapability,
 	requireCapabilityWithContext,
 } from "@/lib/permissions";
+import { hasCompletedPicking } from "../separacao/data";
 import { applyStockReturns } from "./_lib/stock-returns";
 import {
 	fetchOrdersPage as fetchOrdersPageImpl,
@@ -242,6 +243,14 @@ export async function updateOrderStatus(
 				throw new Error(
 					"Filial obrigatória para iniciar a preparação do pedido"
 				);
+			}
+
+			if (
+				toStatus === "shipped" &&
+				session.user.role !== "super_admin" &&
+				!(await hasCompletedPicking(orderId))
+			) {
+				throw new Error("Conclua a separação antes de despachar o pedido");
 			}
 
 			const updates = buildOrderStatusUpdate(toStatus, trackingCode, branchId);

@@ -64,6 +64,15 @@ export const orderEventTypeEnum = pgEnum("order_event_type", [
 ]);
 export type OrderEventType = (typeof orderEventTypeEnum.enumValues)[number];
 
+export const orderPickingStatusEnum = pgEnum("order_picking_status", [
+	"in_progress",
+	"completed",
+	"exception",
+	"canceled",
+]);
+export type OrderPickingStatus =
+	(typeof orderPickingStatusEnum.enumValues)[number];
+
 // Status que contam como solicitação ATIVA de refund (não-terminal).
 // Fonte única: o índice parcial refund_request_one_open_per_order (abaixo) deriva
 // daqui; o ecommerce importa via @emach/db (sync CI). Ver issue #96.
@@ -370,6 +379,108 @@ export const refundRequest = pgTable(
 	]
 );
 
+export const orderPicking = pgTable(
+	"order_picking",
+	{
+		id: text("id").primaryKey(),
+		orderId: text("order_id")
+			.notNull()
+			.references(() => order.id, { onDelete: "restrict" }),
+		branchId: text("branch_id")
+			.notNull()
+			.references(() => branch.id, { onDelete: "restrict" }),
+		status: orderPickingStatusEnum("status").notNull().default("in_progress"),
+		pickerUserId: text("picker_user_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		pickerName: text("picker_name").notNull(),
+		startedAt: timestamp("started_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		completedAt: timestamp("completed_at", { withTimezone: true }),
+		exceptionReason: text("exception_reason"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		// 1 sessão ATIVA por pedido (anti-concorrência). Partial: só in_progress.
+		uniqueIndex("order_picking_one_active")
+			.on(table.orderId)
+			.where(sql`status = 'in_progress'`),
+		index("order_picking_branch_status_idx").on(
+			table.branchId,
+			table.status,
+			table.startedAt.desc()
+		),
+	]
+);
+
+export const orderPickingItem = pgTable(
+	"order_picking_item",
+	{
+		id: text("id").primaryKey(),
+		pickingId: text("picking_id")
+			.notNull()
+			.references(() => orderPicking.id, { onDelete: "cascade" }),
+		orderItemId: text("order_item_id").references(() => orderItem.id, {
+			onDelete: "set null",
+		}),
+		variantId: text("variant_id").references(() => toolVariant.id, {
+			onDelete: "set null",
+		}),
+		variantSnapshot: jsonb("variant_snapshot").notNull(),
+		qtyExpected: integer("qty_expected").notNull(),
+		qtyPicked: integer("qty_picked").notNull().default(0),
+		notFound: boolean("not_found").notNull().default(false),
+		lastScannedAt: timestamp("last_scanned_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		uniqueIndex("order_picking_item_unique").on(
+			table.pickingId,
+			table.orderItemId
+		),
+		check("qty_expected_positive", sql`${table.qtyExpected} > 0`),
+		check(
+			"qty_picked_within",
+			sql`${table.qtyPicked} >= 0 AND ${table.qtyPicked} <= ${table.qtyExpected}`
+		),
+	]
+);
+
+export const orderPickingScan = pgTable(
+	"order_picking_scan",
+	{
+		id: text("id").primaryKey(),
+		pickingId: text("picking_id")
+			.notNull()
+			.references(() => orderPicking.id, { onDelete: "cascade" }),
+		pickingItemId: text("picking_item_id")
+			.notNull()
+			.references(() => orderPickingItem.id, { onDelete: "cascade" }),
+		variantId: text("variant_id").references(() => toolVariant.id, {
+			onDelete: "set null",
+		}),
+		scannedCode: text("scanned_code").notNull(),
+		scannedBy: text("scanned_by").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		scannedByName: text("scanned_by_name").notNull(),
+		scannedAt: timestamp("scanned_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("order_picking_scan_session_idx").on(
+			table.pickingId,
+			table.scannedAt.desc()
+		),
+	]
+);
+
 // --- Relations ---
 
 export const orderRelations = relations(order, ({ one, many }) => ({
@@ -381,6 +492,7 @@ export const orderRelations = relations(order, ({ one, many }) => ({
 	attachments: many(orderAttachment),
 	refundRequests: many(refundRequest),
 	events: many(orderEvent),
+	pickings: many(orderPicking),
 }));
 
 export const orderItemRelations = relations(orderItem, ({ one }) => ({
@@ -454,6 +566,62 @@ export const orderEventRelations = relations(orderEvent, ({ one }) => ({
 	}),
 }));
 
+export const orderPickingRelations = relations(
+	orderPicking,
+	({ one, many }) => ({
+		order: one(order, {
+			fields: [orderPicking.orderId],
+			references: [order.id],
+		}),
+		branch: one(branch, {
+			fields: [orderPicking.branchId],
+			references: [branch.id],
+		}),
+		picker: one(user, {
+			fields: [orderPicking.pickerUserId],
+			references: [user.id],
+		}),
+		items: many(orderPickingItem),
+		scans: many(orderPickingScan),
+	})
+);
+
+export const orderPickingItemRelations = relations(
+	orderPickingItem,
+	({ one }) => ({
+		picking: one(orderPicking, {
+			fields: [orderPickingItem.pickingId],
+			references: [orderPicking.id],
+		}),
+		orderItem: one(orderItem, {
+			fields: [orderPickingItem.orderItemId],
+			references: [orderItem.id],
+		}),
+		variant: one(toolVariant, {
+			fields: [orderPickingItem.variantId],
+			references: [toolVariant.id],
+		}),
+	})
+);
+
+export const orderPickingScanRelations = relations(
+	orderPickingScan,
+	({ one }) => ({
+		picking: one(orderPicking, {
+			fields: [orderPickingScan.pickingId],
+			references: [orderPicking.id],
+		}),
+		pickingItem: one(orderPickingItem, {
+			fields: [orderPickingScan.pickingItemId],
+			references: [orderPickingItem.id],
+		}),
+		scannedByUser: one(user, {
+			fields: [orderPickingScan.scannedBy],
+			references: [user.id],
+		}),
+	})
+);
+
 // --- Types ---
 
 export type Order = typeof order.$inferSelect;
@@ -470,3 +638,9 @@ export type RefundRequest = typeof refundRequest.$inferSelect;
 export type NewRefundRequest = typeof refundRequest.$inferInsert;
 export type OrderEvent = typeof orderEvent.$inferSelect;
 export type NewOrderEvent = typeof orderEvent.$inferInsert;
+export type OrderPicking = typeof orderPicking.$inferSelect;
+export type NewOrderPicking = typeof orderPicking.$inferInsert;
+export type OrderPickingItem = typeof orderPickingItem.$inferSelect;
+export type NewOrderPickingItem = typeof orderPickingItem.$inferInsert;
+export type OrderPickingScan = typeof orderPickingScan.$inferSelect;
+export type NewOrderPickingScan = typeof orderPickingScan.$inferInsert;

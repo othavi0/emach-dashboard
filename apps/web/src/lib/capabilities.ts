@@ -208,6 +208,13 @@ export const CAPABILITIES = {
 		description: "Exportar pedidos",
 		defaultRoles: SA,
 	},
+	"orders.pick": {
+		group: "Vendas",
+		resource: "Pedidos",
+		action: "Separar",
+		description: "Separar/conferir itens do pedido (picking)",
+		defaultRoles: SAU,
+	},
 	// ── Clientes ──────────────────────────────────────────────
 	"customers.read": {
 		group: "Clientes",

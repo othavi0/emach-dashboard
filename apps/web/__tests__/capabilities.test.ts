@@ -24,6 +24,7 @@ const OPERATIONAL_USER: readonly Capability[] = [
 	"orders.read",
 	"orders.update_status",
 	"orders.add_note",
+	"orders.pick",
 ];
 const LEGACY_SUPER_EXCLUSIVE: readonly Capability[] = [
 	"branches.manage",

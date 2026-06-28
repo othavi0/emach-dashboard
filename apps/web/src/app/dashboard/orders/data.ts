@@ -15,6 +15,7 @@ import {
 	orderEvent,
 	orderItem,
 	orderNote,
+	orderPicking,
 	orderStatusHistory,
 	refundRequest,
 } from "@emach/db/schema/orders";
@@ -143,6 +144,15 @@ export interface OrderAttachmentItem {
 	uploaderName: string;
 }
 
+export interface OrderPickingTimelineRow {
+	completedAt: Date | null;
+	exceptionReason: string | null;
+	id: string;
+	pickerName: string;
+	startedAt: Date;
+	status: "canceled" | "completed" | "exception" | "in_progress";
+}
+
 export interface ShippingAddressSnapshot {
 	city?: string;
 	complement?: string;
@@ -191,6 +201,7 @@ export interface OrderDetail {
 	paymentProviderRef: string | null;
 	/** Asaas payment receipt URL. Read-only in admin. */
 	paymentReceiptUrl: string | null;
+	pickings: OrderPickingTimelineRow[];
 	preparingAt: Date | null;
 	refundedAt: Date | null;
 	refundRequests: OrderRefundItem[];
@@ -721,6 +732,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		attachmentRows,
 		refundRows,
 		eventRows,
+		pickingRows,
 		imageRows,
 	] = await Promise.all([
 		db.execute<{
@@ -880,6 +892,18 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 			.leftJoin(user, eq(orderEvent.actorUserId, user.id))
 			.where(eq(orderEvent.orderId, id))
 			.orderBy(desc(orderEvent.createdAt)),
+		db
+			.select({
+				id: orderPicking.id,
+				status: orderPicking.status,
+				pickerName: orderPicking.pickerName,
+				startedAt: orderPicking.startedAt,
+				completedAt: orderPicking.completedAt,
+				exceptionReason: orderPicking.exceptionReason,
+			})
+			.from(orderPicking)
+			.where(eq(orderPicking.orderId, id))
+			.orderBy(asc(orderPicking.startedAt)),
 		// Imagem primária por ferramenta (best-effort): o item é snapshot fiscal e
 		// não guarda imagem; buscamos a foto atual da tool (menor sortOrder) via
 		// subquery em orderItem, mantendo a query paralela ao restante do detalhe.
@@ -1021,6 +1045,14 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 				actorUserName: e.actorUserName,
 			}),
 			createdAt: e.createdAt,
+		})),
+		pickings: pickingRows.map((p) => ({
+			id: p.id,
+			status: p.status,
+			pickerName: p.pickerName,
+			startedAt: p.startedAt,
+			completedAt: p.completedAt,
+			exceptionReason: p.exceptionReason,
 		})),
 	};
 }

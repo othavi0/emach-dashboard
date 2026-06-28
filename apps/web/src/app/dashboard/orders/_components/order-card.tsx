@@ -1,14 +1,8 @@
 import { MapPinIcon } from "lucide-react";
 import Link from "next/link";
 
-import {
-	STATUS_ICONS,
-	TONE_TEXT,
-	TONE_TINT_BG,
-} from "@/components/status-visual";
 import { formatDateTime, formatRelative } from "@/lib/format/datetime";
 import type { OrderListItem } from "../data";
-import { ORDER_STATUS_META } from "../status-meta";
 import { OrderStatusBadge } from "./order-status-badge";
 import { ShippingUnverifiedBadge } from "./shipping-unverified-badge";
 
@@ -23,23 +17,12 @@ function formatCurrency(value: number) {
 }
 
 export function OrderCard({ item }: { item: OrderListItem }) {
-	const statusMeta = ORDER_STATUS_META[item.status];
-	const StatusIcon = STATUS_ICONS[statusMeta.iconKey];
-
 	return (
 		<Link
 			className="group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			href={`/dashboard/orders/${item.id}`}
 		>
 			<div className="flex items-start gap-3 px-4 pt-4 pb-3">
-				<div
-					className={`flex size-12 flex-shrink-0 items-center justify-center rounded-[10px] ${TONE_TINT_BG[statusMeta.tone]}`}
-				>
-					<StatusIcon
-						aria-hidden
-						className={`size-5 ${TONE_TEXT[statusMeta.tone]}`}
-					/>
-				</div>
 				<div className="min-w-0 flex-1">
 					<span className="block truncate font-mono font-semibold text-[13px] text-foreground leading-tight tracking-tight">
 						{item.number}

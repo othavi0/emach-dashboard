@@ -21,6 +21,7 @@ import { REVIEW_STATUS_LABELS, type ReviewStatus } from "./reviews/status-meta";
 export interface DashboardCounts {
 	orders: number;
 	pendingUsers: number;
+	picking: number;
 	promotionsExpiring: number;
 	reviews: number;
 	stock: number;
@@ -339,11 +340,13 @@ export const fetchDashboardCounts = cache(
 		// Counts de domínios restritos só são computados/expostos com a capability:
 		// protege o endpoint (server action) e o badge da sidebar (layout), não só a
 		// renderização da UI. Sem acesso → `0` (a subquery nem roda).
-		const [canReviews, canPromotions, canApproveUsers] = await Promise.all([
-			can(session, "reviews.read"),
-			can(session, "promotions.read"),
-			can(session, "users.approve"),
-		]);
+		const [canReviews, canPromotions, canApproveUsers, canPick] =
+			await Promise.all([
+				can(session, "reviews.read"),
+				can(session, "promotions.read"),
+				can(session, "users.approve"),
+				can(session, "orders.pick"),
+			]);
 		const reviewsExpr = canReviews
 			? sql`(SELECT COUNT(*)::int FROM review WHERE status = 'pending')`
 			: sql`0`;
@@ -358,9 +361,22 @@ export const fetchDashboardCounts = cache(
 		const pendingUsersExpr = canApproveUsers
 			? sql`(SELECT COUNT(*)::int FROM "user" WHERE status = 'pending')`
 			: sql`0`;
+		// Pedidos aguardando separação (mesma condição da tab "A separar"). Global
+		// (não branch-scoped), igual aos demais badges desta query — gated por
+		// orders.pick. Espelha o WHERE de fetchPickingQueueCounts em separacao/data.ts.
+		const pickingExpr = canPick
+			? sql`(SELECT COUNT(*)::int FROM "order" o
+				WHERE o.status IN ('paid', 'preparing')
+					AND NOT EXISTS (
+						SELECT 1 FROM order_picking op
+						WHERE op.order_id = o.id
+							AND op.status IN ('in_progress', 'exception', 'completed')
+					))`
+			: sql`0`;
 		const result = await db.execute<{
 			orders: number;
 			pending_users: number;
+			picking: number;
 			promotions_expiring: number;
 			reviews: number;
 			stock: number;
@@ -371,7 +387,8 @@ export const fetchDashboardCounts = cache(
 			(SELECT COUNT(*)::int FROM "order" WHERE status = 'paid') AS orders,
 			${reviewsExpr} AS reviews,
 			${promotionsExpr} AS promotions_expiring,
-			${pendingUsersExpr} AS pending_users
+			${pendingUsersExpr} AS pending_users,
+			${pickingExpr} AS picking
 	`);
 		const row = result.rows[0];
 		if (!row) {
@@ -380,6 +397,7 @@ export const fetchDashboardCounts = cache(
 		return {
 			orders: row.orders,
 			pendingUsers: row.pending_users,
+			picking: row.picking,
 			promotionsExpiring: row.promotions_expiring,
 			reviews: row.reviews,
 			stock: row.stock,
