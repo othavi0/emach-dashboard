@@ -45,6 +45,10 @@ export function NavItem({
 	return (
 		<SidebarMenuItem>
 			<SidebarMenuButton
+				className={cn(
+					active &&
+						"hover:bg-primary/15 hover:text-sidebar-foreground data-active:bg-primary/15 data-active:text-sidebar-foreground"
+				)}
 				isActive={active}
 				render={
 					<Link href={item.href}>
