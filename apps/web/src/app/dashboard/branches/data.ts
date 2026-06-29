@@ -11,6 +11,8 @@ import {
 import { order } from "@emach/db/schema/orders";
 import { toolVariant } from "@emach/db/schema/tools";
 import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { getUserBranchScope } from "@/lib/branch-scope";
+import { getCurrentSession } from "@/lib/session";
 
 export interface EligibleUserOption {
 	email: string;
@@ -273,4 +275,23 @@ export function getActiveBranches(): Promise<ActiveBranchOption[]> {
 		.from(branch)
 		.where(eq(branch.status, "active"))
 		.orderBy(asc(branch.name));
+}
+
+// Filiais ativas filtradas pelo escopo do usuário: super_admin vê todas;
+// admin/user veem só as suas (user_branch). Usar em dropdowns/filtros voltados
+// ao usuário (ex: filtro de filial na lista de ferramentas e na aba Atividade)
+// para não expor filiais fora do escopo. `getActiveBranches` (sem scope) fica
+// para contextos que genuinamente precisam de todas as filiais.
+export async function getScopedActiveBranches(): Promise<ActiveBranchOption[]> {
+	const all = await getActiveBranches();
+	const session = await getCurrentSession();
+	if (!session) {
+		return [];
+	}
+	const scope = await getUserBranchScope(session);
+	if (scope.kind === "all") {
+		return all;
+	}
+	const allowed = new Set(scope.branchIds);
+	return all.filter((b) => allowed.has(b.id));
 }
