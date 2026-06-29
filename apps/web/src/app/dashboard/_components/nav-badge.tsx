@@ -30,9 +30,9 @@ export function NavBadge({
 	if (value <= 0) {
 		return null;
 	}
-	return (
-		<SidebarMenuBadge className="bg-secondary text-secondary-foreground peer-data-active/menu-button:text-secondary-foreground">
-			{value}
-		</SidebarMenuBadge>
-	);
+	const tone =
+		badgeKey === "stock"
+			? "bg-warning/20 text-warning"
+			: "bg-secondary text-secondary-foreground peer-data-active/menu-button:text-secondary-foreground";
+	return <SidebarMenuBadge className={tone}>{value}</SidebarMenuBadge>;
 }

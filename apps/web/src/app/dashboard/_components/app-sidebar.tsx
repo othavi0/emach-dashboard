@@ -9,11 +9,9 @@ import {
 } from "@emach/ui/components/sidebar";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 
 import type { Capability } from "@/lib/permissions";
 import type { DashboardCounts } from "../pending-data";
-import { CommandPalette } from "./command-palette";
 import { DASHBOARD_HREF, NAV_GROUPS } from "./nav-config";
 import { NavGroup } from "./nav-group";
 import { type FooterUser, SidebarFooterUser } from "./sidebar-footer-user";
@@ -31,8 +29,6 @@ export function AppSidebar({
 	countsPromise,
 	user,
 }: AppSidebarProps) {
-	const [commandOpen, setCommandOpen] = useState(false);
-
 	const capSet = new Set(capabilities);
 
 	const groups = NAV_GROUPS.filter(
@@ -44,8 +40,6 @@ export function AppSidebar({
 				(item) => !item.capability || capSet.has(item.capability)
 			),
 		}))
-		// Não renderiza grupo cujos itens visíveis são todos inacessíveis
-		// (vazio) ou meros placeholders desabilitados (ex: "Notificações").
 		.filter((g) => g.items.some((item) => !item.disabled));
 
 	return (
@@ -56,6 +50,12 @@ export function AppSidebar({
 					className="flex items-center justify-center px-2 py-2 group-data-[collapsible=icon]:px-0"
 					href={DASHBOARD_HREF}
 				>
+					<span
+						aria-hidden
+						className="hidden size-7 items-center justify-center rounded-md bg-primary font-bold text-primary-foreground text-sm group-data-[collapsible=icon]:flex"
+					>
+						E
+					</span>
 					<Image
 						alt="Emach"
 						className="h-7 w-auto group-data-[collapsible=icon]:hidden"
@@ -65,11 +65,6 @@ export function AppSidebar({
 						width={224}
 					/>
 				</Link>
-				<CommandPalette
-					canManageUsers={canManageUsers}
-					onOpenChange={setCommandOpen}
-					open={commandOpen}
-				/>
 			</SidebarHeader>
 
 			<SidebarContent>
@@ -77,7 +72,7 @@ export function AppSidebar({
 					<NavGroup
 						countsPromise={countsPromise}
 						group={group}
-						key={group.label}
+						key={group.label || "root"}
 					/>
 				))}
 			</SidebarContent>

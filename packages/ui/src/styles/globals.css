@@ -300,28 +300,6 @@
 	color: var(--muted-foreground);
 }
 
-/* === Nav item entrance animation (sidebar shell) ===
- * Replaces motion/react m.div stagger — zero JS dependency.
- */
-@keyframes nav-item-in {
-	from {
-		opacity: 0;
-		transform: translateX(-6px);
-	}
-	to {
-		opacity: 1;
-		transform: translateX(0);
-	}
-}
-.nav-item-animate {
-	animation: nav-item-in 0.18s ease-out both;
-}
-@media (prefers-reduced-motion: reduce) {
-	.nav-item-animate {
-		animation: none;
-	}
-}
-
 /* Close button (notify.error/.warning ativam closeButton) — alinhado ao
  * focus ring do sistema (§7): hairline coral com offset. */
 [data-sonner-toaster][data-sonner-theme="dark"]

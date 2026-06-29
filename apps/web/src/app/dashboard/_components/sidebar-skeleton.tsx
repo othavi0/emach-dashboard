@@ -24,7 +24,7 @@ export function SidebarSkeleton() {
 	return (
 		<Sidebar collapsible="icon">
 			<SidebarHeader>
-				<div className="flex items-center justify-center px-2 py-2">
+				<div className="flex items-center px-2 py-2">
 					<Skeleton className="h-7 w-28" />
 				</div>
 			</SidebarHeader>

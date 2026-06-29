@@ -19,17 +19,19 @@ export function NavGroup({
 }) {
 	return (
 		<SidebarGroup>
-			<SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+			{group.label ? (
+				<SidebarGroupLabel className="text-[11px] uppercase tracking-wider">
+					{group.label}
+				</SidebarGroupLabel>
+			) : null}
 			<SidebarGroupContent>
 				<SidebarMenu>
-					{group.items.map((item, index) => (
-						<div
-							className="nav-item-animate"
+					{group.items.map((item) => (
+						<NavItem
+							countsPromise={countsPromise}
+							item={item}
 							key={item.href}
-							style={{ animationDelay: `${index * 25}ms` }}
-						>
-							<NavItem countsPromise={countsPromise} item={item} />
-						</div>
+						/>
 					))}
 				</SidebarMenu>
 			</SidebarGroupContent>

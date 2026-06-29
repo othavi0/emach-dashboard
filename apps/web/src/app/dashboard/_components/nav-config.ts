@@ -1,6 +1,5 @@
 import {
 	ArrowLeftRight,
-	Bell,
 	Building2,
 	FolderTree,
 	Image as ImageIcon,
@@ -29,7 +28,6 @@ export interface NavItemConfig {
 	href: Route;
 	icon: LucideIcon;
 	label: string;
-	requiresManageUsers?: boolean;
 }
 
 export interface NavGroupConfig {
@@ -41,7 +39,7 @@ export const DASHBOARD_HREF = "/dashboard" as Route;
 
 export const NAV_GROUPS: NavGroupConfig[] = [
 	{
-		label: "Visão",
+		label: "",
 		items: [
 			{
 				label: "Dashboard",
@@ -52,7 +50,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 		],
 	},
 	{
-		label: "Operação",
+		label: "Vendas",
 		items: [
 			{
 				label: "Pedidos",
@@ -68,9 +66,9 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				badgeKey: "picking",
 			},
 			{
-				label: "Filiais",
-				href: "/dashboard/branches" as Route,
-				icon: Building2,
+				label: "Movimentações",
+				href: "/dashboard/stock/movements" as Route,
+				icon: ArrowLeftRight,
 			},
 		],
 	},
@@ -93,29 +91,11 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				href: "/dashboard/suppliers" as Route,
 				icon: Truck,
 			},
-			{
-				label: "Movimentações",
-				href: "/dashboard/stock/movements" as Route,
-				icon: ArrowLeftRight,
-			},
 		],
 	},
 	{
-		label: "Relacionamento",
+		label: "Loja & Clientes",
 		items: [
-			{
-				label: "Clientes",
-				href: "/dashboard/customers" as Route,
-				icon: Users,
-				capability: "customers.read",
-			},
-			{
-				label: "Avaliações",
-				href: "/dashboard/reviews" as Route,
-				icon: Star,
-				badgeKey: "reviews",
-				capability: "reviews.read",
-			},
 			{
 				label: "Promoções",
 				href: "/dashboard/promotions" as Route,
@@ -129,16 +109,28 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				capability: "site.update_banners",
 			},
 			{
-				label: "Notificações",
-				href: "/dashboard/site/notifications" as Route,
-				icon: Bell,
-				disabled: true,
+				label: "Clientes",
+				href: "/dashboard/customers" as Route,
+				icon: Users,
+				capability: "customers.read",
+			},
+			{
+				label: "Avaliações",
+				href: "/dashboard/reviews" as Route,
+				icon: Star,
+				badgeKey: "reviews",
+				capability: "reviews.read",
 			},
 		],
 	},
 	{
-		label: "Sistema",
+		label: "Configuração",
 		items: [
+			{
+				label: "Filiais",
+				href: "/dashboard/branches" as Route,
+				icon: Building2,
+			},
 			{
 				label: "Frete",
 				href: "/dashboard/shipping" as Route,
@@ -161,7 +153,6 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				href: "/dashboard/users" as Route,
 				icon: ShieldCheck,
 				badgeKey: "users",
-				requiresManageUsers: true,
 			},
 		],
 	},
