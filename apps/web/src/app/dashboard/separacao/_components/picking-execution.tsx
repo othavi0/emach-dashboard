@@ -11,7 +11,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@emach/ui/components/alert-dialog";
-import { Button } from "@emach/ui/components/button";
+import { Button, buttonVariants } from "@emach/ui/components/button";
 import { Textarea } from "@emach/ui/components/textarea";
 import {
 	ArrowLeftIcon,
@@ -599,21 +599,14 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 
 	return (
 		<>
-			{/* Barra da operação */}
-			<div className="flex items-center justify-between gap-4 rounded-t-xl border border-border border-b-0 bg-sidebar px-5 py-3.5">
-				<div className="flex min-w-0 items-center gap-3.5">
-					<Link
-						aria-label="Voltar à fila de separação"
-						className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-input transition-colors hover:bg-muted"
-						href="/dashboard/separacao"
-					>
-						<ArrowLeftIcon aria-hidden className="size-4" />
-					</Link>
+			{/* Header da operação */}
+			<div className="rounded-xl border border-border bg-card p-5">
+				<div className="flex items-start justify-between gap-4">
 					<div className="min-w-0">
-						<p className="font-semibold text-base leading-tight">
+						<h1 className="font-medium font-serif text-2xl tracking-tight">
 							Separação em andamento
-						</p>
-						<p className="flex items-center gap-2 text-[12px] text-muted-foreground">
+						</h1>
+						<p className="mt-1 flex items-center gap-2 text-[13px] text-muted-foreground">
 							<span>{picking.pickerName}</span>
 							{picking.branchId && (
 								<>
@@ -626,34 +619,52 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 							)}
 						</p>
 					</div>
+
+					<div className="flex shrink-0 items-center gap-3">
+						<span className="inline-flex items-center gap-1 rounded-md bg-info/15 px-2.5 py-1 font-semibold text-[11px] text-info">
+							Em separação
+						</span>
+						<Link
+							className={buttonVariants({ size: "sm", variant: "outline" })}
+							href="/dashboard/separacao"
+						>
+							<ArrowLeftIcon aria-hidden className="size-4" />
+							Voltar à fila
+						</Link>
+						<Button
+							className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+							disabled={isCanceling}
+							onClick={() => setIsCancelOpen(true)}
+							size="sm"
+							variant="ghost"
+						>
+							<BanIcon aria-hidden className="size-3.5 shrink-0" />
+							Cancelar
+						</Button>
+					</div>
 				</div>
 
-				<div className="flex shrink-0 items-center gap-4">
-					<span className="inline-flex items-center gap-1 rounded-md bg-info/15 px-2.5 py-1 font-semibold text-[11px] text-info">
-						Em separação
-					</span>
-					<div className="flex w-[180px] flex-col gap-1.5">
-						<div className="flex justify-between text-[12px] text-muted-foreground">
-							<span>Progresso</span>
-							<span>
-								<span className="font-semibold text-foreground tabular-nums">
-									{summary.pickedUnits}
-								</span>{" "}
-								/ {summary.totalUnits} un
-							</span>
-						</div>
-						<div className="h-1.5 overflow-hidden rounded-full bg-muted">
-							<div
-								className="h-full bg-primary transition-[width]"
-								style={{ width: `${progressPct}%` }}
-							/>
-						</div>
+				<div className="mt-4 flex items-center gap-3">
+					<div className="h-2.5 flex-1 overflow-hidden rounded-full bg-input">
+						<div
+							className="h-full bg-primary transition-[width]"
+							style={{ width: `${progressPct}%` }}
+						/>
 					</div>
+					<span className="shrink-0 text-[13px] tabular-nums">
+						<span className="font-semibold text-foreground">
+							{summary.pickedUnits}
+						</span>{" "}
+						<span className="text-muted-foreground">
+							/ {summary.totalUnits} un · {doneCount} de {localItems.length}{" "}
+							itens
+						</span>
+					</span>
 				</div>
 			</div>
 
 			{/* Palco — 2 colunas */}
-			<div className="grid grid-cols-[1.45fr_1fr] overflow-hidden rounded-b-xl border border-border max-[900px]:grid-cols-1">
+			<div className="mt-4 grid grid-cols-[1.45fr_1fr] overflow-hidden rounded-xl border border-border max-[900px]:grid-cols-1">
 				{/* ESQUERDA */}
 				<div className="flex flex-col gap-5 border-border border-r p-5 max-[900px]:border-r-0 max-[900px]:border-b">
 					<ScanInput disabled={scanDisabled} onScan={handleScan} />
@@ -723,17 +734,6 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 							{gateText}
 						</p>
 					)}
-
-					<Button
-						className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-						disabled={isCanceling}
-						onClick={() => setIsCancelOpen(true)}
-						size="sm"
-						variant="ghost"
-					>
-						<BanIcon aria-hidden className="size-3.5 shrink-0" />
-						Cancelar separação
-					</Button>
 				</div>
 			</div>
 
