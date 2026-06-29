@@ -1,3 +1,4 @@
+import { buttonVariants } from "@emach/ui/components/button";
 import { PlayIcon } from "lucide-react";
 import Link from "next/link";
 
@@ -20,8 +21,8 @@ export function ResumeBanner({ activePicking }: ResumeBannerProps) {
 			: 0;
 
 	return (
-		<div className="flex items-center gap-4 rounded-xl bg-surface-deep p-4 ring-2 ring-info">
-			<div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-info text-info-foreground">
+		<div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
+			<div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
 				<PlayIcon aria-hidden className="size-5" />
 			</div>
 
@@ -34,12 +35,12 @@ export function ResumeBanner({ activePicking }: ResumeBannerProps) {
 					{activePicking.pickedUnits} de {activePicking.totalUnits} unidades
 				</p>
 				<div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-					<div className="h-full bg-info" style={{ width: `${pct}%` }} />
+					<div className="h-full bg-primary" style={{ width: `${pct}%` }} />
 				</div>
 			</div>
 
 			<Link
-				className="shrink-0 rounded-lg bg-info px-4 py-2.5 font-semibold text-info-foreground text-sm transition-opacity hover:opacity-90"
+				className={buttonVariants({ className: "shrink-0" })}
 				href={`/dashboard/separacao/${activePicking.orderId}`}
 			>
 				Retomar
