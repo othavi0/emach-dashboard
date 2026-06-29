@@ -60,6 +60,23 @@ const nextConfig: NextConfig = {
 	typedRoutes: false,
 	reactCompiler: true,
 	experimental: {
+		// Router Cache client-side: o default do Next 16 é `dynamic: 0`, e como
+		// toda rota /dashboard/* é dinâmica (validação de sessão chama `headers()`),
+		// nenhum RSC payload era reaproveitado — cada troca de tab/navegação na
+		// sidebar, e até voltar a uma rota já vista, refazia o round-trip completo
+		// (sessão + 7-12 queries + RTT). Medido empiricamente: revisita disparava
+		// `?_rsc=` novo. Com `dynamic: 30`, revisita soft dentro da janela é servida
+		// do cache (instantânea, sem servidor). Mutações invalidam via
+		// `router.refresh()`/`revalidatePath`; hard load / F5 / rota nova continuam
+		// sempre frescos. Trade-off P0 consciente: o gate de status/role tem
+		// staleness ≤30s SÓ em revisita soft a rota já renderizada — versão branda
+		// da janela que o ADR-0020 já aceitava (60s); suspender já apaga as sessões
+		// no DB e qualquer hard load/rota nova revalida. Distinto do cookieCache
+		// rejeitado pelo ADR-0021 (que cacheava a própria sessão).
+		staleTimes: {
+			dynamic: 30,
+			static: 180,
+		},
 		serverActions: {
 			// Banners aceitam master de alta qualidade (fundo/produto até 4MB).
 			// Margem para o overhead do multipart FormData acima do maior cap.
