@@ -47,7 +47,7 @@ export function AppSidebar({
 			<SidebarHeader>
 				<Link
 					aria-label="Emach — ir para o dashboard"
-					className="flex items-center gap-2 px-2 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+					className="flex items-center justify-center px-2 py-2 group-data-[collapsible=icon]:px-0"
 					href={DASHBOARD_HREF}
 				>
 					<span
@@ -64,9 +64,6 @@ export function AppSidebar({
 						src="/emach-nome-branco.svg"
 						width={224}
 					/>
-					<span className="ml-auto rounded border border-sidebar-border px-1.5 py-0.5 font-medium text-[9px] text-muted-foreground uppercase tracking-widest group-data-[collapsible=icon]:hidden">
-						admin
-					</span>
 				</Link>
 			</SidebarHeader>
 

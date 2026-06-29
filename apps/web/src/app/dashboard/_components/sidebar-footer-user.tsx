@@ -139,7 +139,7 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 				<div className="grid min-w-0 flex-1 text-left leading-tight">
 					<span className="truncate font-medium text-sm">{user.name}</span>
 					{roleLabel ? (
-						<span className="truncate text-[10px] text-primary uppercase tracking-wide">
+						<span className="truncate font-semibold text-[10px] text-primary uppercase tracking-wide">
 							{roleLabel}
 						</span>
 					) : (
