@@ -83,9 +83,9 @@ export function CommandPalette({
 	};
 
 	const trimmed = query.trim().toLowerCase();
-	const navItems = NAV_GROUPS.flatMap((g) => g.items).filter(
-		(i) => !i.disabled && (!i.requiresManageUsers || canManageUsers)
-	);
+	const navItems = NAV_GROUPS.flatMap((g) =>
+		g.label === "Administração" && !canManageUsers ? [] : g.items
+	).filter((i) => !i.disabled);
 	const visibleNav = trimmed
 		? navItems.filter((i) => i.label.toLowerCase().includes(trimmed))
 		: navItems;
