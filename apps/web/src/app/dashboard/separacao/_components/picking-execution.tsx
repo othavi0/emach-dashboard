@@ -96,32 +96,6 @@ function firstIncompleteId(items: LocalItem[]): string | null {
 	);
 }
 
-function getFocusBorder(f: FeedbackKind): string {
-	if (f === "accepted") {
-		return "border-success";
-	}
-	if (f === "already_complete") {
-		return "border-warning";
-	}
-	if (f === "not_in_order") {
-		return "border-destructive";
-	}
-	return "border-border";
-}
-
-function getFocusAccent(f: FeedbackKind): string {
-	if (f === "accepted") {
-		return "text-success";
-	}
-	if (f === "already_complete") {
-		return "text-warning";
-	}
-	if (f === "not_in_order") {
-		return "text-destructive";
-	}
-	return "text-muted-foreground";
-}
-
 function getFocusCountColor(f: FeedbackKind): string {
 	if (f === "accepted") {
 		return "text-success";
@@ -148,17 +122,36 @@ function getFocusBarColor(f: FeedbackKind): string {
 	return "bg-primary";
 }
 
-function getFocusLabel(f: FeedbackKind): string {
-	if (f === "accepted") {
-		return "Bipado agora";
+const FEEDBACK_STRIP_META = {
+	accepted: { label: "Aceito", cls: "bg-success/14 text-success" },
+	already_complete: { label: "Já completo", cls: "bg-warning/14 text-warning" },
+	not_in_order: {
+		label: "Fora do pedido",
+		cls: "bg-destructive/14 text-destructive",
+	},
+} as const;
+
+function FeedbackStrip({ feedback }: { feedback: FeedbackKind }) {
+	if (!feedback) {
+		return null;
 	}
-	if (f === "already_complete") {
-		return "Já completo";
-	}
-	if (f === "not_in_order") {
-		return "Não pertence ao pedido";
-	}
-	return "Item em foco";
+	const meta = FEEDBACK_STRIP_META[feedback];
+	return (
+		<div
+			className={`flex items-center gap-2 px-5 py-2.5 font-semibold text-[13px] ${meta.cls}`}
+		>
+			{feedback === "accepted" && (
+				<CheckIcon aria-hidden className="size-4" strokeWidth={2.6} />
+			)}
+			{feedback === "already_complete" && (
+				<TriangleAlertIcon aria-hidden className="size-4" />
+			)}
+			{feedback === "not_in_order" && (
+				<XIcon aria-hidden className="size-4" strokeWidth={2.6} />
+			)}
+			{meta.label}
+		</div>
+	);
 }
 
 function getCheckerClass(state: ItemState): string {
@@ -199,8 +192,6 @@ function FocusCard({
 	isReporting,
 	onReportOpen,
 }: FocusCardProps) {
-	const accent = getFocusAccent(feedback);
-	const label = getFocusLabel(feedback);
 	const countColor = getFocusCountColor(feedback);
 	const barColor = getFocusBarColor(feedback);
 	const progress = Math.round(
@@ -208,32 +199,12 @@ function FocusCard({
 	);
 
 	return (
-		<div
-			className={`flex gap-4 rounded-lg border-2 bg-card p-5 transition-colors ${getFocusBorder(feedback)}`}
-		>
+		<div className="flex gap-4">
 			<div className="flex size-24 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground">
 				<ImageIcon aria-hidden className="size-9" strokeWidth={1.5} />
 			</div>
 
 			<div className="flex min-w-0 flex-1 flex-col gap-2">
-				<span
-					className={`flex items-center gap-1.5 font-semibold text-[12px] ${accent}`}
-				>
-					{feedback === "accepted" && (
-						<CheckIcon aria-hidden className="size-3.5" strokeWidth={2.6} />
-					)}
-					{feedback === "already_complete" && (
-						<TriangleAlertIcon aria-hidden className="size-3.5" />
-					)}
-					{feedback === "not_in_order" && (
-						<XIcon aria-hidden className="size-3.5" strokeWidth={2.6} />
-					)}
-					{!feedback && (
-						<CheckIcon aria-hidden className="size-3.5" strokeWidth={2.6} />
-					)}
-					{label}
-				</span>
-
 				<p className="font-semibold text-[18px] leading-tight">{item.name}</p>
 
 				<div className="flex flex-wrap items-center gap-2">
@@ -263,86 +234,23 @@ function FocusCard({
 					</span>
 				</div>
 
-				<div className="h-2 max-w-[300px] overflow-hidden rounded-full bg-muted">
+				<div className="h-2 overflow-hidden rounded-full bg-muted">
 					<div
 						className={`h-full transition-[width] ${barColor}`}
 						style={{ width: `${progress}%` }}
 					/>
 				</div>
 
-				<Button
-					className="mt-1 w-fit"
-					disabled={item.notFound || isReporting}
-					onClick={() => onReportOpen(item.id)}
-					size="sm"
-					variant="outline"
-				>
-					Item não encontrado
-				</Button>
-			</div>
-		</div>
-	);
-}
-
-interface FeedbackLegendProps {
-	feedback: FeedbackKind;
-}
-
-function FeedbackLegend({ feedback }: FeedbackLegendProps) {
-	return (
-		<div className="flex flex-col gap-2">
-			<p className="font-semibold text-[11px] text-muted-foreground uppercase tracking-[.09em]">
-				Feedback do scan
-			</p>
-			<div
-				className={`flex items-center gap-3 rounded-md border p-3 transition-colors ${
-					feedback === "accepted"
-						? "border-success/30 bg-success/10"
-						: "border-border bg-card"
-				}`}
-			>
-				<div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-success text-success-foreground">
-					<CheckIcon aria-hidden className="size-3.5" strokeWidth={2.6} />
-				</div>
-				<div>
-					<p className="font-semibold text-[13px]">Aceito</p>
-					<p className="text-[12px] text-muted-foreground">
-						Código confere · contador sobe e barra avança (flash verde)
-					</p>
-				</div>
-			</div>
-			<div
-				className={`flex items-center gap-3 rounded-md border p-3 transition-colors ${
-					feedback === "already_complete"
-						? "border-warning/30 bg-warning/10"
-						: "border-border bg-card"
-				}`}
-			>
-				<div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-warning text-warning-foreground">
-					<TriangleAlertIcon aria-hidden className="size-3.5" />
-				</div>
-				<div>
-					<p className="font-semibold text-[13px]">Já completo</p>
-					<p className="text-[12px] text-muted-foreground">
-						Todas as unidades deste item já foram bipadas · scan ignorado
-					</p>
-				</div>
-			</div>
-			<div
-				className={`flex items-center gap-3 rounded-md border p-3 transition-colors ${
-					feedback === "not_in_order"
-						? "border-destructive/30 bg-destructive/10"
-						: "border-border bg-card"
-				}`}
-			>
-				<div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-destructive text-destructive-foreground">
-					<XIcon aria-hidden className="size-3.5" strokeWidth={2.6} />
-				</div>
-				<div>
-					<p className="font-semibold text-[13px]">Não pertence ao pedido</p>
-					<p className="text-[12px] text-muted-foreground">
-						Código não está neste pedido · flash vermelho
-					</p>
+				<div className="flex justify-end">
+					<Button
+						className="mt-1 w-fit"
+						disabled={item.notFound || isReporting}
+						onClick={() => onReportOpen(item.id)}
+						size="sm"
+						variant="outline"
+					>
+						Item não encontrado
+					</Button>
 				</div>
 			</div>
 		</div>
@@ -665,26 +573,31 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 
 			{/* Palco — 2 colunas */}
 			<div className="mt-4 grid grid-cols-[1.45fr_1fr] overflow-hidden rounded-xl border border-border max-[900px]:grid-cols-1">
-				{/* ESQUERDA */}
-				<div className="flex flex-col gap-5 border-border border-r p-5 max-[900px]:border-r-0 max-[900px]:border-b">
-					<ScanInput disabled={scanDisabled} onScan={handleScan} />
-
-					{focusedItem ? (
-						<FocusCard
-							feedback={feedback}
-							isReporting={isReporting}
-							item={focusedItem}
-							onReportOpen={handleReportOpen}
-						/>
-					) : (
-						<div className="flex items-center justify-center rounded-lg border border-border border-dashed bg-surface-deep p-8">
-							<p className="text-[13px] text-muted-foreground">
-								Todos os itens foram conferidos
-							</p>
+				{/* ESQUERDA — painel unificado */}
+				<div className="border-border border-r p-5 max-[900px]:border-r-0 max-[900px]:border-b">
+					<div className="overflow-hidden rounded-xl border border-border bg-card">
+						<FeedbackStrip feedback={feedback} />
+						<div className="p-5">
+							<ScanInput disabled={scanDisabled} onScan={handleScan} />
 						</div>
-					)}
-
-					<FeedbackLegend feedback={feedback} />
+						<div className="h-px bg-border" />
+						<div className="p-5">
+							{focusedItem ? (
+								<FocusCard
+									feedback={feedback}
+									isReporting={isReporting}
+									item={focusedItem}
+									onReportOpen={handleReportOpen}
+								/>
+							) : (
+								<div className="flex items-center justify-center rounded-lg border border-border border-dashed p-8">
+									<p className="text-[13px] text-muted-foreground">
+										Todos os itens foram conferidos
+									</p>
+								</div>
+							)}
+						</div>
+					</div>
 				</div>
 
 				{/* DIREITA */}
