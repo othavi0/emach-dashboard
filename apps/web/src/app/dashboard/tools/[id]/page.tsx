@@ -2,20 +2,19 @@ import { Activity, Boxes, Info, Star, Tag } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import type { EntityTab } from "@/components/entity/entity-tabs";
-import { EntityTabs } from "@/components/entity/entity-tabs";
 import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
-import { getActiveSuppliers } from "@/lib/suppliers";
-import { ActivityTab } from "./_components/activity-tab";
+import { ActivityTabLoader } from "./_components/activity-tab-loader";
 import { EstoqueTab } from "./_components/estoque-tab";
 import { OverviewTab } from "./_components/overview-tab";
+import { ReviewsTabLoader } from "./_components/reviews-tab-loader";
 import { ToolDetailActions } from "./_components/tool-detail-actions";
 import { ToolDetailHeader } from "./_components/tool-detail-header";
-import { ToolReviewsSection } from "./_components/tool-reviews-section";
+import {
+	type ToolDetailTab,
+	ToolDetailTabs,
+} from "./_components/tool-detail-tabs";
 import { VariantsTab } from "./_components/variants-tab";
-
-import { getToolReviewsSummary } from "./_lib/reviews-data";
 import { getToolDetail } from "./_lib/tool-detail-data";
 
 export const metadata: Metadata = {
@@ -44,27 +43,19 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 		notFound();
 	}
 
-	// ?variant= define o default (aba Variantes) só quando nenhuma aba explícita foi escolhida;
-	// um ?tab= explícito sempre vence (senão clicar outra aba com ?variant= na URL renderiza vazio).
-	const current = tab ?? (variant ? "variantes" : "visao-geral");
-	const isOverview = current === "visao-geral";
-
-	// Carrega o resumo de reviews só quando a aba está ativa (lazy).
-	const reviewsSummary =
-		current === "avaliacoes" ? await getToolReviewsSummary(id) : null;
-
-	// Fornecedores ativos para o select de entrada na sheet de estoque (lazy: só na aba estoque).
-	const suppliers = current === "estoque" ? await getActiveSuppliers() : [];
+	const defaultValue = "visao-geral";
+	// ?variant= define a tab inicial (Variantes) só quando nenhuma ?tab= explícita foi dada.
+	const initialTab = tab ?? (variant ? "variantes" : defaultValue);
 
 	const alertCount =
 		detail.stockSummary.criticalCount + detail.stockSummary.reorderCount;
 
-	const tabs: EntityTab[] = [
+	const tabs: ToolDetailTab[] = [
 		{
 			value: "visao-geral",
 			label: "Visão geral",
 			icon: <Info aria-hidden className="size-3.5" />,
-			content: isOverview ? (
+			content: (
 				<OverviewTab
 					attributes={detail.attributes}
 					categories={detail.categories}
@@ -72,24 +63,23 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 					stockSummary={detail.stockSummary}
 					tool={detail.tool}
 				/>
-			) : null,
+			),
 		},
 		{
 			value: "variantes",
 			label: "Variantes & preços",
 			icon: <Tag aria-hidden className="size-3.5" />,
-			content:
-				current === "variantes" ? (
-					<VariantsTab
-						canDelete={canDelete}
-						canMutate={canMutate}
-						highlightVariantId={variant}
-						orderedVariantIds={detail.orderedVariantIds}
-						toolId={detail.tool.id}
-						toolName={detail.tool.name}
-						variants={detail.variants}
-					/>
-				) : null,
+			content: (
+				<VariantsTab
+					canDelete={canDelete}
+					canMutate={canMutate}
+					highlightVariantId={variant}
+					orderedVariantIds={detail.orderedVariantIds}
+					toolId={detail.tool.id}
+					toolName={detail.tool.name}
+					variants={detail.variants}
+				/>
+			),
 		},
 		{
 			value: "estoque",
@@ -101,55 +91,46 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 						{alertCount}
 					</span>
 				) : undefined,
-			content:
-				current === "estoque" ? (
-					<EstoqueTab
-						canMutate={canMutate}
-						stockRows={detail.stockRows}
-						suppliers={suppliers}
-						toolId={detail.tool.id}
-						toolImageUrl={detail.images[0]?.url ?? null}
-						toolName={detail.tool.name}
-						variants={detail.variants}
-					/>
-				) : null,
+			content: (
+				<EstoqueTab
+					canMutate={canMutate}
+					stockRows={detail.stockRows}
+					toolId={detail.tool.id}
+					toolImageUrl={detail.images[0]?.url ?? null}
+					toolName={detail.tool.name}
+					variants={detail.variants}
+				/>
+			),
 		},
 		{
 			value: "atividade",
 			label: "Atividade",
 			icon: <Activity aria-hidden className="size-3.5" />,
-			content:
-				current === "atividade" ? (
-					<ActivityTab toolId={detail.tool.id} />
-				) : null,
+			lazy: true,
+			content: <ActivityTabLoader toolId={detail.tool.id} />,
 		},
 		{
 			value: "avaliacoes",
 			label: "Avaliações",
 			icon: <Star aria-hidden className="size-3.5" />,
-			content:
-				current === "avaliacoes" && reviewsSummary ? (
-					<ToolReviewsSection
-						summary={reviewsSummary}
-						toolId={detail.tool.id}
-					/>
-				) : null,
+			lazy: true,
+			content: <ReviewsTabLoader toolId={detail.tool.id} />,
 		},
 	];
 
 	return (
-		<div className="flex flex-col gap-4">
-			<ToolDetailHeader
-				actions={
-					<ToolDetailActions
-						canMutate={canMutate}
-						tab={current}
-						toolId={detail.tool.id}
-					/>
-				}
-				detail={detail}
-			/>
-			<EntityTabs defaultValue="visao-geral" tabs={tabs} />
-		</div>
+		<ToolDetailTabs
+			defaultValue={defaultValue}
+			header={
+				<ToolDetailHeader
+					actions={
+						<ToolDetailActions canMutate={canMutate} toolId={detail.tool.id} />
+					}
+					detail={detail}
+				/>
+			}
+			initialTab={initialTab}
+			tabs={tabs}
+		/>
 	);
 }
