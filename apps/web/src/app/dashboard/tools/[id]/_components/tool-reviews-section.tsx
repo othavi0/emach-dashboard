@@ -1,3 +1,5 @@
+"use client";
+
 import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import Link from "next/link";

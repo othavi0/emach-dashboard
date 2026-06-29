@@ -1,19 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { BranchStockEditSheet } from "@/app/dashboard/stock/_components/branch-stock-edit-sheet";
 import type { BranchStockRow } from "@/app/dashboard/stock/branch-stock-data";
 import type { ActiveSupplierOption } from "@/lib/suppliers";
-
 import { groupStockByVariant } from "../_lib/stock-grouping";
+import { fetchActiveSuppliersAction } from "../_lib/tab-actions";
 import type { ToolDetailVariant, ToolStockRow } from "../_lib/tool-detail-data";
 import { ToolStockBranchCard } from "./tool-stock-branch-card";
 
 interface EstoqueTabProps {
 	canMutate: boolean;
 	stockRows: ToolStockRow[];
-	suppliers: ActiveSupplierOption[];
 	toolId: string;
 	toolImageUrl: string | null;
 	toolName: string;
@@ -23,13 +22,34 @@ interface EstoqueTabProps {
 export function EstoqueTab({
 	canMutate,
 	stockRows,
-	suppliers,
 	toolId,
 	toolImageUrl,
 	toolName,
 	variants,
 }: EstoqueTabProps) {
 	const [selected, setSelected] = useState<ToolStockRow | null>(null);
+	const [suppliers, setSuppliers] = useState<ActiveSupplierOption[]>([]);
+
+	useEffect(() => {
+		if (!selected) {
+			return;
+		}
+		let active = true;
+		fetchActiveSuppliersAction()
+			.then((data) => {
+				if (active) {
+					setSuppliers(data);
+				}
+			})
+			.catch(() => {
+				if (active) {
+					setSuppliers([]);
+				}
+			});
+		return () => {
+			active = false;
+		};
+	}, [selected]);
 
 	const groups = groupStockByVariant(stockRows, variants);
 
