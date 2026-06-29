@@ -11,7 +11,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@emach/ui/components/alert-dialog";
-import { Button, buttonVariants } from "@emach/ui/components/button";
+import { Button } from "@emach/ui/components/button";
 import { Textarea } from "@emach/ui/components/textarea";
 import {
 	ArrowLeftIcon,
@@ -509,6 +509,14 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 		<>
 			{/* Header da operação */}
 			<div className="rounded-xl border border-border bg-card p-5">
+				<Link
+					className="mb-3 inline-flex items-center gap-1.5 font-medium text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+					href="/dashboard/separacao"
+				>
+					<ArrowLeftIcon aria-hidden className="size-4 shrink-0" />
+					Voltar à fila
+				</Link>
+
 				<div className="flex items-start justify-between gap-4">
 					<div className="min-w-0">
 						<h1 className="font-medium font-serif text-2xl tracking-tight">
@@ -528,28 +536,16 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 						</p>
 					</div>
 
-					<div className="flex shrink-0 items-center gap-3">
-						<span className="inline-flex items-center gap-1 rounded-md bg-info/15 px-2.5 py-1 font-semibold text-[11px] text-info">
-							Em separação
-						</span>
-						<Link
-							className={buttonVariants({ size: "sm", variant: "outline" })}
-							href="/dashboard/separacao"
-						>
-							<ArrowLeftIcon aria-hidden className="size-4" />
-							Voltar à fila
-						</Link>
-						<Button
-							className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-							disabled={isCanceling}
-							onClick={() => setIsCancelOpen(true)}
-							size="sm"
-							variant="ghost"
-						>
-							<BanIcon aria-hidden className="size-3.5 shrink-0" />
-							Cancelar
-						</Button>
-					</div>
+					<Button
+						className="shrink-0 border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+						disabled={isCanceling}
+						onClick={() => setIsCancelOpen(true)}
+						size="sm"
+						variant="outline"
+					>
+						<BanIcon aria-hidden className="size-4 shrink-0" />
+						Cancelar separação
+					</Button>
 				</div>
 
 				<div className="mt-4 flex items-center gap-3">
@@ -571,42 +567,40 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 				</div>
 			</div>
 
-			{/* Palco — 2 colunas */}
-			<div className="mt-4 grid grid-cols-[1.45fr_1fr] overflow-hidden rounded-xl border border-border max-[900px]:grid-cols-1">
-				{/* ESQUERDA — painel unificado */}
-				<div className="border-border border-r p-5 max-[900px]:border-r-0 max-[900px]:border-b">
-					<div className="overflow-hidden rounded-xl border border-border bg-card">
-						<FeedbackStrip feedback={feedback} />
-						<div className="p-5">
-							<ScanInput disabled={scanDisabled} onScan={handleScan} />
-						</div>
-						<div className="h-px bg-border" />
-						<div className="p-5">
-							{focusedItem ? (
-								<FocusCard
-									feedback={feedback}
-									isReporting={isReporting}
-									item={focusedItem}
-									onReportOpen={handleReportOpen}
-								/>
-							) : (
-								<div className="flex items-center justify-center rounded-lg border border-border border-dashed p-8">
-									<p className="text-[13px] text-muted-foreground">
-										Todos os itens foram conferidos
-									</p>
-								</div>
-							)}
-						</div>
+			{/* Palco — 2 colunas independentes */}
+			<div className="mt-4 grid grid-cols-[1.45fr_1fr] items-start gap-4 max-[900px]:grid-cols-1">
+				{/* ESQUERDA — painel unificado de scan */}
+				<div className="overflow-hidden rounded-xl border border-border bg-card">
+					<FeedbackStrip feedback={feedback} />
+					<div className="p-5">
+						<ScanInput disabled={scanDisabled} onScan={handleScan} />
+					</div>
+					<div className="h-px bg-border" />
+					<div className="p-5">
+						{focusedItem ? (
+							<FocusCard
+								feedback={feedback}
+								isReporting={isReporting}
+								item={focusedItem}
+								onReportOpen={handleReportOpen}
+							/>
+						) : (
+							<div className="flex items-center justify-center rounded-lg border border-border border-dashed p-8">
+								<p className="text-[13px] text-muted-foreground">
+									Todos os itens foram conferidos
+								</p>
+							</div>
+						)}
 					</div>
 				</div>
 
-				{/* DIREITA */}
-				<div className="flex flex-col gap-4 bg-sidebar p-5">
-					<p className="font-semibold text-[11px] text-muted-foreground uppercase tracking-[.09em]">
+				{/* DIREITA — itens do pedido */}
+				<div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+					<p className="border-border border-b px-5 py-3.5 font-semibold text-[11px] text-muted-foreground uppercase tracking-[.09em]">
 						Itens do pedido · {doneCount} de {localItems.length} concluídos
 					</p>
 
-					<div className="flex flex-col gap-1">
+					<div className="flex flex-col gap-1 p-3">
 						{localItems.map((item) => (
 							<ChecklistItemRow
 								focusedId={focusedId}
@@ -616,37 +610,39 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 						))}
 					</div>
 
-					<div className="h-px bg-border" />
+					<div className="mt-auto border-border border-t p-5">
+						<div className="flex flex-col gap-2">
+							<div className="flex justify-between text-[13px]">
+								<span className="text-muted-foreground">Unidades bipadas</span>
+								<span className="font-semibold tabular-nums">
+									{summary.pickedUnits} / {summary.totalUnits}
+								</span>
+							</div>
+							<div className="flex justify-between text-[13px]">
+								<span className="text-muted-foreground">Itens em exceção</span>
+								<span
+									className={`font-semibold tabular-nums ${exceptionColor}`}
+								>
+									{summary.exceptions}
+								</span>
+							</div>
+						</div>
 
-					<div className="flex flex-col gap-2">
-						<div className="flex justify-between text-[13px]">
-							<span className="text-muted-foreground">Unidades bipadas</span>
-							<span className="font-semibold tabular-nums">
-								{summary.pickedUnits} / {summary.totalUnits}
-							</span>
-						</div>
-						<div className="flex justify-between text-[13px]">
-							<span className="text-muted-foreground">Itens em exceção</span>
-							<span className={`font-semibold tabular-nums ${exceptionColor}`}>
-								{summary.exceptions}
-							</span>
-						</div>
+						<Button
+							className="mt-4 w-full"
+							disabled={!allDone || isCompleting}
+							onClick={handleComplete}
+						>
+							{isCompleting ? "Concluindo…" : "Concluir separação"}
+						</Button>
+
+						{!allDone && (
+							<p className="mt-3 flex items-center justify-center gap-1.5 text-[12px] text-warning">
+								<LockIcon aria-hidden className="size-3.5 shrink-0" />
+								{gateText}
+							</p>
+						)}
 					</div>
-
-					<Button
-						className="w-full"
-						disabled={!allDone || isCompleting}
-						onClick={handleComplete}
-					>
-						{isCompleting ? "Concluindo…" : "Concluir separação"}
-					</Button>
-
-					{!allDone && (
-						<p className="flex items-center justify-center gap-1.5 text-[12px] text-warning">
-							<LockIcon aria-hidden className="size-3.5 shrink-0" />
-							{gateText}
-						</p>
-					)}
 				</div>
 			</div>
 
