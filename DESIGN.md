@@ -356,6 +356,8 @@ Página de detalhe de uma entidade (`/dashboard/<recurso>/[id]`) — o padrão d
   | tabs read-only (ex: pedidos) | — (sem ação) |
 
   Funciona porque trocar de aba faz `router.replace(?tab=)`, re-renderizando o Server Component e atualizando o header. **Não** colocar o botão de ação dentro do corpo da tab.
+
+  > **Piloto client-side (tool detail — PR #259 / ADR-0024):** `tools/[id]` substituiu o `EntityTabs` server-nav por um shell client (`ToolDetailTabs`): trocar de aba é 100% cliente (`history.replaceState`, **sem** `router.replace` nem re-render do servidor — 0 requests medidos), conteúdo eager (de `detail`) renderizado uma vez + tabs lazy via `"use server"` action, e a ação do header reativa no cliente via `useActiveTab` (não `sp.tab`). As outras 8 páginas de detalhe seguem o `EntityTabs` server-nav descrito acima até serem migradas. Ver ADR-0024.
 - **Badge de contagem na tab:** sempre `secondary` (neutro). Via `<TabsCountBadge>` no `Tabs` base; no `EntityTabs`, badge `secondary` `rounded-md` `h-5 min-w-5`. A hierarquia vem da aba ativa (coral), não do badge.
 
 ### Mutações: drawer / página / confirmação destrutiva
