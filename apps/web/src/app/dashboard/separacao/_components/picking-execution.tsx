@@ -269,8 +269,8 @@ function ChecklistItemRow({ item, focusedId }: ChecklistItemRowProps) {
 
 	return (
 		<div
-			className={`flex items-center gap-3 rounded-md border px-3 py-2.5 ${
-				state === "cur" ? "border-primary/40 bg-muted" : "border-transparent"
+			className={`flex items-center gap-3 rounded-md px-3 py-2.5 ${
+				state === "cur" ? "bg-primary/8 ring-1 ring-primary/40 ring-inset" : ""
 			}`}
 		>
 			<div
