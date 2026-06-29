@@ -35,11 +35,17 @@ export function EstoqueTab({
 			return;
 		}
 		let active = true;
-		fetchActiveSuppliersAction().then((data) => {
-			if (active) {
-				setSuppliers(data);
-			}
-		});
+		fetchActiveSuppliersAction()
+			.then((data) => {
+				if (active) {
+					setSuppliers(data);
+				}
+			})
+			.catch(() => {
+				if (active) {
+					setSuppliers([]);
+				}
+			});
 		return () => {
 			active = false;
 		};

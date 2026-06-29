@@ -21,6 +21,7 @@ export function ActivityTabLoader({ toolId }: { toolId: string }) {
 
 	useEffect(() => {
 		let active = true;
+		setData(null);
 		setError(false);
 		fetchToolActivityInitAction(toolId)
 			.then((result) => {

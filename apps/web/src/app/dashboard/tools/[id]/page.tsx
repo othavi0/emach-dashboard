@@ -45,7 +45,15 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 
 	const defaultValue = "visao-geral";
 	// ?variant= define a tab inicial (Variantes) só quando nenhuma ?tab= explícita foi dada.
-	const initialTab = tab ?? (variant ? "variantes" : defaultValue);
+	const KNOWN_TABS = new Set([
+		"visao-geral",
+		"variantes",
+		"estoque",
+		"atividade",
+		"avaliacoes",
+	]);
+	const candidateTab = tab ?? (variant ? "variantes" : defaultValue);
+	const initialTab = KNOWN_TABS.has(candidateTab) ? candidateTab : defaultValue;
 
 	const alertCount =
 		detail.stockSummary.criticalCount + detail.stockSummary.reorderCount;

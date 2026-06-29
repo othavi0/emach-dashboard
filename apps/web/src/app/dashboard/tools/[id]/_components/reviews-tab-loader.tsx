@@ -14,6 +14,7 @@ export function ReviewsTabLoader({ toolId }: { toolId: string }) {
 
 	useEffect(() => {
 		let active = true;
+		setSummary(null);
 		setError(false);
 		fetchToolReviewsAction(toolId)
 			.then((data) => {
