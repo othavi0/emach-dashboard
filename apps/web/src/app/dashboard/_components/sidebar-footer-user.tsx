@@ -90,8 +90,10 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 						<DropdownMenuTrigger
 							render={
 								<SidebarMenuButton
+									aria-label={`Conta de ${user.name}`}
 									className="data-[state=open]:bg-sidebar-accent"
 									size="lg"
+									tooltip={user.name}
 								>
 									{avatar}
 								</SidebarMenuButton>
