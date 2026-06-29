@@ -1,5 +1,7 @@
 "use server";
 
+import { z } from "zod";
+
 import type { ActiveBranchOption } from "@/app/dashboard/branches/data";
 import { getActiveBranches } from "@/app/dashboard/branches/data";
 import {
@@ -22,6 +24,10 @@ const DEFAULT_REASONS = [
 	"outro",
 ];
 
+// Defense-in-depth: o toolId vem do cliente. As queries já são parametrizadas
+// e guardadas por requireCapability; validar o formato é barato.
+const toolIdSchema = z.string().min(1);
+
 export async function fetchToolActivityInitAction(toolId: string): Promise<{
 	items: ToolActivityRow[];
 	nextCursor: string | null;
@@ -29,12 +35,13 @@ export async function fetchToolActivityInitAction(toolId: string): Promise<{
 }> {
 	// Mesmo guard de fetchToolActivityPageAction (stock/actions.ts) no caminho sem branchId.
 	await requireCapability("stock.read");
+	const id = toolIdSchema.parse(toolId);
 	const [first, branches]: [
 		InfiniteResult<ToolActivityRow>,
 		ActiveBranchOption[],
 	] = await Promise.all([
 		fetchToolActivityPage(
-			{ toolId, period: "30d", reasons: DEFAULT_REASONS },
+			{ toolId: id, period: "30d", reasons: DEFAULT_REASONS },
 			null
 		),
 		getActiveBranches(),
@@ -46,7 +53,8 @@ export async function fetchToolReviewsAction(
 	toolId: string
 ): Promise<ToolReviewSummary> {
 	await requireCapability("reviews.read");
-	return await getToolReviewsSummary(toolId);
+	const id = toolIdSchema.parse(toolId);
+	return await getToolReviewsSummary(id);
 }
 
 export async function fetchActiveSuppliersAction(): Promise<
