@@ -28,7 +28,7 @@ export function ScanInput({ disabled, onScan }: ScanInputProps) {
 
 	return (
 		<div className="flex flex-col gap-2">
-			<div className="flex items-center gap-3 rounded-xl border-2 border-primary bg-surface-deep px-4 py-4">
+			<div className="flex items-center gap-3 rounded-lg border border-input bg-background px-4 py-3.5 transition-colors focus-within:border-ring focus-within:ring-1 focus-within:ring-ring">
 				<BarcodeIcon
 					aria-hidden
 					className="size-[22px] shrink-0 text-primary"
