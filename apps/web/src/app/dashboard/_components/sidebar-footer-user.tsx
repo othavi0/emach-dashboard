@@ -21,7 +21,7 @@ import {
 import { LogOut, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { getInitials } from "@/lib/format/name";
@@ -49,6 +49,12 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 	const { state } = useSidebar();
 	const [isSigningOut, setIsSigningOut] = useState(false);
 	const [menuOpen, setMenuOpen] = useState(false);
+
+	useEffect(() => {
+		if (state === "expanded") {
+			setMenuOpen(false);
+		}
+	}, [state]);
 
 	const handleSignOut = async () => {
 		if (isSigningOut) {
