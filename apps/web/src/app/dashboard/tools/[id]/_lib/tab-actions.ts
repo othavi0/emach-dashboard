@@ -1,7 +1,7 @@
 "use server";
 
 import type { ActiveBranchOption } from "@/app/dashboard/branches/data";
-import { getActiveBranches } from "@/app/dashboard/branches/data";
+import { getScopedActiveBranches } from "@/app/dashboard/branches/data";
 import {
 	fetchToolActivityPage,
 	type ToolActivityRow,
@@ -37,7 +37,7 @@ export async function fetchToolActivityInitAction(toolId: string): Promise<{
 			{ toolId, period: "30d", reasons: DEFAULT_REASONS },
 			null
 		),
-		getActiveBranches(),
+		getScopedActiveBranches(),
 	]);
 	return { items: first.items, nextCursor: first.nextCursor, branches };
 }
