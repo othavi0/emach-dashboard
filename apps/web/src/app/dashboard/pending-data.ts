@@ -10,7 +10,8 @@ import { sql } from "drizzle-orm";
 import { cache } from "react";
 
 import type { ActivityEvent } from "@/components/activity-feed";
-import type { PendingRow } from "@/components/pending-panel";
+import type { PendingRole, PendingRow } from "@/components/pending-panel";
+import type { StatusIconKey, Tone } from "@/components/status-visual";
 import { decodeCursorAs } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { can, requireCapability } from "@/lib/permissions";
@@ -404,3 +405,172 @@ export const fetchDashboardCounts = cache(
 		};
 	}
 );
+
+export type FeedType = "stock" | "orders" | "reviews" | "promos";
+
+export interface PendingFeedItem {
+	badge: { label: string; role: PendingRole };
+	feedType: FeedType;
+	href: string;
+	iconKey: StatusIconKey;
+	id: string;
+	primary: string;
+	secondary?: string;
+	tone: Tone;
+}
+
+export interface PendingFeedCounts {
+	orders: number;
+	promos: number;
+	reviews: number;
+	stock: number;
+	total: number;
+}
+
+export interface PendingFeedResult {
+	counts: PendingFeedCounts;
+	items: PendingFeedItem[];
+}
+
+// Volume real de pendências é pequeno (dezenas) → teto fixo, sem paginação.
+// Se crescer, adicionar cursor/scroll incremental (futuro).
+const FEED_LIMIT = 50;
+
+export const fetchPendingFeed = cache(async (): Promise<PendingFeedResult> => {
+	const session = await requireCurrentSession();
+	const [canStock, canOrders, canReviews, canPromos] = await Promise.all([
+		can(session, "stock.read"),
+		can(session, "orders.read"),
+		can(session, "reviews.read"),
+		can(session, "promotions.read"),
+	]);
+
+	const blocks: ReturnType<typeof sql>[] = [];
+
+	if (canStock) {
+		// severity 1 = ruptura (quantity 0), 4 = estoque baixo. rank = quantity (menor primeiro).
+		blocks.push(sql`(
+			SELECT 'stock-' || sl.variant_id || ':' || sl.branch_id AS id,
+				'stock'::text AS feed_type,
+				CASE WHEN sl.quantity = 0 THEN 1 ELSE 4 END AS severity,
+				sl.quantity::numeric AS rank,
+				COALESCE(tv.sku, t.name) AS primary,
+				t.name || ' · ' || b.name AS secondary,
+				'/dashboard/stock'::text AS href,
+				CASE WHEN sl.quantity = 0 THEN 'Sem estoque' ELSE 'Repor' END AS badge_label,
+				CASE WHEN sl.quantity = 0 THEN 'destructive' ELSE 'warning' END AS badge_role,
+				'package'::text AS icon_key,
+				CASE WHEN sl.quantity = 0 THEN 'destructive' ELSE 'warning' END AS tone
+			FROM stock_level sl
+			JOIN tool_variant tv ON tv.id = sl.variant_id
+			JOIN tool t ON t.id = tv.tool_id
+			JOIN branch b ON b.id = sl.branch_id
+			WHERE sl.quantity = 0 OR (sl.reorder_point > 0 AND sl.quantity <= sl.reorder_point)
+		)`);
+	}
+
+	if (canOrders) {
+		// severity 2. rank = epoch do created_at (mais antigo primeiro).
+		blocks.push(sql`(
+			SELECT 'order-' || o.id AS id, 'orders'::text AS feed_type, 2 AS severity,
+				EXTRACT(EPOCH FROM o.created_at)::numeric AS rank,
+				'#' || o.number || ' · ' || c.name AS primary,
+				NULL::text AS secondary,
+				'/dashboard/orders/' || o.id AS href,
+				CASE o.status WHEN 'paid' THEN 'Pago' WHEN 'preparing' THEN 'Preparando' ELSE 'Enviado' END AS badge_label,
+				CASE o.status WHEN 'paid' THEN 'warning' ELSE 'info' END AS badge_role,
+				'package'::text AS icon_key,
+				CASE o.status WHEN 'paid' THEN 'warning' ELSE 'info' END AS tone
+			FROM "order" o
+			JOIN client c ON c.id = o.client_id
+			WHERE o.status IN (${sqlStatusList(ACTIVE_ORDER_STATUSES)})
+		)`);
+	}
+
+	if (canReviews) {
+		// severity 3. rank = epoch do created_at (mais antigo primeiro).
+		blocks.push(sql`(
+			SELECT 'review-' || r.id AS id, 'reviews'::text AS feed_type, 3 AS severity,
+				EXTRACT(EPOCH FROM r.created_at)::numeric AS rank,
+				'Review ' || r.rating || '★' AS primary,
+				COALESCE(t.name, 'ferramenta') AS secondary,
+				'/dashboard/reviews/' || r.id AS href,
+				'Moderar'::text AS badge_label, 'warning'::text AS badge_role,
+				'clock'::text AS icon_key, 'warning'::text AS tone
+			FROM review r
+			LEFT JOIN tool t ON t.id = r.tool_id
+			WHERE r.status = 'pending'
+		)`);
+	}
+
+	if (canPromos) {
+		// severity 5. rank = epoch do ends_at (mais perto de expirar primeiro).
+		blocks.push(sql`(
+			SELECT 'promo-' || p.id AS id, 'promos'::text AS feed_type, 5 AS severity,
+				EXTRACT(EPOCH FROM p.ends_at)::numeric AS rank,
+				p.title AS primary,
+				'expira em ' || CASE
+					WHEN EXTRACT(EPOCH FROM (p.ends_at - now())) / 3600 <= 24
+						THEN ROUND(EXTRACT(EPOCH FROM (p.ends_at - now())) / 3600) || 'h'
+					ELSE ROUND(EXTRACT(EPOCH FROM (p.ends_at - now())) / 86400) || 'd' END AS secondary,
+				'/dashboard/promotions/' || p.id AS href,
+				CASE WHEN EXTRACT(EPOCH FROM (p.ends_at - now())) / 3600 <= 24 THEN 'Urgente' ELSE 'Expirando' END AS badge_label,
+				CASE WHEN EXTRACT(EPOCH FROM (p.ends_at - now())) / 3600 <= 24 THEN 'destructive' ELSE 'warning' END AS badge_role,
+				'clock'::text AS icon_key,
+				CASE WHEN EXTRACT(EPOCH FROM (p.ends_at - now())) / 3600 <= 24 THEN 'destructive' ELSE 'warning' END AS tone
+			FROM promotion p
+			WHERE p.active = true AND p.ends_at IS NOT NULL
+				AND p.ends_at BETWEEN now() AND now() + INTERVAL '7 days'
+		)`);
+	}
+
+	if (blocks.length === 0) {
+		return {
+			items: [],
+			counts: { total: 0, stock: 0, orders: 0, reviews: 0, promos: 0 },
+		};
+	}
+
+	const union = sql.join(blocks, sql` UNION ALL `);
+	const result = await db.execute<{
+		badge_label: string;
+		badge_role: string;
+		feed_type: FeedType;
+		href: string;
+		icon_key: StatusIconKey;
+		id: string;
+		primary: string;
+		secondary: string | null;
+		tone: Tone;
+	}>(sql`
+		SELECT * FROM (${union}) AS feed
+		ORDER BY severity ASC, rank ASC, id ASC
+		LIMIT ${FEED_LIMIT}
+	`);
+
+	const items = result.rows.map(
+		(r): PendingFeedItem => ({
+			id: r.id,
+			feedType: r.feed_type,
+			primary: r.primary,
+			secondary: r.secondary ?? undefined,
+			href: r.href,
+			badge: { label: r.badge_label, role: r.badge_role as PendingRole },
+			iconKey: r.icon_key,
+			tone: r.tone,
+		})
+	);
+
+	const counts: PendingFeedCounts = {
+		total: items.length,
+		stock: 0,
+		orders: 0,
+		reviews: 0,
+		promos: 0,
+	};
+	for (const it of items) {
+		counts[it.feedType] += 1;
+	}
+
+	return { items, counts };
+});
