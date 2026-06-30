@@ -1,4 +1,3 @@
-// apps/web/src/app/dashboard/tools/[id]/_components/tool-detail-tabs.tsx
 "use client";
 
 import {
@@ -15,7 +14,7 @@ import {
 	useEffect,
 	useState,
 } from "react";
-import { buildTabHref } from "../_lib/tab-url";
+import { buildTabHref } from "./tab-url";
 
 const TabActiveContext = createContext<string>("");
 const TabSetActiveContext = createContext<(tab: string) => void>(() => {
@@ -34,7 +33,7 @@ export function useSetActiveTab(): (tab: string) => void {
 	return useContext(TabSetActiveContext);
 }
 
-export interface ToolDetailTab {
+export interface EntityClientTab {
 	badge?: ReactNode;
 	content: ReactNode;
 	icon?: ReactNode;
@@ -44,22 +43,25 @@ export interface ToolDetailTab {
 }
 
 interface Props {
+	clearParams?: string[];
 	defaultValue: string;
 	header: ReactNode;
 	initialTab: string;
-	tabs: ToolDetailTab[];
+	paramName?: string;
+	tabs: EntityClientTab[];
 }
 
-export function ToolDetailTabs({
+export function EntityClientTabs({
+	clearParams,
 	defaultValue,
 	header,
 	initialTab,
+	paramName = "tab",
 	tabs,
 }: Props) {
 	const pathname = usePathname();
 	const params = useSearchParams();
 	const [active, setActive] = useState(initialTab);
-	// Tabs lazy só montam após a 1ª ativação; depois ficam montadas (cache).
 	const [activated, setActivated] = useState<Set<string>>(
 		() => new Set([initialTab])
 	);
@@ -78,27 +80,28 @@ export function ToolDetailTabs({
 	const handleChange = (next: string) => {
 		setActive(next);
 		activate(next);
-		// history.replaceState NÃO dispara RSC (diferente de router.replace).
 		const href = buildTabHref(
 			pathname,
 			new URLSearchParams(params),
 			next,
-			defaultValue
+			defaultValue,
+			paramName,
+			clearParams
 		);
 		window.history.replaceState(null, "", href);
 	};
 
-	// Voltar/avançar do browser: sincroniza a tab ativa pela URL.
 	useEffect(() => {
 		const onPop = () => {
 			const tab =
-				new URLSearchParams(window.location.search).get("tab") ?? defaultValue;
+				new URLSearchParams(window.location.search).get(paramName) ??
+				defaultValue;
 			setActive(tab);
 			activate(tab);
 		};
 		window.addEventListener("popstate", onPop);
 		return () => window.removeEventListener("popstate", onPop);
-	}, [defaultValue]);
+	}, [defaultValue, paramName]);
 
 	return (
 		<TabActiveContext.Provider value={active}>

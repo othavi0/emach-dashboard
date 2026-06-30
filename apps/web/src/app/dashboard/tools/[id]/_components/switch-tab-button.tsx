@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useSetActiveTab } from "./tool-detail-tabs";
+import { useSetActiveTab } from "@/components/entity/entity-client-tabs";
 
 interface SwitchTabButtonProps {
 	children: ReactNode;
@@ -10,7 +10,7 @@ interface SwitchTabButtonProps {
 }
 
 /**
- * Atalho in-content que troca a tab ativa do ToolDetailTabs client-side (via
+ * Atalho in-content que troca a tab ativa do EntityClientTabs client-side (via
  * useSetActiveTab → history.replaceState), sem disparar RSC como faria um
  * <Link href="?tab=...">. Usado nos cards do overview.
  */

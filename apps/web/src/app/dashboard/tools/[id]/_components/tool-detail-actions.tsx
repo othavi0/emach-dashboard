@@ -3,7 +3,7 @@
 import { buttonVariants } from "@emach/ui/components/button";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
-import { useActiveTab } from "./tool-detail-tabs";
+import { useActiveTab } from "@/components/entity/entity-client-tabs";
 
 interface ToolDetailActionsProps {
 	canMutate: boolean;
@@ -13,7 +13,7 @@ interface ToolDetailActionsProps {
 /**
  * Ação contextual do header. "Editar ferramenta" aparece só na Visão geral
  * (edição é form grande → página `/edit`). A tab ativa vem do contexto client
- * do ToolDetailTabs (sem re-render do servidor ao trocar de tab).
+ * do EntityClientTabs (sem re-render do servidor ao trocar de tab).
  */
 export function ToolDetailActions({
 	toolId,

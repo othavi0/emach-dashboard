@@ -3,10 +3,13 @@ export function buildTabHref(
 	params: URLSearchParams,
 	tab: string,
 	defaultValue: string,
-	paramName = "tab"
+	paramName = "tab",
+	clearParams: string[] = []
 ): string {
 	const sp = new URLSearchParams(params);
-	sp.delete("variant");
+	for (const p of clearParams) {
+		sp.delete(p);
+	}
 	if (tab === defaultValue) {
 		sp.delete(paramName);
 	} else {

@@ -1,7 +1,10 @@
 import { Activity, Boxes, Info, Star, Tag } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-
+import {
+	type EntityClientTab,
+	EntityClientTabs,
+} from "@/components/entity/entity-client-tabs";
 import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { ActivityTabLoader } from "./_components/activity-tab-loader";
@@ -10,10 +13,6 @@ import { OverviewTab } from "./_components/overview-tab";
 import { ReviewsTabLoader } from "./_components/reviews-tab-loader";
 import { ToolDetailActions } from "./_components/tool-detail-actions";
 import { ToolDetailHeader } from "./_components/tool-detail-header";
-import {
-	type ToolDetailTab,
-	ToolDetailTabs,
-} from "./_components/tool-detail-tabs";
 import { VariantsTab } from "./_components/variants-tab";
 import { getToolDetail } from "./_lib/tool-detail-data";
 
@@ -58,7 +57,7 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 	const alertCount =
 		detail.stockSummary.criticalCount + detail.stockSummary.reorderCount;
 
-	const tabs: ToolDetailTab[] = [
+	const tabs: EntityClientTab[] = [
 		{
 			value: "visao-geral",
 			label: "Visão geral",
@@ -127,7 +126,8 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 	];
 
 	return (
-		<ToolDetailTabs
+		<EntityClientTabs
+			clearParams={["variant"]}
 			defaultValue={defaultValue}
 			header={
 				<ToolDetailHeader
