@@ -30,6 +30,14 @@ export function OrderFunnel({
 }: {
 	data: { status: string; count: number }[];
 }) {
+	if (data.length === 0) {
+		return (
+			<div className="flex h-64 items-center justify-center text-muted-foreground text-sm">
+				Nenhum pedido no período
+			</div>
+		);
+	}
+
 	return (
 		<ChartContainer className="h-64 w-full" config={config}>
 			<BarChart data={data} layout="vertical">

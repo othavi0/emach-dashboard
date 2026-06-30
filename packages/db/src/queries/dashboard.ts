@@ -2,6 +2,11 @@ import { sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { orderStatusEnum } from "../schema/orders";
 import {
+	computeDeltaPct,
+	type DashboardPeriod,
+	periodToConfig,
+} from "./dashboard-period";
+import {
 	ACTIVE_ORDER_STATUSES,
 	REVENUE_ORDER_STATUSES,
 	sqlStatusList,
@@ -121,6 +126,15 @@ export interface BranchOption {
 	name: string;
 }
 
+export interface DashboardSummary {
+	activeOrders: number;
+	revenue: number;
+	revenueDelta: number | null;
+	stockOutages: number;
+	ticket: number;
+	ticketDelta: number | null;
+}
+
 // ---------------------------------------------------------------------------
 // 1. getDashboardKpis — 1 query consolidada
 // ---------------------------------------------------------------------------
@@ -185,19 +199,21 @@ export async function getDashboardKpis(
 
 export async function getDailyRevenue(
 	db: AnyDb,
-	branchId: string | null
+	branchId: string | null,
+	period: DashboardPeriod
 ): Promise<RevenuePoint[]> {
+	const { days, bucket, maWindow } = periodToConfig(period);
 	const branchFilter = branchId ? sql`AND o.branch_id = ${branchId}` : sql``;
 	const res = await db.execute<{ day: string; revenue: string }>(sql`
-		SELECT date_trunc('day', o.created_at)::date AS day,
+		SELECT date_trunc(${bucket}, o.created_at)::date AS day,
 			COALESCE(SUM(o.total_amount), 0) AS revenue
 		FROM "order" o
 		WHERE o.status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)})
-			AND o.created_at >= now() - INTERVAL '30 days' ${branchFilter}
+			AND o.created_at >= now() - make_interval(days => ${days}) ${branchFilter}
 		GROUP BY 1 ORDER BY 1 ASC
 	`);
 	const revenues = res.rows.map((r) => Number(r.revenue));
-	const ma = movingAverage(revenues, 7);
+	const ma = movingAverage(revenues, maWindow);
 	return res.rows.map((r, i) => ({
 		day: localDate(r.day),
 		revenue: revenues[i] as number,
@@ -211,12 +227,14 @@ export async function getDailyRevenue(
 
 export async function getOrderFunnel(
 	db: AnyDb,
-	branchId: string | null
+	branchId: string | null,
+	period: DashboardPeriod
 ): Promise<FunnelRow[]> {
+	const { days } = periodToConfig(period);
 	const branchFilter = branchId ? sql`AND o.branch_id = ${branchId}` : sql``;
 	const res = await db.execute<{ status: string; count: number }>(sql`
 		SELECT o.status, COUNT(*)::int AS count FROM "order" o
-		WHERE o.created_at >= now() - INTERVAL '30 days' ${branchFilter}
+		WHERE o.created_at >= now() - make_interval(days => ${days}) ${branchFilter}
 		GROUP BY o.status
 	`);
 	return sortByFunnel(res.rows);
@@ -328,19 +346,21 @@ export async function getPromotionStatusBreakdown(
 
 export async function getStockFlow(
 	db: AnyDb,
-	branchId: string | null
+	branchId: string | null,
+	period: DashboardPeriod
 ): Promise<StockFlowPoint[]> {
+	const { days, bucket } = periodToConfig(period);
 	const branchFilter = branchId ? sql`AND sm.branch_id = ${branchId}` : sql``;
 	const res = await db.execute<{
 		week: string;
 		entradas: number;
 		saidas: number;
 	}>(sql`
-		SELECT date_trunc('week', sm.created_at)::date AS week,
+		SELECT date_trunc(${bucket}, sm.created_at)::date AS week,
 			COALESCE(SUM(sm.delta) FILTER (WHERE sm.delta > 0), 0)::int AS entradas,
 			COALESCE(ABS(SUM(sm.delta) FILTER (WHERE sm.delta < 0)), 0)::int AS saidas
 		FROM stock_movement sm
-		WHERE sm.created_at >= now() - INTERVAL '12 weeks' ${branchFilter}
+		WHERE sm.created_at >= now() - make_interval(days => ${days}) ${branchFilter}
 		GROUP BY 1 ORDER BY 1 ASC
 	`);
 	return res.rows.map((r) => ({
@@ -359,4 +379,67 @@ export async function getBranchOptions(db: AnyDb): Promise<BranchOption[]> {
 		SELECT id, name FROM branch WHERE status = 'active' ORDER BY name ASC
 	`);
 	return res.rows;
+}
+
+// ---------------------------------------------------------------------------
+// 11. getDashboardSummary — 4 KPIs do núcleo (Receita, Pedidos ativos, Rupturas,
+// Ticket médio) com período corrente vs. anterior de mesma duração.
+// ---------------------------------------------------------------------------
+
+export async function getDashboardSummary(
+	db: AnyDb,
+	branchId: string | null,
+	period: DashboardPeriod
+): Promise<DashboardSummary> {
+	const { days } = periodToConfig(period);
+	const branchFilter = branchId ? sql`AND o.branch_id = ${branchId}` : sql``;
+	const stockBranchFilter = branchId
+		? sql`AND sl.branch_id = ${branchId}`
+		: sql``;
+	const rev = sqlStatusList(REVENUE_ORDER_STATUSES);
+	const active = sqlStatusList(ACTIVE_ORDER_STATUSES);
+	const res = await db.execute<{
+		revenue_cur: string;
+		orders_cur: number;
+		revenue_prev: string;
+		orders_prev: number;
+		active_orders: number;
+		stock_outages: number;
+	}>(sql`
+		SELECT
+			(SELECT COALESCE(SUM(o.total_amount), 0) FROM "order" o
+				WHERE o.status IN (${rev})
+				AND o.created_at >= now() - make_interval(days => ${days}) ${branchFilter}) AS revenue_cur,
+			(SELECT COUNT(*)::int FROM "order" o
+				WHERE o.status IN (${rev})
+				AND o.created_at >= now() - make_interval(days => ${days}) ${branchFilter}) AS orders_cur,
+			(SELECT COALESCE(SUM(o.total_amount), 0) FROM "order" o
+				WHERE o.status IN (${rev})
+				AND o.created_at >= now() - make_interval(days => ${days * 2})
+				AND o.created_at < now() - make_interval(days => ${days}) ${branchFilter}) AS revenue_prev,
+			(SELECT COUNT(*)::int FROM "order" o
+				WHERE o.status IN (${rev})
+				AND o.created_at >= now() - make_interval(days => ${days * 2})
+				AND o.created_at < now() - make_interval(days => ${days}) ${branchFilter}) AS orders_prev,
+			(SELECT COUNT(*)::int FROM "order" o
+				WHERE o.status IN (${active}) ${branchFilter}) AS active_orders,
+			(SELECT COUNT(*)::int FROM stock_level sl
+				WHERE sl.quantity = 0 ${stockBranchFilter}) AS stock_outages
+	`);
+	const r = res.rows[0];
+	if (!r) {
+		throw new Error("getDashboardSummary: 0 linhas");
+	}
+	const revenueCur = Number(r.revenue_cur);
+	const revenuePrev = Number(r.revenue_prev);
+	const ticketCur = r.orders_cur > 0 ? revenueCur / r.orders_cur : 0;
+	const ticketPrev = r.orders_prev > 0 ? revenuePrev / r.orders_prev : 0;
+	return {
+		revenue: revenueCur,
+		revenueDelta: computeDeltaPct(revenueCur, revenuePrev),
+		activeOrders: r.active_orders,
+		stockOutages: r.stock_outages,
+		ticket: ticketCur,
+		ticketDelta: computeDeltaPct(ticketCur, ticketPrev),
+	};
 }

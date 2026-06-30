@@ -1,0 +1,62 @@
+"use client";
+
+import { cn } from "@emach/ui/lib/utils";
+import { stagger, useAnimate, useReducedMotion } from "motion/react";
+import { type ReactNode, useEffect } from "react";
+
+// Entrada em cascata dos KPIs — roda UMA vez por sessão do navegador.
+// Os filhos são renderizados visíveis por padrão (sem gatear opacity no SSR):
+// se o JS não rodar, os KPIs aparecem normalmente. Na 1ª visita da sessão o
+// reveal dispara via `animate`; nas seguintes (e sob prefers-reduced-motion)
+// não há animação.
+const SESSION_KEY = "dashboard-kpis-entered";
+
+export function StaggerGrid({
+	children,
+	className,
+}: {
+	children: ReactNode;
+	className?: string;
+}) {
+	const [scope, animate] = useAnimate();
+	const reduce = useReducedMotion();
+
+	useEffect(() => {
+		// sessionStorage pode lançar SecurityError (iframe sandbox, modo privado):
+		// nesse caso não anima e os KPIs seguem visíveis (degradação segura).
+		let alreadyEntered = true;
+		try {
+			alreadyEntered = sessionStorage.getItem(SESSION_KEY) !== null;
+			if (!alreadyEntered) {
+				sessionStorage.setItem(SESSION_KEY, "1");
+			}
+		} catch {
+			return;
+		}
+		if (alreadyEntered || reduce) {
+			return;
+		}
+		const items = scope.current?.querySelectorAll("[data-stagger-item]");
+		if (!items || items.length === 0) {
+			return;
+		}
+		// Anima só `y` (slide). Sem keyframe de opacity: o effect roda após o
+		// paint, então um `opacity: [0, 1]` faria os KPIs piscarem invisíveis por
+		// 1 frame. O slide já entrega o reveal sem nunca escondê-los.
+		animate(
+			items,
+			{ y: [8, 0] },
+			{ duration: 0.25, ease: "easeOut", delay: stagger(0.05) }
+		);
+	}, [animate, reduce, scope]);
+
+	return (
+		<div className={cn(className)} ref={scope}>
+			{children}
+		</div>
+	);
+}
+
+export function StaggerItem({ children }: { children: ReactNode }) {
+	return <div data-stagger-item>{children}</div>;
+}
