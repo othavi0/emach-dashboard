@@ -62,11 +62,9 @@ export function OverviewTab({ detail }: { detail: PromotionDetail }) {
 			value: formatDiscount(detail.discountType, detail.discountValue),
 		},
 		{
-			href: detail.appliesToAll
-				? undefined
-				: `/dashboard/promotions/${detail.id}?tab=tools`,
 			icon: Wrench,
 			label: "Alcance",
+			switchTab: detail.appliesToAll ? undefined : "tools",
 			tone:
 				!detail.appliesToAll && detail.tools.length === 0
 					? "warning"
