@@ -9,6 +9,13 @@ const URGENCY_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
 type Tab = "a_separar" | "em_separacao" | "excecoes";
 
+/** Estilo do CTA por aba: primário (a separar), laranja (em separação), neutro (exceções) */
+const CTA_CLASS: Record<Tab, string> = {
+	a_separar: "bg-primary text-primary-foreground",
+	em_separacao: "bg-warning text-warning-foreground",
+	excecoes: "border border-input text-foreground",
+};
+
 interface PickingOrderCardProps {
 	row: PickingQueueRow;
 	tab: Tab;
@@ -149,11 +156,7 @@ export function PickingOrderCard({ row, tab }: PickingOrderCardProps) {
 			{/* CTA */}
 			<div className="border-border border-t bg-sidebar px-4 py-3">
 				<div
-					className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold text-[13px] ${
-						tab === "a_separar"
-							? "bg-primary text-primary-foreground"
-							: "border border-input text-foreground"
-					}`}
+					className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold text-[13px] ${CTA_CLASS[tab]}`}
 					// role="none": o <Link> pai já é o elemento interativo
 					role="none"
 				>
