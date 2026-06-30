@@ -10,7 +10,7 @@ import { Area, AreaChart, CartesianGrid, Line, XAxis, YAxis } from "recharts";
 
 const config = {
 	revenue: { label: "Receita", color: "var(--chart-1)" },
-	movingAvg: { label: "Média 7d", color: "var(--chart-2)" },
+	movingAvg: { label: "Tendência", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
 export function RevenueArea({
@@ -21,15 +21,29 @@ export function RevenueArea({
 	return (
 		<ChartContainer className="h-64 w-full" config={config}>
 			<AreaChart data={data}>
+				<defs>
+					<linearGradient id="fill-revenue" x1="0" x2="0" y1="0" y2="1">
+						<stop
+							offset="0%"
+							stopColor="var(--color-revenue)"
+							stopOpacity={0.42}
+						/>
+						<stop
+							offset="100%"
+							stopColor="var(--color-revenue)"
+							stopOpacity={0.02}
+						/>
+					</linearGradient>
+				</defs>
 				<CartesianGrid vertical={false} />
 				<XAxis axisLine={false} dataKey="day" tickLine={false} />
 				<YAxis axisLine={false} tickLine={false} width={48} />
 				<ChartTooltip content={<ChartTooltipContent />} />
 				<Area
 					dataKey="revenue"
-					fill="var(--color-revenue)"
-					fillOpacity={0.2}
+					fill="url(#fill-revenue)"
 					stroke="var(--color-revenue)"
+					strokeWidth={2.5}
 					type="monotone"
 				/>
 				{/* isAnimationActive=false: a animação de desenho do recharts
