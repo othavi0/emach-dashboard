@@ -8,6 +8,7 @@ import { cn } from "@emach/ui/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { KpiSwitchTabLink } from "./kpi-switch-tab-link";
 
 export type KpiTone = "default" | "warning" | "danger" | "success";
 
@@ -16,6 +17,7 @@ export interface KpiItem {
 	href?: string;
 	icon?: LucideIcon;
 	label: string;
+	switchTab?: string;
 	tone?: KpiTone;
 	value: ReactNode;
 }
@@ -78,18 +80,29 @@ export function EntityKpisRow({ items, iconSize = "sm" }: Props) {
 						</CardContent>
 					</Card>
 				);
+				let content: ReactNode = inner;
+				if (item.switchTab) {
+					content = (
+						<KpiSwitchTabLink
+							className="block h-full w-full text-left transition-opacity hover:opacity-80"
+							tab={item.switchTab}
+						>
+							{inner}
+						</KpiSwitchTabLink>
+					);
+				} else if (item.href) {
+					content = (
+						<Link
+							className="block h-full transition-opacity hover:opacity-80"
+							href={item.href}
+						>
+							{inner}
+						</Link>
+					);
+				}
 				return (
 					<div className="h-full" key={item.label}>
-						{item.href ? (
-							<Link
-								className="block h-full transition-opacity hover:opacity-80"
-								href={item.href}
-							>
-								{inner}
-							</Link>
-						) : (
-							inner
-						)}
+						{content}
 					</div>
 				);
 			})}
