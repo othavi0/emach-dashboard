@@ -718,18 +718,6 @@ export async function fetchMoreUsersAction(
 	return fetchUsersPage({ ...filters, cursor, scope });
 }
 
-export async function fetchPendingUsersAction(
-	cursor: string | null
-): Promise<
-	import("@/lib/infinite").InfiniteResult<
-		import("@/components/pending-panel").PendingRow
-	>
-> {
-	await requireCapabilityWithContext("users.approve", {});
-	const { fetchPendingUsersPage } = await import("./data");
-	return fetchPendingUsersPage(cursor);
-}
-
 export async function fetchUserActivityByUserPage(
 	userId: string,
 	cursor: string | null
@@ -752,61 +740,6 @@ export async function fetchUserActivityAffectingPage(
 	await requireCapabilityWithContext("users.manage", { targetUserId: userId });
 	const { getUserAffectedActivity } = await import("./data");
 	return getUserAffectedActivity(userId, cursor);
-}
-
-export async function fetchUserActivityFeedPage(
-	cursor: string | null
-): Promise<
-	import("@/lib/infinite").InfiniteResult<
-		import("@/components/activity-feed").ActivityEvent
-	>
-> {
-	await requireCapabilityWithContext("users.manage", {});
-	const { getUserActivityFeedPaginated } = await import("./data");
-	const page = await getUserActivityFeedPaginated(cursor);
-	return {
-		items: page.items.map((a) => ({
-			id: a.id,
-			kind: "user" as const,
-			primary: humanizeActivityAction(a.action, a.actorName ?? "—"),
-			at: a.createdAt,
-			href: a.targetId ? `/dashboard/users/${a.targetId}` : undefined,
-		})),
-		nextCursor: page.nextCursor,
-	};
-}
-
-function humanizeActivityAction(action: string, actorName: string): string {
-	switch (action) {
-		case "user.invited":
-			return `${actorName} convidou usuário`;
-		case "user.invite_resent":
-			return `${actorName} reenviou convite`;
-		case "user.invite_revoked":
-			return `${actorName} revogou convite`;
-		case "user.invite_accepted":
-			return `${actorName} aceitou convite`;
-		case "user.updated":
-			return `${actorName} atualizou usuário`;
-		case "user.suspended":
-			return `${actorName} suspendeu usuário`;
-		case "user.reactivated":
-			return `${actorName} reativou usuário`;
-		case "user.deleted":
-			return `${actorName} deletou usuário`;
-		case "user.password_reset_triggered":
-			return `${actorName} enviou reset de senha`;
-		case "user.session_revoked":
-			return `${actorName} revogou sessão`;
-		case "user.all_sessions_revoked":
-			return `${actorName} revogou todas as sessões`;
-		case "user.branch_linked":
-			return `${actorName} vinculou filial`;
-		case "user.branch_unlinked":
-			return `${actorName} desvinculou filial`;
-		default:
-			return `${actorName} — ${action}`;
-	}
 }
 
 export async function unlinkUserFromBranch(
