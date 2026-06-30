@@ -104,7 +104,7 @@ async function DashboardPageContent({
 			<section className="flex items-end justify-between gap-4">
 				<div className="flex flex-col gap-1">
 					<p className="text-muted-foreground text-sm">Painel</p>
-					<h1 className="font-medium font-serif text-3xl tracking-tight">
+					<h1 className="font-medium font-serif text-3xl uppercase tracking-[0.015em]">
 						Olá, {session.user.name?.split(" ")[0] ?? "admin"}
 					</h1>
 				</div>

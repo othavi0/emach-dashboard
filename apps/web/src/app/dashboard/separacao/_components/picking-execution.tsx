@@ -511,7 +511,7 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 			<div className="rounded-xl border border-border bg-card p-5">
 				<div className="flex items-start justify-between gap-4">
 					<div className="min-w-0">
-						<h1 className="font-medium font-serif text-2xl tracking-tight">
+						<h1 className="font-medium font-serif text-2xl uppercase tracking-[0.015em]">
 							Separação em andamento
 						</h1>
 						<p className="mt-1 flex items-center gap-2 text-[13px] text-muted-foreground">

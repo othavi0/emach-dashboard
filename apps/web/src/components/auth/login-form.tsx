@@ -43,7 +43,9 @@ export function LoginForm() {
 
 	return (
 		<div>
-			<h1 className="font-medium font-serif text-3xl tracking-tight">Entrar</h1>
+			<h1 className="font-medium font-serif text-3xl uppercase tracking-[0.015em]">
+				Entrar
+			</h1>
 			<p className="mt-1 text-muted-foreground text-sm">
 				Acesse com seu email corporativo.
 			</p>

@@ -38,7 +38,7 @@ async function ReviewDetailPageContent({ params }: ReviewDetailPageProps) {
 			<div className="flex items-start justify-between gap-4">
 				<div>
 					<p className="text-muted-foreground text-sm">Review</p>
-					<h1 className="font-medium font-serif text-4xl tracking-tight">
+					<h1 className="font-medium font-serif text-4xl uppercase tracking-[0.015em]">
 						{review.toolName}
 					</h1>
 					<p className="text-muted-foreground text-sm">{review.clientName}</p>

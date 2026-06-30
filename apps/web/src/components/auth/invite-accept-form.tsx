@@ -48,7 +48,7 @@ export function InviteAcceptForm({
 
 	return (
 		<div>
-			<h1 className="font-medium font-serif text-3xl tracking-tight">
+			<h1 className="font-medium font-serif text-3xl uppercase tracking-[0.015em]">
 				Criar acesso
 			</h1>
 			<p className="mt-1 text-muted-foreground text-sm">

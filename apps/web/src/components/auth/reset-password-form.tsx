@@ -49,7 +49,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
 	return (
 		<div>
-			<h1 className="font-medium font-serif text-3xl tracking-tight">
+			<h1 className="font-medium font-serif text-3xl uppercase tracking-[0.015em]">
 				Nova senha
 			</h1>
 			<p className="mt-1 text-muted-foreground text-sm">
