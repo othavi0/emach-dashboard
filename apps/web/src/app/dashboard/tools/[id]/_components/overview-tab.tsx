@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { ToolDescription } from "@/components/tool-description";
@@ -14,6 +13,7 @@ import type {
 } from "../_lib/tool-detail-data";
 import { ImageCarousel } from "./image-carousel";
 import { SectionCard } from "./section-card";
+import { SwitchTabButton } from "./switch-tab-button";
 import { ToolSpecs } from "./tool-specs";
 
 const BRL = new Intl.NumberFormat("pt-BR", {
@@ -66,12 +66,12 @@ export function OverviewTab({
 				<div className="flex flex-col gap-4">
 					<SectionCard
 						action={
-							<Link
+							<SwitchTabButton
 								className="text-info text-xs hover:underline"
-								href={`/dashboard/tools/${tool.id}?tab=estoque`}
+								tab="estoque"
 							>
 								Ver aba →
-							</Link>
+							</SwitchTabButton>
 						}
 						title="Estoque"
 					>

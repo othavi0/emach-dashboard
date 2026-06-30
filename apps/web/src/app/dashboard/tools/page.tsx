@@ -12,7 +12,7 @@ import { asc } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { getActiveBranches } from "@/app/dashboard/branches/data";
+import { getScopedActiveBranches } from "@/app/dashboard/branches/data";
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { ToolFilters } from "./_components/tool-filters";
@@ -93,7 +93,7 @@ async function ToolsPageContent({ searchParams }: PageProps) {
 	const [first, categories, branches] = await Promise.all([
 		fetchToolsPage({ filters, cursor: null }),
 		fetchCategories(),
-		getActiveBranches(),
+		getScopedActiveBranches(),
 	]);
 
 	const hasFilters = Boolean(

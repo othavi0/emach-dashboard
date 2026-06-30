@@ -17,9 +17,20 @@ import {
 import { buildTabHref } from "./tab-url";
 
 const TabActiveContext = createContext<string>("");
+const TabSetActiveContext = createContext<(tab: string) => void>(() => {
+	// no-op fora do provider (ex: render isolado em teste)
+});
 
 export function useActiveTab(): string {
 	return useContext(TabActiveContext);
+}
+
+/**
+ * Setter da tab ativa exposto pelo shell client. Atalhos in-content (ex: "Ver
+ * aba →" no overview) usam isto para trocar de tab sem disparar RSC.
+ */
+export function useSetActiveTab(): (tab: string) => void {
+	return useContext(TabSetActiveContext);
 }
 
 export interface EntityClientTab {
@@ -94,34 +105,36 @@ export function EntityClientTabs({
 
 	return (
 		<TabActiveContext.Provider value={active}>
-			<div className="flex flex-col gap-4">
-				{header}
-				<Tabs className="w-full" onValueChange={handleChange} value={active}>
-					<TabsList className="w-full justify-start" scrollable>
+			<TabSetActiveContext.Provider value={handleChange}>
+				<div className="flex flex-col gap-4">
+					{header}
+					<Tabs className="w-full" onValueChange={handleChange} value={active}>
+						<TabsList className="w-full justify-start" scrollable>
+							{tabs.map((tab) => (
+								<TabsTrigger
+									className="flex items-center gap-1.5"
+									key={tab.value}
+									value={tab.value}
+								>
+									{tab.icon}
+									{tab.label}
+									{tab.badge}
+								</TabsTrigger>
+							))}
+						</TabsList>
 						{tabs.map((tab) => (
-							<TabsTrigger
-								className="flex items-center gap-1.5"
+							<TabsContent
+								className="mt-4"
+								keepMounted
 								key={tab.value}
 								value={tab.value}
 							>
-								{tab.icon}
-								{tab.label}
-								{tab.badge}
-							</TabsTrigger>
+								{tab.lazy && !activated.has(tab.value) ? null : tab.content}
+							</TabsContent>
 						))}
-					</TabsList>
-					{tabs.map((tab) => (
-						<TabsContent
-							className="mt-4"
-							keepMounted
-							key={tab.value}
-							value={tab.value}
-						>
-							{tab.lazy && !activated.has(tab.value) ? null : tab.content}
-						</TabsContent>
-					))}
-				</Tabs>
-			</div>
+					</Tabs>
+				</div>
+			</TabSetActiveContext.Provider>
 		</TabActiveContext.Provider>
 	);
 }
