@@ -1,41 +1,34 @@
 import type { Metadata, Viewport } from "next";
-import {
-	Barlow,
-	Barlow_Condensed,
-	Cormorant_Garamond,
-	Inter,
-} from "next/font/google";
+import { Barlow, Barlow_Condensed, IBM_Plex_Mono } from "next/font/google";
 import { Suspense } from "react";
 
 import "../index.css";
 import AppHeader from "@/components/app-header";
 import Providers from "@/components/providers";
 
-const fontSerif = Cormorant_Garamond({
+// Corpo / UI chrome / sidebar / tabelas (DESIGN.md §3). Token `font-sans`.
+// Mesma instância usada no preview de banner do storefront (unificação).
+const fontBody = Barlow({
 	subsets: ["latin"],
-	weight: ["400", "500", "600"],
-	variable: "--font-serif-loaded",
-	display: "swap",
-});
-
-const fontSans = Inter({
-	subsets: ["latin"],
-	variable: "--font-sans-loaded",
-	display: "swap",
-});
-
-// Fontes do storefront (hero), usadas no preview de banner para fidelidade.
-const fontBarlow = Barlow({
-	subsets: ["latin"],
-	weight: ["400", "600", "700"],
+	weight: ["400", "500", "600", "700"],
 	variable: "--font-barlow",
 	display: "swap",
 });
 
-const fontBarlowCondensed = Barlow_Condensed({
+// Display — h1 + wordmark, caixa-alta via text-transform. Token `font-serif`
+// (nome mantido por estabilidade de migração; é a condensada de display).
+const fontDisplay = Barlow_Condensed({
 	subsets: ["latin"],
 	weight: ["600", "700"],
 	variable: "--font-barlow-condensed",
+	display: "swap",
+});
+
+// Mono — SKU, IDs, valores literais. Token `font-mono`.
+const fontMono = IBM_Plex_Mono({
+	subsets: ["latin"],
+	weight: ["400", "500", "600"],
+	variable: "--font-ibm-plex-mono",
 	display: "swap",
 });
 
@@ -101,7 +94,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html
-			className={`dark ${fontSerif.variable} ${fontSans.variable} ${fontBarlow.variable} ${fontBarlowCondensed.variable}`}
+			className={`dark ${fontBody.variable} ${fontDisplay.variable} ${fontMono.variable}`}
 			lang="pt-BR"
 			suppressHydrationWarning
 		>
