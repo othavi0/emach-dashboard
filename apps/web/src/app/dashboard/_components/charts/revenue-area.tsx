@@ -18,6 +18,14 @@ export function RevenueArea({
 }: {
 	data: { day: string; revenue: number; movingAvg: number }[];
 }) {
+	if (data.length === 0) {
+		return (
+			<div className="flex h-64 items-center justify-center text-muted-foreground text-sm">
+				Sem vendas no período
+			</div>
+		);
+	}
+
 	return (
 		<ChartContainer className="h-64 w-full" config={config}>
 			<AreaChart data={data}>
