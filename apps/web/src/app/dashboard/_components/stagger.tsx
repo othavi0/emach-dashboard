@@ -40,9 +40,12 @@ export function StaggerGrid({
 		if (!items || items.length === 0) {
 			return;
 		}
+		// Anima só `y` (slide). Sem keyframe de opacity: o effect roda após o
+		// paint, então um `opacity: [0, 1]` faria os KPIs piscarem invisíveis por
+		// 1 frame. O slide já entrega o reveal sem nunca escondê-los.
 		animate(
 			items,
-			{ opacity: [0, 1], y: [8, 0] },
+			{ y: [8, 0] },
 			{ duration: 0.25, ease: "easeOut", delay: stagger(0.05) }
 		);
 	}, [animate, reduce, scope]);

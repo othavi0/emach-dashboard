@@ -122,6 +122,7 @@ function KpiSkeleton() {
 	return (
 		<div className={cn("grid grid-cols-2 gap-3", kpiGridClass(4))}>
 			{Array.from({ length: 4 }, (_, i) => (
+				// lista estática de 4 placeholders sem id próprio — índice é estável
 				<Skeleton className="h-24 w-full" key={`kpi-skeleton-${i}`} />
 			))}
 		</div>

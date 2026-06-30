@@ -23,7 +23,11 @@ const PERIOD_CONFIG: Record<
 	"12m": { days: 365, bucket: "month", maWindow: 3 },
 };
 
-export function periodToConfig(period: DashboardPeriod) {
+export function periodToConfig(period: DashboardPeriod): {
+	days: number;
+	bucket: PeriodBucket;
+	maWindow: number;
+} {
 	return PERIOD_CONFIG[period];
 }
 

@@ -6,6 +6,7 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@emach/ui/components/chart";
+import { useId } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 const config = {
@@ -18,6 +19,12 @@ export function StockFlowArea({
 }: {
 	data: { week: string; entradas: number; saidas: number }[];
 }) {
+	// ids únicos dos gradientes — SVG ids são globais no document; ids fixos
+	// colidiriam em múltiplas instâncias na mesma página (ex: futura /relatorios).
+	const uid = useId().replaceAll(":", "");
+	const entradasId = `fill-entradas-${uid}`;
+	const saidasId = `fill-saidas-${uid}`;
+
 	if (data.length === 0) {
 		return (
 			<div className="flex h-64 items-center justify-center text-muted-foreground text-sm">
@@ -30,7 +37,7 @@ export function StockFlowArea({
 		<ChartContainer className="h-64 w-full" config={config}>
 			<AreaChart data={data}>
 				<defs>
-					<linearGradient id="fill-entradas" x1="0" x2="0" y1="0" y2="1">
+					<linearGradient id={entradasId} x1="0" x2="0" y1="0" y2="1">
 						<stop
 							offset="0%"
 							stopColor="var(--color-entradas)"
@@ -42,7 +49,7 @@ export function StockFlowArea({
 							stopOpacity={0.02}
 						/>
 					</linearGradient>
-					<linearGradient id="fill-saidas" x1="0" x2="0" y1="0" y2="1">
+					<linearGradient id={saidasId} x1="0" x2="0" y1="0" y2="1">
 						<stop
 							offset="0%"
 							stopColor="var(--color-saidas)"
@@ -61,7 +68,7 @@ export function StockFlowArea({
 				<ChartTooltip content={<ChartTooltipContent />} />
 				<Area
 					dataKey="entradas"
-					fill="url(#fill-entradas)"
+					fill={`url(#${entradasId})`}
 					stackId="1"
 					stroke="var(--color-entradas)"
 					strokeWidth={2}
@@ -69,7 +76,7 @@ export function StockFlowArea({
 				/>
 				<Area
 					dataKey="saidas"
-					fill="url(#fill-saidas)"
+					fill={`url(#${saidasId})`}
 					stackId="2"
 					stroke="var(--color-saidas)"
 					strokeWidth={2}
