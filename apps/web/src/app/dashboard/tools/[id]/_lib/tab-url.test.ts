@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTabHref } from "./tab-url";
+import { buildTabHref } from "@/components/entity/tab-url";
 
 describe("buildTabHref", () => {
 	it("remove o param ao voltar para a tab default", () => {
@@ -16,10 +16,17 @@ describe("buildTabHref", () => {
 		).toBe("/dashboard/tools/1?tab=estoque");
 	});
 
-	it("descarta o param variant ao trocar de tab", () => {
+	it("descarta o param variant ao trocar de tab (clearParams)", () => {
 		const params = new URLSearchParams("tab=variantes&variant=v1");
 		expect(
-			buildTabHref("/dashboard/tools/1", params, "estoque", "visao-geral")
+			buildTabHref(
+				"/dashboard/tools/1",
+				params,
+				"estoque",
+				"visao-geral",
+				"tab",
+				["variant"]
+			)
 		).toBe("/dashboard/tools/1?tab=estoque");
 	});
 

@@ -3,7 +3,7 @@
 import { buttonVariants } from "@emach/ui/components/button";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
-import { useActiveTab } from "./tool-detail-tabs";
+import { useActiveTab } from "@/components/entity/entity-client-tabs";
 
 interface ToolDetailActionsProps {
 	canMutate: boolean;
