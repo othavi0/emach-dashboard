@@ -49,7 +49,7 @@ export function PendingFeed({
 						Precisa de atenção
 					</span>
 					<span className="font-mono text-muted-foreground text-xs tabular-nums">
-						{counts.total} {counts.total === 1 ? "item" : "itens"}
+						{shown.length} {shown.length === 1 ? "item" : "itens"}
 					</span>
 				</div>
 				<div className="flex flex-wrap gap-1.5">
@@ -59,6 +59,7 @@ export function PendingFeed({
 						const active = filter === f.id;
 						return (
 							<button
+								aria-pressed={active}
 								className={cn(
 									"rounded-full border px-2.5 py-0.5 font-medium text-xs transition-colors",
 									active

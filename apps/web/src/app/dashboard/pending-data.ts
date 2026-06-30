@@ -471,6 +471,8 @@ export const fetchPendingFeed = cache(async (): Promise<PendingFeedResult> => {
 
 	if (canOrders) {
 		// severity 2. rank = epoch do created_at (mais antigo primeiro).
+		// ELSE='Enviado'/'info' cobre 'shipped' (3º e último de ACTIVE_ORDER_STATUSES);
+		// reavaliar os CASE se a lista de status ativos crescer.
 		blocks.push(sql`(
 			SELECT 'order-' || o.id AS id, 'orders'::text AS feed_type, 2 AS severity,
 				EXTRACT(EPOCH FROM o.created_at)::numeric AS rank,
