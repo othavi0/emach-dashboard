@@ -1,17 +1,17 @@
-# Design System — emach dashboard (Editorial workshop, dark-only, coral + serif)
+# Design System — emach dashboard (Industrial workshop, dark-only, coral + condensada)
 
-> Dashboard interno emach. Dark-mode único, AAA, voz híbrida editorial-meets-workshop. Re-aproxima a paleta Anthropic (coral + Cormorant em h1/h2 + ritmo de surfaces) sem perder o dark-only nem a voz industrial. Substitui a iteração "industrial neutrals + copper" — copper hue 45 sai, coral hue 38 entra; serif ganha espaço sistêmico em h1/h2 (não mais restrito a login).
+> Dashboard interno emach. Dark-mode único, AAA, voz industrial-workshop. Paleta coral re-aproximada da Anthropic (hue 38) + ritmo de surfaces; tipografia própria **Barlow Condensed caixa-alta** (h1 + wordmark) + Barlow (corpo) + IBM Plex Mono (SKU/IDs), unificada com o storefront e-commerce. Dark-only e voz de oficina mantidos.
 
 ## 1. Visão & Atmosfera
 
-Dashboard emach é ferramenta de oficina **com voz editorial discreta**. Painel de controle warm-dark, headlines em serif (Cormorant Garamond), corpo e UI chrome em humanist sans (Inter), cor-como-sistema — cada role tem matiz própria reconhecível à distância. A inspiração de paleta vem da Anthropic (coral + ritmo de surfaces); a inspiração de densidade e voz vem do workshop industrial.
+Dashboard emach é ferramenta de oficina **com voz industrial**. Painel de controle warm-dark, headlines em condensada caixa-alta (Barlow Condensed), corpo e UI chrome em Barlow, cor-como-sistema — cada role tem matiz própria reconhecível à distância. A inspiração de paleta vem da Anthropic (coral + ritmo de surfaces); a inspiração de densidade e voz vem do workshop industrial.
 
 Assinatura visual:
 
 1. **Canvas warm-dark** com **6 níveis de elevação** distintos (surface-deep → background → muted → card → border → input/secondary). Toda neutra tem chroma warm (oklch hue ~70).
 2. **Primary coral** `oklch(0.65 0.13 38)` ≈ `#cc785c` — coral Anthropic literal, hue 38, levemente rosado, distinto de copper queimado. Aparece em CTA primário, focus ring, brand stamp.
 3. **6 roles cromáticos** com matizes separadas por ≥20° de hue circle: coral / mustard / pure red / teal / jade / warm graphite. Estado se lê pelo rabo do olho.
-4. **Tipografia editorial-funcional.** Serif (Cormorant Garamond weight 400, tracking-tight) em h1 + h2 de todas as páginas — é a voz do dashboard, não mais exceção. Sans (Inter) em h3, body, UI chrome, sidebar.
+4. **Tipografia industrial-funcional.** Display (Barlow Condensed caixa-alta) em h1 + wordmark — é a voz do dashboard. Sans (Barlow) em h3, body, UI chrome, sidebar; mono (IBM Plex Mono) em SKU/IDs.
 5. **AAA + reduced motion** não-negociável. Contraste 7:1 em body, focus ring sólido 2px, animações respeitam `prefers-reduced-motion`.
 6. **Depth via surface contrast**, não shadow. Hairline borders + ring sutil + bg-shift fazem o trabalho de elevação. Surface-deep (`0.11`) cria "wells" para code/log/featured no meio de surfaces normais.
 
@@ -64,19 +64,19 @@ Tokens em `packages/ui/src/styles/globals.css`, escopados em `.dark`. Use Tailwi
 
 Carregada via `next/font/google` em `apps/web/src/app/layout.tsx`:
 
-- **Sans (body, UI chrome, h3+, sidebar):** Inter variable. Token `font-sans`, var `--font-sans-loaded`.
-- **Serif (h1 + h2 de todas as páginas, login hero, capa de relatório):** Cormorant Garamond. Token `font-serif`, var `--font-serif-loaded`. **É a voz do dashboard** — não mais momento isolado. Substituto open-source do Copernicus/Tiempos Headline da Anthropic.
-- **Mono (código):** stack do sistema. Token `font-mono`.
+- **Sans (body, UI chrome, h3+, sidebar):** Barlow. Token `font-sans`, var `--font-barlow` (compartilhada com o preview de banner do storefront).
+- **Display (h1, wordmark):** Barlow Condensed, **caixa-alta** via `text-transform`. Token `font-serif` (nome mantido por estabilidade de migração — é a condensada de display), var `--font-barlow-condensed`. **É a voz do dashboard.** Unifica com a tipografia do storefront e-commerce. Nomes longos de entidade ficam em sentence-case.
+- **Mono (SKU, IDs, valores):** IBM Plex Mono. Token `font-mono`, var `--font-ibm-plex-mono`.
 
 ### Hierarquia funcional
 
-Display e h1/h2 em **serif weight 400** com `tracking-tight` (-0.025em). Sans 400/500 em tudo abaixo. A divisão display/body é editorial:
+Display e h1 em **Barlow Condensed caixa-alta** (`uppercase tracking-[0.015em]`), `font-medium`. Barlow 400/500 em tudo abaixo. A divisão display/body é industrial:
 
 | Função | Classes Tailwind | Notas |
 |---|---|---|
-| Display (overview, hero) | `font-serif text-5xl font-medium tracking-tight` | 48px / weight 500. Páginas de overview, login hero, capa de relatório. |
-| h1 página | `font-serif text-4xl font-medium tracking-tight` | 36px / weight 500. Cormorant em **todas** as páginas. Weight 500 compensa thinness do Cormorant em dark. |
-| h2 seção | `font-serif text-2xl font-medium tracking-tight` | 24px / weight 500. Cormorant em headers de seção. |
+| Display (overview, hero) | `font-serif text-5xl font-medium uppercase tracking-[0.015em]` | 48px Barlow Condensed caixa-alta. Overview, login hero. |
+| h1 página | `font-serif text-4xl font-medium uppercase tracking-[0.015em]` | 36px Barlow Condensed caixa-alta em **todas** as páginas (PageHeader cobre 21). |
+| h2 seção | `font-sans text-2xl font-semibold tracking-tight` | 24px Barlow. Headers de seção são sans (h2 não usa display na prática). |
 | h3 sub-seção | `font-sans text-sm font-semibold uppercase tracking-wider` | 14px caps — section marker (sans, não serif) |
 | Title prominent | `font-sans text-base font-medium` | 16px — card titles em listas, dentro de tabelas |
 | Body padrão | `font-sans text-sm leading-relaxed` | **14px / 1.625** — UI chrome, baseline do dashboard |
@@ -87,8 +87,8 @@ Display e h1/h2 em **serif weight 400** com `tracking-tight` (-0.025em). Sans 40
 
 ### Princípios
 
-- **Serif = voz editorial em h1/h2.** Weight **500** + tracking-tight é o piso em dark mode (Cormorant 400 fica fino em dark; 500 compensa sem virar bombástico). Nunca 600+. Anthropic light pode usar 400, mas dark exige peso.
-- **Sans em todo o resto.** Body, h3, controls, sidebar, tabelas, forms, cards: Inter 400/500. Contraste por peso (`font-medium` 500 em titles).
+- **Display = voz industrial em h1.** Barlow Condensed **caixa-alta** via `text-transform` (DOM minúsculo → a11y/SEO intactos), `tracking-[0.015em]`. A condensada absorve título longo sem estourar. Exceção: nomes de entidade dinâmicos ficam sentence-case (caixa-alta + truncate prejudica leitura).
+- **Sans em todo o resto.** Body, h3, controls, sidebar, tabelas, forms, cards: Barlow 400/500. Contraste por peso (`font-medium` 500 em titles).
 - **Escala mantém ratio ≥1.25:** display 48 → h1 36 (1.33) → h2 24 (1.5) → h3 14 (1.71) → body 14. Hierarquia clara.
 - **Body em 14px (`text-sm`)** baseline. AAA exige 7:1 — `--foreground` sobre `--background` cumpre.
 - **Line-height generosa** (`leading-relaxed` 1.625). Sessão longa, equipe lê muito.
@@ -442,8 +442,8 @@ Surface-deep cria o "well" — sem necessidade de border adicional. Scroll horiz
 - Cool blue-grays no chrome. Teal só em info-role e charts.
 - `text-xs` no body principal.
 - Drop shadows pesados. Depth = surface contrast + ring.
-- `font-serif` em h3, body, controls, sidebar — restrito a h1/h2.
-- Bold weight (700+) em serif — Cormorant 700 fica bombástico. Weight 400 é o piso e o teto.
+- `font-serif` (display Barlow Condensed) em h3, body, controls, sidebar — restrito a h1 + wordmark.
+- Manchete h1 sem caixa-alta — o `uppercase` é a voz; exceção só em nome de entidade dinâmico (sentence-case).
 - Emojis decorativos.
 - `bg-surface-deep` como surface padrão de card. Só code/log/featured.
 - `callout-card-coral` em mais de 1 por página ou em listagem densa.
@@ -556,7 +556,7 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 - **Vocabulário do domínio.** Variante, voltagem, filial, SKU, atributo, movimento de estoque. Sempre exato.
 - **Sem soft language AI.** Não "talvez", "parece", "você poderia". Use imperativo ou afirmação.
 - **pt-BR técnico.** Concorda com PRODUCT.md: equipe é engenheiro, não cliente.
-- **Headlines podem ter peso editorial.** Cormorant em h1/h2 permite frases mais consideradas — "Catálogo de ferramentas" lê bem; "Suas ferramentas" lê melhor. Editorial não significa floreio.
+- **Headlines em caixa-alta industrial.** Barlow Condensed caixa-alta em h1 dá peso de equipamento — "CATÁLOGO DE FERRAMENTAS". Direto, não floreado.
 
 ## 9. Do's & Don'ts
 
@@ -566,7 +566,7 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 - Coral (`bg-primary`) em CTAs primários, focus rings, brand stamp, chart-1, **e** callout-card-coral. Reservado pra esses usos.
 - Cada role com matiz própria. Status reconhecível à distância.
 - Body sans `text-sm leading-relaxed` (14px / 1.625) por padrão.
-- **Cormorant em h1 + h2 de todas as páginas.** Weight 400 + tracking-tight. É a voz.
+- **Barlow Condensed caixa-alta em h1 de todas as páginas.** `uppercase tracking-[0.015em]`. É a voz.
 - `font-medium` (500) como peso de titles/h3/labels. Contraste por peso, não família, abaixo de h2.
 - Inputs em `border-input` (`#57524c`) — borda mais forte que `border-border`.
 - Focus ring 1px + offset 2px na cor da role da ação (hairline com halo).
@@ -578,8 +578,8 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 
 - Não introduza cool blue-grays. Toda neutra tem chroma warm (oklch hue 70).
 - Não use copper hue 45 — saiu junto com a iteração industrial.
-- Não use `font-serif` em h3, body, controls, sidebar, dentro de tabelas — só h1/h2.
-- Não use serif weight 700 — Cormorant é 400 fim. Sans aceita 500 e raramente 600.
+- Não use `font-serif` (display) em h3, body, controls, sidebar, dentro de tabelas — só h1 + wordmark.
+- Não use caixa-alta em nome de entidade dinâmico/longo — ilegível com truncate; use sentence-case.
 - Não pinte coisas de coral aleatoriamente. Restrinja a CTA + focus + brand + callout-card.
 - Não use mais de 1 callout-card-coral por página.
 - Não use callout-card-coral em listagem densa.
@@ -599,6 +599,7 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 
 Mudanças sistêmicas consolidadas, mais recente primeiro:
 
+- **Troca tipográfica industrial — C1 (2026-06-30)** — Cormorant Garamond + Inter saem; entram **Barlow Condensed** (display, h1 + wordmark, **caixa-alta** via `text-transform`) + **Barlow** (corpo/chrome) + **IBM Plex Mono** (SKU/IDs). Reusa as instâncias Barlow já carregadas pro preview de banner → unifica a tipografia com o storefront e-commerce. Swap = `layout.tsx` + `globals.css` (tokens `--font-barlow`/`--font-barlow-condensed`/`--font-ibm-plex-mono`); caixa-alta em h1 via `PageHeader` (21 págs) + h1 inline + auth. Token `font-serif` mantém o nome (é a condensada de display). Nomes de entidade dinâmicos ficam sentence-case. Spec: `docs/superpowers/specs/2026-06-30-tipografia-c1-design.md`.
 - **Form de ferramenta: wizard + HelpTooltip (2026-06-05)** — (PRs #121–123) o form mais pesado do sistema (ferramenta) migrou para **wizard multi-step** com stepper; wizard (criar) e edit-view passam a compartilhar fonte única de seções/submit (`tool-sections.ts` + `use-tool-submit.ts`). Introduzido o componente **`HelpTooltip`** (ajuda contextual `ⓘ` em label/h3, sobre HoverCard, modos curto/rico) — retrofitado em tools, branches, suppliers, categories/attributes. Ver §4 (Help tooltip, Mutações) e `apps/web/CLAUDE.md`.
 - **Seção Configurações + aba Frete (2026-06-05)** — (PR #119) nova `/dashboard/site/settings` com header + tabs e layout **form 2fr / trilho de prévia 1fr**. Abas ainda não implementadas usam placeholder `Em breve` (não some da navegação — comunica roadmap). Padrão de página de configuração para reusar. Sem mudança de token.
 - **Telas de auth: login redesign + convite-only (2026-06-03)** — (PRs #112, #116) família de telas de auth redesenhada; login com **hero serif** (Cormorant, único lugar fora de h1/h2 onde a serif aparece em corpo grande). Fluxo de signup público trocado por **convite-only** com e-mail de convite. Sem mudança de token — aplica o sistema existente; serif-hero formalizado como uso legítimo da Cormorant além de h1/h2.
@@ -623,7 +624,7 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 | Pergunta | Resposta |
 |---|---|
 | Qual a cor de marca? | Coral `oklch(0.65 0.13 38)` ≈ `#cc785c` (`--primary`) |
-| Qual a fonte default? | Inter sans em body/UI. Cormorant Garamond serif em h1 + h2 de **todas** as páginas. |
+| Qual a fonte default? | Barlow no body/UI. Barlow Condensed (display) caixa-alta em h1 + wordmark. IBM Plex Mono em SKU/IDs. |
 | Como faço destaque sem coral? | `bg-secondary` ou `bg-card` + `border-border` |
 | Como sinalizo "estoque mínimo"? | `bg-warning` + ícone + label "Estoque mínimo" |
 | Como sinalizo "pedido entregue"? | `bg-success` + ícone check + label |
@@ -635,7 +636,7 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 | Qual o contraste mínimo? | AAA: 7:1 body, 4.5:1 large text, 3:1 non-text UI. |
 | Onde uso `bg-surface-deep`? | Code blocks, log/terminal viewers, featured-card-dark. **Não** em card normal. |
 | Quando uso `callout-card-coral`? | Empty state de módulo vazio, onboarding, banner crítico. Máx 1 por página. |
-| Cormorant em h3? | **Não.** Só h1 + h2. Resto é sans. |
+| Display (Barlow Condensed) em h3? | **Não.** Só h1 + wordmark. Resto é Barlow sans. |
 | Como adiciono contagem numa tab? | `<TabsCountBadge value={N} />` do `@emach/ui/components/tabs`. Sempre `secondary`, ativo + inativo. |
 | `gap-1` na TabsList? | Default. Não passe `className="gap-1"` manual. |
 | Altura do par PendingPanel+ActivityFeed? | `<PendingPanel compact>` + wrapper `min-h-[18rem]` no ActivityFeed. |
@@ -650,8 +651,8 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 
 ## 12. Origem
 
-- Filosofia visual e tokens: este documento (editorial-workshop dark, coral + serif h1/h2, AAA).
-- Inspiração de paleta + tipografia: anthropic.com (canvas cream + coral + serif), adaptada para dark-only.
+- Filosofia visual e tokens: este documento (industrial-workshop dark, coral + condensada caixa-alta, AAA).
+- Inspiração de paleta: anthropic.com (coral), adaptada para dark-only. Tipografia: superfamília Barlow, unificada com o storefront e-commerce.
 - Implementação canônica: `packages/ui/src/styles/globals.css` + componentes em `packages/ui/src/components/*`.
 - Showcase: `apps/web/src/app/design/page.tsx` (sistema completo) + `/design/preview` (comparação histórica de paletas).
 - Strategic context: `PRODUCT.md` (register product / personality confiante-técnico-denso / anti-references).

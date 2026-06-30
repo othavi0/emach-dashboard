@@ -104,7 +104,7 @@ export default withBundleAnalyzer(nextConfig);
 |------------|--------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
 | `img-src`  | `${supabaseHostname}` (Storage público)          | `NEXT_PUBLIC_SUPABASE_URL` em runtime; já disponível como `supabaseHostname` no config                        |
 | `connect-src` | `${supabaseHostname}` (REST/Realtime/Storage API) | `supabase-browser.ts` usa `createClient(url, …)` para upload de imagens                                     |
-| `font-src` / `style-src` | Nenhuma externa — `next/font/google` auto-hospeda as fontes em build time (Inter, Barlow, Cormorant) | Verificado: nenhuma referência a `fonts.googleapis.com` / `fonts.gstatic.com` no bundle de runtime |
+| `font-src` / `style-src` | Nenhuma externa — `next/font/google` auto-hospeda as fontes em build time (Barlow, Barlow Condensed, IBM Plex Mono) | Verificado: nenhuma referência a `fonts.googleapis.com` / `fonts.gstatic.com` no bundle de runtime |
 | `script-src` | `'self'` + Next.js inline scripts de hydration  | Next.js 16 injeta `<script>` inline no HTML para passar server state ao cliente — exige `'unsafe-inline'` **ou** nonces no script-src; usar `'unsafe-inline'` no report-only por ora |
 | `style-src` | `'self'` + 31 ocorrências de `style={{...}}` em JSX | React renderiza inline styles como atributo `style=` no DOM, **não** como `<style>` tags — não precisam de `'unsafe-inline'` no `style-src` |
 | `img-src`  | `https://i.pravatar.cc` — apenas em `/design` (página interna, `robots: noindex`) | Incluir no CSP report-only para não gerar ruído |
@@ -190,7 +190,7 @@ const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
 	: null;
 
 // Fontes externas para a CSP.
-// next/font/google auto-hospeda Inter/Barlow/Cormorant em build time —
+// next/font/google auto-hospeda Barlow/Barlow Condensed/IBM Plex Mono em build time —
 // nenhuma requisição a fonts.googleapis.com ou fonts.gstatic.com em runtime.
 // Supabase Storage é a única origem externa de imagens e conexões API.
 const cspConnectSrc = supabaseHostname

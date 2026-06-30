@@ -38,7 +38,7 @@ Roles dashboard: `user.role` enum `super_admin/admin/manager/user`; `user.status
 - `target="_blank"` sem `rel="noopener"`.
 - APIs que injetam HTML não-sanitizado — exceto com sanitização (ex: `react-markdown` + `rehype-sanitize` preset `defaultSchema`).
 - Cool blue-grays — neutros têm chroma warm (oklch hue ~70).
-- `font-serif` (Cormorant) em chrome do dashboard — restrito a login hero + capa de relatório.
+- `font-serif` é o token de **display** (Barlow Condensed, **caixa-alta** via `text-transform`) — restrito a h1 + wordmark; nunca em h3/body/controls/sidebar/tabelas. Mono = IBM Plex Mono. Nomes de entidade dinâmicos: display em sentence-case.
 
 ## Gotchas
 

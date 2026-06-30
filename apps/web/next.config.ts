@@ -10,7 +10,7 @@ const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
 	: null;
 
 // Fontes externas para a CSP.
-// next/font/google auto-hospeda Inter/Barlow/Cormorant em build time —
+// next/font/google auto-hospeda Barlow/Barlow Condensed/IBM Plex Mono em build time —
 // nenhuma requisição a fonts.googleapis.com ou fonts.gstatic.com em runtime.
 // Supabase Storage é a única origem externa de imagens e conexões API.
 const cspConnectSrc = supabaseHostname
