@@ -643,5 +643,6 @@ Cada fase é uma sub-issue + plano próprio (escrito just-in-time sobre a API fi
 6. **users** — profile/branches/security eager; activity/sessions/permissões lazy; `availableBranches` busca na abertura do painel; `permissões` tab condicional.
 7. **customers** — perfil eager; 6 tabs lazy; `?auditAction=` da auditoria vira estado client.
 8. **branches** — overview eager; team/orders/stock/activity lazy; **filtros internos server-driven** (categoria/busca/sort/status/período/tipo/toolId) viram estado client + refetch (confirmar quanto já é client via infinite scroll). Maior desvio — por último.
+   - ⚠️ **Nota de design (do final review da Fase 0):** `useLazyTab`/`loadRef` **não re-dispara** quando o thunk `load` muda por estado mutável sem remount — só `retry()` ou remontagem (`key`) re-executam. Os filtros internos de branches mudam `load` sem remontar a tab → precisarão de `retry()` no change, de um `key` derivado dos filtros, OU de estender `useLazyTab` para aceitar um array de deps. Decidir no plano da sub-issue de branches.
 
 **Virar canônico** (após a Fase 5, 5/8 migradas): atualizar `DESIGN.md §4` + `apps/web/CLAUDE.md` + nota de superação no ADR-0024 (server-nav → client-side default). **Remover** `components/entity/entity-tabs.tsx` na Fase 8 (gate: `rg` sem usos).
