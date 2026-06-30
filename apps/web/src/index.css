@@ -1,1 +1,15 @@
 @import "@emach/ui/globals.css";
+
+/*
+ * @bprogress: a barra de navegação precisa de `position` para o seu `z-index` valer.
+ * Sem isso ela é `position: static` (z-index ignorado) e, no fade-out (`opacity < 1`),
+ * vira um stacking context com prioridade `auto` — caindo ATRÁS da sidebar
+ * (`position: fixed; z-index: 10`). Visualmente a barra "some primeiro" sobre a
+ * sidebar enquanto continua sobre o conteúdo. Com `position: fixed` o z-index alto
+ * passa a valer e a barra fica acima da sidebar durante todo o fade.
+ */
+.bprogress {
+	position: fixed;
+	top: 0;
+	left: 0;
+}

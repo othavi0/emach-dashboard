@@ -4,6 +4,7 @@ import { ProgressProvider } from "@bprogress/next/app";
 import { Toaster } from "@emach/ui/components/sonner";
 import { Suspense } from "react";
 import { NavigationAnnouncer } from "@/components/navigation-announcer";
+import { NavigationTruck } from "@/components/navigation-truck";
 
 /** Returns true when target and current differ only in search params (same pathname + origin). */
 function isSameURLWithoutSearch(target: URL, current: URL): boolean {
@@ -27,6 +28,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 			}}
 		>
 			{children}
+			<NavigationTruck />
 			{/* NavigationAnnouncer usa usePathname() ("use client"). Sob Next 16 cacheComponents,
 			    componentes "use client" com leitura de pathname dinâmico devem ficar dentro de
 			    <Suspense> ou o build falha (leitura dinâmica não cabe no shell estático). */}
