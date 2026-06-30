@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { BranchStockEditSheet } from "@/app/dashboard/stock/_components/branch-stock-edit-sheet";
 import type { BranchStockRow } from "@/app/dashboard/stock/branch-stock-data";
@@ -29,9 +29,13 @@ export function EstoqueTab({
 }: EstoqueTabProps) {
 	const [selected, setSelected] = useState<ToolStockRow | null>(null);
 	const [suppliers, setSuppliers] = useState<ActiveSupplierOption[]>([]);
+	// A lista de suppliers é invariante por linha: buscar só na 1ª abertura da
+	// sheet (trocar de linha não deve refetchar). Marcado só no sucesso → erro
+	// de rede ainda re-tenta na próxima abertura.
+	const fetchedOnce = useRef(false);
 
 	useEffect(() => {
-		if (!selected) {
+		if (!selected || fetchedOnce.current) {
 			return;
 		}
 		let active = true;
@@ -39,6 +43,7 @@ export function EstoqueTab({
 			.then((data) => {
 				if (active) {
 					setSuppliers(data);
+					fetchedOnce.current = true;
 				}
 			})
 			.catch(() => {
