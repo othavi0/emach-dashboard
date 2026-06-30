@@ -10,9 +10,7 @@ import { cn } from "@emach/ui/lib/utils";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
-import { PendingPanel, type PendingTab } from "@/components/pending-panel";
 import { formatDateShort } from "@/lib/format/datetime";
-import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { BranchFilter } from "./_components/branch-filter";
 import {
@@ -21,18 +19,12 @@ import {
 	StockFlowArea,
 } from "./_components/charts/lazy";
 import { KpiRow } from "./_components/kpi-row";
+import { PendingFeed } from "./_components/pending-feed";
 import { PeriodFilter } from "./_components/period-filter";
 import { ReorderTable } from "./_components/reorder-table";
 import { parseBranchParam, parsePeriodParam } from "./_lib/dashboard-params";
 import { kpiGridClass } from "./_lib/kpi-grid";
-import {
-	fetchDashboardActivity,
-	fetchDashboardCounts,
-	fetchExpiringPromotions,
-	fetchPendingOrders,
-	fetchPendingReviews,
-	fetchPendingStock,
-} from "./actions";
+import { fetchDashboardActivity } from "./actions";
 import {
 	fetchBranchOptions,
 	fetchDailyRevenue,
@@ -40,6 +32,7 @@ import {
 	fetchReorderTable,
 	fetchStockFlow,
 } from "./dashboard-data";
+import { fetchPendingFeed } from "./pending-data";
 
 export const metadata: Metadata = {
 	title: "Visão geral",
@@ -69,11 +62,6 @@ async function DashboardPageContent({
 	const branchId = parseBranchParam(sp.branch);
 	const period = parsePeriodParam(sp.period);
 
-	const [canReadReviews, canReadPromotions] = await Promise.all([
-		can(session, "reviews.read"),
-		can(session, "promotions.read"),
-	]);
-
 	return (
 		<main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-2 py-4">
 			<section className="flex flex-wrap items-end justify-between gap-4">
@@ -96,10 +84,7 @@ async function DashboardPageContent({
 			</Suspense>
 
 			<Suspense fallback={<Skeleton className="h-72 w-full" />}>
-				<PendingSection
-					canReadPromotions={canReadPromotions}
-					canReadReviews={canReadReviews}
-				/>
+				<PendingSection />
 			</Suspense>
 
 			<Suspense fallback={<Skeleton className="h-72 w-full" />}>
@@ -129,66 +114,14 @@ function KpiSkeleton() {
 	);
 }
 
-async function PendingSection({
-	canReadReviews,
-	canReadPromotions,
-}: {
-	canReadPromotions: boolean;
-	canReadReviews: boolean;
-}) {
-	const [counts, stock, orders, activity, reviews, promos] = await Promise.all([
-		fetchDashboardCounts(),
-		fetchPendingStock(null),
-		fetchPendingOrders(null),
+async function PendingSection() {
+	const [feed, activity] = await Promise.all([
+		fetchPendingFeed(),
 		fetchDashboardActivity(null),
-		canReadReviews ? fetchPendingReviews(null) : null,
-		canReadPromotions ? fetchExpiringPromotions(null) : null,
 	]);
-	const tabs: PendingTab[] = [
-		{
-			id: "stock",
-			label: "Estoque",
-			count: counts.stock,
-			role: "warning",
-			initial: stock.items,
-			initialCursor: stock.nextCursor,
-			fetchPage: fetchPendingStock,
-		},
-		{
-			id: "orders",
-			label: "Pedidos",
-			count: counts.orders,
-			role: "info",
-			initial: orders.items,
-			initialCursor: orders.nextCursor,
-			fetchPage: fetchPendingOrders,
-		},
-	];
-	if (canReadReviews && reviews) {
-		tabs.push({
-			id: "reviews",
-			label: "Moderação",
-			count: counts.reviews,
-			role: "warning",
-			initial: reviews.items,
-			initialCursor: reviews.nextCursor,
-			fetchPage: fetchPendingReviews,
-		});
-	}
-	if (canReadPromotions && promos) {
-		tabs.push({
-			id: "promotions",
-			label: "Promoções",
-			count: counts.promotionsExpiring,
-			role: "warning",
-			initial: promos.items,
-			initialCursor: promos.nextCursor,
-			fetchPage: fetchExpiringPromotions,
-		});
-	}
 	return (
 		<section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-			<PendingPanel tabs={tabs} />
+			<PendingFeed counts={feed.counts} items={feed.items} />
 			<div className="relative min-h-[18rem] min-w-0">
 				<div className="absolute inset-0">
 					<ActivityFeed
