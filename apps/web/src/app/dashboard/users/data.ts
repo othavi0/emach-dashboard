@@ -26,7 +26,7 @@ import {
 import type { BranchScope } from "@/lib/branch-scope";
 
 import { decodeCursorAs, encodeCursor } from "@/lib/cursor";
-import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
+import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { getBranchTableAggregates } from "../branches/data";
 
 // ============================================================================
@@ -179,51 +179,6 @@ export async function fetchUsersPage(
 			: null;
 
 	return { items, nextCursor };
-}
-
-export async function fetchPendingUsersPage(cursor: string | null): Promise<
-	InfiniteResult<{
-		href: string;
-		id: string;
-		primary: string;
-		secondary: string;
-	}>
-> {
-	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
-	const rows = await db
-		.select({
-			createdAt: userTable.createdAt,
-			email: userTable.email,
-			id: userTable.id,
-			name: userTable.name,
-		})
-		.from(userTable)
-		.where(
-			and(
-				eq(userTable.status, "pending"),
-				decoded
-					? sql`(${userTable.createdAt}, ${userTable.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
-					: undefined
-			)
-		)
-		.orderBy(desc(userTable.createdAt), desc(userTable.id))
-		.limit(BATCH_SIZE + 1);
-
-	return paginate(
-		rows,
-		(r) => ({
-			href: `/dashboard/users/${r.id}`,
-			id: r.id,
-			primary: r.name,
-			secondary: r.email,
-		}),
-		(last) => ({
-			v: 1,
-			sort: "newest" as const,
-			createdAt: last.createdAt.toISOString(),
-			id: last.id,
-		})
-	);
 }
 
 // ============================================================================
@@ -523,72 +478,6 @@ export async function getUserAffectedActivity(
 		})),
 		nextCursor,
 	};
-}
-
-export async function getUserActivityFeedPaginated(
-	cursor: string | null,
-	limit = 20
-): Promise<
-	InfiniteResult<{
-		action: string;
-		actorName: string | null;
-		createdAt: Date;
-		id: string;
-		targetId: string | null;
-	}>
-> {
-	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
-	const rows = await db
-		.select({
-			action: userActivityLog.action,
-			actorName: userTable.name,
-			createdAt: userActivityLog.createdAt,
-			id: userActivityLog.id,
-			targetId: userActivityLog.targetId,
-		})
-		.from(userActivityLog)
-		.leftJoin(userTable, eq(userTable.id, userActivityLog.actorUserId))
-		.where(
-			and(
-				ilike(userActivityLog.action, "user.%"),
-				decoded
-					? sql`(${userActivityLog.createdAt}, ${userActivityLog.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
-					: undefined
-			)
-		)
-		.orderBy(desc(userActivityLog.createdAt), desc(userActivityLog.id))
-		.limit(limit + 1);
-
-	const hasMore = rows.length > limit;
-	const items = hasMore ? rows.slice(0, limit) : rows;
-	const last = items.at(-1);
-	const nextCursor =
-		hasMore && last
-			? encodeCursor({
-					v: 1,
-					sort: "newest",
-					createdAt: last.createdAt.toISOString(),
-					id: last.id,
-				})
-			: null;
-
-	return { items, nextCursor };
-}
-
-export async function getRecentUserActivity(limit = 8) {
-	return await db
-		.select({
-			action: userActivityLog.action,
-			actorName: userTable.name,
-			createdAt: userActivityLog.createdAt,
-			id: userActivityLog.id,
-			targetId: userActivityLog.targetId,
-		})
-		.from(userActivityLog)
-		.leftJoin(userTable, eq(userTable.id, userActivityLog.actorUserId))
-		.where(ilike(userActivityLog.action, "user.%"))
-		.orderBy(desc(userActivityLog.createdAt))
-		.limit(limit);
 }
 
 export interface InviteByToken {

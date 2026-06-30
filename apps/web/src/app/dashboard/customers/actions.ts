@@ -11,8 +11,6 @@ import { clientAuditLog } from "@emach/db/schema/client-audit";
 import { env } from "@emach/env/server";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import type { ActivityEvent } from "@/components/activity-feed";
-import type { PendingRow } from "@/components/pending-panel";
 import type { ActionResult } from "@/lib/action-result";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
@@ -23,11 +21,6 @@ import {
 	listCustomerOrders,
 	listCustomers,
 } from "./data";
-import {
-	type CustomerPendingKind,
-	fetchCustomerActivityPage as fetchCustomerActivityPageImpl,
-	fetchPendingCustomersPage as fetchPendingCustomersPageImpl,
-} from "./pending-data";
 import {
 	type CustomersListFilters,
 	customersListFiltersSchema,
@@ -495,55 +488,4 @@ export async function generatePasswordResetLink(
 		const msg = error instanceof Error ? error.message : "Erro interno";
 		return { ok: false, error: msg };
 	}
-}
-
-// ============================================================================
-// Pending customers — wrapper para useInfiniteList
-// ============================================================================
-
-export async function fetchPendingCustomersPage(args: {
-	cursor: string | null;
-	kind: CustomerPendingKind;
-}): Promise<InfiniteResult<PendingRow>> {
-	await requireCapability("customers.read");
-	return fetchPendingCustomersPageImpl(args);
-}
-
-export async function fetchPendingBlockedCustomersPage(
-	cursor: string | null
-): Promise<InfiniteResult<PendingRow>> {
-	await requireCapability("customers.read");
-	return fetchPendingCustomersPageImpl({ kind: "blocked", cursor });
-}
-
-export async function fetchPendingNoDocumentCustomersPage(
-	cursor: string | null
-): Promise<InfiniteResult<PendingRow>> {
-	await requireCapability("customers.read");
-	return fetchPendingCustomersPageImpl({ kind: "no_doc", cursor });
-}
-
-export async function fetchPendingInactiveOrderCustomersPage(
-	cursor: string | null
-): Promise<InfiniteResult<PendingRow>> {
-	await requireCapability("customers.read");
-	return fetchPendingCustomersPageImpl({ kind: "inactive_open_order", cursor });
-}
-
-export async function fetchPendingUnverifiedCustomersPage(
-	cursor: string | null
-): Promise<InfiniteResult<PendingRow>> {
-	await requireCapability("customers.read");
-	return fetchPendingCustomersPageImpl({ kind: "unverified_new", cursor });
-}
-
-// ============================================================================
-// Customer activity — wrapper para useInfiniteList
-// ============================================================================
-
-export async function fetchCustomerActivityPage(
-	cursor: string | null
-): Promise<InfiniteResult<ActivityEvent>> {
-	await requireCapability("customers.read");
-	return fetchCustomerActivityPageImpl(cursor);
 }

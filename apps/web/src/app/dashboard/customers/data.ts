@@ -632,47 +632,6 @@ export async function getCustomerAddresses(
 
 export type { CustomersListFilters } from "./schema";
 
-export interface CustomerPendingCounts {
-	blocked: number;
-	inactiveWithOpenOrder: number;
-	noDoc: number;
-	unverifiedNew: number;
-}
-
-export async function getCustomerPendingCounts(): Promise<CustomerPendingCounts> {
-	const result = await db.execute<{
-		blocked: string;
-		no_doc: string;
-		inactive_with_open_order: string;
-		unverified_new: string;
-	}>(sql`
-		SELECT
-			COUNT(*) FILTER (WHERE c.status = 'blocked') AS blocked,
-			COUNT(*) FILTER (WHERE c.document IS NULL) AS no_doc,
-			COUNT(*) FILTER (
-				WHERE c.status = 'inactive'
-				AND EXISTS (
-					SELECT 1 FROM "order" o
-					WHERE o.client_id = c.id
-					AND o.status IN ('pending_payment', 'preparing', 'shipped')
-				)
-			) AS inactive_with_open_order,
-			COUNT(*) FILTER (
-				WHERE c.email_verified = false
-				AND c.created_at > now() - INTERVAL '14 days'
-			) AS unverified_new
-		FROM client c
-	`);
-
-	const row = result.rows[0];
-	return {
-		blocked: Number(row?.blocked ?? 0),
-		noDoc: Number(row?.no_doc ?? 0),
-		inactiveWithOpenOrder: Number(row?.inactive_with_open_order ?? 0),
-		unverifiedNew: Number(row?.unverified_new ?? 0),
-	};
-}
-
 export type RecentClientActivityKind = "new_client" | "login" | "first_order";
 
 export interface RecentClientActivity {
