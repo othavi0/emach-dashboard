@@ -48,7 +48,7 @@ export function AuthStatusPanel({
 			>
 				{icon}
 			</div>
-			<h1 className="mt-4 font-medium font-serif text-3xl tracking-tight">
+			<h1 className="mt-4 font-medium font-serif text-3xl uppercase tracking-[0.015em]">
 				{title}
 			</h1>
 			<p className="mt-2 text-muted-foreground text-sm leading-relaxed">

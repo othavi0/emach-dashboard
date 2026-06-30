@@ -83,8 +83,13 @@
 }
 
 @theme inline {
-	--font-sans: var(--font-sans-loaded), "Inter", system-ui, sans-serif;
-	--font-serif: var(--font-serif-loaded), "Cormorant Garamond", Georgia, serif;
+	--font-sans: var(--font-barlow), "Barlow", system-ui, sans-serif;
+	/* display/condensada — nome `serif` mantido p/ estabilidade de migração */
+	--font-serif:
+		var(--font-barlow-condensed), "Barlow Condensed", system-ui, sans-serif;
+	--font-mono:
+		var(--font-ibm-plex-mono), "IBM Plex Mono", ui-monospace, SFMono-Regular,
+		monospace;
 	--color-sidebar-ring: var(--sidebar-ring);
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

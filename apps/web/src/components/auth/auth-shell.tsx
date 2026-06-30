@@ -13,7 +13,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
 					width={132}
 				/>
 				<div>
-					<h1 className="font-medium font-serif text-5xl text-foreground tracking-tight">
+					<h1 className="font-medium font-serif text-5xl text-foreground uppercase tracking-[0.015em]">
 						Painel de <span className="text-primary">gestão</span>
 					</h1>
 					<span

@@ -40,7 +40,7 @@ async function InvitePageContent({
 				<InviteAcceptForm email={invite.email} token={token} />
 			) : (
 				<div>
-					<h1 className="font-medium font-serif text-3xl tracking-tight">
+					<h1 className="font-medium font-serif text-3xl uppercase tracking-[0.015em]">
 						Convite inválido
 					</h1>
 					<p className="mt-2 text-muted-foreground text-sm leading-relaxed">

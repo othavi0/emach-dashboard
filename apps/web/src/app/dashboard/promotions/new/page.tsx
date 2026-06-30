@@ -58,7 +58,7 @@ async function NewPromotionPageContent({ searchParams }: PageProps) {
 	return (
 		<div className="flex flex-col gap-6 p-6">
 			<div>
-				<h1 className="font-medium font-serif text-4xl tracking-tight">
+				<h1 className="font-medium font-serif text-4xl uppercase tracking-[0.015em]">
 					{isCoupon ? "Novo cupom" : "Nova promoção"}
 				</h1>
 				<p className="text-muted-foreground text-sm">

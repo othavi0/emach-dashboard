@@ -43,7 +43,9 @@ export function EntityIdentityHeader({
 					</AvatarFallback>
 				</Avatar>
 				<div className="min-w-0">
-					<p className="truncate font-medium text-xl leading-tight">{title}</p>
+					<p className="truncate font-medium font-serif text-xl leading-tight">
+						{title}
+					</p>
 					{subtitle ? (
 						<p className="truncate text-muted-foreground text-sm">{subtitle}</p>
 					) : null}

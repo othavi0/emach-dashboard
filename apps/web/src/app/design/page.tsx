@@ -140,7 +140,7 @@ export default function DesignPage() {
 					<p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
 						/design
 					</p>
-					<h1 className="mt-2 font-medium font-sans text-5xl leading-[1.1] tracking-tight">
+					<h1 className="mt-2 font-medium font-serif text-5xl uppercase leading-[1.1] tracking-[0.015em]">
 						Design system — emach
 					</h1>
 					<p className="mt-3 max-w-2xl text-muted-foreground text-sm leading-relaxed">
@@ -174,11 +174,11 @@ export default function DesignPage() {
 				</nav>
 
 				<Section
-					description="Inter sans no chrome do dashboard — hierarquia por peso e case, não por família. Cormorant Garamond serif: uso restrito (login, capa de relatório)."
+					description="Barlow no chrome do dashboard; Barlow Condensed (display) em h1 + wordmark, caixa-alta via text-transform; IBM Plex Mono em SKU/IDs. Hierarquia por peso, escala e caixa."
 					id="tipografia"
 					title="Tipografia"
 				>
-					<Showcase label="Sans (chrome)">
+					<Showcase label="Corpo · chrome (Barlow)">
 						<div className="flex w-full flex-col gap-3">
 							<p className="font-medium text-3xl tracking-tight">
 								Display 30px / 500
@@ -202,18 +202,18 @@ export default function DesignPage() {
 								Caption 12px — metadata, helpers, footers de tabela.
 							</p>
 							<p className="font-mono text-xs">
-								Mono 12px — SKU, IDs, atalhos, valores literais.
+								Mono 12px (IBM Plex Mono) — SKU, IDs, atalhos, valores literais.
 							</p>
 						</div>
 					</Showcase>
-					<Showcase label="Serif (uso restrito)">
+					<Showcase label="Display · h1 (Barlow Condensed · caixa-alta)">
 						<div className="flex w-full flex-col gap-3">
-							<p className="font-medium font-serif text-3xl leading-tight">
-								Cormorant 30px — login hero
+							<p className="font-medium font-serif text-4xl uppercase tracking-[0.015em]">
+								Catálogo de ferramentas
 							</p>
 							<p className="font-serif text-base leading-relaxed">
-								Body serif 16px / 1.60 — capa de relatório impresso, momento
-								editorial discreto. Nunca no chrome do dashboard.
+								Caixa-alta via text-transform (DOM minúsculo → a11y/SEO ok).
+								Nomes longos de entidade ficam em sentence-case, sem caixa-alta.
 							</p>
 						</div>
 					</Showcase>
