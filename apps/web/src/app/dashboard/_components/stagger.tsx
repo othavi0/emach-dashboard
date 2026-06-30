@@ -22,11 +22,18 @@ export function StaggerGrid({
 	const reduce = useReducedMotion();
 
 	useEffect(() => {
-		if (sessionStorage.getItem(SESSION_KEY)) {
+		// sessionStorage pode lançar SecurityError (iframe sandbox, modo privado):
+		// nesse caso não anima e os KPIs seguem visíveis (degradação segura).
+		let alreadyEntered = true;
+		try {
+			alreadyEntered = sessionStorage.getItem(SESSION_KEY) !== null;
+			if (!alreadyEntered) {
+				sessionStorage.setItem(SESSION_KEY, "1");
+			}
+		} catch {
 			return;
 		}
-		sessionStorage.setItem(SESSION_KEY, "1");
-		if (reduce) {
+		if (alreadyEntered || reduce) {
 			return;
 		}
 		const items = scope.current?.querySelectorAll("[data-stagger-item]");
