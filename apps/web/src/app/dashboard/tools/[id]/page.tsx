@@ -65,6 +65,7 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 			content: (
 				<OverviewTab
 					attributes={detail.attributes}
+					cartSummary={detail.cartSummary}
 					categories={detail.categories}
 					images={detail.images}
 					stockSummary={detail.stockSummary}

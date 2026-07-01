@@ -5,6 +5,7 @@ import { formatDayMonthShortYear } from "@/lib/format/datetime";
 import { groupAttributesByCategory } from "../_lib/attribute-grouping";
 import { detectSpecDivergences } from "../_lib/spec-divergence";
 import type {
+	ToolCartSummary,
 	ToolDetailAttribute,
 	ToolDetailCategory,
 	ToolDetailImage,
@@ -23,6 +24,7 @@ const BRL = new Intl.NumberFormat("pt-BR", {
 
 interface OverviewTabProps {
 	attributes: ToolDetailAttribute[];
+	cartSummary: ToolCartSummary;
 	categories: ToolDetailCategory[];
 	images: ToolDetailImage[];
 	stockSummary: ToolStockSummary;
@@ -35,6 +37,7 @@ export function OverviewTab({
 	categories,
 	attributes,
 	stockSummary,
+	cartSummary,
 }: OverviewTabProps) {
 	const primaryCategory = categories.find((c) => c.isPrimary);
 	const otherCategories = categories.filter((c) => !c.isPrimary);
@@ -95,6 +98,14 @@ export function OverviewTab({
 						</p>
 					</SectionCard>
 
+					<SectionCard title="Carrinho (ecommerce)">
+						<div className="grid grid-cols-3 text-center">
+							<CartWindow label="15 dias" value={cartSummary.d15} withBorder />
+							<CartWindow label="30 dias" value={cartSummary.d30} withBorder />
+							<CartWindow label="90 dias" value={cartSummary.d90} />
+						</div>
+					</SectionCard>
+
 					<SectionCard title="Logística & metadados">
 						<dl className="flex flex-col gap-2 text-sm">
 							<MetaRow label="Frete > 30kg">
@@ -138,6 +149,27 @@ function MetaRow({ label, children }: { children: ReactNode; label: string }) {
 		<div>
 			<dt className="text-muted-foreground text-xs">{label}</dt>
 			<dd>{children}</dd>
+		</div>
+	);
+}
+
+function CartWindow({
+	label,
+	value,
+	withBorder = false,
+}: {
+	label: string;
+	value: number;
+	withBorder?: boolean;
+}) {
+	return (
+		<div className={withBorder ? "border-border border-r" : undefined}>
+			<p className="font-semibold text-2xl text-primary tabular-nums">
+				{value}
+			</p>
+			<p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+				{label}
+			</p>
 		</div>
 	);
 }
