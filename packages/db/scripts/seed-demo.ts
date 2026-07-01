@@ -2,6 +2,7 @@
 import { env } from "@emach/env/server";
 import { sql } from "drizzle-orm";
 import { db } from "../src/index";
+import { seedCartEvents } from "./seed/cart-events";
 import { seedCatalog } from "./seed/catalog";
 import { seedClients } from "./seed/clients";
 import { emptyContext } from "./seed/context";
@@ -14,7 +15,7 @@ import { truncateDemo } from "./seed/truncate";
 import { verifySeed } from "./seed/verify";
 
 async function main() {
-	// GUARD: este seed TRUNCA 28 tabelas e repopula com mock. Não há banco de dev
+	// GUARD: este seed TRUNCA 29 tabelas e repopula com mock. Não há banco de dev
 	// separado — DATABASE_URL aponta para o MESMO Supabase de produção, então rodar
 	// isto sem querer APAGA catálogo/clientes/pedidos reais. Exige opt-in explícito.
 	const forced =
@@ -24,7 +25,7 @@ async function main() {
 		console.error(
 			[
 				"[seed-demo] ABORTADO.",
-				"Este script TRUNCA 28 tabelas e repopula com dados de demonstração.",
+				"Este script TRUNCA 29 tabelas e repopula com dados de demonstração.",
 				`Alvo: ${host} (banco compartilhado dashboard + e-commerce).`,
 				"Não há ambiente de dev isolado — isto APAGA os dados reais.",
 				"",
@@ -51,6 +52,7 @@ async function main() {
 		await seedInventory(tx, ctx);
 		await seedClients(tx, ctx);
 		await seedSales(tx, ctx);
+		await seedCartEvents(tx, ctx);
 		await seedMarketing(tx, ctx);
 		await seedShipping(tx);
 		await verifySeed(tx);

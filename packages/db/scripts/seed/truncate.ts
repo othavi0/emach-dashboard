@@ -2,7 +2,7 @@
 import { sql } from "drizzle-orm";
 import type { Tx } from "./context";
 
-// 28 tabelas demo — NÃO inclui user/account/session/verification (auth do dashboard).
+// 29 tabelas demo — NÃO inclui user/account/session/verification (auth do dashboard).
 const DEMO_TABLES = [
 	"branch",
 	"user_branch",
@@ -32,6 +32,7 @@ const DEMO_TABLES = [
 	"review",
 	"promotion",
 	"promotion_tool",
+	"cart_event",
 	"carrier_rate",
 	"carrier_zone",
 	"carrier",
