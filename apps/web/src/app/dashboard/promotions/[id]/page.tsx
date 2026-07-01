@@ -56,7 +56,6 @@ async function PromotionDetailPageContent({ params, searchParams }: PageProps) {
 			value: "tools",
 			label: "Ferramentas",
 			icon: <Wrench aria-hidden className="size-3.5" />,
-			lazy: true,
 			badge: (
 				<span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-secondary px-1 font-medium text-secondary-foreground text-xs tabular-nums">
 					{detail.tools.length}
