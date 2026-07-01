@@ -28,7 +28,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 
 import { notify } from "@/lib/notify";
-import { isPickingComplete, summarizePicking } from "../_lib/picking-logic";
+import { canFinalizePicking, summarizePicking } from "../_lib/picking-logic";
 import {
 	cancelPicking,
 	completePicking,
@@ -359,7 +359,7 @@ function usePickingState(
 					setLocalItems((prev) =>
 						prev.map((it) =>
 							it.id === scan.pickingItemId
-								? { ...it, qtyPicked: scan.qtyPicked }
+								? { ...it, qtyPicked: scan.qtyPicked, notFound: false }
 								: it
 						)
 					);
@@ -487,7 +487,6 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 	} = usePickingState(picking, items);
 
 	const summary = summarizePicking(localItems);
-	const allDone = isPickingComplete(localItems);
 	const focusedItem = localItems.find((it) => it.id === focusedId) ?? null;
 	const reportingItem =
 		localItems.find((it) => it.id === reportingItemId) ?? null;
@@ -500,10 +499,16 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 			: 0;
 	const scanDisabled = isScanning || isCompleting || isReporting;
 	const exceptionColor = summary.exceptions > 0 ? "text-destructive" : "";
+	const canFinalize = canFinalizePicking(localItems);
+	const hasExceptions = summary.exceptions > 0;
+	let finalizeLabel = "Concluir separação";
+	if (isCompleting) {
+		finalizeLabel = "Finalizando…";
+	} else if (hasExceptions) {
+		finalizeLabel = "Finalizar com pendência";
+	}
 	const gateText =
-		summary.exceptions > 0
-			? `Resolva ${summary.exceptions === 1 ? "a exceção" : "as exceções"} e bipe os ${summary.totalUnits - summary.pickedUnits} restantes`
-			: `Bipe as ${summary.totalUnits - summary.pickedUnits} unidades restantes para liberar`;
+		"Bipe os itens restantes ou reporte-os como ausentes para finalizar";
 
 	return (
 		<>
@@ -635,13 +640,14 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 
 					<Button
 						className="w-full"
-						disabled={!allDone || isCompleting}
+						disabled={!canFinalize || isCompleting}
 						onClick={handleComplete}
+						variant={hasExceptions ? "outline" : "default"}
 					>
-						{isCompleting ? "Concluindo…" : "Concluir separação"}
+						{finalizeLabel}
 					</Button>
 
-					{!allDone && (
+					{!canFinalize && (
 						<p className="flex items-center justify-center gap-1.5 text-[12px] text-warning">
 							<LockIcon aria-hidden className="size-3.5 shrink-0" />
 							{gateText}

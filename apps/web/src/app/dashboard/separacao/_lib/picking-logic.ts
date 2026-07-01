@@ -35,6 +35,18 @@ export function isPickingComplete(items: PickItem[]): boolean {
 	return items.every((it) => !it.notFound && it.qtyPicked === it.qtyExpected);
 }
 
+/**
+ * Finalizável quando todo item está resolvido: bipado por completo OU marcado
+ * como ausente (notFound). Diferente de isPickingComplete, permite finalizar uma
+ * sessão com pendências — que vira status 'exception' (ver completePicking).
+ */
+export function canFinalizePicking(items: PickItem[]): boolean {
+	return (
+		items.length > 0 &&
+		items.every((it) => it.notFound || it.qtyPicked === it.qtyExpected)
+	);
+}
+
 export function summarizePicking(items: PickItem[]): {
 	totalUnits: number;
 	pickedUnits: number;

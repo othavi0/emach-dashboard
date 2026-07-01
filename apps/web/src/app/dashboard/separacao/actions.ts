@@ -19,11 +19,7 @@ import { getPgError } from "@/lib/db-error";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { lockOrderAndAuthorize } from "../orders/actions";
-import {
-	canScanMore,
-	isPickingComplete,
-	matchPickItem,
-} from "./_lib/picking-logic";
+import { canFinalizePicking, matchPickItem } from "./_lib/picking-logic";
 import {
 	fetchPickingQueuePage,
 	getActivePickingForUser,
@@ -239,16 +235,25 @@ export async function scanItem(
 
 			const matched = matchResult.item;
 
-			if (!canScanMore(matched)) {
+			// Item já completo (e sem pendência) → nada a bipar.
+			const alreadyFull = matched.qtyPicked >= matched.qtyExpected;
+			if (!matched.notFound && alreadyFull) {
 				return { kind: "already_complete" } satisfies ScanResult;
 			}
 
-			const newQtyPicked = matched.qtyPicked + 1;
+			// Re-bipar um item antes marcado como ausente LIMPA a pendência
+			// (resolve a exceção). Incrementa qtyPicked se ainda houver espaço.
+			const newQtyPicked = alreadyFull
+				? matched.qtyPicked
+				: matched.qtyPicked + 1;
 
-			// Update qtyPicked
 			await tx
 				.update(orderPickingItem)
-				.set({ qtyPicked: newQtyPicked, lastScannedAt: new Date() })
+				.set({
+					qtyPicked: newQtyPicked,
+					notFound: false,
+					lastScannedAt: new Date(),
+				})
 				.where(eq(orderPickingItem.id, matched.id));
 
 			// Insert scan record
@@ -340,10 +345,13 @@ export async function reportMissing(
 				.set({ notFound: true })
 				.where(eq(orderPickingItem.id, pickingItemId));
 
-			// Set picking to exception
+			// P0: NÃO trava a sessão inteira em 'exception'. O item fica marcado como
+			// ausente, mas a sessão continua 'in_progress' — o operador segue bipando
+			// os demais itens (a UI já mantém o ScanInput ativo). A pendência só vira
+			// status 'exception' na finalização (completePicking). Guardamos o motivo.
 			await tx
 				.update(orderPicking)
-				.set({ status: "exception", exceptionReason: reason })
+				.set({ exceptionReason: reason })
 				.where(eq(orderPicking.id, item.pickingId));
 		});
 
@@ -413,7 +421,7 @@ export async function completePicking(
 				.from(orderPickingItem)
 				.where(eq(orderPickingItem.pickingId, pickingId));
 
-			// isPickingComplete only checks qtyPicked/qtyExpected/notFound — no barcode needed
+			// canFinalizePicking checa qtyPicked/qtyExpected/notFound — sem barcode.
 			const pickItems = items.map((pi) => ({
 				id: pi.id,
 				variantId: pi.variantId,
@@ -423,15 +431,21 @@ export async function completePicking(
 				notFound: pi.notFound,
 			}));
 
-			if (!isPickingComplete(pickItems)) {
+			// Finalizável quando todo item está bipado OU marcado como ausente.
+			if (!canFinalizePicking(pickItems)) {
 				throw new Error(
-					"Conclua a conferência de todos os itens antes de finalizar"
+					"Bipe os itens restantes ou reporte-os como ausentes antes de finalizar"
 				);
 			}
 
+			// Sem pendências → 'completed'; com item ausente → 'exception' (terminal).
+			const finalStatus = pickItems.some((it) => it.notFound)
+				? "exception"
+				: "completed";
+
 			await tx
 				.update(orderPicking)
-				.set({ status: "completed", completedAt: new Date() })
+				.set({ status: finalStatus, completedAt: new Date() })
 				.where(eq(orderPicking.id, pickingId));
 		});
 

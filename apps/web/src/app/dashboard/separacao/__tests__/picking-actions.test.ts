@@ -388,7 +388,7 @@ describe("completePicking", () => {
 		mockRequireCapability.mockResolvedValue(mockSession);
 	});
 
-	it("rejeita quando items não estão todos conferidos (isPickingComplete=false)", async () => {
+	it("rejeita quando há item não resolvido (nem bipado nem ausente)", async () => {
 		mockTransaction.mockImplementation(
 			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
 				cb(
@@ -415,7 +415,7 @@ describe("completePicking", () => {
 		const result = await completePicking(PICKING_ID);
 		expect(result).toMatchObject({ ok: false });
 		expect((result as { ok: false; error: string }).error).toContain(
-			"conferência"
+			"restantes"
 		);
 	});
 
@@ -443,6 +443,31 @@ describe("completePicking", () => {
 		const result = await completePicking(PICKING_ID);
 		expect(result).toMatchObject({ ok: true });
 	});
+
+	it("finaliza com pendência quando há item ausente resolvido", async () => {
+		mockTransaction.mockImplementation(
+			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+				cb(
+					makeMockTx([
+						[{ id: PICKING_ID, orderId: ORDER_ID, status: "in_progress" }],
+						[{ status: "preparing", branchId: BRANCH_ID }],
+						[
+							{
+								id: PICKING_ITEM_ID,
+								variantId: "variant-1",
+								barcode: "BARCODE123",
+								qtyExpected: 1,
+								qtyPicked: 0,
+								notFound: true, // ausente → finalizável como exceção
+							},
+						],
+					])
+				)
+		);
+
+		const result = await completePicking(PICKING_ID);
+		expect(result).toMatchObject({ ok: true });
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -455,7 +480,7 @@ describe("reportMissing", () => {
 		mockRequireCapability.mockResolvedValue(mockSession);
 	});
 
-	it("marca notFound no item e status exception no picking", async () => {
+	it("marca notFound no item e mantém a sessão in_progress", async () => {
 		mockTransaction.mockImplementation(
 			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
 				cb(
