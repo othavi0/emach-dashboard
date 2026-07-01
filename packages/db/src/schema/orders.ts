@@ -153,6 +153,11 @@ export const order = pgTable(
 		refundedAt: timestamp("refunded_at", { withTimezone: true }),
 		paymentReceiptUrl: text("payment_receipt_url"),
 		nfeNumber: text("nfe_number"),
+		// Série da NF-e (obrigatória junto com o número) e chave de acesso de 44
+		// dígitos (consulta/cancelamento na SEFAZ). Escritos pelo ecommerce/provedor
+		// fiscal — o dashboard só lê (ADR-0027).
+		nfeSeries: text("nfe_series"),
+		nfeAccessKey: text("nfe_access_key"),
 		nfeUrl: text("nfe_url"),
 		nfeXmlUrl: text("nfe_xml_url"),
 		nfeStatus: text("nfe_status"),
@@ -165,6 +170,11 @@ export const order = pgTable(
 			table.branchId,
 			table.status,
 			table.createdAt.desc()
+		),
+		// Chave de acesso da NF-e, quando presente, tem exatamente 44 dígitos (ADR-0027).
+		check(
+			"nfe_access_key_len",
+			sql`${table.nfeAccessKey} IS NULL OR length(${table.nfeAccessKey}) = 44`
 		),
 	]
 );
