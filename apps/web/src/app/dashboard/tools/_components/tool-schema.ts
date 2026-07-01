@@ -159,7 +159,7 @@ export const toolFormSchema = z
 			});
 		}
 		// NCM é obrigatório para montar a NF-e item a item (ADR-0027). Rascunho livre.
-		if (data.status === "active" && data.ncm.trim().length === 0) {
+		if (data.status === "active" && !data.ncm?.trim()) {
 			ctx.addIssue({
 				code: "custom",
 				path: ["ncm"],
