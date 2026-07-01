@@ -4,13 +4,15 @@ import type { DashboardSession } from "@emach/auth/dashboard";
 import { db } from "@emach/db";
 import { branch } from "@emach/db/schema/inventory";
 import {
+	ACTIVE_REFUND_STATUSES,
 	type OrderStatus,
 	order,
 	orderEvent,
 	orderNote,
 	orderStatusHistory,
+	refundRequest,
 } from "@emach/db/schema/orders";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
@@ -567,6 +569,14 @@ export async function refundOrder(
 				throw new Error(`Transição inválida: ${currentStatus} → refunded`);
 			}
 
+			const [ord] = await tx
+				.select({ clientId: order.clientId, total: order.totalAmount })
+				.from(order)
+				.where(eq(order.id, orderId));
+			if (!ord) {
+				throw new Error("Pedido não encontrado");
+			}
+
 			await tx
 				.update(order)
 				.set({ status: "refunded", refundedAt: new Date() })
@@ -581,6 +591,43 @@ export async function refundOrder(
 				actorUserId: session.user.id,
 				reason,
 			});
+
+			// ADR-0025: refund_request é a fonte de verdade do reembolso. Se o cliente
+			// já abriu uma solicitação ativa, resolve-a; senão cria uma já resolvida.
+			// O índice parcial refund_request_one_open_per_order garante 1 ativa/pedido.
+			const [openReq] = await tx
+				.select({ id: refundRequest.id })
+				.from(refundRequest)
+				.where(
+					and(
+						eq(refundRequest.orderId, orderId),
+						inArray(refundRequest.status, [...ACTIVE_REFUND_STATUSES])
+					)
+				);
+			if (openReq) {
+				await tx
+					.update(refundRequest)
+					.set({
+						status: "refunded",
+						resolvedAt: new Date(),
+						actorType: "user",
+						actorUserId: session.user.id,
+					})
+					.where(eq(refundRequest.id, openReq.id));
+			} else {
+				await tx.insert(refundRequest).values({
+					id: crypto.randomUUID(),
+					orderId,
+					clientId: ord.clientId,
+					reasonCategory: "outro",
+					reasonText: reason,
+					status: "refunded",
+					amount: ord.total,
+					actorType: "user",
+					actorUserId: session.user.id,
+					resolvedAt: new Date(),
+				});
+			}
 
 			if (creditStock && returnItems && returnItems.length > 0) {
 				await applyStockReturns(
