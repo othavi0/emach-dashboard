@@ -49,7 +49,7 @@ function cnpjFromRoot(root8: string): string {
 			nums.length === 12
 				? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
 				: [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-		const sum = nums.reduce((acc, n, i) => acc + n * weights[i], 0);
+		const sum = nums.reduce((acc, n, i) => acc + n * (weights[i] ?? 0), 0);
 		const r = sum % 11;
 		return r < 2 ? 0 : 11 - r;
 	};
@@ -702,7 +702,7 @@ async function main() {
 				}
 
 				// status history (criação + transições) — actor system (fluxo ecommerce)
-				const path = STATUS_PATH[spec.status];
+				const path = STATUS_PATH[spec.status] ?? [];
 				await tx.insert(orderStatusHistory).values({
 					id: crypto.randomUUID(),
 					orderId,
