@@ -315,6 +315,7 @@ export async function getToolBySlug(
 			       updated_at AS "updatedAt"
 			FROM tool_variant
 			WHERE tool_id = ${toolId}
+			  AND visible_on_site = true
 			ORDER BY is_default DESC, sort_order ASC
 		`),
 		db.execute<ToolImage>(sql`
