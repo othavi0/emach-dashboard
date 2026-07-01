@@ -2,6 +2,7 @@
 export * from "./attributes";
 export * from "./auth";
 export * from "./banner";
+export * from "./cart-events";
 export * from "./categories";
 export * from "./client";
 export * from "./client-audit";
