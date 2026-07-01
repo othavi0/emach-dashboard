@@ -70,6 +70,8 @@ function baseTool(overrides: Record<string, unknown> = {}) {
 	return {
 		name: "Furadeira de impacto",
 		status: "active" as const,
+		// NCM obrigatório ao ativar (ADR-0027)
+		ncm: "84672100",
 		weightKg: 2,
 		lengthCm: 30,
 		widthCm: 10,
@@ -257,5 +259,29 @@ describe("toolFormSchema — barcode duplicado entre variantes", () => {
 				)
 			).toBe(true);
 		}
+	});
+});
+
+describe("toolFormSchema — NCM-gate ao ativar (ADR-0027)", () => {
+	it("rejeita active sem NCM", () => {
+		const r = toolFormSchema.safeParse(baseTool({ ncm: undefined }));
+		expect(r.success).toBe(false);
+		if (!r.success) {
+			expect(r.error.issues.some((i) => String(i.path[0]) === "ncm")).toBe(
+				true
+			);
+		}
+	});
+
+	it("rejeita active com NCM só de espaços", () => {
+		const r = toolFormSchema.safeParse(baseTool({ ncm: "   " }));
+		expect(r.success).toBe(false);
+	});
+
+	it("aceita draft sem NCM (regra só vale ao ativar)", () => {
+		const r = toolFormSchema.safeParse(
+			baseTool({ status: "draft", ncm: undefined })
+		);
+		expect(r.success).toBe(true);
 	});
 });
