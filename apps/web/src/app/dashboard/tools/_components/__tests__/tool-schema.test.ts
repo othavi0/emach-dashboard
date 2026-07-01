@@ -76,6 +76,8 @@ function baseTool(overrides: Record<string, unknown> = {}) {
 		heightCm: 10,
 		categoryIds: ["cat-1"],
 		primaryCategoryId: "cat-1",
+		// NCM-gate (ADR-0027): status active exige ncm preenchido.
+		ncm: "84672920",
 		images: [
 			{ url: "https://x/1.jpg", sortOrder: 0 },
 			{ url: "https://x/2.jpg", sortOrder: 1 },
