@@ -10,6 +10,7 @@ import {
 	orderEvent,
 	orderNote,
 	orderStatusHistory,
+	type RefundStatus,
 	refundRequest,
 } from "@emach/db/schema/orders";
 import { and, eq, inArray } from "drizzle-orm";
@@ -654,4 +655,106 @@ export async function refundOrder(
 			error: error instanceof Error ? error.message : "Erro interno",
 		};
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Workflow da solicitação de reembolso (ADR-0025): requested → under_review →
+// approved → refunded | rejected. A execução final (→ refunded) fica em
+// refundOrder; aqui ficam as transições de análise/aprovação/recusa.
+// ---------------------------------------------------------------------------
+
+async function transitionRefund(
+	refundRequestId: string,
+	from: readonly RefundStatus[],
+	to: RefundStatus,
+	rejectionReason?: string
+): Promise<ActionResult> {
+	try {
+		let orderId: string | undefined;
+		await db.transaction(async (tx) => {
+			const [req] = await tx
+				.select({
+					orderId: refundRequest.orderId,
+					status: refundRequest.status,
+				})
+				.from(refundRequest)
+				.where(eq(refundRequest.id, refundRequestId));
+			if (!req) {
+				throw new Error("Solicitação de reembolso não encontrada");
+			}
+			orderId = req.orderId;
+			const locked = await lockOrderAndAuthorize(
+				tx,
+				"orders.refund",
+				req.orderId
+			);
+			if (!locked) {
+				throw new Error("Pedido não encontrado");
+			}
+			if (!from.includes(req.status)) {
+				throw new Error(
+					`Transição de reembolso inválida: ${req.status} → ${to}`
+				);
+			}
+			await tx
+				.update(refundRequest)
+				.set({
+					status: to,
+					actorType: "user",
+					actorUserId: locked.session.user.id,
+					resolvedAt: to === "rejected" ? new Date() : null,
+					rejectionReason: rejectionReason ?? null,
+				})
+				.where(eq(refundRequest.id, refundRequestId));
+		});
+		if (orderId) {
+			revalidatePath(`${ORDERS_PATH}/${orderId}`);
+			revalidateTag(ORDERS_COUNTS_TAG, "max");
+		}
+		return { ok: true, data: undefined };
+	} catch (error) {
+		logger.error("transitionRefund", error);
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para gerenciar reembolsos." };
+		}
+		return {
+			ok: false,
+			error: error instanceof Error ? error.message : "Erro interno",
+		};
+	}
+}
+
+export async function reviewRefund(
+	refundRequestId: string
+): Promise<ActionResult> {
+	return await transitionRefund(
+		refundRequestId,
+		["requested"] as const,
+		"under_review"
+	);
+}
+
+export async function approveRefund(
+	refundRequestId: string
+): Promise<ActionResult> {
+	return await transitionRefund(
+		refundRequestId,
+		["requested", "under_review"] as const,
+		"approved"
+	);
+}
+
+export async function rejectRefund(
+	refundRequestId: string,
+	reason: string
+): Promise<ActionResult> {
+	if (reason.trim().length < 10) {
+		return { ok: false, error: "Motivo da recusa muito curto (mín. 10)." };
+	}
+	return await transitionRefund(
+		refundRequestId,
+		["requested", "under_review", "approved"] as const,
+		"rejected",
+		reason.trim()
+	);
 }

@@ -8,6 +8,7 @@ import {
 import { formatDate } from "@/lib/format/datetime";
 import type { OrderRefundItem } from "../../../data";
 import { formatCurrency } from "../../_lib/format-address";
+import { RefundActions } from "../refund-actions";
 
 interface RefundTabProps {
 	refunds: OrderRefundItem[];
@@ -65,6 +66,8 @@ export function RefundTab({ refunds }: RefundTabProps) {
 								{refund.rejectionReason}
 							</div>
 						)}
+
+						<RefundActions refundId={refund.id} status={refund.status} />
 					</div>
 				))}
 			</CardContent>
