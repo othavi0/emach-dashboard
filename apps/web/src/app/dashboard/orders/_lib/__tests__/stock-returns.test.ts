@@ -92,9 +92,11 @@ describe("applyStockReturns", () => {
 
 	it("(1) retorno normal: credita stock_level e insere stock_movement com delta positivo", async () => {
 		// SELECT orderItem → 1 item com quantity=2, variantId="var-1"
+		// SELECT idempotência → vazio (ainda não creditado)
 		// SELECT stockLevel → 1 registro com quantity=10
 		const tx = makeTx([
 			[{ quantity: 2, variantId: "var-1" }], // orderItem
+			[], // idempotência (ADR-0026): ainda não creditado
 			[{ quantity: 10 }], // stockLevel
 		]);
 
@@ -110,8 +112,8 @@ describe("applyStockReturns", () => {
 			REASON_NOTE
 		);
 
-		// Deve ter feito 2 SELECTs
-		expect(tx.select).toHaveBeenCalledTimes(2);
+		// Deve ter feito 3 SELECTs (orderItem, idempotência, stockLevel)
+		expect(tx.select).toHaveBeenCalledTimes(3);
 
 		// INSERT em stockLevel (upsert)
 		const stockLevelInsertArg = tx._insertValues.mock.calls[0]?.[0] as Record<
@@ -137,7 +139,7 @@ describe("applyStockReturns", () => {
 			previousQty: 10,
 			newQty: 12,
 			delta: 2,
-			reason: "ajuste_inventario",
+			reason: "devolucao_retorno",
 			reasonNote: REASON_NOTE,
 			orderId: ORDER_ID,
 			orderItemId: ITEM_INPUT.orderItemId,
@@ -174,11 +176,13 @@ describe("applyStockReturns", () => {
 			orderItemId: "oi-2",
 		};
 
-		// Por item: SELECT orderItem, SELECT stockLevel — 4 SELECTs no total
+		// Por item: SELECT orderItem, SELECT idempotência, SELECT stockLevel — 6 no total
 		const tx = makeTx([
 			[{ quantity: 3, variantId: "var-1" }], // orderItem item 1
+			[], // idempotência item 1
 			[{ quantity: 5 }], // stockLevel item 1
 			[{ quantity: 1, variantId: "var-2" }], // orderItem item 2
+			[], // idempotência item 2
 			[], // stockLevel item 2 — não existe ainda (previousQty=0)
 		]);
 
@@ -190,7 +194,7 @@ describe("applyStockReturns", () => {
 			REASON_NOTE
 		);
 
-		expect(tx.select).toHaveBeenCalledTimes(4);
+		expect(tx.select).toHaveBeenCalledTimes(6);
 		// 2 upserts em stockLevel + 2 inserts em stockMovement = 4 calls a insertValues
 		expect(tx._insertValues).toHaveBeenCalledTimes(4);
 
@@ -208,5 +212,26 @@ describe("applyStockReturns", () => {
 			orderId: ORDER_ID,
 			orderItemId: item2.orderItemId,
 		});
+	});
+
+	it("(4) idempotência: item já creditado como devolução é pulado sem INSERT", async () => {
+		// SELECT orderItem → encontrado; SELECT idempotência → já existe movimento
+		const tx = makeTx([
+			[{ quantity: 2, variantId: "var-1" }], // orderItem
+			[{ id: "mv-existente" }], // idempotência: já creditado
+		]);
+
+		await applyStockReturns(
+			tx as unknown as Parameters<typeof applyStockReturns>[0],
+			ORDER_ID,
+			[ITEM_INPUT],
+			USER_ID,
+			REASON_NOTE
+		);
+
+		// 2 SELECTs (orderItem + idempotência); NÃO chega ao stockLevel
+		expect(tx.select).toHaveBeenCalledTimes(2);
+		// Nenhum crédito de estoque nem movimento
+		expect(tx.insert).not.toHaveBeenCalled();
 	});
 });

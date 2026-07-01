@@ -4,6 +4,7 @@ export const STOCK_MOVEMENT_REASONS = [
 	"entrada_compra",
 	"saida_venda",
 	"ajuste_inventario",
+	"devolucao_retorno",
 	"perda",
 	"outro",
 ] as const;
@@ -15,6 +16,7 @@ export const STOCK_MOVEMENT_REASON_LABELS: Record<StockMovementReason, string> =
 		entrada_compra: "Entrada compra",
 		saida_venda: "Saída venda",
 		ajuste_inventario: "Ajuste inventário",
+		devolucao_retorno: "Devolução",
 		perda: "Perda",
 		outro: "Outro",
 	};
@@ -25,6 +27,7 @@ export const STOCK_MOVEMENT_REASON_SHORT: Record<StockMovementReason, string> =
 		entrada_compra: "Entrada",
 		saida_venda: "Saída",
 		ajuste_inventario: "Ajuste",
+		devolucao_retorno: "Devolução",
 		perda: "Perda",
 		outro: "Outro",
 	};

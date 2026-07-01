@@ -14,8 +14,10 @@ export interface ReturnItemInput {
 /**
  * Credita estoque de volta para itens de pedido devolvido/reembolsado.
  * Itera item a item: lê quantity, atualiza stock_level (upsert), insere
- * stock_movement com reason='ajuste_inventario'. reasonNote diferencia retorno
- * de pedido vs reembolso direto.
+ * stock_movement com reason='devolucao_retorno' (ADR-0026 — separado de
+ * ajuste_inventario, que é recontagem física). Idempotente: pula itens já
+ * creditados (caminho returned → refunded). reasonNote diferencia retorno de
+ * pedido vs reembolso direto.
  */
 export async function applyStockReturns(
 	tx: StockReturnTx,
@@ -36,6 +38,24 @@ export async function applyStockReturns(
 			);
 
 		if (!oi) {
+			continue;
+		}
+
+		// Idempotência (ADR-0026): se este order_item já foi creditado como
+		// devolução, não credita de novo — cobre o caminho returned → refunded,
+		// em que updateOrderStatus('returned') e refundOrder() chamam ambos esta
+		// função sobre os mesmos itens. O índice parcial único
+		// stock_movement_return_idempotency é a guarda final no banco.
+		const [alreadyCredited] = await tx
+			.select({ id: stockMovement.id })
+			.from(stockMovement)
+			.where(
+				and(
+					eq(stockMovement.orderItemId, item.orderItemId),
+					eq(stockMovement.reason, "devolucao_retorno")
+				)
+			);
+		if (alreadyCredited) {
 			continue;
 		}
 
@@ -73,7 +93,7 @@ export async function applyStockReturns(
 			previousQty,
 			newQty,
 			delta: oi.quantity,
-			reason: "ajuste_inventario",
+			reason: "devolucao_retorno",
 			reasonNote,
 			orderId,
 			orderItemId: item.orderItemId,

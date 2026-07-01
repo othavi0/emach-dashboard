@@ -19,6 +19,7 @@ export type StockMovementReason =
 	| "entrada_compra"
 	| "saida_venda"
 	| "ajuste_inventario"
+	| "devolucao_retorno"
 	| "perda"
 	| "outro";
 
@@ -76,6 +77,13 @@ export const stockMovement = pgTable(
 		uniqueIndex("stock_movement_sale_idempotency")
 			.on(table.orderItemId)
 			.where(sql`reason = 'saida_venda' AND order_item_id IS NOT NULL`),
+		// Idempotência do crédito de devolução (ADR-0026): impede creditar o mesmo
+		// order_item duas vezes no caminho returned → refunded. Espelha o índice de
+		// saida_venda. O crédito de devolução usa reason='devolucao_retorno'
+		// (separado de ajuste_inventario = recontagem física).
+		uniqueIndex("stock_movement_return_idempotency")
+			.on(table.orderItemId)
+			.where(sql`reason = 'devolucao_retorno' AND order_item_id IS NOT NULL`),
 		check("delta_non_zero", sql`${table.delta} <> 0`),
 		// Entrada de compra exige fornecedor; demais motivos têm supplier_id nulo.
 		// E-commerce só escreve saida_venda, então o CHECK não o afeta (ADR-0015).
