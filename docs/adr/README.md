@@ -32,6 +32,11 @@ Decisões de arquitetura do dashboard. Cada ADR registra **uma** decisão não-�
 | [0022](0022-nao-adotar-cache-components-ppr.md)         | Não adotar Cache Components (PPR) no dashboard        | 2026-06-19 | Aceito                          |
 | [0023](0023-statetimes-router-cache-navegacao.md)       | `staleTimes` no Router Cache para reaproveitar navegação | 2026-06-29 | Aceito                          |
 | [0024](0024-tabs-client-side-detalhe-entidade.md)       | Tabs client-side no detalhe de entidade (piloto tool detail) | 2026-06-29 | Aceito (piloto)             |
+| [0025](0025-reembolso-refund-request-fonte-de-verdade.md) | `refund_request` é a fonte de verdade do reembolso | 2026-07-01 | Aceito |
+| [0026](0026-devolucao-recredita-estoque-reason-propria.md) | Devolução re-credita estoque com motivo próprio idempotente | 2026-07-01 | Aceito — estende 0015/0007 |
+| [0027](0027-nfe-emitida-pelo-ecommerce-dashboard-le.md) | NF-e é emitida pelo ecommerce/Asaas; dashboard só lê | 2026-07-01 | Aceito — estende 0004/0008 |
+| [0028](0028-conciliacao-financeira-asaas-design.md) | Conciliação financeira Asaas via ledger (design, adiado) | 2026-07-01 | Aceito (design) |
+| [0029](0029-anonimizacao-lgpd-direito-ao-esquecimento.md) | Anonimização LGPD preservando histórico fiscal | 2026-07-01 | Aceito (design) |
 
 ## Cadeias de decisão
 
@@ -39,7 +44,9 @@ Alguns ADRs formam linha evolutiva — ler na ordem dá o estado atual:
 
 - **Auth de staff:** [0010](0010-signup-publico-com-aprovacao-manual.md) (signup público, superseded) → **[0013](0013-auth-convite-only.md)** (convite-only, vigente).
 - **Autorização / gates:** [0012](0012-disable-role-based-gates.md) (gates desligados, superseded) → **[0016](0016-religacao-gates-3-niveis-filial.md)** (religados, 3 níveis + filial) → [0017](0017-permissoes-por-usuario.md) (overrides por usuário) → [0018](0018-read-actions-enforçam-capability.md) (reads também enforçam) → [0019](0019-split-god-module-data-lib.md) (fronteira `data.ts` × `actions.ts`).
-- **Integração com o e-commerce:** [0004](0004-integracao-ecommerce-e-so-db-compartilhada.md) (só DB, sem API) fundamenta [0008](0008-documentos-asaas-via-db.md) (Asaas via DB) e [0009](0009-sync-schema-via-ci.md) (sync de schema via CI).
+- **Integração com o e-commerce:** [0004](0004-integracao-ecommerce-e-so-db-compartilhada.md) (só DB, sem API) fundamenta [0008](0008-documentos-asaas-via-db.md) (Asaas via DB), [0009](0009-sync-schema-via-ci.md) (sync de schema via CI) e [0027](0027-nfe-emitida-pelo-ecommerce-dashboard-le.md) (NF-e emitida pelo ecommerce).
+- **Ciclo do pedido / pós-venda (auditoria 2026-07-01):** [0007](0007-estoque-debita-no-pagamento.md) (débito no pagamento) → [0026](0026-devolucao-recredita-estoque-reason-propria.md) (devolução re-credita com motivo próprio) + [0025](0025-reembolso-refund-request-fonte-de-verdade.md) (`refund_request` fonte de verdade) + [0027](0027-nfe-emitida-pelo-ecommerce-dashboard-le.md) (NF-e). Fecham os P0/P1 achados no ciclo de reembolso/devolução/faturamento.
+- **Pré-produção (design, implementar depois):** [0028](0028-conciliacao-financeira-asaas-design.md) (ledger de conciliação Asaas) e [0029](0029-anonimizacao-lgpd-direito-ao-esquecimento.md) (anonimização LGPD) — decisões registradas, código adiado.
 - **Schema workflow:** [0006](0006-db-workflow-push-only.md) (push-only) sustenta o modo de aplicar mudanças em [0005](0005-order-tem-eixo-unico-de-status.md), [0009](0009-sync-schema-via-ci.md), [0014](0014-rls-deny-all-postgrest.md), [0015](0015-fornecedor-na-entrada-de-estoque.md).
 - **Sessão / `cookieCache`:** [0020](0020-cookie-cache-sessao-dashboard.md) (cookieCache habilitado, superseded) → **[0021](0021-remocao-cookie-cache-sessao-dashboard.md)** (removido — a medição de prod do #223 mostrou que não entregava no caminho SSR).
 - **Navegação / first-paint:** #222 (freeze + barra de progresso, remove `loading.tsx`) → 006-B tentou PPR (`cacheComponents`) para a casca estática → **[0022](0022-nao-adotar-cache-components-ppr.md)** (PPR é incompatível com o freeze; revertido, mantém o #222) → **[0023](0023-statetimes-router-cache-navegacao.md)** (`staleTimes` reaproveita a navegação no Router Cache — ataca o custo de revisita que o #223 não pegou) → **[0024](0024-tabs-client-side-detalhe-entidade.md)** (tabs do tool detail viram client-side — trocar tab não toca o servidor; ataca a 1ª-abertura que o `staleTimes` não cobre; piloto a generalizar).
