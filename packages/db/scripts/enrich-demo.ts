@@ -248,16 +248,18 @@ const TOOL_ENRICH: Record<
 const ADMIN_EMAIL = "maellen.mendonca01@gmail.com";
 const STAFF_ACTOR_EMAIL = "othavioquiliao@gmail.com"; // ator dos writes de staff
 
+const ORDER_NUMBER_RE = /EM-2026-(\d+)/;
+
 // Novos pedidos (client casa com a região da filial p/ coerência de CEP-routing).
-type NewOrderSpec = {
+interface NewOrderSpec {
 	branchName: string;
 	clientEmail: string;
-	status: "pending_payment" | "paid" | "preparing" | "shipped" | "delivered";
-	items: Array<{ sku: string; qty: number }>;
 	coupon?: string; // code
+	items: Array<{ sku: string; qty: number }>;
 	nfe?: boolean;
+	status: "pending_payment" | "paid" | "preparing" | "shipped" | "delivered";
 	tracking?: boolean;
-};
+}
 
 const NEW_ORDERS: NewOrderSpec[] = [
 	{
@@ -337,6 +339,7 @@ async function main() {
 
 	const changes: string[] = [];
 	try {
+		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: script de seed linear (passos 1-9 em sequência); dividir em funções prejudica a leitura
 		await db.transaction(async (tx) => {
 			// ── Lookups ──────────────────────────────────────────────────────────
 			const branches = await tx
@@ -505,7 +508,7 @@ async function main() {
 			const existingNumbers = await tx.select({ n: order.number }).from(order);
 			let maxSeq = 0;
 			for (const { n } of existingNumbers) {
-				const m = /EM-2026-(\d+)/.exec(n);
+				const m = ORDER_NUMBER_RE.exec(n);
 				if (m) {
 					maxSeq = Math.max(maxSeq, Number(m[1]));
 				}
@@ -958,7 +961,7 @@ async function main() {
 			);
 			console.log(`[enrich-demo] ${changes.length} mudanças:`);
 			for (const c of changes) {
-				console.log("  - " + c);
+				console.log(`  - ${c}`);
 			}
 
 			if (DRY_RUN) {
