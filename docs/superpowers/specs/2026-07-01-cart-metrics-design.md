@@ -114,7 +114,9 @@ Operação idempotente e sem lock relevante (DELETE por índice `created_at`).
 ## 5. Lado ecommerce (issue cross-repo — não implementado aqui)
 
 O schema chega ao ecommerce pelo CI sync automático (ADR-0009) quando este
-trabalho mergear na `main`. Issue no repo do ecommerce com:
+trabalho mergear na `main`. Issue aberta:
+[othavi0/emach-ecommerce#175](https://github.com/othavi0/emach-ecommerce/issues/175).
+Conteúdo:
 
 - **Porquê:** admin passa a exibir demanda por produto (reunião de 2026-06).
 - **Onde:** no ponto de add-to-cart (server action / handler do carrinho),
