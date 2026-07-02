@@ -195,7 +195,7 @@ Adaptar ao código real de cada arquivo (não colar cegamente — ler o fluxo de
 
 - [x] **Step 3: Validar o fix (se upgrade aplicou)** — o orquestrador valida visualmente no gate final (dev overlay sem "1 Issue" na listagem de promoções). Nesta task, apenas garantir gates verdes e registrar no report que a validação visual está pendente.
 
-- [ ] **Step 4 (fallback, SÓ se Step 2 abortou ou o orquestrador reportar que o warning persiste):** em `dropdown-menu.tsx:17`, adicionar `suppressHydrationWarning` ao Trigger com comentário:
+- [x] **Step 4 (fallback, SÓ se Step 2 abortou ou o orquestrador reportar que o warning persiste):** em `dropdown-menu.tsx:17`, adicionar `suppressHydrationWarning` ao Trigger com comentário:
 
 ```tsx
 return (
