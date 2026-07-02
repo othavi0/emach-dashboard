@@ -14,7 +14,7 @@ import {
 	useEffect,
 	useState,
 } from "react";
-import { buildTabHref } from "./tab-url";
+import { buildTabHref, resolveTabFromSearch } from "./tab-url";
 
 const TabActiveContext = createContext<string>("");
 const TabSetActiveContext = createContext<(tab: string) => void>(() => {
@@ -92,16 +92,23 @@ export function EntityClientTabs({
 	};
 
 	useEffect(() => {
-		const onPop = () => {
-			const tab =
-				new URLSearchParams(window.location.search).get(paramName) ??
-				defaultValue;
+		const syncFromUrl = () => {
+			const tab = resolveTabFromSearch(
+				window.location.search,
+				tabs.map((t) => t.value),
+				defaultValue,
+				paramName
+			);
 			setActive(tab);
 			activate(tab);
 		};
-		window.addEventListener("popstate", onPop);
-		return () => window.removeEventListener("popstate", onPop);
-	}, [defaultValue, paramName]);
+		// Sincroniza no mount além do popstate: após back/forward o Next pode
+		// remontar com props RSC de outra entry (initialTab stale) e o popstate
+		// dispara antes deste listener existir — a URL real é a fonte de verdade.
+		syncFromUrl();
+		window.addEventListener("popstate", syncFromUrl);
+		return () => window.removeEventListener("popstate", syncFromUrl);
+	}, [defaultValue, paramName, tabs]);
 
 	return (
 		<TabActiveContext.Provider value={active}>
