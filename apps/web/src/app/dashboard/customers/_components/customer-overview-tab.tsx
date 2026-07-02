@@ -15,7 +15,6 @@ import {
 	TableRow,
 } from "@emach/ui/components/table";
 import { CalendarDays, Receipt, ShoppingCart, Wallet } from "lucide-react";
-import Link from "next/link";
 
 import {
 	EntityKpisRow,
@@ -31,6 +30,7 @@ import {
 	ORDER_STATUS_LABELS,
 } from "../_lib/customer-display";
 import type { CustomerDetail, CustomerKpis, CustomerOrderRow } from "../data";
+import { SwitchTabButton } from "./switch-tab-button";
 
 interface Props {
 	customer: CustomerDetail;
@@ -155,12 +155,12 @@ export function CustomerOverviewTab({ customer, kpis, recentOrders }: Props) {
 			<Card>
 				<CardHeader className="flex flex-row items-center justify-between">
 					<CardTitle className="text-sm">Últimos pedidos</CardTitle>
-					<Link
+					<SwitchTabButton
 						className="text-primary text-xs hover:underline"
-						href="?tab=pedidos"
+						tab="pedidos"
 					>
 						Ver tudo
-					</Link>
+					</SwitchTabButton>
 				</CardHeader>
 				<CardContent>
 					{recentOrders.length === 0 ? (

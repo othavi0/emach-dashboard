@@ -36,7 +36,6 @@ import {
 	TooltipTrigger,
 } from "@emach/ui/components/tooltip";
 import { ChevronDownIcon } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { formatDateTime } from "@/lib/format/datetime";
 import type { CustomerAuditRow } from "../data";
 
@@ -68,28 +67,20 @@ const ACTION_VARIANTS: Record<
 const ALL_ACTIONS = Object.keys(ACTION_LABELS) as ClientAuditAction[];
 
 interface CustomerAuditTableProps {
-	clientId: string;
 	currentAction?: string;
+	isPending?: boolean;
 	items: CustomerAuditRow[];
+	onActionChange: (action: string | undefined) => void;
 }
 
 export function CustomerAuditTable({
 	items,
 	currentAction,
-	clientId,
+	isPending,
+	onActionChange,
 }: CustomerAuditTableProps) {
-	const router = useRouter();
-	const searchParams = useSearchParams();
-
 	function handleActionFilter(value: string | null) {
-		const next = new URLSearchParams(searchParams.toString());
-		next.set("tab", "auditoria");
-		if (!value || value === "__all__") {
-			next.delete("auditAction");
-		} else {
-			next.set("auditAction", value);
-		}
-		router.replace(`/dashboard/customers/${clientId}?${next.toString()}`);
+		onActionChange(!value || value === "__all__" ? undefined : value);
 	}
 
 	return (
@@ -98,6 +89,7 @@ export function CustomerAuditTable({
 				<CardTitle className="text-sm">Auditoria</CardTitle>
 				<div className="w-64">
 					<Select
+						disabled={isPending}
 						onValueChange={handleActionFilter}
 						value={currentAction ?? "__all__"}
 					>
