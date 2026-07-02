@@ -8,19 +8,18 @@ import {
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import type { EntityTab } from "@/components/entity/entity-tabs";
-import { EntityTabs } from "@/components/entity/entity-tabs";
+import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
+import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { getBranchDetail, getBranchDetailKpis } from "../data";
-import { ActivityTab } from "./_components/activity-tab";
+import { ActivityTabLoader } from "./_components/activity-tab-loader";
+import { BranchDetailActions } from "./_components/branch-detail-actions";
 import { BranchEditSheet } from "./_components/branch-edit-sheet";
 import { BranchIdentity } from "./_components/branch-identity";
-import { EditBranchButton } from "./_components/edit-branch-button";
-import { OrdersTab } from "./_components/orders-tab";
+import { OrdersTabLoader } from "./_components/orders-tab-loader";
 import { OverviewTab } from "./_components/overview-tab";
-import { StockTab } from "./_components/stock-tab";
-import { TeamLinkPanel } from "./_components/team-link-panel";
-import { TeamTab } from "./_components/team-tab";
+import { StockTabLoader } from "./_components/stock-tab-loader";
+import { TeamTabLoader } from "./_components/team-tab-loader";
 
 export const metadata: Metadata = {
 	title: "Detalhe da filial",
@@ -28,17 +27,7 @@ export const metadata: Metadata = {
 
 interface PageProps {
 	params: Promise<{ id: string }>;
-	searchParams: Promise<{
-		edit?: string;
-		tab?: string;
-		categoryId?: string;
-		search?: string;
-		sort?: string;
-		status?: string;
-		type?: string;
-		toolId?: string;
-		period?: string;
-	}>;
+	searchParams: Promise<{ edit?: string; tab?: string }>;
 }
 
 export default function BranchDetailPage({ params, searchParams }: PageProps) {
@@ -66,9 +55,16 @@ async function BranchDetailPageContent({ params, searchParams }: PageProps) {
 		notFound();
 	}
 
-	const isStockTab = sp.tab === "stock";
+	const KNOWN_TABS = new Set([
+		"overview",
+		"orders",
+		"stock",
+		"activity",
+		...(canManageTeam ? ["team"] : []),
+	]);
+	const initialTab = sp.tab && KNOWN_TABS.has(sp.tab) ? sp.tab : "overview";
 
-	const tabs: EntityTab[] = [
+	const tabs: EntityClientTab[] = [
 		{
 			value: "overview",
 			label: "Visão geral",
@@ -86,7 +82,8 @@ async function BranchDetailPageContent({ params, searchParams }: PageProps) {
 								{kpis.teamSize}
 							</span>
 						),
-						content: sp.tab === "team" ? <TeamTab branchId={id} /> : null,
+						lazy: true,
+						content: <TeamTabLoader branchId={id} />,
 					},
 				]
 			: []),
@@ -94,50 +91,44 @@ async function BranchDetailPageContent({ params, searchParams }: PageProps) {
 			value: "orders",
 			label: "Pedidos",
 			icon: <ShoppingCart aria-hidden className="size-3.5" />,
-			content: sp.tab === "orders" ? <OrdersTab branchId={id} /> : null,
+			lazy: true,
+			content: <OrdersTabLoader branchId={id} />,
 		},
 		{
 			value: "stock",
 			label: "Estoque",
 			icon: <Package aria-hidden className="size-3.5" />,
-			content: isStockTab ? (
-				<StockTab
-					branchId={id}
-					branchName={detail.name}
-					categoryId={sp.categoryId}
-					search={sp.search}
-					sort={sp.sort}
-					status={sp.status}
-				/>
-			) : null,
+			lazy: true,
+			content: <StockTabLoader branchId={id} branchName={detail.name} />,
 		},
 		{
 			value: "activity",
 			label: "Atividade",
 			icon: <Activity aria-hidden className="size-3.5" />,
-			content:
-				sp.tab === "activity" ? (
-					<ActivityTab
-						branchId={id}
-						period={sp.period}
-						toolId={sp.toolId}
-						type={sp.type}
-					/>
-				) : null,
+			lazy: true,
+			content: <ActivityTabLoader branchId={id} />,
 		},
 	];
 
-	let headerAction: React.ReactNode = null;
-	if (sp.tab === "team" && canManageTeam) {
-		headerAction = <TeamLinkPanel branchId={id} />;
-	} else if ((!sp.tab || sp.tab === "overview") && canManageBranch) {
-		headerAction = <EditBranchButton />;
-	}
-
 	return (
 		<div className="flex flex-col gap-6 p-6">
-			<BranchIdentity actions={headerAction} detail={detail} />
-			<EntityTabs defaultValue="overview" tabs={tabs} />
+			<EntityClientTabs
+				defaultValue="overview"
+				header={
+					<BranchIdentity
+						actions={
+							<BranchDetailActions
+								branchId={id}
+								canManageBranch={canManageBranch}
+								canManageTeam={canManageTeam}
+							/>
+						}
+						detail={detail}
+					/>
+				}
+				initialTab={initialTab}
+				tabs={tabs}
+			/>
 			{sp.edit === "1" ? <BranchEditSheet branch={detail} /> : null}
 		</div>
 	);
