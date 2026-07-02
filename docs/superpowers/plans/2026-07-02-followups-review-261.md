@@ -189,11 +189,11 @@ Adaptar ao código real de cada arquivo (não colar cegamente — ler o fluxo de
 
 **Interfaces:** nenhuma nova — mudança de dependência/atributo.
 
-- [ ] **Step 1: Pesquisar o fix upstream** — `npm view @base-ui/react versions` mostra 1.4.1/1.5.0/1.6.0 disponíveis. Checar changelog/issues (WebFetch em `https://github.com/mui/base-ui/releases` e buscar por "data-slot"/"hydration"/"render prop merge") por um fix de ordem determinística de merge de atributos no `render`. Registrar no report o que encontrou (com link), mesmo que nada.
+- [x] **Step 1: Pesquisar o fix upstream** — `npm view @base-ui/react versions` mostra 1.4.1/1.5.0/1.6.0 disponíveis. Checar changelog/issues (WebFetch em `https://github.com/mui/base-ui/releases` e buscar por "data-slot"/"hydration"/"render prop merge") por um fix de ordem determinística de merge de atributos no `render`. Registrar no report o que encontrou (com link), mesmo que nada.
 
-- [ ] **Step 2: Tentar o upgrade (minor)** — editar `packages/ui/package.json` para `"@base-ui/react": "^1.6.0"`, rodar `bun install`, depois `bun check-types` e `bun --cwd apps/web test`. Se check-types quebrar com breaking change de API do base-ui em >3 componentes, ABORTAR o upgrade (`git checkout packages/ui/package.json bun.lock`) e ir pro Step 4 (fallback).
+- [x] **Step 2: Tentar o upgrade (minor)** — editar `packages/ui/package.json` para `"@base-ui/react": "^1.6.0"`, rodar `bun install`, depois `bun check-types` e `bun --cwd apps/web test`. Se check-types quebrar com breaking change de API do base-ui em >3 componentes, ABORTAR o upgrade (`git checkout packages/ui/package.json bun.lock`) e ir pro Step 4 (fallback).
 
-- [ ] **Step 3: Validar o fix (se upgrade aplicou)** — o orquestrador valida visualmente no gate final (dev overlay sem "1 Issue" na listagem de promoções). Nesta task, apenas garantir gates verdes e registrar no report que a validação visual está pendente.
+- [x] **Step 3: Validar o fix (se upgrade aplicou)** — o orquestrador valida visualmente no gate final (dev overlay sem "1 Issue" na listagem de promoções). Nesta task, apenas garantir gates verdes e registrar no report que a validação visual está pendente.
 
 - [ ] **Step 4 (fallback, SÓ se Step 2 abortou ou o orquestrador reportar que o warning persiste):** em `dropdown-menu.tsx:17`, adicionar `suppressHydrationWarning` ao Trigger com comentário:
 
@@ -210,7 +210,7 @@ return (
 );
 ```
 
-- [ ] **Step 5: Commit** — upgrade: `git commit -m "chore(ui): bump @base-ui/react para 1.6.0"` (body: motivo hydration mismatch data-slot, refs spec). Fallback: `git commit -m "fix(ui): suprime hydration warning do menu trigger"`.
+- [x] **Step 5: Commit** — upgrade: `git commit -m "chore(ui): bump @base-ui/react para 1.6.0"` (body: motivo hydration mismatch data-slot, refs spec). Fallback: `git commit -m "fix(ui): suprime hydration warning do menu trigger"`.
 
 ---
 
