@@ -20,6 +20,7 @@ import {
 	EntityKpisRow,
 	type KpiItem,
 } from "@/components/entity/entity-kpis-row";
+import { SwitchTabButton } from "@/components/entity/switch-tab-button";
 import { formatDocument } from "@/lib/cpf-cnpj";
 import { formatDate, formatDateTime } from "@/lib/format/datetime";
 import {
@@ -30,7 +31,6 @@ import {
 	ORDER_STATUS_LABELS,
 } from "../_lib/customer-display";
 import type { CustomerDetail, CustomerKpis, CustomerOrderRow } from "../data";
-import { SwitchTabButton } from "./switch-tab-button";
 
 interface Props {
 	customer: CustomerDetail;
