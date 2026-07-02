@@ -1,6 +1,3 @@
-import { db } from "@emach/db";
-import { branch } from "@emach/db/schema/inventory";
-import { asc } from "drizzle-orm";
 import {
 	Activity,
 	Briefcase,
@@ -11,15 +8,11 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import type { ReactNode } from "react";
-import type { EntityTab } from "@/components/entity/entity-tabs";
-import { EntityTabs } from "@/components/entity/entity-tabs";
+
+import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
+import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
 import { roleDefaultCapabilities } from "@/lib/capabilities";
-import {
-	can,
-	getUserCapabilities,
-	requireUserDetailAccessOrRedirect,
-} from "@/lib/permissions";
+import { can, requireUserDetailAccessOrRedirect } from "@/lib/permissions";
 import { ROLE_WEIGHT, type UserRole } from "@/lib/session";
 import type { UserRow } from "../_components/types";
 import { UserEditSheet } from "../_components/user-edit-sheet";
@@ -29,17 +22,15 @@ import {
 	getUserDetailKpis,
 	getUserLinkedBranchesWithStats,
 } from "../data";
-import { ActivityTab } from "./_components/activity-tab";
+import { ActivityTabLoader } from "./_components/activity-tab-loader";
 import { BranchesTab } from "./_components/branches-tab";
-import { EditUserButton } from "./_components/edit-user-button";
-import { PermissionsTab } from "./_components/permissions-tab";
+import { PermissionsTabLoader } from "./_components/permissions-tab-loader";
 import { ProfileTab } from "./_components/profile-tab";
 import { SecurityTab } from "./_components/security-tab";
-import { SessionsTab } from "./_components/sessions-tab";
+import { SessionsTabLoader } from "./_components/sessions-tab-loader";
 import { SuperAdminPermissionsNotice } from "./_components/super-admin-permissions-notice";
-import { UserBranchLinkPanel } from "./_components/user-branch-link-panel";
+import { UserDetailActions } from "./_components/user-detail-actions";
 import { UserIdentity } from "./_components/user-identity";
-import { getUserOverrides } from "./permissions/data";
 
 export const metadata: Metadata = {
 	title: "Detalhe do usuário",
@@ -60,64 +51,40 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 	const actorSession = await requireUserDetailAccessOrRedirect(id);
 	const canDelete = await can(actorSession, "users.delete");
 
-	// availableBranches só é usada no painel "Vincular filial" (aba Filiais);
-	// evita varrer todas as filiais nas demais abas.
-	const onBranchesTab = sp.tab === "branches";
-	const [user, kpis, linkedBranches, availableBranches, recentActivity] =
-		await Promise.all([
-			getUserDetail(id),
-			getUserDetailKpis(id),
-			getUserLinkedBranchesWithStats(id),
-			onBranchesTab
-				? db
-						.select({ id: branch.id, name: branch.name })
-						.from(branch)
-						.orderBy(asc(branch.name))
-				: Promise.resolve([] as { id: string; name: string }[]),
-			getUserAffectedActivity(id, null, 5),
-		]);
+	const [user, kpis, linkedBranches, recentActivity] = await Promise.all([
+		getUserDetail(id),
+		getUserDetailKpis(id),
+		getUserLinkedBranchesWithStats(id),
+		getUserAffectedActivity(id, null, 5),
+	]);
 
 	if (!user) {
 		notFound();
 	}
 
-	const linkedIds = new Set(linkedBranches.map((b) => b.id));
-
-	const onPermissionsTab = sp.tab === "permissoes";
 	const canManagePermissions = await can(actorSession, "permissions.manage");
 	const actorRole = (actorSession.user.role ?? "user") as UserRole;
 	// Espelha assertManageableTarget (servidor): nunca si mesmo; super_admin
 	// gerencia qualquer outro; admin só quem está estritamente abaixo na
 	// hierarquia (ROLE_WEIGHT). Mantém a UI alinhada ao que a action aceita —
-	// sem aba "morta" (self / role igual).
+	// sem aba "morta" (self / role igual). O servidor decide quais tabs entram.
 	const targetManageable =
 		canManagePermissions &&
 		actorSession.user.id !== user.id &&
 		(actorRole === "super_admin" ||
 			ROLE_WEIGHT[actorRole] > ROLE_WEIGHT[user.role as UserRole]);
 
-	let permissionsTabContent: ReactNode = null;
-	if (targetManageable && onPermissionsTab) {
-		if (user.role === "super_admin") {
-			// Camada 3 (issue #184): overrides não se aplicam a super_admin — sem grid.
-			permissionsTabContent = <SuperAdminPermissionsNotice />;
-		} else {
-			const [overrides, actorCaps] = await Promise.all([
-				getUserOverrides(user.id),
-				getUserCapabilities(actorSession),
-			]);
-			permissionsTabContent = (
-				<PermissionsTab
-					manageableCaps={[...actorCaps]}
-					overrides={[...overrides.entries()]}
-					roleDefaults={[...roleDefaultCapabilities(user.role as UserRole)]}
-					targetUserId={user.id}
-				/>
-			);
-		}
-	}
+	const KNOWN_TABS = new Set([
+		"profile",
+		"branches",
+		"activity",
+		"sessions",
+		"security",
+		...(targetManageable ? ["permissoes"] : []),
+	]);
+	const initialTab = sp.tab && KNOWN_TABS.has(sp.tab) ? sp.tab : "profile";
 
-	const tabs: EntityTab[] = [
+	const tabs: EntityClientTab[] = [
 		{
 			value: "profile",
 			label: "Perfil",
@@ -146,13 +113,15 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 			value: "activity",
 			label: "Atividade",
 			icon: <Activity aria-hidden className="size-3.5" />,
-			content: sp.tab === "activity" ? <ActivityTab userId={user.id} /> : null,
+			lazy: true,
+			content: <ActivityTabLoader userId={user.id} />,
 		},
 		{
 			value: "sessions",
 			label: "Sessões",
 			icon: <Monitor aria-hidden className="size-3.5" />,
-			content: sp.tab === "sessions" ? <SessionsTab userId={user.id} /> : null,
+			lazy: true,
+			content: <SessionsTabLoader userId={user.id} />,
 		},
 		{
 			value: "security",
@@ -167,26 +136,37 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 			value: "permissoes",
 			label: "Permissões",
 			icon: <ShieldCheck aria-hidden className="size-3.5" />,
-			content: permissionsTabContent,
+			lazy: true,
+			content:
+				user.role === "super_admin" ? (
+					<SuperAdminPermissionsNotice />
+				) : (
+					<PermissionsTabLoader
+						roleDefaults={[...roleDefaultCapabilities(user.role as UserRole)]}
+						targetUserId={user.id}
+					/>
+				),
 		});
-	}
-
-	let headerAction: ReactNode = null;
-	if (!sp.tab || sp.tab === "profile") {
-		headerAction = <EditUserButton />;
-	} else if (sp.tab === "branches") {
-		headerAction = (
-			<UserBranchLinkPanel
-				options={availableBranches.filter((b) => !linkedIds.has(b.id))}
-				userId={user.id}
-			/>
-		);
 	}
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
-			<UserIdentity actions={headerAction} user={user} />
-			<EntityTabs defaultValue="profile" tabs={tabs} />
+			<EntityClientTabs
+				defaultValue="profile"
+				header={
+					<UserIdentity
+						actions={
+							<UserDetailActions
+								linkedBranchIds={linkedBranches.map((b) => b.id)}
+								userId={user.id}
+							/>
+						}
+						user={user}
+					/>
+				}
+				initialTab={initialTab}
+				tabs={tabs}
+			/>
 			<UserEditSheet
 				actorRole={actorSession.user.role as UserRow["role"]}
 				user={{
