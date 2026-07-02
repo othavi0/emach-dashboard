@@ -93,7 +93,7 @@ Import: `import { clampInitialTab } from "@/components/entity/tab-url";`. Defaul
 
 - [x] **Step 6: Verificar** — `bun check-types` → verde; `rg -n "KNOWN_TABS" apps/web/src` → só ocorrências em comentários/nenhuma.
 
-- [ ] **Step 7: Commit** — `git add -A && git commit -m "refactor(entity): clampInitialTab derivado do array"` (body: cita spec + elimina drift de Set literal, refs #261).
+- [x] **Step 7: Commit** — `git add -A && git commit -m "refactor(entity): clampInitialTab derivado do array"` (body: cita spec + elimina drift de Set literal, refs #261).
 
 ---
 
@@ -108,15 +108,15 @@ Import: `import { clampInitialTab } from "@/components/entity/tab-url";`. Defaul
 - Produces: `requireUserDetailAccess(targetUserId: string): Promise<Session>` exportado de `.../users/[id]/_lib/access.ts` (server-only, SEM `"use server"`).
 - Consumes: `requireCurrentSession` (`@/lib/session`), `getUserCapabilities` (`@/lib/permissions` — conferir path exato no import atual de `tab-actions.ts`).
 
-- [ ] **Step 1: Criar `access.ts`** — mover o helper `requireUserDetailAccess` de `tab-actions.ts` (Read primeiro; o corpo atual está em `tab-actions.ts` ~linha 27) para o arquivo novo, com `import "server-only";` no topo e os mesmos imports (`requireCurrentSession`, `getUserCapabilities`). Manter o JSDoc, atualizando a nota: agora também é o gate das actions de paginação de `users/actions.ts`.
+- [x] **Step 1: Criar `access.ts`** — mover o helper `requireUserDetailAccess` de `tab-actions.ts` (Read primeiro; o corpo atual está em `tab-actions.ts` ~linha 27) para o arquivo novo, com `import "server-only";` no topo e os mesmos imports (`requireCurrentSession`, `getUserCapabilities`). Manter o JSDoc, atualizando a nota: agora também é o gate das actions de paginação de `users/actions.ts`.
 
-- [ ] **Step 2: Atualizar `tab-actions.ts`** — remover a definição local e importar: `import { requireUserDetailAccess } from "./access";`. NÃO re-exportar (regra "use server").
+- [x] **Step 2: Atualizar `tab-actions.ts`** — remover a definição local e importar: `import { requireUserDetailAccess } from "./access";`. NÃO re-exportar (regra "use server").
 
-- [ ] **Step 3: Trocar o gate das 2 actions de paginação** — em `users/actions.ts`, nas funções `fetchUserActivityByUserPage` e `fetchUserActivityAffectingPage`, substituir a linha `await requireCapabilityWithContext("users.manage", { targetUserId: userId });` por `await requireUserDetailAccess(userId);` com import `import { requireUserDetailAccess } from "./[id]/_lib/access";` (conferir path relativo real — `actions.ts` fica em `users/`, o helper em `users/[id]/_lib/`).
+- [x] **Step 3: Trocar o gate das 2 actions de paginação** — em `users/actions.ts`, nas funções `fetchUserActivityByUserPage` e `fetchUserActivityAffectingPage`, substituir a linha `await requireCapabilityWithContext("users.manage", { targetUserId: userId });` por `await requireUserDetailAccess(userId);` com import `import { requireUserDetailAccess } from "./[id]/_lib/access";` (conferir path relativo real — `actions.ts` fica em `users/`, o helper em `users/[id]/_lib/`).
 
-- [ ] **Step 4: Verificar** — `bun check-types` verde; `bun --cwd apps/web test` verde; como `actions.ts` é `"use server"`, anotar que o gate final da branch precisa de `bun run build`.
+- [x] **Step 4: Verificar** — `bun check-types` verde; `bun --cwd apps/web test` verde; como `actions.ts` é `"use server"`, anotar que o gate final da branch precisa de `bun run build`.
 
-- [ ] **Step 5: Commit** — `git commit -m "fix(users): paginação de activity aceita self"` (body: gate self-OU-manage alinhado ao da tab, fecha gap onde self via 1ª página mas não paginava; refs spec).
+- [x] **Step 5: Commit** — `git commit -m "fix(users): paginação de activity aceita self"` (body: gate self-OU-manage alinhado ao da tab, fecha gap onde self via 1ª página mas não paginava; refs spec).
 
 ---
 

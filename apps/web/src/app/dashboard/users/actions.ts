@@ -22,8 +22,8 @@ import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
 import { requireCapabilityWithContext } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
-
 import { allowedApprovalRoles } from "./_lib/approval-roles";
+import { requireUserDetailAccess } from "./[id]/_lib/access";
 import {
 	acceptInviteSchema,
 	branchLinkSchema,
@@ -724,7 +724,7 @@ export async function fetchUserActivityByUserPage(
 ): Promise<
 	import("@/lib/infinite").InfiniteResult<import("./data").UserActivityRow>
 > {
-	await requireCapabilityWithContext("users.manage", { targetUserId: userId });
+	await requireUserDetailAccess(userId);
 	const { getUserActivity } = await import("./data");
 	return getUserActivity(userId, cursor);
 }
@@ -737,7 +737,7 @@ export async function fetchUserActivityAffectingPage(
 		import("./data").UserActivityRow & { actorName: string | null }
 	>
 > {
-	await requireCapabilityWithContext("users.manage", { targetUserId: userId });
+	await requireUserDetailAccess(userId);
 	const { getUserAffectedActivity } = await import("./data");
 	return getUserAffectedActivity(userId, cursor);
 }
