@@ -1,16 +1,13 @@
-import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
-import { getCarrierZones } from "../../../data";
+import type { ZoneWithRates } from "../../../data";
 import { ZoneEditor } from "./zone-editor";
 
 interface Props {
+	canManage: boolean;
 	carrierId: string;
+	zones: ZoneWithRates[];
 }
 
-export async function ZonesTab({ carrierId }: Props) {
-	const session = await requireCapabilityOrRedirect("shipping.read");
-	const canManage = await can(session, "shipping.manage");
-	const zones = await getCarrierZones(carrierId);
-
+export function ZonesTab({ carrierId, canManage, zones }: Props) {
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-4">
