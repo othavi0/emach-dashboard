@@ -6,22 +6,23 @@ import {
 } from "@emach/ui/components/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@emach/ui/components/empty";
 
-import { listCustomerOrders } from "../data";
-import { CustomerOrdersInfinite } from "./customer-orders-infinite";
+import type { InfiniteResult } from "@/lib/infinite";
+import { CustomerOrdersInfinite } from "../../_components/customer-orders-infinite";
+import type { CustomerOrderRow } from "../../data";
 
-export async function CustomerOrdersTable({ clientId }: { clientId: string }) {
-	const { items, nextCursor } = await listCustomerOrders({
-		clientId,
-		cursor: null,
-	});
+interface Props {
+	clientId: string;
+	first: InfiniteResult<CustomerOrderRow>;
+}
 
+export function OrdersTab({ clientId, first }: Props) {
 	return (
 		<Card>
 			<CardHeader>
 				<CardTitle className="text-sm">Pedidos</CardTitle>
 			</CardHeader>
 			<CardContent>
-				{items.length === 0 ? (
+				{first.items.length === 0 ? (
 					<Empty>
 						<EmptyHeader>
 							<EmptyTitle>Nenhum pedido encontrado</EmptyTitle>
@@ -30,8 +31,8 @@ export async function CustomerOrdersTable({ clientId }: { clientId: string }) {
 				) : (
 					<CustomerOrdersInfinite
 						clientId={clientId}
-						initialCursor={nextCursor}
-						initialItems={items}
+						initialCursor={first.nextCursor}
+						initialItems={first.items}
 					/>
 				)}
 			</CardContent>

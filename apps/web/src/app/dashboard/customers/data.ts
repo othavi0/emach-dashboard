@@ -564,6 +564,17 @@ export async function getCustomerSessions(
 	}));
 }
 
+// Aggregate leve pra decidir a visibilidade da ação "Revogar todas" no header
+// (aba Sessões é lazy — não carregamos a coleção inteira só pra saber a
+// contagem, mesmo padrão de kpis.teamSize em branches/[id]).
+export async function getCustomerSessionsCount(id: string): Promise<number> {
+	const [row] = await db
+		.select({ n: sql<number>`count(*)::int` })
+		.from(clientSession)
+		.where(eq(clientSession.userId, id));
+	return row?.n ?? 0;
+}
+
 export async function getCustomerAudit(
 	id: string,
 	options: { action?: ClientAuditAction } = {}
