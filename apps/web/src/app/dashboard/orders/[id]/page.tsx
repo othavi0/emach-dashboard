@@ -8,8 +8,8 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import type { EntityTab } from "@/components/entity/entity-tabs";
-import { EntityTabs } from "@/components/entity/entity-tabs";
+import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
+import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
 import { can, requireCapability } from "@/lib/permissions";
 import {
 	getOrderDetail,
@@ -38,21 +38,21 @@ function TabCount({ n }: { n: number }) {
 	);
 }
 
-export default function OrderDetailPage({
-	params,
-}: {
+const DEFAULT_TAB = "itens";
+
+interface PageProps {
 	params: Promise<{ id: string }>;
-}) {
-	return <OrderDetailPageContent params={params} />;
+	searchParams: Promise<{ tab?: string }>;
 }
 
-async function OrderDetailPageContent({
-	params,
-}: {
-	params: Promise<{ id: string }>;
-}) {
+export default function OrderDetailPage({ params, searchParams }: PageProps) {
+	return <OrderDetailPageContent params={params} searchParams={searchParams} />;
+}
+
+async function OrderDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCapability("orders.read");
 	const { id } = await params;
+	const sp = await searchParams;
 	const [branches, order, reviewsOverview] = await Promise.all([
 		listOrderBranches(),
 		getOrderDetail(id),
@@ -70,7 +70,7 @@ async function OrderDetailPageContent({
 		]
 	);
 
-	const tabs: EntityTab[] = [
+	const tabs: EntityClientTab[] = [
 		{
 			value: "itens",
 			label: "Itens",
@@ -114,12 +114,25 @@ async function OrderDetailPageContent({
 			: []),
 	];
 
+	// KNOWN_TABS deriva de `tabs` (não é literal estático): a tab "reembolso" só
+	// existe quando o pedido tem refundRequests, então um ?tab=reembolso antigo/
+	// stale para um pedido sem reembolso precisa cair no default, não travar numa
+	// tab inexistente (nenhum trigger selecionado no shell client).
+	const knownTabValues = new Set(tabs.map((t) => t.value));
+	const initialTab =
+		sp.tab && knownTabValues.has(sp.tab) ? sp.tab : DEFAULT_TAB;
+
 	return (
 		<div className="flex flex-col gap-6 p-6">
 			<OrderIdentity order={order} />
 			<OrderSummaryCard order={order} />
 			<div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(20rem,1fr)]">
-				<EntityTabs defaultValue="itens" tabs={tabs} />
+				<EntityClientTabs
+					defaultValue={DEFAULT_TAB}
+					header={null}
+					initialTab={initialTab}
+					tabs={tabs}
+				/>
 				<OrderActionColumn
 					branches={branches}
 					canAddNote={canAddNote}
