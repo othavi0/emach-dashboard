@@ -1,11 +1,15 @@
 import { PackageOpen } from "lucide-react";
 
-import { getCategoryProductsPage } from "../../actions";
+import type { InfiniteResult } from "@/lib/infinite";
+import type { CategoryProductItem } from "../../data";
 import { ProductsInfinite } from "./products-infinite";
 
-export async function ProductsTab({ categoryId }: { categoryId: string }) {
-	const first = await getCategoryProductsPage({ categoryId, cursor: null });
+interface Props {
+	categoryId: string;
+	first: InfiniteResult<CategoryProductItem>;
+}
 
+export function ProductsTab({ categoryId, first }: Props) {
 	if (first.items.length === 0) {
 		return (
 			<div className="flex flex-col items-center gap-2 py-16 text-center">

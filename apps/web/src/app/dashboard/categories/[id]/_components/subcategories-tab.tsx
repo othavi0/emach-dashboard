@@ -1,11 +1,15 @@
 import { FolderTree } from "lucide-react";
 
-import { getCategoryChildrenPage } from "../../actions";
+import type { InfiniteResult } from "@/lib/infinite";
+import type { CategoryChildItem } from "../../data";
 import { SubcategoriesInfinite } from "./subcategories-infinite";
 
-export async function SubcategoriesTab({ categoryId }: { categoryId: string }) {
-	const first = await getCategoryChildrenPage({ categoryId, cursor: null });
+interface Props {
+	categoryId: string;
+	first: InfiniteResult<CategoryChildItem>;
+}
 
+export function SubcategoriesTab({ categoryId, first }: Props) {
 	if (first.items.length === 0) {
 		return (
 			<div className="flex flex-col items-center gap-2 py-16 text-center">
