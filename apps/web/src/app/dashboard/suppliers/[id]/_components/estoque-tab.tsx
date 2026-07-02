@@ -1,20 +1,16 @@
 import { Boxes } from "lucide-react";
 
-import { fetchSupplierStockPage } from "../../actions";
+import type { InfiniteResult } from "@/lib/infinite";
+import type { SupplierStockToolRow } from "../../data";
 import { SupplierStockInfinite } from "./supplier-stock-infinite";
 
 interface Props {
+	first: InfiniteResult<SupplierStockToolRow>;
 	search?: string;
 	supplierId: string;
 }
 
-export async function EstoqueTab({ supplierId, search }: Props) {
-	const first = await fetchSupplierStockPage({
-		supplierId,
-		search,
-		cursor: null,
-	});
-
+export function EstoqueTab({ supplierId, search, first }: Props) {
 	if (first.items.length === 0) {
 		return (
 			<div className="flex flex-col items-center gap-2 py-16 text-center">
