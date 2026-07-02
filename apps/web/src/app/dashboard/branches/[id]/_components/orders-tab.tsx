@@ -1,11 +1,15 @@
 import { PackageOpen } from "lucide-react";
 
-import { fetchBranchOrdersPage } from "../../actions";
+import type { InfiniteResult } from "@/lib/infinite";
+import type { BranchOrderRow } from "../../data";
 import { BranchOrdersInfinite } from "./branch-orders-infinite";
 
-export async function OrdersTab({ branchId }: { branchId: string }) {
-	const first = await fetchBranchOrdersPage({ branchId, cursor: null });
+interface Props {
+	branchId: string;
+	first: InfiniteResult<BranchOrderRow>;
+}
 
+export function OrdersTab({ branchId, first }: Props) {
 	if (first.items.length === 0) {
 		return (
 			<div className="flex flex-col items-center gap-2 py-16 text-center">
