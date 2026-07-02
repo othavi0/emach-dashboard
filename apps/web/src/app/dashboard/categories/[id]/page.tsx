@@ -1,11 +1,9 @@
-import { buttonVariants } from "@emach/ui/components/button";
-import { FolderTree, Info, Package, Pencil, Plus } from "lucide-react";
+import { FolderTree, Info, Package } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import type { EntityTab } from "@/components/entity/entity-tabs";
-import { EntityTabs } from "@/components/entity/entity-tabs";
+import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
+import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 
 import {
@@ -16,8 +14,8 @@ import {
 import { CategoryDetailActions } from "./_components/category-detail-actions";
 import { CategoryDetailHeader } from "./_components/category-detail-header";
 import { OverviewTab } from "./_components/overview-tab";
-import { ProductsTab } from "./_components/products-tab";
-import { SubcategoriesTab } from "./_components/subcategories-tab";
+import { ProductsTabLoader } from "./_components/products-tab-loader";
+import { SubcategoriesTabLoader } from "./_components/subcategories-tab-loader";
 
 export const metadata: Metadata = {
 	title: "Detalhe da categoria",
@@ -27,6 +25,9 @@ interface PageProps {
 	params: Promise<{ id: string }>;
 	searchParams: Promise<{ tab?: string }>;
 }
+
+const KNOWN_TABS = new Set(["visao-geral", "produtos", "subcategorias"]);
+const DEFAULT_TAB = "visao-geral";
 
 function CountBadge({ value }: { value: number }) {
 	return (
@@ -54,12 +55,12 @@ async function CategoryDetailPageContent({ params, searchParams }: PageProps) {
 
 	const { id } = await params;
 	const { tab } = await searchParams;
-	const current = tab ?? "visao-geral";
-	const isOverview = current === "visao-geral";
+	const initialTab = tab && KNOWN_TABS.has(tab) ? tab : DEFAULT_TAB;
 
-	const [detail, ancestors] = await Promise.all([
+	const [detail, ancestors, attributes] = await Promise.all([
 		getCategoryDetail(id),
 		getCategoryAncestors(id),
+		getCategoryAttributes(id),
 	]);
 
 	if (!detail) {
@@ -68,14 +69,12 @@ async function CategoryDetailPageContent({ params, searchParams }: PageProps) {
 
 	const { category: cat, children, productCount, rollupProductCount } = detail;
 
-	const attributes = isOverview ? await getCategoryAttributes(id) : [];
-
-	const tabs: EntityTab[] = [
+	const tabs: EntityClientTab[] = [
 		{
 			value: "visao-geral",
 			label: "Visão geral",
 			icon: <Info aria-hidden className="size-3.5" />,
-			content: isOverview ? (
+			content: (
 				<OverviewTab
 					attributes={attributes}
 					categoryId={id}
@@ -85,71 +84,50 @@ async function CategoryDetailPageContent({ params, searchParams }: PageProps) {
 					productCount={productCount}
 					rollupProductCount={rollupProductCount}
 				/>
-			) : null,
+			),
 		},
 		{
 			value: "produtos",
 			label: "Produtos",
 			icon: <Package aria-hidden className="size-3.5" />,
 			badge: <CountBadge value={rollupProductCount} />,
-			content: current === "produtos" ? <ProductsTab categoryId={id} /> : null,
+			lazy: true,
+			content: <ProductsTabLoader categoryId={id} />,
 		},
 		{
 			value: "subcategorias",
 			label: "Subcategorias",
 			icon: <FolderTree aria-hidden className="size-3.5" />,
 			badge: <CountBadge value={children.length} />,
-			content:
-				current === "subcategorias" ? (
-					<SubcategoriesTab categoryId={id} />
-				) : null,
+			lazy: true,
+			content: <SubcategoriesTabLoader categoryId={id} />,
 		},
 	];
 
-	let primaryAction: React.ReactNode = null;
-	if (canManage && current === "subcategorias") {
-		primaryAction = (
-			<Link
-				className={buttonVariants({ variant: "default" })}
-				href={`/dashboard/categories/new?parent=${id}`}
-			>
-				<Plus aria-hidden className="size-4" />
-				Nova subcategoria
-			</Link>
-		);
-	} else if (canManage && isOverview) {
-		primaryAction = (
-			<Link
-				className={buttonVariants({ variant: "default" })}
-				href={`/dashboard/categories/${id}/edit`}
-			>
-				<Pencil aria-hidden className="size-4" />
-				Editar
-			</Link>
-		);
-	}
-
 	return (
 		<div className="flex flex-col gap-6 p-6">
-			<CategoryDetailHeader
-				actions={
-					<>
-						{primaryAction}
-						<CategoryDetailActions
-							canDelete={canDelete}
-							canManage={canManage}
-							categoryId={id}
-							categoryName={cat.name}
-							isActive={cat.isActive}
-						/>
-					</>
+			<EntityClientTabs
+				defaultValue={DEFAULT_TAB}
+				header={
+					<CategoryDetailHeader
+						actions={
+							<CategoryDetailActions
+								canDelete={canDelete}
+								canManage={canManage}
+								categoryId={id}
+								categoryName={cat.name}
+								isActive={cat.isActive}
+							/>
+						}
+						ancestors={ancestors}
+						isActive={cat.isActive}
+						name={cat.name}
+						path={cat.path}
+					/>
 				}
-				ancestors={ancestors}
-				isActive={cat.isActive}
-				name={cat.name}
-				path={cat.path}
+				initialTab={initialTab}
+				tabs={tabs}
 			/>
-			<EntityTabs defaultValue="visao-geral" tabs={tabs} />
 		</div>
 	);
 }

@@ -10,12 +10,14 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@emach/ui/components/alert-dialog";
-import { Button } from "@emach/ui/components/button";
+import { Button, buttonVariants } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
-import { Power, Trash2 } from "lucide-react";
+import { Pencil, Plus, Power, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { useActiveTab } from "@/components/entity/entity-client-tabs";
 import { notify } from "@/lib/notify";
 import { deleteCategory, toggleCategoryActive } from "../../actions";
 
@@ -27,6 +29,11 @@ interface Props {
 	isActive: boolean;
 }
 
+/**
+ * Ação primária (Editar / Nova subcategoria) muda conforme a tab ativa —
+ * vem do contexto client do EntityClientTabs (sem re-render do servidor).
+ * Ativar/desativar e excluir seguem visíveis em qualquer tab.
+ */
 export function CategoryDetailActions({
 	canDelete,
 	canManage,
@@ -35,6 +42,7 @@ export function CategoryDetailActions({
 	isActive,
 }: Props) {
 	const router = useRouter();
+	const tab = useActiveTab();
 	const [confirmOpen, setConfirmOpen] = useState(false);
 	const [togglePending, startToggle] = useTransition();
 	const [deletePending, startDelete] = useTransition();
@@ -66,6 +74,24 @@ export function CategoryDetailActions({
 
 	return (
 		<>
+			{canManage && tab === "subcategorias" && (
+				<Link
+					className={buttonVariants({ variant: "default" })}
+					href={`/dashboard/categories/new?parent=${categoryId}`}
+				>
+					<Plus aria-hidden className="size-4" />
+					Nova subcategoria
+				</Link>
+			)}
+			{canManage && tab === "visao-geral" && (
+				<Link
+					className={buttonVariants({ variant: "default" })}
+					href={`/dashboard/categories/${categoryId}/edit`}
+				>
+					<Pencil aria-hidden className="size-4" />
+					Editar
+				</Link>
+			)}
 			{canManage && (
 				<Button
 					disabled={togglePending}
