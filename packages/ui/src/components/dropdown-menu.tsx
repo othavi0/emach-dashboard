@@ -14,7 +14,17 @@ function DropdownMenuPortal({ ...props }: MenuPrimitive.Portal.Props) {
 }
 
 function DropdownMenuTrigger({ ...props }: MenuPrimitive.Trigger.Props) {
-	return <MenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />;
+	return (
+		<MenuPrimitive.Trigger
+			data-slot="dropdown-menu-trigger"
+			// Workaround: com render={<Button/>}, a ordem de merge do data-slot
+			// diverge entre SSR (vence o do Button) e hydration (vence o do
+			// Trigger) no base-ui — verificado ainda presente na 1.6.0, sem fix
+			// nem issue upstream que cubra o caso. Suprime só este elemento.
+			suppressHydrationWarning
+			{...props}
+		/>
+	);
 }
 
 function DropdownMenuContent({
