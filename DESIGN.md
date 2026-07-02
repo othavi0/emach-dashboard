@@ -344,9 +344,9 @@ Composição: a listagem usa `useBulkSelection` sobre os `items` do `useInfinite
 Página de detalhe de uma entidade (`/dashboard/<recurso>/[id]`) — o padrão default para CRUDs. Canônico: `branches/[id]/page.tsx`. Componentes em `apps/web/src/components/entity/`.
 
 - **`EntityIdentityHeader`** no topo: avatar + título (nome da entidade) + subtitle + slot `actions`.
-- **`EntityTabs`** logo abaixo: sincroniza a aba ativa com a URL (`?tab=`); a aba default omite o param. Sub-navegação do tipo `line` ou pill conforme §4 Tabs.
+- **`EntityClientTabs`** logo abaixo (padrão canônico do detalhe — PR #259 piloto, #264 shell compartilhado, #275 fundação, ADR-0024): troca de aba é **100% client-side** (`window.history.replaceState`, **nunca** `router.replace` — não toca o servidor, 0 requests medidos). `initialTab` (lido de `?tab=` no servidor) é clampado a valores conhecidos e resincronizado a partir da URL no mount/`popstate`. Sub-navegação do tipo `line` ou pill conforme §4 Tabs. Tabs **eager** (dado que já vem do `detail`) renderizam uma vez como Server Component e são passadas como prop ao shell; tabs **lazy** (dado pesado que não vem no detail) buscam sob demanda via `"use server"` action + `requireCapability` própria na 1ª ativação, com `LazyTab` (skeleton + error state/retry).
 - **`EntityKpisRow`** no corpo das tabs de overview, quando há métricas.
-- **Ações no header são contextuais por tab** — a ação primária vive no `actions` do header e **muda conforme a aba ativa**, nunca duplicada no corpo da tab. O Server Component (`page.tsx`) lê `sp.tab` e injeta a ação relevante:
+- **Ações no header são contextuais por tab** — a ação primária vive no `actions` do header e **muda conforme a aba ativa**, nunca duplicada no corpo da tab. No detalhe, a decisão é client-side via `useActiveTab`:
 
   | Tab ativa | Ação no header |
   |---|---|
@@ -355,10 +355,10 @@ Página de detalhe de uma entidade (`/dashboard/<recurso>/[id]`) — o padrão d
   | sub-recurso com item (ex: estoque) | Adicionar item |
   | tabs read-only (ex: pedidos) | — (sem ação) |
 
-  Funciona porque trocar de aba faz `router.replace(?tab=)`, re-renderizando o Server Component e atualizando o header. **Não** colocar o botão de ação dentro do corpo da tab.
+  Funciona porque trocar de aba atualiza o Context do shell (`useActiveTab`), sem round-trip ao servidor. **Não** colocar o botão de ação dentro do corpo da tab.
 
-  > **Piloto client-side (tool detail — PR #259 / ADR-0024):** `tools/[id]` substituiu o `EntityTabs` server-nav por um shell client (`ToolDetailTabs`): trocar de aba é 100% cliente (`history.replaceState`, **sem** `router.replace` nem re-render do servidor — 0 requests medidos), conteúdo eager (de `detail`) renderizado uma vez + tabs lazy via `"use server"` action, e a ação do header reativa no cliente via `useActiveTab` (não `sp.tab`). As outras 8 páginas de detalhe seguem o `EntityTabs` server-nav descrito acima até serem migradas. Ver ADR-0024.
-- **Badge de contagem na tab:** sempre `secondary` (neutro). Via `<TabsCountBadge>` no `Tabs` base; no `EntityTabs`, badge `secondary` `rounded-md` `h-5 min-w-5`. A hierarquia vem da aba ativa (coral), não do badge.
+  > **`EntityTabs` (server-nav)** segue válido para páginas **não-detalhe** com tabs — sincroniza a aba com `?tab=` via `router.replace`, re-renderizando o Server Component (`shipping/page.tsx`, `site/settings/page.tsx`, `dev-preview/entity-preview/page.tsx`) — e para tabs de navegação com `href`. Ver ADR-0024.
+- **Badge de contagem na tab:** sempre `secondary` (neutro). Via `<TabsCountBadge>` no `Tabs` base; no `EntityClientTabs`/`EntityTabs`, badge `secondary` `rounded-md` `h-5 min-w-5`. A hierarquia vem da aba ativa (coral), não do badge.
 
 ### Mutações: drawer / página / confirmação destrutiva
 
@@ -641,7 +641,7 @@ Mudanças sistêmicas consolidadas, mais recente primeiro:
 | `gap-1` na TabsList? | Default. Não passe `className="gap-1"` manual. |
 | Altura do par PendingPanel+ActivityFeed? | `<PendingPanel compact>` + wrapper `min-h-[18rem]` no ActivityFeed. |
 | Como pego user no AppSidebar? | Prop do `DashboardLayout` (server). **Não** `authClient.useSession()` — hydration mismatch. |
-| Como monto a página de detalhe de uma entidade? | `EntityIdentityHeader` + `EntityTabs` (`?tab=`); ação primária no header, **contextual por tab**. Ver §4 Entity detail. |
+| Como monto a página de detalhe de uma entidade? | `EntityIdentityHeader` + `EntityClientTabs` (troca de aba client-side, `?tab=` só no mount/deep-link); ação primária no header, **contextual por tab** via `useActiveTab`. Ver §4 Entity detail / ADR-0024. |
 | Onde fica o botão de ação (Editar/Vincular)? | No `actions` do header, mudando pela aba ativa. **Nunca** no corpo da tab. |
 | Footer de card recuado ou edge-to-edge? | Edge-to-edge — `border-t`/divisórias até a borda. `-mx-4 px-4` se o card tem padding. Ver §4. |
 | Editar entidade: drawer ou página? | Drawer (`Sheet`) se poucos campos; página se formulário grande/complexo. Criar = página. |

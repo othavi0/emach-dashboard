@@ -1,8 +1,8 @@
-# ADR 0024 — Tabs client-side no detalhe de entidade (piloto tool detail)
+# ADR 0024 — Tabs client-side no detalhe de entidade
 
-**Data:** 2026-06-29
-**Status:** Aceito (piloto — `tools/[id]`; generalização para as outras 8 páginas é follow-up)
-**Relaciona:** ADR-0023 (`staleTimes` — cache de revisita no Router Cache), ADR-0022 (freeze de navegação #222), ADR-0016 (gate de status/role). Entity detail pattern (`DESIGN.md` §4, `apps/web/CLAUDE.md`). PR #259.
+**Data:** 2026-06-29 (generalizado jul/2026)
+**Status:** Aceito (generalizado — todas as 9 páginas de detalhe, jul/2026)
+**Relaciona:** ADR-0023 (`staleTimes` — cache de revisita no Router Cache), ADR-0022 (freeze de navegação #222), ADR-0016 (gate de status/role). Entity detail pattern (`DESIGN.md` §4, `apps/web/CLAUDE.md`). PR #259 (piloto), #264 (shell compartilhado), #273, #274, #275 (fundação), #265/#277/#278/#279/#280/#281/#282/#283 (generalização). Épico #261.
 
 ## Contexto
 
@@ -12,26 +12,25 @@ O `staleTimes` (ADR-0023) já cacheia o resultado dessa navegação no cliente, 
 
 ## Decisão
 
-No detalhe da ferramenta (`tools/[id]`), tornar a navegação entre tabs **100% client-side**: trocar de tab não toca o servidor.
+No detalhe de entidade, tornar a navegação entre tabs **100% client-side**: trocar de tab não toca o servidor. O piloto validou a decisão em `tools/[id]` (`ToolDetailTabs`, PR #259); a fundação em #264 extraiu o shell como componente compartilhado `EntityClientTabs` (`apps/web/src/components/entity/entity-client-tabs.tsx`), e #275 acrescentou sync da tab a partir da URL no mount/`popstate` (a URL passa a ser fonte de verdade, não só o estado inicial) + clamp de `initialTab` no shell. Com essa fundação, as 8 páginas restantes migraram: promotions (#265), suppliers (#277), categories (#278), shipping/carriers (#279), orders (#280), branches (#281), users (#282), customers (#283). As 9 páginas de detalhe (tools + as 8 acima) usam hoje `EntityClientTabs`.
 
-- **Shell client** (`ToolDetailTabs`): controla a tab ativa, sincroniza a URL via `window.history.replaceState` (**não** `router.replace` — isso dispararia RSC), e expõe a tab ativa por um **React Context próprio**. Listener de `popstate` cobre voltar/avançar do browser. `initialTab` (lido de `?tab=` no servidor) é clampado a valores conhecidos.
-- **Tabs eager** (visão-geral, variantes, estoque): conteúdo derivado de `detail`, renderizado **uma vez** como Server Component e passado como prop ao shell. Trocar entre elas é Base UI puro (`keepMounted`) — instantâneo, sem servidor.
-- **Tabs lazy** (atividade, avaliações): loader client busca via `"use server"` action na 1ª ativação (com `requireCapability` — `stock.read` / `reviews.read`), com error state + retry; cacheadas ao reabrir.
+- **Shell client** (`EntityClientTabs`): controla a tab ativa, sincroniza a URL via `window.history.replaceState` (**não** `router.replace` — isso dispararia RSC), e expõe a tab ativa por um **React Context próprio** (`useActiveTab`). Listener de `popstate` cobre voltar/avançar do browser; `initialTab` (lido de `?tab=` no servidor) é clampado a valores conhecidos, e a tab também é resincronizada a partir da URL no mount (#275) — cobre back/forward e links externos para `?tab=`.
+- **Tabs eager**: conteúdo que já vem do detail (ex: visão-geral, variantes/estoque do tool), renderizado **uma vez** como Server Component e passado como prop ao shell. Trocar entre elas é Base UI puro (`keepMounted`) — instantâneo, sem servidor.
+- **Tabs lazy** (contrato estrito): reservado a dado **pesado** que não vem no fetch do detail e é buscado sob demanda — loader client chama uma `"use server"` action com `requireCapability` própria na 1ª ativação (ex: `stock.read` / `reviews.read` no tool), via `LazyTab` (skeleton + error state com retry), cacheada em memória ao reabrir. Se o dado já está em `detail`, a tab é eager — lazy não é usado por padrão para "esconder custo de render", só para evitar query/fetch que a maioria das visitas não precisa.
 - **Ação do header** reativa no cliente via `useActiveTab` (substitui a decisão server-side por `sp.tab`).
-
-**Piloto** restrito ao tool detail. O `EntityTabs` compartilhado (server-nav) permanece para as outras 8 páginas de detalhe, que migram aos poucos (follow-up).
 
 ## Opções consideradas
 
-- **A (escolhida)** — tabs client-side, piloto no tool detail. Elimina o round-trip por troca de tab (re-auth + re-busca do `detail`). Verificado: trocar entre tabs eager = 0 requests (Resource Timing). Custo: refactor do padrão de navegação (isolado no piloto), e uma janela menor de robustez (error state nos loaders, resolvida).
-- **B (rejeitada agora)** — cachear `getToolDetail` no servidor (`unstable_cache`/`cacheTag`), mantendo as tabs server-nav. Mataria as 7 queries redundantes sem refactor client, e sem trade-off de auth — mas mantém um round-trip + re-auth por troca de tab. Reservado como alternativa caso a migração das 8 páginas não se justifique.
+- **A (escolhida)** — tabs client-side, piloto no tool detail e depois generalizada às 9 páginas de detalhe. Elimina o round-trip por troca de tab (re-auth + re-busca do `detail`). Verificado: trocar entre tabs eager = 0 requests (Resource Timing). Custo: refactor do padrão de navegação (pago uma vez no piloto + extração do shell em #264), e uma janela menor de robustez (error state nos loaders, resolvida).
+- **B (rejeitada)** — cachear `getToolDetail` no servidor (`unstable_cache`/`cacheTag`), mantendo as tabs server-nav. Mataria as 7 queries redundantes sem refactor client, e sem trade-off de auth — mas mantém um round-trip + re-auth por troca de tab. Descartada: a migração das 8 páginas restantes se justificou (mesmo ganho replicado, shell já compartilhado) e foi concluída em jul/2026.
 - **C (rejeitada)** — reabrir `cookieCache` (ADR-0021) para baratear a re-auth. Já rejeitado por medição de prod; com tabs client-side a re-auth por troca simplesmente desaparece, tornando o ganho irrelevante.
-- **Zustand** — descartado: o estado da tab ativa é local da página (React Context basta); cache de dados de servidor por tab seria TanStack Query, não Zustand. Nenhum dos dois é necessário no piloto.
+- **Zustand** — descartado: o estado da tab ativa é local da página (React Context basta); cache de dados de servidor por tab seria TanStack Query, não Zustand. Nenhum dos dois é necessário.
 
 ## Consequências
 
-- **Trocar de tab no tool detail não toca o servidor** (0 requests; verificado em dev e via build). Header reativo no cliente; URL `?tab=` preservada (deep-link + voltar/avançar via `popstate`).
-- A **1ª carga** da página renderiza o markup das 3 tabs eager de uma vez — barato (mesmo `detail`, sem queries extras). Tabs lazy mostram skeleton breve na 1ª abertura (inclusive deep-link).
+- **Trocar de tab no detalhe de entidade não toca o servidor** (0 requests; verificado em dev e via build, nas 9 páginas). Header reativo no cliente; URL `?tab=` preservada (deep-link + voltar/avançar via `popstate`).
+- A **1ª carga** da página renderiza o markup das tabs eager de uma vez — barato (mesmo `detail`, sem queries extras). Tabs lazy mostram skeleton breve na 1ª abertura (inclusive deep-link).
 - **Invariante P0 mantido fresco:** a auth das tabs lazy roda por chamada da `"use server"` action (`requireCapability`), sem janela de staleness — diferente do trade-off de revisita do `staleTimes` (ADR-0023) e do `cookieCache` (ADR-0021).
-- **Estado dual e consciente:** `tools/[id]` é client-side; as outras 8 páginas de detalhe seguem o `EntityTabs` server-nav (ADR/DESIGN documentam ambos). Generalizar o shell em `EntityTabs` e migrar as 8 é follow-up rastreado em issue.
+- **Canônico consolidado:** as 9 páginas de detalhe (tools, promotions, suppliers, categories, shipping/carriers, orders, branches, users, customers) usam `EntityClientTabs`. `EntityTabs` (server-nav) segue válido só para páginas **não-detalhe** com tabs (`shipping/page.tsx`, `site/settings/page.tsx`, `dev-preview/entity-preview/page.tsx`) e para tabs de navegação com `href`.
+- **Limitação conhecida (herdada do piloto, não regressão):** uma mutação disparada de dentro de uma tab lazy que chama `router.refresh()` atualiza as props vindas do servidor (ex: `detail` das tabs eager), mas **não** re-dispara o fetch do `LazyTab` já ativado — o `useEffect` do loader depende só de `[attempt]` (contador de retry manual), não de props recebidas. Se uma mutação em tab lazy precisar refletir na própria tab, o padrão atual é o usuário reabrir a tab ou usar retry; revisitar se um caso de uso exigir refresh automático.
 - **Pendência conhecida (follow-up):** atalhos in-content que linkam para outra tab (ex: "Ver aba →") ainda usam `<Link>` (server-nav) — não regressão, mas devem passar pelo tab switcher client para 100% client-side.
