@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
 import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
+import { clampInitialTab } from "@/components/entity/tab-url";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { getCarrierDetail } from "../../data";
 import { CarrierEditSheet } from "./_components/carrier-edit-sheet";
@@ -18,7 +19,6 @@ interface PageProps {
 	searchParams: Promise<{ tab?: string; edit?: string }>;
 }
 
-const KNOWN_TABS = new Set(["sobretaxas", "zonas", "preview"]);
 const DEFAULT_TAB = "sobretaxas";
 
 export default function CarrierDetailPage({ params, searchParams }: PageProps) {
@@ -31,7 +31,6 @@ async function CarrierDetailContent({ params, searchParams }: PageProps) {
 
 	const { id } = await params;
 	const sp = await searchParams;
-	const initialTab = sp.tab && KNOWN_TABS.has(sp.tab) ? sp.tab : DEFAULT_TAB;
 	const detail = await getCarrierDetail(id);
 	if (!detail) {
 		notFound();
@@ -59,6 +58,8 @@ async function CarrierDetailContent({ params, searchParams }: PageProps) {
 			content: <PreviewTabLoader carrierId={id} />,
 		},
 	];
+
+	const initialTab = clampInitialTab(sp.tab, tabs, DEFAULT_TAB);
 
 	return (
 		<div className="flex flex-col gap-6 p-6">

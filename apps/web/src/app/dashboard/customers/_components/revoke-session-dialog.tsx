@@ -15,6 +15,7 @@ import { buttonVariants } from "@emach/ui/components/button";
 import { Trash2Icon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { useLazyTabReload } from "@/components/entity/lazy-tab";
 import { notify } from "@/lib/notify";
 
 import { revokeClientSession } from "../actions";
@@ -31,6 +32,7 @@ export function RevokeSessionDialog({
 	userAgentSummary,
 }: RevokeSessionDialogProps) {
 	const router = useRouter();
+	const reloadTab = useLazyTabReload();
 	const [isPending, startTransition] = useTransition();
 
 	function handleRevoke() {
@@ -38,6 +40,7 @@ export function RevokeSessionDialog({
 			const result = await revokeClientSession({ clientId, sessionId });
 			if (result.ok) {
 				notify.success("Sessão revogada com sucesso");
+				reloadTab();
 				router.refresh();
 			} else {
 				notify.error(result.error);

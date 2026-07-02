@@ -11,6 +11,7 @@ import { notFound } from "next/navigation";
 
 import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
 import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
+import { clampInitialTab } from "@/components/entity/tab-url";
 import { roleDefaultCapabilities } from "@/lib/capabilities";
 import { can, requireUserDetailAccessOrRedirect } from "@/lib/permissions";
 import { ROLE_WEIGHT, type UserRole } from "@/lib/session";
@@ -73,16 +74,6 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 		actorSession.user.id !== user.id &&
 		(actorRole === "super_admin" ||
 			ROLE_WEIGHT[actorRole] > ROLE_WEIGHT[user.role as UserRole]);
-
-	const KNOWN_TABS = new Set([
-		"profile",
-		"branches",
-		"activity",
-		"sessions",
-		"security",
-		...(targetManageable ? ["permissoes"] : []),
-	]);
-	const initialTab = sp.tab && KNOWN_TABS.has(sp.tab) ? sp.tab : "profile";
 
 	const tabs: EntityClientTab[] = [
 		{
@@ -148,6 +139,8 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 				),
 		});
 	}
+
+	const initialTab = clampInitialTab(sp.tab, tabs, "profile");
 
 	return (
 		<div className="flex flex-col gap-6 p-6">

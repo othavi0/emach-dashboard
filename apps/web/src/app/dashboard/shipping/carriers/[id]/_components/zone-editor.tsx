@@ -21,6 +21,7 @@ import {
 	CepRangesEditor,
 	type CepRangeValue,
 } from "@/app/dashboard/branches/_components/cep-ranges-editor";
+import { useLazyTabReload } from "@/components/entity/lazy-tab";
 import { FieldError } from "@/components/field-error";
 import { LabeledField } from "@/components/labeled-field";
 import { MaskedInput } from "@/components/masked-input";
@@ -121,6 +122,7 @@ function ZoneHeader({
 
 export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 	const router = useRouter();
+	const reloadTab = useLazyTabReload();
 	const [expanded, setExpanded] = useState(false);
 	const [isPending, startTransition] = useTransition();
 	const [deleteOpen, setDeleteOpen] = useState(false);
@@ -175,6 +177,7 @@ export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 					setMinFreightAmount(null);
 					clearErrors();
 				}
+				reloadTab();
 				router.refresh();
 			} else {
 				notify.error(result.error ?? "Erro ao salvar zona");
@@ -191,6 +194,7 @@ export function ZoneEditor({ carrierId, canManage, zone }: Props) {
 			if (result.ok) {
 				notify.success("Zona removida");
 				setDeleteOpen(false);
+				reloadTab();
 				router.refresh();
 			} else {
 				notify.error(result.error ?? "Erro ao remover zona");

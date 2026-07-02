@@ -12,6 +12,7 @@ import { notFound } from "next/navigation";
 
 import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
 import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
+import { clampInitialTab } from "@/components/entity/tab-url";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { CustomerEditSheet } from "../_components/customer-edit-sheet";
 import { CustomerIdentity } from "../_components/customer-identity";
@@ -36,16 +37,6 @@ interface PageProps {
 	params: Promise<{ id: string }>;
 	searchParams: Promise<{ edit?: string; tab?: string }>;
 }
-
-const KNOWN_TABS = new Set([
-	"perfil",
-	"enderecos",
-	"pedidos",
-	"avaliacoes",
-	"consentimento",
-	"sessoes",
-	"auditoria",
-]);
 
 export default function CustomerDetailPage({
 	params,
@@ -77,8 +68,6 @@ async function CustomerDetailPageContent({ params, searchParams }: PageProps) {
 	if (!customer) {
 		notFound();
 	}
-
-	const initialTab = sp.tab && KNOWN_TABS.has(sp.tab) ? sp.tab : "perfil";
 
 	const [kpis, recentOrders, sessionsCount] = await Promise.all([
 		getCustomerKpis(id),
@@ -146,6 +135,8 @@ async function CustomerDetailPageContent({ params, searchParams }: PageProps) {
 			content: <AuditTabLoader clientId={id} />,
 		},
 	];
+
+	const initialTab = clampInitialTab(sp.tab, tabs, "perfil");
 
 	return (
 		<div className="flex flex-col gap-6 p-6">

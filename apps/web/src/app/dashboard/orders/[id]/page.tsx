@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
 import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
+import { clampInitialTab } from "@/components/entity/tab-url";
 import { can, requireCapability } from "@/lib/permissions";
 import {
 	getOrderDetail,
@@ -114,13 +115,7 @@ async function OrderDetailPageContent({ params, searchParams }: PageProps) {
 			: []),
 	];
 
-	// KNOWN_TABS deriva de `tabs` (não é literal estático): a tab "reembolso" só
-	// existe quando o pedido tem refundRequests, então um ?tab=reembolso antigo/
-	// stale para um pedido sem reembolso precisa cair no default, não travar numa
-	// tab inexistente (nenhum trigger selecionado no shell client).
-	const knownTabValues = new Set(tabs.map((t) => t.value));
-	const initialTab =
-		sp.tab && knownTabValues.has(sp.tab) ? sp.tab : DEFAULT_TAB;
+	const initialTab = clampInitialTab(sp.tab, tabs, DEFAULT_TAB);
 
 	return (
 		<div className="flex flex-col gap-6 p-6">

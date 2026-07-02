@@ -14,6 +14,19 @@ export function resolveTabFromSearch(
 	return raw && knownTabs.includes(raw) ? raw : defaultValue;
 }
 
+/**
+ * Clamp server-side do `?tab=` contra as tabs realmente montadas — derivado
+ * do array (não de Set literal) para não driftar quando uma tab condicional
+ * entra/sai (ex: "reembolso" em orders, "permissoes" em users).
+ */
+export function clampInitialTab(
+	raw: string | undefined,
+	tabs: readonly { value: string }[],
+	defaultValue: string
+): string {
+	return raw && tabs.some((t) => t.value === raw) ? raw : defaultValue;
+}
+
 export function buildTabHref(
 	pathname: string,
 	params: URLSearchParams,

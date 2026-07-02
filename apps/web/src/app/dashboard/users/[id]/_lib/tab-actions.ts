@@ -10,7 +10,6 @@ import {
 	getUserCapabilities,
 	requireCapabilityWithContext,
 } from "@/lib/permissions";
-import { requireCurrentSession } from "@/lib/session";
 import {
 	getUserActivity,
 	getUserAffectedActivity,
@@ -18,26 +17,7 @@ import {
 	type UserActivityRow,
 } from "../../data";
 import { getUserOverrides, type OverrideState } from "../permissions/data";
-
-/**
- * Mesmo gate que hoje protege as abas Atividade/Sessões/"Vincular filial" no
- * page.tsx (requireUserDetailAccessOrRedirect): self ou users.manage. Aqui
- * lança em vez de redirecionar — o consumidor é o LazyTab (error + retry),
- * não uma navegação de página inteira.
- */
-async function requireUserDetailAccess(targetUserId: string) {
-	const session = await requireCurrentSession();
-	if (session.user.status !== "active") {
-		throw new Error("Conta não ativa");
-	}
-	if (session.user.id === targetUserId) {
-		return session;
-	}
-	if (!(await getUserCapabilities(session)).has("users.manage")) {
-		throw new Error("Acesso negado");
-	}
-	return session;
-}
+import { requireUserDetailAccess } from "./access";
 
 export interface UserActivityTabData {
 	affecting: InfiniteResult<UserActivityRow & { actorName: string | null }>;

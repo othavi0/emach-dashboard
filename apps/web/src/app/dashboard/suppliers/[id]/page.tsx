@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
 import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
+import { clampInitialTab } from "@/components/entity/tab-url";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 
 import { getSupplierDetail, getSupplierDetailKpis } from "../data";
@@ -48,9 +49,6 @@ async function SupplierDetailPageContent({ params, searchParams }: PageProps) {
 		notFound();
 	}
 
-	const KNOWN_TABS = new Set(["overview", "estoque", "history"]);
-	const initialTab = sp.tab && KNOWN_TABS.has(sp.tab) ? sp.tab : "overview";
-
 	const tabs: EntityClientTab[] = [
 		{
 			value: "overview",
@@ -78,6 +76,8 @@ async function SupplierDetailPageContent({ params, searchParams }: PageProps) {
 			content: <HistoryTabLoader supplierId={id} />,
 		},
 	];
+
+	const initialTab = clampInitialTab(sp.tab, tabs, "overview");
 
 	return (
 		<div className="flex flex-col gap-6 p-6">

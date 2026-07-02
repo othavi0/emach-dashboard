@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 
 import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
 import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
+import { clampInitialTab } from "@/components/entity/tab-url";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { getBranchDetail, getBranchDetailKpis } from "../data";
 import { ActivityTabLoader } from "./_components/activity-tab-loader";
@@ -54,15 +55,6 @@ async function BranchDetailPageContent({ params, searchParams }: PageProps) {
 	if (!detail) {
 		notFound();
 	}
-
-	const KNOWN_TABS = new Set([
-		"overview",
-		"orders",
-		"stock",
-		"activity",
-		...(canManageTeam ? ["team"] : []),
-	]);
-	const initialTab = sp.tab && KNOWN_TABS.has(sp.tab) ? sp.tab : "overview";
 
 	const tabs: EntityClientTab[] = [
 		{
@@ -109,6 +101,8 @@ async function BranchDetailPageContent({ params, searchParams }: PageProps) {
 			content: <ActivityTabLoader branchId={id} />,
 		},
 	];
+
+	const initialTab = clampInitialTab(sp.tab, tabs, "overview");
 
 	return (
 		<div className="flex flex-col gap-6 p-6">

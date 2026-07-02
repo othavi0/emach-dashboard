@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTabHref, resolveTabFromSearch } from "./tab-url";
+import { buildTabHref, clampInitialTab, resolveTabFromSearch } from "./tab-url";
 
 const KNOWN = ["visao-geral", "estoque", "atividade"];
 
@@ -50,5 +50,21 @@ describe("buildTabHref", () => {
 	it("respeita um paramName customizado", () => {
 		const sp = new URLSearchParams();
 		expect(buildTabHref("/x", sp, "b", "a", "view")).toBe("/x?view=b");
+	});
+});
+
+describe("clampInitialTab", () => {
+	const TABS = [{ value: "overview" }, { value: "estoque" }];
+
+	it("aceita tab conhecida", () => {
+		expect(clampInitialTab("estoque", TABS, "overview")).toBe("estoque");
+	});
+
+	it("cai no default quando raw é undefined", () => {
+		expect(clampInitialTab(undefined, TABS, "overview")).toBe("overview");
+	});
+
+	it("clampa valor desconhecido para o default", () => {
+		expect(clampInitialTab("hacker", TABS, "overview")).toBe("overview");
 	});
 });
