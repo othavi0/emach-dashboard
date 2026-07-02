@@ -34,11 +34,7 @@ export interface ToolsFiltersInput {
 }
 
 interface ToolPageRow extends Record<string, unknown> {
-	branches_breakdown: Array<{
-		branch_id: string;
-		branch_name: string;
-		quantity: number;
-	}> | null;
+	cart_adds_30d: number;
 	created_at: string;
 	default_sku: string | null;
 	default_voltage: string | null;
@@ -224,9 +220,6 @@ export async function fetchToolsPage({
 	const branchStockFilter = filters.branchId
 		? sql` AND sl.branch_id = ${filters.branchId}`
 		: branchAndFilter(scope, sql`sl.branch_id`);
-	const branchStockFilter2 = filters.branchId
-		? sql` AND sl2.branch_id = ${filters.branchId}`
-		: branchAndFilter(scope, sql`sl2.branch_id`);
 
 	const rows = await db.execute<ToolPageRow>(sql`
 		SELECT
@@ -246,11 +239,8 @@ export async function fetchToolsPage({
 			COALESCE((SELECT COUNT(*)::int FROM stock_level sl
 				JOIN tool_variant tv ON tv.id = sl.variant_id
 				WHERE tv.tool_id = t.id AND sl.reorder_point > 0 AND sl.quantity <= sl.reorder_point${branchStockFilter}), 0) AS reorder_count,
-			COALESCE((SELECT json_agg(json_build_object('branch_id', b.id, 'branch_name', b.name, 'quantity', branch_total) ORDER BY b.name ASC)
-				FROM (SELECT b2.id AS bid, SUM(sl2.quantity)::int AS branch_total
-					FROM stock_level sl2 JOIN tool_variant tv2 ON tv2.id = sl2.variant_id
-					JOIN branch b2 ON b2.id = sl2.branch_id WHERE tv2.tool_id = t.id${branchStockFilter2} GROUP BY b2.id) g
-				JOIN branch b ON b.id = g.bid), '[]'::json) AS branches_breakdown,
+			COALESCE((SELECT COUNT(*)::int FROM cart_event ce
+				WHERE ce.tool_id = t.id AND ce.created_at >= now() - interval '30 days'), 0) AS cart_adds_30d,
 			t.created_at::text AS created_at
 		FROM tool t
 		${whereClause}
@@ -273,11 +263,7 @@ export async function fetchToolsPage({
 				primaryCategoryName: r.primary_category_name,
 				status: r.status as ToolStatusValue,
 				totalStock: Number(r.total_stock ?? 0),
-				branches: (r.branches_breakdown ?? []).map((b) => ({
-					branchId: b.branch_id,
-					branchName: b.branch_name,
-					quantity: b.quantity,
-				})),
+				cartAdds30d: Number(r.cart_adds_30d ?? 0),
 			}) as ToolCardData,
 		(last) =>
 			filters.sort === "name"

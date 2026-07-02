@@ -8,7 +8,7 @@ import { category, toolCategory } from "@emach/db/schema/categories";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
 import { orderItem } from "@emach/db/schema/orders";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { cache } from "react";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { requireCapability } from "@/lib/permissions";
@@ -76,8 +76,15 @@ export interface ToolStockSummary {
 	totalStock: number;
 }
 
+export interface ToolCartSummary {
+	d15: number;
+	d30: number;
+	d90: number;
+}
+
 export interface ToolDetail {
 	attributes: ToolDetailAttribute[];
+	cartSummary: ToolCartSummary;
 	categories: ToolDetailCategory[];
 	images: ToolDetailImage[];
 	orderedVariantIds: string[];
@@ -104,80 +111,95 @@ export const getToolDetail = cache(
 				? inArray(stockLevel.branchId, scope.branchIds)
 				: undefined;
 
-		const [categories, images, variants, attributes, stockRows, orderedRows] =
-			await Promise.all([
-				db
-					.select({
-						categoryId: category.id,
-						categoryName: category.name,
-						isPrimary: toolCategory.isPrimary,
-					})
-					.from(toolCategory)
-					.innerJoin(category, eq(toolCategory.categoryId, category.id))
-					.where(eq(toolCategory.toolId, id))
-					.orderBy(asc(toolCategory.isPrimary)),
-				db
-					.select({ id: toolImage.id, url: toolImage.url })
-					.from(toolImage)
-					.where(eq(toolImage.toolId, id))
-					.orderBy(asc(toolImage.sortOrder)),
-				db
-					.select()
-					.from(toolVariant)
-					.where(eq(toolVariant.toolId, id))
-					.orderBy(asc(toolVariant.sortOrder)),
-				db
-					.select({
-						slug: attributeDefinition.slug,
-						label: attributeDefinition.label,
-						inputType: attributeDefinition.inputType,
-						unit: attributeDefinition.unit,
-						options: attributeDefinition.options,
-						sortOrder: attributeDefinition.sortOrder,
-						sourceCategoryId: attributeDefinition.categoryId,
-						sourceCategoryName: category.name,
-						sourceCategoryDepth: category.depth,
-						valueText: toolAttributeValue.valueText,
-						valueNumeric: toolAttributeValue.valueNumeric,
-						valueNumericMax: toolAttributeValue.valueNumericMax,
-						valueBool: toolAttributeValue.valueBool,
-					})
-					.from(toolAttributeValue)
-					.innerJoin(
-						attributeDefinition,
-						eq(toolAttributeValue.attributeId, attributeDefinition.id)
-					)
-					.innerJoin(category, eq(attributeDefinition.categoryId, category.id))
-					.where(eq(toolAttributeValue.toolId, id)),
-				db
-					.select({
-						variantId: toolVariant.id,
-						variantSku: toolVariant.sku,
-						variantBarcode: toolVariant.barcode,
-						variantVoltage: toolVariant.voltage,
-						branchId: branch.id,
-						branchName: branch.name,
-						branchCity: branch.city,
-						branchState: branch.state,
-						quantity: stockLevel.quantity,
-						minQty: stockLevel.minQty,
-						reorderPoint: stockLevel.reorderPoint,
-					})
-					.from(stockLevel)
-					.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
-					.innerJoin(branch, eq(branch.id, stockLevel.branchId))
-					.where(
-						stockScopeCondition
-							? and(eq(toolVariant.toolId, id), stockScopeCondition)
-							: eq(toolVariant.toolId, id)
-					)
-					.orderBy(asc(branch.name), asc(toolVariant.sortOrder)),
-				db
-					.selectDistinct({ variantId: orderItem.variantId })
-					.from(orderItem)
-					.innerJoin(toolVariant, eq(toolVariant.id, orderItem.variantId))
-					.where(eq(toolVariant.toolId, id)),
-			]);
+		const [
+			categories,
+			images,
+			variants,
+			attributes,
+			stockRows,
+			orderedRows,
+			cartRows,
+		] = await Promise.all([
+			db
+				.select({
+					categoryId: category.id,
+					categoryName: category.name,
+					isPrimary: toolCategory.isPrimary,
+				})
+				.from(toolCategory)
+				.innerJoin(category, eq(toolCategory.categoryId, category.id))
+				.where(eq(toolCategory.toolId, id))
+				.orderBy(asc(toolCategory.isPrimary)),
+			db
+				.select({ id: toolImage.id, url: toolImage.url })
+				.from(toolImage)
+				.where(eq(toolImage.toolId, id))
+				.orderBy(asc(toolImage.sortOrder)),
+			db
+				.select()
+				.from(toolVariant)
+				.where(eq(toolVariant.toolId, id))
+				.orderBy(asc(toolVariant.sortOrder)),
+			db
+				.select({
+					slug: attributeDefinition.slug,
+					label: attributeDefinition.label,
+					inputType: attributeDefinition.inputType,
+					unit: attributeDefinition.unit,
+					options: attributeDefinition.options,
+					sortOrder: attributeDefinition.sortOrder,
+					sourceCategoryId: attributeDefinition.categoryId,
+					sourceCategoryName: category.name,
+					sourceCategoryDepth: category.depth,
+					valueText: toolAttributeValue.valueText,
+					valueNumeric: toolAttributeValue.valueNumeric,
+					valueNumericMax: toolAttributeValue.valueNumericMax,
+					valueBool: toolAttributeValue.valueBool,
+				})
+				.from(toolAttributeValue)
+				.innerJoin(
+					attributeDefinition,
+					eq(toolAttributeValue.attributeId, attributeDefinition.id)
+				)
+				.innerJoin(category, eq(attributeDefinition.categoryId, category.id))
+				.where(eq(toolAttributeValue.toolId, id)),
+			db
+				.select({
+					variantId: toolVariant.id,
+					variantSku: toolVariant.sku,
+					variantBarcode: toolVariant.barcode,
+					variantVoltage: toolVariant.voltage,
+					branchId: branch.id,
+					branchName: branch.name,
+					branchCity: branch.city,
+					branchState: branch.state,
+					quantity: stockLevel.quantity,
+					minQty: stockLevel.minQty,
+					reorderPoint: stockLevel.reorderPoint,
+				})
+				.from(stockLevel)
+				.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
+				.innerJoin(branch, eq(branch.id, stockLevel.branchId))
+				.where(
+					stockScopeCondition
+						? and(eq(toolVariant.toolId, id), stockScopeCondition)
+						: eq(toolVariant.toolId, id)
+				)
+				.orderBy(asc(branch.name), asc(toolVariant.sortOrder)),
+			db
+				.selectDistinct({ variantId: orderItem.variantId })
+				.from(orderItem)
+				.innerJoin(toolVariant, eq(toolVariant.id, orderItem.variantId))
+				.where(eq(toolVariant.toolId, id)),
+			db.execute<{ d15: number; d30: number; d90: number }>(sql`
+				SELECT
+					COUNT(*) FILTER (WHERE created_at >= now() - interval '15 days')::int AS "d15",
+					COUNT(*) FILTER (WHERE created_at >= now() - interval '30 days')::int AS "d30",
+					COUNT(*) FILTER (WHERE created_at >= now() - interval '90 days')::int AS "d90"
+				FROM cart_event
+				WHERE tool_id = ${id}
+			`),
+		]);
 
 		const stockSummary = computeStockSummary(stockRows);
 
@@ -195,6 +217,11 @@ export const getToolDetail = cache(
 			})),
 			stockRows,
 			stockSummary,
+			cartSummary: {
+				d15: Number(cartRows.rows[0]?.d15 ?? 0),
+				d30: Number(cartRows.rows[0]?.d30 ?? 0),
+				d90: Number(cartRows.rows[0]?.d90 ?? 0),
+			},
 		};
 	}
 );

@@ -15,14 +15,8 @@ const STATUS_BADGE_VARIANT: Record<
 	discontinued: "outline",
 };
 
-export interface ToolCardBranchSummary {
-	branchId: string;
-	branchName: string;
-	quantity: number;
-}
-
 export interface ToolCardData {
-	branches: ToolCardBranchSummary[];
+	cartAdds30d: number;
 	id: string;
 	imageUrl: string | null;
 	name: string;
@@ -136,11 +130,11 @@ export function ToolCard({ tool }: ToolCardProps) {
 					</span>
 				</div>
 				<div className="flex flex-col items-center py-2.5">
-					<span className="font-bold text-[18px] text-foreground tabular-nums">
-						{tool.branches.length}
+					<span className="font-bold text-[18px] text-primary tabular-nums">
+						{tool.cartAdds30d}
 					</span>
 					<span className="text-[9px] text-muted-foreground uppercase tracking-wider">
-						Filiais
+						Carrinho 30d
 					</span>
 				</div>
 			</div>

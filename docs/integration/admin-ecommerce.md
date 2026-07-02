@@ -38,6 +38,7 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `promotion_tool`      | Dashboard        | Ambos       | Vínculo promoção ↔ tool. E-commerce lê para calcular preço final.                               |
 | `order`               | Shared           | Ambos       | Pedido. **E-commerce:** cria a linha e conduz o status até `paid` (campos de checkout, `paymentMethod`, `paymentProviderRef`, campos Asaas/NF-e, `notes`). **Admin:** assume de `paid` em diante — status, carimbos de tempo (`preparingAt`, `shippedAt`, `deliveredAt`, `canceledAt`, `returnedAt`, `refundedAt`), `branchId`, `shippingTrackingCode`. |
 | `order_item`          | E-commerce       | Ambos       | Itens do pedido. Criados pelo e-commerce no checkout; dashboard lê para exibir e processar.      |
+| `cart_event`          | E-commerce       | Dashboard   | Evento bruto de "adicionar ao carrinho" (1 linha por clique). E-commerce só INSERE (fire-and-forget); dashboard lê janelas 15/30/90 e expurga >180d via cron. |
 | `order_status_history`| Shared           | Dashboard   | E-commerce registra transições até `paid`; dashboard registra de `paid` em diante.               |
 | `order_note`          | Dashboard        | Dashboard   | Notas internas do staff. O e-commerce nunca lê nem escreve.                                      |
 | `order_attachment`    | Dashboard        | Dashboard   | Anexos internos (documentos de despacho, etc.). O e-commerce nunca lê nem escreve.               |
@@ -48,6 +49,19 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `consent_log`         | E-commerce       | Dashboard   | Consentimentos LGPD do cliente. Dashboard lê para auditoria de compliance.                       |
 | `client_audit_log`    | Dashboard        | Dashboard   | Mutações de dados de cliente feitas pelo staff. E-commerce não toca.                             |
 | `client_export_log`   | Dashboard        | Dashboard   | Registro de exports CSV/LGPD. E-commerce não toca.                                               |
+
+---
+
+## Métricas de carrinho (`cart_event`)
+
+O storefront insere 1 linha por clique de "adicionar ao carrinho":
+`{ id: crypto.randomUUID(), toolId, variantId, clientId (se logado, senão null), sessionId (id de visitante/sessão do carrinho), quantity }`.
+`created_at` tem default `now()` — não enviar.
+
+Regras: INSERT-only e fire-and-forget (try/catch com log — falha na métrica
+jamais quebra o fluxo de carrinho). E-commerce não lê nem deleta; o expurgo
+(>180 dias) é do dashboard (`/api/cron/prune-cart-events`). Janelas exibidas
+no admin: 15/30/90 dias, contagem bruta de eventos.
 
 ---
 

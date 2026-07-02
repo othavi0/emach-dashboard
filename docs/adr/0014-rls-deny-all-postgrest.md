@@ -12,6 +12,8 @@ O banco Postgres é compartilhado entre dashboard e ecommerce (ADR-0004) e roda 
 
 Habilitar RLS **sem criar policies** (deny-all) nessas 13 tabelas: `tool`, `tool_variant`, `tool_image`, `tool_category`, `tool_attribute_value`, `tool_attribute_assignment`, `attribute_definition`, `category`, `branch`, `stock_level`, `promotion`, `promotion_tool`, `review`. RLS habilitado sem policy nega tudo para `anon` e `authenticated` — fecha a porta REST por completo.
 
+> Atualização 2026-07-01: `cart_event` (métricas de carrinho) entrou no mesmo regime deny-all — a lista canônica em `src/sql/rls.sql` tem agora 14 tabelas. Tabela nova exposta via PostgREST deve sempre ganhar a linha correspondente no `rls.sql`.
+
 Isso não afeta nenhum dos dois apps porque **nenhum deles usa PostgREST**: todo acesso a dados é server-side via Drizzle sobre `DATABASE_URL`, com a role `postgres` (`rolbypassrls = true`), que ignora RLS por definição. O deny-all só atinge o caminho REST, que o produto não consome.
 
 ## Opções consideradas

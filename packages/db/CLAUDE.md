@@ -22,7 +22,7 @@ Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte 
 
 `src/sql/triggers.sql` contém triggers que Drizzle Kit **não consegue gerar**: anti-ciclo de categoria (com materialização de `path`/`depth`), throttle de `client.last_seen_at` a cada 5 min, derivação automática de `client_type` (CPF→b2c, CNPJ→b2b) e inserção de `order_note` ao cancelar NF-e. Incluídos no `bun db:sync`; aplicados via `bun db:apply-sql` (idempotente), que roda `triggers.sql` + `rls.sql` em ordem.
 
-`src/sql/rls.sql` é o **RLS deny-all canônico** das 13 tabelas `public` expostas via PostgREST (ADR-0014). `ENABLE ROW LEVEL SECURITY` sem policies — só fecha a porta REST pra `anon`/`authenticated`; acesso server-side (Drizzle, role `postgres` BYPASSRLS) é intocado. Idempotente.
+`src/sql/rls.sql` é o **RLS deny-all canônico** das 14 tabelas `public` expostas via PostgREST (ADR-0014; 13 originais + `cart_event` em 2026-07-01). `ENABLE ROW LEVEL SECURITY` sem policies — só fecha a porta REST pra `anon`/`authenticated`; acesso server-side (Drizzle, role `postgres` BYPASSRLS) é intocado. Idempotente.
 
 Índices de cursor-based pagination e o partial unique `stock_movement_sale_idempotency` vivem no schema Drizzle (declarados nas tabelas) — `drizzle-kit push` os mantém.
 
