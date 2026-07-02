@@ -1,22 +1,16 @@
-import { buttonVariants } from "@emach/ui/components/button";
-import { Boxes, Factory, History, Pencil } from "lucide-react";
+import { Boxes, Factory, History } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import type { EntityTab } from "@/components/entity/entity-tabs";
-import { EntityTabs } from "@/components/entity/entity-tabs";
+import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
+import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 
-import {
-	getSupplierAuditLog,
-	getSupplierDetail,
-	getSupplierDetailKpis,
-} from "../data";
-import { ArchiveSupplierDialog } from "./_components/archive-supplier-dialog";
-import { EstoqueTab } from "./_components/estoque-tab";
-import { HistoryTab } from "./_components/history-tab";
+import { getSupplierDetail, getSupplierDetailKpis } from "../data";
+import { EstoqueTabLoader } from "./_components/estoque-tab-loader";
+import { HistoryTabLoader } from "./_components/history-tab-loader";
 import { OverviewTab } from "./_components/overview-tab";
+import { SupplierDetailActions } from "./_components/supplier-detail-actions";
 import { SupplierEditSheet } from "./_components/supplier-edit-sheet";
 import { SupplierIdentity } from "./_components/supplier-identity";
 
@@ -26,7 +20,7 @@ export const metadata: Metadata = {
 
 interface PageProps {
 	params: Promise<{ id: string }>;
-	searchParams: Promise<{ edit?: string; q?: string; tab?: string }>;
+	searchParams: Promise<{ edit?: string; tab?: string }>;
 }
 
 export default function SupplierDetailPage({
@@ -54,30 +48,10 @@ async function SupplierDetailPageContent({ params, searchParams }: PageProps) {
 		notFound();
 	}
 
-	const tab = sp.tab ?? "overview";
-	const audit = tab === "history" ? await getSupplierAuditLog(id) : [];
+	const KNOWN_TABS = new Set(["overview", "estoque", "history"]);
+	const initialTab = sp.tab && KNOWN_TABS.has(sp.tab) ? sp.tab : "overview";
 
-	let headerAction: React.ReactNode = null;
-	if (canManage && tab === "overview") {
-		headerAction = (
-			<div className="flex items-center gap-2">
-				<Link
-					className={buttonVariants({ size: "sm", variant: "outline" })}
-					href={`/dashboard/suppliers/${id}?edit=1`}
-				>
-					<Pencil aria-hidden className="mr-1.5 size-3.5" />
-					Editar
-				</Link>
-				<ArchiveSupplierDialog
-					status={detail.status}
-					supplierId={id}
-					supplierName={detail.name}
-				/>
-			</div>
-		);
-	}
-
-	const tabs: EntityTab[] = [
+	const tabs: EntityClientTab[] = [
 		{
 			value: "overview",
 			label: "Visão geral",
@@ -93,21 +67,33 @@ async function SupplierDetailPageContent({ params, searchParams }: PageProps) {
 					{detail.toolsTotal}
 				</span>
 			),
-			content:
-				tab === "estoque" ? <EstoqueTab search={sp.q} supplierId={id} /> : null,
+			lazy: true,
+			content: <EstoqueTabLoader supplierId={id} />,
 		},
 		{
 			value: "history",
 			label: "Histórico",
 			icon: <History aria-hidden className="size-3.5" />,
-			content: tab === "history" ? <HistoryTab rows={audit} /> : null,
+			lazy: true,
+			content: <HistoryTabLoader supplierId={id} />,
 		},
 	];
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
-			<SupplierIdentity actions={headerAction} detail={detail} />
-			<EntityTabs defaultValue="overview" tabs={tabs} />
+			<EntityClientTabs
+				defaultValue="overview"
+				header={
+					<SupplierIdentity
+						actions={
+							<SupplierDetailActions canManage={canManage} detail={detail} />
+						}
+						detail={detail}
+					/>
+				}
+				initialTab={initialTab}
+				tabs={tabs}
+			/>
 			{sp.edit === "1" ? <SupplierEditSheet supplier={detail} /> : null}
 		</div>
 	);
