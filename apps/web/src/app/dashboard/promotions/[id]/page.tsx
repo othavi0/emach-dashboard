@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
 import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
+import { clampInitialTab } from "@/components/entity/tab-url";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { getPromotion } from "../data";
 import { OverviewTab } from "./_components/overview-tab";
@@ -42,9 +43,6 @@ async function PromotionDetailPageContent({ params, searchParams }: PageProps) {
 		notFound();
 	}
 
-	const KNOWN_TABS = new Set(["overview", "tools"]);
-	const initialTab = sp.tab && KNOWN_TABS.has(sp.tab) ? sp.tab : "overview";
-
 	const tabs: EntityClientTab[] = [
 		{
 			value: "overview",
@@ -64,6 +62,8 @@ async function PromotionDetailPageContent({ params, searchParams }: PageProps) {
 			content: <ToolsTab detail={detail} />,
 		},
 	];
+
+	const initialTab = clampInitialTab(sp.tab, tabs, "overview");
 
 	return (
 		<div className="flex flex-col gap-6 p-6">

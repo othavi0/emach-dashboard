@@ -40,7 +40,7 @@
 **Interfaces:**
 - Produces: `clampInitialTab(raw: string | undefined, tabs: readonly { value: string }[], defaultValue: string): string` exportado de `@/components/entity/tab-url`.
 
-- [ ] **Step 1: Escrever os testes (falhando)** — em `tab-url.test.ts`, adicionar:
+- [x] **Step 1: Escrever os testes (falhando)** — em `tab-url.test.ts`, adicionar:
 
 ```ts
 describe("clampInitialTab", () => {
@@ -62,9 +62,9 @@ describe("clampInitialTab", () => {
 
 (importar `clampInitialTab` junto do import existente de `buildTabHref, resolveTabFromSearch`)
 
-- [ ] **Step 2: Rodar e ver falhar** — `bun test apps/web/src/components/entity/tab-url.test.ts` → FAIL (export não existe).
+- [x] **Step 2: Rodar e ver falhar** — `bun test apps/web/src/components/entity/tab-url.test.ts` → FAIL (export não existe).
 
-- [ ] **Step 3: Implementar o helper** — em `tab-url.ts`, acima de `buildTabHref`:
+- [x] **Step 3: Implementar o helper** — em `tab-url.ts`, acima de `buildTabHref`:
 
 ```ts
 /**
@@ -81,9 +81,9 @@ export function clampInitialTab(
 }
 ```
 
-- [ ] **Step 4: Rodar e ver passar** — `bun test apps/web/src/components/entity/tab-url.test.ts` → PASS.
+- [x] **Step 4: Rodar e ver passar** — `bun test apps/web/src/components/entity/tab-url.test.ts` → PASS.
 
-- [ ] **Step 5: Migrar as 8 páginas.** Em cada `page.tsx`: Read o arquivo inteiro; localizar o `Set` literal `KNOWN_TABS` e o cálculo de `initialTab`. Reordenar se preciso para que o array `tabs: EntityClientTab[]` seja construído ANTES do clamp (todos os dados já estão fetched nesse ponto), apagar o `Set`, e trocar por:
+- [x] **Step 5: Migrar as 8 páginas.** Em cada `page.tsx`: Read o arquivo inteiro; localizar o `Set` literal `KNOWN_TABS` e o cálculo de `initialTab`. Reordenar se preciso para que o array `tabs: EntityClientTab[]` seja construído ANTES do clamp (todos os dados já estão fetched nesse ponto), apagar o `Set`, e trocar por:
 
 ```ts
 const initialTab = clampInitialTab(sp.tab, tabs, "overview"); // default de cada página
@@ -91,7 +91,7 @@ const initialTab = clampInitialTab(sp.tab, tabs, "overview"); // default de cada
 
 Import: `import { clampInitialTab } from "@/components/entity/tab-url";`. Defaults por página: suppliers `"overview"`, users `"profile"`, carriers `DEFAULT_TAB` (const existente), branches `"overview"`, promotions `"overview"`, customers `"perfil"`, categories `DEFAULT_TAB`/`"visao-geral"` (conferir no arquivo), orders `DEFAULT_TAB` (já existe — só trocar a expressão manual pelo helper). ATENÇÃO users: a tab `permissoes` é condicional (`targetManageable`) — como o array já é condicional, o helper cobre; apagar também o spread condicional do Set antigo. ATENÇÃO orders: `reembolso` condicional idem.
 
-- [ ] **Step 6: Verificar** — `bun check-types` → verde; `rg -n "KNOWN_TABS" apps/web/src` → só ocorrências em comentários/nenhuma.
+- [x] **Step 6: Verificar** — `bun check-types` → verde; `rg -n "KNOWN_TABS" apps/web/src` → só ocorrências em comentários/nenhuma.
 
 - [ ] **Step 7: Commit** — `git add -A && git commit -m "refactor(entity): clampInitialTab derivado do array"` (body: cita spec + elimina drift de Set literal, refs #261).
 

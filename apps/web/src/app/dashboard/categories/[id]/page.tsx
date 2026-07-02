@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
 import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
+import { clampInitialTab } from "@/components/entity/tab-url";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 
 import {
@@ -26,7 +27,6 @@ interface PageProps {
 	searchParams: Promise<{ tab?: string }>;
 }
 
-const KNOWN_TABS = new Set(["visao-geral", "produtos", "subcategorias"]);
 const DEFAULT_TAB = "visao-geral";
 
 function CountBadge({ value }: { value: number }) {
@@ -55,7 +55,6 @@ async function CategoryDetailPageContent({ params, searchParams }: PageProps) {
 
 	const { id } = await params;
 	const { tab } = await searchParams;
-	const initialTab = tab && KNOWN_TABS.has(tab) ? tab : DEFAULT_TAB;
 
 	const [detail, ancestors, attributes] = await Promise.all([
 		getCategoryDetail(id),
@@ -103,6 +102,8 @@ async function CategoryDetailPageContent({ params, searchParams }: PageProps) {
 			content: <SubcategoriesTabLoader categoryId={id} />,
 		},
 	];
+
+	const initialTab = clampInitialTab(tab, tabs, DEFAULT_TAB);
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
