@@ -9,6 +9,7 @@ import {
 } from "@emach/ui/components/card";
 import { LogOut, MonitorOff } from "lucide-react";
 import { useTransition } from "react";
+import { useLazyTabReload } from "@/components/entity/lazy-tab";
 import { formatDateTime } from "@/lib/format/datetime";
 import { notify } from "@/lib/notify";
 import { revokeUserSession } from "../../actions";
@@ -29,12 +30,14 @@ export function SessionsList({
 	userId: string;
 }) {
 	const [pending, startTransition] = useTransition();
+	const reloadTab = useLazyTabReload();
 
 	const revoke = (sessionId: string) => {
 		startTransition(async () => {
 			const res = await revokeUserSession({ sessionId });
 			if (res.ok) {
 				notify.success("Sessão revogada");
+				reloadTab();
 			} else {
 				notify.error(res.error);
 			}

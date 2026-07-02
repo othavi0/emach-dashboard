@@ -135,7 +135,7 @@ Import: `import { clampInitialTab } from "@/components/entity/tab-url";`. Defaul
 **Interfaces:**
 - Produces: `useLazyTabReload(): () => void` exportado de `@/components/entity/lazy-tab`. Dentro de um `LazyTab`, devolve o `retry` (re-fetch da tab); fora, devolve no-op estável.
 
-- [ ] **Step 1: Fundação no `lazy-tab.tsx`** — Read o arquivo; adicionar Context + hook (mesmo idioma do `TabSetActiveContext` de `entity-client-tabs.tsx`):
+- [x] **Step 1: Fundação no `lazy-tab.tsx`** — Read o arquivo; adicionar Context + hook (mesmo idioma do `TabSetActiveContext` de `entity-client-tabs.tsx`):
 
 ```tsx
 const LazyTabReloadContext = createContext<() => void>(() => {
@@ -154,9 +154,9 @@ export function useLazyTabReload(): () => void {
 
 E no `LazyTab`, envolver o `LazyTabView` no provider: `<LazyTabReloadContext.Provider value={retry}>...</LazyTabReloadContext.Provider>`. Import de `createContext, useContext` no react import existente.
 
-- [ ] **Step 2: Teste** — em `lazy-tab.test.tsx` (Read primeiro; segue o padrão `renderToStaticMarkup` de `entity-client-tabs.test.tsx`): adicionar teste de que um componente que chama `useLazyTabReload()` fora de provider renderiza sem lançar (no-op default). Rodar `bun test apps/web/src/components/entity/` → PASS.
+- [x] **Step 2: Teste** — em `lazy-tab.test.tsx` (Read primeiro; segue o padrão `renderToStaticMarkup` de `entity-client-tabs.test.tsx`): adicionar teste de que um componente que chama `useLazyTabReload()` fora de provider renderiza sem lançar (no-op default). Rodar `bun test apps/web/src/components/entity/` → PASS.
 
-- [ ] **Step 3: Call sites** — em cada arquivo listado (Read antes): adicionar `const reloadTab = useLazyTabReload();` e chamar `reloadTab()` no caminho de sucesso da mutação, MANTENDO o `router.refresh()` existente (ele atualiza KPIs/header; o reload atualiza a tab). Exemplo (sessions-list):
+- [x] **Step 3: Call sites** — em cada arquivo listado (Read antes): adicionar `const reloadTab = useLazyTabReload();` e chamar `reloadTab()` no caminho de sucesso da mutação, MANTENDO o `router.refresh()` existente (ele atualiza KPIs/header; o reload atualiza a tab). Exemplo (sessions-list):
 
 ```tsx
 const reloadTab = useLazyTabReload();
@@ -173,11 +173,11 @@ const revoke = (sessionId: string) => {
 
 Adaptar ao código real de cada arquivo (não colar cegamente — ler o fluxo de sucesso de cada mutação). Em `moderate-actions.tsx` o componente também roda FORA de tab lazy (listagem de reviews) — o no-op cobre; nenhuma condicional necessária.
 
-- [ ] **Step 4: Sweep de call sites esquecidos** — `rg -n "router.refresh" apps/web/src/app/dashboard --glob '*.tsx'` e classificar: componente renderizado DENTRO de tab lazy (via `*-tab-loader.tsx`) sem `reloadTab()` → adicionar; componente de tab eager/página → deixar. Documentar no report quais ficaram de fora e por quê.
+- [x] **Step 4: Sweep de call sites esquecidos** — `rg -n "router.refresh" apps/web/src/app/dashboard --glob '*.tsx'` e classificar: componente renderizado DENTRO de tab lazy (via `*-tab-loader.tsx`) sem `reloadTab()` → adicionar; componente de tab eager/página → deixar. Documentar no report quais ficaram de fora e por quê.
 
-- [ ] **Step 5: ADR-0024** — Read a seção Consequências; reescrever a bala "Limitação conhecida (herdada do piloto...)": mutação dentro de tab lazy agora chama `useLazyTabReload()` no sucesso (padrão, exemplo canônico `sessions-list.tsx`); `router.refresh()` continua para props do server. Remover a frase "o padrão atual é o usuário reabrir a tab".
+- [x] **Step 5: ADR-0024** — Read a seção Consequências; reescrever a bala "Limitação conhecida (herdada do piloto...)": mutação dentro de tab lazy agora chama `useLazyTabReload()` no sucesso (padrão, exemplo canônico `sessions-list.tsx`); `router.refresh()` continua para props do server. Remover a frase "o padrão atual é o usuário reabrir a tab".
 
-- [ ] **Step 6: Verificar + commit** — `bun check-types` + `bun --cwd apps/web test` verdes → `git commit -m "feat(entity): reload de tab lazy pós-mutação"` (body: useLazyTabReload via Context, call sites sessions/moderação/team, ADR atualizado; refs spec).
+- [x] **Step 6: Verificar + commit** — `bun check-types` + `bun --cwd apps/web test` verdes → `git commit -m "feat(entity): reload de tab lazy pós-mutação"` (body: useLazyTabReload via Context, call sites sessions/moderação/team, ADR atualizado; refs spec).
 
 ---
 

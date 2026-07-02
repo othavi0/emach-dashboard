@@ -12,6 +12,7 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { Textarea } from "@emach/ui/components/textarea";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useLazyTabReload } from "@/components/entity/lazy-tab";
 import { notify } from "@/lib/notify";
 
 import { moderateReview } from "../actions";
@@ -23,6 +24,7 @@ function isNoteRequired(status: ReviewStatus) {
 
 export function ModerateActions({ review }: { review: ReviewDetail }) {
 	const router = useRouter();
+	const reloadTab = useLazyTabReload();
 	const [moderationNote, setModerationNote] = useState(
 		review.moderationNote ?? ""
 	);
@@ -50,6 +52,7 @@ export function ModerateActions({ review }: { review: ReviewDetail }) {
 				}
 
 				notify.success("Moderação salva");
+				reloadTab();
 				router.refresh();
 			} catch {
 				notify.error("Não foi possível salvar a moderação");

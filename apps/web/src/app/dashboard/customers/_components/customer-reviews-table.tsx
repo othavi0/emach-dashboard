@@ -37,6 +37,7 @@ import { BanIcon, CheckCircleIcon, StarIcon, XCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { moderateReview } from "@/app/dashboard/reviews/actions";
+import { useLazyTabReload } from "@/components/entity/lazy-tab";
 import { notify } from "@/lib/notify";
 import type { CustomerReviewRow } from "../data";
 
@@ -93,6 +94,7 @@ export function CustomerReviewsTable({
 	canModerate,
 }: CustomerReviewsTableProps) {
 	const router = useRouter();
+	const reloadTab = useLazyTabReload();
 	const [isPending, startTransition] = useTransition();
 	const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 	const [note, setNote] = useState("");
@@ -119,6 +121,7 @@ export function CustomerReviewsTable({
 			const result = await moderateReview({ reviewId, status: "approved" });
 			if (result.ok) {
 				notify.success("Avaliação aprovada");
+				reloadTab();
 				router.refresh();
 			} else {
 				notify.error(result.error);
@@ -145,6 +148,7 @@ export function CustomerReviewsTable({
 				);
 				setPendingAction(null);
 				setNote("");
+				reloadTab();
 				router.refresh();
 			} else {
 				notify.error(result.error);

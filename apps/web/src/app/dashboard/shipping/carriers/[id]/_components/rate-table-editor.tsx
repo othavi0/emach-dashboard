@@ -6,6 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { useLazyTabReload } from "@/components/entity/lazy-tab";
 import { FieldError } from "@/components/field-error";
 import { MaskedInput } from "@/components/masked-input";
 import { MoneyInput } from "@/components/money-input";
@@ -60,6 +61,7 @@ export function RateTableEditor({
 	canManage,
 }: Props) {
 	const router = useRouter();
+	const reloadTab = useLazyTabReload();
 	const [isPending, startTransition] = useTransition();
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<Record<string, string>>();
@@ -99,6 +101,7 @@ export function RateTableEditor({
 			if (result.ok) {
 				notify.success("Tabela de fretes salva");
 				clearErrors();
+				reloadTab();
 				router.refresh();
 			} else {
 				notify.error(result.error ?? "Erro ao salvar tabela");

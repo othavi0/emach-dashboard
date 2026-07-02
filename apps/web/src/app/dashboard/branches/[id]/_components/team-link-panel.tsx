@@ -16,6 +16,7 @@ import {
 import { Loader2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useLazyTabReload } from "@/components/entity/lazy-tab";
 import { notify } from "@/lib/notify";
 import { linkUserToBranchAction, searchEligibleUsers } from "../../actions";
 
@@ -31,6 +32,13 @@ interface UserOption {
 
 export function TeamLinkPanel({ branchId }: Props) {
 	const router = useRouter();
+	// NOTA: este painel é renderizado no header (BranchDetailActions), fora da
+	// subárvore do LazyTab da aba "Equipe" — reloadTab() resolve pro no-op
+	// default do Context aqui (irmão, não descendente, do LazyTab). Mantido por
+	// consistência/forward-compat; router.refresh() abaixo é quem hoje atualiza
+	// o badge de contagem (kpis.teamSize, eager); a lista lazy só reflete o
+	// vínculo ao reabrir/retry a aba.
+	const reloadTab = useLazyTabReload();
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<UserOption[]>([]);
@@ -64,6 +72,7 @@ export function TeamLinkPanel({ branchId }: Props) {
 				setOpen(false);
 				setQuery("");
 				setResults([]);
+				reloadTab();
 				router.refresh();
 			} else {
 				notify.error(result.error);

@@ -2,9 +2,29 @@
 
 import { Alert, AlertDescription } from "@emach/ui/components/alert";
 import { Button } from "@emach/ui/components/button";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+	createContext,
+	type ReactNode,
+	useContext,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 
 export type LazyTabStatus = "loading" | "error" | "ready";
+
+const LazyTabReloadContext = createContext<() => void>(() => {
+	// no-op fora do provider (ex: componente usado fora de tab lazy)
+});
+
+/**
+ * Re-dispara o fetch do LazyTab que envolve o componente. Mutações dentro de
+ * tabs lazy chamam após sucesso — router.refresh() atualiza props do server,
+ * mas não o dado buscado pelo loader (ADR-0024).
+ */
+export function useLazyTabReload(): () => void {
+	return useContext(LazyTabReloadContext);
+}
 
 export function useLazyTab<T>(
 	load: () => Promise<T>,
@@ -101,13 +121,15 @@ export function LazyTab<T>({
 }): ReactNode {
 	const { status, data, retry } = useLazyTab(load, reloadKey);
 	return (
-		<LazyTabView
-			data={data}
-			onRetry={retry}
-			skeleton={skeleton}
-			status={status}
-		>
-			{children}
-		</LazyTabView>
+		<LazyTabReloadContext.Provider value={retry}>
+			<LazyTabView
+				data={data}
+				onRetry={retry}
+				skeleton={skeleton}
+				status={status}
+			>
+				{children}
+			</LazyTabView>
+		</LazyTabReloadContext.Provider>
 	);
 }

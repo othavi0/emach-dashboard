@@ -1,9 +1,22 @@
 // apps/web/src/components/entity/lazy-tab.test.tsx
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { LazyTabView } from "./lazy-tab";
+import { LazyTabView, useLazyTabReload } from "./lazy-tab";
 
 const noop = () => undefined;
+
+function ReloadCaller() {
+	const reloadTab = useLazyTabReload();
+	reloadTab();
+	return <span>ok</span>;
+}
+
+describe("useLazyTabReload", () => {
+	it("é um no-op quando usado fora do provider", () => {
+		const html = renderToStaticMarkup(<ReloadCaller />);
+		expect(html).toContain("ok");
+	});
+});
 
 describe("LazyTabView", () => {
 	it("mostra o skeleton enquanto carrega", () => {

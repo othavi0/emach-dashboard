@@ -16,6 +16,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { StatusBadge } from "@/app/dashboard/users/_components/status-badge";
+import { useLazyTabReload } from "@/components/entity/lazy-tab";
 import { getInitials } from "@/lib/format/name";
 import { formatRelative } from "@/lib/format/relative";
 import { notify } from "@/lib/notify";
@@ -35,6 +36,7 @@ interface Props {
 
 export function TeamMemberCard({ branchId, member }: Props) {
 	const router = useRouter();
+	const reloadTab = useLazyTabReload();
 	const [open, setOpen] = useState(false);
 	const [unlinking, setUnlinking] = useState(false);
 
@@ -48,6 +50,7 @@ export function TeamMemberCard({ branchId, member }: Props) {
 			if (result.ok) {
 				notify.success(`${member.name} desvinculado da filial.`);
 				setOpen(false);
+				reloadTab();
 				router.refresh();
 			} else {
 				notify.error(result.error);
