@@ -17,6 +17,7 @@ import {
 } from "@emach/ui/components/table";
 import { Briefcase, CalendarDays, Clock, Monitor } from "lucide-react";
 import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
+import { SwitchTabButton } from "@/components/entity/switch-tab-button";
 import { formatDate } from "@/lib/format/datetime";
 import { formatRelative } from "@/lib/format/relative";
 import { RoleBadge } from "../../_components/role-badge";
@@ -29,7 +30,6 @@ import type {
 } from "../../data";
 import { ACTION_ICONS, FALLBACK_ACTION_ICON } from "./activity-icons";
 import { ACTIVITY_LABELS_AFFECTING } from "./activity-labels";
-import { SwitchTabButton } from "./switch-tab-button";
 
 interface Props {
 	kpis: UserDetailKpis;

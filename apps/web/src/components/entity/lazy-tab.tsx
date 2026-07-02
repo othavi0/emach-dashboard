@@ -6,7 +6,10 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 export type LazyTabStatus = "loading" | "error" | "ready";
 
-export function useLazyTab<T>(load: () => Promise<T>): {
+export function useLazyTab<T>(
+	load: () => Promise<T>,
+	reloadKey?: string
+): {
 	status: LazyTabStatus;
 	data: T | null;
 	retry: () => void;
@@ -17,6 +20,9 @@ export function useLazyTab<T>(load: () => Promise<T>): {
 	const loadRef = useRef(load);
 	loadRef.current = load;
 
+	// reloadKey: refaz o fetch quando dados externos ao shell mudam (ex: filtros
+	// lidos de useSearchParams) — sem ele o dado congela no primeiro attempt e a
+	// tab deixa de reagir a filtros trocados após a ativação (review do #261).
 	useEffect(() => {
 		let active = true;
 		setStatus("loading");
@@ -37,7 +43,7 @@ export function useLazyTab<T>(load: () => Promise<T>): {
 		return () => {
 			active = false;
 		};
-	}, [attempt]);
+	}, [attempt, reloadKey]);
 
 	return { status, data, retry: () => setAttempt((a) => a + 1) };
 }
@@ -84,14 +90,16 @@ export function LazyTabView<T>({
 
 export function LazyTab<T>({
 	load,
+	reloadKey,
 	skeleton,
 	children,
 }: {
 	load: () => Promise<T>;
+	reloadKey?: string;
 	skeleton?: ReactNode;
 	children: (data: T) => ReactNode;
 }): ReactNode {
-	const { status, data, retry } = useLazyTab(load);
+	const { status, data, retry } = useLazyTab(load, reloadKey);
 	return (
 		<LazyTabView
 			data={data}

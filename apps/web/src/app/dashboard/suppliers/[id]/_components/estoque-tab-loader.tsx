@@ -14,6 +14,9 @@ export function EstoqueTabLoader({ supplierId }: { supplierId: string }) {
 	return (
 		<LazyTab
 			load={() => fetchSupplierStockPage({ supplierId, search, cursor: null })}
+			// Mesmo racional do stock-tab-loader de branches: ?q= vive na URL e o
+			// fetch congelaria no primeiro attempt sem o reloadKey.
+			reloadKey={search ?? ""}
 		>
 			{(first: InfiniteResult<SupplierStockToolRow>) => (
 				<EstoqueTab first={first} search={search} supplierId={supplierId} />

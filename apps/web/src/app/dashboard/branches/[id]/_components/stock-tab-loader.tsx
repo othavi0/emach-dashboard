@@ -31,6 +31,10 @@ export function StockTabLoader({ branchId, branchName }: Props) {
 					status,
 				})
 			}
+			// Filtros vivem na URL (BranchStockFilters → router.replace); sem o
+			// reloadKey o fetch congela no primeiro attempt e a lista ignora
+			// trocas de filtro após a ativação da tab.
+			reloadKey={JSON.stringify({ categoryId, search, sort, status })}
 		>
 			{(data: BranchStockTabData) => (
 				<StockTab branchId={branchId} branchName={branchName} data={data} />

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-
+import { SwitchTabButton } from "@/components/entity/switch-tab-button";
 import { ToolDescription } from "@/components/tool-description";
 import { formatDayMonthShortYear } from "@/lib/format/datetime";
 import { groupAttributesByCategory } from "../_lib/attribute-grouping";
@@ -14,7 +14,6 @@ import type {
 } from "../_lib/tool-detail-data";
 import { ImageCarousel } from "./image-carousel";
 import { SectionCard } from "./section-card";
-import { SwitchTabButton } from "./switch-tab-button";
 import { ToolSpecs } from "./tool-specs";
 
 const BRL = new Intl.NumberFormat("pt-BR", {

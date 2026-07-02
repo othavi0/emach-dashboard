@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useSetActiveTab } from "@/components/entity/entity-client-tabs";
+import { useSetActiveTab } from "./entity-client-tabs";
 
 interface SwitchTabButtonProps {
 	children: ReactNode;
@@ -12,7 +12,8 @@ interface SwitchTabButtonProps {
 /**
  * Atalho in-content que troca a tab ativa do EntityClientTabs client-side (via
  * useSetActiveTab → history.replaceState), sem disparar RSC como faria um
- * <Link href="?tab=...">. Usado no "Ver tudo" do card de últimos pedidos.
+ * <Link href="?tab=...">. Serve tanto para "Ver tudo →" em cards de overview
+ * quanto para envolver cards de KPI clicáveis.
  */
 export function SwitchTabButton({
 	children,
