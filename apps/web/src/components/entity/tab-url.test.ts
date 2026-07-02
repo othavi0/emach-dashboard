@@ -1,5 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { buildTabHref } from "./tab-url";
+import { buildTabHref, resolveTabFromSearch } from "./tab-url";
+
+const KNOWN = ["visao-geral", "estoque", "atividade"];
+
+describe("resolveTabFromSearch", () => {
+	it("resolve tab conhecida presente na query", () => {
+		expect(resolveTabFromSearch("?tab=estoque", KNOWN, "visao-geral")).toBe(
+			"estoque"
+		);
+	});
+
+	it("cai no default quando o param está ausente", () => {
+		expect(resolveTabFromSearch("", KNOWN, "visao-geral")).toBe("visao-geral");
+	});
+
+	it("clampa valor desconhecido para o default", () => {
+		expect(resolveTabFromSearch("?tab=hacker", KNOWN, "visao-geral")).toBe(
+			"visao-geral"
+		);
+	});
+
+	it("respeita um paramName customizado", () => {
+		expect(
+			resolveTabFromSearch("?view=atividade", KNOWN, "visao-geral", "view")
+		).toBe("atividade");
+	});
+});
 
 describe("buildTabHref", () => {
 	it("remove o paramName quando a tab é o default", () => {
