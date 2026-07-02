@@ -1,3 +1,5 @@
+"use client";
+
 import {
 	Tabs,
 	TabsContent,
@@ -6,16 +8,15 @@ import {
 } from "@emach/ui/components/tabs";
 import { PenLine, Target } from "lucide-react";
 
-import { getUserActivity, getUserAffectedActivity } from "../../data";
+import type { UserActivityTabData } from "../_lib/tab-actions";
 import { ActivityAffectingUserView } from "./activity-affecting-user-view";
 import { ActivityByUserView } from "./activity-by-user-view";
 
-export async function ActivityTab({ userId }: { userId: string }) {
-	const [byUser, affecting] = await Promise.all([
-		getUserActivity(userId, null, 25),
-		getUserAffectedActivity(userId, null, 25),
-	]);
+interface Props extends UserActivityTabData {
+	userId: string;
+}
 
+export function ActivityTabClient({ affecting, byUser, userId }: Props) {
 	return (
 		<Tabs defaultValue="affecting">
 			<TabsList>

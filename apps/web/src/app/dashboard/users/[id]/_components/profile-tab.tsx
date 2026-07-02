@@ -1,3 +1,5 @@
+"use client";
+
 import { Badge } from "@emach/ui/components/badge";
 import {
 	Card,
@@ -14,7 +16,6 @@ import {
 	TableRow,
 } from "@emach/ui/components/table";
 import { Briefcase, CalendarDays, Clock, Monitor } from "lucide-react";
-import Link from "next/link";
 import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
 import { formatDate } from "@/lib/format/datetime";
 import { formatRelative } from "@/lib/format/relative";
@@ -28,6 +29,7 @@ import type {
 } from "../../data";
 import { ACTION_ICONS, FALLBACK_ACTION_ICON } from "./activity-icons";
 import { ACTIVITY_LABELS_AFFECTING } from "./activity-labels";
+import { SwitchTabButton } from "./switch-tab-button";
 
 interface Props {
 	kpis: UserDetailKpis;
@@ -158,12 +160,12 @@ export function ProfileTab({
 			<Card>
 				<CardHeader className="flex flex-row items-center justify-between">
 					<CardTitle className="text-sm">Atividade recente</CardTitle>
-					<Link
+					<SwitchTabButton
 						className="text-primary text-xs hover:underline"
-						href="?tab=activity"
+						tab="activity"
 					>
 						Ver tudo
-					</Link>
+					</SwitchTabButton>
 				</CardHeader>
 				<CardContent>
 					{recentActivity.length === 0 ? (
