@@ -23,6 +23,15 @@ import { updateOwnProfileSchema } from "../../schema";
 // vira uma UPDATE direta na tabela `user`): a troca de e-mail exige o fluxo
 // double opt-in do Better Auth (`authClient.changeEmail`), então validamos
 // aqui só para dar feedback de campo consistente com o resto do form.
+const selfEditSchema = updateOwnProfileSchema.extend({
+	email: z
+		.string()
+		.trim()
+		.min(1, "Informe seu e-mail")
+		.email("E-mail inválido")
+		.transform((v) => v.toLowerCase()),
+});
+
 function buildProfilePayload(args: {
 	name: string;
 	initialName: string;
@@ -40,15 +49,6 @@ function buildProfilePayload(args: {
 	}
 	return payload;
 }
-
-const selfEditSchema = updateOwnProfileSchema.extend({
-	email: z
-		.string()
-		.trim()
-		.min(1, "Informe seu e-mail")
-		.email("E-mail inválido")
-		.transform((v) => v.toLowerCase()),
-});
 
 export function UserSelfEditSheet({
 	name: initialName,
@@ -95,15 +95,20 @@ export function UserSelfEditSheet({
 			return;
 		}
 		setUploading(true);
-		const fd = new FormData();
-		fd.set("file", file);
-		const res = await uploadOwnAvatar(fd);
-		setUploading(false);
-		e.target.value = "";
-		if (res.ok) {
-			setImage(res.url);
-		} else {
-			notify.error(res.error);
+		try {
+			const fd = new FormData();
+			fd.set("file", file);
+			const res = await uploadOwnAvatar(fd);
+			if (res.ok) {
+				setImage(res.url);
+			} else {
+				notify.error(res.error);
+			}
+		} catch {
+			notify.error("Não foi possível enviar a imagem");
+		} finally {
+			setUploading(false);
+			e.target.value = "";
 		}
 	};
 
