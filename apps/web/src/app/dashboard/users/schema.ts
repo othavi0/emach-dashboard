@@ -68,3 +68,8 @@ export const deleteUserSchema = z.object({
 	reason: z.string().min(10, "Motivo precisa de pelo menos 10 caracteres"),
 });
 export type DeleteUserInput = z.infer<typeof deleteUserSchema>;
+
+export const updateOwnProfileSchema = z.object({
+	name: z.string().min(2, "Informe seu nome").max(100).optional(),
+});
+export type UpdateOwnProfileInput = z.infer<typeof updateOwnProfileSchema>;

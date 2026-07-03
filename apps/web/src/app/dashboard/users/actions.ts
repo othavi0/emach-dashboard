@@ -35,6 +35,7 @@ import {
 	suspendUserSchema,
 	triggerPasswordResetSchema,
 	type UpdateUserInput,
+	updateOwnProfileSchema,
 	updateUserSchema,
 	userIdSchema,
 } from "./schema";
@@ -404,6 +405,38 @@ export async function updateUser(
 		metadata: { changes },
 	});
 	revalidatePath(USERS_PATH);
+	return { ok: true, data: undefined };
+}
+
+export async function updateOwnProfile(input: unknown): Promise<ActionResult> {
+	const session = await requireCurrentSession();
+	if (session.user.status !== "active") {
+		return { ok: false, error: "Conta não ativa" };
+	}
+	const parsed = updateOwnProfileSchema.safeParse(input);
+	if (!parsed.success) {
+		return { ok: false, error: "validação" };
+	}
+	if (parsed.data.name === undefined) {
+		return { ok: true, data: undefined };
+	}
+	try {
+		await db
+			.update(userTable)
+			.set({ name: parsed.data.name })
+			.where(eq(userTable.id, session.user.id));
+	} catch (error) {
+		logger.error("updateOwnProfile falhou", error);
+		return { ok: false, error: "Não foi possível atualizar" };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "user.self_updated",
+		targetType: "user",
+		targetId: session.user.id,
+		metadata: { changes: { name: parsed.data.name } },
+	});
+	revalidatePath(`${USERS_PATH}/${session.user.id}`);
 	return { ok: true, data: undefined };
 }
 
