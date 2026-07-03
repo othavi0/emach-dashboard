@@ -52,6 +52,7 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 	const sp = await searchParams;
 	const actorSession = await requireUserDetailAccessOrRedirect(id);
 	const isSelf = actorSession.user.id === id;
+	const editLabel = isSelf ? "Editar meus dados" : "Editar usuário";
 	const canDelete = !isSelf && (await can(actorSession, "users.delete"));
 	const [canManageBranches, canResetPassword, canRevokeSessions, canSuspend] =
 		await Promise.all([
@@ -142,8 +143,8 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 				<SecurityTab
 					canDelete={canDelete}
 					canManageStatus={!isSelf && canSuspend}
-					canResetPassword={canResetPassword}
-					canRevokeSessions={canRevokeSessions}
+					canResetPassword={!isSelf && canResetPassword}
+					canRevokeSessions={!isSelf && canRevokeSessions}
 					isSelf={isSelf}
 					user={user}
 				/>
@@ -180,6 +181,7 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 						actions={
 							<UserDetailActions
 								canManageBranches={canManageBranches && !isSelf}
+								editLabel={editLabel}
 								linkedBranchIds={linkedBranches.map((b) => b.id)}
 								userId={user.id}
 							/>
