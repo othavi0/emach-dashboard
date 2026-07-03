@@ -1,0 +1,779 @@
+FORMAT: 1A
+
+# Frenet API
+
+Bem vindo à documentação da API Frenet. Serão apresentados todos os serviços disponíveis em nossa API para você criar uma integração de maneira rápida e objetiva.
+
+Lembre-se que para você ter acesso a API da Frenet é preciso se cadastrar no painel administrativo e obter um token de acesso. Acesse https://painel.frenet.com.br e obtenha o seu token em "Dados Cadastrais".
+
+## Group Onboarding de clientes
+
+Destinado à criação de aplicativo na plataforma (e-commerce / ERP), através do qual será realizado todo o cadastro do cliente na Frenet e obtenção de Token. 
+NÃO é uma implementação necessária na integração com a plataforma Frenet, já que o cadastro e a obtenção do Token pode ser realizado diretamente no painel administrativo. 
+
+### HOST: register.apifrenet.com.br
+### /v1/partner/register
+
+#### Cadastrar um novo cliente [POST]
+
+A criação de novo usuário, quando executada com sucesso pelo Frenet, retornará um token este token é exigido pela API de cotação do Frenet, por este motivo o parceiro deverá salva-lo e enviar nas chamadas do cotador Frenet.
+
+Observe que algumas informações precisam ser solicitadas ao suporte do Frenet.
+
++ Request
+
+    + Headers
+
+            Accept: application/json
+            x-partner-token: (token de parceiro)
+
+    + Body
+
+    + Schema
+
+            {
+              "type": "object",
+              "properties": {
+                "Email": {
+                  "type": "string",
+                  "description": "E-mail do cliente, este campo é o mais importante de toda a API, será usado como chave para autenticação no painel administrativo e para os comunicados enviados pelo Frenet"
+                },
+                "Type": {
+                  "type": "number",
+                  "description": "Identifica o tipo do cliente, por enquanto aceita apenas o valor 1 (Clientes)"
+                },
+                "Password": {
+                  "type": "string",
+                  "description": "Senha definida para o cliente, será a senha para autenticação no painel administrativo do Frenet, quando não informada será gerada uma senha aleatória e esta será enviada por e-mail ao cliente somente se o campo SendEmail for igual a true"
+                },
+                "Name": {
+                  "type": "string",
+                  "description": "Nome completo da pessoa física ou a Razão Social da pessoa Jurídica, o campo é utilizado para exibição do nome do cliente dentro do painel administrativo do Frenet"
+                },
+                "Person": {
+                  "type": "string",
+                  "description": "Pessoa física ou jurídica, onde F identifica uma pessoa física e J uma pessoa jurídica"
+                },
+                "CompanyName": {
+                  "type": "string",
+                  "description": "Nome completo da pessoa física ou a Razão Social da pessoa Jurídica, o campo é utilizado na geração de boletos e comunicados via e-mail"
+                },
+                "FederalDocument": {
+                  "type": "number",
+                  "description": "CPF da pessoa física ou CNPJ da pessoa jurídica"
+                },
+                "StateDocument": {
+                  "type": "string",
+                  "description": "Inscrição estadual da pessoa jurídica, não se aplica para pessoa fisica e se informado será ignorado"
+                },
+                "UrlSite": {
+                  "type": "string",
+                  "description": "Url da loja/site da pessoa ou empresa"
+                },
+                "ZipCode": {
+                  "type": "number",
+                  "description": "CEP da empresa ou pessoa física, este campo é usado como CEP de origem no momento da cotação de Frete"
+                },
+                "City": {
+                  "type": "string",
+                  "description": "Cidade da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "State": {
+                  "type": "string",
+                  "description": "Código abreviado do Estado da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "Street": {
+                  "type": "string",
+                  "description": "Logradouro da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "AddressNumber": {
+                  "type": "string",
+                  "description": "Número do logradouro da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "AddressComplement": {
+                  "type": "string",
+                  "description": "Complemento do endereço da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "Neighborhood": {
+                  "type": "string",
+                  "description": "Bairro da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "PhoneNumber": {
+                  "type": "number",
+                  "description": "Número de telefone da empresa ou residência da pessoa fisica, usado nos contatos for telefone"
+                },
+                "SponsorName": {
+                  "type": "string",
+                  "description": "Nome do responsável pela empresa, e para a pessoa fisica poderá ser um segundo ponto de contato"
+                },
+                "SponsorMail": {
+                  "type": "string",
+                  "description": "E-mail do responsável pela empresa, e para a pessoa fisica poderá ser um segundo ponto de contato"
+                },
+                "SponsorFederalDocument": {
+                  "type": "number",
+                  "description": "CPF do responsável pela empresa e para a pessoa fisica poderá ser uo CPF de um segundo ponto de contato"
+                },
+                "PlatformID": {
+                  "type": "number",
+                  "description": "Código da plataforma, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "Platform": {
+                  "type": "string",
+                  "description": "Nome da plataforma, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "AgencyID": {
+                  "type": "number",
+                  "description": "Código da agência, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "Agency": {
+                  "type": "string",
+                  "description": "Nome da agência, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "Plancode": {
+                  "type": "number",
+                  "default": 1,
+                  "format": int32,
+                  "description": "Código do plano, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "Promocode": {
+                  "type": "string",
+                  "description": "Código promocional, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "Timeout": {
+                  "type": "number",
+                  "description": "Tempo máximo de resposta da API de cotação"
+                },
+                "MarketplaceTimeout": {
+                  "type": "number",
+                  "description": "Tempo máximo de resposta da API de cotação para os marketplaces"
+                },
+                "SendEmailConfirmation": {
+                  "type": "boolean",
+                  "description": "Flag informando se após a chamada da API um e-mail para confirmação/validação será enviado para o cliente, é necessário para confirmação do e-mail informado no campo E-mail"
+                },
+                "SendEmail": {
+                  "type": "boolean",
+                  "description": "Flag informando se um e-mail de boas vindas com os dados para a realização do primeiro acesso ao painel administrativo do Frenet"
+                },
+                "CarrierCode": {
+                    "type": "string",
+                    "description": "Código da transportadora no Frenet, valores permitidos: COR"
+                }
+                "CarrierContractCode": {
+                    "type": "string",
+                    "description": "Código do contrato do cliente na transportadora, valores permitidos são aqueles retornados na API http://api.frenet.com.br/v1/options/{CarrierCode}"
+                }
+              },
+              "required": [
+                "CompanyName",
+                "Email",
+                "Name",
+                "Type",
+                "Person",
+                "FederalDocument",
+                "PlatformID",
+                "Plancode",
+                "Timeout",
+                "UrlSite",
+                "ZipCode",
+                "City",
+                "State",
+                "Street",
+                "AddressNumber",
+                "Neighborhood"
+              ]
+            }
+
++ Response 200 (application/json)
+
+    OK
+
+    + Body
+
+            {
+              "Success": true,
+              "Token": "AAABBB2222CCC222DD222"
+            }
+
+#### Atualizar um cliente existente [PUT]
+
+Para atualizar alguma informação do lojista o parceiro deverá chamar a API de Onboard com o novo valor para o campo, assim como na criação de novos usuários a atualização também exige algumas informações que precisam ser solicitadas ao suporte do Frenet
+
++ Request
+
+    + Headers
+
+            Accept: application/json
+            x-partner-token: (token de parceiro)
+
+    + Body
+
+    + Schema
+
+            {
+              "type": "object",
+              "properties": {
+                "Email": {
+                  "type": "string",
+                  "description": "E-mail do cliente, este campo é o mais importante de toda a API, será usado como chave para autenticação no painel administrativo e para os comunicados enviados pelo Frenet"
+                },
+                "Type": {
+                  "type": "number",
+                  "description": "Identifica o tipo do cliente, por enquanto aceita apenas o valor 1 (Clientes)"
+                },
+                "Password": {
+                  "type": "string",
+                  "description": "Senha definida para o cliente, será a senha para autenticação no painel administrativo do Frenet, quando não informada será gerada uma senha aleatória e esta será enviada por e-mail ao cliente somente se o campo SendEmail for igual a true"
+                },
+                "Name": {
+                  "type": "string",
+                  "description": "Nome completo da pessoa física ou a Razão Social da pessoa Jurídica, o campo é utilizado para exibição do nome do cliente dentro do painel administrativo do Frenet"
+                },
+                "Person": {
+                  "type": "string",
+                  "description": "Pessoa física ou jurídica, onde F identifica uma pessoa física e J uma pessoa jurídica"
+                },
+                "CompanyName": {
+                  "type": "string",
+                  "description": "Nome completo da pessoa física ou a Razão Social da pessoa Jurídica, o campo é utilizado na geração de boletos e comunicados via e-mail"
+                },
+                "FederalDocument": {
+                  "type": "number",
+                  "description": "CPF da pessoa física ou CNPJ da pessoa jurídica"
+                },
+                "StateDocument": {
+                  "type": "string",
+                  "description": "Inscrição estadual da pessoa jurídica, não se aplica para pessoa fisica e se informado será ignorado"
+                },
+                "UrlSite": {
+                  "type": "string",
+                  "description": "Url da loja/site da pessoa ou empresa"
+                },
+                "ZipCode": {
+                  "type": "number",
+                  "description": "CEP da empresa ou pessoa física, este campo é usado como CEP de origem no momento da cotação de Frete"
+                },
+                "City": {
+                  "type": "string",
+                  "description": "Cidade da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "State": {
+                  "type": "string",
+                  "description": "Código abreviado do Estado da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "Street": {
+                  "type": "string",
+                  "description": "Logradouro da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "AddressNumber": {
+                  "type": "string",
+                  "description": "Número do logradouro da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "AddressComplement": {
+                  "type": "string",
+                  "description": "Complemento do endereço da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "Neighborhood": {
+                  "type": "string",
+                  "description": "Bairro da empresa ou residência da pessoa física, este campo é usado na geração das faturas de cobrança"
+                },
+                "PhoneNumber": {
+                  "type": "number",
+                  "description": "Número de telefone da empresa ou residência da pessoa fisica, usado nos contatos for telefone"
+                },
+                "SponsorName": {
+                  "type": "string",
+                  "description": "Nome do responsável pela empresa, e para a pessoa fisica poderá ser um segundo ponto de contato"
+                },
+                "SponsorMail": {
+                  "type": "string",
+                  "description": "E-mail do responsável pela empresa, e para a pessoa fisica poderá ser um segundo ponto de contato"
+                },
+                "SponsorFederalDocument": {
+                  "type": "number",
+                  "description": "CPF do responsável pela empresa e para a pessoa fisica poderá ser uo CPF de um segundo ponto de contato"
+                },
+                "PlatformID": {
+                  "type": "number",
+                  "description": "Código da plataforma, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "Platform": {
+                  "type": "string",
+                  "description": "Nome da plataforma, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "AgencyID": {
+                  "type": "number",
+                  "description": "Código da agência, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "Agency": {
+                  "type": "string",
+                  "description": "Nome da agência, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "Plancode": {
+                  "type": "number",
+                  "default": 1,
+                  "format": int32,
+                  "description": "Código do plano, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "Promocode": {
+                  "type": "string",
+                  "description": "Código promocional, o valor para este campo será informado pela equipe de integração do Frenet"
+                },
+                "Timeout": {
+                  "type": "number",
+                  "description": "Tempo máximo de resposta da API de cotação"
+                },
+                "MarketplaceTimeout": {
+                  "type": "number",
+                  "description": "Tempo máximo de resposta da API de cotação para os marketplaces"
+                },
+                "SendEmailConfirmation": {
+                  "type": "boolean",
+                  "description": "Flag informando se após a chamada da API um e-mail para confirmação/validação será enviado para o cliente, é necessário para confirmação do e-mail informado no campo E-mail"
+                },
+                "SendEmail": {
+                  "type": "boolean",
+                  "description": "Flag informando se um e-mail de boas vindas com os dados para a realização do primeiro acesso ao painel administrativo do Frenet"
+                },
+                "CarrierCode": {
+                    "type": "string",
+                    "description": "Código da transportadora no Frenet, valores permitidos: COR"
+                }
+                "CarrierContractCode": {
+                    "type": "string",
+                    "description": "Código do contrato do cliente na transportadora, valores permitidos são aqueles retornados na API http://api.frenet.com.br/v1/options/{CarrierCode}"
+                }
+              },
+              "required": [
+                "CompanyName",
+                "Email",
+                "Name",
+                "Type",
+                "Person",
+                "FederalDocument",
+                "PlatformID",
+                "Plancode",
+                "Timeout",
+                "UrlSite",
+                "ZipCode"
+              ]
+            }
+
++ Response 200 (application/json)
+
+    OK
+
+    + Body
+
+            {
+              "Success": true,
+              "Token": "AAABBB2222CCC222DD222"
+            }
+
+
+## Group Shipping
+
+### HOST: api.frenet.com.br
+### /shipping/info
+
+#### GET [GET]
+
++ Request
+
+    + Headers
+
+            Accept: application/json
+            token: (seu token)
+
+    + Body
+
++ Response 200 (application/json)
+
+    OK
+
+    + Body
+
+            {
+              "Message": "",
+              "ShippingSeviceAvailableArray": [
+                {
+                  "Carrier": "TNT",
+                  "CarrierCode": "TNT",
+                  "ServiceCode": "RNC",
+                  "ServiceDescription": "TNT Rodoviário"
+                },
+                {
+                  "Carrier": "Correios",
+                  "CarrierCode": "COR",
+                  "ServiceCode": "40010",
+                  "ServiceDescription": "Sedex"
+                }
+              ]
+            }
+
+    + Schema
+
+            {
+              "type": "object",
+              "properties": {
+                "ShippingSeviceAvailableArray": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ServiceCode": {
+                        "type": "string"
+                      },
+                      "ServiceDescription": {
+                        "type": "string"
+                      },
+                      "Carrier": {
+                        "type": "string"
+                      },
+                      "CarrierCode": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "Message": {
+                  "type": "string"
+                }
+              }
+            }
+
+### /shipping/quote
+
+#### POST [POST]
+
++ Request
+
+    + Headers
+
+            Accept: application/json
+            Content-Type: application/json
+            token: (seu token)
+
+    + Body
+
+            {
+                "SellerCEP": "04757020",
+                "RecipientCEP": "14270000",
+                "ShipmentInvoiceValue": 320.685,
+                "ShippingServiceCode": null,
+                "ShippingItemArray": [
+                    {
+                        "Height": 2,
+                        "Length": 33,
+                        "Quantity": 1,
+                        "Weight": 1.18,
+                        "Width": 47,
+                        "SKU": "IDW_54626",
+                        "Category": "Running"
+                    },
+                    {
+                        "Height": 5,
+                        "Length": 15,
+                        "Quantity": 1,
+                        "Weight": 0.5,
+                        "Width": 29
+                    }
+                ],
+                "RecipientCountry": "BR"
+            }
+
+    + Schema
+
+            {
+              "type": "object",
+              "properties": {
+                "SellerCEP": {
+                  "type": "string",
+                  "description": "CEP de origem"
+                },
+                "RecipientCEP": {
+                  "type": "string",
+                  "description": "CEP de destino"
+                },
+                "ShipmentInvoiceValue": {
+                  "type": "number",
+                  "description": "Valor total do pedido"
+                },
+                "RecipientCountry": {
+                  "type": "string",
+                  "description": "Pais destino da cotação (não obrigatório)"
+                },
+                "ShippingServiceCode": {
+                  "type": "string",
+                  "description": "Serviço especifico para cotação (não obrigatório)"
+                },
+                "Coupom": {
+                  "type": "string",
+                  "description": "Código do cupom vinculado a regra de frete avançada cadastrada no painel (não obrigatório)"
+                },
+                "ShippingItemArray array[number, string]": {
+                  "type": "object",
+                  "properties": {
+                    "Weight": {
+                      "type": "number",
+                      "description": "Peso do produto em kilos"
+                    },
+                    "Length": {
+                      "type": "number",
+                      "description": "Comprimento do produto (em cm)"
+                    },
+                    "Height": {
+                      "type": "number",
+                      "description": "Altura do produto (em cm)"
+                    },
+                    "Width": {
+                      "type": "number",
+                      "description": "Largura do produto (em cm)"
+                    },
+                    "Diameter": {
+                      "type": "number",
+                      "description": "Diametro do produto (em cm3)"
+                    },
+                    "SKU": {
+                      "type": "string",
+                      "description": "Código de identificação do produto"
+                    },
+                    "Category": {
+                      "type": "string",
+                      "description": "Categoria do produto"
+                    },
+                    "Quantity": {
+                      "type": "number",
+                      "description": "Quantidade do produto (padrão 1)"
+                    },
+                    "isFragile": {
+                      "type": "boolean",
+                      "description": "Produto fragil?"
+                    }
+                  },
+                  "required": [
+                    "Weight",
+                    "Length",
+                    "Height",
+                    "Width",
+                    "Quantity"
+                  ]
+                }
+              },
+              "required": [
+                "SellerCEP",
+                "RecipientCEP",
+                "ShipmentInvoiceValue"
+              ]
+            }
+
++ Response 200 (application/json)
+
+    OK
+
+    + Body
+
+            {
+              "ShippingSevicesArray": [
+                {
+                  "Carrier": "Correios",
+                  "CarrierCode": "COR",
+                  "DeliveryTime": "5",
+                  "Msg": "",
+                  "ServiceCode": "40010",
+                  "ServiceDescription": "Sedex",
+                  "ShippingPrice": "31.71",
+                  "OriginalDeliveryTime": "2",
+                  "OriginalShippingPrice": "28.91",
+                  "Error": false
+                }
+              ],
+              "Timeout": 0
+            }
+
+## Group Tracking
+
+O objeto Tracking disponibiliza a funcionalidade de rastreamento de pedidos.
+
+### Tracking Info  [/tracking/trackinginfo]
+
+Através deste serviço é possível realizar o rastreamento de um pedido e obter todas as ocorrências de entrega.
+
+#### POST [POST]
+
++ Request (application/json)
+
+    + Headers
+    
+            Accept: application/json
+            token: (seu token)
+    
+    + Attributes (object)
+        + ShippingServiceCode (string, required) - Código de identificação do serviço de entrega (obtido no resultado da cotação)
+        + TrackingNumber (string, required) - Número de rastreio fornecido pela transportadora ou Correios
+        + InvoiceNumber (string, optional) - Número da nota fiscal
+        + InvoiceSerie (string, optional) - Série da nota fiscal
+        + RecipientDocument (string, optional) - CPF ou CNPJ do destinatário
+        + OrderNumber (string, optional) - Número do pedido
+        
+    + Body
+
+            {
+               "ShippingServiceCode":"04669",
+               "TrackingNumber":"TE123456785AA",
+               "InvoiceNumber":"",
+               "InvoiceSerie":"",
+               "RecipientDocument":"",
+               "OrderNumber":""
+            }
+
+    + Schema
+
+            {
+              "type": "object",
+              "properties": {
+                "Token": {
+                  "type": "string"
+                },
+                "ShippingServiceCode": {
+                  "type": "string"
+                },
+                "TrackingNumber": {
+                  "type": "string"
+                },
+                "InvoiceNumber": {
+                  "type": "string"
+                },
+                "InvoiceSerie": {
+                  "type": "string"
+                },
+                "RecipientDocument": {
+                  "type": "string"
+                },
+                "OrderNumber": {
+                  "type": "string"
+                }
+              }
+            }
+
++ Response 200 (application/json)
+
+    + Attributes (object)
+        + ServiceDescrition (string) - Descrição do serviço
+        + TrackingNumber (string) - Número de rastreio fornecido pela transportadora ou Correios
+        + TrackingUrl (string) - URL de rastreio do pedido
+        + TrackingEvents (array) - Ocorrências de entrega
+            + EventDateTime (string) - Data da ocorrência
+            + EventDescription (string) - Descrição da ocorrência
+            + EventLocation (string) - Local da ocorrência
+            + EventType (string) - 0 - Status inicial; 1 - Em trânsito; 2 - Atraso; 3 - Objeto Devolvido; 4 - Extravio; 9 - Objeto entregue
+
+    + Body
+
+            {
+               "ServiceDescrition":"TESTE (OBJETO PARA TREINAMENTO)",
+               "TrackingUrl": "https://rastreio.frenet.com.br/COR/TE123456785AA",
+               "TrackingEvents":[
+                  {
+                     "EventDateTime": "10/02/2017 16:48",
+                     "EventDescription": "Objeto entregue ao destinatário",
+                     "EventLocation": "Boa Nova-BA",
+                     "EventType": "9"
+                  },
+                  {
+                     "EventDateTime": "09/02/2017 08:47",
+                     "EventDescription": "Objeto aguardando retirada no endereço indicado - Para retirá-lo, é preciso informar o código do objeto. ",
+                     "EventLocation": "Boa Nova-BA",
+                     "EventType": "1"
+                  },
+                  {
+                     "EventDateTime":"25\/08\/2016 12:30",
+                     "EventDescription":"Saiu para entrega ao destinatário",
+                     "EventLocation":"BRASILIA-DF",
+                     "EventType": "1"
+                  },
+                  {
+                     "EventDateTime": "27/01/2017 15:20",
+                     "EventDescription": "Objeto postado",
+                     "EventLocation": "Diadema-SP",
+                     "EventType": "0"
+                  }
+               ],
+               "TrackingNumber":"TE123456785AA"
+            }
+
+    + Schema
+
+            {
+              "type": "object",
+              "properties": {
+                "TrackingNumber": {
+                  "type": "string"
+                },
+                "TrackingUrl": {
+                  "type": "string"
+                },
+                "ServiceDescrition": {
+                  "type": "string"
+                },
+                "ErrorMessage": {
+                  "type": "string"
+                },
+                "TrackingEvents": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "EventDateTime": {
+                        "type": "string"
+                      },
+                      "EventLocation": {
+                        "type": "string"
+                      },
+                      "EventDescription": {
+                        "type": "string"
+                      },
+                      "EventType": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+## Group CEP
+
+### /CEP/Address/{cep}
+
+#### GET [GET]
+
++ Parameters
+
+    + cep (required)
+
++ Request
+
+    + Headers
+
+            Accept: application/json
+            token: (seu token)
+
+    + Body
+
++ Response 200 (application/json)
+
+    OK
+
+    + Body
+
+            {
+              "CEP": "04011060",
+              "City": "São Paulo",
+              "District": "Vila Mariana",
+              "Message": "ok",
+              "Street": "Rua José Antônio Coelho",
+              "UF": "SP"
+            }
+
