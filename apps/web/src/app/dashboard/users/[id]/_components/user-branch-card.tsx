@@ -23,10 +23,11 @@ import type { UserLinkedBranch } from "../../data";
 
 interface Props {
 	branch: UserLinkedBranch;
+	canUnlink: boolean;
 	userId: string;
 }
 
-export function UserBranchCard({ userId, branch }: Props) {
+export function UserBranchCard({ userId, branch, canUnlink }: Props) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [unlinking, setUnlinking] = useState(false);
@@ -54,50 +55,54 @@ export function UserBranchCard({ userId, branch }: Props) {
 		<BranchStatsCard
 			address={formatBranchAddress(branch)}
 			footer={
-				<div className="flex justify-end border-border border-t px-4 py-2">
-					<AlertDialog onOpenChange={setOpen} open={open}>
-						<AlertDialogTrigger
-							render={
-								<Button
-									onClick={(e) => e.stopPropagation()}
-									size="sm"
-									variant="outline"
-								/>
-							}
-						>
-							Desvincular
-						</AlertDialogTrigger>
-						<AlertDialogContent onClick={(e) => e.stopPropagation()}>
-							<AlertDialogHeader>
-								<AlertDialogTitle>Desvincular {branch.name}?</AlertDialogTitle>
-								<AlertDialogDescription>
-									O usuário perde o acesso a esta filial. É possível vincular de
-									novo depois.
-								</AlertDialogDescription>
-							</AlertDialogHeader>
-							<AlertDialogFooter>
-								<AlertDialogCancel disabled={unlinking}>
-									Cancelar
-								</AlertDialogCancel>
-								<AlertDialogAction
-									disabled={unlinking}
-									onClick={(e) => {
-										e.preventDefault();
-										handleUnlink().catch(() => undefined);
-									}}
-								>
-									{unlinking ? (
-										<Loader2
-											aria-hidden
-											className="mr-1.5 size-3.5 animate-spin"
-										/>
-									) : null}
-									Desvincular
-								</AlertDialogAction>
-							</AlertDialogFooter>
-						</AlertDialogContent>
-					</AlertDialog>
-				</div>
+				canUnlink ? (
+					<div className="flex justify-end border-border border-t px-4 py-2">
+						<AlertDialog onOpenChange={setOpen} open={open}>
+							<AlertDialogTrigger
+								render={
+									<Button
+										onClick={(e) => e.stopPropagation()}
+										size="sm"
+										variant="outline"
+									/>
+								}
+							>
+								Desvincular
+							</AlertDialogTrigger>
+							<AlertDialogContent onClick={(e) => e.stopPropagation()}>
+								<AlertDialogHeader>
+									<AlertDialogTitle>
+										Desvincular {branch.name}?
+									</AlertDialogTitle>
+									<AlertDialogDescription>
+										O usuário perde o acesso a esta filial. É possível vincular
+										de novo depois.
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<AlertDialogFooter>
+									<AlertDialogCancel disabled={unlinking}>
+										Cancelar
+									</AlertDialogCancel>
+									<AlertDialogAction
+										disabled={unlinking}
+										onClick={(e) => {
+											e.preventDefault();
+											handleUnlink().catch(() => undefined);
+										}}
+									>
+										{unlinking ? (
+											<Loader2
+												aria-hidden
+												className="mr-1.5 size-3.5 animate-spin"
+											/>
+										) : null}
+										Desvincular
+									</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
+					</div>
+				) : undefined
 			}
 			name={branch.name}
 			onActivate={() => router.push(`/dashboard/branches/${branch.id}`)}

@@ -26,9 +26,13 @@ import {
 	triggerPasswordReset,
 } from "../../actions";
 import { AccessStatusCard } from "./access-status-card";
+import { ChangeMyPasswordCard } from "./change-my-password-card";
 
 interface Props {
 	canDelete: boolean;
+	canResetPassword: boolean;
+	canRevokeSessions: boolean;
+	isSelf: boolean;
 	user: {
 		id: string;
 		name: string;
@@ -38,7 +42,13 @@ interface Props {
 	};
 }
 
-export function SecurityTab({ user, canDelete }: Props) {
+export function SecurityTab({
+	user,
+	canDelete,
+	canResetPassword,
+	canRevokeSessions,
+	isSelf,
+}: Props) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [pending, startTransition] = useTransition();
@@ -105,47 +115,52 @@ export function SecurityTab({ user, canDelete }: Props) {
 						</p>
 					</CardContent>
 				</Card>
-				<Card className="h-full">
-					<CardHeader className="flex flex-row items-center justify-between gap-2">
-						<CardTitle className="text-base">Reset de senha</CardTitle>
-						<Button
-							disabled={pending}
-							onClick={sendReset}
-							size="sm"
-							variant="outline"
-						>
-							<KeyRound className="size-3.5" />
-							Enviar e-mail de reset
-						</Button>
-					</CardHeader>
-					<CardContent>
-						<p className="text-muted-foreground text-sm">
-							Envia um e-mail com link para o usuário trocar a senha. Você não
-							terá acesso à senha nova.
-						</p>
-					</CardContent>
-				</Card>
-				<Card className="h-full">
-					<CardHeader className="flex flex-row items-center justify-between gap-2">
-						<CardTitle className="text-base">Sessões</CardTitle>
-						<Button
-							disabled={pending}
-							onClick={forceLogout}
-							size="sm"
-							variant="outline"
-						>
-							<LogOut className="size-3.5" />
-							Forçar logout em tudo
-						</Button>
-					</CardHeader>
-					<CardContent>
-						<p className="text-muted-foreground text-sm">
-							Revoga todas as sessões ativas — o usuário será forçado a logar de
-							novo em todos os dispositivos.
-						</p>
-					</CardContent>
-				</Card>
+				{!isSelf && canResetPassword && (
+					<Card className="h-full">
+						<CardHeader className="flex flex-row items-center justify-between gap-2">
+							<CardTitle className="text-base">Reset de senha</CardTitle>
+							<Button
+								disabled={pending}
+								onClick={sendReset}
+								size="sm"
+								variant="outline"
+							>
+								<KeyRound className="size-3.5" />
+								Enviar e-mail de reset
+							</Button>
+						</CardHeader>
+						<CardContent>
+							<p className="text-muted-foreground text-sm">
+								Envia um e-mail com link para o usuário trocar a senha. Você não
+								terá acesso à senha nova.
+							</p>
+						</CardContent>
+					</Card>
+				)}
+				{!isSelf && canRevokeSessions && (
+					<Card className="h-full">
+						<CardHeader className="flex flex-row items-center justify-between gap-2">
+							<CardTitle className="text-base">Sessões</CardTitle>
+							<Button
+								disabled={pending}
+								onClick={forceLogout}
+								size="sm"
+								variant="outline"
+							>
+								<LogOut className="size-3.5" />
+								Forçar logout em tudo
+							</Button>
+						</CardHeader>
+						<CardContent>
+							<p className="text-muted-foreground text-sm">
+								Revoga todas as sessões ativas — o usuário será forçado a logar
+								de novo em todos os dispositivos.
+							</p>
+						</CardContent>
+					</Card>
+				)}
 			</div>
+			{isSelf && <ChangeMyPasswordCard />}
 			{canDelete && (
 				<>
 					<Card className="border-destructive/40">

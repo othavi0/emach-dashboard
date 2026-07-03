@@ -3,11 +3,12 @@ import type { UserLinkedBranch } from "../../data";
 import { UserBranchCard } from "./user-branch-card";
 
 interface Props {
+	canUnlink: boolean;
 	linkedBranches: UserLinkedBranch[];
 	userId: string;
 }
 
-export function BranchesTab({ userId, linkedBranches }: Props) {
+export function BranchesTab({ userId, linkedBranches, canUnlink }: Props) {
 	if (linkedBranches.length === 0) {
 		return (
 			<div className="flex flex-col items-center gap-2 py-16 text-center">
@@ -17,7 +18,9 @@ export function BranchesTab({ userId, linkedBranches }: Props) {
 				/>
 				<p className="font-medium text-sm">Sem filiais vinculadas</p>
 				<p className="text-muted-foreground text-xs">
-					Use "Vincular filial" no topo para adicionar.
+					{canUnlink
+						? 'Use "Vincular filial" no topo para adicionar.'
+						: "Nenhuma filial vinculada a esta conta."}
 				</p>
 			</div>
 		);
@@ -26,7 +29,12 @@ export function BranchesTab({ userId, linkedBranches }: Props) {
 	return (
 		<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 			{linkedBranches.map((b) => (
-				<UserBranchCard branch={b} key={b.id} userId={userId} />
+				<UserBranchCard
+					branch={b}
+					canUnlink={canUnlink}
+					key={b.id}
+					userId={userId}
+				/>
 			))}
 		</div>
 	);
