@@ -51,8 +51,8 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 	const { id } = await params;
 	const sp = await searchParams;
 	const actorSession = await requireUserDetailAccessOrRedirect(id);
-	const canDelete = await can(actorSession, "users.delete");
 	const isSelf = actorSession.user.id === id;
+	const canDelete = !isSelf && (await can(actorSession, "users.delete"));
 	const [canManageBranches, canResetPassword, canRevokeSessions, canSuspend] =
 		await Promise.all([
 			can(actorSession, "users.update_branches"),
@@ -180,7 +180,6 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 						actions={
 							<UserDetailActions
 								canManageBranches={canManageBranches && !isSelf}
-								isSelf={isSelf}
 								linkedBranchIds={linkedBranches.map((b) => b.id)}
 								userId={user.id}
 							/>
