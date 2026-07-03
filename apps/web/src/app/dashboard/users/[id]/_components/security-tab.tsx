@@ -30,6 +30,7 @@ import { ChangeMyPasswordCard } from "./change-my-password-card";
 
 interface Props {
 	canDelete: boolean;
+	canManageStatus: boolean;
 	canResetPassword: boolean;
 	canRevokeSessions: boolean;
 	isSelf: boolean;
@@ -45,6 +46,7 @@ interface Props {
 export function SecurityTab({
 	user,
 	canDelete,
+	canManageStatus,
 	canResetPassword,
 	canRevokeSessions,
 	isSelf,
@@ -90,6 +92,7 @@ export function SecurityTab({
 		<div className="flex flex-col gap-3">
 			<div className="grid gap-3 md:grid-cols-2">
 				<AccessStatusCard
+					canManageStatus={canManageStatus}
 					user={{ id: user.id, name: user.name, status: user.status }}
 				/>
 				<Card className="h-full">

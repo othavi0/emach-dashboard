@@ -53,11 +53,12 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 	const actorSession = await requireUserDetailAccessOrRedirect(id);
 	const canDelete = await can(actorSession, "users.delete");
 	const isSelf = actorSession.user.id === id;
-	const [canManageBranches, canResetPassword, canRevokeSessions] =
+	const [canManageBranches, canResetPassword, canRevokeSessions, canSuspend] =
 		await Promise.all([
 			can(actorSession, "users.update_branches"),
 			can(actorSession, "users.reset_password"),
 			can(actorSession, "users.revoke_sessions"),
+			can(actorSession, "users.suspend"),
 		]);
 
 	const [user, kpis, linkedBranches, recentActivity] = await Promise.all([
@@ -126,7 +127,12 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 			label: "Sessões",
 			icon: <Monitor aria-hidden className="size-3.5" />,
 			lazy: true,
-			content: <SessionsTabLoader userId={user.id} />,
+			content: (
+				<SessionsTabLoader
+					canRevoke={!isSelf && canRevokeSessions}
+					userId={user.id}
+				/>
+			),
 		},
 		{
 			value: "security",
@@ -135,6 +141,7 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 			content: (
 				<SecurityTab
 					canDelete={canDelete}
+					canManageStatus={!isSelf && canSuspend}
 					canResetPassword={canResetPassword}
 					canRevokeSessions={canRevokeSessions}
 					isSelf={isSelf}

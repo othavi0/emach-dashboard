@@ -23,9 +23,11 @@ interface SessionRow {
 }
 
 export function SessionsList({
+	canRevoke,
 	sessions,
 	userId: _userId,
 }: {
+	canRevoke: boolean;
 	sessions: SessionRow[];
 	userId: string;
 }) {
@@ -78,15 +80,17 @@ export function SessionsList({
 										{s.userAgent ?? "—"} · expira {formatDateTime(s.expiresAt)}
 									</p>
 								</div>
-								<Button
-									disabled={pending}
-									onClick={() => revoke(s.id)}
-									size="sm"
-									variant="outline"
-								>
-									<LogOut aria-hidden className="size-3.5" />
-									Revogar
-								</Button>
+								{canRevoke && (
+									<Button
+										disabled={pending}
+										onClick={() => revoke(s.id)}
+										size="sm"
+										variant="outline"
+									>
+										<LogOut aria-hidden className="size-3.5" />
+										Revogar
+									</Button>
+								)}
 							</li>
 						))}
 					</ul>
