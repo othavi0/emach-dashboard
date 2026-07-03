@@ -79,11 +79,6 @@ export const tool = pgTable(
 		videoUrl: text("video_url"),
 		videoPosterUrl: text("video_poster_url"),
 		visibleOnSite: boolean("visible_on_site").notNull().default(true),
-		// Frete por-produto p/ itens > 30kg (teto SuperFrete). Null = "a combinar".
-		overweightShippingAmount: numeric("overweight_shipping_amount", {
-			precision: 10,
-			scale: 2,
-		}),
 		// Peso da embalagem (espuma/proteção). Despacho = weightKg + packagingWeightKg.
 		packagingWeightKg: numeric("packaging_weight_kg", {
 			precision: 10,
@@ -124,10 +119,6 @@ export const tool = pgTable(
 		check(
 			"power_watts_positive",
 			sql`${table.powerWatts} IS NULL OR ${table.powerWatts} >= 0`
-		),
-		check(
-			"overweight_shipping_non_negative",
-			sql`${table.overweightShippingAmount} IS NULL OR ${table.overweightShippingAmount} >= 0`
 		),
 		check(
 			"packaging_weight_non_negative",

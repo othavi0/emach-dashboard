@@ -33,9 +33,6 @@ const DEMO_TABLES = [
 	"promotion",
 	"promotion_tool",
 	"cart_event",
-	"carrier_rate",
-	"carrier_zone",
-	"carrier",
 	"shipping_box",
 ] as const;
 
