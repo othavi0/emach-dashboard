@@ -18,8 +18,8 @@ interface Props {
 	/** Ação no canto do header (ex.: atalho de estoque). Deve usar stopPropagation. */
 	headerAction?: ReactNode;
 	name: string;
-	/** Disparado por clique ou Enter/Espaço no card. */
-	onActivate: () => void;
+	/** Disparado por clique ou Enter/Espaço no card. Omitido = card não-clicável (sem affordance). */
+	onActivate?: () => void;
 	stats: [BranchCardStat, BranchCardStat, BranchCardStat];
 	status: "active" | "inactive";
 }
@@ -38,19 +38,26 @@ export function BranchStatsCard({
 	stats,
 	status,
 }: Props) {
+	const isClickable = Boolean(onActivate);
+
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: card clicável (padrão DESIGN.md §4) — div role=button com onKeyDown
+		// biome-ignore lint/a11y/noNoninteractiveElementInteractions: role/tabIndex/handlers são condicionais a onActivate existir — biome não infere o ternário
+		// biome-ignore lint/a11y/noStaticElementInteractions: idem — sem onActivate o div não tem role nem handlers efetivos
 		<div
-			className={`group flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${status === "inactive" ? "opacity-70" : ""}`}
+			className={`group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] ${isClickable ? "cursor-pointer hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" : ""} ${status === "inactive" ? "opacity-70" : ""}`}
 			onClick={onActivate}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					onActivate();
-				}
-			}}
-			role="button"
-			tabIndex={0}
+			onKeyDown={
+				onActivate
+					? (e) => {
+							if (e.key === "Enter" || e.key === " ") {
+								e.preventDefault();
+								onActivate();
+							}
+						}
+					: undefined
+			}
+			role={isClickable ? "button" : undefined}
+			tabIndex={isClickable ? 0 : undefined}
 		>
 			<div className="flex items-start gap-3 px-4 pt-4 pb-3">
 				<div className="flex size-12 flex-shrink-0 items-center justify-center rounded-md border border-border bg-muted font-bold text-[17px] text-foreground">

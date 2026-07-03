@@ -105,7 +105,11 @@ export function UserBranchCard({ userId, branch, canUnlink }: Props) {
 				) : undefined
 			}
 			name={branch.name}
-			onActivate={() => router.push(`/dashboard/branches/${branch.id}`)}
+			onActivate={
+				canUnlink
+					? () => router.push(`/dashboard/branches/${branch.id}`)
+					: undefined
+			}
 			stats={[
 				{ label: "Equipe", value: branch.teamCount },
 				{ label: "SKUs ativos", value: branch.activeSkus },
