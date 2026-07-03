@@ -11,7 +11,10 @@ import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
-import { requireCapability } from "@/lib/permissions";
+import {
+	requireCapability,
+	requireCapabilityWithContext,
+} from "@/lib/permissions";
 import {
 	type BranchFormValues,
 	branchSchema,
@@ -168,7 +171,9 @@ export async function fetchBranchOrdersPage({
 	branchId: string;
 	cursor: string | null;
 }): Promise<InfiniteResult<BranchOrderRow>> {
-	await requireCapability("orders.read");
+	await requireCapabilityWithContext("orders.read", {
+		targetBranchIds: [branchId],
+	});
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const conditions = [sql`${order.branchId} = ${branchId}`];
 	if (decoded && decoded.sort === "newest") {
