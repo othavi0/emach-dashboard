@@ -12,11 +12,7 @@ import {
 	fetchBranchStockPage,
 } from "@/app/dashboard/stock/branch-stock-data";
 import type { InfiniteResult } from "@/lib/infinite";
-import {
-	can,
-	requireCapability,
-	requireCapabilityWithContext,
-} from "@/lib/permissions";
+import { can, requireCapabilityWithContext } from "@/lib/permissions";
 import { type ActiveSupplierOption, getActiveSuppliers } from "@/lib/suppliers";
 import { type BranchTeamRow, getBranchTeam } from "../../data";
 import { fetchBranchActivityTools } from "../activity-data";
@@ -24,8 +20,11 @@ import { fetchBranchActivityTools } from "../activity-data";
 export async function fetchBranchTeamAction(
 	branchId: string
 ): Promise<BranchTeamRow[]> {
-	// Mesma capability que hoje gate a inclusão da tab "Equipe" no page.tsx.
-	await requireCapability("users.manage");
+	// Mesma capability que hoje gate a inclusão da tab "Equipe" no page.tsx,
+	// com branch-scoping: admin escopado à Filial A não pode ler equipe de outra.
+	await requireCapabilityWithContext("users.manage", {
+		targetBranchIds: [branchId],
+	});
 	return await getBranchTeam(branchId);
 }
 
