@@ -32,6 +32,24 @@ const selfEditSchema = updateOwnProfileSchema.extend({
 		.transform((v) => v.toLowerCase()),
 });
 
+function buildProfilePayload(args: {
+	name: string;
+	initialName: string;
+	parsedName: string | undefined;
+	image: string | null;
+	initialImage: string | null;
+	parsedImage: string | null | undefined;
+}): { name?: string; image?: string | null } {
+	const payload: { name?: string; image?: string | null } = {};
+	if (args.name !== args.initialName) {
+		payload.name = args.parsedName;
+	}
+	if (args.image !== args.initialImage) {
+		payload.image = args.parsedImage;
+	}
+	return payload;
+}
+
 export function UserSelfEditSheet({
 	name: initialName,
 	image: initialImage,
@@ -77,15 +95,20 @@ export function UserSelfEditSheet({
 			return;
 		}
 		setUploading(true);
-		const fd = new FormData();
-		fd.set("file", file);
-		const res = await uploadOwnAvatar(fd);
-		setUploading(false);
-		e.target.value = "";
-		if (res.ok) {
-			setImage(res.url);
-		} else {
-			notify.error(res.error);
+		try {
+			const fd = new FormData();
+			fd.set("file", file);
+			const res = await uploadOwnAvatar(fd);
+			if (res.ok) {
+				setImage(res.url);
+			} else {
+				notify.error(res.error);
+			}
+		} catch {
+			notify.error("Não foi possível enviar a imagem");
+		} finally {
+			setUploading(false);
+			e.target.value = "";
 		}
 	};
 
@@ -108,10 +131,15 @@ export function UserSelfEditSheet({
 			// tudo que foi tentado deu certo — em erro, mantém aberto para retry.
 			let ok = true;
 			if (profileChanged) {
-				const res = await updateOwnProfile({
-					name: parsed.data.name,
-					image: parsed.data.image,
+				const payload = buildProfilePayload({
+					name,
+					initialName,
+					parsedName: parsed.data.name,
+					image,
+					initialImage,
+					parsedImage: parsed.data.image,
 				});
+				const res = await updateOwnProfile(payload);
 				if (res.ok) {
 					notify.success("Dados atualizados");
 				} else {
@@ -175,7 +203,7 @@ export function UserSelfEditSheet({
 						accept="image/png,image/jpeg,image/webp"
 						className="hidden"
 						onChange={(e) => {
-							onPickAvatar(e).catch(() => undefined);
+							onPickAvatar(e);
 						}}
 						ref={fileInput}
 						type="file"

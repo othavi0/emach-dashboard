@@ -4,7 +4,11 @@ import { Button } from "@emach/ui/components/button";
 import { Pencil } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-export function EditUserButton() {
+export function EditUserButton({
+	label = "Editar Usuário",
+}: {
+	label?: string;
+}) {
 	const router = useRouter();
 	const pathname = usePathname();
 	const params = useSearchParams();
@@ -18,7 +22,7 @@ export function EditUserButton() {
 	return (
 		<Button onClick={handleEdit} size="sm" variant="outline">
 			<Pencil aria-hidden className="mr-1.5 size-3.5" />
-			Editar Usuário
+			{label}
 		</Button>
 	);
 }
