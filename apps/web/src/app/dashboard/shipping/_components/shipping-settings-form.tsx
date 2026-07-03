@@ -163,7 +163,7 @@ export function ShippingSettingsForm({
 				{insurancePolicy === "cart_value" ? (
 					<LabeledField
 						error={errors.insuranceCapAmount}
-						hint="Valor máximo declarado por envio. Padrão R$ 3.000 (teto SuperFrete)."
+						hint="Valor máximo declarado por envio na cotação. Padrão R$ 3.000."
 						id="insuranceCapAmount"
 						label="Teto do seguro (R$)"
 					>
