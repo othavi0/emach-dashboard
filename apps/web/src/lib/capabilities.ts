@@ -156,7 +156,7 @@ export const CAPABILITIES = {
 		resource: "Filiais",
 		action: "Ver",
 		description: "Visualizar filiais",
-		defaultRoles: SAU,
+		defaultRoles: SA,
 	},
 	"branches.manage": {
 		group: "Filiais",
