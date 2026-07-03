@@ -1,6 +1,10 @@
 import { createDb } from "@emach/db";
 import { account, session, user, verification } from "@emach/db/schema/auth";
-import { sendPasswordResetEmail } from "@emach/email/send";
+import {
+	sendChangeEmailConfirmation,
+	sendPasswordResetEmail,
+	sendVerifyNewEmail,
+} from "@emach/email/send";
 import { env } from "@emach/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -50,6 +54,23 @@ export const authDashboard = betterAuth({
 				defaultValue: "pending",
 				input: false,
 			},
+		},
+		changeEmail: {
+			enabled: true,
+			sendChangeEmailConfirmation: async ({ user: target, url }) => {
+				await sendChangeEmailConfirmation({ to: target.email, url });
+			},
+		},
+	},
+	// Double opt-in: dispara quando o e-mail alvo (novo endereço) precisa ser
+	// verificado. Como `inviteUser` cria todo usuário com `emailVerified: true`
+	// (convite-only), o fluxo de troca sempre passa por
+	// `changeEmail.sendChangeEmailConfirmation` (ao e-mail atual) e, após
+	// confirmado, o Better Auth chama este hook com `user.email` já apontando
+	// para o novo endereço — sem isso o 2º e-mail nunca sai e a troca trava.
+	emailVerification: {
+		sendVerificationEmail: async ({ user: target, url }) => {
+			await sendVerifyNewEmail({ to: target.email, url });
 		},
 	},
 	secret: env.BETTER_AUTH_SECRET,
