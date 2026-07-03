@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import { getActiveBoxes } from "@emach/db/queries/shipping";
 import { attributeDefinition } from "@emach/db/schema/attributes";
 import { category } from "@emach/db/schema/categories";
 import { asc } from "drizzle-orm";
@@ -20,8 +21,8 @@ export default function NewToolPage() {
 async function NewToolPageContent() {
 	await requireCapability("tools.create");
 
-	const [categories, definitionsByCategory, allDefinitions] = await Promise.all(
-		[
+	const [categories, definitionsByCategory, allDefinitions, activeBoxes] =
+		await Promise.all([
 			db
 				.select({
 					id: category.id,
@@ -40,8 +41,8 @@ async function NewToolPageContent() {
 					asc(attributeDefinition.sortOrder),
 					asc(attributeDefinition.label)
 				),
-		]
-	);
+			getActiveBoxes(db),
+		]);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -55,6 +56,7 @@ async function NewToolPageContent() {
 			</div>
 			<ToolFormProvider
 				value={{
+					activeBoxes,
 					allDefinitions,
 					categories,
 					definitionsByCategory,

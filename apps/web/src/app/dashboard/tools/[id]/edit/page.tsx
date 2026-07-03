@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import { getActiveBoxes } from "@emach/db/queries/shipping";
 import {
 	attributeDefinition,
 	toolAttributeAssignment,
@@ -93,9 +94,9 @@ function toFormValues(
 		lengthCm: row.lengthCm ? Number(row.lengthCm) : undefined,
 		widthCm: row.widthCm ? Number(row.widthCm) : undefined,
 		heightCm: row.heightCm ? Number(row.heightCm) : undefined,
-		overweightShippingAmount: row.overweightShippingAmount
-			? Number(row.overweightShippingAmount)
-			: undefined,
+		packagingWeightKg: Number(row.packagingWeightKg),
+		stackable: row.stackable,
+		shipsInOwnBox: row.shipsInOwnBox,
 		categoryIds,
 		primaryCategoryId,
 		visibleOnSite: row.visibleOnSite,
@@ -132,6 +133,7 @@ async function EditToolPageContent({ params }: PageProps) {
 		definitionsByCategory,
 		allDefinitions,
 		assignmentRows,
+		activeBoxes,
 	] = await Promise.all([
 		db
 			.select()
@@ -185,6 +187,7 @@ async function EditToolPageContent({ params }: PageProps) {
 			)
 			.where(eq(toolAttributeAssignment.toolId, id))
 			.orderBy(asc(toolAttributeAssignment.sortOrder)),
+		getActiveBoxes(db),
 	]);
 
 	const attributeAssignments = assignmentRows.map((r) => r.slug);
@@ -201,6 +204,7 @@ async function EditToolPageContent({ params }: PageProps) {
 			</div>
 			<ToolFormProvider
 				value={{
+					activeBoxes,
 					allDefinitions,
 					categories,
 					definitionsByCategory,

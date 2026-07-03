@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { SwitchTabButton } from "@/components/entity/switch-tab-button";
 import { ToolDescription } from "@/components/tool-description";
 import { formatDayMonthShortYear } from "@/lib/format/datetime";
+import { formatMeasure } from "@/lib/format/number";
 import { groupAttributesByCategory } from "../_lib/attribute-grouping";
 import { detectSpecDivergences } from "../_lib/spec-divergence";
 import type {
@@ -15,11 +16,6 @@ import type {
 import { ImageCarousel } from "./image-carousel";
 import { SectionCard } from "./section-card";
 import { ToolSpecs } from "./tool-specs";
-
-const BRL = new Intl.NumberFormat("pt-BR", {
-	currency: "BRL",
-	style: "currency",
-});
 
 interface OverviewTabProps {
 	attributes: ToolDetailAttribute[];
@@ -107,11 +103,6 @@ export function OverviewTab({
 
 					<SectionCard title="Logística & metadados">
 						<dl className="flex flex-col gap-2 text-sm">
-							<MetaRow label="Frete > 30kg">
-								{tool.overweightShippingAmount === null
-									? "a combinar"
-									: BRL.format(Number(tool.overweightShippingAmount))}
-							</MetaRow>
 							<MetaRow label="Categoria">
 								{primaryCategory?.categoryName ?? "—"}
 								{otherCategories.length > 0 && (
@@ -132,6 +123,17 @@ export function OverviewTab({
 									<span className="font-mono text-xs">{tool.slug}</span>
 								</MetaRow>
 							)}
+							<MetaRow label="Embalagem">
+								{Number(tool.packagingWeightKg) > 0
+									? `+${formatMeasure(tool.packagingWeightKg)} kg`
+									: "—"}
+							</MetaRow>
+							<MetaRow label="Envio">
+								{tool.shipsInOwnBox
+									? "Embalagem própria"
+									: "Consolida em caixa"}
+								{tool.stackable ? "" : " · não empilhável"}
+							</MetaRow>
 							<MetaRow label="Criada">
 								{formatDayMonthShortYear(tool.createdAt)}
 							</MetaRow>

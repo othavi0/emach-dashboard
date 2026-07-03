@@ -6,15 +6,6 @@ import type {
 	ToolVariantInput,
 } from "../_components/tool-schema";
 
-export function toNumericString(
-	value: number | null | undefined
-): string | null {
-	if (typeof value !== "number" || Number.isNaN(value)) {
-		return null;
-	}
-	return value.toFixed(2);
-}
-
 export function toInt(value: number | undefined): number | null {
 	if (typeof value !== "number" || Number.isNaN(value)) {
 		return null;
@@ -43,7 +34,9 @@ export function normalizeToolPayload(input: ToolFormValues) {
 		lengthCm: input.lengthCm.toFixed(2),
 		widthCm: input.widthCm.toFixed(2),
 		heightCm: input.heightCm.toFixed(2),
-		overweightShippingAmount: toNumericString(input.overweightShippingAmount),
+		packagingWeightKg: input.packagingWeightKg.toFixed(3),
+		stackable: input.stackable,
+		shipsInOwnBox: input.shipsInOwnBox,
 		visibleOnSite: input.visibleOnSite,
 		videoUrl: input.videoUrl,
 		videoPosterUrl: input.videoPosterUrl,

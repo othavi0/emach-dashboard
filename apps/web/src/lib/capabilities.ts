@@ -292,14 +292,14 @@ export const CAPABILITIES = {
 		group: "Frete",
 		resource: "Frete",
 		action: "Ver",
-		description: "Visualizar transportadoras, tabelas e caixas",
+		description: "Visualizar caixas de envio e config de frete",
 		defaultRoles: SA,
 	},
 	"shipping.manage": {
 		group: "Frete",
 		resource: "Frete",
 		action: "Gerenciar",
-		description: "Criar/editar transportadoras, tabelas, caixas e config",
+		description: "Criar/editar caixas de envio e config de frete",
 		defaultRoles: S,
 	},
 	// ── Usuários ──────────────────────────────────────────────

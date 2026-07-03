@@ -5,13 +5,13 @@ import type { ToolFormValues } from "./tool-schema";
 
 export type ToolFormState = Omit<
 	ToolFormValues,
-	"weightKg" | "lengthCm" | "widthCm" | "heightCm" | "overweightShippingAmount"
+	"weightKg" | "lengthCm" | "widthCm" | "heightCm" | "packagingWeightKg"
 > & {
 	weightKg?: number;
 	lengthCm?: number;
 	widthCm?: number;
 	heightCm?: number;
-	overweightShippingAmount?: number;
+	packagingWeightKg?: number;
 };
 
 export type ToolPatch = (
@@ -35,7 +35,9 @@ export const EMPTY_TOOL_VALUES: ToolFormState = {
 	lengthCm: undefined,
 	widthCm: undefined,
 	heightCm: undefined,
-	overweightShippingAmount: undefined,
+	packagingWeightKg: undefined,
+	stackable: true,
+	shipsInOwnBox: false,
 	categoryIds: [],
 	primaryCategoryId: "",
 	visibleOnSite: true,

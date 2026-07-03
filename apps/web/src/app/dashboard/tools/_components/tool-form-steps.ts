@@ -60,7 +60,9 @@ export const STEP_FIELDS = {
 		"widthCm",
 		"heightCm",
 		"powerWatts",
-		"overweightShippingAmount",
+		"packagingWeightKg",
+		"stackable",
+		"shipsInOwnBox",
 	],
 	fiscal: [
 		"model",

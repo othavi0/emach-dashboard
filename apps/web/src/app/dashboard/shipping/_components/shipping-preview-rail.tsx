@@ -33,8 +33,11 @@ export function ShippingPreviewRail({
 					? `Valor do carrinho (até ${BRL.format(insuranceCapAmount)})`
 					: "Sem seguro",
 		},
-		{ label: "Item até 30 kg", value: "Cotação automática (SuperFrete)" },
-		{ label: "Item acima de 30 kg", value: "Frete por-produto ou a combinar" },
+		{
+			label: "Cotação",
+			value: "Frenet (multi-transportadora), por caixa de envio",
+		},
+		{ label: "Item fora do catálogo de caixas", value: "Frete a combinar" },
 		{ label: "Frete grátis", value: "Apenas via cupom de promoção" },
 	];
 
