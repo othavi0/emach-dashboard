@@ -22,6 +22,8 @@ import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
 import { requireCapabilityWithContext } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
+import { uploadToPublicBucket } from "@/lib/storage";
+import { USER_AVATARS_BUCKET } from "@/lib/supabase-server";
 import { allowedApprovalRoles } from "./_lib/approval-roles";
 import { requireUserDetailAccess } from "./[id]/_lib/access";
 import {
@@ -43,6 +45,9 @@ import {
 const USERS_PATH = "/dashboard/users";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+const AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function makeInviteToken(): { token: string; expiresAt: Date } {
 	return {
@@ -417,13 +422,20 @@ export async function updateOwnProfile(input: unknown): Promise<ActionResult> {
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
-	if (parsed.data.name === undefined) {
+	const update: { name?: string; image?: string | null } = {};
+	if (parsed.data.name !== undefined) {
+		update.name = parsed.data.name;
+	}
+	if (parsed.data.image !== undefined) {
+		update.image = parsed.data.image;
+	}
+	if (Object.keys(update).length === 0) {
 		return { ok: true, data: undefined };
 	}
 	try {
 		await db
 			.update(userTable)
-			.set({ name: parsed.data.name })
+			.set(update)
 			.where(eq(userTable.id, session.user.id));
 	} catch (error) {
 		logger.error("updateOwnProfile falhou", error);
@@ -434,10 +446,32 @@ export async function updateOwnProfile(input: unknown): Promise<ActionResult> {
 		action: "user.self_updated",
 		targetType: "user",
 		targetId: session.user.id,
-		metadata: { changes: { name: parsed.data.name } },
+		metadata: { changes: update },
 	});
 	revalidatePath(`${USERS_PATH}/${session.user.id}`);
 	return { ok: true, data: undefined };
+}
+
+export async function uploadOwnAvatar(
+	formData: FormData
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+	const session = await requireCurrentSession();
+	if (session.user.status !== "active") {
+		return { ok: false, error: "Conta não ativa" };
+	}
+	try {
+		const { url } = await uploadToPublicBucket({
+			bucket: USER_AVATARS_BUCKET,
+			prefix: session.user.id,
+			formData,
+			maxSizeBytes: AVATAR_MAX_BYTES,
+			allowedTypes: AVATAR_TYPES,
+		});
+		return { ok: true, url };
+	} catch (error) {
+		logger.error("uploadOwnAvatar falhou", error);
+		return { ok: false, error: "Não foi possível enviar a imagem" };
+	}
 }
 
 export async function suspendUser(input: unknown): Promise<ActionResult> {

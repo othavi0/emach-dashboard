@@ -60,7 +60,11 @@ const {
 // ---------------------------------------------------------------------------
 
 vi.mock("@emach/env/server", () => ({
-	env: { BETTER_AUTH_URL: "http://localhost:3000" },
+	env: {
+		BETTER_AUTH_URL: "http://localhost:3000",
+		NEXT_PUBLIC_SUPABASE_URL: "https://test.supabase.co",
+		SUPABASE_SERVICE_ROLE_KEY: "ci-test-service-role-key",
+	},
 }));
 
 vi.mock("@emach/db", () => ({

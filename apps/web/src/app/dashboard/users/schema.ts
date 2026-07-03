@@ -71,5 +71,6 @@ export type DeleteUserInput = z.infer<typeof deleteUserSchema>;
 
 export const updateOwnProfileSchema = z.object({
 	name: z.string().min(2, "Informe seu nome").max(100).optional(),
+	image: z.string().url().nullable().optional(),
 });
 export type UpdateOwnProfileInput = z.infer<typeof updateOwnProfileSchema>;
