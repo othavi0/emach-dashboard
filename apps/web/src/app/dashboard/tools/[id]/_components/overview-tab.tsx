@@ -16,11 +16,6 @@ import { ImageCarousel } from "./image-carousel";
 import { SectionCard } from "./section-card";
 import { ToolSpecs } from "./tool-specs";
 
-const BRL = new Intl.NumberFormat("pt-BR", {
-	currency: "BRL",
-	style: "currency",
-});
-
 interface OverviewTabProps {
 	attributes: ToolDetailAttribute[];
 	cartSummary: ToolCartSummary;
@@ -107,11 +102,6 @@ export function OverviewTab({
 
 					<SectionCard title="Logística & metadados">
 						<dl className="flex flex-col gap-2 text-sm">
-							<MetaRow label="Frete > 30kg">
-								{tool.overweightShippingAmount === null
-									? "a combinar"
-									: BRL.format(Number(tool.overweightShippingAmount))}
-							</MetaRow>
 							<MetaRow label="Categoria">
 								{primaryCategory?.categoryName ?? "—"}
 								{otherCategories.length > 0 && (

@@ -93,9 +93,6 @@ function toFormValues(
 		lengthCm: row.lengthCm ? Number(row.lengthCm) : undefined,
 		widthCm: row.widthCm ? Number(row.widthCm) : undefined,
 		heightCm: row.heightCm ? Number(row.heightCm) : undefined,
-		overweightShippingAmount: row.overweightShippingAmount
-			? Number(row.overweightShippingAmount)
-			: undefined,
 		categoryIds,
 		primaryCategoryId,
 		visibleOnSite: row.visibleOnSite,

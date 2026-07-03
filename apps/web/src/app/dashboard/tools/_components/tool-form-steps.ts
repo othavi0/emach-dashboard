@@ -54,14 +54,7 @@ export const STEP_FIELDS = {
 	identity: ["name", "description", "categoryIds", "primaryCategoryId"],
 	variants: ["variants"],
 	specs: ["attributeAssignments", "attributeValues"],
-	logistics: [
-		"weightKg",
-		"lengthCm",
-		"widthCm",
-		"heightCm",
-		"powerWatts",
-		"overweightShippingAmount",
-	],
+	logistics: ["weightKg", "lengthCm", "widthCm", "heightCm", "powerWatts"],
 	fiscal: [
 		"model",
 		"invoiceModel",
