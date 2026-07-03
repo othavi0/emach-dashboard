@@ -2,15 +2,20 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/permissions", () => ({
 	requireCapability: vi.fn(),
+	requireCapabilityWithContext: vi.fn(),
 	requireCurrentSession: vi.fn(),
 	can: vi.fn(),
 }));
 
-import { requireCapability } from "@/lib/permissions";
+import {
+	requireCapability,
+	requireCapabilityWithContext,
+} from "@/lib/permissions";
 import {
 	fetchBranchActivityPage,
 	fetchBranchesPage,
 	fetchBranchesTablePage,
+	fetchBranchOrdersPage,
 	getBranch,
 	listBranches,
 } from "../actions";
@@ -55,14 +60,44 @@ describe("fetchBranchesTablePage — guard", () => {
 	});
 });
 
-describe("fetchBranchActivityPage — guard", () => {
-	it("rejeita quando requireCapability lança", async () => {
-		vi.mocked(requireCapability).mockRejectedValueOnce(FORBIDDEN);
+describe("fetchBranchActivityPage — branch-scope guard", () => {
+	it("rejeita filial fora de escopo via requireCapabilityWithContext", async () => {
+		vi.mocked(requireCapabilityWithContext).mockRejectedValueOnce(
+			new Error("Filial fora do seu escopo: b1")
+		);
 		await expect(
 			fetchBranchActivityPage(
 				{ branchId: "b1", kinds: ["stock"], period: "7d" },
 				null
 			)
-		).rejects.toThrow("branches.read");
+		).rejects.toThrow("fora do seu escopo");
+		expect(vi.mocked(requireCapabilityWithContext)).toHaveBeenCalledWith(
+			"branches.read",
+			{ targetBranchIds: ["b1"] }
+		);
+	});
+});
+
+describe("fetchBranchOrdersPage — branch-scope guard", () => {
+	it("rejeita quando a filial está fora do escopo", async () => {
+		vi.mocked(requireCapabilityWithContext).mockRejectedValueOnce(
+			new Error("Filial fora do seu escopo: b-outra")
+		);
+		await expect(
+			fetchBranchOrdersPage({ branchId: "b-outra", cursor: null })
+		).rejects.toThrow("fora do seu escopo");
+	});
+
+	it("chama requireCapabilityWithContext com orders.read + targetBranchIds", async () => {
+		vi.mocked(requireCapabilityWithContext).mockRejectedValueOnce(
+			new Error("scope")
+		);
+		await expect(
+			fetchBranchOrdersPage({ branchId: "b1", cursor: null })
+		).rejects.toThrow();
+		expect(vi.mocked(requireCapabilityWithContext)).toHaveBeenCalledWith(
+			"orders.read",
+			{ targetBranchIds: ["b1"] }
+		);
 	});
 });

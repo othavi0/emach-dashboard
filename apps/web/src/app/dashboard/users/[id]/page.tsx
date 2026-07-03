@@ -32,6 +32,7 @@ import { SessionsTabLoader } from "./_components/sessions-tab-loader";
 import { SuperAdminPermissionsNotice } from "./_components/super-admin-permissions-notice";
 import { UserDetailActions } from "./_components/user-detail-actions";
 import { UserIdentity } from "./_components/user-identity";
+import { UserSelfEditSheet } from "./_components/user-self-edit-sheet";
 
 export const metadata: Metadata = {
 	title: "Detalhe do usuário",
@@ -50,7 +51,15 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 	const { id } = await params;
 	const sp = await searchParams;
 	const actorSession = await requireUserDetailAccessOrRedirect(id);
-	const canDelete = await can(actorSession, "users.delete");
+	const isSelf = actorSession.user.id === id;
+	const canDelete = !isSelf && (await can(actorSession, "users.delete"));
+	const [canManageBranches, canResetPassword, canRevokeSessions, canSuspend] =
+		await Promise.all([
+			can(actorSession, "users.update_branches"),
+			can(actorSession, "users.reset_password"),
+			can(actorSession, "users.revoke_sessions"),
+			can(actorSession, "users.suspend"),
+		]);
 
 	const [user, kpis, linkedBranches, recentActivity] = await Promise.all([
 		getUserDetail(id),
@@ -98,7 +107,13 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 					{linkedBranches.length}
 				</span>
 			),
-			content: <BranchesTab linkedBranches={linkedBranches} userId={user.id} />,
+			content: (
+				<BranchesTab
+					canUnlink={canManageBranches && !isSelf}
+					linkedBranches={linkedBranches}
+					userId={user.id}
+				/>
+			),
 		},
 		{
 			value: "activity",
@@ -112,13 +127,27 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 			label: "Sessões",
 			icon: <Monitor aria-hidden className="size-3.5" />,
 			lazy: true,
-			content: <SessionsTabLoader userId={user.id} />,
+			content: (
+				<SessionsTabLoader
+					canRevoke={!isSelf && canRevokeSessions}
+					userId={user.id}
+				/>
+			),
 		},
 		{
 			value: "security",
 			label: "Segurança",
 			icon: <Lock aria-hidden className="size-3.5" />,
-			content: <SecurityTab canDelete={canDelete} user={user} />,
+			content: (
+				<SecurityTab
+					canDelete={canDelete}
+					canManageStatus={!isSelf && canSuspend}
+					canResetPassword={canResetPassword}
+					canRevokeSessions={canRevokeSessions}
+					isSelf={isSelf}
+					user={user}
+				/>
+			),
 		},
 	];
 
@@ -150,6 +179,7 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 					<UserIdentity
 						actions={
 							<UserDetailActions
+								canManageBranches={canManageBranches && !isSelf}
 								linkedBranchIds={linkedBranches.map((b) => b.id)}
 								userId={user.id}
 							/>
@@ -160,15 +190,23 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 				initialTab={initialTab}
 				tabs={tabs}
 			/>
-			<UserEditSheet
-				actorRole={actorSession.user.role as UserRow["role"]}
-				user={{
-					id: user.id,
-					name: user.name,
-					role: user.role,
-					emailVerified: user.emailVerified,
-				}}
-			/>
+			{isSelf ? (
+				<UserSelfEditSheet
+					email={user.email}
+					image={user.image}
+					name={user.name}
+				/>
+			) : (
+				<UserEditSheet
+					actorRole={actorSession.user.role as UserRow["role"]}
+					user={{
+						id: user.id,
+						name: user.name,
+						role: user.role,
+						emailVerified: user.emailVerified,
+					}}
+				/>
+			)}
 		</div>
 	);
 }

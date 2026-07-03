@@ -18,7 +18,6 @@ const OPERATIONAL_USER: readonly Capability[] = [
 	"attributes.read",
 	"suppliers.read",
 	"suppliers.manage",
-	"branches.read",
 	"stock.read",
 	"stock.adjust",
 	"orders.read",
@@ -110,5 +109,17 @@ describe("seções de navegação (redesign permissões)", () => {
 		for (const cap of Object.keys(CAPABILITIES) as Capability[]) {
 			expect(SECTION_ORDER).toContain(sectionForCapability(cap));
 		}
+	});
+});
+
+describe("branches.read — admin-only", () => {
+	it("user NÃO tem branches.read", () => {
+		expect(roleDefaultCapabilities("user").has("branches.read")).toBe(false);
+	});
+	it("admin e super_admin têm branches.read", () => {
+		expect(roleDefaultCapabilities("admin").has("branches.read")).toBe(true);
+		expect(roleDefaultCapabilities("super_admin").has("branches.read")).toBe(
+			true
+		);
 	});
 });

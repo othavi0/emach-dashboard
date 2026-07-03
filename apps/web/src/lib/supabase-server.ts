@@ -12,3 +12,4 @@ export const supabaseAdmin = createClient(
 export const TOOL_IMAGES_BUCKET = "tool-images";
 export const TOOL_VIDEOS_BUCKET = "tool-videos";
 export const BANNER_IMAGES_BUCKET = "banner-images";
+export const USER_AVATARS_BUCKET = "user-avatars";

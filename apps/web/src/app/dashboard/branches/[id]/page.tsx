@@ -11,6 +11,7 @@ import { notFound } from "next/navigation";
 import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
 import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
 import { clampInitialTab } from "@/components/entity/tab-url";
+import { getUserBranchScope, inScope } from "@/lib/branch-scope";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { getBranchDetail, getBranchDetailKpis } from "../data";
 import { ActivityTabLoader } from "./_components/activity-tab-loader";
@@ -46,6 +47,13 @@ async function BranchDetailPageContent({ params, searchParams }: PageProps) {
 
 	const { id } = await params;
 	const sp = await searchParams;
+
+	// P0: branches.read é admin-only, mas admin é filial-scoped — bloquear leitura
+	// de filial fora do escopo (404 não revela existência). super_admin passa.
+	const scope = await getUserBranchScope(session);
+	if (!inScope(scope, id)) {
+		notFound();
+	}
 
 	const [detail, kpis] = await Promise.all([
 		getBranchDetail(id),

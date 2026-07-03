@@ -48,6 +48,51 @@ Validações de tipo e tamanho (**2 MB pós-compressão** via `MAX_SIZE_BYTES`, 
 - `deleteTool`: busca URLs antes do `DELETE tool` e limpa cada arquivo após o delete (cascade já removeu registros).
 - `removeAt` (gallery × button): chama `deleteToolImage` imediatamente mas o registro só some do DB se o form for salvo. Se usuário fechar sem salvar, arquivo **removido** do bucket mas URL ainda no state — divergência aceitável (user já sinalizou intenção de remover).
 
+## user-avatars
+
+Armazena a foto de perfil dos usuários do dashboard (self-service). Bucket **público** — leitura direta sem autenticação.
+
+### Criar via Dashboard (cloud)
+
+1. Supabase Dashboard → Storage → **New bucket**
+2. Nome: `user-avatars`
+3. Public: **ON**
+4. File size limit: **5 MB** (folga do bucket; o app valida **2 MB** — ver Arquitetura de acesso)
+5. Allowed MIME types: `image/png`, `image/jpeg`, `image/webp`
+
+> A CLI `supabase storage` (v2.91.x) só tem `cp/ls/mv/rm` — não cria bucket. Use Dashboard ou SQL.
+
+### Criar via SQL (alternativa)
+
+```sql
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'user-avatars',
+  'user-avatars',
+  true,
+  5242880,
+  ARRAY['image/png', 'image/jpeg', 'image/webp']
+);
+```
+
+### Padrão de URL pública
+
+```
+https://<project-ref>.supabase.co/storage/v1/object/public/user-avatars/<userId>/<uuid>.<ext>
+```
+
+Salvar a URL resultante em `user.image`.
+
+### Arquitetura de acesso
+
+Upload acontece **server-side** via a server action `uploadOwnAvatar` (`apps/web/src/app/dashboard/users/actions.ts`), self-scoped: o usuário só pode enviar avatar para a própria conta (`session.user.id` vira o prefixo do path — `<userId>/<uuid>.<ext>`), via `uploadToPublicBucket` (`apps/web/src/lib/storage.ts`) usando `supabaseAdmin` (`SUPABASE_SERVICE_ROLE_KEY`). Bucket RLS permanece fechado para `anon` — apenas leitura pública via URL direta.
+
+Validações de tipo e tamanho (**2 MB**, JPG/PNG/WEBP) acontecem no server (`uploadOwnAvatar`). A URL retornada é persistida em `user.image` por `updateOwnProfile` no submit do form (não no momento do upload — o usuário pode trocar a foto e cancelar o sheet sem salvar).
+
+### Cleanup de storage
+
+Sem cleanup: avatares antigos (trocados ou nunca salvos) não são removidos do bucket. Divergência aceita — mesmo padrão do `removeAt` de `tool-images`, custo de storage de fotos de perfil é desprezível.
+
 ## order-documents
 
 Armazena anexos de pedido enviados pelo staff (canhoto de entrega, comprovante de postagem). Bucket **privado** — esses documentos podem carregar assinatura/PII, então **não** há leitura pública. Servido por **signed URLs** (TTL de 1 hora) geradas server-side a cada leitura.

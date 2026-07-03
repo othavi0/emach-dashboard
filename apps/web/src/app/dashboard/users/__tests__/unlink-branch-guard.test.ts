@@ -16,7 +16,12 @@ const { mockTransaction } = vi.hoisted(() => {
 // ---------------------------------------------------------------------------
 
 vi.mock("@emach/env/server", () => ({
-	env: { BETTER_AUTH_URL: "http://localhost:3000", INVITE_JWT_SECRET: "x" },
+	env: {
+		BETTER_AUTH_URL: "http://localhost:3000",
+		INVITE_JWT_SECRET: "x",
+		NEXT_PUBLIC_SUPABASE_URL: "https://test.supabase.co",
+		SUPABASE_SERVICE_ROLE_KEY: "ci-test-service-role-key",
+	},
 }));
 
 vi.mock("@emach/db", () => ({

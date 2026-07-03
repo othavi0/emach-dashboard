@@ -14,6 +14,7 @@ import { StatusBadge } from "../../_components/status-badge";
 import { reactivateUser, suspendUser } from "../../actions";
 
 interface Props {
+	canManageStatus: boolean;
 	user: {
 		id: string;
 		name: string;
@@ -21,7 +22,7 @@ interface Props {
 	};
 }
 
-export function AccessStatusCard({ user }: Props) {
+export function AccessStatusCard({ canManageStatus, user }: Props) {
 	const [dialogOpen, setDialogOpen] = useState<"suspend" | "reactivate" | null>(
 		null
 	);
@@ -70,7 +71,7 @@ export function AccessStatusCard({ user }: Props) {
 						<CardTitle className="text-base">Status de acesso</CardTitle>
 						<StatusBadge status={user.status} />
 					</div>
-					{user.status === "active" && (
+					{canManageStatus && user.status === "active" && (
 						<Button
 							onClick={() => setDialogOpen("suspend")}
 							size="sm"
@@ -79,7 +80,7 @@ export function AccessStatusCard({ user }: Props) {
 							Suspender
 						</Button>
 					)}
-					{user.status === "suspended" && (
+					{canManageStatus && user.status === "suspended" && (
 						<Button
 							onClick={() => setDialogOpen("reactivate")}
 							size="sm"
