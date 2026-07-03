@@ -6,6 +6,7 @@ import { UserBranchLinkPanel } from "./user-branch-link-panel";
 
 interface Props {
 	canManageBranches: boolean;
+	editLabel: string;
 	linkedBranchIds: string[];
 	userId: string;
 }
@@ -15,12 +16,13 @@ interface Props {
  * filial" na aba Filiais (só quando `canManageBranches`). A tab ativa vem do
  * contexto client do EntityClientTabs (sem re-render do servidor ao trocar
  * de tab). A troca entre "editar meus dados" e "editar usuário admin" é
- * decidida em page.tsx (qual sheet abre).
+ * decidida em page.tsx (qual sheet abre e o texto de `editLabel`).
  */
 export function UserDetailActions({
 	userId,
 	linkedBranchIds,
 	canManageBranches,
+	editLabel,
 }: Props) {
 	const tab = useActiveTab();
 
@@ -33,7 +35,7 @@ export function UserDetailActions({
 		);
 	}
 	if (tab === "profile") {
-		return <EditUserButton />;
+		return <EditUserButton label={editLabel} />;
 	}
 	return null;
 }

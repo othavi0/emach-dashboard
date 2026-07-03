@@ -118,7 +118,7 @@ export function SecurityTab({
 						</p>
 					</CardContent>
 				</Card>
-				{!isSelf && canResetPassword && (
+				{canResetPassword && (
 					<Card className="h-full">
 						<CardHeader className="flex flex-row items-center justify-between gap-2">
 							<CardTitle className="text-base">Reset de senha</CardTitle>
@@ -140,7 +140,7 @@ export function SecurityTab({
 						</CardContent>
 					</Card>
 				)}
-				{!isSelf && canRevokeSessions && (
+				{canRevokeSessions && (
 					<Card className="h-full">
 						<CardHeader className="flex flex-row items-center justify-between gap-2">
 							<CardTitle className="text-base">Sessões</CardTitle>
