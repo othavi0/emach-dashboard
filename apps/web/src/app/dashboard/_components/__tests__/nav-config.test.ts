@@ -51,4 +51,11 @@ describe("NAV_GROUPS — esquema por fluxo", () => {
 		const all = NAV_GROUPS.flatMap((g) => g.items.map((i) => i.label));
 		expect(all).not.toContain("Notificações");
 	});
+
+	it("item Filiais exige branches.read", () => {
+		const filiais = NAV_GROUPS.flatMap((g) => g.items).find(
+			(i) => i.label === "Filiais"
+		);
+		expect(filiais?.capability).toBe("branches.read");
+	});
 });

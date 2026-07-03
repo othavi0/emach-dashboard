@@ -130,6 +130,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				label: "Filiais",
 				href: "/dashboard/branches" as Route,
 				icon: Building2,
+				capability: "branches.read",
 			},
 			{
 				label: "Frete",
