@@ -1,5 +1,6 @@
 "use client";
 
+import type { QuoteBox } from "@emach/db/queries/shipping-quote";
 import type { AttributeDefinition } from "@emach/db/schema/attributes";
 import { createContext, useContext } from "react";
 
@@ -12,6 +13,7 @@ export interface CategoryOption {
 }
 
 export interface ToolFormContextValue {
+	activeBoxes: QuoteBox[];
 	allDefinitions: AttributeDefinition[];
 	categories: CategoryOption[];
 	definitionsByCategory: Record<string, AttributeDefinition[]>;
