@@ -60,15 +60,21 @@ describe("fetchBranchesTablePage — guard", () => {
 	});
 });
 
-describe("fetchBranchActivityPage — guard", () => {
-	it("rejeita quando requireCapability lança", async () => {
-		vi.mocked(requireCapability).mockRejectedValueOnce(FORBIDDEN);
+describe("fetchBranchActivityPage — branch-scope guard", () => {
+	it("rejeita filial fora de escopo via requireCapabilityWithContext", async () => {
+		vi.mocked(requireCapabilityWithContext).mockRejectedValueOnce(
+			new Error("Filial fora do seu escopo: b1")
+		);
 		await expect(
 			fetchBranchActivityPage(
 				{ branchId: "b1", kinds: ["stock"], period: "7d" },
 				null
 			)
-		).rejects.toThrow("branches.read");
+		).rejects.toThrow("fora do seu escopo");
+		expect(vi.mocked(requireCapabilityWithContext)).toHaveBeenCalledWith(
+			"branches.read",
+			{ targetBranchIds: ["b1"] }
+		);
 	});
 });
 

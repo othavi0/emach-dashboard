@@ -34,7 +34,9 @@ export async function fetchBranchActivityPage(
 	cursor: string | null
 ): Promise<InfiniteResult<BranchActivityRow>> {
 	// defesa-em-profundidade: impl em activity-data.ts já guarda
-	await requireCapability("branches.read");
+	await requireCapabilityWithContext("branches.read", {
+		targetBranchIds: [filters.branchId],
+	});
 	return await fetchBranchActivityPageImpl(filters, cursor);
 }
 

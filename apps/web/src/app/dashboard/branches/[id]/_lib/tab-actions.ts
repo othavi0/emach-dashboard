@@ -34,7 +34,9 @@ export async function fetchBranchActivityToolsAction(
 ): Promise<Array<{ id: string; name: string }>> {
 	// Mesma capability do wrapper fetchBranchActivityPage (defesa-em-profundidade:
 	// a impl em activity-data.ts já guarda com stock.read).
-	await requireCapability("branches.read");
+	await requireCapabilityWithContext("branches.read", {
+		targetBranchIds: [branchId],
+	});
 	return await fetchBranchActivityTools(branchId);
 }
 
