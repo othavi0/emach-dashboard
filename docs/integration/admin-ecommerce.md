@@ -22,7 +22,7 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `supplier`            | Dashboard        | E-commerce  | Fornecedores. E-commerce lê para exibir informações de fabricante.                               |
 | `category`            | Dashboard        | Ambos       | Árvore de categorias. E-commerce lê para navegação de catálogo.                                  |
 | `tool_category`       | Dashboard        | Ambos       | Vínculo tool ↔ categoria. E-commerce lê para filtrar por categoria.                              |
-| `tool`                | Dashboard        | Ambos       | Produto-pai. E-commerce lê para exibir catálogo. `overweight_shipping_amount` (numeric, nullable): frete fixo p/ item > 30kg — null = "a combinar". Colunas de frete motor: `packaging_weight_kg`, `stackable`, `ships_in_own_box` — ver "Motor de cotação próprio". |
+| `tool`                | Dashboard        | Ambos       | Produto-pai. E-commerce lê para exibir catálogo. Colunas de frete: `packaging_weight_kg`, `stackable`, `ships_in_own_box` — ver "Consolidação em caixas + cotação Frenet". |
 | `tool_variant`        | Dashboard        | Ambos       | Variante vendável (SKU, preço, voltagem). E-commerce lê para carrinho e checkout.                |
 | `tool_image`          | Dashboard        | Ambos       | Imagens do produto. E-commerce exibe na vitrine.                                                 |
 | `attribute_definition`| Dashboard        | Ambos       | Specs técnicas dinâmicas. E-commerce lê para exibir ficha técnica.                              |
