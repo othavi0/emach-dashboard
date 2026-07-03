@@ -6,15 +6,6 @@ import type {
 	ToolVariantInput,
 } from "../_components/tool-schema";
 
-export function toNumericString(
-	value: number | null | undefined
-): string | null {
-	if (typeof value !== "number" || Number.isNaN(value)) {
-		return null;
-	}
-	return value.toFixed(2);
-}
-
 export function toInt(value: number | undefined): number | null {
 	if (typeof value !== "number" || Number.isNaN(value)) {
 		return null;
