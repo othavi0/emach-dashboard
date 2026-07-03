@@ -907,7 +907,164 @@ git add apps/web/src/app/dashboard/users/[id]/page.tsx apps/web/src/app/dashboar
 git commit -m "feat: self-view honesto na pagina de usuario"
 ```
 
-### Task C6: verificação da fase
+### Task C6: upload de avatar (foto)
+
+Estende C1/C2 para os "dados básicos" incluírem a foto. Bucket público novo `user-avatars` + action self-scoped.
+
+**Files:**
+- Infra: bucket `user-avatars` (Supabase — Dashboard ou SQL)
+- Modify: `apps/web/src/lib/supabase-server.ts:12-14`
+- Modify: `apps/web/src/app/dashboard/users/schema.ts` (estende `updateOwnProfileSchema`)
+- Modify: `apps/web/src/app/dashboard/users/actions.ts` (estende `updateOwnProfile` + add `uploadOwnAvatar`)
+- Modify: `apps/web/src/app/dashboard/users/[id]/_components/user-self-edit-sheet.tsx`
+- Modify: `docs/storage-buckets.md`
+
+**Interfaces:**
+- Consumes: `uploadToPublicBucket` de `@/lib/storage`; `USER_AVATARS_BUCKET`; `requireCurrentSession`.
+- Produces: `uploadOwnAvatar(formData): Promise<{ ok: true; url } | { ok: false; error }>`; `updateOwnProfile` passa a persistir `image`.
+
+- [ ] **Step 1: Criar o bucket `user-avatars` (infra) + documentar**
+
+Criar bucket público no Supabase (Dashboard → Storage → New bucket: `user-avatars`, Public ON, limit 5MB, MIME `image/png,image/jpeg,image/webp`), ou via SQL:
+
+```sql
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('user-avatars','user-avatars',true,5242880,
+  ARRAY['image/png','image/jpeg','image/webp']);
+```
+
+Adicionar uma seção `## user-avatars` em `docs/storage-buckets.md` espelhando `## tool-images` (público, upload server-side via `supabaseAdmin`, validação 2MB, path `<userId>/<uuid>.<ext>`, URL salva em `user.image`).
+
+- [ ] **Step 2: Constante do bucket**
+
+Em `apps/web/src/lib/supabase-server.ts`, após linha 14:
+
+```ts
+export const USER_AVATARS_BUCKET = "user-avatars";
+```
+
+- [ ] **Step 3: Estender schema + action para `image`**
+
+Em `schema.ts`, trocar `updateOwnProfileSchema` (da Task C1) por:
+
+```ts
+export const updateOwnProfileSchema = z.object({
+	name: z.string().min(2, "Informe seu nome").max(100).optional(),
+	image: z.string().url().nullable().optional(),
+});
+export type UpdateOwnProfileInput = z.infer<typeof updateOwnProfileSchema>;
+```
+
+Em `actions.ts`, no corpo de `updateOwnProfile` (Task C1), trocar o bloco que monta e aplica o update por:
+
+```ts
+	const update: { name?: string; image?: string | null } = {};
+	if (parsed.data.name !== undefined) {
+		update.name = parsed.data.name;
+	}
+	if (parsed.data.image !== undefined) {
+		update.image = parsed.data.image;
+	}
+	if (Object.keys(update).length === 0) {
+		return { ok: true, data: undefined };
+	}
+	try {
+		await db
+			.update(userTable)
+			.set(update)
+			.where(eq(userTable.id, session.user.id));
+	} catch (error) {
+		logger.error("updateOwnProfile falhou", error);
+		return { ok: false, error: "Não foi possível atualizar" };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "user.self_updated",
+		targetType: "user",
+		targetId: session.user.id,
+		metadata: { changes: update },
+	});
+	revalidatePath(`${USERS_PATH}/${session.user.id}`);
+	return { ok: true, data: undefined };
+```
+
+O teste `update-own-profile.test.ts` (C1) segue válido: com só `name`, `set` é chamado com `{ name: "Novo Nome" }`.
+
+- [ ] **Step 4: Action `uploadOwnAvatar`**
+
+Em `actions.ts`, adicionar ao import de `@/lib/storage` (criar se não houver) `uploadToPublicBucket`, e `USER_AVATARS_BUCKET` de `@/lib/supabase-server`. No topo do módulo, consts:
+
+```ts
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+const AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+```
+
+Action:
+
+```ts
+export async function uploadOwnAvatar(
+	formData: FormData
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+	const session = await requireCurrentSession();
+	if (session.user.status !== "active") {
+		return { ok: false, error: "Conta não ativa" };
+	}
+	try {
+		const { url } = await uploadToPublicBucket({
+			bucket: USER_AVATARS_BUCKET,
+			prefix: session.user.id,
+			formData,
+			maxSizeBytes: AVATAR_MAX_BYTES,
+			allowedTypes: AVATAR_TYPES,
+		});
+		return { ok: true, url };
+	} catch (error) {
+		logger.error("uploadOwnAvatar falhou", error);
+		return { ok: false, error: "Não foi possível enviar a imagem" };
+	}
+}
+```
+
+- [ ] **Step 5: Avatar no `UserSelfEditSheet`**
+
+Estender `UserSelfEditSheet` (Task C2) para receber `image: string | null`. Estado `const [image, setImage] = useState(initialImage)`. Adicionar um input `type="file"` (accept `image/png,image/jpeg,image/webp`) que ao mudar chama `uploadOwnAvatar(formData)` e, no sucesso, `setImage(res.url)` + preview via `next/image` (ou `<Avatar>` de `@emach/ui`). No `handleSubmit`, incluir `image` no `safeParse`: `updateOwnProfileSchema.safeParse({ name, image })`. Passar `image={user.image}` no call em `page.tsx` (ramo `isSelf`).
+
+Código do handler de upload:
+
+```tsx
+	const [uploading, setUploading] = useState(false);
+	const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) {
+			return;
+		}
+		setUploading(true);
+		const fd = new FormData();
+		fd.set("file", file);
+		const res = await uploadOwnAvatar(fd);
+		setUploading(false);
+		if (res.ok) {
+			setImage(res.url);
+		} else {
+			notify.error(res.error);
+		}
+	};
+```
+
+(importar `uploadOwnAvatar` de `../../actions`.)
+
+- [ ] **Step 6: Verificar + commit**
+
+Run: `bun --cwd apps/web test update-own-profile.test.ts` → PASS.
+Run: `bun --cwd apps/web check-types` → sem erros.
+Smoke (:3008): como `user`, "Editar meus dados" → trocar foto (upload + preview) e salvar → avatar atualiza no header.
+
+```bash
+git add apps/web/src/lib/supabase-server.ts apps/web/src/app/dashboard/users/schema.ts apps/web/src/app/dashboard/users/actions.ts apps/web/src/app/dashboard/users/[id]/_components/user-self-edit-sheet.tsx apps/web/src/app/dashboard/users/[id]/page.tsx docs/storage-buckets.md
+git commit -m "feat: upload de avatar self-service"
+```
+
+### Task C7: verificação da fase
 
 - [ ] **Step 1: `bun verify`**
 
@@ -1030,8 +1187,8 @@ Confirmar que dashboard e ecommerce seguem isolados (nenhum import cruzado novo)
 ## Self-Review (cobertura do spec)
 
 - **Fix 1 (Filiais admin-only):** Tasks B1 (cap SAU→SA) + B2 (nav gate). ✓
-- **Fix 2 (shell honesta + minha conta):** C1 (action nome), C2 (sheet self), C3 (gate filiais), C4 (gate segurança + trocar senha), C5 (page wiring + escolha de sheet), C6 (verify/build). E-mail em D1–D2. ✓
+- **Fix 2 (shell honesta + minha conta):** C1 (action nome), C2 (sheet self), C3 (gate filiais), C4 (gate segurança + trocar senha), C5 (page wiring + escolha de sheet), C6 (upload de avatar), C7 (verify/build). E-mail em D1–D2. ✓
 - **Fix 3 (P0 escopo):** A1 (orders), A2 (activity wrappers), A3 (guard de página). ✓
 - **Regra do usuário "esconder, não desabilitar":** C3/C4 removem (não desabilitam) os controles. ✓
 - **Ordem por risco:** A (P0) → B → C → D (e-mail). ✓
-- **Foto (dados básicos):** o spec inclui foto; este plano entrega nome/senha (C) e e-mail (D). **Gap consciente:** upload de avatar não está detalhado — adicionar como task própria seguindo o padrão de `tools/_components/image-actions.ts` (`uploadToolImage`) + bucket de avatar, OU confirmar com o usuário se foto pode ficar para depois de nome/e-mail. Sinalizar na execução.
+- **Dados básicos (nome + foto + e-mail):** nome (C1/C2), foto (C6), senha (C4), e-mail (D1–D2). ✓ Foto depende do bucket `user-avatars` (infra manual no Supabase — Task C6 Step 1).
