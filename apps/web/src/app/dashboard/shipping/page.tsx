@@ -1,12 +1,10 @@
-import { Package, Settings, Truck } from "lucide-react";
+import { Package, Settings } from "lucide-react";
 import type { Metadata } from "next";
 
 import { type EntityTab, EntityTabs } from "@/components/entity/entity-tabs";
 import { PageHeader } from "@/components/page-header";
-import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
+import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { BoxesTab } from "./_components/boxes-tab";
-import { CarriersTab } from "./_components/carriers-tab";
-import { ShippingHeaderAction } from "./_components/shipping-header-action";
 import { ShippingPreviewRail } from "./_components/shipping-preview-rail";
 import { ShippingSettingsForm } from "./_components/shipping-settings-form";
 import {
@@ -27,32 +25,23 @@ export default function ShippingPage({ searchParams }: PageProps) {
 }
 
 async function ShippingPageContent({ searchParams }: PageProps) {
-	const session = await requireCapabilityOrRedirect("shipping.read");
+	await requireCapabilityOrRedirect("shipping.read");
 	const sp = await searchParams;
 
-	const [settings, originOptions, canManage] = await Promise.all([
+	const [settings, originOptions] = await Promise.all([
 		getOrCreateShippingSettings(),
 		listOriginBranchOptions(),
-		can(session, "shipping.manage"),
 	]);
 	const originLabel =
 		originOptions.find((o) => o.id === settings.shippingOriginBranchId)?.name ??
 		null;
 
-	const activeTab = sp.tab ?? "transportadoras";
-
 	const tabs: EntityTab[] = [
-		{
-			value: "transportadoras",
-			label: "Transportadoras",
-			icon: <Truck aria-hidden className="size-3.5" />,
-			content: <CarriersTab />,
-		},
 		{
 			value: "caixas",
 			label: "Caixas",
 			icon: <Package aria-hidden className="size-3.5" />,
-			content: sp.tab === "caixas" ? <BoxesTab /> : null,
+			content: sp.tab === "config" ? null : <BoxesTab />,
 		},
 		{
 			value: "config",
@@ -81,13 +70,10 @@ async function ShippingPageContent({ searchParams }: PageProps) {
 	return (
 		<div className="flex flex-col gap-6">
 			<PageHeader
-				action={
-					canManage ? <ShippingHeaderAction tab={activeTab} /> : undefined
-				}
-				description="Transportadoras, tabelas de frete e caixas de envio."
+				description="Caixas de envio e configurações de frete da loja."
 				title="Frete"
 			/>
-			<EntityTabs defaultValue="transportadoras" tabs={tabs} />
+			<EntityTabs defaultValue="caixas" tabs={tabs} />
 		</div>
 	);
 }
