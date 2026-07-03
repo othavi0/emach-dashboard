@@ -135,6 +135,13 @@ export const order = pgTable(
 		shippingAddress: jsonb("shipping_address").notNull(),
 		shippingMethod: text("shipping_method"),
 		shippingTrackingCode: text("shipping_tracking_code"),
+		// Código composto do serviço Frenet (`CarrierCode-ServiceCode`, ex.
+		// "COR-41106") escolhido no checkout. Necessário no rastreamento Frenet
+		// (`POST /tracking/trackinginfo` exige ShippingServiceCode + TrackingNumber).
+		// Nullable: pedidos legados e "Frete a combinar" não têm serviço — sem
+		// backfill. Escrito pelo ecommerce pós-sync (ecommerce#186); o dashboard
+		// só lê (futuro job/UI de tracking).
+		shippingServiceCode: text("shipping_service_code"),
 		// true = frete não pôde ser revalidado server-side no checkout (API de
 		// frete indisponível); staff revisa antes de faturar. Escrito pelo
 		// ecommerce no fail-open (issue #143 / ecommerce#97); o dashboard limpa
