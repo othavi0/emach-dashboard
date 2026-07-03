@@ -22,7 +22,11 @@ import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
 import { requireCapabilityWithContext } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
-import { uploadToPublicBucket } from "@/lib/storage";
+import {
+	extractPublicUrlPath,
+	removeStorageObject,
+	uploadToPublicBucket,
+} from "@/lib/storage";
 import { USER_AVATARS_BUCKET } from "@/lib/supabase-server";
 import { allowedApprovalRoles } from "./_lib/approval-roles";
 import { requireUserDetailAccess } from "./[id]/_lib/access";
@@ -432,6 +436,18 @@ export async function updateOwnProfile(input: unknown): Promise<ActionResult> {
 	if (Object.keys(update).length === 0) {
 		return { ok: true, data: undefined };
 	}
+
+	// Lê o avatar atual ANTES do update para limpar o antigo do bucket depois.
+	let previousImage: string | null = null;
+	if (update.image !== undefined) {
+		const [current] = await db
+			.select({ image: userTable.image })
+			.from(userTable)
+			.where(eq(userTable.id, session.user.id))
+			.limit(1);
+		previousImage = current?.image ?? null;
+	}
+
 	try {
 		await db
 			.update(userTable)
@@ -441,6 +457,23 @@ export async function updateOwnProfile(input: unknown): Promise<ActionResult> {
 		logger.error("updateOwnProfile falhou", error);
 		return { ok: false, error: "Não foi possível atualizar" };
 	}
+
+	// Best-effort: remove o avatar antigo se foi substituído por um novo.
+	if (
+		update.image !== undefined &&
+		previousImage &&
+		previousImage !== update.image
+	) {
+		const path = extractPublicUrlPath(previousImage, USER_AVATARS_BUCKET);
+		if (path) {
+			try {
+				await removeStorageObject(USER_AVATARS_BUCKET, path);
+			} catch (error) {
+				logger.error("updateOwnProfile: falha ao remover avatar antigo", error);
+			}
+		}
+	}
+
 	await logUserActivity({
 		actorUserId: session.user.id,
 		action: "user.self_updated",
