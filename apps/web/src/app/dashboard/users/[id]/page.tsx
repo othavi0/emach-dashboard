@@ -191,7 +191,11 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 				tabs={tabs}
 			/>
 			{isSelf ? (
-				<UserSelfEditSheet image={user.image} name={user.name} />
+				<UserSelfEditSheet
+					email={user.email}
+					image={user.image}
+					name={user.name}
+				/>
 			) : (
 				<UserEditSheet
 					actorRole={actorSession.user.role as UserRow["role"]}
