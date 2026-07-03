@@ -119,6 +119,15 @@ export const toolFormSchema = z
 		lengthCm: requiredPositiveNumber,
 		widthCm: requiredPositiveNumber,
 		heightCm: requiredPositiveNumber,
+		// Embalagem & envio — insumos do packItems no checkout (Frenet).
+		packagingWeightKg: z
+			.number()
+			.nonnegative("Deve ser maior ou igual a zero")
+			.optional()
+			.or(z.nan().transform(() => undefined))
+			.transform((v) => v ?? 0),
+		stackable: z.boolean().default(true),
+		shipsInOwnBox: z.boolean().default(false),
 		categoryIds: z
 			.array(z.string().min(1))
 			.min(1, "Selecione ao menos uma categoria"),
