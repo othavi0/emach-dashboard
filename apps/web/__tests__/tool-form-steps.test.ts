@@ -21,7 +21,6 @@ const EMPTY = {
 	lengthCm: undefined,
 	widthCm: undefined,
 	heightCm: undefined,
-	overweightShippingAmount: undefined,
 	categoryIds: [] as string[],
 	primaryCategoryId: "",
 	supplierId: "",
