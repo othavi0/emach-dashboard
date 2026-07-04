@@ -5,12 +5,35 @@ import {
 	collectToolIssues,
 	countFilledSpecs,
 	MIN_SPECS_ACTIVE,
+	shouldEnforceActivation,
 	toolFormSchema,
 } from "../tool-schema";
 
 const txt = (s: string): AttributeValueInput => ({ valueText: s });
 const num = (n: number): AttributeValueInput => ({ valueNumeric: n });
 const bool = (b: boolean): AttributeValueInput => ({ valueBool: b });
+
+describe("shouldEnforceActivation — gate transicional (issue #290)", () => {
+	it("draft→active: aplica o gate (transição de entrada)", () => {
+		expect(shouldEnforceActivation("active", "draft")).toBe(true);
+	});
+
+	it("discontinued→active: aplica o gate (re-entrada em active)", () => {
+		expect(shouldEnforceActivation("active", "discontinued")).toBe(true);
+	});
+
+	it("active→active: NÃO aplica — editar tool já-active não re-valida", () => {
+		expect(shouldEnforceActivation("active", "active")).toBe(false);
+	});
+
+	it("active→draft: NÃO aplica — não está entrando em active", () => {
+		expect(shouldEnforceActivation("draft", "active")).toBe(false);
+	});
+
+	it("draft→draft: NÃO aplica", () => {
+		expect(shouldEnforceActivation("draft", "draft")).toBe(false);
+	});
+});
 
 describe("MIN_SPECS_ACTIVE", () => {
 	it("é 4", () => {

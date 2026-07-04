@@ -187,6 +187,19 @@ export type ToolFormValues = z.infer<typeof toolFormSchema>;
 export type ToolImageValue = z.infer<typeof toolImageSchema>;
 export type ToolStatusValue = (typeof TOOL_STATUS_OPTIONS)[number];
 
+/**
+ * A régua de ativação (specs/imagens/ncm) é um gate de TRANSIÇÃO: só vale quando
+ * o tool ENTRA em `active` (create já-active ou draft/discontinued→active).
+ * Editar um tool que já era `active` não re-valida — evita aprisionar edições
+ * não relacionadas (issue #290). No create, passe `initialStatus = "draft"`.
+ */
+export function shouldEnforceActivation(
+	currentStatus: ToolStatusValue,
+	initialStatus: ToolStatusValue
+): boolean {
+	return currentStatus === "active" && initialStatus !== "active";
+}
+
 export interface ActivationIssue {
 	message: string;
 	path: (keyof ToolFormValues)[];

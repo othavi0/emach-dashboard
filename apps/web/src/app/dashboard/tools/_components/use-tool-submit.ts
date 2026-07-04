@@ -6,7 +6,11 @@ import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { useToolFormContext } from "./tool-form-context";
 import type { ToolFormState } from "./tool-form-state";
-import type { ToolFormValues, ToolStatusValue } from "./tool-schema";
+import {
+	shouldEnforceActivation,
+	type ToolFormValues,
+	type ToolStatusValue,
+} from "./tool-schema";
 import { parseToolForm, persistTool } from "./tool-submit";
 
 const SUCCESS_MESSAGE: Record<"create" | "edit", string> = {
@@ -41,8 +45,10 @@ export function useToolSubmit({
 	const [isPending, startTransition] = useTransition();
 
 	function submit() {
-		const enforceActivation =
-			values.status === "active" && initialStatus !== "active";
+		const enforceActivation = shouldEnforceActivation(
+			values.status,
+			initialStatus
+		);
 		const parsed = parseToolForm(values, { enforceActivation });
 		setErrors(parsed.fieldErrors);
 		if (!(parsed.ok && parsed.data)) {

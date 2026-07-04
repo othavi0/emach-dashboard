@@ -16,7 +16,7 @@ import {
 	TOOL_STEPS,
 	type ToolStepId,
 } from "./tool-form-steps";
-import { collectToolIssues } from "./tool-schema";
+import { collectToolIssues, shouldEnforceActivation } from "./tool-schema";
 import { TOOL_SECTION_COMPONENTS } from "./tool-sections";
 import { useToolDraft } from "./use-tool-draft";
 import { useToolSubmit } from "./use-tool-submit";
@@ -64,7 +64,7 @@ export function ToolWizard({
 
 	// Recalcula os erros inline considerando todos os passos já visitados.
 	function errorsForVisited(visitedSet: Set<ToolStepId>) {
-		const enforceActivation = values.status === "active";
+		const enforceActivation = shouldEnforceActivation(values.status, "draft");
 		const merged: typeof errors = {};
 		for (const id of visitedSet) {
 			Object.assign(merged, getStepFieldErrors(values, id, enforceActivation));
@@ -105,7 +105,7 @@ export function ToolWizard({
 
 	// coleta única por render — React Compiler memoiza sobre `values`;
 	// evita N× collectToolIssues no loop do stepper (um por badge)
-	const enforceActivation = values.status === "active";
+	const enforceActivation = shouldEnforceActivation(values.status, "draft");
 	const issues = collectToolIssues(values, { enforceActivation });
 
 	return (
