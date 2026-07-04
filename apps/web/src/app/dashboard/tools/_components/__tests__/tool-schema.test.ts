@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { AttributeValueInput } from "../tool-schema";
 import {
+	activationRequirementIssues,
+	collectToolIssues,
 	countFilledSpecs,
 	MIN_SPECS_ACTIVE,
 	toolFormSchema,
@@ -103,14 +105,15 @@ function baseTool(overrides: Record<string, unknown> = {}) {
 	};
 }
 
-describe("toolFormSchema — regra de specs ao ativar", () => {
-	it("aceita active com 4 specs preenchidas", () => {
-		const r = toolFormSchema.safeParse(baseTool());
-		expect(r.success).toBe(true);
+describe("activationRequirementIssues", () => {
+	it("retorna vazio quando specs≥4, imagens≥3 e ncm presentes", () => {
+		expect(
+			activationRequirementIssues(toolFormSchema.parse(baseTool()))
+		).toEqual([]);
 	});
 
-	it("rejeita active com 3 specs preenchidas", () => {
-		const r = toolFormSchema.safeParse(
+	it("aponta specs quando há menos de 4 preenchidas", () => {
+		const data = toolFormSchema.parse(
 			baseTool({
 				attributeAssignments: ["a", "b", "c"],
 				attributeValues: {
@@ -120,39 +123,57 @@ describe("toolFormSchema — regra de specs ao ativar", () => {
 				},
 			})
 		);
-		expect(r.success).toBe(false);
-		if (!r.success) {
-			expect(
-				r.error.issues.some((i) => String(i.path[0]) === "attributeValues")
-			).toBe(true);
-		}
+		expect(
+			activationRequirementIssues(data).some(
+				(i) => i.path[0] === "attributeValues"
+			)
+		).toBe(true);
 	});
 
-	it("aceita draft com 0 specs (regra só vale ao ativar)", () => {
-		const r = toolFormSchema.safeParse(
-			baseTool({
-				status: "draft",
-				attributeAssignments: [],
-				attributeValues: {},
-				images: [],
-			})
-		);
-		expect(r.success).toBe(true);
+	it("aponta ncm ausente", () => {
+		const data = toolFormSchema.parse(baseTool({ ncm: undefined }));
+		expect(
+			activationRequirementIssues(data).some((i) => i.path[0] === "ncm")
+		).toBe(true);
 	});
 
-	it("rejeita active quando há 4 vinculados mas só 3 preenchidos", () => {
-		const r = toolFormSchema.safeParse(
-			baseTool({
-				attributeAssignments: ["a", "b", "c", "d"],
-				attributeValues: {
-					a: { valueText: "700W" },
-					b: { valueText: "Bivolt" },
-					c: { valueNumeric: 2 },
-					d: { valueText: "" },
-				},
-			})
+	it("aponta imagens abaixo do mínimo", () => {
+		const data = toolFormSchema.parse(
+			baseTool({ images: [{ url: "https://x/1.jpg", sortOrder: 0 }] })
 		);
-		expect(r.success).toBe(false);
+		expect(
+			activationRequirementIssues(data).some((i) => i.path[0] === "images")
+		).toBe(true);
+	});
+});
+
+describe("collectToolIssues", () => {
+	it("sem enforceActivation, active com 2 specs não gera issues", () => {
+		const values = baseTool({
+			attributeAssignments: ["a", "b"],
+			attributeValues: { a: { valueText: "x" }, b: { valueText: "y" } },
+		});
+		expect(collectToolIssues(values, { enforceActivation: false })).toEqual([]);
+	});
+
+	it("com enforceActivation, active com 2 specs gera issue de specs", () => {
+		const values = baseTool({
+			attributeAssignments: ["a", "b"],
+			attributeValues: { a: { valueText: "x" }, b: { valueText: "y" } },
+		});
+		const issues = collectToolIssues(values, { enforceActivation: true });
+		expect(issues.some((i) => i.path[0] === "attributeValues")).toBe(true);
+	});
+
+	it("erro estrutural (variante sem barcode) aparece independente de enforceActivation", () => {
+		const values = baseTool({
+			variants: [
+				{ sku: "S1", priceAmount: 100, isDefault: true, sortOrder: 0 },
+			],
+		});
+		expect(
+			collectToolIssues(values, { enforceActivation: false }).length
+		).toBeGreaterThan(0);
 	});
 });
 
@@ -259,29 +280,5 @@ describe("toolFormSchema — barcode duplicado entre variantes", () => {
 				)
 			).toBe(true);
 		}
-	});
-});
-
-describe("toolFormSchema — NCM-gate ao ativar (ADR-0027)", () => {
-	it("rejeita active sem NCM", () => {
-		const r = toolFormSchema.safeParse(baseTool({ ncm: undefined }));
-		expect(r.success).toBe(false);
-		if (!r.success) {
-			expect(r.error.issues.some((i) => String(i.path[0]) === "ncm")).toBe(
-				true
-			);
-		}
-	});
-
-	it("rejeita active com NCM só de espaços", () => {
-		const r = toolFormSchema.safeParse(baseTool({ ncm: "   " }));
-		expect(r.success).toBe(false);
-	});
-
-	it("aceita draft sem NCM (regra só vale ao ativar)", () => {
-		const r = toolFormSchema.safeParse(
-			baseTool({ status: "draft", ncm: undefined })
-		);
-		expect(r.success).toBe(true);
 	});
 });

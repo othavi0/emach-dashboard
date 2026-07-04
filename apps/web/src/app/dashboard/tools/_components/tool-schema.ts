@@ -154,32 +154,6 @@ export const toolFormSchema = z
 				message: "Vídeo e poster devem ser definidos juntos",
 			});
 		}
-		if (data.status === "active" && data.images.length < MIN_IMAGES_ACTIVE) {
-			ctx.addIssue({
-				code: "custom",
-				path: ["images"],
-				message: `Ativar exige mínimo de ${MIN_IMAGES_ACTIVE} imagens`,
-			});
-		}
-		// NCM é obrigatório para montar a NF-e item a item (ADR-0027). Rascunho livre.
-		if (data.status === "active" && !data.ncm?.trim()) {
-			ctx.addIssue({
-				code: "custom",
-				path: ["ncm"],
-				message: "Ativar exige NCM preenchido (obrigatório para NF-e)",
-			});
-		}
-		if (
-			data.status === "active" &&
-			countFilledSpecs(data.attributeValues, data.attributeAssignments) <
-				MIN_SPECS_ACTIVE
-		) {
-			ctx.addIssue({
-				code: "custom",
-				path: ["attributeValues"],
-				message: `Ativar exige ao menos ${MIN_SPECS_ACTIVE} especificações preenchidas. Se a categoria tiver poucos atributos, anexe atributos extras do catálogo.`,
-			});
-		}
 		if (!data.categoryIds.includes(data.primaryCategoryId)) {
 			ctx.addIssue({
 				code: "custom",
@@ -212,6 +186,74 @@ export const toolFormSchema = z
 export type ToolFormValues = z.infer<typeof toolFormSchema>;
 export type ToolImageValue = z.infer<typeof toolImageSchema>;
 export type ToolStatusValue = (typeof TOOL_STATUS_OPTIONS)[number];
+
+export interface ActivationIssue {
+	message: string;
+	path: (keyof ToolFormValues)[];
+}
+
+/**
+ * Requisitos que um tool precisa cumprir para ESTAR em `active`. Não checa
+ * `status` — o caller aplica só na transição para active (create já-active ou
+ * draft→active). Espelha o que antes vivia no superRefine.
+ */
+export function activationRequirementIssues(
+	data: ToolFormValues
+): ActivationIssue[] {
+	const issues: ActivationIssue[] = [];
+	if (data.images.length < MIN_IMAGES_ACTIVE) {
+		issues.push({
+			path: ["images"],
+			message: `Ativar exige mínimo de ${MIN_IMAGES_ACTIVE} imagens`,
+		});
+	}
+	if (!data.ncm?.trim()) {
+		issues.push({
+			path: ["ncm"],
+			message: "Ativar exige NCM preenchido (obrigatório para NF-e)",
+		});
+	}
+	if (
+		countFilledSpecs(data.attributeValues, data.attributeAssignments) <
+		MIN_SPECS_ACTIVE
+	) {
+		issues.push({
+			path: ["attributeValues"],
+			message: `Ativar exige ao menos ${MIN_SPECS_ACTIVE} especificações preenchidas. Se a categoria tiver poucos atributos, anexe atributos extras do catálogo.`,
+		});
+	}
+	return issues;
+}
+
+export interface ToolIssue {
+	message: string;
+	path: PropertyKey[];
+}
+
+/**
+ * Superfície única de validação do form: invariantes estruturais (schema) +
+ * requisitos de ativação quando `enforceActivation`. Consumido pelo submit e
+ * pelos badges/erros por passo do wizard.
+ */
+export function collectToolIssues(
+	values: unknown,
+	opts: { enforceActivation: boolean }
+): ToolIssue[] {
+	const parsed = toolFormSchema.safeParse(values);
+	if (!parsed.success) {
+		return parsed.error.issues.map((i) => ({
+			path: [...i.path],
+			message: i.message,
+		}));
+	}
+	if (opts.enforceActivation) {
+		return activationRequirementIssues(parsed.data).map((i) => ({
+			path: [...i.path],
+			message: i.message,
+		}));
+	}
+	return [];
+}
 
 function isSpecFilled(v: AttributeValueInput): boolean {
 	if (typeof v.valueText === "string" && v.valueText.trim() !== "") {
