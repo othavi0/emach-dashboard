@@ -190,7 +190,7 @@ export function IdentityFields({
 				<FieldError>{errors.categoryIds}</FieldError>
 				<FieldError>{errors.primaryCategoryId}</FieldError>
 				{primaryIncomplete && (
-					<p className="text-warning text-xs" data-error="true">
+					<p className="text-warning text-xs">
 						A categoria principal está incompleta (menos de{" "}
 						{MIN_CATEGORY_ATTRIBUTES} atributos). Escolha uma categoria completa
 						como principal ou adicione atributos a ela antes de salvar.
