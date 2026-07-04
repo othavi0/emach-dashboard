@@ -16,7 +16,7 @@ import {
 	TOOL_STEPS,
 	type ToolStepId,
 } from "./tool-form-steps";
-import { toolFormSchema } from "./tool-schema";
+import { collectToolIssues } from "./tool-schema";
 import { TOOL_SECTION_COMPONENTS } from "./tool-sections";
 import { useToolDraft } from "./use-tool-draft";
 import { useToolSubmit } from "./use-tool-submit";
@@ -64,9 +64,10 @@ export function ToolWizard({
 
 	// Recalcula os erros inline considerando todos os passos já visitados.
 	function errorsForVisited(visitedSet: Set<ToolStepId>) {
+		const enforceActivation = values.status === "active";
 		const merged: typeof errors = {};
 		for (const id of visitedSet) {
-			Object.assign(merged, getStepFieldErrors(values, id));
+			Object.assign(merged, getStepFieldErrors(values, id, enforceActivation));
 		}
 		return merged;
 	}
@@ -97,13 +98,15 @@ export function ToolWizard({
 		setErrors,
 		onValidationFail: handleValidationFail,
 		onSuccess: clear,
+		initialStatus: "draft",
 	});
 
 	const Fields = TOOL_SECTION_COMPONENTS[step.id];
 
-	// parse único por render — React Compiler memoiza sobre `values`;
-	// evita N× safeParse no loop do stepper (um por badge)
-	const parsed = toolFormSchema.safeParse(values);
+	// coleta única por render — React Compiler memoiza sobre `values`;
+	// evita N× collectToolIssues no loop do stepper (um por badge)
+	const enforceActivation = values.status === "active";
+	const issues = collectToolIssues(values, { enforceActivation });
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -124,7 +127,7 @@ export function ToolWizard({
 				{TOOL_STEPS.map((s, i) => {
 					const isActive = i === active;
 					const isVisited = visited.has(s.id);
-					const errCount = getStepErrorCount(parsed, s.id);
+					const errCount = getStepErrorCount(issues, s.id);
 					const showError = isVisited && !isActive && errCount > 0;
 					const showDone = isVisited && !isActive && errCount === 0;
 					return (

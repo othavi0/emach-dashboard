@@ -6,7 +6,7 @@ import { errorToastMessage, focusFirstError } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { useToolFormContext } from "./tool-form-context";
 import type { ToolFormState } from "./tool-form-state";
-import type { ToolFormValues } from "./tool-schema";
+import type { ToolFormValues, ToolStatusValue } from "./tool-schema";
 import { parseToolForm, persistTool } from "./tool-submit";
 
 const SUCCESS_MESSAGE: Record<"create" | "edit", string> = {
@@ -15,6 +15,8 @@ const SUCCESS_MESSAGE: Record<"create" | "edit", string> = {
 };
 
 interface UseToolSubmitArgs {
+	/** Status do tool antes desta edição — usado para detectar transição para active. */
+	initialStatus: ToolStatusValue;
 	mode: "create" | "edit";
 	/** Chamado uma vez quando a persistência retorna ok (ex: limpar rascunho). */
 	onSuccess?: () => void;
@@ -32,13 +34,16 @@ export function useToolSubmit({
 	setErrors,
 	onValidationFail,
 	onSuccess,
+	initialStatus,
 }: UseToolSubmitArgs) {
 	const router = useRouter();
 	const { toolId } = useToolFormContext();
 	const [isPending, startTransition] = useTransition();
 
 	function submit() {
-		const parsed = parseToolForm(values);
+		const enforceActivation =
+			values.status === "active" && initialStatus !== "active";
+		const parsed = parseToolForm(values, { enforceActivation });
 		setErrors(parsed.fieldErrors);
 		if (!(parsed.ok && parsed.data)) {
 			notify.error(errorToastMessage(parsed.fieldErrors));
