@@ -68,6 +68,10 @@ Criada **depois** do backfill, via `gh`. Em PT. Conteúdo:
 - Horários por dia individual da semana (o modelo agrega weekdays/saturday/holidays — inalterado).
 - Mudança em `docs/integration/admin-ecommerce.md` (o contrato não documenta business_hours hoje; a issue no ecommerce cobre a coordenação).
 
+## Edge case documentado
+
+Religar **Feriados** no switch do form usa o default da row (`isOpen: false` + horários nulos) com `isOpen: true` — o dia volta com horários vazios e o zod exige preencher abertura/fechamento no submit. Decisão consciente: feriado religado é raro e pede escolha explícita de horário.
+
 ## Erros e validação
 
 Nada novo: o zod já valida par início/fim (`Preencha início e fim do intervalo`) e intervalo dentro do expediente (`Intervalo deve ficar dentro do expediente`). O form já tem UI de adicionar/remover intervalo.
