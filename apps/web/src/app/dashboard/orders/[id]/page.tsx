@@ -62,14 +62,17 @@ async function OrderDetailPageContent({ params, searchParams }: PageProps) {
 	if (!order) {
 		notFound();
 	}
-	const [canAddNote, canCancel, canRefund, canUpdateStatus] = await Promise.all(
-		[
+	const [canAddNote, canCancel, canRefund, canUpdateStatus, canPick] =
+		await Promise.all([
 			can(session, "orders.add_note"),
 			can(session, "orders.cancel"),
 			can(session, "orders.refund"),
 			can(session, "orders.update_status"),
-		]
-	);
+			can(session, "orders.pick"),
+		]);
+	const canManageSession =
+		session.user.role === "admin" || session.user.role === "super_admin";
+	const isSuperAdmin = session.user.role === "super_admin";
 
 	const tabs: EntityClientTab[] = [
 		{
@@ -132,8 +135,12 @@ async function OrderDetailPageContent({ params, searchParams }: PageProps) {
 					branches={branches}
 					canAddNote={canAddNote}
 					canCancel={canCancel}
+					canManageSession={canManageSession}
+					canPick={canPick}
 					canRefund={canRefund}
 					canUpdateStatus={canUpdateStatus}
+					fulfillment={order.fulfillment}
+					isSuperAdmin={isSuperAdmin}
 					order={order}
 				/>
 			</div>

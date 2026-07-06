@@ -32,6 +32,9 @@ import {
 import { decodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
+import type { FulfillmentState } from "../separacao/_lib/picking-logic";
+import { deriveFulfillmentState } from "../separacao/_lib/picking-logic";
+import { getLatestPicking } from "../separacao/data";
 import { ALL_ORDERS_TAB, ORDER_TABS } from "./status-meta";
 
 export const ORDERS_PAGE_SIZE = 20;
@@ -165,6 +168,25 @@ export interface ShippingAddressSnapshot {
 	zipCode?: string;
 }
 
+/**
+ * Sub-estado de fulfillment do pedido, derivado da sessão de picking MAIS
+ * RECENTE (ver `deriveFulfillmentState`). `null` no `OrderDetail.fulfillment`
+ * representa "awaiting_picking" implícito (nenhuma sessão ainda) — o card de
+ * UI trata os dois casos.
+ */
+export interface OrderFulfillment {
+	completedAt: Date | null;
+	exceptionReason: string | null;
+	lastScannedAt: Date | null;
+	pickedUnits: number;
+	pickerName: string;
+	pickerUserId: string | null;
+	pickingId: string;
+	startedAt: Date;
+	state: FulfillmentState;
+	totalUnits: number;
+}
+
 export interface OrderDetail {
 	attachments: OrderAttachmentItem[];
 	branchId: string | null;
@@ -183,6 +205,7 @@ export interface OrderDetail {
 	deliveredAt: Date | null;
 	discountAmount: number;
 	events: OrderEventItem[];
+	fulfillment: OrderFulfillment | null;
 	history: OrderHistoryItem[];
 	id: string;
 	items: OrderDetailItem[];
@@ -934,6 +957,24 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		return null;
 	}
 
+	// Sub-estado de fulfillment: fonte é a sessão de picking MAIS RECENTE do
+	// pedido (não `order.status`, que fica intocado — contrato ecommerce).
+	const latest = await getLatestPicking(id);
+	const fulfillment: OrderFulfillment | null = latest
+		? {
+				pickingId: latest.pickingId,
+				state: deriveFulfillmentState(latest.status),
+				pickerUserId: latest.pickerUserId,
+				pickerName: latest.pickerName,
+				startedAt: latest.startedAt,
+				completedAt: latest.completedAt,
+				exceptionReason: latest.exceptionReason,
+				pickedUnits: latest.pickedUnits,
+				totalUnits: latest.totalUnits,
+				lastScannedAt: latest.lastScannedAt,
+			}
+		: null;
+
 	const imageByTool = new Map(imageRows.map((r) => [r.toolId, r.url]));
 
 	// Private bucket: storage paths are persisted; URLs are signed on demand via
@@ -951,6 +992,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 
 	return {
 		attachments,
+		fulfillment,
 		id: row.id,
 		number: row.number,
 		status: row.status,

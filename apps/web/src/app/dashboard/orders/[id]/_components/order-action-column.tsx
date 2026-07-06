@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { matchBranchByCep } from "@/lib/cep-match";
 import { notify } from "@/lib/notify";
+import { FULFILLMENT_STATE_META } from "../../../separacao/fulfillment-meta";
 import { CancelOrderDialog } from "../../_components/cancel-order-dialog";
 import { RefundDialog } from "../../_components/refund-dialog";
 import { StockReturnDialog } from "../../_components/stock-return-dialog";
@@ -34,9 +35,16 @@ import {
 	updateOrderStatus,
 	updateTrackingCode,
 } from "../../actions";
-import type { BranchOption, OrderDetail, OrderStatus } from "../../data";
+import type {
+	BranchOption,
+	OrderDetail,
+	OrderFulfillment,
+	OrderStatus,
+} from "../../data";
 import { ORDER_STATUS_LABELS } from "../../status-meta";
+import { ForceShipDialog } from "./force-ship-dialog";
 import { OrderProgress } from "./order-progress";
+import { PickingStatusCard } from "./picking-status-card";
 
 const PRIMARY_TRANSITION: Partial<Record<OrderStatus, OrderStatus>> = {
 	pending_payment: "canceled",
@@ -131,10 +139,63 @@ async function runPrimaryStatusUpdate(
 	refresh();
 }
 
+interface ShipGateResult {
+	forceShipSlot: React.ReactNode;
+	label: string | null;
+	shipBlocked: boolean;
+}
+
+/**
+ * Espelho client-side do gate de `enforceShipGate` (orders/actions.ts): sem
+ * separação concluída, o botão "Marcar como Enviado" trava — só super_admin
+ * destrava via ForceShipDialog (forceShip audita em order_event "ship_forced").
+ * Extraído do componente para manter a complexidade cognitiva de
+ * `OrderActionColumn` sob controle.
+ */
+function computeShipGate({
+	fulfillment,
+	isSuperAdmin,
+	nextStatus,
+	order,
+	trackingCode,
+}: {
+	fulfillment: OrderFulfillment | null;
+	isSuperAdmin: boolean;
+	nextStatus: OrderStatus | undefined;
+	order: OrderDetail;
+	trackingCode: string;
+}): ShipGateResult {
+	const shipBlocked =
+		nextStatus === "shipped" && fulfillment?.state !== "picked";
+	if (!(shipBlocked && order.status === "preparing")) {
+		return { forceShipSlot: null, label: null, shipBlocked };
+	}
+	const state = fulfillment?.state ?? "awaiting_picking";
+	return {
+		forceShipSlot: isSuperAdmin ? (
+			<ForceShipDialog orderId={order.id} trackingCode={trackingCode.trim()} />
+		) : null,
+		label: `${FULFILLMENT_STATE_META[state].label} — o envio libera quando a separação estiver concluída.`,
+		shipBlocked,
+	};
+}
+
+/** Sub-label do step "Em preparação" no `OrderProgress` (Task 7). */
+function computeProgressFulfillmentLabel(
+	order: OrderDetail,
+	fulfillment: OrderFulfillment | null
+): string | null {
+	if (order.status !== "preparing" || !fulfillment) {
+		return null;
+	}
+	return FULFILLMENT_STATE_META[fulfillment.state].label;
+}
+
 interface PrimaryActionContentProps {
 	branches: BranchOption[];
 	branchId: string;
 	canDoPrimaryTransition: boolean;
+	forceShipSlot: React.ReactNode;
 	isPending: boolean;
 	isTerminal: boolean;
 	nextStatus: OrderStatus | undefined;
@@ -145,6 +206,7 @@ interface PrimaryActionContentProps {
 	setBranchId: (v: string) => void;
 	setStatusReason: (v: string) => void;
 	setTrackingCode: (v: string) => void;
+	shipBlockedLabel: string | null;
 	statusReason: string;
 	trackingCode: string;
 }
@@ -153,6 +215,7 @@ function PrimaryActionContent({
 	branches,
 	branchId,
 	canDoPrimaryTransition,
+	forceShipSlot,
 	isPending,
 	isTerminal,
 	nextStatus,
@@ -163,6 +226,7 @@ function PrimaryActionContent({
 	setBranchId,
 	setStatusReason,
 	setTrackingCode,
+	shipBlockedLabel,
 	statusReason,
 	trackingCode,
 }: PrimaryActionContentProps) {
@@ -279,6 +343,10 @@ function PrimaryActionContent({
 					`Marcar como ${ORDER_STATUS_LABELS[nextStatus]}`
 				)}
 			</Button>
+			{shipBlockedLabel && (
+				<p className="text-muted-foreground text-xs">{shipBlockedLabel}</p>
+			)}
+			{forceShipSlot}
 		</>
 	);
 }
@@ -287,8 +355,12 @@ interface OrderActionColumnProps {
 	branches: BranchOption[];
 	canAddNote: boolean;
 	canCancel: boolean;
+	canManageSession: boolean;
+	canPick: boolean;
 	canRefund: boolean;
 	canUpdateStatus: boolean;
+	fulfillment: OrderFulfillment | null;
+	isSuperAdmin: boolean;
 	order: OrderDetail;
 }
 
@@ -296,8 +368,12 @@ export function OrderActionColumn({
 	branches,
 	canAddNote,
 	canCancel,
+	canManageSession,
+	canPick,
 	canRefund,
 	canUpdateStatus,
+	fulfillment,
+	isSuperAdmin,
 	order,
 }: OrderActionColumnProps) {
 	const router = useRouter();
@@ -323,8 +399,16 @@ export function OrderActionColumn({
 	const [isPending, startTransition] = useTransition();
 	const nextStatus = PRIMARY_TRANSITION[order.status];
 	const isTerminal = order.status === "canceled" || order.status === "refunded";
+	const shipGate = computeShipGate({
+		fulfillment,
+		isSuperAdmin,
+		nextStatus,
+		order,
+		trackingCode,
+	});
 	const canDoPrimaryTransition =
-		nextStatus === "canceled" ? canCancel : canUpdateStatus;
+		(nextStatus === "canceled" ? canCancel : canUpdateStatus) &&
+		!shipGate.shipBlocked;
 	const showCancelException =
 		canCancel &&
 		(order.status === "pending_payment" || order.status === "payment_failed");
@@ -426,7 +510,19 @@ export function OrderActionColumn({
 			)}
 
 			{/* ── Progresso ── */}
-			<OrderProgress order={order} />
+			<OrderProgress
+				fulfillmentLabel={computeProgressFulfillmentLabel(order, fulfillment)}
+				order={order}
+			/>
+
+			{/* ── Separação ── */}
+			<PickingStatusCard
+				canManageSession={canManageSession}
+				canPick={canPick}
+				fulfillment={fulfillment}
+				orderId={order.id}
+				orderStatus={order.status}
+			/>
 
 			{/* ── Próxima ação ── */}
 			<Card>
@@ -438,6 +534,7 @@ export function OrderActionColumn({
 						branches={branches}
 						branchId={branchId}
 						canDoPrimaryTransition={canDoPrimaryTransition}
+						forceShipSlot={shipGate.forceShipSlot}
 						isPending={isPending}
 						isTerminal={isTerminal}
 						nextStatus={nextStatus}
@@ -448,6 +545,7 @@ export function OrderActionColumn({
 						setBranchId={setBranchId}
 						setStatusReason={setStatusReason}
 						setTrackingCode={setTrackingCode}
+						shipBlockedLabel={shipGate.label}
 						statusReason={statusReason}
 						trackingCode={trackingCode}
 					/>
