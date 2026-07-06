@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AutoRefresh } from "@/components/auto-refresh";
 import { PageHeader } from "@/components/page-header";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
@@ -43,6 +44,7 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 
 	return (
 		<>
+			<AutoRefresh />
 			<PageHeader
 				action={
 					<div className="flex items-center gap-6">

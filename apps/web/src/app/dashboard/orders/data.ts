@@ -10,6 +10,7 @@ import { cache } from "react";
 export type { OrderStatus } from "@emach/db/schema/orders";
 
 import {
+	type OrderPickingStatus,
 	type OrderStatus,
 	orderAttachment,
 	orderEvent,
@@ -53,6 +54,8 @@ export interface OrderListItem {
 	branchName: string | null;
 	clientName: string;
 	createdAt: Date;
+	/** Sub-estado de fulfillment, só preenchido quando `status === "preparing"`. */
+	fulfillmentState?: FulfillmentState | null;
 	id: string;
 	itemsCount: number;
 	number: string;
@@ -374,6 +377,7 @@ export async function fetchOrdersPage({
 		created_at: Date;
 		id: string;
 		items_count: number;
+		latest_picking_status: OrderPickingStatus | null;
 		number: string;
 		shipping_unverified: boolean;
 		status: OrderStatus;
@@ -388,10 +392,16 @@ export async function fetchOrdersPage({
 			o.shipping_unverified,
 			c.name AS client_name,
 			b.name AS branch_name,
-			(SELECT COUNT(*) FROM order_item oi WHERE oi.order_id = o.id)::int AS items_count
+			(SELECT COUNT(*) FROM order_item oi WHERE oi.order_id = o.id)::int AS items_count,
+			lp.status AS latest_picking_status
 		FROM "order" o
 		JOIN client c ON c.id = o.client_id
 		LEFT JOIN branch b ON b.id = o.branch_id
+		LEFT JOIN LATERAL (
+			SELECT op.status FROM order_picking op
+			WHERE op.order_id = o.id
+			ORDER BY op.started_at DESC LIMIT 1
+		) lp ON o.status = 'preparing'
 		${whereClause}
 		ORDER BY o.created_at DESC, o.id DESC
 		LIMIT ${BATCH_SIZE + 1}
@@ -409,6 +419,10 @@ export async function fetchOrdersPage({
 			clientName: row.client_name,
 			branchName: row.branch_name,
 			shippingUnverified: row.shipping_unverified,
+			fulfillmentState:
+				row.status === "preparing"
+					? deriveFulfillmentState(row.latest_picking_status ?? null)
+					: null,
 		}),
 		(last) => ({
 			v: 1,

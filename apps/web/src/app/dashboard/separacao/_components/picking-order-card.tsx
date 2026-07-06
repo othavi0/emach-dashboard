@@ -2,6 +2,7 @@ import { ArrowRightIcon, ClockIcon, MapPinIcon } from "lucide-react";
 import Link from "next/link";
 
 import { formatRelative } from "@/lib/format/datetime";
+import { isPickingStale } from "../_lib/picking-logic";
 import type { PickingQueueRow } from "../data";
 
 /** Pedidos pagos há mais de 24h entram no modo urgente */
@@ -14,6 +15,12 @@ const CTA_CLASS: Record<Tab, string> = {
 	a_separar: "bg-primary text-primary-foreground",
 	em_separacao: "bg-warning text-warning-foreground",
 	excecoes: "border border-input text-foreground",
+};
+
+const CTA_LABEL: Record<Tab, string> = {
+	a_separar: "Separar",
+	em_separacao: "Retomar separação",
+	excecoes: "Resolver",
 };
 
 interface PickingOrderCardProps {
@@ -73,7 +80,7 @@ export function PickingOrderCard({ row, tab }: PickingOrderCardProps) {
 			? Math.round((row.pickedUnits / row.unitCount) * 100)
 			: null;
 
-	const ctaLabel = tab === "a_separar" ? "Separar" : "Retomar separação";
+	const ctaLabel = CTA_LABEL[tab];
 
 	return (
 		<Link
@@ -112,6 +119,27 @@ export function PickingOrderCard({ row, tab }: PickingOrderCardProps) {
 					</>
 				)}
 			</div>
+
+			{tab === "em_separacao" &&
+				row.pickingStartedAt &&
+				isPickingStale({
+					lastScannedAt: row.lastScannedAt ?? null,
+					startedAt: row.pickingStartedAt,
+				}) && (
+					<div className="px-4 pb-2">
+						<span className="inline-flex items-center rounded-md bg-warning/15 px-2 py-0.5 font-semibold text-[10px] text-warning">
+							Parada {formatRelative(row.lastScannedAt ?? row.pickingStartedAt)}
+						</span>
+					</div>
+				)}
+
+			{tab === "excecoes" && row.exceptionReason && (
+				<div className="px-4 pb-2">
+					<p className="max-w-full truncate text-[11px] text-warning">
+						{row.exceptionReason}
+					</p>
+				</div>
+			)}
 
 			{/* Barra de progresso para "em separação" */}
 			{progressPct !== null && (

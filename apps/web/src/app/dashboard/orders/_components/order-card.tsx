@@ -1,7 +1,9 @@
+import { Badge } from "@emach/ui/components/badge";
 import { MapPinIcon } from "lucide-react";
 import Link from "next/link";
 
 import { formatDateTime, formatRelative } from "@/lib/format/datetime";
+import { FULFILLMENT_STATE_META } from "../../separacao/fulfillment-meta";
 import type { OrderListItem } from "../data";
 import { OrderStatusBadge } from "./order-status-badge";
 import { ShippingUnverifiedBadge } from "./shipping-unverified-badge";
@@ -37,6 +39,16 @@ export function OrderCard({ item }: { item: OrderListItem }) {
 				</div>
 				<div className="flex flex-shrink-0 flex-col items-end gap-1">
 					<OrderStatusBadge status={item.status} />
+					{item.fulfillmentState &&
+						item.fulfillmentState !== "awaiting_picking" && (
+							<Badge
+								variant={
+									FULFILLMENT_STATE_META[item.fulfillmentState].badgeVariant
+								}
+							>
+								{FULFILLMENT_STATE_META[item.fulfillmentState].label}
+							</Badge>
+						)}
 					{item.shippingUnverified && <ShippingUnverifiedBadge compact />}
 				</div>
 			</div>

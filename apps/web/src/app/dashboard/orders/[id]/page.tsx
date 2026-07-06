@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { AutoRefresh } from "@/components/auto-refresh";
 import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
 import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
 import { clampInitialTab } from "@/components/entity/tab-url";
@@ -122,6 +123,7 @@ async function OrderDetailPageContent({ params, searchParams }: PageProps) {
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
+			<AutoRefresh />
 			<OrderIdentity order={order} />
 			<OrderSummaryCard order={order} />
 			<div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(20rem,1fr)]">
