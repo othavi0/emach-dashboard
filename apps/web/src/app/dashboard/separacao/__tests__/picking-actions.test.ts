@@ -482,6 +482,9 @@ describe("completePicking", () => {
 
 		const result = await completePicking(PICKING_ID);
 		expect(result).toMatchObject({ ok: true });
+		if (result.ok) {
+			expect(result.data.finalStatus).toBe("completed");
+		}
 	});
 
 	it("finaliza com pendência quando há item ausente resolvido", async () => {
@@ -515,6 +518,9 @@ describe("completePicking", () => {
 
 		const result = await completePicking(PICKING_ID);
 		expect(result).toMatchObject({ ok: true });
+		if (result.ok) {
+			expect(result.data.finalStatus).toBe("exception");
+		}
 	});
 });
 

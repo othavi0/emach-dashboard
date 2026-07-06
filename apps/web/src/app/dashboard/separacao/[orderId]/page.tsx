@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getUserBranchScope, orderInScope } from "@/lib/branch-scope";
-import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PickingExecution } from "../_components/picking-execution";
 import { PickingReadonly } from "../_components/picking-readonly";
 import { StartPicking } from "../_components/start-picking";
@@ -34,7 +34,14 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 	if (result?.picking.status === "in_progress") {
 		const isOwner = result.picking.pickerUserId === session.user.id;
 		if (isOwner) {
-			return <PickingExecution items={result.items} picking={result.picking} />;
+			const canShip = await can(session, "orders.update_status");
+			return (
+				<PickingExecution
+					canShip={canShip}
+					items={result.items}
+					picking={result.picking}
+				/>
+			);
 		}
 		const canManage =
 			session.user.role === "admin" || session.user.role === "super_admin";
