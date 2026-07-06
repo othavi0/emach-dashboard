@@ -98,6 +98,7 @@ function toFormValues(
 		packagingWeightKg: Number(row.packagingWeightKg),
 		stackable: row.stackable,
 		shipsInOwnBox: row.shipsInOwnBox,
+		uprightOnly: row.uprightOnly,
 		categoryIds,
 		primaryCategoryId,
 		visibleOnSite: row.visibleOnSite,

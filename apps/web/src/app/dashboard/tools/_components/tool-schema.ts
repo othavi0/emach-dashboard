@@ -128,6 +128,7 @@ export const toolFormSchema = z
 			.transform((v) => v ?? 0),
 		stackable: z.boolean().default(true),
 		shipsInOwnBox: z.boolean().default(false),
+		uprightOnly: z.boolean().default(false),
 		categoryIds: z
 			.array(z.string().min(1))
 			.min(1, "Selecione ao menos uma categoria"),

@@ -90,6 +90,8 @@ export const tool = pgTable(
 		stackable: boolean("stackable").notNull().default(true),
 		// Viaja sozinho — usa as próprias dims embaladas (ex: lixadeira telescópica 180cm).
 		shipsInOwnBox: boolean("ships_in_own_box").notNull().default(false),
+		// Não pode ser deitado no encaixe ("este lado para cima") — a altura é fixa.
+		uprightOnly: boolean("upright_only").notNull().default(false),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),

@@ -22,7 +22,7 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `supplier`            | Dashboard        | E-commerce  | Fornecedores. E-commerce lê para exibir informações de fabricante.                               |
 | `category`            | Dashboard        | Ambos       | Árvore de categorias. E-commerce lê para navegação de catálogo.                                  |
 | `tool_category`       | Dashboard        | Ambos       | Vínculo tool ↔ categoria. E-commerce lê para filtrar por categoria.                              |
-| `tool`                | Dashboard        | Ambos       | Produto-pai. E-commerce lê para exibir catálogo. Colunas de frete: `packaging_weight_kg`, `stackable`, `ships_in_own_box` — ver "Consolidação em caixas + cotação Frenet". |
+| `tool`                | Dashboard        | Ambos       | Produto-pai. E-commerce lê para exibir catálogo. Colunas de frete: `packaging_weight_kg`, `stackable`, `ships_in_own_box`, `upright_only` — ver "Consolidação em caixas + cotação Frenet". |
 | `tool_variant`        | Dashboard        | Ambos       | Variante vendável (SKU, preço, voltagem). E-commerce lê para carrinho e checkout.                |
 | `tool_image`          | Dashboard        | Ambos       | Imagens do produto. E-commerce exibe na vitrine.                                                 |
 | `attribute_definition`| Dashboard        | Ambos       | Specs técnicas dinâmicas. E-commerce lê para exibir ficha técnica.                              |
@@ -117,6 +117,7 @@ produto** (`tool`). Antes de cotar, o checkout consolida o carrinho em caixas re
 | `packaging_weight_kg`                    | Peso da embalagem/proteção. Peso de despacho = `weight_kg + packaging_weight_kg`.    |
 | `stackable`                              | Pode empilhar sobre/sob outros itens na consolidação de volume.                      |
 | `ships_in_own_box`                       | Viaja em embalagem própria (ex: item longo); não consolida com outros itens.         |
+| `upright_only`                           | "Este lado para cima" — não pode ser deitado no encaixe; a altura é fixa e só as duas dimensões horizontais podem trocar entre si (ex: compressor com óleo). |
 
 ### Funções compartilhadas (`@emach/db/queries/shipping*`)
 
@@ -149,6 +150,10 @@ const packages = packItems(items, boxes, {
 	boxPaddingCm: settings.boxPaddingCm,
 });
 ```
+
+`QuoteItem.uprightOnly` é **opcional** (`?: boolean`) — mapeia `tool.upright_only` ao montar os
+itens da cotação. `undefined`/omitido preserva o comportamento atual (item pode deitar para
+otimizar o encaixe); `true` fixa a altura e só permite girar nas duas dimensões horizontais.
 
 Pacote marcado `outOfCatalog: true` (item que não cabe nem na maior caixa ativa) → o checkout
 exibe **"Frete a combinar"** sem chamar a Frenet. Pacotes `outOfCatalog` e `shipsInOwnBox` usam as

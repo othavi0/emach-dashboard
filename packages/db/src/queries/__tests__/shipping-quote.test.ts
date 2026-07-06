@@ -174,4 +174,24 @@ describe("packItems", () => {
 		expect(pkgs[0]?.widthCm).toBe(37);
 		expect(pkgs[0]?.heightCm).toBe(32);
 	});
+
+	it("uprightOnly: altura fixa não deita — exige caixa mais alta", () => {
+		// 20×20×58 em pé: box-l (H 50) não serve; box-xl (H 60) sim.
+		// Sem a trava, deitaria e caberia na box-l.
+		const emPe: QuoteItem = {
+			lengthCm: 20,
+			widthCm: 20,
+			heightCm: 58,
+			weightKg: 10,
+			packagingWeightKg: 0,
+			stackable: true,
+			shipsInOwnBox: false,
+			uprightOnly: true,
+			qty: 1,
+		};
+		expect(packItems([emPe], BOXES)[0]?.lengthCm).toBe(90); // box-xl
+		expect(
+			packItems([{ ...emPe, uprightOnly: false }], BOXES)[0]?.lengthCm
+		).toBe(70); // box-l, deitado
+	});
 });

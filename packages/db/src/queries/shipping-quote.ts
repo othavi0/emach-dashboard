@@ -11,6 +11,7 @@ export interface QuoteItem {
 	qty: number;
 	shipsInOwnBox: boolean;
 	stackable: boolean;
+	uprightOnly?: boolean;
 	weightKg: number;
 	widthCm: number;
 }
@@ -47,6 +48,17 @@ function sortedDesc(a: number, b: number, c: number): [number, number, number] {
 }
 
 function fitsByDims(item: QuoteItem, box: QuoteBox): boolean {
+	if (item.uprightOnly) {
+		// Altura fixa: só as horizontais podem trocar entre si.
+		if (item.heightCm > box.internalHeightCm) {
+			return false;
+		}
+		const iMax = Math.max(item.lengthCm, item.widthCm);
+		const iMin = Math.min(item.lengthCm, item.widthCm);
+		const bMax = Math.max(box.internalLengthCm, box.internalWidthCm);
+		const bMin = Math.min(box.internalLengthCm, box.internalWidthCm);
+		return iMax <= bMax && iMin <= bMin;
+	}
 	const i = sortedDesc(item.lengthCm, item.widthCm, item.heightCm);
 	const b = sortedDesc(
 		box.internalLengthCm,
@@ -61,6 +73,9 @@ function unitVolume(u: QuoteItem): number {
 }
 
 function footprint(u: QuoteItem): number {
+	if (u.uprightOnly) {
+		return u.lengthCm * u.widthCm;
+	}
 	const s = sortedDesc(u.lengthCm, u.widthCm, u.heightCm);
 	return s[0] * s[1];
 }

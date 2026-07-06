@@ -133,6 +133,7 @@ export function OverviewTab({
 									? "Embalagem própria"
 									: "Consolida em caixa"}
 								{tool.stackable ? "" : " · não empilhável"}
+								{tool.uprightOnly ? " · este lado para cima" : ""}
 							</MetaRow>
 							<MetaRow label="Criada">
 								{formatDayMonthShortYear(tool.createdAt)}

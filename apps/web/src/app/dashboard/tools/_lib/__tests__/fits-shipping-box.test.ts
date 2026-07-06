@@ -130,4 +130,21 @@ describe("fitsAnyActiveBox", () => {
 		expect(fitsAnyActiveBox(naoEmpilhavel, [boxS])).toBe(true);
 		expect(fitsAnyActiveBox(naoEmpilhavel, [boxS], 0.5)).toBe(false);
 	});
+
+	it("uprightOnly não deita: 20×20×58 falha na box-l, passa sem a trava", () => {
+		const emPe: FitCheckItem = {
+			lengthCm: 20,
+			widthCm: 20,
+			heightCm: 58,
+			weightKg: 10,
+			packagingWeightKg: 0,
+			stackable: true,
+			uprightOnly: true,
+		};
+		const boxL = BOXES[1] as (typeof BOXES)[number];
+		expect(fitsAnyActiveBox(emPe, [boxL])).toBe(false);
+		expect(fitsAnyActiveBox({ ...emPe, uprightOnly: false }, [boxL])).toBe(
+			true
+		);
+	});
 });
