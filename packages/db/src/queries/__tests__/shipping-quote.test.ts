@@ -88,4 +88,70 @@ describe("packItems", () => {
 		expect(pkgs).toHaveLength(1);
 		expect(pkgs[0]?.outOfCatalog).toBe(true);
 	});
+
+	it("multi-caixa: item comprido usa a caixa 'tubo' mesmo não sendo a maior", () => {
+		// Bug antigo: o multi-caixa só testava a caixa de MAIOR volume (cubo) e
+		// marcava a vara como fora de catálogo, ignorando o tubo.
+		const tubo: QuoteBox = {
+			id: "tubo",
+			internalLengthCm: 180,
+			internalWidthCm: 15,
+			internalHeightCm: 15,
+			maxWeightKg: 10,
+			tareWeightKg: 0.5,
+		};
+		const cubo: QuoteBox = {
+			id: "cubo",
+			internalLengthCm: 60,
+			internalWidthCm: 60,
+			internalHeightCm: 60,
+			maxWeightKg: 30,
+			tareWeightKg: 1,
+		};
+		const vara: QuoteItem = {
+			lengthCm: 170,
+			widthCm: 10,
+			heightCm: 10,
+			weightKg: 3,
+			packagingWeightKg: 0,
+			stackable: true,
+			shipsInOwnBox: false,
+			qty: 1,
+		};
+		const cubao: QuoteItem = {
+			lengthCm: 50,
+			widthCm: 50,
+			heightCm: 50,
+			weightKg: 20,
+			packagingWeightKg: 0,
+			stackable: true,
+			shipsInOwnBox: false,
+			qty: 1,
+		};
+		const pkgs = packItems([vara, cubao], [tubo, cubo]);
+		expect(pkgs).toHaveLength(2);
+		expect(pkgs.every((p) => !p.outOfCatalog)).toBe(true);
+		expect(pkgs.some((p) => p.lengthCm === 180)).toBe(true);
+	});
+
+	it("multi-caixa: bin residual pequeno sai na MENOR caixa, não na maior", () => {
+		// Bug antigo: todo bin era emitido com as dims da maior caixa,
+		// inflando o peso cubado do frete.
+		const pesado: QuoteItem = {
+			lengthCm: 60,
+			widthCm: 50,
+			heightCm: 40,
+			weightKg: 70,
+			packagingWeightKg: 0,
+			stackable: true,
+			shipsInOwnBox: false,
+			qty: 1,
+		};
+		// pesado + furadeira não fecham em caixa única (88.8kg > 80 da box-xl).
+		const pkgs = packItems([pesado, { ...FURADEIRA, qty: 1 }], BOXES);
+		expect(pkgs).toHaveLength(2);
+		const residual = pkgs.find((p) => p.lengthCm === 35);
+		expect(residual).toBeDefined();
+		expect(residual?.weightKg).toBeCloseTo(17.5, 3); // 15 + 2 + tara box-s 0.5
+	});
 });

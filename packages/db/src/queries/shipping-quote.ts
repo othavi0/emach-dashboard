@@ -101,6 +101,19 @@ function emitPackage(units: QuoteItem[], box: QuoteBox): ShippingPackage {
 	};
 }
 
+// Menor caixa (por volume) em que o conjunto inteiro cabe.
+function smallestFittingBox(
+	units: QuoteItem[],
+	boxesAsc: QuoteBox[]
+): QuoteBox | undefined {
+	return boxesAsc.find((box) => fitsSet(units, box));
+}
+
+interface PackBin {
+	box: QuoteBox;
+	units: QuoteItem[];
+}
+
 export function packItems(
 	items: QuoteItem[],
 	boxes: QuoteBox[]
@@ -126,7 +139,7 @@ export function packItems(
 		});
 	}
 
-	// Itens a consolidar, maiores volumes primeiro.
+	// Itens a consolidar, maiores volumes primeiro (first-fit-decreasing).
 	const rest = units
 		.filter((x) => !x.shipsInOwnBox)
 		.sort((a, b) => unitVolume(b) - unitVolume(a));
@@ -136,34 +149,15 @@ export function packItems(
 
 	const boxesAsc = [...boxes].sort((a, b) => boxVolume(a) - boxVolume(b));
 
-	// Consolidação: a MENOR caixa única que cabe TODOS os itens → 1 pacote.
-	// (É o que evita cobrar N× — ex: 4 furadeiras numa box-xl em vez de 4 box-s.)
-	const single = boxesAsc.find((box) => fitsSet(rest, box));
-	if (single) {
-		packages.push(emitPackage(rest, single));
-		return packages;
-	}
-
-	// Nenhuma caixa única cabe tudo → multi-caixa, enchendo a MAIOR caixa por
-	// bin (máxima consolidação). Unidade grande/pesada demais até pra maior
-	// caixa → pacote próprio marcado out_of_catalog ("a combinar").
-	const largest = boxesAsc.at(-1);
-	if (!largest) {
-		// Sem catálogo de caixas → tudo "a combinar".
-		for (const u of rest) {
-			packages.push({
-				lengthCm: u.lengthCm,
-				widthCm: u.widthCm,
-				heightCm: u.heightCm,
-				weightKg: dispatchWeight(u),
-				outOfCatalog: true,
-			});
-		}
-		return packages;
-	}
-	const bins: QuoteItem[][] = [];
+	// Cada bin conhece a MENOR caixa que serve pro seu conjunto, recalculada a
+	// cada inserção — consolida no menor número de caixas E cota cada uma pelo
+	// menor tamanho possível. Quando tudo cabe junto, converge pra 1 bin
+	// (subconjunto de conjunto viável é viável na mesma caixa).
+	const bins: PackBin[] = [];
 	for (const u of rest) {
-		if (!fitsSet([u], largest)) {
+		const alone = smallestFittingBox([u], boxesAsc);
+		if (!alone) {
+			// Não cabe em NENHUMA caixa ativa → "a combinar".
 			packages.push({
 				lengthCm: u.lengthCm,
 				widthCm: u.widthCm,
@@ -173,15 +167,22 @@ export function packItems(
 			});
 			continue;
 		}
-		const bin = bins.find((b) => fitsSet([...b, u], largest));
-		if (bin) {
-			bin.push(u);
-		} else {
-			bins.push([u]);
+		let placed = false;
+		for (const bin of bins) {
+			const candidate = smallestFittingBox([...bin.units, u], boxesAsc);
+			if (candidate) {
+				bin.units.push(u);
+				bin.box = candidate;
+				placed = true;
+				break;
+			}
+		}
+		if (!placed) {
+			bins.push({ box: alone, units: [u] });
 		}
 	}
 	for (const bin of bins) {
-		packages.push(emitPackage(bin, largest));
+		packages.push(emitPackage(bin.units, bin.box));
 	}
 
 	return packages;
