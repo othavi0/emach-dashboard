@@ -30,19 +30,32 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 	}
 
 	const result = await getPickingForOrder(orderId);
+	const isOwner = result?.picking.pickerUserId === session.user.id;
+
+	// "completed" entra aqui junto de "in_progress" (só o dono): completePicking
+	// revalida esta rota via revalidatePath, o que dispara um refresh automático
+	// do Server Component assim que o Server Action resolve. Se esse refresh
+	// caísse fora de PickingExecution, o painel "Despachar agora" (estado local
+	// completedOk) seria substituído pela tela de "Iniciar separação" antes do
+	// usuário conseguir vê-lo — PickingExecution deriva completedOk a partir de
+	// picking.status, então mantê-lo como o mesmo componente preserva o painel.
+	if (
+		isOwner &&
+		result &&
+		(result.picking.status === "in_progress" ||
+			result.picking.status === "completed")
+	) {
+		const canShip = await can(session, "orders.update_status");
+		return (
+			<PickingExecution
+				canShip={canShip}
+				items={result.items}
+				picking={result.picking}
+			/>
+		);
+	}
 
 	if (result?.picking.status === "in_progress") {
-		const isOwner = result.picking.pickerUserId === session.user.id;
-		if (isOwner) {
-			const canShip = await can(session, "orders.update_status");
-			return (
-				<PickingExecution
-					canShip={canShip}
-					items={result.items}
-					picking={result.picking}
-				/>
-			);
-		}
 		const canManage =
 			session.user.role === "admin" || session.user.role === "super_admin";
 		return (

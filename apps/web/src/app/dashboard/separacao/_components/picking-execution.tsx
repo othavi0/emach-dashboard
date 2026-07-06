@@ -326,7 +326,16 @@ function usePickingState(
 	const [isReporting, startReporting] = useTransition();
 	const [isCancelOpen, setIsCancelOpen] = useState(false);
 	const [isCanceling, startCanceling] = useTransition();
-	const [completedOk, setCompletedOk] = useState(false);
+	// `completePicking` chama revalidatePath na própria rota — o Server Action
+	// dispara um refresh automático do Server Component (page.tsx) assim que
+	// resolve. Sem este init a partir de `picking.status`, aquele refresh
+	// re-renderiza a página com o picking já 'completed' e derruba o estado
+	// local (completedOk) antes do usuário ver o painel. Iniciar a partir do
+	// status cobre tanto esse refresh quanto uma visita direta a uma sessão
+	// já concluída.
+	const [completedOk, setCompletedOk] = useState(
+		picking.status === "completed"
+	);
 
 	// Fila sequencial de scans: evita under-pick silencioso quando o operador
 	// bipa rapidamente (ou bipa a mesma unidade N vezes em qty>1).
