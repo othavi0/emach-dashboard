@@ -40,7 +40,7 @@ export interface PackOptions {
 	fillFactor?: number;
 }
 
-// Folga de empacotamento: itens nunca preenchem 100% do volume interno.
+// Default de PackOptions.fillFactor — fração máxima do volume interno ocupável.
 const DEFAULT_FILL_FACTOR = 0.9;
 
 function sortedDesc(a: number, b: number, c: number): [number, number, number] {

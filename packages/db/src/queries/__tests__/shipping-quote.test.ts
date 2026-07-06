@@ -175,6 +175,14 @@ describe("packItems", () => {
 		expect(pkgs[0]?.heightCm).toBe(32);
 	});
 
+	it("catálogo vazio (boxes=[]) → pacote fora de catálogo com dims/peso do item", () => {
+		const pkgs = packItems([{ ...FURADEIRA, qty: 1 }], []);
+		expect(pkgs).toHaveLength(1);
+		expect(pkgs[0]?.outOfCatalog).toBe(true);
+		expect(pkgs[0]?.lengthCm).toBe(35);
+		expect(pkgs[0]?.weightKg).toBeCloseTo(17, 3); // 15 + 2, sem tara
+	});
+
 	it("uprightOnly: altura fixa não deita — exige caixa mais alta", () => {
 		// 20×20×58 em pé: box-l (H 50) não serve; box-xl (H 60) sim.
 		// Sem a trava, deitaria e caberia na box-l.

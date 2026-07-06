@@ -31,4 +31,59 @@ describe("shippingSettingsSchema", () => {
 		});
 		expect(r.success).toBe(false);
 	});
+
+	it("rejeita fillFactorPct abaixo de 50", () => {
+		const r = shippingSettingsSchema.safeParse({
+			originBranchId: "",
+			insurancePolicy: "none",
+			insuranceCapAmount: 3000,
+			fillFactorPct: 49,
+			boxPaddingCm: 0,
+		});
+		expect(r.success).toBe(false);
+	});
+
+	it("rejeita fillFactorPct acima de 100", () => {
+		const r = shippingSettingsSchema.safeParse({
+			originBranchId: "",
+			insurancePolicy: "none",
+			insuranceCapAmount: 3000,
+			fillFactorPct: 101,
+			boxPaddingCm: 0,
+		});
+		expect(r.success).toBe(false);
+	});
+
+	it("rejeita fillFactorPct não inteiro", () => {
+		const r = shippingSettingsSchema.safeParse({
+			originBranchId: "",
+			insurancePolicy: "none",
+			insuranceCapAmount: 3000,
+			fillFactorPct: 90.5,
+			boxPaddingCm: 0,
+		});
+		expect(r.success).toBe(false);
+	});
+
+	it("rejeita boxPaddingCm acima de 10", () => {
+		const r = shippingSettingsSchema.safeParse({
+			originBranchId: "",
+			insurancePolicy: "none",
+			insuranceCapAmount: 3000,
+			fillFactorPct: 90,
+			boxPaddingCm: 11,
+		});
+		expect(r.success).toBe(false);
+	});
+
+	it("rejeita boxPaddingCm negativo", () => {
+		const r = shippingSettingsSchema.safeParse({
+			originBranchId: "",
+			insurancePolicy: "none",
+			insuranceCapAmount: 3000,
+			fillFactorPct: 90,
+			boxPaddingCm: -1,
+		});
+		expect(r.success).toBe(false);
+	});
 });
