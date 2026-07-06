@@ -263,19 +263,19 @@ git commit -m "feat: sub-estado de fulfillment derivado (lógica pura)"
 ### Task 3: Data layer — getLatestPicking + queries última-sessão + branch-scope
 
 **Files:**
-- Modify: `apps/web/src/app/dashboard/separacao/data.ts` (substituir `hasCompletedPicking:96-108`; corrigir queries `:157-185`, `:215-248`, counts `:300-330`; ampliar `PickingQueueRow`)
+- Modify: `apps/web/src/app/dashboard/separacao/data.ts` (reimplementar `hasCompletedPicking:96-108`; corrigir queries `:157-185`, `:215-248`, counts `:300-330`; ampliar `PickingQueueRow`)
 - Modify: `apps/web/src/app/dashboard/separacao/actions.ts:549-552` (`getPickingForOrderAction`)
-- Modify: `apps/web/src/app/dashboard/orders/actions.ts:28` (import) — só o import; o gate muda na Task 4
+- ⚠️ NÃO tocar em `orders/actions.ts` nesta task — o gate e os testes de ship-gating trocam juntos na Task 4 (evita estado intermediário com suíte vermelha)
 
 **Interfaces:**
 - Consumes: `deriveFulfillmentState` (Task 2).
 - Produces:
   - `interface LatestPickingInfo { completedAt: Date | null; exceptionReason: string | null; lastScannedAt: Date | null; pickedUnits: number; pickerName: string; pickerUserId: string | null; pickingId: string; startedAt: Date; status: OrderPickingStatus; totalUnits: number }`
   - `getLatestPicking(orderId: string): Promise<LatestPickingInfo | null>`
-  - `isPickingCompleteForShip(orderId: string): Promise<boolean>` — **substitui** `hasCompletedPicking` (remover o export antigo; atualizar o import em `orders/actions.ts`).
+  - `hasCompletedPicking(orderId)` **reimplementada** (nome e export mantidos NESTA task) com semântica de última sessão: `const latest = await getLatestPicking(orderId); return latest?.status === "completed";`. Os testes antigos de ship-gating mockam o módulo inteiro e permanecem verdes; a remoção do nome acontece na Task 4 junto com a reescrita dos testes.
   - `PickingQueueRow` ganha `exceptionReason?: string | null; lastScannedAt?: Date | null; pickingStartedAt?: Date | null`.
 
-- [ ] **Step 1: Implementar `getLatestPicking` + `isPickingCompleteForShip`** no lugar de `hasCompletedPicking` (`data.ts:93-108`). ⚠️ `db.execute` devolve snake_case + timestamps string — alias `AS "camelCase"` e coerção com `toDate` (armadilhas de `packages/db/CLAUDE.md`):
+- [ ] **Step 1: Implementar `getLatestPicking` e reimplementar `hasCompletedPicking`** sobre ele (`data.ts:93-108`). ⚠️ `db.execute` devolve snake_case + timestamps string — alias `AS "camelCase"` e coerção com `toDate` (armadilhas de `packages/db/CLAUDE.md`):
 
 ```ts
 export interface LatestPickingInfo {
@@ -350,11 +350,10 @@ export async function getLatestPicking(
 
 /**
  * Gate de envio: true só se a sessão MAIS RECENTE está completed.
- * (Substitui hasCompletedPicking, que aceitava qualquer sessão histórica.)
+ * (Antes aceitava qualquer sessão completed histórica.)
+ * Nome antigo mantido até a Task 4 trocar o gate + testes juntos.
  */
-export async function isPickingCompleteForShip(
-	orderId: string
-): Promise<boolean> {
+export async function hasCompletedPicking(orderId: string): Promise<boolean> {
 	const latest = await getLatestPicking(orderId);
 	return latest?.status === "completed";
 }
@@ -418,7 +417,7 @@ export async function getPickingForOrderAction(orderId: string) {
 
 Imports: `orderInScope` de `@/lib/branch-scope`; `getOrderBranchId` já exportado de `./data`.
 
-- [ ] **Step 5: Atualizar o import em `orders/actions.ts:28`** para `import { isPickingCompleteForShip } from "../separacao/data";` e o call-site `hasCompletedPicking(orderId)` → `isPickingCompleteForShip(orderId)` (a lógica do gate em si muda na Task 4; aqui só o rename compila). Rodar `rg -n "hasCompletedPicking" apps/web/src` — deve sobrar só o mock em `ship-gating.test.ts` (reescrito na Task 4).
+- [ ] **Step 5: Conferir que `orders/actions.ts` ficou intocado** — o gate continua chamando `hasCompletedPicking` (agora com semântica nova por baixo). `bun --cwd apps/web test src/app/dashboard/orders/__tests__/ship-gating.test.ts` — Expected: PASS (mock de módulo cobre tudo).
 
 - [ ] **Step 6:** `bun check-types` — Expected: PASS (o mock antigo de `hasCompletedPicking` em `ship-gating.test.ts` referencia o módulo por string e não quebra tipos; ele é reescrito na Task 4).
 
@@ -440,7 +439,7 @@ git commit -m "feat: última sessão como fonte do estado de picking"
 - Test: reescrever `apps/web/src/app/dashboard/orders/__tests__/ship-gating.test.ts`
 
 **Interfaces:**
-- Consumes: `getLatestPicking`/`isPickingCompleteForShip` (Task 3), `deriveFulfillmentState` (Task 2), enum `ship_forced` (Task 1).
+- Consumes: `getLatestPicking` (Task 3), `deriveFulfillmentState` (Task 2), enum `ship_forced` (Task 1).
 - Produces: `updateOrderStatusSchema` aceita `forceShip?: boolean` e `forceReason?: string` (min 10); `updateOrderStatus` sem bypass de super_admin. Tasks 7/9 chamam `updateOrderStatus({ ..., forceShip, forceReason })`.
 
 - [ ] **Step 1: Reescrever `ship-gating.test.ts`.** Manter a infra de mocks existente (hoisted + `makeMockTx`), trocando o mock de `../../separacao/data` para `getLatestPicking` e cobrindo: gate p/ super_admin, última-sessão, forceShip. Conteúdo integral novo do bloco de mocks/data + testes (o restante da infra — `makeMockTx`, mocks de permissions/branch-scope/next-cache/logger/data/pending-data/session — fica como está):
@@ -460,7 +459,6 @@ const {
 // substitui o vi.mock("../../separacao/data") existente
 vi.mock("../../separacao/data", () => ({
 	getLatestPicking: mockGetLatestPicking,
-	isPickingCompleteForShip: vi.fn(),
 	getPickingForOrder: vi.fn(),
 	fetchPickingQueue: vi.fn(),
 	getOrderBranchId: vi.fn(),
@@ -611,7 +609,7 @@ const SHIP_GATE_ERRORS: Record<
 };
 ```
 
-Imports: `getLatestPicking` de `../separacao/data` (**remover** o import de `isPickingCompleteForShip`, que fica sem uso neste arquivo após esta troca; o helper permanece exportado em `data.ts`); `deriveFulfillmentState` de `../separacao/_lib/picking-logic`. Ampliar o union de `insertOrderEvent` (`:134`) para `"tracking_set" | "branch_assigned" | "shipping_reviewed" | "ship_forced"`. Quando `forceShip` e `reason` vazio, gravar `orderStatusHistory.reason = forceReason` (trocar `reason: reason ?? null` por `reason: reason ?? parsed.data.forceReason ?? null`).
+Imports: trocar `hasCompletedPicking` por `getLatestPicking` no import de `../separacao/data` e **deletar** a função `hasCompletedPicking` de `separacao/data.ts` (fica sem call-site após esta troca — confirmar com `rg -n "hasCompletedPicking" apps/web/src`, deve retornar zero); `deriveFulfillmentState` de `../separacao/_lib/picking-logic`. Ampliar o union de `insertOrderEvent` (`:134`) para `"tracking_set" | "branch_assigned" | "shipping_reviewed" | "ship_forced"`. Quando `forceShip` e `reason` vazio, gravar `orderStatusHistory.reason = forceReason` (trocar `reason: reason ?? null` por `reason: reason ?? parsed.data.forceReason ?? null`).
 
 - [ ] **Step 5:** Run testes — Expected: PASS (8/8). `bun check-types` PASS.
 
@@ -1291,6 +1289,8 @@ export function PickingStatusCard({
 ```
 
 ⚠️ Import de server action em client component é permitido (`"use server"` module) — `cancelPicking`/`takeoverPicking` vêm de `separacao/actions.ts`. **Não** importar nada de `separacao/data.ts` (server-only) exceto `import type`.
+
+⚠️ **Ajuste obrigatório ao transcrever:** "Cancelar sessão" é destrutivo (descarta bipagens) — usar o mesmo padrão de confirmação inline do takeover, generalizando o state para `confirming: "cancel" | "takeover" | null` (como o `PickingReadonly` da Task 8). Nenhuma ação destrutiva dispara sem confirmação (DESIGN.md §4).
 
 - [ ] **Step 3: `force-ship-dialog.tsx`** (client) — AlertDialog com textarea (padrão `DestructiveActionDialog`, min 10 chars):
 
