@@ -77,7 +77,11 @@ export function ForceShipDialog({
 					<AlertDialogCancel disabled={isPending}>Voltar</AlertDialogCancel>
 					<AlertDialogAction
 						className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-						disabled={reason.trim().length < MIN_REASON_LENGTH || isPending}
+						disabled={
+							reason.trim().length < MIN_REASON_LENGTH ||
+							!trackingCode.trim() ||
+							isPending
+						}
 						onClick={handleConfirm}
 					>
 						{isPending ? "Enviando…" : "Forçar envio"}

@@ -400,7 +400,7 @@ export async function fetchOrdersPage({
 		LEFT JOIN LATERAL (
 			SELECT op.status FROM order_picking op
 			WHERE op.order_id = o.id
-			ORDER BY op.started_at DESC LIMIT 1
+			ORDER BY op.started_at DESC, op.id DESC LIMIT 1
 		) lp ON o.status = 'preparing'
 		${whereClause}
 		ORDER BY o.created_at DESC, o.id DESC

@@ -42,6 +42,7 @@ import {
 	cancelPicking,
 	completePicking,
 	reportMissing,
+	scanItem,
 	takeoverPicking,
 } from "../actions";
 
@@ -52,6 +53,9 @@ const STATUS_ERROR_RE = /andamento/i;
 
 function makeTx(selectResults: unknown[][]) {
 	let i = 0;
+	// Closure gravando o último argumento passado a `.set()` — permite asserção
+	// de auditoria (status/actor/reason) sem reimplementar um mock de update.
+	const captured: { lastSetArg: unknown } = { lastSetArg: undefined };
 	const chain = (result: unknown[]) => {
 		const c: Record<string, unknown> = {
 			// biome-ignore lint/suspicious/noThenProperty: thenable mock — allows `await tx.select()...where()` without a terminal `.limit()` (createPickingItems' orderItem load)
@@ -67,7 +71,10 @@ function makeTx(selectResults: unknown[][]) {
 	};
 	const update = () => {
 		const c: Record<string, unknown> = {};
-		c.set = vi.fn(() => c);
+		c.set = vi.fn((arg: unknown) => {
+			captured.lastSetArg = arg;
+			return c;
+		});
 		c.where = vi.fn(() => Promise.resolve({ rowCount: 1 }));
 		return c;
 	};
@@ -75,6 +82,7 @@ function makeTx(selectResults: unknown[][]) {
 		select: vi.fn(() => chain(selectResults[i++] ?? [])),
 		update: vi.fn(update),
 		insert: vi.fn(() => ({ values: vi.fn().mockResolvedValue(undefined) })),
+		captured,
 	};
 }
 
@@ -144,11 +152,56 @@ describe("guards de sessão de separação", () => {
 		expect(denied.ok).toBe(false);
 
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_adm", "admin"));
+		const adminTx = makeTx([[PICKING_IN_PROGRESS]]);
 		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[PICKING_IN_PROGRESS]]))
+			cb(adminTx)
 		);
 		const allowed = await cancelPicking(PICKING_ID, "picker ausente");
 		expect(allowed.ok).toBe(true);
+		// Auditoria (T5#2): status + ator + motivo persistidos no update.
+		expect(adminTx.captured.lastSetArg).toMatchObject({
+			status: "canceled",
+			canceledByUserId: "usr_adm",
+			cancelReason: "picker ausente",
+		});
+	});
+
+	it("scanItem por não-dono → erro de ownership", async () => {
+		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
+		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+			cb(makeTx([[PICKING_IN_PROGRESS]]))
+		);
+		const result = await scanItem(PICKING_ID, "7891234560016");
+		expect(result.ok).toBe(false);
+		expect((result as { ok: false; error: string }).error).toMatch(
+			OWNERSHIP_ERROR_RE
+		);
+	});
+
+	it("reportMissing por não-dono → erro de ownership", async () => {
+		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
+		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+			cb(
+				makeTx([[{ id: "pi_1", pickingId: PICKING_ID }], [PICKING_IN_PROGRESS]])
+			)
+		);
+		const result = await reportMissing("pi_1", "faltou na prateleira");
+		expect(result.ok).toBe(false);
+		expect((result as { ok: false; error: string }).error).toMatch(
+			OWNERSHIP_ERROR_RE
+		);
+	});
+
+	it("takeoverPicking em sessão completed → erro de status", async () => {
+		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_adm", "admin"));
+		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+			cb(makeTx([[{ ...PICKING_IN_PROGRESS, status: "completed" }]]))
+		);
+		const result = await takeoverPicking(PICKING_ID);
+		expect(result.ok).toBe(false);
+		expect((result as { ok: false; error: string }).error).toMatch(
+			STATUS_ERROR_RE
+		);
 	});
 
 	it("takeoverPicking por role user → recusado", async () => {

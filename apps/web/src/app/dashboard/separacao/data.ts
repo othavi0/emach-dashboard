@@ -43,14 +43,15 @@ export interface PickingQueueRow {
 }
 
 /**
- * Retorna o branchId do pedido (para validação de escopo antes de renderizar).
+ * Retorna branchId + status do pedido (para validação de escopo e para decidir
+ * se o painel pós-separação ainda faz sentido — ver SeparacaoOrderPage).
  * Retorna null se o pedido não existir.
  */
 export async function getOrderBranchId(
 	orderId: string
-): Promise<{ branchId: string | null } | null> {
+): Promise<{ branchId: string | null; status: OrderStatus } | null> {
 	const [row] = await db
-		.select({ branchId: order.branchId })
+		.select({ branchId: order.branchId, status: order.status })
 		.from(order)
 		.where(eq(order.id, orderId))
 		.limit(1);
@@ -80,7 +81,7 @@ export async function getPickingForOrder(
 				.select()
 				.from(orderPicking)
 				.where(eq(orderPicking.orderId, orderId))
-				.orderBy(sql`${orderPicking.startedAt} DESC`)
+				.orderBy(sql`${orderPicking.startedAt} DESC, ${orderPicking.id} DESC`)
 				.limit(1)
 		)[0];
 
@@ -145,7 +146,7 @@ export async function getLatestPicking(
 				FROM order_picking_item pi WHERE pi.picking_id = op.id) AS last_scanned_at
 		FROM order_picking op
 		WHERE op.order_id = ${orderId}
-		ORDER BY op.started_at DESC
+		ORDER BY op.started_at DESC, op.id DESC
 		LIMIT 1
 	`);
 
@@ -243,7 +244,7 @@ export async function fetchPickingQueuePage(args: {
 			LEFT JOIN LATERAL (
 				SELECT op.status FROM order_picking op
 				WHERE op.order_id = o.id
-				ORDER BY op.started_at DESC LIMIT 1
+				ORDER BY op.started_at DESC, op.id DESC LIMIT 1
 			) lp ON true
 			WHERE o.status IN ('paid', 'preparing')
 				AND (lp.status IS NULL OR lp.status = 'canceled')
@@ -318,7 +319,7 @@ export async function fetchPickingQueuePage(args: {
 				SELECT op.id, op.picker_name, op.status, op.exception_reason
 				FROM order_picking op
 				WHERE op.order_id = o.id
-				ORDER BY op.started_at DESC LIMIT 1
+				ORDER BY op.started_at DESC, op.id DESC LIMIT 1
 			) op ON op.status = 'exception'
 			WHERE o.status = 'preparing'
 				${branchFragment}
@@ -398,7 +399,7 @@ export async function fetchPickingQueueCounts(
 				LEFT JOIN LATERAL (
 					SELECT op.status FROM order_picking op
 					WHERE op.order_id = o.id
-					ORDER BY op.started_at DESC LIMIT 1
+					ORDER BY op.started_at DESC, op.id DESC LIMIT 1
 				) lp ON true
 				WHERE o.status IN ('paid', 'preparing')
 					AND (lp.status IS NULL OR lp.status = 'canceled')
@@ -415,7 +416,7 @@ export async function fetchPickingQueueCounts(
 				JOIN LATERAL (
 					SELECT op.status FROM order_picking op
 					WHERE op.order_id = o.id
-					ORDER BY op.started_at DESC LIMIT 1
+					ORDER BY op.started_at DESC, op.id DESC LIMIT 1
 				) op ON op.status = 'exception'
 				WHERE o.status = 'preparing'
 					${branchFragment}

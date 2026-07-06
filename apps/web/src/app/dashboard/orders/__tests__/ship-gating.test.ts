@@ -265,6 +265,21 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 		expect(result.ok).toBe(true);
 	});
 
+	it("(7b) forceShip super_admin com motivo, última sessão exception → passa", async () => {
+		mockRequireCapabilityWithContext.mockResolvedValue({
+			user: { id: USER_ID, role: "super_admin" },
+		});
+		mockGetLatestPicking.mockResolvedValue(latestWith("exception"));
+		const result = await updateOrderStatus({
+			orderId: ORDER_ID,
+			toStatus: "shipped",
+			trackingCode: "BR123456789BR",
+			forceShip: true,
+			forceReason: "cliente no balcão aguardando",
+		});
+		expect(result.ok).toBe(true);
+	});
+
 	it("(8) forceShip com sessão in_progress → bloqueado (não força por cima)", async () => {
 		mockRequireCapabilityWithContext.mockResolvedValue({
 			user: { id: USER_ID, role: "super_admin" },

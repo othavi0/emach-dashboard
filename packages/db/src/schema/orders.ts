@@ -441,6 +441,10 @@ export const orderPicking = pgTable(
 			table.status,
 			table.startedAt.desc()
 		),
+		index("order_picking_order_started_idx").on(
+			table.orderId,
+			table.startedAt.desc()
+		),
 	]
 );
 
