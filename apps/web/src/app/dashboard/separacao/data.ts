@@ -4,13 +4,14 @@ import { db } from "@emach/db";
 import {
 	type OrderPicking,
 	type OrderPickingItem,
+	type OrderPickingStatus,
 	type OrderStatus,
 	order,
 	orderPicking,
 	orderPickingItem,
 } from "@emach/db/schema/orders";
 import { toDate } from "@emach/db/utils";
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
 	type BranchScope,
 	isBlindScope,
@@ -23,7 +24,11 @@ export interface PickingQueueRow {
 	branchId: string | null;
 	branchName: string | null;
 	clientName: string;
+	// Present only for "excecoes" tab
+	exceptionReason?: string | null;
 	itemCount: number;
+	// Present only for "em_separacao" tab
+	lastScannedAt?: Date | null;
 	number: string;
 	orderId: string;
 	orderStatus: OrderStatus;
@@ -32,6 +37,8 @@ export interface PickingQueueRow {
 	pickerName?: string;
 	// Present only for "em_separacao" and "excecoes" tabs
 	pickingId?: string;
+	// Present only for "em_separacao" tab
+	pickingStartedAt?: Date | null;
 	unitCount: number;
 }
 
@@ -90,21 +97,84 @@ export async function getPickingForOrder(
 	return { picking, items };
 }
 
+export interface LatestPickingInfo {
+	completedAt: Date | null;
+	exceptionReason: string | null;
+	lastScannedAt: Date | null;
+	pickedUnits: number;
+	pickerName: string;
+	pickerUserId: string | null;
+	pickingId: string;
+	startedAt: Date;
+	status: OrderPickingStatus;
+	totalUnits: number;
+}
+
 /**
- * Gating: true se existe uma sessão de separação completada para este pedido.
+ * Sessão de picking MAIS RECENTE do pedido — fonte única do sub-estado de
+ * fulfillment (deriveFulfillmentState). Inclui progresso e última bipagem.
+ */
+export async function getLatestPicking(
+	orderId: string
+): Promise<LatestPickingInfo | null> {
+	const result = await db.execute<{
+		completed_at: string | null;
+		exception_reason: string | null;
+		last_scanned_at: string | null;
+		picked_units: string;
+		picker_name: string;
+		picker_user_id: string | null;
+		picking_id: string;
+		started_at: string;
+		status: OrderPickingStatus;
+		total_units: string;
+	}>(sql`
+		SELECT
+			op.id AS picking_id,
+			op.status,
+			op.picker_user_id,
+			op.picker_name,
+			op.started_at,
+			op.completed_at,
+			op.exception_reason,
+			(SELECT COALESCE(SUM(pi.qty_picked), 0)::int
+				FROM order_picking_item pi WHERE pi.picking_id = op.id) AS picked_units,
+			(SELECT COALESCE(SUM(pi.qty_expected), 0)::int
+				FROM order_picking_item pi WHERE pi.picking_id = op.id) AS total_units,
+			(SELECT MAX(pi.last_scanned_at)
+				FROM order_picking_item pi WHERE pi.picking_id = op.id) AS last_scanned_at
+		FROM order_picking op
+		WHERE op.order_id = ${orderId}
+		ORDER BY op.started_at DESC
+		LIMIT 1
+	`);
+
+	const row = result.rows[0];
+	if (!row) {
+		return null;
+	}
+	return {
+		pickingId: row.picking_id,
+		status: row.status,
+		pickerUserId: row.picker_user_id,
+		pickerName: row.picker_name,
+		startedAt: toDate(row.started_at),
+		completedAt: row.completed_at ? toDate(row.completed_at) : null,
+		exceptionReason: row.exception_reason,
+		pickedUnits: Number(row.picked_units),
+		totalUnits: Number(row.total_units),
+		lastScannedAt: row.last_scanned_at ? toDate(row.last_scanned_at) : null,
+	};
+}
+
+/**
+ * Gate de envio: true só se a sessão MAIS RECENTE está completed.
+ * (Antes aceitava qualquer sessão completed histórica.)
+ * Nome antigo mantido até a Task 4 trocar o gate + testes juntos.
  */
 export async function hasCompletedPicking(orderId: string): Promise<boolean> {
-	const [row] = await db
-		.select({ ok: sql<number>`1` })
-		.from(orderPicking)
-		.where(
-			and(
-				eq(orderPicking.orderId, orderId),
-				eq(orderPicking.status, "completed")
-			)
-		)
-		.limit(1);
-	return row !== undefined;
+	const latest = await getLatestPicking(orderId);
+	return latest?.status === "completed";
 }
 
 /**
@@ -141,7 +211,9 @@ export async function fetchPickingQueuePage(args: {
 		branch_id: string | null;
 		branch_name: string | null;
 		client_name: string;
+		exception_reason: string | null;
 		item_count: string;
+		last_scanned_at: string | null;
 		number: string;
 		order_id: string;
 		order_status: OrderStatus;
@@ -149,12 +221,15 @@ export async function fetchPickingQueuePage(args: {
 		picked_units: string | null;
 		picker_name: string | null;
 		picking_id: string | null;
+		picking_started_at: string | null;
 		unit_count: string;
 	}
 
 	let rows: { rows: QueueRaw[] };
 
 	if (tab === "a_separar") {
+		// Última sessão de picking (se houver) não pode estar em andamento,
+		// em exceção ou completada — só "canceled" ou inexistente entra aqui.
 		rows = await db.execute<QueueRaw>(sql`
 			SELECT
 				o.id AS order_id,
@@ -168,22 +243,29 @@ export async function fetchPickingQueuePage(args: {
 				(SELECT COALESCE(SUM(oi.quantity), 0)::int FROM order_item oi WHERE oi.order_id = o.id) AS unit_count,
 				NULL::text AS picking_id,
 				NULL::text AS picker_name,
-				NULL::int AS picked_units
+				NULL::int AS picked_units,
+				NULL::timestamptz AS picking_started_at,
+				NULL::timestamptz AS last_scanned_at,
+				NULL::text AS exception_reason
 			FROM "order" o
 			JOIN client c ON c.id = o.client_id
 			LEFT JOIN branch b ON b.id = o.branch_id
+			LEFT JOIN LATERAL (
+				SELECT op.status FROM order_picking op
+				WHERE op.order_id = o.id
+				ORDER BY op.started_at DESC LIMIT 1
+			) lp ON true
 			WHERE o.status IN ('paid', 'preparing')
-				AND NOT EXISTS (
-					SELECT 1 FROM order_picking op
-					WHERE op.order_id = o.id
-						AND op.status IN ('in_progress', 'exception', 'completed')
-				)
+				AND (lp.status IS NULL OR lp.status = 'canceled')
 				${branchFragment}
 				${cursorFragment}
 			ORDER BY o.paid_at ASC, o.id ASC
 			LIMIT ${BATCH_SIZE + 1}
 		`);
 	} else if (tab === "em_separacao") {
+		// Join direto por in_progress: a unique parcial (order_picking_one_active)
+		// garante no máximo 1 sessão in_progress por pedido, e ela é sempre a mais
+		// recente (não é possível abrir uma nova sessão com uma in_progress ativa).
 		rows = await db.execute<QueueRaw>(sql`
 			SELECT
 				o.id AS order_id,
@@ -201,7 +283,11 @@ export async function fetchPickingQueuePage(args: {
 					SELECT COALESCE(SUM(pi.qty_picked), 0)::int
 					FROM order_picking_item pi
 					WHERE pi.picking_id = op.id
-				) AS picked_units
+				) AS picked_units,
+				op.started_at AS picking_started_at,
+				(SELECT MAX(pi.last_scanned_at) FROM order_picking_item pi
+					WHERE pi.picking_id = op.id) AS last_scanned_at,
+				NULL::text AS exception_reason
 			FROM "order" o
 			JOIN client c ON c.id = o.client_id
 			LEFT JOIN branch b ON b.id = o.branch_id
@@ -213,7 +299,7 @@ export async function fetchPickingQueuePage(args: {
 			LIMIT ${BATCH_SIZE + 1}
 		`);
 	} else {
-		// excecoes: pedidos com sessão order_picking em exception
+		// excecoes: pedidos cuja sessão de picking MAIS RECENTE está em exception.
 		rows = await db.execute<QueueRaw>(sql`
 			SELECT
 				o.id AS order_id,
@@ -231,15 +317,20 @@ export async function fetchPickingQueuePage(args: {
 					SELECT COALESCE(SUM(pi.qty_picked), 0)::int
 					FROM order_picking_item pi
 					WHERE pi.picking_id = op.id
-				) AS picked_units
+				) AS picked_units,
+				NULL::timestamptz AS picking_started_at,
+				NULL::timestamptz AS last_scanned_at,
+				op.exception_reason AS exception_reason
 			FROM "order" o
 			JOIN client c ON c.id = o.client_id
 			LEFT JOIN branch b ON b.id = o.branch_id
-			JOIN order_picking op ON op.order_id = o.id AND op.status = 'exception'
-			WHERE EXISTS (
-				SELECT 1 FROM order_picking op2
-				WHERE op2.order_id = o.id AND op2.status = 'exception'
-			)
+			JOIN LATERAL (
+				SELECT op.id, op.picker_name, op.status, op.exception_reason
+				FROM order_picking op
+				WHERE op.order_id = o.id
+				ORDER BY op.started_at DESC LIMIT 1
+			) op ON op.status = 'exception'
+			WHERE o.status = 'preparing'
 				${branchFragment}
 				${cursorFragment}
 			ORDER BY o.paid_at ASC, o.id ASC
@@ -263,6 +354,15 @@ export async function fetchPickingQueuePage(args: {
 				pickingId: row.picking_id,
 				pickerName: row.picker_name ?? undefined,
 				pickedUnits: row.picked_units === null ? 0 : Number(row.picked_units),
+			}),
+			...(row.picking_started_at !== null && {
+				pickingStartedAt: toDate(row.picking_started_at),
+			}),
+			...(row.last_scanned_at !== null && {
+				lastScannedAt: toDate(row.last_scanned_at),
+			}),
+			...(row.exception_reason !== null && {
+				exceptionReason: row.exception_reason,
 			}),
 		}),
 		(last) => ({
@@ -305,12 +405,13 @@ export async function fetchPickingQueueCounts(
 		SELECT
 			(
 				SELECT COUNT(*)::int FROM "order" o
+				LEFT JOIN LATERAL (
+					SELECT op.status FROM order_picking op
+					WHERE op.order_id = o.id
+					ORDER BY op.started_at DESC LIMIT 1
+				) lp ON true
 				WHERE o.status IN ('paid', 'preparing')
-					AND NOT EXISTS (
-						SELECT 1 FROM order_picking op
-						WHERE op.order_id = o.id
-							AND op.status IN ('in_progress', 'exception', 'completed')
-					)
+					AND (lp.status IS NULL OR lp.status = 'canceled')
 					${branchFragment}
 			) AS a_separar,
 			(
@@ -321,10 +422,12 @@ export async function fetchPickingQueueCounts(
 			) AS em_separacao,
 			(
 				SELECT COUNT(*)::int FROM "order" o
-				WHERE EXISTS (
-					SELECT 1 FROM order_picking op
-					WHERE op.order_id = o.id AND op.status = 'exception'
-				)
+				JOIN LATERAL (
+					SELECT op.status FROM order_picking op
+					WHERE op.order_id = o.id
+					ORDER BY op.started_at DESC LIMIT 1
+				) op ON op.status = 'exception'
+				WHERE o.status = 'preparing'
 					${branchFragment}
 			) AS excecoes
 	`);

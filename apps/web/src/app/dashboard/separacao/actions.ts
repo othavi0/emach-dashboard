@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
-import { getUserBranchScope } from "@/lib/branch-scope";
+import { getUserBranchScope, orderInScope } from "@/lib/branch-scope";
 import { getPgError } from "@/lib/db-error";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
@@ -23,6 +23,7 @@ import { canFinalizePicking, matchPickItem } from "./_lib/picking-logic";
 import {
 	fetchPickingQueuePage,
 	getActivePickingForUser,
+	getOrderBranchId,
 	getPickingForOrder,
 } from "./data";
 import type { ScanResult } from "./schema";
@@ -547,6 +548,11 @@ export async function getActivePickingForUserAction() {
 }
 
 export async function getPickingForOrderAction(orderId: string) {
-	await requireCapability("orders.pick");
+	const session = await requireCapability("orders.pick");
+	const scope = await getUserBranchScope(session);
+	const orderRow = await getOrderBranchId(orderId);
+	if (!(orderRow && orderInScope(scope, orderRow.branchId))) {
+		return null;
+	}
 	return getPickingForOrder(orderId);
 }
