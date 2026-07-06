@@ -19,7 +19,11 @@ function sortedDesc(a: number, b: number, c: number): [number, number, number] {
 	return [a, b, c].sort((x, y) => y - x) as [number, number, number];
 }
 
-function fitsShippingBox(item: FitCheckItem, box: QuoteBox): boolean {
+function fitsShippingBox(
+	item: FitCheckItem,
+	box: QuoteBox,
+	fillFactor: number
+): boolean {
 	const i = sortedDesc(item.lengthCm, item.widthCm, item.heightCm);
 	const b = sortedDesc(
 		box.internalLengthCm,
@@ -40,13 +44,14 @@ function fitsShippingBox(item: FitCheckItem, box: QuoteBox): boolean {
 		: i[0] * i[1] * box.internalHeightCm;
 	const boxVolume =
 		box.internalLengthCm * box.internalWidthCm * box.internalHeightCm;
-	return occupied <= boxVolume * FILL_FACTOR;
+	return occupied <= boxVolume * fillFactor;
 }
 
 /** true se a unidade cabe em ALGUMA caixa ativa — mesma regra do checkout. */
 export function fitsAnyActiveBox(
 	item: FitCheckItem,
-	boxes: QuoteBox[]
+	boxes: QuoteBox[],
+	fillFactor: number = FILL_FACTOR
 ): boolean {
-	return boxes.some((box) => fitsShippingBox(item, box));
+	return boxes.some((box) => fitsShippingBox(item, box, fillFactor));
 }

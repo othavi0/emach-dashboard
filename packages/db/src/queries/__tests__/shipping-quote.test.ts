@@ -154,4 +154,24 @@ describe("packItems", () => {
 		expect(residual).toBeDefined();
 		expect(residual?.weightKg).toBeCloseTo(17.5, 3); // 15 + 2 + tara box-s 0.5
 	});
+
+	it("fillFactor menor força caixa maior (0.5 vs default 0.9)", () => {
+		// Furadeira não-empilhável ocupa 31500 na box-s (0.9×36750=33075 ok;
+		// 0.5×36750=18375 não) → com 0.5 sobe pra box-l.
+		const strict = packItems([{ ...FURADEIRA, qty: 1 }], BOXES, {
+			fillFactor: 0.5,
+		});
+		expect(strict[0]?.lengthCm).toBe(70);
+		const relaxed = packItems([{ ...FURADEIRA, qty: 1 }], BOXES);
+		expect(relaxed[0]?.lengthCm).toBe(35);
+	});
+
+	it("boxPaddingCm soma nas dims do pacote de catálogo, não no 'a combinar'", () => {
+		const pkgs = packItems([{ ...FURADEIRA, qty: 1 }], BOXES, {
+			boxPaddingCm: 2,
+		});
+		expect(pkgs[0]?.lengthCm).toBe(37);
+		expect(pkgs[0]?.widthCm).toBe(37);
+		expect(pkgs[0]?.heightCm).toBe(32);
+	});
 });

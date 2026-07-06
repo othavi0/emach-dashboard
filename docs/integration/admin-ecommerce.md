@@ -124,16 +124,27 @@ Sincronizadas ao ecommerce via CI (ADR-0009):
 
 ```ts
 import { getActiveBoxes } from "@emach/db/queries/shipping";
-import { packItems, type QuoteItem } from "@emach/db/queries/shipping-quote";
+import {
+	packItems,
+	type PackOptions,
+	type QuoteItem,
+} from "@emach/db/queries/shipping-quote";
 
 const boxes = await getActiveBoxes(db);
-const packages = packItems(items, boxes);
+const packages = packItems(items, boxes, opts);
 // → cada ShippingPackage vira { Weight, Length, Height, Width, Quantity: 1 }
 //   no ShippingItemArray da Frenet.
 ```
 
+`opts?: PackOptions` é **opcional** — `fillFactor` (fração do volume interno ocupável, default
+`0.9`) e `boxPaddingCm` (acréscimo externo por dimensão do pacote, ex: parede/aba da caixa,
+default `0`) partem com o mesmo comportamento de hoje se omitidos. O storefront deve passá-los a
+partir do singleton `getShippingSettings` (campos chegam na Task 3) em vez de fixar defaults
+locais.
+
 Pacote marcado `outOfCatalog: true` (item que não cabe nem na maior caixa ativa) → o checkout
-exibe **"Frete a combinar"** sem chamar a Frenet.
+exibe **"Frete a combinar"** sem chamar a Frenet. Pacotes `outOfCatalog` e `shipsInOwnBox` usam as
+dimensões do próprio produto e **não** recebem `boxPaddingCm`.
 
 O motor antigo de tabelas próprias (`carrier`/`carrier_zone`/`carrier_rate` + `quoteShipping`)
 foi removido em 2026-07-03 (issue #287 do dashboard).

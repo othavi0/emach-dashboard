@@ -121,4 +121,13 @@ describe("fitsAnyActiveBox", () => {
 	it("lista de caixas vazia → false", () => {
 		expect(fitsAnyActiveBox(FURADEIRA, [])).toBe(false);
 	});
+
+	it("fillFactor customizado aperta a régua (paridade com o motor)", () => {
+		const naoEmpilhavel: FitCheckItem = { ...FURADEIRA, stackable: false };
+		// occupied 35×30×30=31500; 0.9×36750 ok na box-s, 0.5×36750 não —
+		// mas ainda cabe na box-l, então restringe para só a box-s:
+		const boxS = BOXES[0] as (typeof BOXES)[number];
+		expect(fitsAnyActiveBox(naoEmpilhavel, [boxS])).toBe(true);
+		expect(fitsAnyActiveBox(naoEmpilhavel, [boxS], 0.5)).toBe(false);
+	});
 });
