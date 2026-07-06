@@ -81,6 +81,13 @@ export const updateOrderStatusSchema = z
 				})
 			)
 			.optional(),
+		forceShip: z.boolean().optional(),
+		forceReason: z
+			.string()
+			.trim()
+			.min(10, "Motivo do envio forçado precisa de ao menos 10 caracteres")
+			.max(500)
+			.optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.toStatus === "shipped" && !data.trackingCode) {
@@ -103,6 +110,13 @@ export const updateOrderStatusSchema = z
 				code: z.ZodIssueCode.custom,
 				message: "Motivo obrigatório para cancelamento, reembolso ou devolução",
 				path: ["reason"],
+			});
+		}
+		if (data.forceShip && !data.forceReason) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Motivo obrigatório ao forçar envio sem separação",
+				path: ["forceReason"],
 			});
 		}
 	});

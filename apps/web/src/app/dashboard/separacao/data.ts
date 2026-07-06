@@ -168,16 +168,6 @@ export async function getLatestPicking(
 }
 
 /**
- * Gate de envio: true só se a sessão MAIS RECENTE está completed.
- * (Antes aceitava qualquer sessão completed histórica.)
- * Nome antigo mantido até a Task 4 trocar o gate + testes juntos.
- */
-export async function hasCompletedPicking(orderId: string): Promise<boolean> {
-	const latest = await getLatestPicking(orderId);
-	return latest?.status === "completed";
-}
-
-/**
  * Fila de separação paginada (keyset cursor, orderBy paidAt asc).
  *
  * Tabs:
