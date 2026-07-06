@@ -23,6 +23,7 @@ export function ToolEditView({
 		mode: "edit",
 		values,
 		setErrors,
+		initialStatus: defaultValues?.status ?? "draft",
 	});
 	const activeId = useActiveSection();
 

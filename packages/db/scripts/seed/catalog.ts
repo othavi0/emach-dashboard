@@ -311,6 +311,22 @@ const ATTRIBUTES: AttributeDef[] = [
 		unit: "L",
 		sortOrder: 1,
 	},
+	{
+		slug: "vazao-pcm",
+		label: "Vazão",
+		inputType: "number",
+		categorySlug: "compressores",
+		unit: "pcm",
+		sortOrder: 2,
+	},
+	{
+		slug: "potencia-motor-hp",
+		label: "Potência do Motor",
+		inputType: "number",
+		categorySlug: "compressores",
+		unit: "HP",
+		sortOrder: 3,
+	},
 	// acessorios
 	{
 		slug: "cor-acabamento",
@@ -334,6 +350,145 @@ const ATTRIBUTES: AttributeDef[] = [
 		inputType: "text",
 		categorySlug: "acessorios",
 		sortOrder: 1,
+	},
+	// discos
+	{
+		slug: "diametro-disco-corte",
+		label: "Diâmetro",
+		inputType: "number",
+		categorySlug: "discos",
+		unit: "mm",
+		sortOrder: 0,
+	},
+	{
+		slug: "espessura-disco",
+		label: "Espessura",
+		inputType: "number",
+		categorySlug: "discos",
+		unit: "mm",
+		sortOrder: 1,
+	},
+	{
+		slug: "furo-disco",
+		label: "Furo",
+		inputType: "number",
+		categorySlug: "discos",
+		unit: "mm",
+		sortOrder: 2,
+	},
+	{
+		slug: "material-abrasivo",
+		label: "Material Abrasivo",
+		inputType: "select",
+		categorySlug: "discos",
+		options: {
+			kind: "select",
+			options: [
+				{ label: "Óxido de alumínio", value: "oxido-aluminio" },
+				{ label: "Óxido de zircônio", value: "oxido-zirconio" },
+				{ label: "Diamantado", value: "diamantado" },
+			],
+		},
+		sortOrder: 3,
+	},
+	// alicates
+	{
+		slug: "abertura-mandibula",
+		label: "Abertura da Mandíbula",
+		inputType: "number",
+		categorySlug: "alicates",
+		unit: "mm",
+		sortOrder: 0,
+	},
+	{
+		slug: "tipo-corte",
+		label: "Tipo de Corte",
+		inputType: "select",
+		categorySlug: "alicates",
+		options: {
+			kind: "select",
+			options: [
+				{ label: "Lateral", value: "lateral" },
+				{ label: "Frontal", value: "frontal" },
+				{ label: "Diagonal", value: "diagonal" },
+			],
+		},
+		sortOrder: 1,
+	},
+	// martelos
+	{
+		slug: "peso-cabeca",
+		label: "Peso da Cabeça",
+		inputType: "number",
+		categorySlug: "martelos",
+		unit: "g",
+		sortOrder: 0,
+	},
+	{
+		slug: "tipo-cabeca",
+		label: "Tipo de Cabeça",
+		inputType: "select",
+		categorySlug: "martelos",
+		options: {
+			kind: "select",
+			options: [
+				{ label: "Carpinteiro", value: "carpinteiro" },
+				{ label: "Bola", value: "bola" },
+				{ label: "Marreta", value: "marreta" },
+				{ label: "Borracha", value: "borracha" },
+			],
+		},
+		sortOrder: 1,
+	},
+	// lixadeiras
+	{
+		slug: "tamanho-base",
+		label: "Tamanho da Base",
+		inputType: "text",
+		categorySlug: "lixadeiras",
+		sortOrder: 0,
+	},
+	{
+		slug: "tipo-lixa",
+		label: "Tipo de Lixa",
+		inputType: "select",
+		categorySlug: "lixadeiras",
+		options: {
+			kind: "select",
+			options: [
+				{ label: "Folha", value: "folha" },
+				{ label: "Disco", value: "disco" },
+				{ label: "Cinta", value: "cinta" },
+			],
+		},
+		sortOrder: 1,
+	},
+	// plainas-eletricas
+	{
+		slug: "largura-corte",
+		label: "Largura de Corte",
+		inputType: "number",
+		categorySlug: "plainas-eletricas",
+		unit: "mm",
+		sortOrder: 0,
+	},
+	// parafusadeiras-a-bateria
+	{
+		slug: "torque-nm",
+		label: "Torque Máximo",
+		inputType: "number",
+		categorySlug: "parafusadeiras-a-bateria",
+		unit: "Nm",
+		sortOrder: 0,
+	},
+	// serras-tico-tico
+	{
+		slug: "curso-mm",
+		label: "Curso",
+		inputType: "number",
+		categorySlug: "serras-tico-tico",
+		unit: "mm",
+		sortOrder: 0,
 	},
 ];
 
@@ -378,6 +533,7 @@ interface ToolDef {
 	lengthCm?: string;
 	model: string;
 	name: string;
+	ncm?: string;
 	powerWatts?: number;
 	primaryCategorySlug: string;
 	secondaryCategorySlug?: string;
@@ -411,6 +567,7 @@ const TOOLS: ToolDef[] = [
 		supplierIndex: 5,
 		powerWatts: 650,
 		weightKg: "1.700",
+		ncm: "84672100",
 		primaryCategorySlug: "furadeiras-de-impacto",
 		variants: [
 			{
@@ -430,7 +587,7 @@ const TOOLS: ToolDef[] = [
 				sortOrder: 1,
 			},
 		],
-		imageCount: 2,
+		imageCount: 3,
 		attributeValues: [
 			{ slug: "potencia-w", valueNumeric: "650" },
 			{
@@ -453,6 +610,7 @@ const TOOLS: ToolDef[] = [
 		supplierIndex: 5,
 		powerWatts: 0,
 		weightKg: "1.800",
+		ncm: "84672100",
 		primaryCategorySlug: "parafusadeiras-a-bateria",
 		variants: [
 			{
@@ -464,10 +622,16 @@ const TOOLS: ToolDef[] = [
 				sortOrder: 0,
 			},
 		],
-		imageCount: 2,
+		imageCount: 3,
 		attributeValues: [
 			{ slug: "capacidade-mandril", valueText: "13mm" },
 			{ slug: "tem-percussao", valueBool: false },
+			{ slug: "torque-nm", valueNumeric: "40" },
+			{
+				slug: "velocidade-rpm-range",
+				valueNumeric: "0",
+				valueNumericMax: "1500",
+			},
 		],
 	},
 	{
@@ -481,6 +645,7 @@ const TOOLS: ToolDef[] = [
 		supplierIndex: 4,
 		powerWatts: 1400,
 		weightKg: "4.200",
+		ncm: "84672200",
 		primaryCategorySlug: "serras-circulares",
 		variants: [
 			{
@@ -513,6 +678,11 @@ const TOOLS: ToolDef[] = [
 			{ slug: "potencia-w", valueNumeric: "1400" },
 			{ slug: "diametro-disco", valueText: "185" },
 			{ slug: "profundidade-corte", valueNumeric: "65" },
+			{
+				slug: "velocidade-rpm-range",
+				valueNumeric: "0",
+				valueNumericMax: "5500",
+			},
 		],
 	},
 	{
@@ -526,6 +696,7 @@ const TOOLS: ToolDef[] = [
 		supplierIndex: 3,
 		powerWatts: 500,
 		weightKg: "2.200",
+		ncm: "84672200",
 		primaryCategorySlug: "serras-tico-tico",
 		variants: [
 			{
@@ -545,8 +716,17 @@ const TOOLS: ToolDef[] = [
 				sortOrder: 1,
 			},
 		],
-		imageCount: 1,
-		attributeValues: [{ slug: "potencia-w", valueNumeric: "500" }],
+		imageCount: 3,
+		attributeValues: [
+			{ slug: "potencia-w", valueNumeric: "500" },
+			{ slug: "curso-mm", valueNumeric: "26" },
+			{
+				slug: "velocidade-rpm-range",
+				valueNumeric: "500",
+				valueNumericMax: "3000",
+			},
+			{ slug: "profundidade-corte", valueNumeric: "80" },
+		],
 	},
 	{
 		name: 'Esmerilhadeira Angular 4-1/2" 720W',
@@ -559,6 +739,7 @@ const TOOLS: ToolDef[] = [
 		supplierIndex: 4,
 		powerWatts: 720,
 		weightKg: "1.900",
+		ncm: "84672900",
 		primaryCategorySlug: "esmerilhadeiras",
 		variants: [
 			{
@@ -570,10 +751,16 @@ const TOOLS: ToolDef[] = [
 				sortOrder: 0,
 			},
 		],
-		imageCount: 2,
+		imageCount: 3,
 		attributeValues: [
 			{ slug: "potencia-w", valueNumeric: "720" },
 			{ slug: "diametro-disco-esm", valueText: "115" },
+			{ slug: "voltagem-nominal", valueText: "Bivolt" },
+			{
+				slug: "velocidade-rpm-range",
+				valueNumeric: "0",
+				valueNumericMax: "11000",
+			},
 		],
 	},
 	{
@@ -587,6 +774,7 @@ const TOOLS: ToolDef[] = [
 		supplierIndex: 4,
 		powerWatts: 300,
 		weightKg: "1.400",
+		ncm: "84672900",
 		primaryCategorySlug: "lixadeiras",
 		variants: [
 			{
@@ -606,7 +794,7 @@ const TOOLS: ToolDef[] = [
 				sortOrder: 1,
 			},
 		],
-		imageCount: 1,
+		imageCount: 3,
 		attributeValues: [
 			{ slug: "potencia-w", valueNumeric: "300" },
 			{
@@ -614,6 +802,8 @@ const TOOLS: ToolDef[] = [
 				valueNumeric: "7000",
 				valueNumericMax: "12000",
 			},
+			{ slug: "tamanho-base", valueText: "93 × 185 mm" },
+			{ slug: "tipo-lixa", valueText: "folha" },
 		],
 	},
 	{
@@ -626,6 +816,7 @@ const TOOLS: ToolDef[] = [
 		visibleOnSite: true,
 		supplierIndex: 2,
 		weightKg: "58.000",
+		ncm: "84148019",
 		primaryCategorySlug: "compressores",
 		variants: [
 			{
@@ -645,10 +836,12 @@ const TOOLS: ToolDef[] = [
 				sortOrder: 1,
 			},
 		],
-		imageCount: 2,
+		imageCount: 3,
 		attributeValues: [
 			{ slug: "pressao-max", valueNumeric: "8.5" },
 			{ slug: "capacidade-tanque", valueNumeric: "100" },
+			{ slug: "vazao-pcm", valueNumeric: "8.5" },
+			{ slug: "potencia-motor-hp", valueNumeric: "2" },
 		],
 	},
 	{
@@ -661,6 +854,7 @@ const TOOLS: ToolDef[] = [
 		visibleOnSite: true,
 		supplierIndex: 1,
 		weightKg: "0.680",
+		ncm: "82052000",
 		primaryCategorySlug: "martelos",
 		secondaryCategorySlug: "ferramentas-manuais",
 		variants: [
@@ -673,10 +867,12 @@ const TOOLS: ToolDef[] = [
 				sortOrder: 0,
 			},
 		],
-		imageCount: 1,
+		imageCount: 3,
 		attributeValues: [
 			{ slug: "material-cabo", valueText: "madeira" },
 			{ slug: "comprimento-total", valueNumeric: "310" },
+			{ slug: "peso-cabeca", valueNumeric: "450" },
+			{ slug: "tipo-cabeca", valueText: "carpinteiro" },
 		],
 	},
 	{
@@ -689,6 +885,7 @@ const TOOLS: ToolDef[] = [
 		visibleOnSite: true,
 		supplierIndex: 0,
 		weightKg: "0.280",
+		ncm: "82032090",
 		primaryCategorySlug: "alicates",
 		variants: [
 			{
@@ -700,10 +897,12 @@ const TOOLS: ToolDef[] = [
 				sortOrder: 0,
 			},
 		],
-		imageCount: 1,
+		imageCount: 3,
 		attributeValues: [
 			{ slug: "material-cabo", valueText: "borracha" },
 			{ slug: "comprimento-total", valueNumeric: "200" },
+			{ slug: "abertura-mandibula", valueNumeric: "30" },
+			{ slug: "tipo-corte", valueText: "lateral" },
 		],
 	},
 	{
@@ -717,6 +916,7 @@ const TOOLS: ToolDef[] = [
 		supplierIndex: 3,
 		powerWatts: 600,
 		weightKg: "2.800",
+		ncm: "84672900",
 		primaryCategorySlug: "plainas-eletricas",
 		variants: [
 			{
@@ -741,6 +941,7 @@ const TOOLS: ToolDef[] = [
 		visibleOnSite: true,
 		supplierIndex: 0,
 		weightKg: "0.120",
+		ncm: "68042290",
 		primaryCategorySlug: "discos",
 		secondaryCategorySlug: "acessorios",
 		variants: [
@@ -753,8 +954,13 @@ const TOOLS: ToolDef[] = [
 				sortOrder: 0,
 			},
 		],
-		imageCount: 1,
-		attributeValues: [{ slug: "cor-acabamento", valueText: "prata" }],
+		imageCount: 3,
+		attributeValues: [
+			{ slug: "diametro-disco-corte", valueNumeric: "115" },
+			{ slug: "espessura-disco", valueNumeric: "1.0" },
+			{ slug: "furo-disco", valueNumeric: "22.23" },
+			{ slug: "material-abrasivo", valueText: "oxido-zirconio" },
+		],
 	},
 ];
 
@@ -901,6 +1107,7 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 			model: toolDef.model,
 			status: toolDef.status,
 			visibleOnSite: toolDef.visibleOnSite,
+			ncm: toolDef.ncm ?? null,
 			powerWatts: toolDef.powerWatts ?? null,
 			weightKg: toolDef.weightKg ?? randomWeightKg(),
 			lengthCm: toolDef.lengthCm ?? randomDimCm(),

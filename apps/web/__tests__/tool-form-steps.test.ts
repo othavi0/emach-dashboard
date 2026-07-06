@@ -69,29 +69,29 @@ describe("TOOL_STEPS", () => {
 
 describe("getStepFieldErrors", () => {
 	it("acusa nome e categoria faltando no passo identity", () => {
-		const errors = getStepFieldErrors(EMPTY, "identity");
+		const errors = getStepFieldErrors(EMPTY, "identity", false);
 		expect(errors.name).toBeTruthy();
 		expect(errors.categoryIds ?? errors.primaryCategoryId).toBeTruthy();
 	});
 
 	it("não vaza erro de peso (logistics) pro passo identity", () => {
-		const errors = getStepFieldErrors(EMPTY, "identity");
+		const errors = getStepFieldErrors(EMPTY, "identity", false);
 		expect(errors.weightKg).toBeUndefined();
 	});
 
 	it("acusa peso faltando no passo logistics", () => {
-		const errors = getStepFieldErrors(EMPTY, "logistics");
+		const errors = getStepFieldErrors(EMPTY, "logistics", false);
 		expect(errors.weightKg).toBeTruthy();
 	});
 
 	it("passo identity fica sem erros quando nome+categoria estão preenchidos", () => {
-		expect(getStepFieldErrors(VALID_IDENTITY, "identity")).toEqual({});
+		expect(getStepFieldErrors(VALID_IDENTITY, "identity", false)).toEqual({});
 	});
 });
 
 describe("firstStepWithError", () => {
 	it("retorna 'identity' quando o nome está vazio", () => {
-		expect(firstStepWithError(EMPTY)).toBe("identity");
+		expect(firstStepWithError(EMPTY, false)).toBe("identity");
 	});
 
 	it("retorna null quando tudo válido para draft", () => {
@@ -114,6 +114,6 @@ describe("firstStepWithError", () => {
 				},
 			],
 		};
-		expect(firstStepWithError(values)).toBeNull();
+		expect(firstStepWithError(values, false)).toBeNull();
 	});
 });

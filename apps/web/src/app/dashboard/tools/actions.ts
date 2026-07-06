@@ -21,6 +21,7 @@ import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { deleteToolImage } from "./_components/image-actions";
 import {
+	activationRequirementIssues,
 	slugify,
 	type ToolFormValues,
 	toolFormSchema,
@@ -59,6 +60,12 @@ export async function createTool(
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
+	}
+	if (parsed.data.status === "active") {
+		const [issue] = activationRequirementIssues(parsed.data);
+		if (issue) {
+			return { ok: false, error: issue.message };
+		}
 	}
 	const categoryError = await primaryCategoryIncompleteError(
 		parsed.data.primaryCategoryId
@@ -179,6 +186,17 @@ export async function updateTool(
 	const parsed = toolFormSchema.safeParse(input);
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
+	}
+	const [prev] = await db
+		.select({ status: tool.status })
+		.from(tool)
+		.where(eq(tool.id, id))
+		.limit(1);
+	if (prev?.status !== "active" && parsed.data.status === "active") {
+		const [issue] = activationRequirementIssues(parsed.data);
+		if (issue) {
+			return { ok: false, error: issue.message };
+		}
 	}
 	// Gate só barra quando a primária MUDA para uma incompleta — não punir edição
 	// de tool cuja primária já existente degradou (deleção de atributo posterior),

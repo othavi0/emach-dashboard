@@ -140,6 +140,44 @@ const CHECKS: { name: string; query: string }[] = [
 		query:
 			"SELECT count(*) AS n FROM (SELECT barcode FROM tool_variant GROUP BY barcode HAVING count(*) > 1) d",
 	},
+	{
+		name: "tool active fora da régua de ativação (specs<4, imagens<3 ou sem ncm)",
+		query: `
+			SELECT count(*) AS n
+			FROM tool t
+			WHERE t.status = 'active'
+			  AND (
+				(t.ncm IS NULL OR btrim(t.ncm) = '')
+				OR (SELECT count(*) FROM tool_image ti WHERE ti.tool_id = t.id) < 3
+				OR (
+					SELECT count(*) FROM tool_attribute_value tav
+					JOIN tool_attribute_assignment taa
+					  ON taa.tool_id = tav.tool_id AND taa.attribute_id = tav.attribute_id
+					WHERE tav.tool_id = t.id
+					  AND ((tav.value_text IS NOT NULL AND btrim(tav.value_text) <> '')
+						OR tav.value_numeric IS NOT NULL
+						OR tav.value_numeric_max IS NOT NULL
+						OR tav.value_bool IS NOT NULL)
+				) < 4
+			  )
+		`,
+	},
+	{
+		name: "categoria primary de tool com menos de 4 atributos efetivos",
+		query: `
+			SELECT count(*) AS n
+			FROM category c
+			WHERE EXISTS (
+				SELECT 1 FROM tool_category tc
+				WHERE tc.category_id = c.id AND tc.is_primary = true
+			)
+			  AND (
+				SELECT count(*) FROM attribute_definition ad
+				JOIN category c2 ON c2.id = ad.category_id
+				WHERE c2.path = c.path OR c.path LIKE c2.path || '/%'
+			  ) < 4
+		`,
+	},
 ];
 
 export async function verifySeed(tx: Tx): Promise<void> {

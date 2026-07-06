@@ -1,5 +1,9 @@
 import { EMPTY_TOOL_VALUES, type ToolFormState } from "./tool-form-state";
-import { type ToolFormValues, toolFormSchema } from "./tool-schema";
+import {
+	collectToolIssues,
+	type ToolFormValues,
+	type ToolIssue,
+} from "./tool-schema";
 
 export type ToolStepId =
 	| "identity"
@@ -89,29 +93,24 @@ const _stepFieldsAreExhaustive: _UncoveredField extends never
 export type { _stepFieldsAreExhaustive as _ };
 
 export function stepHasErrors(
-	result: ReturnType<typeof toolFormSchema.safeParse>,
+	issues: ToolIssue[],
 	stepId: ToolStepId
 ): boolean {
-	if (result.success) {
-		return false;
-	}
 	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
-	return result.error.issues.some(
+	return issues.some(
 		(issue) => issue.path.length > 0 && fields.has(String(issue.path[0]))
 	);
 }
 
 export function getStepFieldErrors(
 	values: unknown,
-	stepId: ToolStepId
+	stepId: ToolStepId,
+	enforceActivation: boolean
 ): Partial<Record<keyof ToolFormValues, string>> {
-	const parsed = toolFormSchema.safeParse(values);
-	if (parsed.success) {
-		return {};
-	}
+	const issues = collectToolIssues(values, { enforceActivation });
 	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
 	const out: Partial<Record<keyof ToolFormValues, string>> = {};
-	for (const issue of parsed.error.issues) {
+	for (const issue of issues) {
 		const key = issue.path[0] as keyof ToolFormValues | undefined;
 		if (key && fields.has(String(key)) && out[key] === undefined) {
 			out[key] = issue.message;
@@ -120,13 +119,16 @@ export function getStepFieldErrors(
 	return out;
 }
 
-export function firstStepWithError(values: unknown): ToolStepId | null {
-	const parsed = toolFormSchema.safeParse(values);
-	if (parsed.success) {
+export function firstStepWithError(
+	values: unknown,
+	enforceActivation: boolean
+): ToolStepId | null {
+	const issues = collectToolIssues(values, { enforceActivation });
+	if (issues.length === 0) {
 		return null;
 	}
 	for (const step of TOOL_STEPS) {
-		if (stepHasErrors(parsed, step.id)) {
+		if (stepHasErrors(issues, step.id)) {
 			return step.id;
 		}
 	}
@@ -134,18 +136,14 @@ export function firstStepWithError(values: unknown): ToolStepId | null {
 }
 
 export function getStepErrorCount(
-	result: ReturnType<typeof toolFormSchema.safeParse>,
+	issues: ToolIssue[],
 	stepId: ToolStepId
 ): number {
-	if (result.success) {
-		return 0;
-	}
 	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
 	const seen = new Set<string>();
-	for (const issue of result.error.issues) {
-		const key = issue.path[0];
-		if (issue.path.length > 0 && fields.has(String(key))) {
-			seen.add(String(key));
+	for (const issue of issues) {
+		if (issue.path.length > 0 && fields.has(String(issue.path[0]))) {
+			seen.add(String(issue.path[0]));
 		}
 	}
 	return seen.size;
