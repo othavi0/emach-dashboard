@@ -65,6 +65,47 @@ function canManageOthersSession(user: SessionUser): boolean {
 	return user.role === "admin" || user.role === "super_admin";
 }
 
+async function createPickingItems(
+	tx: Tx,
+	pickingId: string,
+	orderId: string
+): Promise<void> {
+	// Load order items to create picking items (left join variant for barcode fallback)
+	const items = await tx
+		.select({
+			id: orderItem.id,
+			variantId: orderItem.variantId,
+			sku: orderItem.sku,
+			name: orderItem.name,
+			barcode: orderItem.barcode,
+			voltage: orderItem.voltage,
+			quantity: orderItem.quantity,
+			variantBarcode: toolVariant.barcode,
+		})
+		.from(orderItem)
+		.leftJoin(toolVariant, eq(orderItem.variantId, toolVariant.id))
+		.where(eq(orderItem.orderId, orderId));
+
+	for (const item of items) {
+		await tx.insert(orderPickingItem).values({
+			id: crypto.randomUUID(),
+			pickingId,
+			orderItemId: item.id,
+			variantId: item.variantId,
+			variantSnapshot: {
+				sku: item.sku ?? null,
+				name: item.name,
+				// COALESCE: preferir barcode do snapshot do pedido; fallback para barcode atual da variante
+				barcode: item.barcode ?? item.variantBarcode ?? null,
+				voltage: item.voltage ?? null,
+			},
+			qtyExpected: item.quantity,
+			qtyPicked: 0,
+			notFound: false,
+		});
+	}
+}
+
 // ---------------------------------------------------------------------------
 // startPicking
 // ---------------------------------------------------------------------------
@@ -102,40 +143,7 @@ export async function startPicking(
 				pickerName: session.user.name ?? session.user.id,
 			});
 
-			// Load order items to create picking items (left join variant for barcode fallback)
-			const items = await tx
-				.select({
-					id: orderItem.id,
-					variantId: orderItem.variantId,
-					sku: orderItem.sku,
-					name: orderItem.name,
-					barcode: orderItem.barcode,
-					voltage: orderItem.voltage,
-					quantity: orderItem.quantity,
-					variantBarcode: toolVariant.barcode,
-				})
-				.from(orderItem)
-				.leftJoin(toolVariant, eq(orderItem.variantId, toolVariant.id))
-				.where(eq(orderItem.orderId, orderId));
-
-			for (const item of items) {
-				await tx.insert(orderPickingItem).values({
-					id: crypto.randomUUID(),
-					pickingId: newPickingId,
-					orderItemId: item.id,
-					variantId: item.variantId,
-					variantSnapshot: {
-						sku: item.sku ?? null,
-						name: item.name,
-						// COALESCE: preferir barcode do snapshot do pedido; fallback para barcode atual da variante
-						barcode: item.barcode ?? item.variantBarcode ?? null,
-						voltage: item.voltage ?? null,
-					},
-					qtyExpected: item.quantity,
-					qtyPicked: 0,
-					notFound: false,
-				});
-			}
+			await createPickingItems(tx, newPickingId, orderId);
 
 			// If paid → transition to preparing
 			if (locked.status === "paid") {
@@ -581,6 +589,101 @@ export async function cancelPicking(
 			ok: false,
 			error:
 				error instanceof Error ? error.message : "Erro ao cancelar separação",
+		};
+	}
+}
+
+// ---------------------------------------------------------------------------
+// takeoverPicking
+// ---------------------------------------------------------------------------
+
+export async function takeoverPicking(
+	pickingId: string
+): Promise<ActionResult<{ pickingId: string }>> {
+	try {
+		let orderId: string | undefined;
+		const newPickingId = await db.transaction(async (tx: Tx) => {
+			const [picking] = await tx
+				.select()
+				.from(orderPicking)
+				.where(eq(orderPicking.id, pickingId))
+				.limit(1);
+
+			if (!picking) {
+				throw new Error("Sessão de separação não encontrada");
+			}
+
+			const locked = await lockOrderAndAuthorize(
+				tx,
+				"orders.pick",
+				picking.orderId
+			);
+
+			if (!locked) {
+				throw new Error("Pedido não encontrado");
+			}
+
+			const { session } = locked;
+			assertInProgress(picking);
+
+			if (!canManageOthersSession(session.user)) {
+				throw new Error(
+					"Apenas admin ou super admin pode assumir uma separação"
+				);
+			}
+
+			if (picking.pickerUserId === session.user.id) {
+				throw new Error("A sessão já é sua — continue a separação");
+			}
+
+			orderId = picking.orderId;
+			const actorName = session.user.name ?? session.user.id;
+
+			// Cancela a sessão do outro (auditado) e abre uma nova do zero — quem
+			// assume re-confere fisicamente, então não herda qtyPicked.
+			await tx
+				.update(orderPicking)
+				.set({
+					status: "canceled",
+					canceledByUserId: session.user.id,
+					canceledByName: actorName,
+					canceledAt: new Date(),
+					cancelReason: `Assumida por ${actorName}`,
+				})
+				.where(eq(orderPicking.id, pickingId));
+
+			const createdId = crypto.randomUUID();
+
+			await tx.insert(orderPicking).values({
+				id: createdId,
+				orderId: picking.orderId,
+				branchId: picking.branchId,
+				status: "in_progress",
+				pickerUserId: session.user.id,
+				pickerName: actorName,
+			});
+
+			await createPickingItems(tx, createdId, picking.orderId);
+
+			return createdId;
+		});
+
+		if (orderId) {
+			revalidatePickingPaths(orderId);
+		}
+
+		return { ok: true, data: { pickingId: newPickingId } };
+	} catch (error) {
+		logger.error("takeoverPicking", error);
+
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para assumir separação." };
+		}
+
+		return {
+			ok: false,
+			error:
+				error instanceof Error ? error.message : "Erro ao assumir separação",
 		};
 	}
 }

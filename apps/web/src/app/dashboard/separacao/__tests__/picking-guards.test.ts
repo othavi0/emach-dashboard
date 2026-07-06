@@ -38,7 +38,12 @@ vi.mock("../data", () => ({
 	isPickingCompleteForShip: vi.fn(),
 }));
 
-import { cancelPicking, completePicking, reportMissing } from "../actions";
+import {
+	cancelPicking,
+	completePicking,
+	reportMissing,
+	takeoverPicking,
+} from "../actions";
 
 const PICKING_ID = "3f2b7c1a-9d4e-4f6a-8b2c-1a2b3c4d5e6f";
 const OWNER = "usr_owner";
@@ -48,8 +53,12 @@ const STATUS_ERROR_RE = /andamento/i;
 function makeTx(selectResults: unknown[][]) {
 	let i = 0;
 	const chain = (result: unknown[]) => {
-		const c: Record<string, unknown> = {};
+		const c: Record<string, unknown> = {
+			// biome-ignore lint/suspicious/noThenProperty: thenable mock — allows `await tx.select()...where()` without a terminal `.limit()` (createPickingItems' orderItem load)
+			then: (resolve: (v: unknown) => void) => resolve(result),
+		};
 		c.from = vi.fn(() => c);
+		c.leftJoin = vi.fn(() => c);
 		c.where = vi.fn(() => c);
 		c.for = vi.fn(() => c);
 		c.limit = vi.fn(() => Promise.resolve(result));
@@ -140,5 +149,32 @@ describe("guards de sessão de separação", () => {
 		);
 		const allowed = await cancelPicking(PICKING_ID, "picker ausente");
 		expect(allowed.ok).toBe(true);
+	});
+
+	it("takeoverPicking por role user → recusado", async () => {
+		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
+		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+			cb(makeTx([[PICKING_IN_PROGRESS]]))
+		);
+		const result = await takeoverPicking(PICKING_ID);
+		expect(result.ok).toBe(false);
+	});
+
+	it("takeoverPicking da própria sessão → recusado (é só continuar)", async () => {
+		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs(OWNER, "admin"));
+		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+			cb(makeTx([[PICKING_IN_PROGRESS]]))
+		);
+		const result = await takeoverPicking(PICKING_ID);
+		expect(result.ok).toBe(false);
+	});
+
+	it("takeoverPicking por admin em sessão alheia in_progress → ok", async () => {
+		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_adm", "admin"));
+		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+			cb(makeTx([[PICKING_IN_PROGRESS], []]))
+		);
+		const result = await takeoverPicking(PICKING_ID);
+		expect(result.ok).toBe(true);
 	});
 });
