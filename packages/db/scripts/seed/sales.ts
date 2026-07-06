@@ -7,13 +7,18 @@ import {
 } from "@emach/db/schema/orders";
 import { review } from "@emach/db/schema/reviews";
 import { stockMovement } from "@emach/db/schema/stock-movements";
-import { sql } from "drizzle-orm";
+import { tool, toolVariant } from "@emach/db/schema/tools";
+import { eq, sql } from "drizzle-orm";
 import type { SeedContext, Tx } from "./context";
 import { pick, pickN, randInt } from "./random";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// Preço de segurança caso uma variante escolhida não esteja no mapa do catálogo
+// (não deve ocorrer — as variantes vêm do próprio ctx).
+const FALLBACK_PRICE = "299.90";
 
 // Gera timestamps passados progressivos
 function daysAgo(days: number, offsetHours = 0): Date {
@@ -271,6 +276,31 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 	const branchIds = ctx.branchIds;
 	const allToolIds = ctx.toolIds;
 
+	// Snapshot real do catálogo por variante (nome/sku/fiscal/dimensões/preço),
+	// como o checkout do ecommerce gravaria. Sem isso os itens demo saíam todos
+	// como "Ferramenta Emach" com campos nulos.
+	const catalogRows = await tx
+		.select({
+			variantId: toolVariant.id,
+			sku: toolVariant.sku,
+			voltage: toolVariant.voltage,
+			priceAmount: toolVariant.priceAmount,
+			toolName: tool.name,
+			model: tool.model,
+			ncm: tool.ncm,
+			cest: tool.cest,
+			manufacturerName: tool.manufacturerName,
+			weightKg: tool.weightKg,
+			lengthCm: tool.lengthCm,
+			widthCm: tool.widthCm,
+			heightCm: tool.heightCm,
+		})
+		.from(toolVariant)
+		.innerJoin(tool, eq(toolVariant.toolId, tool.id));
+	const catalogByVariantId = new Map(
+		catalogRows.map((row) => [row.variantId, row])
+	);
+
 	// --- 2. Inserir orders ---
 
 	// Estrutura para armazenar itens de cada order (para reviews + estoque)
@@ -374,10 +404,16 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 			}
 		}
 
-		// Calcular totais fictícios
-		const unitPrice = "299.90";
+		// Totais a partir do preço real de cada variante (fallback só se a
+		// variante sumir do catálogo entre a escolha e o insert — não deve ocorrer)
 		const subtotal = itemDefs
-			.reduce((acc, item) => acc + item.quantity * 299.9, 0)
+			.reduce((acc, item) => {
+				const snap = catalogByVariantId.get(item.variantId);
+				return (
+					acc +
+					item.quantity * Number.parseFloat(snap?.priceAmount ?? FALLBACK_PRICE)
+				);
+			}, 0)
 			.toFixed(2);
 		const shippingAmount = "29.90";
 		const totalAmount = (
@@ -449,29 +485,31 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 		orderStatusByOrderId.set(orderId, scenario.targetStatus);
 		orderBranchByOrderId.set(orderId, branchId);
 
-		// Inserir order_items
+		// Inserir order_items com snapshot completo do catálogo (como o checkout faz)
 		for (const itemDef of itemDefs) {
 			const itemId = crypto.randomUUID();
+			const snap = catalogByVariantId.get(itemDef.variantId);
+			const unitPrice = snap?.priceAmount ?? FALLBACK_PRICE;
 			await tx.insert(orderItem).values({
 				id: itemId,
 				orderId,
 				toolId: itemDef.toolId,
 				variantId: itemDef.variantId,
-				sku: null,
-				name: "Ferramenta Emach",
-				model: null,
-				voltage: null,
+				sku: snap?.sku ?? null,
+				name: snap?.toolName ?? "Ferramenta Emach",
+				model: snap?.model ?? null,
+				voltage: snap?.voltage ?? null,
 				unitPrice,
 				quantity: itemDef.quantity,
 				lineTotal: (itemDef.quantity * Number.parseFloat(unitPrice)).toFixed(2),
 				discountAmount: "0",
-				ncm: null,
-				cest: null,
-				manufacturerName: null,
-				weightKg: null,
-				lengthCm: null,
-				widthCm: null,
-				heightCm: null,
+				ncm: snap?.ncm ?? null,
+				cest: snap?.cest ?? null,
+				manufacturerName: snap?.manufacturerName ?? null,
+				weightKg: snap?.weightKg ?? null,
+				lengthCm: snap?.lengthCm ?? null,
+				widthCm: snap?.widthCm ?? null,
+				heightCm: snap?.heightCm ?? null,
 			});
 			// I3: itemId é campo do tipo, sem cast frouxo
 			itemDef.itemId = itemId;
