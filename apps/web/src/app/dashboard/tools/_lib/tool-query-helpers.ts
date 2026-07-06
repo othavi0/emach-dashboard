@@ -37,6 +37,7 @@ export function normalizeToolPayload(input: ToolFormValues) {
 		packagingWeightKg: input.packagingWeightKg.toFixed(3),
 		stackable: input.stackable,
 		shipsInOwnBox: input.shipsInOwnBox,
+		uprightOnly: input.uprightOnly,
 		visibleOnSite: input.visibleOnSite,
 		videoUrl: input.videoUrl,
 		videoPosterUrl: input.videoPosterUrl,

@@ -11,6 +11,7 @@ export interface FitCheckItem {
 	lengthCm: number;
 	packagingWeightKg: number;
 	stackable: boolean;
+	uprightOnly?: boolean;
 	weightKg: number;
 	widthCm: number;
 }
@@ -19,14 +20,41 @@ function sortedDesc(a: number, b: number, c: number): [number, number, number] {
 	return [a, b, c].sort((x, y) => y - x) as [number, number, number];
 }
 
-function fitsShippingBox(item: FitCheckItem, box: QuoteBox): boolean {
+function fitsByDims(item: FitCheckItem, box: QuoteBox): boolean {
+	if (item.uprightOnly) {
+		// Altura fixa: só as horizontais podem trocar entre si.
+		if (item.heightCm > box.internalHeightCm) {
+			return false;
+		}
+		const iMax = Math.max(item.lengthCm, item.widthCm);
+		const iMin = Math.min(item.lengthCm, item.widthCm);
+		const bMax = Math.max(box.internalLengthCm, box.internalWidthCm);
+		const bMin = Math.min(box.internalLengthCm, box.internalWidthCm);
+		return iMax <= bMax && iMin <= bMin;
+	}
 	const i = sortedDesc(item.lengthCm, item.widthCm, item.heightCm);
 	const b = sortedDesc(
 		box.internalLengthCm,
 		box.internalWidthCm,
 		box.internalHeightCm
 	);
-	if (!(i[0] <= b[0] && i[1] <= b[1] && i[2] <= b[2])) {
+	return i[0] <= b[0] && i[1] <= b[1] && i[2] <= b[2];
+}
+
+function footprint(item: FitCheckItem): number {
+	if (item.uprightOnly) {
+		return item.lengthCm * item.widthCm;
+	}
+	const s = sortedDesc(item.lengthCm, item.widthCm, item.heightCm);
+	return s[0] * s[1];
+}
+
+function fitsShippingBox(
+	item: FitCheckItem,
+	box: QuoteBox,
+	fillFactor: number
+): boolean {
+	if (!fitsByDims(item, box)) {
 		return false;
 	}
 	const weight = box.tareWeightKg + item.weightKg + item.packagingWeightKg;
@@ -37,16 +65,17 @@ function fitsShippingBox(item: FitCheckItem, box: QuoteBox): boolean {
 	// Não-empilhável reserva a coluna inteira acima dele (footprint × altura).
 	const occupied = item.stackable
 		? unitVolume
-		: i[0] * i[1] * box.internalHeightCm;
+		: footprint(item) * box.internalHeightCm;
 	const boxVolume =
 		box.internalLengthCm * box.internalWidthCm * box.internalHeightCm;
-	return occupied <= boxVolume * FILL_FACTOR;
+	return occupied <= boxVolume * fillFactor;
 }
 
 /** true se a unidade cabe em ALGUMA caixa ativa — mesma regra do checkout. */
 export function fitsAnyActiveBox(
 	item: FitCheckItem,
-	boxes: QuoteBox[]
+	boxes: QuoteBox[],
+	fillFactor: number = FILL_FACTOR
 ): boolean {
-	return boxes.some((box) => fitsShippingBox(item, box));
+	return boxes.some((box) => fitsShippingBox(item, box, fillFactor));
 }

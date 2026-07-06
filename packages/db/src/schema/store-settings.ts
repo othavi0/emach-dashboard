@@ -31,6 +31,21 @@ export const storeSettings = pgTable(
 		})
 			.notNull()
 			.default("3000.00"),
+		// Fração máxima do volume interno ocupável na consolidação (folga de
+		// empacotamento). Consumido pelo storefront via getShippingSettings.
+		shippingFillFactor: numeric("shipping_fill_factor", {
+			precision: 3,
+			scale: 2,
+		})
+			.notNull()
+			.default("0.90"),
+		// Acréscimo externo por dimensão (cm) nas caixas cotadas (parede/aba).
+		shippingBoxPaddingCm: numeric("shipping_box_padding_cm", {
+			precision: 10,
+			scale: 2,
+		})
+			.notNull()
+			.default("0"),
 		// Redes sociais — URL completa do perfil + flag de exibição no storefront.
 		// `visible` default false: a rede só aparece no site após ter link e ser
 		// ligada explicitamente.
@@ -70,6 +85,11 @@ export const storeSettings = pgTable(
 			"insurance_cap_non_negative",
 			sql`${table.shippingInsuranceCapAmount} >= 0`
 		),
+		check(
+			"fill_factor_range",
+			sql`${table.shippingFillFactor} > 0 AND ${table.shippingFillFactor} <= 1`
+		),
+		check("box_padding_non_negative", sql`${table.shippingBoxPaddingCm} >= 0`),
 	]
 );
 

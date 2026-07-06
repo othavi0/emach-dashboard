@@ -24,7 +24,7 @@ export function LogisticsFields({
 	errors,
 	disabled,
 }: ToolFieldGroupProps) {
-	const { activeBoxes } = useToolFormContext();
+	const { activeBoxes, fillFactor } = useToolFormContext();
 	const showNoFit =
 		dimsReady(values) &&
 		!values.shipsInOwnBox &&
@@ -36,8 +36,10 @@ export function LogisticsFields({
 				weightKg: values.weightKg ?? 0,
 				packagingWeightKg: values.packagingWeightKg ?? 0,
 				stackable: values.stackable,
+				uprightOnly: values.uprightOnly,
 			},
-			activeBoxes
+			activeBoxes,
+			fillFactor
 		);
 	return (
 		<div className="flex flex-col gap-4">
@@ -146,6 +148,21 @@ export function LogisticsFields({
 					>
 						Empilhável
 						<HelpTooltip text="Pode ir sobre/sob outros itens dentro da caixa. Desligado, o item reserva a coluna inteira acima dele na consolidação." />
+					</label>
+				</div>
+				<div className="flex items-center gap-3">
+					<Switch
+						checked={values.uprightOnly}
+						disabled={disabled}
+						id="uprightOnly"
+						onCheckedChange={(checked) => onPatch({ uprightOnly: checked })}
+					/>
+					<label
+						className="flex cursor-pointer items-center gap-1.5 text-sm"
+						htmlFor="uprightOnly"
+					>
+						Este lado para cima
+						<HelpTooltip text="Não pode ser deitado na caixa (ex.: compressor com óleo). A altura é fixa no encaixe; só gira na horizontal." />
 					</label>
 				</div>
 				<div className="flex items-center gap-3">

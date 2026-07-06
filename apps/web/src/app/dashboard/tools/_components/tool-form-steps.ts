@@ -67,6 +67,7 @@ export const STEP_FIELDS = {
 		"packagingWeightKg",
 		"stackable",
 		"shipsInOwnBox",
+		"uprightOnly",
 	],
 	fiscal: [
 		"model",

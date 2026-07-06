@@ -11,6 +11,7 @@ export interface QuoteItem {
 	qty: number;
 	shipsInOwnBox: boolean;
 	stackable: boolean;
+	uprightOnly?: boolean;
 	weightKg: number;
 	widthCm: number;
 }
@@ -32,14 +33,32 @@ export interface ShippingPackage {
 	widthCm: number;
 }
 
-// Folga de empacotamento: itens nunca preenchem 100% do volume interno.
-const FILL_FACTOR = 0.9;
+export interface PackOptions {
+	/** Acréscimo externo por dimensão (cm) — parede/aba da caixa. Default 0. */
+	boxPaddingCm?: number;
+	/** Fração máxima do volume interno ocupável. Default 0.9. */
+	fillFactor?: number;
+}
+
+// Default de PackOptions.fillFactor — fração máxima do volume interno ocupável.
+const DEFAULT_FILL_FACTOR = 0.9;
 
 function sortedDesc(a: number, b: number, c: number): [number, number, number] {
 	return [a, b, c].sort((x, y) => y - x) as [number, number, number];
 }
 
 function fitsByDims(item: QuoteItem, box: QuoteBox): boolean {
+	if (item.uprightOnly) {
+		// Altura fixa: só as horizontais podem trocar entre si.
+		if (item.heightCm > box.internalHeightCm) {
+			return false;
+		}
+		const iMax = Math.max(item.lengthCm, item.widthCm);
+		const iMin = Math.min(item.lengthCm, item.widthCm);
+		const bMax = Math.max(box.internalLengthCm, box.internalWidthCm);
+		const bMin = Math.min(box.internalLengthCm, box.internalWidthCm);
+		return iMax <= bMax && iMin <= bMin;
+	}
 	const i = sortedDesc(item.lengthCm, item.widthCm, item.heightCm);
 	const b = sortedDesc(
 		box.internalLengthCm,
@@ -54,6 +73,9 @@ function unitVolume(u: QuoteItem): number {
 }
 
 function footprint(u: QuoteItem): number {
+	if (u.uprightOnly) {
+		return u.lengthCm * u.widthCm;
+	}
 	const s = sortedDesc(u.lengthCm, u.widthCm, u.heightCm);
 	return s[0] * s[1];
 }
@@ -74,7 +96,11 @@ function dispatchWeight(u: QuoteItem): number {
 // Um conjunto de unidades cabe numa caixa se: cada unidade cabe por eixo
 // (com rotação), o peso total (+ tara) ≤ máximo, e o volume ocupado total ≤
 // volume interno × fator de folga.
-function fitsSet(units: QuoteItem[], box: QuoteBox): boolean {
+function fitsSet(
+	units: QuoteItem[],
+	box: QuoteBox,
+	fillFactor: number
+): boolean {
 	let weight = box.tareWeightKg;
 	let occupied = 0;
 	for (const u of units) {
@@ -84,27 +110,48 @@ function fitsSet(units: QuoteItem[], box: QuoteBox): boolean {
 		weight += dispatchWeight(u);
 		occupied += occupiedVolume(u, box);
 	}
-	return weight <= box.maxWeightKg && occupied <= boxVolume(box) * FILL_FACTOR;
+	return weight <= box.maxWeightKg && occupied <= boxVolume(box) * fillFactor;
 }
 
-function emitPackage(units: QuoteItem[], box: QuoteBox): ShippingPackage {
+function emitPackage(
+	units: QuoteItem[],
+	box: QuoteBox,
+	paddingCm: number
+): ShippingPackage {
 	let weight = box.tareWeightKg;
 	for (const u of units) {
 		weight += dispatchWeight(u);
 	}
 	return {
-		lengthCm: box.internalLengthCm,
-		widthCm: box.internalWidthCm,
-		heightCm: box.internalHeightCm,
+		lengthCm: box.internalLengthCm + paddingCm,
+		widthCm: box.internalWidthCm + paddingCm,
+		heightCm: box.internalHeightCm + paddingCm,
 		weightKg: weight,
 		outOfCatalog: false,
 	};
 }
 
+// Menor caixa (por volume) em que o conjunto inteiro cabe.
+function smallestFittingBox(
+	units: QuoteItem[],
+	boxesAsc: QuoteBox[],
+	fillFactor: number
+): QuoteBox | undefined {
+	return boxesAsc.find((box) => fitsSet(units, box, fillFactor));
+}
+
+interface PackBin {
+	box: QuoteBox;
+	units: QuoteItem[];
+}
+
 export function packItems(
 	items: QuoteItem[],
-	boxes: QuoteBox[]
+	boxes: QuoteBox[],
+	opts?: PackOptions
 ): ShippingPackage[] {
+	const fillFactor = opts?.fillFactor ?? DEFAULT_FILL_FACTOR;
+	const paddingCm = opts?.boxPaddingCm ?? 0;
 	const packages: ShippingPackage[] = [];
 
 	// Expande qty em unidades.
@@ -126,7 +173,7 @@ export function packItems(
 		});
 	}
 
-	// Itens a consolidar, maiores volumes primeiro.
+	// Itens a consolidar, maiores volumes primeiro (first-fit-decreasing).
 	const rest = units
 		.filter((x) => !x.shipsInOwnBox)
 		.sort((a, b) => unitVolume(b) - unitVolume(a));
@@ -136,34 +183,15 @@ export function packItems(
 
 	const boxesAsc = [...boxes].sort((a, b) => boxVolume(a) - boxVolume(b));
 
-	// Consolidação: a MENOR caixa única que cabe TODOS os itens → 1 pacote.
-	// (É o que evita cobrar N× — ex: 4 furadeiras numa box-xl em vez de 4 box-s.)
-	const single = boxesAsc.find((box) => fitsSet(rest, box));
-	if (single) {
-		packages.push(emitPackage(rest, single));
-		return packages;
-	}
-
-	// Nenhuma caixa única cabe tudo → multi-caixa, enchendo a MAIOR caixa por
-	// bin (máxima consolidação). Unidade grande/pesada demais até pra maior
-	// caixa → pacote próprio marcado out_of_catalog ("a combinar").
-	const largest = boxesAsc.at(-1);
-	if (!largest) {
-		// Sem catálogo de caixas → tudo "a combinar".
-		for (const u of rest) {
-			packages.push({
-				lengthCm: u.lengthCm,
-				widthCm: u.widthCm,
-				heightCm: u.heightCm,
-				weightKg: dispatchWeight(u),
-				outOfCatalog: true,
-			});
-		}
-		return packages;
-	}
-	const bins: QuoteItem[][] = [];
+	// Cada bin conhece a MENOR caixa que serve pro seu conjunto, recalculada a
+	// cada inserção — consolida no menor número de caixas E cota cada uma pelo
+	// menor tamanho possível. Quando tudo cabe junto, converge pra 1 bin
+	// (subconjunto de conjunto viável é viável na mesma caixa).
+	const bins: PackBin[] = [];
 	for (const u of rest) {
-		if (!fitsSet([u], largest)) {
+		const alone = smallestFittingBox([u], boxesAsc, fillFactor);
+		if (!alone) {
+			// Não cabe em NENHUMA caixa ativa → "a combinar".
 			packages.push({
 				lengthCm: u.lengthCm,
 				widthCm: u.widthCm,
@@ -173,15 +201,26 @@ export function packItems(
 			});
 			continue;
 		}
-		const bin = bins.find((b) => fitsSet([...b, u], largest));
-		if (bin) {
-			bin.push(u);
-		} else {
-			bins.push([u]);
+		let placed = false;
+		for (const bin of bins) {
+			const candidate = smallestFittingBox(
+				[...bin.units, u],
+				boxesAsc,
+				fillFactor
+			);
+			if (candidate) {
+				bin.units.push(u);
+				bin.box = candidate;
+				placed = true;
+				break;
+			}
+		}
+		if (!placed) {
+			bins.push({ box: alone, units: [u] });
 		}
 	}
 	for (const bin of bins) {
-		packages.push(emitPackage(bin, largest));
+		packages.push(emitPackage(bin.units, bin.box, paddingCm));
 	}
 
 	return packages;

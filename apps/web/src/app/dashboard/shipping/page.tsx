@@ -35,6 +35,8 @@ async function ShippingPageContent({ searchParams }: PageProps) {
 	const originLabel =
 		originOptions.find((o) => o.id === settings.shippingOriginBranchId)?.name ??
 		null;
+	const fillFactorPct = Math.round(Number(settings.shippingFillFactor) * 100);
+	const boxPaddingCm = Number(settings.shippingBoxPaddingCm);
 
 	const tabs: EntityTab[] = [
 		{
@@ -55,9 +57,13 @@ async function ShippingPageContent({ searchParams }: PageProps) {
 							originBranchId: settings.shippingOriginBranchId,
 							insurancePolicy: settings.shippingInsurancePolicy,
 							insuranceCapAmount: Number(settings.shippingInsuranceCapAmount),
+							fillFactorPct,
+							boxPaddingCm,
 						}}
 					/>
 					<ShippingPreviewRail
+						boxPaddingCm={boxPaddingCm}
+						fillFactorPct={fillFactorPct}
 						insuranceCapAmount={Number(settings.shippingInsuranceCapAmount)}
 						insurancePolicy={settings.shippingInsurancePolicy}
 						originLabel={originLabel}
