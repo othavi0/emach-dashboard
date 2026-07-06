@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { AutoRefresh } from "@/components/auto-refresh";
 import type { EntityClientTab } from "@/components/entity/entity-client-tabs";
 import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
 import { clampInitialTab } from "@/components/entity/tab-url";
@@ -62,14 +63,17 @@ async function OrderDetailPageContent({ params, searchParams }: PageProps) {
 	if (!order) {
 		notFound();
 	}
-	const [canAddNote, canCancel, canRefund, canUpdateStatus] = await Promise.all(
-		[
+	const [canAddNote, canCancel, canRefund, canUpdateStatus, canPick] =
+		await Promise.all([
 			can(session, "orders.add_note"),
 			can(session, "orders.cancel"),
 			can(session, "orders.refund"),
 			can(session, "orders.update_status"),
-		]
-	);
+			can(session, "orders.pick"),
+		]);
+	const canManageSession =
+		session.user.role === "admin" || session.user.role === "super_admin";
+	const isSuperAdmin = session.user.role === "super_admin";
 
 	const tabs: EntityClientTab[] = [
 		{
@@ -119,6 +123,7 @@ async function OrderDetailPageContent({ params, searchParams }: PageProps) {
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
+			<AutoRefresh />
 			<OrderIdentity order={order} />
 			<OrderSummaryCard order={order} />
 			<div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(20rem,1fr)]">
@@ -132,8 +137,12 @@ async function OrderDetailPageContent({ params, searchParams }: PageProps) {
 					branches={branches}
 					canAddNote={canAddNote}
 					canCancel={canCancel}
+					canManageSession={canManageSession}
+					canPick={canPick}
 					canRefund={canRefund}
 					canUpdateStatus={canUpdateStatus}
+					fulfillment={order.fulfillment}
+					isSuperAdmin={isSuperAdmin}
 					order={order}
 				/>
 			</div>

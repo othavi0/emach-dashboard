@@ -7,11 +7,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
 	mockTransaction,
 	mockRequireCapabilityWithContext,
-	mockHasCompletedPicking,
+	mockGetLatestPicking,
 } = vi.hoisted(() => ({
 	mockTransaction: vi.fn(),
 	mockRequireCapabilityWithContext: vi.fn(),
-	mockHasCompletedPicking: vi.fn(),
+	mockGetLatestPicking: vi.fn(),
 }));
 
 // Mock @emach/db
@@ -66,11 +66,12 @@ vi.mock("@/lib/session", () => ({
 	ROLE_WEIGHT: { super_admin: 3, admin: 2, user: 1 },
 }));
 
-// Gate under test: hasCompletedPicking from separacao/data
+// Gate under test: getLatestPicking from separacao/data
 vi.mock("../../separacao/data", () => ({
-	hasCompletedPicking: mockHasCompletedPicking,
+	getLatestPicking: mockGetLatestPicking,
 	getPickingForOrder: vi.fn(),
 	fetchPickingQueue: vi.fn(),
+	getOrderBranchId: vi.fn(),
 }));
 
 // ---------------------------------------------------------------------------
@@ -126,9 +127,33 @@ function makeMockTx(selectResults: unknown[][]) {
 
 /** Regex that matches the picking gate error message. */
 const SEPARA_RE = /separa/i;
+/** Regex that matches the picking exception gate error message. */
+const EXCECAO_RE = /exceç/i;
+/** Regex that matches the forceReason validation error message. */
+const MOTIVO_RE = /motivo/i;
+/** Regex that matches the in-progress forceShip block message. */
+const ANDAMENTO_RE = /andamento/i;
 
 /** Locked row for a "preparing" order with a branch. */
 const LOCKED_ROW = { status: "preparing", branchId: BRANCH_ID };
+
+/** Factory for the latest picking session, keyed by status. */
+function latestWith(
+	status: "in_progress" | "completed" | "exception" | "canceled"
+) {
+	return {
+		pickingId: "pk_1",
+		status,
+		pickerUserId: "usr_9",
+		pickerName: "João",
+		startedAt: new Date(),
+		completedAt: null,
+		exceptionReason: status === "exception" ? "faltou item" : null,
+		pickedUnits: 0,
+		totalUnits: 8,
+		lastScannedAt: null,
+	};
+}
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -145,88 +170,131 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 		);
 	});
 
-	// -----------------------------------------------------------------------
-	// 1. Blocked: role user/admin, no completed picking
-	// -----------------------------------------------------------------------
-	it("(1a) role=admin, sem separação concluída → ok: false, erro menciona 'separação'", async () => {
-		mockRequireCapabilityWithContext.mockResolvedValue({
-			user: { id: USER_ID, role: "admin" },
-		});
-		mockHasCompletedPicking.mockResolvedValue(false);
-
-		const result = await updateOrderStatus({
-			orderId: ORDER_ID,
-			toStatus: "shipped",
-			trackingCode: "BR123456789BR",
-		});
-
-		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(SEPARA_RE);
-	});
-
-	it("(1b) role=user, sem separação concluída → ok: false, erro menciona 'separação'", async () => {
-		mockRequireCapabilityWithContext.mockResolvedValue({
-			user: { id: USER_ID, role: "user" },
-		});
-		mockHasCompletedPicking.mockResolvedValue(false);
-
-		const result = await updateOrderStatus({
-			orderId: ORDER_ID,
-			toStatus: "shipped",
-			trackingCode: "BR123456789BR",
-		});
-
-		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(SEPARA_RE);
-	});
-
-	// -----------------------------------------------------------------------
-	// 2. Passes: picking completed (any role)
-	// -----------------------------------------------------------------------
-	it("(2) role=admin, separação concluída → não bloqueia pelo gate de picking", async () => {
-		mockRequireCapabilityWithContext.mockResolvedValue({
-			user: { id: USER_ID, role: "admin" },
-		});
-		mockHasCompletedPicking.mockResolvedValue(true);
-
-		const result = await updateOrderStatus({
-			orderId: ORDER_ID,
-			toStatus: "shipped",
-			trackingCode: "BR123456789BR",
-		});
-
-		// ok: true OR a different error (not "separação"), meaning the gate didn't block it
-		if (result.ok) {
-			expect(result.ok).toBe(true);
-		} else {
-			expect((result as { ok: false; error: string }).error).not.toMatch(
-				SEPARA_RE
-			);
-		}
-	});
-
-	// -----------------------------------------------------------------------
-	// 3. super_admin bypass: skips picking check even without completed picking
-	// -----------------------------------------------------------------------
-	it("(3) role=super_admin, sem separação concluída → gate ignorado (não bloqueia)", async () => {
+	it("(1) super_admin SEM separação concluída → bloqueado (bypass removido)", async () => {
 		mockRequireCapabilityWithContext.mockResolvedValue({
 			user: { id: USER_ID, role: "super_admin" },
 		});
-		mockHasCompletedPicking.mockResolvedValue(false);
-
+		mockGetLatestPicking.mockResolvedValue(null);
 		const result = await updateOrderStatus({
 			orderId: ORDER_ID,
 			toStatus: "shipped",
 			trackingCode: "BR123456789BR",
 		});
+		expect(result.ok).toBe(false);
+		expect((result as { ok: false; error: string }).error).toMatch(SEPARA_RE);
+	});
 
-		// Must NOT be blocked by the picking gate
-		if (result.ok) {
-			expect(result.ok).toBe(true);
-		} else {
-			expect((result as { ok: false; error: string }).error).not.toMatch(
-				SEPARA_RE
-			);
-		}
+	it("(2) última sessão canceled (havia completed antiga) → bloqueado", async () => {
+		mockRequireCapabilityWithContext.mockResolvedValue({
+			user: { id: USER_ID, role: "admin" },
+		});
+		mockGetLatestPicking.mockResolvedValue(latestWith("canceled"));
+		const result = await updateOrderStatus({
+			orderId: ORDER_ID,
+			toStatus: "shipped",
+			trackingCode: "BR123456789BR",
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	it("(3) última sessão completed → passa o gate", async () => {
+		mockRequireCapabilityWithContext.mockResolvedValue({
+			user: { id: USER_ID, role: "user" },
+		});
+		mockGetLatestPicking.mockResolvedValue(latestWith("completed"));
+		const result = await updateOrderStatus({
+			orderId: ORDER_ID,
+			toStatus: "shipped",
+			trackingCode: "BR123456789BR",
+		});
+		expect(result.ok).toBe(true);
+	});
+
+	it("(4) exception → bloqueado com mensagem própria", async () => {
+		mockRequireCapabilityWithContext.mockResolvedValue({
+			user: { id: USER_ID, role: "admin" },
+		});
+		mockGetLatestPicking.mockResolvedValue(latestWith("exception"));
+		const result = await updateOrderStatus({
+			orderId: ORDER_ID,
+			toStatus: "shipped",
+			trackingCode: "BR123456789BR",
+		});
+		expect(result.ok).toBe(false);
+		expect((result as { ok: false; error: string }).error).toMatch(EXCECAO_RE);
+	});
+
+	it("(5) forceShip por admin → recusado", async () => {
+		mockRequireCapabilityWithContext.mockResolvedValue({
+			user: { id: USER_ID, role: "admin" },
+		});
+		mockGetLatestPicking.mockResolvedValue(null);
+		const result = await updateOrderStatus({
+			orderId: ORDER_ID,
+			toStatus: "shipped",
+			trackingCode: "BR123456789BR",
+			forceShip: true,
+			forceReason: "cliente no balcão aguardando",
+		});
+		expect(result.ok).toBe(false);
+	});
+
+	it("(6) forceShip super_admin sem motivo → recusado pelo schema", async () => {
+		const result = await updateOrderStatus({
+			orderId: ORDER_ID,
+			toStatus: "shipped",
+			trackingCode: "BR123456789BR",
+			forceShip: true,
+		});
+		expect(result.ok).toBe(false);
+		expect((result as { ok: false; error: string }).error).toMatch(MOTIVO_RE);
+	});
+
+	it("(7) forceShip super_admin com motivo, sem sessão ativa → passa", async () => {
+		mockRequireCapabilityWithContext.mockResolvedValue({
+			user: { id: USER_ID, role: "super_admin" },
+		});
+		mockGetLatestPicking.mockResolvedValue(latestWith("canceled"));
+		const result = await updateOrderStatus({
+			orderId: ORDER_ID,
+			toStatus: "shipped",
+			trackingCode: "BR123456789BR",
+			forceShip: true,
+			forceReason: "cliente no balcão aguardando",
+		});
+		expect(result.ok).toBe(true);
+	});
+
+	it("(7b) forceShip super_admin com motivo, última sessão exception → passa", async () => {
+		mockRequireCapabilityWithContext.mockResolvedValue({
+			user: { id: USER_ID, role: "super_admin" },
+		});
+		mockGetLatestPicking.mockResolvedValue(latestWith("exception"));
+		const result = await updateOrderStatus({
+			orderId: ORDER_ID,
+			toStatus: "shipped",
+			trackingCode: "BR123456789BR",
+			forceShip: true,
+			forceReason: "cliente no balcão aguardando",
+		});
+		expect(result.ok).toBe(true);
+	});
+
+	it("(8) forceShip com sessão in_progress → bloqueado (não força por cima)", async () => {
+		mockRequireCapabilityWithContext.mockResolvedValue({
+			user: { id: USER_ID, role: "super_admin" },
+		});
+		mockGetLatestPicking.mockResolvedValue(latestWith("in_progress"));
+		const result = await updateOrderStatus({
+			orderId: ORDER_ID,
+			toStatus: "shipped",
+			trackingCode: "BR123456789BR",
+			forceShip: true,
+			forceReason: "cliente no balcão aguardando",
+		});
+		expect(result.ok).toBe(false);
+		expect((result as { ok: false; error: string }).error).toMatch(
+			ANDAMENTO_RE
+		);
 	});
 });

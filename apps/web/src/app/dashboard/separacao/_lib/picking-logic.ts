@@ -1,3 +1,5 @@
+import type { OrderPickingStatus } from "@emach/db/schema/orders";
+
 export interface PickItem {
 	barcode: string | null;
 	id: string;
@@ -60,4 +62,43 @@ export function summarizePicking(items: PickItem[]): {
 		}),
 		{ totalUnits: 0, pickedUnits: 0, exceptions: 0 }
 	);
+}
+
+// ─── Sub-estado de fulfillment (derivado da ÚLTIMA sessão de picking) ────────
+// order.status fica intocado (contrato ecommerce); o dashboard deriva o estado
+// operacional da separação da sessão mais recente. Spec 2026-07-06.
+
+export type FulfillmentState =
+	| "awaiting_picking"
+	| "picking_in_progress"
+	| "picking_exception"
+	| "picked";
+
+export function deriveFulfillmentState(
+	latestStatus: OrderPickingStatus | null
+): FulfillmentState {
+	if (latestStatus === "in_progress") {
+		return "picking_in_progress";
+	}
+	if (latestStatus === "exception") {
+		return "picking_exception";
+	}
+	if (latestStatus === "completed") {
+		return "picked";
+	}
+	// null (nenhuma sessão) ou canceled → volta pra fila de separação
+	return "awaiting_picking";
+}
+
+/** Sessão sem bipagem há mais de 1h é destacada como parada (só alerta). */
+export const STALE_PICKING_MS = 60 * 60 * 1000;
+
+export function isPickingStale(args: {
+	lastScannedAt: Date | null;
+	now?: Date;
+	startedAt: Date;
+}): boolean {
+	const reference = args.lastScannedAt ?? args.startedAt;
+	const now = args.now ?? new Date();
+	return now.getTime() - reference.getTime() > STALE_PICKING_MS;
 }

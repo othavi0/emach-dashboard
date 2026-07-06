@@ -35,6 +35,7 @@ import {
 	reportMissing,
 	scanItem,
 } from "../actions";
+import { PickingCompletePanel } from "./picking-complete-panel";
 import { ScanInput } from "./scan-input";
 
 // ─── tipos ──────────────────────────────────────────────────────────────────
@@ -325,6 +326,16 @@ function usePickingState(
 	const [isReporting, startReporting] = useTransition();
 	const [isCancelOpen, setIsCancelOpen] = useState(false);
 	const [isCanceling, startCanceling] = useTransition();
+	// `completePicking` chama revalidatePath na própria rota — o Server Action
+	// dispara um refresh automático do Server Component (page.tsx) assim que
+	// resolve. Sem este init a partir de `picking.status`, aquele refresh
+	// re-renderiza a página com o picking já 'completed' e derruba o estado
+	// local (completedOk) antes do usuário ver o painel. Iniciar a partir do
+	// status cobre tanto esse refresh quanto uma visita direta a uma sessão
+	// já concluída.
+	const [completedOk, setCompletedOk] = useState(
+		picking.status === "completed"
+	);
 
 	// Fila sequencial de scans: evita under-pick silencioso quando o operador
 	// bipa rapidamente (ou bipa a mesma unidade N vezes em qty>1).
@@ -379,11 +390,16 @@ function usePickingState(
 	function handleComplete() {
 		startCompleting(async () => {
 			const result = await completePicking(picking.id);
-			if (result.ok) {
-				router.push("/dashboard/separacao");
-			} else {
+			if (!result.ok) {
 				notify.error(result.error);
+				return;
 			}
+			if (result.data.finalStatus === "exception") {
+				// Exceção: volta à fila (tab exceções mostra o pedido)
+				router.push("/dashboard/separacao?tab=excecoes");
+				return;
+			}
+			setCompletedOk(true);
 		});
 	}
 
@@ -446,6 +462,7 @@ function usePickingState(
 		isReporting,
 		isCancelOpen,
 		isCanceling,
+		completedOk,
 		setIsCancelOpen,
 		setReportingItemId,
 		setReportReason,
@@ -460,11 +477,16 @@ function usePickingState(
 // ─── componente principal ────────────────────────────────────────────────────
 
 interface PickingExecutionProps {
+	canShip: boolean;
 	items: OrderPickingItem[];
 	picking: OrderPicking;
 }
 
-export function PickingExecution({ items, picking }: PickingExecutionProps) {
+export function PickingExecution({
+	canShip,
+	items,
+	picking,
+}: PickingExecutionProps) {
 	const {
 		localItems,
 		focusedId,
@@ -476,6 +498,7 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 		isReporting,
 		isCancelOpen,
 		isCanceling,
+		completedOk,
 		setIsCancelOpen,
 		setReportingItemId,
 		setReportReason,
@@ -487,6 +510,17 @@ export function PickingExecution({ items, picking }: PickingExecutionProps) {
 	} = usePickingState(picking, items);
 
 	const summary = summarizePicking(localItems);
+
+	if (completedOk) {
+		return (
+			<PickingCompletePanel
+				canShip={canShip}
+				orderId={picking.orderId}
+				pickedUnits={summary.pickedUnits}
+				totalUnits={summary.totalUnits}
+			/>
+		);
+	}
 	const focusedItem = localItems.find((it) => it.id === focusedId) ?? null;
 	const reportingItem =
 		localItems.find((it) => it.id === reportingItemId) ?? null;

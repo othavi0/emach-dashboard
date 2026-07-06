@@ -25,7 +25,8 @@ import {
 	requireCapability,
 	requireCapabilityWithContext,
 } from "@/lib/permissions";
-import { hasCompletedPicking } from "../separacao/data";
+import { deriveFulfillmentState } from "../separacao/_lib/picking-logic";
+import { getLatestPicking } from "../separacao/data";
 import { applyStockReturns } from "./_lib/stock-returns";
 import {
 	fetchOrdersPage as fetchOrdersPageImpl,
@@ -70,6 +71,18 @@ const STATUS_TIMESTAMP_MAP: Partial<Record<OrderStatus, string>> = {
 	canceled: "canceledAt",
 	returned: "returnedAt",
 	refunded: "refundedAt",
+};
+
+// Mensagens do gate de envio, indexadas pelo FulfillmentState que bloqueia o
+// despacho (todos exceto "picked"). Não exportado: arquivo é "use server" e
+// exportar uma const não-async quebra o build.
+const SHIP_GATE_ERRORS: Record<
+	"awaiting_picking" | "picking_in_progress" | "picking_exception",
+	string
+> = {
+	awaiting_picking: "Conclua a separação antes de despachar o pedido",
+	picking_in_progress: "Separação em andamento — conclua antes de despachar",
+	picking_exception: "Separação com exceção — resolva antes de despachar",
 };
 
 type OrderTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -131,7 +144,11 @@ async function insertOrderEvent(
 	tx: OrderTx,
 	args: {
 		orderId: string;
-		eventType: "tracking_set" | "branch_assigned" | "shipping_reviewed";
+		eventType:
+			| "tracking_set"
+			| "branch_assigned"
+			| "shipping_reviewed"
+			| "ship_forced";
 		metadata: Record<string, unknown>;
 		actorUserId: string | null;
 	}
@@ -164,6 +181,44 @@ function buildOrderStatusUpdate(
 		updates.branchId = branchId;
 	}
 	return updates;
+}
+
+/**
+ * Gate de envio: bloqueia "shipped" sem a última sessão de picking completed,
+ * exceto quando `forceShip` é usado (só super_admin, auditado via order_event
+ * "ship_forced"). Nunca força por cima de uma separação em andamento.
+ */
+async function enforceShipGate(
+	tx: OrderTx,
+	orderId: string,
+	session: DashboardSession,
+	forceShip: boolean | undefined,
+	forceReason: string | undefined
+): Promise<void> {
+	const latest = await getLatestPicking(orderId);
+	const state = deriveFulfillmentState(latest?.status ?? null);
+
+	if (forceShip) {
+		if (session.user.role !== "super_admin") {
+			throw new Error("Apenas super admin pode forçar envio sem separação");
+		}
+		if (state === "picking_in_progress") {
+			throw new Error(
+				`Separação em andamento por ${latest?.pickerName ?? "outro usuário"} — cancele ou assuma antes de forçar o envio`
+			);
+		}
+		await insertOrderEvent(tx, {
+			orderId,
+			eventType: "ship_forced",
+			metadata: { reason: forceReason },
+			actorUserId: session.user.id,
+		});
+		return;
+	}
+
+	if (state !== "picked") {
+		throw new Error(SHIP_GATE_ERRORS[state]);
+	}
 }
 
 export async function updateOrderStatus(
@@ -207,12 +262,14 @@ export async function updateOrderStatus(
 				);
 			}
 
-			if (
-				toStatus === "shipped" &&
-				session.user.role !== "super_admin" &&
-				!(await hasCompletedPicking(orderId))
-			) {
-				throw new Error("Conclua a separação antes de despachar o pedido");
+			if (toStatus === "shipped") {
+				await enforceShipGate(
+					tx,
+					orderId,
+					session,
+					parsed.data.forceShip,
+					parsed.data.forceReason
+				);
 			}
 
 			const updates = buildOrderStatusUpdate(toStatus, trackingCode, branchId);
@@ -226,7 +283,7 @@ export async function updateOrderStatus(
 				toStatus,
 				actorType: "user",
 				actorUserId: session.user.id,
-				reason: reason ?? null,
+				reason: reason ?? parsed.data.forceReason ?? null,
 			});
 
 			if (toStatus === "shipped" && trackingCode) {

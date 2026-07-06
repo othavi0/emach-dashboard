@@ -61,6 +61,9 @@ export const orderEventTypeEnum = pgEnum("order_event_type", [
 	"tracking_set",
 	"branch_assigned",
 	"shipping_reviewed",
+	// Envio forçado por super_admin sem separação concluída (auditoria do override).
+	// Append-only: Postgres ALTER TYPE só ADD VALUE no fim.
+	"ship_forced",
 ]);
 export type OrderEventType = (typeof orderEventTypeEnum.enumValues)[number];
 
@@ -416,6 +419,14 @@ export const orderPicking = pgTable(
 			.notNull(),
 		completedAt: timestamp("completed_at", { withTimezone: true }),
 		exceptionReason: text("exception_reason"),
+		// Auditoria de cancelamento (dono, admin ou takeover). Nullable: sessões
+		// não-canceladas não carregam nada aqui.
+		canceledByUserId: text("canceled_by_user_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
+		canceledByName: text("canceled_by_name"),
+		canceledAt: timestamp("canceled_at", { withTimezone: true }),
+		cancelReason: text("cancel_reason"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
@@ -428,6 +439,10 @@ export const orderPicking = pgTable(
 		index("order_picking_branch_status_idx").on(
 			table.branchId,
 			table.status,
+			table.startedAt.desc()
+		),
+		index("order_picking_order_started_idx").on(
+			table.orderId,
 			table.startedAt.desc()
 		),
 	]

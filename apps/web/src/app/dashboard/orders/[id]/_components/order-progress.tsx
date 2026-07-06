@@ -151,10 +151,12 @@ function VConnector({ done }: { done: boolean }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface OrderProgressProps {
+	/** Sub-label do step "Em preparação" com o estado de separação (Task 7). */
+	fulfillmentLabel?: string | null;
 	order: OrderDetail;
 }
 
-export function OrderProgress({ order }: OrderProgressProps) {
+export function OrderProgress({ fulfillmentLabel, order }: OrderProgressProps) {
 	const isTerminal = TERMINAL_STATUSES.has(order.status);
 	const terminalTsKey = isTerminal
 		? TERMINAL_TIMESTAMP[order.status as TerminalState]
@@ -208,6 +210,13 @@ export function OrderProgress({ order }: OrderProgressProps) {
 									<span className={`text-[13px] leading-tight ${labelClass}`}>
 										{meta.label}
 									</span>
+									{step === "preparing" &&
+										order.status === "preparing" &&
+										fulfillmentLabel && (
+											<span className="mt-0.5 text-[11px] text-muted-foreground">
+												{fulfillmentLabel}
+											</span>
+										)}
 									{timestamp ? (
 										<span className="mt-0.5 text-[11px] text-muted-foreground/60">
 											{timestamp}
