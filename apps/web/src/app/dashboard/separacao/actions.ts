@@ -40,6 +40,31 @@ function revalidatePickingPaths(orderId: string): void {
 	revalidatePath(`/dashboard/orders/${orderId}`);
 }
 
+type PickingRow = typeof orderPicking.$inferSelect;
+interface SessionUser {
+	id: string;
+	name?: string | null;
+	role?: string | null;
+}
+
+function assertInProgress(picking: PickingRow): void {
+	if (picking.status !== "in_progress") {
+		throw new Error("Sessão de separação não está em andamento");
+	}
+}
+
+function assertOwner(picking: PickingRow, user: SessionUser): void {
+	if (picking.pickerUserId !== user.id) {
+		throw new Error(
+			`Apenas quem iniciou a separação (${picking.pickerName}) pode operá-la`
+		);
+	}
+}
+
+function canManageOthersSession(user: SessionUser): boolean {
+	return user.role === "admin" || user.role === "super_admin";
+}
+
 // ---------------------------------------------------------------------------
 // startPicking
 // ---------------------------------------------------------------------------
@@ -195,6 +220,8 @@ export async function scanItem(
 				throw new Error("Sessão de separação não está em andamento");
 			}
 
+			assertOwner(picking, locked.session.user);
+
 			// Load picking items
 			const pickingItems = await tx
 				.select()
@@ -338,6 +365,9 @@ export async function reportMissing(
 				throw new Error("Pedido não encontrado");
 			}
 
+			assertInProgress(picking);
+			assertOwner(picking, locked.session.user);
+
 			orderId = picking.orderId;
 
 			// Mark item as not found
@@ -384,9 +414,10 @@ export async function reportMissing(
 
 export async function completePicking(
 	pickingId: string
-): Promise<ActionResult> {
+): Promise<ActionResult<{ finalStatus: "completed" | "exception" }>> {
 	try {
 		let orderId: string | undefined;
+		let finalStatus: "completed" | "exception" | undefined;
 
 		await db.transaction(async (tx: Tx) => {
 			// Load picking
@@ -416,6 +447,8 @@ export async function completePicking(
 				throw new Error("Sessão de separação não está em andamento");
 			}
 
+			assertOwner(picking, locked.session.user);
+
 			// Load items to check completion
 			const items = await tx
 				.select()
@@ -440,7 +473,7 @@ export async function completePicking(
 			}
 
 			// Sem pendências → 'completed'; com item ausente → 'exception' (terminal).
-			const finalStatus = pickItems.some((it) => it.notFound)
+			finalStatus = pickItems.some((it) => it.notFound)
 				? "exception"
 				: "completed";
 
@@ -454,7 +487,11 @@ export async function completePicking(
 			revalidatePickingPaths(orderId);
 		}
 
-		return { ok: true, data: undefined };
+		if (!finalStatus) {
+			throw new Error("Erro ao concluir separação");
+		}
+
+		return { ok: true, data: { finalStatus } };
 	} catch (error) {
 		logger.error("completePicking", error);
 
@@ -474,7 +511,10 @@ export async function completePicking(
 // cancelPicking
 // ---------------------------------------------------------------------------
 
-export async function cancelPicking(pickingId: string): Promise<ActionResult> {
+export async function cancelPicking(
+	pickingId: string,
+	reason?: string
+): Promise<ActionResult> {
 	try {
 		let orderId: string | undefined;
 
@@ -502,9 +542,26 @@ export async function cancelPicking(pickingId: string): Promise<ActionResult> {
 
 			orderId = picking.orderId;
 
+			assertInProgress(picking);
+			const { session } = locked;
+			if (
+				picking.pickerUserId !== session.user.id &&
+				!canManageOthersSession(session.user)
+			) {
+				throw new Error(
+					"Apenas quem iniciou a separação ou um admin pode cancelá-la"
+				);
+			}
+
 			await tx
 				.update(orderPicking)
-				.set({ status: "canceled" })
+				.set({
+					status: "canceled",
+					canceledByUserId: session.user.id,
+					canceledByName: session.user.name ?? session.user.id,
+					canceledAt: new Date(),
+					cancelReason: reason ?? null,
+				})
 				.where(eq(orderPicking.id, pickingId));
 		});
 

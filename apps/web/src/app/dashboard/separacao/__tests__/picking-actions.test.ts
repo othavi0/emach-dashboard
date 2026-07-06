@@ -255,7 +255,15 @@ describe("scanItem", () => {
 				cb(
 					makeMockTx([
 						// picking row
-						[{ id: PICKING_ID, orderId: ORDER_ID, status: "in_progress" }],
+						[
+							{
+								id: PICKING_ID,
+								orderId: ORDER_ID,
+								status: "in_progress",
+								pickerUserId: "usr_1",
+								pickerName: "Picker",
+							},
+						],
 						// order lock
 						[{ status: "preparing", branchId: BRANCH_ID }],
 						// picking items — nenhum com barcode ou variantId que case
@@ -287,7 +295,15 @@ describe("scanItem", () => {
 			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
 				cb(
 					makeMockTx([
-						[{ id: PICKING_ID, orderId: ORDER_ID, status: "in_progress" }],
+						[
+							{
+								id: PICKING_ID,
+								orderId: ORDER_ID,
+								status: "in_progress",
+								pickerUserId: "usr_1",
+								pickerName: "Picker",
+							},
+						],
 						[{ status: "preparing", branchId: BRANCH_ID }],
 						[
 							{
@@ -322,7 +338,15 @@ describe("scanItem", () => {
 		mockTransaction.mockImplementation(
 			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) => {
 				const mockTx = makeMockTx([
-					[{ id: PICKING_ID, orderId: ORDER_ID, status: "in_progress" }],
+					[
+						{
+							id: PICKING_ID,
+							orderId: ORDER_ID,
+							status: "in_progress",
+							pickerUserId: "usr_1",
+							pickerName: "Picker",
+						},
+					],
 					[{ status: "preparing", branchId: BRANCH_ID }],
 					[
 						{
@@ -394,7 +418,15 @@ describe("completePicking", () => {
 				cb(
 					makeMockTx([
 						// picking row
-						[{ id: PICKING_ID, orderId: ORDER_ID, status: "in_progress" }],
+						[
+							{
+								id: PICKING_ID,
+								orderId: ORDER_ID,
+								status: "in_progress",
+								pickerUserId: "usr_1",
+								pickerName: "Picker",
+							},
+						],
 						// order lock
 						[{ status: "preparing", branchId: BRANCH_ID }],
 						// items — não completo
@@ -424,7 +456,15 @@ describe("completePicking", () => {
 			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
 				cb(
 					makeMockTx([
-						[{ id: PICKING_ID, orderId: ORDER_ID, status: "in_progress" }],
+						[
+							{
+								id: PICKING_ID,
+								orderId: ORDER_ID,
+								status: "in_progress",
+								pickerUserId: "usr_1",
+								pickerName: "Picker",
+							},
+						],
 						[{ status: "preparing", branchId: BRANCH_ID }],
 						[
 							{
@@ -449,7 +489,15 @@ describe("completePicking", () => {
 			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
 				cb(
 					makeMockTx([
-						[{ id: PICKING_ID, orderId: ORDER_ID, status: "in_progress" }],
+						[
+							{
+								id: PICKING_ID,
+								orderId: ORDER_ID,
+								status: "in_progress",
+								pickerUserId: "usr_1",
+								pickerName: "Picker",
+							},
+						],
 						[{ status: "preparing", branchId: BRANCH_ID }],
 						[
 							{
@@ -488,7 +536,15 @@ describe("reportMissing", () => {
 						// picking item
 						[{ id: PICKING_ITEM_ID, pickingId: PICKING_ID }],
 						// picking row
-						[{ id: PICKING_ID, orderId: ORDER_ID, status: "in_progress" }],
+						[
+							{
+								id: PICKING_ID,
+								orderId: ORDER_ID,
+								status: "in_progress",
+								pickerUserId: "usr_1",
+								pickerName: "Picker",
+							},
+						],
 						// order lock
 						[{ status: "preparing", branchId: BRANCH_ID }],
 					])
@@ -528,7 +584,15 @@ describe("cancelPicking", () => {
 			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
 				cb(
 					makeMockTx([
-						[{ id: PICKING_ID, orderId: ORDER_ID, status: "in_progress" }],
+						[
+							{
+								id: PICKING_ID,
+								orderId: ORDER_ID,
+								status: "in_progress",
+								pickerUserId: "usr_1",
+								pickerName: "Picker",
+							},
+						],
 						[{ status: "preparing", branchId: BRANCH_ID }],
 					])
 				)
