@@ -3,6 +3,7 @@ import {
 	branchSchema,
 	businessHoursSchema,
 	cepRangeSchema,
+	defaultBusinessHours,
 } from "../branch-schema";
 
 describe("cepRangeSchema", () => {
@@ -168,5 +169,11 @@ describe("businessHoursSchema — intervalo de almoço", () => {
 		});
 		expect(r.weekdays.breakStart).toBeNull();
 		expect(r.weekdays.breakEnd).toBeNull();
+	});
+
+	it("default de weekdays nasce com intervalo 12:00–13:00", () => {
+		expect(defaultBusinessHours.weekdays.breakStart).toBe("12:00");
+		expect(defaultBusinessHours.weekdays.breakEnd).toBe("13:00");
+		expect(defaultBusinessHours.saturday.breakStart).toBeNull();
 	});
 });

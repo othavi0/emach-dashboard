@@ -20,7 +20,7 @@ import { MaskedInput } from "@/components/masked-input";
 import { UfSelect } from "@/components/uf-select";
 import { phoneBrMask, sanitizeTime24h } from "@/lib/masks";
 
-import type { BranchFormValues } from "./branch-schema";
+import { type BranchFormValues, defaultBusinessHours } from "./branch-schema";
 import { CepInput, type CepResolved } from "./cep-input";
 import { CepRangesEditor } from "./cep-ranges-editor";
 import { ResponsibleUserSelect } from "./responsible-user-select";
@@ -307,7 +307,7 @@ export function BranchFormFields({
 										patchBusinessHours(
 											row.key,
 											checked
-												? { isOpen: true, opensAt: "08:00", closesAt: "18:00" }
+												? { ...defaultBusinessHours[row.key], isOpen: true }
 												: {
 														isOpen: false,
 														opensAt: null,
