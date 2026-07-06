@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getUserBranchScope, orderInScope } from "@/lib/branch-scope";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PickingExecution } from "../_components/picking-execution";
+import { PickingReadonly } from "../_components/picking-readonly";
 import { StartPicking } from "../_components/start-picking";
 import { getOrderBranchId, getPickingForOrder } from "../data";
 
@@ -31,8 +32,27 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 	const result = await getPickingForOrder(orderId);
 
 	if (result?.picking.status === "in_progress") {
-		return <PickingExecution items={result.items} picking={result.picking} />;
+		const isOwner = result.picking.pickerUserId === session.user.id;
+		if (isOwner) {
+			return <PickingExecution items={result.items} picking={result.picking} />;
+		}
+		const canManage =
+			session.user.role === "admin" || session.user.role === "super_admin";
+		return (
+			<PickingReadonly
+				canManage={canManage}
+				items={result.items}
+				picking={result.picking}
+			/>
+		);
 	}
 
-	return <StartPicking orderId={orderId} />;
+	const exceptionContext =
+		result?.picking.status === "exception"
+			? {
+					reason: result.picking.exceptionReason,
+					pickerName: result.picking.pickerName,
+				}
+			: null;
+	return <StartPicking exceptionContext={exceptionContext} orderId={orderId} />;
 }
