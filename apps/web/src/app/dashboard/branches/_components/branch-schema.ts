@@ -15,8 +15,8 @@ export const defaultBusinessHours: BranchBusinessHours = {
 		isOpen: true,
 		opensAt: "08:00",
 		closesAt: "18:00",
-		breakStart: null,
-		breakEnd: null,
+		breakStart: "12:00",
+		breakEnd: "13:00",
 	},
 	saturday: {
 		isOpen: true,
