@@ -37,5 +37,8 @@ export function formatBusinessPeriod(
 	if (!(p?.isOpen && p.opensAt && p.closesAt)) {
 		return "Fechado";
 	}
+	if (p.breakStart && p.breakEnd) {
+		return `${p.opensAt}–${p.breakStart} · ${p.breakEnd}–${p.closesAt}`;
+	}
 	return `${p.opensAt}–${p.closesAt}`;
 }
