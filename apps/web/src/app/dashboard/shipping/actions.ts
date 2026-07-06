@@ -88,6 +88,8 @@ export async function updateShippingSettings(
 		shippingOriginBranchId: parsed.data.originBranchId ?? null,
 		shippingInsurancePolicy: parsed.data.insurancePolicy,
 		shippingInsuranceCapAmount: parsed.data.insuranceCapAmount.toFixed(2),
+		shippingFillFactor: (parsed.data.fillFactorPct / 100).toFixed(2),
+		shippingBoxPaddingCm: parsed.data.boxPaddingCm.toFixed(2),
 	};
 
 	try {

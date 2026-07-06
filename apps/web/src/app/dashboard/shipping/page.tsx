@@ -55,9 +55,17 @@ async function ShippingPageContent({ searchParams }: PageProps) {
 							originBranchId: settings.shippingOriginBranchId,
 							insurancePolicy: settings.shippingInsurancePolicy,
 							insuranceCapAmount: Number(settings.shippingInsuranceCapAmount),
+							fillFactorPct: Math.round(
+								Number(settings.shippingFillFactor) * 100
+							),
+							boxPaddingCm: Number(settings.shippingBoxPaddingCm),
 						}}
 					/>
 					<ShippingPreviewRail
+						boxPaddingCm={Number(settings.shippingBoxPaddingCm)}
+						fillFactorPct={Math.round(
+							Number(settings.shippingFillFactor) * 100
+						)}
 						insuranceCapAmount={Number(settings.shippingInsuranceCapAmount)}
 						insurancePolicy={settings.shippingInsurancePolicy}
 						originLabel={originLabel}

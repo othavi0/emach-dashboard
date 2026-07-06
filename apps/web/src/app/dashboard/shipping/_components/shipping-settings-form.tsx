@@ -33,6 +33,8 @@ interface ShippingSettingsFormProps {
 		originBranchId: string | null;
 		insurancePolicy: (typeof INSURANCE_POLICY_OPTIONS)[number];
 		insuranceCapAmount: number;
+		fillFactorPct: number;
+		boxPaddingCm: number;
 	};
 }
 
@@ -52,6 +54,12 @@ export function ShippingSettingsForm({
 	const [capAmount, setCapAmount] = useState(
 		String(settings.insuranceCapAmount)
 	);
+	const [fillFactorPct, setFillFactorPct] = useState(
+		String(settings.fillFactorPct)
+	);
+	const [boxPaddingCm, setBoxPaddingCm] = useState(
+		String(settings.boxPaddingCm)
+	);
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -61,6 +69,8 @@ export function ShippingSettingsForm({
 			originBranchId: originBranchId === NO_ORIGIN ? undefined : originBranchId,
 			insurancePolicy,
 			insuranceCapAmount: Number(capAmount),
+			fillFactorPct: Number(fillFactorPct),
+			boxPaddingCm: Number(boxPaddingCm),
 		};
 
 		const parsed = shippingSettingsSchema.safeParse(values);
@@ -125,6 +135,51 @@ export function ShippingSettingsForm({
 						)}
 					</LabeledField>
 				)}
+			</section>
+
+			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">
+				<div className="flex flex-col gap-1">
+					<h2 className="font-medium text-sm">Empacotamento</h2>
+					<p className="text-muted-foreground text-sm">
+						Folgas usadas na consolidação do carrinho em caixas. A ocupação
+						máxima compensa o encaixe imperfeito dos itens; o acréscimo por
+						dimensão cobre parede e aba da caixa no peso cubado.
+					</p>
+				</div>
+				<div className="grid gap-4 sm:grid-cols-2">
+					<LabeledField
+						error={errors.fillFactorPct}
+						hint="Padrão 90%. Diminua se despachos reais não fecham na caixa cotada."
+						id="fillFactorPct"
+						label="Ocupação máxima da caixa (%)"
+					>
+						{(field) => (
+							<Input
+								{...field}
+								inputMode="numeric"
+								onChange={(e) => setFillFactorPct(e.target.value)}
+								placeholder="90"
+								value={fillFactorPct}
+							/>
+						)}
+					</LabeledField>
+					<LabeledField
+						error={errors.boxPaddingCm}
+						hint="Somado a cada dimensão externa da caixa na cotação. Padrão 0."
+						id="boxPaddingCm"
+						label="Acréscimo por dimensão (cm)"
+					>
+						{(field) => (
+							<Input
+								{...field}
+								inputMode="decimal"
+								onChange={(e) => setBoxPaddingCm(e.target.value)}
+								placeholder="0"
+								value={boxPaddingCm}
+							/>
+						)}
+					</LabeledField>
+				</div>
 			</section>
 
 			<section className="flex flex-col gap-4 rounded-md border border-border bg-card p-6">

@@ -7,6 +7,8 @@ describe("shippingSettingsSchema", () => {
 			originBranchId: "",
 			insurancePolicy: "none",
 			insuranceCapAmount: 3000,
+			fillFactorPct: 90,
+			boxPaddingCm: 0,
 		});
 		expect(r.success).toBe(true);
 		if (r.success) {

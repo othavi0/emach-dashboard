@@ -32,7 +32,7 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `stock_level`         | Dashboard        | Ambos       | Quantidade por variante × filial. E-commerce lê para exibir disponibilidade.                     |
 | `stock_movement`      | Shared           | Dashboard   | Dashboard escreve ajustes manuais (actor `user`). E-commerce escreve débitos de venda (`saida_venda`, actor `system`) na transição para `paid`. |
 | `user_branch`         | Dashboard        | Dashboard   | Escopo de staff × filial. E-commerce não usa.                                                    |
-| `store_settings`      | Dashboard        | E-commerce  | Singleton (`id='singleton'`) de configurações da loja: origem do despacho (`shipping_origin_branch_id` → `branch`) e política de seguro de frete. E-commerce lê via `getShippingSettings`. |
+| `store_settings`      | Dashboard        | E-commerce  | Singleton (`id='singleton'`) de configurações da loja: origem do despacho (`shipping_origin_branch_id` → `branch`), política de seguro de frete e folgas de empacotamento (`shipping_fill_factor`, `shipping_box_padding_cm`). E-commerce lê via `getShippingSettings` e repassa `fillFactor`/`boxPaddingCm` como `opts` de `packItems`. |
 | `banner`              | Dashboard        | E-commerce  | Banners do hero/carrossel da home. E-commerce lê para renderizar. Os campos de render (`layout`, escalas, `badge_text`, `countdown_target`, `background_mobile_mode`) devem ser honrados fielmente — ver "Render do hero". |
 | `promotion`           | Dashboard        | Ambos       | Promoções e cupons. E-commerce aplica desconto no checkout.                                      |
 | `promotion_tool`      | Dashboard        | Ambos       | Vínculo promoção ↔ tool. E-commerce lê para calcular preço final.                               |
@@ -84,7 +84,7 @@ Singleton (`store_settings`, `id='singleton'`) editado só no dashboard (`/dashb
 
 Helper compartilhado em `@emach/db/queries/store-settings`:
 
-- `getShippingSettings(db)` → `{ originBranchId, originCep, insurancePolicy, insuranceCapAmount }`. Sem linha singleton → DEFAULTS (`originCep: null`, `insurancePolicy: 'none'`, `insuranceCapAmount: 3000`), espelhando o comportamento atual do storefront.
+- `getShippingSettings(db)` → `{ originBranchId, originCep, insurancePolicy, insuranceCapAmount, fillFactor, boxPaddingCm }`. Sem linha singleton → DEFAULTS (`originCep: null`, `insurancePolicy: 'none'`, `insuranceCapAmount: 3000`, `fillFactor: 0.9`, `boxPaddingCm: 0`), espelhando o comportamento atual do storefront.
 
 **Contrato para o e-commerce:**
 
@@ -139,8 +139,16 @@ const packages = packItems(items, boxes, opts);
 `opts?: PackOptions` é **opcional** — `fillFactor` (fração do volume interno ocupável, default
 `0.9`) e `boxPaddingCm` (acréscimo externo por dimensão do pacote, ex: parede/aba da caixa,
 default `0`) partem com o mesmo comportamento de hoje se omitidos. O storefront deve passá-los a
-partir do singleton `getShippingSettings` (campos chegam na Task 3) em vez de fixar defaults
-locais.
+partir do singleton `getShippingSettings` (`fillFactor`/`boxPaddingCm`, configuráveis em
+`/dashboard/shipping?tab=config`) em vez de fixar defaults locais:
+
+```ts
+const settings = await getShippingSettings(db);
+const packages = packItems(items, boxes, {
+	fillFactor: settings.fillFactor,
+	boxPaddingCm: settings.boxPaddingCm,
+});
+```
 
 Pacote marcado `outOfCatalog: true` (item que não cabe nem na maior caixa ativa) → o checkout
 exibe **"Frete a combinar"** sem chamar a Frenet. Pacotes `outOfCatalog` e `shipsInOwnBox` usam as

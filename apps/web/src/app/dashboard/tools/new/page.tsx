@@ -1,5 +1,6 @@
 import { db } from "@emach/db";
 import { getActiveBoxes } from "@emach/db/queries/shipping";
+import { getShippingSettings } from "@emach/db/queries/store-settings";
 import { attributeDefinition } from "@emach/db/schema/attributes";
 import { category } from "@emach/db/schema/categories";
 import { asc } from "drizzle-orm";
@@ -21,28 +22,34 @@ export default function NewToolPage() {
 async function NewToolPageContent() {
 	await requireCapability("tools.create");
 
-	const [categories, definitionsByCategory, allDefinitions, activeBoxes] =
-		await Promise.all([
-			db
-				.select({
-					id: category.id,
-					slug: category.slug,
-					name: category.name,
-					path: category.path,
-					depth: category.depth,
-				})
-				.from(category)
-				.orderBy(asc(category.path)),
-			buildDefinitionsByCategory(),
-			db
-				.select()
-				.from(attributeDefinition)
-				.orderBy(
-					asc(attributeDefinition.sortOrder),
-					asc(attributeDefinition.label)
-				),
-			getActiveBoxes(db),
-		]);
+	const [
+		categories,
+		definitionsByCategory,
+		allDefinitions,
+		activeBoxes,
+		shippingSettings,
+	] = await Promise.all([
+		db
+			.select({
+				id: category.id,
+				slug: category.slug,
+				name: category.name,
+				path: category.path,
+				depth: category.depth,
+			})
+			.from(category)
+			.orderBy(asc(category.path)),
+		buildDefinitionsByCategory(),
+		db
+			.select()
+			.from(attributeDefinition)
+			.orderBy(
+				asc(attributeDefinition.sortOrder),
+				asc(attributeDefinition.label)
+			),
+		getActiveBoxes(db),
+		getShippingSettings(db),
+	]);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -60,6 +67,7 @@ async function NewToolPageContent() {
 					allDefinitions,
 					categories,
 					definitionsByCategory,
+					fillFactor: shippingSettings.fillFactor,
 					mode: "create",
 				}}
 			>
