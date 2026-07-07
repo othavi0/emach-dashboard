@@ -18,9 +18,11 @@ import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
 import { SORT_OPTIONS } from "../schema";
 
 const BASE = "/dashboard/customers";
+// "status" fora do TRACKED de propósito (padrão de orders): o "Limpar" da barra
+// age sobre busca/tipo/sort e mantém a tab de status ativa. Sem ?status a tab
+// default é "Ativos" (ver page.tsx).
 const TRACKED = [
 	"q",
-	"status",
 	"clientType",
 	"sort",
 	"missingDoc",
@@ -35,13 +37,6 @@ const SORT_LABELS: Record<(typeof SORT_OPTIONS)[number], string> = {
 	nameAsc: "Nome (A–Z)",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-	all: "Todos os status",
-	active: "Ativo",
-	inactive: "Inativo",
-	blocked: "Bloqueado",
-};
-
 export function CustomerFilters() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -51,7 +46,6 @@ export function CustomerFilters() {
 	});
 	const [q, setQ] = useDebouncedParam({ basePath: BASE, key: "q" });
 
-	const currentStatus = searchParams.get("status") ?? "all";
 	const currentType = searchParams.get("clientType") ?? "";
 	const currentSort =
 		(searchParams.get("sort") as (typeof SORT_OPTIONS)[number]) ??
@@ -84,33 +78,6 @@ export function CustomerFilters() {
 					placeholder="Nome, email ou documento"
 					value={q}
 				/>
-			</div>
-
-			<div className="flex flex-col gap-1 md:w-44">
-				<label
-					className="text-muted-foreground text-xs"
-					htmlFor="customers-status"
-				>
-					Status
-				</label>
-				<Select
-					onValueChange={(v) => setParam("status", v === "all" ? null : v)}
-					value={currentStatus}
-				>
-					<SelectTrigger id="customers-status">
-						<SelectValue>
-							{(v: string) => STATUS_LABELS[v] ?? STATUS_LABELS.all}
-						</SelectValue>
-					</SelectTrigger>
-					<SelectContent>
-						<SelectGroup>
-							<SelectItem value="all">Todos os status</SelectItem>
-							<SelectItem value="active">Ativo</SelectItem>
-							<SelectItem value="inactive">Inativo</SelectItem>
-							<SelectItem value="blocked">Bloqueado</SelectItem>
-						</SelectGroup>
-					</SelectContent>
-				</Select>
 			</div>
 
 			<div className="flex flex-col gap-1">

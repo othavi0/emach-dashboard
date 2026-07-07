@@ -10,7 +10,10 @@ import { sql } from "drizzle-orm";
 import { formatDocument } from "@/lib/cpf-cnpj";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
-import { customersListFiltersSchema } from "../schema";
+import {
+	type CustomersListFilters,
+	customersListFiltersSchema,
+} from "../schema";
 
 const MAX_ROWS = 50_000;
 const MAX_BYTES = 50 * 1024 * 1024;
@@ -51,6 +54,14 @@ function encodeRow(row: readonly unknown[]): string {
 
 interface RawSearchParams {
 	[k: string]: string | string[] | undefined;
+}
+
+type CustomerStatusFilter = NonNullable<CustomersListFilters["status"]>;
+
+function statusCondition(status: CustomerStatusFilter) {
+	return status === "inactive_blocked"
+		? sql`c.status IN ('inactive', 'blocked')`
+		: sql`c.status = ${status}`;
 }
 
 function parseSearchParams(req: Request): RawSearchParams {
@@ -103,7 +114,7 @@ export async function GET(req: Request) {
 			);
 		}
 		if (filters.status) {
-			conditions.push(sql`c.status = ${filters.status}`);
+			conditions.push(statusCondition(filters.status));
 		}
 		if (filters.clientType?.length) {
 			const ph = sql.join(

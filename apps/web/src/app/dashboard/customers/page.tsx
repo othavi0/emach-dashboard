@@ -12,13 +12,19 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { CustomerFilters } from "./_components/customer-filters";
+import { CustomerStatusTabs } from "./_components/customer-status-tabs";
 import { CustomersInfinite } from "./_components/customers-infinite";
 import { ExportCsvLink } from "./_components/export-csv-link";
-import { listCustomers } from "./data";
+import { countCustomersByStatus, listCustomers } from "./data";
 import { customersListFiltersSchema } from "./schema";
 
 export const metadata: Metadata = {
 	title: "Clientes",
+};
+
+const EMPTY_TITLES: Record<string, string> = {
+	active: "Nenhum cliente ativo",
+	inactive_blocked: "Nenhum cliente inativo ou bloqueado",
 };
 
 interface PageProps {
@@ -39,19 +45,33 @@ async function CustomersPageContent({ searchParams }: PageProps) {
 
 	const raw = await searchParams;
 	const parsed = customersListFiltersSchema.safeParse(raw);
-	const filters = parsed.success
+	const parsedFilters = parsed.success
 		? parsed.data
 		: customersListFiltersSchema.parse({});
 
-	const result = await listCustomers({ filters, cursor: null });
+	// Tab "Ativos" é o default da listagem. Quick-filters de triagem (pending
+	// panel) não herdam o default: openOrderInactive mira clientes inativos e
+	// sumiria com status=active implícito.
+	const hasQuickFilter = Boolean(
+		parsedFilters.missingDoc ||
+			parsedFilters.openOrderInactive ||
+			parsedFilters.unverifiedNew
+	);
+	const filters =
+		parsedFilters.status || hasQuickFilter
+			? parsedFilters
+			: { ...parsedFilters, status: "active" as const };
+
+	const [result, statusCounts] = await Promise.all([
+		listCustomers({ filters, cursor: null }),
+		countCustomersByStatus(filters),
+	]);
 
 	const hasFilters = Boolean(
-		filters.q ||
-			filters.status ||
-			filters.clientType?.length ||
-			filters.missingDoc ||
-			filters.openOrderInactive ||
-			filters.unverifiedNew
+		parsedFilters.q ||
+			parsedFilters.status ||
+			parsedFilters.clientType?.length ||
+			hasQuickFilter
 	);
 
 	return (
@@ -69,28 +89,37 @@ async function CustomersPageContent({ searchParams }: PageProps) {
 			<CustomerFilters />
 
 			{result.items.length === 0 ? (
-				<Empty>
-					<EmptyHeader>
-						<EmptyTitle>Nenhum cliente encontrado</EmptyTitle>
-						<EmptyDescription>
-							{hasFilters
-								? "Ajuste os filtros para ampliar a busca."
-								: "Os clientes aparecerão aqui conforme se cadastrarem no site ecomerce."}
-						</EmptyDescription>
-					</EmptyHeader>
-					{hasFilters && (
-						<EmptyContent>
-							<Link
-								className={buttonVariants({ variant: "ghost" })}
-								href="/dashboard/customers"
-							>
-								Limpar filtros
-							</Link>
-						</EmptyContent>
-					)}
-				</Empty>
+				<>
+					<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+						<CustomerStatusTabs counts={statusCounts} />
+					</div>
+					<Empty>
+						<EmptyHeader>
+							<EmptyTitle>
+								{EMPTY_TITLES[filters.status ?? ""] ??
+									"Nenhum cliente encontrado"}
+							</EmptyTitle>
+							<EmptyDescription>
+								{hasFilters
+									? "Ajuste os filtros ou troque de tab para ampliar a busca."
+									: "Os clientes aparecerão aqui conforme se cadastrarem no site ecomerce."}
+							</EmptyDescription>
+						</EmptyHeader>
+						{hasFilters && (
+							<EmptyContent>
+								<Link
+									className={buttonVariants({ variant: "ghost" })}
+									href="/dashboard/customers"
+								>
+									Limpar filtros
+								</Link>
+							</EmptyContent>
+						)}
+					</Empty>
+				</>
 			) : (
 				<CustomersInfinite
+					counts={statusCounts}
 					filters={filters}
 					initial={result.items}
 					initialCursor={result.nextCursor}

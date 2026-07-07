@@ -8,16 +8,23 @@ import { useBulkSelection } from "@/lib/use-bulk-selection";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
 import { fetchCustomersPage } from "../actions";
-import type { CustomerListItem, CustomersListFilters } from "../data";
-import { CustomerCard } from "./customer-card";
+import type {
+	CustomerListItem,
+	CustomerStatusCounts,
+	CustomersListFilters,
+} from "../data";
+import { CustomerRow } from "./customer-row";
+import { CustomerStatusTabs } from "./customer-status-tabs";
 
 interface CustomersInfiniteProps {
+	counts: CustomerStatusCounts;
 	filters: CustomersListFilters;
 	initial: CustomerListItem[];
 	initialCursor: string | null;
 }
 
 export function CustomersInfinite({
+	counts,
 	initial,
 	initialCursor,
 	filters,
@@ -37,7 +44,8 @@ export function CustomersInfinite({
 
 	return (
 		<div aria-live="polite">
-			<div className="mb-3 flex justify-end">
+			<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+				<CustomerStatusTabs counts={counts} />
 				<SelectionToolbar
 					active={sel.active}
 					allLoadedSelected={sel.allLoadedSelected}
@@ -47,7 +55,7 @@ export function CustomersInfinite({
 					onToggleAll={sel.allLoadedSelected ? sel.clear : sel.selectAllLoaded}
 				/>
 			</div>
-			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+			<div className="flex flex-col gap-2">
 				{items.map((item) => (
 					<SelectableItem
 						active={sel.active}
@@ -55,7 +63,7 @@ export function CustomersInfinite({
 						onToggle={() => sel.toggle(item.id)}
 						selected={sel.isSelected(item.id)}
 					>
-						<CustomerCard customer={item} />
+						<CustomerRow customer={item} />
 					</SelectableItem>
 				))}
 			</div>
