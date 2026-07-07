@@ -18,7 +18,10 @@ export type CustomerSort = (typeof SORT_OPTIONS)[number];
 export const customersListFiltersSchema = z
 	.object({
 		q: z.string().trim().max(100).optional(),
-		status: z.enum(clientStatusEnum.enumValues).optional(),
+		// "inactive_blocked" = valor agrupado das tabs de status da listagem
+		status: z
+			.enum([...clientStatusEnum.enumValues, "inactive_blocked"])
+			.optional(),
 		clientType: z
 			.union([
 				z.array(z.enum(clientTypeEnum.enumValues)),

@@ -160,15 +160,11 @@ function formatActorLabel(entry: {
 // LISTAGEM (infinite scroll cursor-based, 4 variantes de sort)
 // ============================================================================
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: filter assembly + 4-variant cursor encoding intentionally co-located
-export async function listCustomers({
-	filters,
-	cursor,
-}: {
-	cursor: string | null;
-	filters: CustomersListFilters;
-}): Promise<InfiniteResult<CustomerListItem>> {
-	const decoded = cursor ? decodeCursor(cursor) : null;
+// Condições de filtro compartilhadas entre listCustomers e countCustomersByStatus.
+// Exclui status (cada consumidor decide) e cursor (só a listagem pagina).
+function customerFilterConditions(
+	filters: CustomersListFilters
+): ReturnType<typeof sql>[] {
 	const conditions: ReturnType<typeof sql>[] = [];
 
 	const query = filters.q?.trim();
@@ -177,10 +173,6 @@ export async function listCustomers({
 		conditions.push(
 			sql`(c.name ILIKE ${like} OR c.email ILIKE ${like} OR c.document ILIKE ${like})`
 		);
-	}
-
-	if (filters.status) {
-		conditions.push(sql`c.status = ${filters.status}`);
 	}
 
 	if (filters.clientType?.length) {
@@ -225,6 +217,25 @@ export async function listCustomers({
 		conditions.push(
 			sql`c.email_verified = false AND c.created_at > now() - INTERVAL '14 days'`
 		);
+	}
+
+	return conditions;
+}
+
+export async function listCustomers({
+	filters,
+	cursor,
+}: {
+	cursor: string | null;
+	filters: CustomersListFilters;
+}): Promise<InfiniteResult<CustomerListItem>> {
+	const decoded = cursor ? decodeCursor(cursor) : null;
+	const conditions = customerFilterConditions(filters);
+
+	if (filters.status === "inactive_blocked") {
+		conditions.push(sql`c.status IN ('inactive', 'blocked')`);
+	} else if (filters.status) {
+		conditions.push(sql`c.status = ${filters.status}`);
 	}
 
 	// Cursor where (sort-aware)
@@ -352,6 +363,50 @@ export async function listCustomers({
 			return { v: 1, sort: "nameAsc" as const, name: last.name, id: last.id };
 		}
 	);
+}
+
+export interface CustomerStatusCounts {
+	active: number;
+	inactiveBlocked: number;
+}
+
+// Contagem para as tabs de status da listagem. Aplica os mesmos filtros da
+// lista EXCETO status — cada tab mostra quantos clientes cairiam nela.
+export async function countCustomersByStatus(
+	filters: CustomersListFilters
+): Promise<CustomerStatusCounts> {
+	const conditions = customerFilterConditions(filters);
+	const whereClause = conditions.length
+		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+		: sql``;
+
+	const rows = await db.execute<{ count: number; status: ClientStatus }>(sql`
+		WITH order_stats AS (
+			SELECT
+				o.client_id,
+				SUM(CASE WHEN o.status IN (${sqlStatusList(REVENUE_ORDER_STATUSES)}) THEN o.total_amount ELSE 0 END)::numeric AS ltv,
+				COUNT(*)::int AS orders_count,
+				MAX(o.created_at) AS last_order_at
+			FROM "order" o
+			GROUP BY o.client_id
+		)
+		SELECT c.status, COUNT(*)::int AS count
+		FROM client c
+		LEFT JOIN order_stats stats ON stats.client_id = c.id
+		${whereClause}
+		GROUP BY c.status
+	`);
+
+	let active = 0;
+	let inactiveBlocked = 0;
+	for (const row of rows.rows) {
+		if (row.status === "active") {
+			active += Number(row.count);
+		} else {
+			inactiveBlocked += Number(row.count);
+		}
+	}
+	return { active, inactiveBlocked };
 }
 
 // ============================================================================

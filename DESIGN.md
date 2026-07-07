@@ -167,7 +167,7 @@ Toda tabela de listagem (`/dashboard/<recurso>` com itens enumeráveis) **deve**
 
 **Manter texto** em ações onde o número/contagem é a informação principal (`Ver 3 filiais`) ou em mutações críticas inline (`Salvar` em threshold dirty). Ícone esconde valor que o usuário precisa ler à distância.
 
-**Tabela é para coleção aninhada dentro de uma página de detalhe — não para a listagem-raiz de um recurso.** As listagens principais (`/dashboard/orders`, `customers`, `tools`, `suppliers`, `reviews`) migraram para **card-grid** (ver catálogo de cards). Tabela hoje só em sub-recursos densos. Implementação canônica: `apps/web/src/app/dashboard/customers/_components/customer-orders-table.tsx`, `categories/_components/attributes-table.tsx`; showcase em `/design#table`.
+**Tabela é para coleção aninhada dentro de uma página de detalhe — não para a listagem-raiz de um recurso.** As listagens principais (`/dashboard/orders`, `tools`, `suppliers`, `reviews`) migraram para **card-grid**; `customers` usa **row-card** (lista vertical — ver catálogo de cards). Tabela hoje só em sub-recursos densos. Implementação canônica: `apps/web/src/app/dashboard/customers/_components/customer-orders-table.tsx`, `categories/_components/attributes-table.tsx`; showcase em `/design#table`.
 
 **Layout de larguras (dados à esquerda, ações à direita):** `TableActionsHead` e `TableActionsCell` já carregam `w-full` internamente — a coluna de ações absorve toda sobra horizontal e mantém os botões alinhados à direita (`text-right` + `flex justify-end`). Resultado: todas as colunas de dado (ID, Cliente, Status, Total, etc) encolhem ao próprio conteúdo e ficam clusterizadas naturalmente à esquerda. Não use `w-full` em nenhuma coluna de dado — quebra o pattern.
 
@@ -286,7 +286,7 @@ Helper exportado de `@emach/ui/components/tabs`. Wrapper sobre `<Badge variant="
 
 **Tabs split (dois grupos semânticos).** Quando os filtros se dividem em dois grupos de significado distinto, renderize **dois `<TabsList>`** dentro do mesmo `<Tabs>`, num `flex justify-between` — cada lista vira sua própria pílula `bg-muted`, comunicando os grupos por separação espacial. Canônico: Pedidos (`order-list-filters.tsx`) — esquerda = fluxo do operador (Pago/Em preparação/Enviados/Entregues), direita = fora do fluxo (Aguardando pagamento/Devolvidos/Cancelados). Sem tab "Todos": a página abre listando tudo, **sem tab ativa**; clicar numa tab filtra e clicar na ativa de novo volta a "todos" (toggle, via href que remove o param). Use só quando os grupos têm leitura semântica clara — não para quebrar uma lista longa arbitrariamente.
 
-Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-list-filters.tsx` (filter com TabsCountBadge + **tabs split**), `apps/web/src/app/dashboard/users/page.tsx` (filter com TabsCountBadge), `apps/web/src/app/dashboard/customers/_components/customer-tabs.tsx` (scrollable ~7 abas, sem badge), `apps/web/src/components/pending-panel.tsx` (sub-tabs em painel), `apps/web/src/app/design/page.tsx` (showcase).
+Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-list-filters.tsx` (filter com TabsCountBadge + **tabs split**), `apps/web/src/app/dashboard/users/page.tsx` (filter com TabsCountBadge), `apps/web/src/app/dashboard/customers/_components/customer-status-tabs.tsx` (filter sem tab "Todos", default "Ativos" quando sem `?status` — exceto sob quick-filter de triagem, que não herda o default; valor agrupado `inactive_blocked`), `apps/web/src/app/dashboard/customers/_components/customer-tabs.tsx` (scrollable ~7 abas, sem badge), `apps/web/src/components/pending-panel.tsx` (sub-tabs em painel), `apps/web/src/app/design/page.tsx` (showcase).
 
 ### Cards & Containers
 
@@ -294,9 +294,9 @@ Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-
 - `Dialog` / `Popover`: mesma elevação que Card, portal `z-50`.
 - Sidebar: `bg-sidebar` (#171612) — mais escuro que background.
 
-### Catálogo de cards de listagem (4 arquétipos)
+### Catálogo de cards de listagem (5 arquétipos)
 
-Cards de grid/listagem seguem 4 arquétipos. Todos compartilham o **shell** e o **footer edge-to-edge** abaixo; o miolo varia por entidade. Adaptar campos ao domínio é esperado — o esqueleto é que é fixo.
+Cards de grid/listagem seguem 5 arquétipos. Todos compartilham o **shell** e (nos de grid) o **footer edge-to-edge** abaixo; o miolo varia por entidade. Adaptar campos ao domínio é esperado — o esqueleto é que é fixo.
 
 **Shell comum:** `rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`. Card inteiro clicável: ou `<Link>` direto (quando não há ações secundárias), ou `<div role="button" tabIndex={0}>` + `onClick`/`onKeyDown` (Enter/Space) quando há ações internas que precisam de `stopPropagation`.
 
@@ -306,8 +306,9 @@ Cards de grid/listagem seguem 4 arquétipos. Todos compartilham o **shell** e o 
 | **Media-card** | Item com imagem (estoque/produto) | Imagem 16:9 no topo + badge de status absoluto (`top-2 right-2`) + corpo (nome linkado + SKU/meta) + footer de métricas | `stock/_components/branch-stock-card.tsx` |
 | **Identity-card** | Pessoa (equipe, usuário) | Avatar `52px` `rounded-[10px]` + nome + email + status badge no topo; footer com `role · último login` + 1 ação (`outline`/`ghost`) | `branches/[id]/_components/team-member-card.tsx`, `users/_components/user-card.tsx` |
 | **Entity-card** | Registro sem imagem em coleção **aninhada** (pedidos na aba de uma filial) | Ícone em avatar quadrado + título (número/id) + data + status badge; footer com valor centralizado + label | `branches/[id]/_components/orders-tab.tsx` |
+| **Row-card** | Listagem vertical densa onde o scan é por coluna (clientes) | Card full-width em **grid de colunas travadas** — identidade `minmax(240px,1.3fr)` flexiona e trunca; métricas em `.5fr` cada (valor + label 9px uppercase empilhados); tipo + status badges em colunas fixas, status ancorado à direita. Empilhados em `flex-col gap-2`. **Nunca** coluna `auto` (cada card mediria as próprias badges e desalinharia as colunas entre linhas). Responsivo por ocultação de colunas (`hidden sm:flex` / `lg:flex`) com template por breakpoint | `customers/_components/customer-row.tsx` |
 
-A **listagem-raiz de pedidos** usa o **Stat-card** (`order-card.tsx`, footer de 3 métricas); o **Entity-card** (footer de 1 métrica) fica para a versão compacta dentro de coleções aninhadas.
+A **listagem-raiz de pedidos** usa o **Stat-card** (`order-card.tsx`, footer de 3 métricas); o **Entity-card** (footer de 1 métrica) fica para a versão compacta dentro de coleções aninhadas. A **listagem-raiz de clientes** usa o **Row-card** (lista vertical, decisão 2026-07): datas em `formatDate` (dd/mm/aaaa) e relativo capitalizado ("Há 3 dias"); sem ação de editar inline — a linha inteira navega pro detalhe.
 
 ### Footer edge-to-edge (regra de card)
 
