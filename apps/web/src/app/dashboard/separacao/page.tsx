@@ -61,7 +61,7 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 								{counts.em_separacao}
 							</div>
 							<div className="text-[11px] text-muted-foreground uppercase tracking-widest">
-								Em andamento
+								Em separação
 							</div>
 						</div>
 						<div className="text-right">
