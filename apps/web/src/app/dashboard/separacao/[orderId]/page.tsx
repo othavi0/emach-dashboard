@@ -90,6 +90,7 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 			<PickingExecution
 				canShip={canShip}
 				items={result.items}
+				orderNumber={orderRow.number}
 				picking={result.picking}
 			/>
 		);
