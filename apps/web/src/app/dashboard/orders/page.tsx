@@ -21,7 +21,7 @@ import {
 	type OrdersPageFiltersInput,
 } from "./data";
 import { ordersListFiltersSchema } from "./schema";
-import { DEFAULT_ORDER_TAB } from "./status-meta";
+import { canonicalOrderTabKey, DEFAULT_ORDER_TAB } from "./status-meta";
 
 export const metadata: Metadata = {
 	title: "Pedidos",
@@ -43,7 +43,9 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 	const data = parsed.success ? parsed.data : ordersListFiltersSchema.parse({});
 
 	// Sem ?tab na URL → abre na fila de entrada ("Pago"), não em todos.
-	const activeTab = data.tab ?? DEFAULT_ORDER_TAB;
+	// Canonicaliza o alias legado (to_prepare→paid) antes de tudo, senão o
+	// hasFilters trata o alias como filtro ativo e acende "Limpar filtros".
+	const activeTab = canonicalOrderTabKey(data.tab) ?? DEFAULT_ORDER_TAB;
 	const unverifiedShipping = data.unverified === "1";
 
 	const filters: OrderListFilters = {
