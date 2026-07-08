@@ -36,7 +36,11 @@ import { requireCurrentSession } from "@/lib/session";
 import type { FulfillmentState } from "../separacao/_lib/picking-logic";
 import { deriveFulfillmentState } from "../separacao/_lib/picking-logic";
 import { getLatestPicking } from "../separacao/data";
-import { ALL_ORDERS_TAB, ORDER_TABS } from "./status-meta";
+import {
+	ALL_ORDERS_TAB,
+	canonicalOrderTabKey,
+	ORDER_TABS,
+} from "./status-meta";
 
 export const ORDERS_PAGE_SIZE = 20;
 
@@ -260,7 +264,8 @@ function normalizeDateParam(value?: string): string | undefined {
 }
 
 function resolveTab(tab?: string) {
-	return ORDER_TABS.find((item) => item.key === tab) ?? ALL_ORDERS_TAB;
+	const key = canonicalOrderTabKey(tab);
+	return ORDER_TABS.find((item) => item.key === key) ?? ALL_ORDERS_TAB;
 }
 
 function formatActorLabel(entry: {
