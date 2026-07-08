@@ -31,6 +31,7 @@ import type {
 } from "../data";
 import {
 	ALL_ORDERS_TAB,
+	canonicalOrderTabKey,
 	DEFAULT_ORDER_TAB,
 	ORDER_EXCEPTION_TABS,
 	ORDER_FLOW_TABS,
@@ -51,7 +52,7 @@ const BRANCH_ALL = "__all__";
 function buildTabHref(filters: OrderListFilterState, tabKey: string): string {
 	const params = new URLSearchParams();
 	// Sempre explicitar o tab: a ausência de ?tab agora resolve para o default
-	// ("A preparar"), então "Todos" e os demais precisam do parâmetro na URL.
+	// ("Pago"), então "Todos" e os demais precisam do parâmetro na URL.
 	if (tabKey) {
 		params.set("tab", tabKey);
 	}
@@ -93,7 +94,7 @@ export function OrderFiltersPanel({
 	counts,
 	filters,
 }: OrderListFiltersProps) {
-	const currentTab = filters.tab ?? DEFAULT_ORDER_TAB;
+	const currentTab = canonicalOrderTabKey(filters.tab) ?? DEFAULT_ORDER_TAB;
 
 	const { searchParams, setParam, clearAll, hasActive } = useFilterState({
 		basePath: BASE,

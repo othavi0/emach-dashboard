@@ -42,7 +42,7 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 	const parsed = ordersListFiltersSchema.safeParse(raw);
 	const data = parsed.success ? parsed.data : ordersListFiltersSchema.parse({});
 
-	// Sem ?tab na URL → abre na fila acionável ("A preparar"), não em todos.
+	// Sem ?tab na URL → abre na fila de entrada ("Pago"), não em todos.
 	const activeTab = data.tab ?? DEFAULT_ORDER_TAB;
 	const unverifiedShipping = data.unverified === "1";
 
@@ -71,7 +71,7 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		fetchOrdersPage({ filters: pageFilters, cursor: null }),
 	]);
 
-	// O tab default ("A preparar") não conta como filtro ativo — só desvios dele.
+	// O tab default ("Pago") não conta como filtro ativo — só desvios dele.
 	const hasFilters = Boolean(
 		filters.q ||
 			filters.from ||
@@ -106,7 +106,7 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 						<EmptyDescription>
 							{hasFilters
 								? "Ajuste os filtros para ampliar a busca."
-								: "Nenhum pedido aguardando preparação. Use a aba “Todos” para ver o histórico completo."}
+								: "Nenhum pedido nesta etapa. Use a aba “Todos” para ver o histórico completo."}
 						</EmptyDescription>
 					</EmptyHeader>
 					<EmptyContent>
