@@ -11,7 +11,7 @@ export const FULFILLMENT_STATE_META: Record<
 	}
 > = {
 	awaiting_picking: {
-		label: "Aguardando separação",
+		label: "A separar",
 		iconKey: "clock",
 		badgeVariant: "secondary",
 	},

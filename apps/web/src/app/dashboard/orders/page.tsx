@@ -21,7 +21,7 @@ import {
 	type OrdersPageFiltersInput,
 } from "./data";
 import { ordersListFiltersSchema } from "./schema";
-import { DEFAULT_ORDER_TAB } from "./status-meta";
+import { canonicalOrderTabKey, DEFAULT_ORDER_TAB } from "./status-meta";
 
 export const metadata: Metadata = {
 	title: "Pedidos",
@@ -42,8 +42,10 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 	const parsed = ordersListFiltersSchema.safeParse(raw);
 	const data = parsed.success ? parsed.data : ordersListFiltersSchema.parse({});
 
-	// Sem ?tab na URL → abre na fila acionável ("A preparar"), não em todos.
-	const activeTab = data.tab ?? DEFAULT_ORDER_TAB;
+	// Sem ?tab na URL → abre na fila de entrada ("Pago"), não em todos.
+	// Canonicaliza o alias legado (to_prepare→paid) antes de tudo, senão o
+	// hasFilters trata o alias como filtro ativo e acende "Limpar filtros".
+	const activeTab = canonicalOrderTabKey(data.tab) ?? DEFAULT_ORDER_TAB;
 	const unverifiedShipping = data.unverified === "1";
 
 	const filters: OrderListFilters = {
@@ -71,7 +73,7 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		fetchOrdersPage({ filters: pageFilters, cursor: null }),
 	]);
 
-	// O tab default ("A preparar") não conta como filtro ativo — só desvios dele.
+	// O tab default ("Pago") não conta como filtro ativo — só desvios dele.
 	const hasFilters = Boolean(
 		filters.q ||
 			filters.from ||
@@ -106,7 +108,7 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 						<EmptyDescription>
 							{hasFilters
 								? "Ajuste os filtros para ampliar a busca."
-								: "Nenhum pedido aguardando preparação. Use a aba “Todos” para ver o histórico completo."}
+								: "Nenhum pedido nesta etapa. Use a aba “Todos” para ver o histórico completo."}
 						</EmptyDescription>
 					</EmptyHeader>
 					<EmptyContent>

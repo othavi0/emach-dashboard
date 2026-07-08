@@ -47,11 +47,17 @@ export interface PickingQueueRow {
  * se o painel pós-separação ainda faz sentido — ver SeparacaoOrderPage).
  * Retorna null se o pedido não existir.
  */
-export async function getOrderBranchId(
-	orderId: string
-): Promise<{ branchId: string | null; status: OrderStatus } | null> {
+export async function getOrderBranchId(orderId: string): Promise<{
+	branchId: string | null;
+	number: string;
+	status: OrderStatus;
+} | null> {
 	const [row] = await db
-		.select({ branchId: order.branchId, status: order.status })
+		.select({
+			branchId: order.branchId,
+			number: order.number,
+			status: order.status,
+		})
 		.from(order)
 		.where(eq(order.id, orderId))
 		.limit(1);

@@ -479,12 +479,14 @@ function usePickingState(
 interface PickingExecutionProps {
 	canShip: boolean;
 	items: OrderPickingItem[];
+	orderNumber: string;
 	picking: OrderPicking;
 }
 
 export function PickingExecution({
 	canShip,
 	items,
+	orderNumber,
 	picking,
 }: PickingExecutionProps) {
 	const {
@@ -551,7 +553,7 @@ export function PickingExecution({
 				<div className="flex items-start justify-between gap-4">
 					<div className="min-w-0">
 						<h1 className="font-medium font-serif text-2xl uppercase tracking-[0.015em]">
-							Separação em andamento
+							Separação do pedido {orderNumber}
 						</h1>
 						<p className="mt-1 flex items-center gap-2 text-[13px] text-muted-foreground">
 							<span>{picking.pickerName}</span>
@@ -752,8 +754,8 @@ export function PickingExecution({
 						<AlertDialogTitle>Cancelar separação?</AlertDialogTitle>
 						<AlertDialogDescription>
 							A sessão de separação será descartada e as bipagens registradas
-							serão perdidas. O pedido permanece em preparação e pode ser
-							separado novamente. Esta ação não pode ser desfeita.
+							serão perdidas. O pedido volta para a fila A separar. Esta ação
+							não pode ser desfeita.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>

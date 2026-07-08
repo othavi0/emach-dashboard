@@ -53,11 +53,9 @@ function StatusBadge({ row, tab }: { row: PickingQueueRow; tab: Tab }) {
 		);
 	}
 	if (tab === "em_separacao") {
-		return (
-			<span className="inline-flex items-center rounded-md bg-info/15 px-2 py-0.5 font-semibold text-[10px] text-info">
-				Separando
-			</span>
-		);
+		// A aba já diz o estado — badge redundante removido (spec 2026-07-08).
+		// O slot de alerta útil ("Parada há X") é renderizado abaixo do meta.
+		return null;
 	}
 	// a_separar
 	const isUrgent =
