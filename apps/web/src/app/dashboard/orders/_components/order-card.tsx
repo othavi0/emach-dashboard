@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { formatDateTime, formatRelative } from "@/lib/format/datetime";
 import { FULFILLMENT_STATE_META } from "../../separacao/fulfillment-meta";
+import { orderBadgeSource } from "../_lib/display-state";
 import type { OrderListItem } from "../data";
 import { OrderStatusBadge } from "./order-status-badge";
 import { ShippingUnverifiedBadge } from "./shipping-unverified-badge";
@@ -38,17 +39,18 @@ export function OrderCard({ item }: { item: OrderListItem }) {
 					</p>
 				</div>
 				<div className="flex flex-shrink-0 flex-col items-end gap-1">
-					<OrderStatusBadge status={item.status} />
-					{item.fulfillmentState &&
-						item.fulfillmentState !== "awaiting_picking" && (
-							<Badge
-								variant={
-									FULFILLMENT_STATE_META[item.fulfillmentState].badgeVariant
-								}
-							>
-								{FULFILLMENT_STATE_META[item.fulfillmentState].label}
-							</Badge>
-						)}
+					{orderBadgeSource(item.status, item.fulfillmentState) ===
+						"fulfillment" && item.fulfillmentState ? (
+						<Badge
+							variant={
+								FULFILLMENT_STATE_META[item.fulfillmentState].badgeVariant
+							}
+						>
+							{FULFILLMENT_STATE_META[item.fulfillmentState].label}
+						</Badge>
+					) : (
+						<OrderStatusBadge status={item.status} />
+					)}
 					{item.shippingUnverified && <ShippingUnverifiedBadge compact />}
 				</div>
 			</div>
