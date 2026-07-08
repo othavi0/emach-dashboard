@@ -3,6 +3,12 @@
 > Log de mistakes recorrentes e decisões não-óbvias. Código vence em conflito.
 > Produto: register de ferramentas + dashboard interno. Dois apps compartilham DB Supabase (admin = este; site ecomerce = repo separado).
 
+## ⛔ Banco único dev=prod (incidente 2026-07)
+
+- O Supabase deste repo é ÚNICO e COMPARTILHADO (dev = prod = ecommerce). NUNCA `seed`/`truncate`/`drop`/reset/`db:push` destrutivo sem autorização explícita do user NESTA sessão — `db:seed-demo` já truncou 28 tabelas via Task de subagente que não recebeu esta restrição.
+- Todo subagente/Task que toca banco recebe esta restrição COLADA no prompt (subagente não herda este arquivo).
+- CWD é a RAIZ do monorepo (turbo/bun) — nunca `cd apps/web`; paths absolutos (3 violações medidas na auditoria 07/06).
+
 ## Auth — invariantes P0 (qualquer violação é bug crítico)
 
 Duas instâncias **completamente isoladas** Better Auth no mesmo banco:
