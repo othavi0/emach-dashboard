@@ -3,7 +3,7 @@ import "server-only";
 import { db } from "@emach/db";
 import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
-import { toolImage } from "@emach/db/schema/tools";
+import { tool, toolImage } from "@emach/db/schema/tools";
 import { toDate } from "@emach/db/utils";
 import { cache } from "react";
 
@@ -614,7 +614,14 @@ export async function fetchOrdersProductSummary({
 	}
 	const tab = resolveTab(filters.tab);
 	const conditions = buildOrdersListConditions({
-		filters,
+		filters: {
+			branchId: filters.branchId,
+			carrier: filters.carrier,
+			from: normalizeDateParam(filters.from),
+			q: filters.q,
+			to: normalizeDateParam(filters.to),
+			toolId: filters.toolId,
+		},
 		scope,
 		tabDef: tab,
 	});
@@ -630,6 +637,17 @@ export async function fetchOrdersProductSummary({
 		${whereClause}
 	`);
 	return rows.rows[0] ?? { orders: 0, units: 0 };
+}
+
+// Nome do produto filtrado por productId — usado no chip do resumo acima da lista.
+export async function getToolName(id: string): Promise<string | null> {
+	await requireCurrentSession();
+	const rows = await db
+		.select({ name: tool.name })
+		.from(tool)
+		.where(eq(tool.id, id))
+		.limit(1);
+	return rows[0]?.name ?? null;
 }
 
 export type OrderReviewState =

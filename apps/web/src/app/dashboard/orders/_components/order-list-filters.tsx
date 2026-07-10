@@ -68,9 +68,6 @@ function buildTabHref(filters: OrderListFilterState, tabKey: string): string {
 	if (filters.branchId) {
 		params.set("branchId", filters.branchId);
 	}
-	if (filters.unverifiedShipping) {
-		params.set("unverified", "1");
-	}
 	const qs = params.toString();
 	return qs ? `${BASE}?${qs}` : BASE;
 }

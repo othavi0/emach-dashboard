@@ -15,8 +15,11 @@ import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrdersInfinite } from "./_components/orders-infinite";
 import {
 	fetchOrdersPage,
+	fetchOrdersProductSummary,
 	getOrdersTabCounts,
+	getToolName,
 	listOrderBranches,
+	listOrderCarrierOptions,
 	type OrderListFilters,
 	type OrdersPageFiltersInput,
 } from "./data";
@@ -46,7 +49,6 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 	// Canonicaliza o alias legado (to_prepare→paid) antes de tudo, senão o
 	// hasFilters trata o alias como filtro ativo e acende "Limpar filtros".
 	const activeTab = canonicalOrderTabKey(data.tab) ?? DEFAULT_ORDER_TAB;
-	const unverifiedShipping = data.unverified === "1";
 
 	const filters: OrderListFilters = {
 		tab: activeTab,
@@ -54,8 +56,8 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		from: data.from,
 		to: data.to,
 		branchId: data.branchId,
-		page: data.page,
-		unverifiedShipping,
+		carrier: data.carrier,
+		toolId: data.productId,
 	};
 
 	const pageFilters: OrdersPageFiltersInput = {
@@ -64,13 +66,24 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		from: data.from,
 		to: data.to,
 		branchId: data.branchId,
-		unverifiedShipping,
+		carrier: data.carrier,
+		toolId: data.productId,
 	};
 
-	const [branches, counts, result] = await Promise.all([
+	const [
+		branches,
+		counts,
+		result,
+		_carrierOptions,
+		_productSummary,
+		_productName,
+	] = await Promise.all([
 		listOrderBranches(),
 		getOrdersTabCounts(),
 		fetchOrdersPage({ filters: pageFilters, cursor: null }),
+		listOrderCarrierOptions(),
+		fetchOrdersProductSummary({ filters: pageFilters }),
+		data.productId ? getToolName(data.productId) : Promise.resolve(null),
 	]);
 
 	// O tab default ("Pago") não conta como filtro ativo — só desvios dele.
@@ -79,7 +92,8 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 			filters.from ||
 			filters.to ||
 			filters.branchId ||
-			unverifiedShipping ||
+			data.carrier ||
+			data.productId ||
 			activeTab !== DEFAULT_ORDER_TAB
 	);
 
