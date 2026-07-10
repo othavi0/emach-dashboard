@@ -597,6 +597,19 @@ export async function listOrderCarrierOptions(): Promise<{
 	};
 }
 
+// Produtos ativos do catálogo — popula o facet de produto do filtro (Catálogo
+// é global, sem branch-scoping — ver CLAUDE.md).
+export async function listOrderToolOptions(): Promise<
+	{ id: string; name: string }[]
+> {
+	await requireCurrentSession();
+	return db
+		.select({ id: tool.id, name: tool.name })
+		.from(tool)
+		.where(eq(tool.status, "active"))
+		.orderBy(asc(tool.name));
+}
+
 // Resumo (pedidos/unidades) do produto filtrado por toolId — usado no header
 // da listagem quando o filtro de produto está ativo (renderiza server-side).
 export async function fetchOrdersProductSummary({

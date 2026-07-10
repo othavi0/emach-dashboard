@@ -20,6 +20,7 @@ import {
 	getToolName,
 	listOrderBranches,
 	listOrderCarrierOptions,
+	listOrderToolOptions,
 	type OrderListFilters,
 	type OrdersPageFiltersInput,
 } from "./data";
@@ -74,7 +75,8 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		branches,
 		counts,
 		result,
-		_carrierOptions,
+		carrierOptions,
+		toolOptions,
 		_productSummary,
 		_productName,
 	] = await Promise.all([
@@ -82,6 +84,7 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		getOrdersTabCounts(),
 		fetchOrdersPage({ filters: pageFilters, cursor: null }),
 		listOrderCarrierOptions(),
+		listOrderToolOptions(),
 		fetchOrdersProductSummary({ filters: pageFilters }),
 		data.productId ? getToolName(data.productId) : Promise.resolve(null),
 	]);
@@ -111,8 +114,10 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 
 			<OrderFiltersPanel
 				branches={branches}
+				carrierOptions={carrierOptions}
 				counts={counts}
 				filters={filters}
+				toolOptions={toolOptions}
 			/>
 
 			{result.items.length === 0 ? (

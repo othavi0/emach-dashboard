@@ -2,6 +2,10 @@ import type { OrderStatus } from "@emach/db/schema/orders";
 import { type SQL, sql } from "drizzle-orm";
 import { type BranchScope, orderBranchCondition } from "@/lib/branch-scope";
 import type { OrderTabDef } from "../status-meta";
+// CARRIER_NONE mora em status-meta.ts (client-safe) — este módulo importa
+// drizzle-orm/branch-scope (server-tainted) e não pode ser importado por
+// client component (ADR-0015). Consumers importam a constante direto de lá.
+import { CARRIER_NONE } from "../status-meta";
 import { LATE_TAB_HOURS } from "./lateness";
 
 const FIFO_TABS = new Set(["paid", "preparing", "late"]);
@@ -22,8 +26,6 @@ export interface OrdersWhereFilters {
 	to?: string;
 	toolId?: string;
 }
-
-export const CARRIER_NONE = "__none__";
 
 // Relógio de atraso: COALESCE(paid_at, created_at) — espelha latenessOf().
 const fulfillmentAge = sql`COALESCE(o.paid_at, o.created_at)`;

@@ -2,12 +2,12 @@ import { sql } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 import type { BranchScope } from "@/lib/branch-scope";
-import { ALL_ORDERS_TAB, ORDER_FLOW_TABS } from "../../status-meta";
 import {
-	buildOrdersListConditions,
+	ALL_ORDERS_TAB,
 	CARRIER_NONE,
-	ordersTabSort,
-} from "../orders-where";
+	ORDER_FLOW_TABS,
+} from "../../status-meta";
+import { buildOrdersListConditions, ordersTabSort } from "../orders-where";
 
 const dialect = new PgDialect();
 

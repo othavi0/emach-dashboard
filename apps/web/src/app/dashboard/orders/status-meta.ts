@@ -7,6 +7,11 @@ import type { StatusIconKey, Tone } from "@/components/status-visual";
 // início da separação — startPicking transiciona paid→preparing sozinho).
 export const DEFAULT_ORDER_TAB = "paid";
 
+// "__none__" = frete a combinar (shipping_method IS NULL). Vive aqui (módulo
+// client-safe) porque _lib/orders-where.ts importa drizzle-orm/branch-scope
+// (server-tainted) — client component nunca pode importar de lá (ADR-0015).
+export const CARRIER_NONE = "__none__";
+
 export type TabLateness = "only" | "exclude";
 
 export interface OrderTabDef {
