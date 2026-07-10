@@ -36,7 +36,14 @@ import { requireCurrentSession } from "@/lib/session";
 import type { FulfillmentState } from "../separacao/_lib/picking-logic";
 import { deriveFulfillmentState } from "../separacao/_lib/picking-logic";
 import { getLatestPicking } from "../separacao/data";
-import { buildOrdersListConditions, ordersTabSort } from "./_lib/orders-where";
+import { LATE_TAB_HOURS } from "./_lib/lateness";
+import {
+	buildOrdersListConditions,
+	emptyTabCounts,
+	foldTabCounts,
+	type OrderTabCounts,
+	ordersTabSort,
+} from "./_lib/orders-where";
 import {
 	ALL_ORDERS_TAB,
 	canonicalOrderTabKey,
@@ -513,33 +520,6 @@ export async function getRecentOrderActivity(
 	}));
 }
 
-interface OrderTabCounts {
-	all_count: number;
-	canceled: number;
-	delivered: number;
-	paid: number;
-	payment_failed: number;
-	pending_payment: number;
-	preparing: number;
-	returned: number;
-	shipped: number;
-	[key: string]: number;
-}
-
-function emptyTabCounts(): OrderTabCounts {
-	return {
-		all_count: 0,
-		pending_payment: 0,
-		payment_failed: 0,
-		paid: 0,
-		preparing: 0,
-		shipped: 0,
-		delivered: 0,
-		returned: 0,
-		canceled: 0,
-	};
-}
-
 // TTL curto: os counts são um badge informativo e a tabela `order` também é
 // escrita pelo app ecommerce (banco compartilhado), que NÃO dispara revalidação
 // no dashboard. O TTL limita a defasagem máxima; mutações do dashboard revalidam
@@ -554,37 +534,22 @@ export const ORDERS_COUNTS_TAG = "orders-counts";
 const computeOrdersTabCounts = unstable_cache(
 	async (scope: BranchScope): Promise<OrderTabCounts> => {
 		const branchFilter = orderBranchConditionNoAlias(scope);
-		const result = await db.execute<{ status: OrderStatus; count: number }>(sql`
-			SELECT status, COUNT(*)::int AS count
+		const result = await db.execute<{
+			count: number;
+			is_late: boolean;
+			status: OrderStatus;
+		}>(sql`
+			SELECT status,
+				(status IN ('paid','preparing')
+				 AND COALESCE(paid_at, created_at) <= now() - make_interval(hours => ${LATE_TAB_HOURS})
+				) AS is_late,
+				COUNT(*)::int AS count
 			FROM "order"
 			${branchFilter ? sql`WHERE ${branchFilter}` : sql``}
-			GROUP BY status
+			GROUP BY 1, 2
 		`);
 
-		const counts = emptyTabCounts();
-		for (const row of result.rows) {
-			counts.all_count += row.count;
-			// `canceled`/`refunded` somam na mesma tab; os demais mapeiam 1:1. O
-			// switch estreita row.status para o literal, então a indexação é type-safe.
-			switch (row.status) {
-				case "canceled":
-				case "refunded":
-					counts.canceled += row.count;
-					break;
-				case "pending_payment":
-				case "payment_failed":
-				case "paid":
-				case "preparing":
-				case "shipped":
-				case "delivered":
-				case "returned":
-					counts[row.status] = row.count;
-					break;
-				default:
-					break;
-			}
-		}
-		return counts;
+		return foldTabCounts(result.rows);
 	},
 	["orders-tab-counts"],
 	{ revalidate: ORDERS_COUNTS_TTL_SECONDS, tags: [ORDERS_COUNTS_TAG] }
@@ -596,6 +561,75 @@ export async function getOrdersTabCounts(): Promise<Record<string, number>> {
 		return emptyTabCounts();
 	}
 	return computeOrdersTabCounts(scope);
+}
+
+// Consumida pela página de Separação (fila de atrasados fora da listagem).
+export async function getLateOrdersCount(scope: BranchScope): Promise<number> {
+	if (isBlindScope(scope)) {
+		return 0;
+	}
+	const counts = await computeOrdersTabCounts(scope);
+	return counts.late;
+}
+
+// DISTINCT shipping_method no escopo — popula o facet de transportadora do filtro.
+export async function listOrderCarrierOptions(): Promise<{
+	hasUnassigned: boolean;
+	methods: string[];
+}> {
+	const session = await requireCurrentSession();
+	const scope = await getUserBranchScope(session);
+	if (isBlindScope(scope)) {
+		return { methods: [], hasUnassigned: false };
+	}
+	const branchCondition = orderBranchCondition(scope);
+	const rows = await db.execute<{ shipping_method: string | null }>(sql`
+		SELECT DISTINCT o.shipping_method FROM "order" o
+		${branchCondition ? sql`WHERE ${branchCondition}` : sql``}
+		ORDER BY 1
+	`);
+	const methods = rows.rows
+		.map((r) => r.shipping_method)
+		.filter((m): m is string => m !== null);
+	return {
+		methods,
+		hasUnassigned: rows.rows.some((r) => r.shipping_method === null),
+	};
+}
+
+// Resumo (pedidos/unidades) do produto filtrado por toolId — usado no header
+// da listagem quando o filtro de produto está ativo (renderiza server-side).
+export async function fetchOrdersProductSummary({
+	filters,
+}: {
+	filters: OrdersPageFiltersInput;
+}): Promise<{ orders: number; units: number } | null> {
+	if (!filters.toolId) {
+		return null;
+	}
+	const session = await requireCurrentSession();
+	const scope = await getUserBranchScope(session);
+	if (isBlindScope(scope)) {
+		return { orders: 0, units: 0 };
+	}
+	const tab = resolveTab(filters.tab);
+	const conditions = buildOrdersListConditions({
+		filters,
+		scope,
+		tabDef: tab,
+	});
+	const whereClause = conditions.length
+		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+		: sql``;
+	const rows = await db.execute<{ orders: number; units: number }>(sql`
+		SELECT COUNT(DISTINCT o.id)::int AS orders,
+			COALESCE(SUM(oi.quantity), 0)::int AS units
+		FROM "order" o
+		JOIN client c ON c.id = o.client_id
+		JOIN order_item oi ON oi.order_id = o.id AND oi.tool_id = ${filters.toolId}
+		${whereClause}
+	`);
+	return rows.rows[0] ?? { orders: 0, units: 0 };
 }
 
 export type OrderReviewState =

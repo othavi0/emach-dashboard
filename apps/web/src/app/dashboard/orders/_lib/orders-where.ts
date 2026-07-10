@@ -1,5 +1,5 @@
+import type { OrderStatus } from "@emach/db/schema/orders";
 import { type SQL, sql } from "drizzle-orm";
-
 import { type BranchScope, orderBranchCondition } from "@/lib/branch-scope";
 import type { OrderTabDef } from "../status-meta";
 import { LATE_TAB_HOURS } from "./lateness";
@@ -84,4 +84,69 @@ export function buildOrdersListConditions({
 		);
 	}
 	return conditions;
+}
+
+export interface OrderTabCounts {
+	all_count: number;
+	canceled: number;
+	delivered: number;
+	late: number;
+	paid: number;
+	payment_failed: number;
+	pending_payment: number;
+	preparing: number;
+	returned: number;
+	shipped: number;
+	[key: string]: number;
+}
+
+export function emptyTabCounts(): OrderTabCounts {
+	return {
+		all_count: 0,
+		pending_payment: 0,
+		payment_failed: 0,
+		paid: 0,
+		preparing: 0,
+		late: 0,
+		shipped: 0,
+		delivered: 0,
+		returned: 0,
+		canceled: 0,
+	};
+}
+
+// Pura: agrega linhas status×is_late (uma por combinação existente) nos buckets
+// de tab. `late` soma paid/preparing atrasados; `paid`/`preparing` continuam
+// só os NÃO atrasados (a tab "late" é exclusiva das duas — ver status-meta).
+export function foldTabCounts(
+	rows: { count: number; is_late: boolean; status: OrderStatus }[]
+): OrderTabCounts {
+	const counts = emptyTabCounts();
+	for (const row of rows) {
+		counts.all_count += row.count;
+		if (row.is_late && (row.status === "paid" || row.status === "preparing")) {
+			counts.late += row.count;
+			continue;
+		}
+		// `canceled`/`refunded` somam na mesma tab; os demais mapeiam 1:1. O
+		// switch estreita row.status para o literal, então a indexação é type-safe.
+		switch (row.status) {
+			case "canceled":
+			case "refunded":
+				counts.canceled += row.count;
+				break;
+			case "pending_payment":
+			case "payment_failed":
+			case "paid":
+			case "preparing":
+			case "shipped":
+			case "delivered":
+			case "returned":
+				counts[row.status] = row.count;
+				break;
+			default:
+				break;
+		}
+	}
+	return counts;
 }
