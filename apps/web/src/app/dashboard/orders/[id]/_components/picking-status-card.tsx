@@ -12,6 +12,7 @@ import { ClockIcon, TriangleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { STATUS_BADGE_CAPS } from "@/components/status-visual";
 import { formatRelative, formatTime } from "@/lib/format/datetime";
 import { notify } from "@/lib/notify";
 import type { FulfillmentState } from "../../../separacao/_lib/picking-logic";
@@ -328,7 +329,9 @@ export function PickingStatusCard({
 		<Card>
 			<CardHeader className="flex-row items-center justify-between space-y-0">
 				<CardTitle>Separação</CardTitle>
-				<Badge variant={meta.badgeVariant}>{meta.label}</Badge>
+				<Badge className={STATUS_BADGE_CAPS} variant={meta.badgeVariant}>
+					{meta.label}
+				</Badge>
 			</CardHeader>
 			<CardContent className="space-y-3">
 				{isPostShip && <PostShipSummary fulfillment={fulfillment} />}

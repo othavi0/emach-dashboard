@@ -13,6 +13,7 @@ import { can, requireCapability } from "@/lib/permissions";
 import { ExportCsvLink } from "./_components/export-csv-link";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrdersInfinite } from "./_components/orders-infinite";
+import { ProductFilterSummary } from "./_components/product-filter-summary";
 import {
 	fetchOrdersPage,
 	fetchOrdersProductSummary,
@@ -33,6 +34,27 @@ export const metadata: Metadata = {
 
 interface PageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+// URL atual sem `productId` — destino do "limpar filtro" do resumo de produto.
+function buildClearProductHref(
+	raw: Record<string, string | string[] | undefined>
+): string {
+	const params = new URLSearchParams();
+	for (const [key, value] of Object.entries(raw)) {
+		if (key === "productId" || value === undefined) {
+			continue;
+		}
+		if (Array.isArray(value)) {
+			for (const v of value) {
+				params.append(key, v);
+			}
+		} else {
+			params.set(key, value);
+		}
+	}
+	const qs = params.toString();
+	return `/dashboard/orders${qs ? `?${qs}` : ""}`;
 }
 
 export default function OrdersPage({ searchParams }: PageProps) {
@@ -77,8 +99,8 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		result,
 		carrierOptions,
 		toolOptions,
-		_productSummary,
-		_productName,
+		productSummary,
+		productName,
 	] = await Promise.all([
 		listOrderBranches(),
 		getOrdersTabCounts(),
@@ -88,6 +110,8 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		fetchOrdersProductSummary({ filters: pageFilters }),
 		data.productId ? getToolName(data.productId) : Promise.resolve(null),
 	]);
+
+	const clearProductHref = buildClearProductHref(raw);
 
 	// O tab default ("Pago") não conta como filtro ativo — só desvios dele.
 	const hasFilters = Boolean(
@@ -120,6 +144,15 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 				toolOptions={toolOptions}
 			/>
 
+			{productSummary && productName && (
+				<ProductFilterSummary
+					clearHref={clearProductHref}
+					name={productName}
+					orders={productSummary.orders}
+					units={productSummary.units}
+				/>
+			)}
+
 			{result.items.length === 0 ? (
 				<Empty>
 					<EmptyHeader>
@@ -144,8 +177,10 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 			) : (
 				<OrdersInfinite
 					filters={pageFilters}
+					highlightToolId={data.productId ?? null}
 					initial={result.items}
 					initialCursor={result.nextCursor}
+					tabKey={activeTab}
 				/>
 			)}
 		</>
