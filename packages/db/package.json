@@ -15,6 +15,7 @@
     "db:studio": "drizzle-kit studio",
     "db:apply-sql": "bun run scripts/apply-sql.ts",
     "db:seed-demo": "bun run scripts/seed-demo.ts",
+    "db:seed-test-orders": "bun run scripts/seed-test-orders.ts",
     "db:reset-demo": "bun run scripts/reset-demo.ts",
     "check-types": "tsc --noEmit",
     "test": "vitest run"
