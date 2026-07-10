@@ -7,6 +7,15 @@ import type { StatusIconKey, Tone } from "@/components/status-visual";
 // início da separação — startPicking transiciona paid→preparing sozinho).
 export const DEFAULT_ORDER_TAB = "paid";
 
+export type TabLateness = "only" | "exclude";
+
+export interface OrderTabDef {
+	key: string;
+	label: string;
+	lateness?: TabLateness;
+	statuses: readonly DbOrderStatus[] | null;
+}
+
 // Fluxo ativo do operador interno (grupo da esquerda na barra de tabs).
 // Um chip por status do funil (spec 2026-07-08); a antiga aba agregada
 // "A preparar" (paid+preparing) foi dividida em "Pago" e "Em preparação".
@@ -15,11 +24,21 @@ export const ORDER_FLOW_TABS = [
 		key: "paid",
 		label: "Pago",
 		statuses: ["paid"] as DbOrderStatus[],
+		lateness: "exclude",
 	},
 	{
 		key: "preparing",
 		label: "Em preparação",
 		statuses: ["preparing"] as DbOrderStatus[],
+		lateness: "exclude",
+	},
+	{
+		// Tab computada (spec 2026-07-10): pedidos pagos/em preparação há ≥72h.
+		// Exclusiva — some de "Pago"/"Em preparação" (lateness: "exclude" acima).
+		key: "late",
+		label: "Atrasados",
+		statuses: ["paid", "preparing"] as DbOrderStatus[],
+		lateness: "only",
 	},
 	{
 		key: "shipped",
@@ -31,7 +50,7 @@ export const ORDER_FLOW_TABS = [
 		label: "Entregues",
 		statuses: ["delivered"] as DbOrderStatus[],
 	},
-] as const;
+] as const satisfies readonly OrderTabDef[];
 
 // Chaves antigas que ainda podem chegar por deep-link/bookmark. "to_prepare"
 // era a aba agregada pago+preparando; cai na fila de entrada.
@@ -63,7 +82,7 @@ export const ORDER_EXCEPTION_TABS = [
 		label: "Cancelados",
 		statuses: ["canceled", "refunded"] as DbOrderStatus[],
 	},
-] as const;
+] as const satisfies readonly OrderTabDef[];
 
 // Lista completa (sem "Todos") — consumida por data/export/KPIs.
 export const ORDER_TABS = [...ORDER_FLOW_TABS, ...ORDER_EXCEPTION_TABS];
@@ -73,7 +92,7 @@ export const ALL_ORDERS_TAB = {
 	key: "all",
 	label: "Todos",
 	statuses: null,
-} as const;
+} as const satisfies OrderTabDef;
 
 // Fonte única de status: label + ícone + cor. Consumida por badge, histórico e
 // pendências. iconKey/tone são strings serializáveis (ver components/status-visual).
