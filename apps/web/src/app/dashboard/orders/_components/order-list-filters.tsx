@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from "@emach/ui/components/button";
-import { DatePicker } from "@emach/ui/components/date-picker";
+import { DateRangePicker } from "@emach/ui/components/date-range-picker";
 import { Input } from "@emach/ui/components/input";
 import {
 	Select,
@@ -17,13 +16,11 @@ import {
 	TabsList,
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
-import { TriangleAlertIcon } from "lucide-react";
 import Link from "next/link";
 
 import { FiltersBar } from "@/components/filters-bar";
 import { formatDateParam, parseDateParam } from "@/lib/date-params";
 import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
-
 import type {
 	BranchOption,
 	OrderListFilters as OrderListFilterState,
@@ -31,23 +28,36 @@ import type {
 } from "../data";
 import {
 	ALL_ORDERS_TAB,
+	CARRIER_NONE,
 	canonicalOrderTabKey,
 	DEFAULT_ORDER_TAB,
 	ORDER_EXCEPTION_TABS,
 	ORDER_FLOW_TABS,
 } from "../status-meta";
+import { ProductFilterCombobox } from "./product-filter-combobox";
 
 interface OrderListFiltersProps {
 	branches: BranchOption[];
+	carrierOptions: { hasUnassigned: boolean; methods: string[] };
 	counts: Record<string, number>;
 	filters: OrderListFilterState;
+	toolOptions: { id: string; name: string }[];
 }
 
 const BASE = "/dashboard/orders";
 // "tab" fora do TRACKED de propósito: o botão "Limpar" da barra de busca age só
-// sobre busca/data/filial e mantém a tab atual; o reset de status é o chip "Todos".
-const TRACKED = ["q", "from", "to", "branchId", "page", "unverified"] as const;
+// sobre busca/data/filial/transportadora/produto e mantém a tab atual; o reset
+// de status é o chip "Todos".
+const TRACKED = [
+	"q",
+	"from",
+	"to",
+	"branchId",
+	"carrier",
+	"productId",
+] as const;
 const BRANCH_ALL = "__all__";
+const CARRIER_ALL = "__all__";
 
 function buildTabHref(filters: OrderListFilterState, tabKey: string): string {
 	const params = new URLSearchParams();
@@ -68,8 +78,11 @@ function buildTabHref(filters: OrderListFilterState, tabKey: string): string {
 	if (filters.branchId) {
 		params.set("branchId", filters.branchId);
 	}
-	if (filters.unverifiedShipping) {
-		params.set("unverified", "1");
+	if (filters.carrier) {
+		params.set("carrier", filters.carrier);
+	}
+	if (filters.toolId) {
+		params.set("productId", filters.toolId);
 	}
 	const qs = params.toString();
 	return qs ? `${BASE}?${qs}` : BASE;
@@ -83,6 +96,9 @@ function tabCount(
 	if (tabKey === "all") {
 		return counts.all_count ?? 0;
 	}
+	if (tabKey === "late") {
+		return counts.late ?? 0;
+	}
 	if (!statuses) {
 		return 0;
 	}
@@ -91,8 +107,10 @@ function tabCount(
 
 export function OrderFiltersPanel({
 	branches,
+	carrierOptions,
 	counts,
 	filters,
+	toolOptions,
 }: OrderListFiltersProps) {
 	const currentTab = canonicalOrderTabKey(filters.tab) ?? DEFAULT_ORDER_TAB;
 
@@ -104,7 +122,7 @@ export function OrderFiltersPanel({
 	const [from, setFrom] = useDebouncedParam({ basePath: BASE, key: "from" });
 	const [to, setTo] = useDebouncedParam({ basePath: BASE, key: "to" });
 	const currentBranch = searchParams.get("branchId") ?? BRANCH_ALL;
-	const unverifiedActive = searchParams.get("unverified") === "1";
+	const currentCarrier = searchParams.get("carrier") ?? CARRIER_ALL;
 
 	const renderTab = (tab: {
 		key: string;
@@ -122,7 +140,16 @@ export function OrderFiltersPanel({
 				value={tab.key}
 			>
 				<span>{tab.label}</span>
-				{(isActive || count > 0) && <TabsCountBadge value={count} />}
+				{(isActive || count > 0) && (
+					<TabsCountBadge
+						className={
+							tab.key === "late" && count > 0
+								? "bg-warning text-warning-foreground"
+								: undefined
+						}
+						value={count}
+					/>
+				)}
 			</TabsTrigger>
 		);
 	};
@@ -155,32 +182,36 @@ export function OrderFiltersPanel({
 					/>
 				</div>
 
-				<div className="flex flex-col gap-1.5 md:w-40">
+				<div className="flex flex-col gap-1.5 md:w-64">
 					<label
 						className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest"
-						htmlFor="orders-from"
+						htmlFor="orders-period"
 					>
-						De
+						Período
 					</label>
-					<DatePicker
-						id="orders-from"
-						onChange={(d) => setFrom(formatDateParam(d))}
-						value={parseDateParam(from)}
+					<DateRangePicker
+						from={parseDateParam(from)}
+						id="orders-period"
+						onChange={(r) => {
+							setFrom(formatDateParam(r.from));
+							setTo(formatDateParam(r.to));
+						}}
+						to={parseDateParam(to)}
 					/>
 				</div>
 
-				<div className="flex flex-col gap-1.5 md:w-40">
+				<div className="flex flex-col gap-1.5 md:w-52">
 					<label
 						className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest"
-						htmlFor="orders-to"
+						htmlFor="orders-product"
 					>
-						Até
+						Produto
 					</label>
-					<DatePicker
-						id="orders-to"
-						min={parseDateParam(from)}
-						onChange={(d) => setTo(formatDateParam(d))}
-						value={parseDateParam(to)}
+					<ProductFilterCombobox
+						id="orders-product"
+						onChange={(id) => setParam("productId", id)}
+						options={toolOptions}
+						value={searchParams.get("productId")}
 					/>
 				</div>
 
@@ -220,18 +251,48 @@ export function OrderFiltersPanel({
 					</Select>
 				</div>
 
-				<div className="flex flex-col justify-end">
-					<Button
-						aria-pressed={unverifiedActive}
-						onClick={() =>
-							setParam("unverified", unverifiedActive ? null : "1")
-						}
-						type="button"
-						variant={unverifiedActive ? "warning" : "outline"}
+				<div className="flex flex-col gap-1.5 md:w-52">
+					<label
+						className="font-medium text-[11px] text-muted-foreground uppercase tracking-widest"
+						htmlFor="orders-carrier"
 					>
-						<TriangleAlertIcon aria-hidden="true" className="size-4" />
-						Frete a revisar
-					</Button>
+						Transportadora
+					</label>
+					<Select
+						onValueChange={(v) =>
+							setParam("carrier", v === CARRIER_ALL ? null : v)
+						}
+						value={currentCarrier}
+					>
+						<SelectTrigger id="orders-carrier">
+							<SelectValue>
+								{(v: string) => {
+									if (v === CARRIER_ALL) {
+										return "Todas as transportadoras";
+									}
+									if (v === CARRIER_NONE) {
+										return "A combinar";
+									}
+									return v;
+								}}
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								<SelectItem value={CARRIER_ALL}>
+									Todas as transportadoras
+								</SelectItem>
+								{carrierOptions.methods.map((method) => (
+									<SelectItem key={method} value={method}>
+										{method}
+									</SelectItem>
+								))}
+								{carrierOptions.hasUnassigned && (
+									<SelectItem value={CARRIER_NONE}>A combinar</SelectItem>
+								)}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
 				</div>
 			</FiltersBar>
 		</div>

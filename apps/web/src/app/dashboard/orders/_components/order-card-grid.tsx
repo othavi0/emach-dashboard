@@ -3,17 +3,24 @@ import type { OrderListItem } from "../data";
 import { OrderCard } from "./order-card";
 
 interface OrderCardGridProps {
+	highlightToolId?: string | null;
 	items: OrderListItem[];
 	selection?: {
 		active: boolean;
 		isSelected: (id: string) => boolean;
 		onToggle: (id: string) => void;
 	};
+	tabKey: string;
 }
 
-export function OrderCardGrid({ items, selection }: OrderCardGridProps) {
+export function OrderCardGrid({
+	highlightToolId,
+	items,
+	selection,
+	tabKey,
+}: OrderCardGridProps) {
 	return (
-		<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+		<div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
 			{items.map((item) =>
 				selection ? (
 					<SelectableItem
@@ -22,10 +29,19 @@ export function OrderCardGrid({ items, selection }: OrderCardGridProps) {
 						onToggle={() => selection.onToggle(item.id)}
 						selected={selection.isSelected(item.id)}
 					>
-						<OrderCard item={item} />
+						<OrderCard
+							highlightToolId={highlightToolId}
+							item={item}
+							tabKey={tabKey}
+						/>
 					</SelectableItem>
 				) : (
-					<OrderCard item={item} key={item.id} />
+					<OrderCard
+						highlightToolId={highlightToolId}
+						item={item}
+						key={item.id}
+						tabKey={tabKey}
+					/>
 				)
 			)}
 		</div>

@@ -12,14 +12,18 @@ import { OrderCardGrid } from "./order-card-grid";
 
 interface OrdersInfiniteProps {
 	filters: OrdersPageFiltersInput;
+	highlightToolId?: string | null;
 	initial: OrderListItem[];
 	initialCursor: string | null;
+	tabKey: string;
 }
 
 export function OrdersInfinite({
 	initial,
 	initialCursor,
 	filters,
+	highlightToolId,
+	tabKey,
 }: OrdersInfiniteProps) {
 	const resetKey = JSON.stringify(filters);
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
@@ -47,12 +51,14 @@ export function OrdersInfinite({
 				/>
 			</div>
 			<OrderCardGrid
+				highlightToolId={highlightToolId}
 				items={items}
 				selection={{
 					active: sel.active,
 					isSelected: sel.isSelected,
 					onToggle: sel.toggle,
 				}}
+				tabKey={tabKey}
 			/>
 			<InfiniteSentinel
 				error={error}

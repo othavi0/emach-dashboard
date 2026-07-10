@@ -62,3 +62,7 @@ export const TONE_BADGE_VARIANT: Record<Tone, Tone> = {
 	success: "success",
 	warning: "warning",
 };
+
+// Badge de STATUS em caixa-alta (spec 2026-07-10) — só status/fulfillment,
+// nunca no Badge base (não uppercasear "Inativa" de filiais etc.).
+export const STATUS_BADGE_CAPS = "uppercase text-[10px] tracking-[0.05em]";

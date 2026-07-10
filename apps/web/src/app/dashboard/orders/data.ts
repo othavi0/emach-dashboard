@@ -3,7 +3,7 @@ import "server-only";
 import { db } from "@emach/db";
 import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
-import { toolImage } from "@emach/db/schema/tools";
+import { tool, toolImage } from "@emach/db/schema/tools";
 import { toDate } from "@emach/db/utils";
 import { cache } from "react";
 
@@ -30,49 +30,60 @@ import {
 	orderBranchConditionNoAlias,
 	orderInScope,
 } from "@/lib/branch-scope";
-import { decodeCursor } from "@/lib/cursor";
+import { decodeCursorAs } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 import type { FulfillmentState } from "../separacao/_lib/picking-logic";
 import { deriveFulfillmentState } from "../separacao/_lib/picking-logic";
 import { getLatestPicking } from "../separacao/data";
+import { LATE_TAB_HOURS } from "./_lib/lateness";
 import {
-	ALL_ORDERS_TAB,
-	canonicalOrderTabKey,
-	ORDER_TABS,
-} from "./status-meta";
-
-export const ORDERS_PAGE_SIZE = 20;
+	buildOrdersListConditions,
+	emptyTabCounts,
+	foldTabCounts,
+	normalizeDateParam,
+	type OrderTabCounts,
+	ordersTabSort,
+	resolveTab,
+} from "./_lib/orders-where";
+import type { ALL_ORDERS_TAB, ORDER_TABS } from "./status-meta";
 
 export interface OrderListFilters {
 	branchId?: string;
+	carrier?: string;
 	from?: string;
-	page?: number;
 	q?: string;
 	tab?: string;
 	to?: string;
-	unverifiedShipping?: boolean;
+	toolId?: string;
+}
+
+export interface OrderCardItem {
+	imageUrl: string | null;
+	name: string;
+	quantity: number;
+	toolId: string;
 }
 
 export interface OrderListItem {
 	branchName: string | null;
 	clientName: string;
 	createdAt: Date;
+	deliveredAt: Date | null;
 	/** Sub-estado de fulfillment, só preenchido quando `status === "preparing"`. */
 	fulfillmentState?: FulfillmentState | null;
 	id: string;
+	items: OrderCardItem[];
+	/** Nº de LINHAS do pedido (usado pro "+N itens"); ver `unitsCount` p/ soma de quantidades. */
 	itemsCount: number;
 	number: string;
+	paidAt: Date | null;
+	shippedAt: Date | null;
+	shippingMethod: string | null;
 	shippingUnverified: boolean;
 	status: OrderStatus;
 	totalAmount: number;
-}
-
-export interface OrderListResult {
-	items: OrderListItem[];
-	page: number;
-	total: number;
-	totalPages: number;
+	unitsCount: number;
 }
 
 export interface BranchOption {
@@ -255,19 +266,6 @@ function parseNumber(value: string | number | null): number | null {
 	return typeof value === "number" ? value : Number(value);
 }
 
-function normalizeDateParam(value?: string): string | undefined {
-	if (!value) {
-		return;
-	}
-	const trimmed = value.trim();
-	return trimmed ? trimmed : undefined;
-}
-
-function resolveTab(tab?: string) {
-	const key = canonicalOrderTabKey(tab);
-	return ORDER_TABS.find((item) => item.key === key) ?? ALL_ORDERS_TAB;
-}
-
 function formatActorLabel(entry: {
 	actorType: "system" | "user";
 	actorUserName: string | null;
@@ -310,11 +308,12 @@ export const listOrderBranches = cache(async (): Promise<BranchOption[]> => {
 
 export interface OrdersPageFiltersInput {
 	branchId?: string;
+	carrier?: string;
 	from?: string;
 	q?: string;
 	tab?: string;
 	to?: string;
-	unverifiedShipping?: boolean;
+	toolId?: string;
 }
 
 export async function fetchOrdersPage({
@@ -332,83 +331,93 @@ export async function fetchOrdersPage({
 	}
 
 	const tab = resolveTab(filters.tab);
-	const decoded = cursor ? decodeCursor(cursor) : null;
-	const conditions = [] as ReturnType<typeof sql>[];
-	const query = filters.q?.trim();
-	const from = normalizeDateParam(filters.from);
-	const to = normalizeDateParam(filters.to);
+	const sort = ordersTabSort(tab.key);
+	// decodeCursorAs valida o discriminante — cursor de outra tab/sort estoura cedo.
+	const decoded = cursor ? decodeCursorAs(cursor, sort) : null;
 
-	const branchCondition = orderBranchCondition(scope);
-	if (branchCondition) {
-		conditions.push(branchCondition);
-	}
-	if (tab.statuses) {
-		const placeholders = sql.join(
-			tab.statuses.map((s) => sql`${s}`),
-			sql`, `
-		);
-		conditions.push(sql`o.status IN (${placeholders})`);
-	}
-	if (query) {
+	const conditions = buildOrdersListConditions({
+		filters: {
+			branchId: filters.branchId,
+			carrier: filters.carrier,
+			from: normalizeDateParam(filters.from),
+			q: filters.q,
+			to: normalizeDateParam(filters.to),
+			toolId: filters.toolId,
+		},
+		scope,
+		tabDef: tab,
+	});
+	if (decoded) {
 		conditions.push(
-			sql`(o.number ILIKE ${`%${query}%`} OR c.name ILIKE ${`%${query}%`})`
-		);
-	}
-	if (filters.branchId) {
-		conditions.push(sql`o.branch_id = ${filters.branchId}`);
-	}
-	if (filters.unverifiedShipping) {
-		conditions.push(sql`o.shipping_unverified = true`);
-	}
-	if (from) {
-		conditions.push(sql`o.created_at >= ${from}::date`);
-	}
-	if (to) {
-		conditions.push(sql`o.created_at < (${to}::date + INTERVAL '1 day')`);
-	}
-	if (decoded && decoded.sort === "newest") {
-		conditions.push(
-			sql`(o.created_at, o.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
+			decoded.sort === "paidAtAsc"
+				? sql`(COALESCE(o.paid_at, o.created_at), o.id) > (${decoded.paidAt}::timestamptz, ${decoded.id})`
+				: sql`(o.created_at, o.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		);
 	}
 
 	const whereClause = conditions.length
 		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
 		: sql``;
+	const orderBy =
+		sort === "paidAtAsc"
+			? sql`ORDER BY COALESCE(o.paid_at, o.created_at) ASC, o.id ASC`
+			: sql`ORDER BY o.created_at DESC, o.id DESC`;
 
 	const rows = await db.execute<{
 		branch_name: string | null;
 		client_name: string;
 		created_at: Date;
+		delivered_at: Date | null;
+		fulfillment_age: Date;
 		id: string;
+		item_lines: OrderCardItem[] | null;
 		items_count: number;
 		latest_picking_status: OrderPickingStatus | null;
 		number: string;
+		paid_at: Date | null;
+		shipped_at: Date | null;
+		shipping_method: string | null;
 		shipping_unverified: boolean;
 		status: OrderStatus;
 		total_amount: string;
+		units_count: number;
 	}>(sql`
 		SELECT
-			o.id,
-			o.number,
-			o.status,
-			o.total_amount,
-			o.created_at,
-			o.shipping_unverified,
-			c.name AS client_name,
-			b.name AS branch_name,
+			o.id, o.number, o.status, o.total_amount, o.created_at,
+			o.paid_at, o.shipped_at, o.delivered_at,
+			o.shipping_unverified, o.shipping_method,
+			COALESCE(o.paid_at, o.created_at) AS fulfillment_age,
+			c.name AS client_name, b.name AS branch_name,
 			(SELECT COUNT(*) FROM order_item oi WHERE oi.order_id = o.id)::int AS items_count,
+			(SELECT COALESCE(SUM(oi.quantity), 0) FROM order_item oi WHERE oi.order_id = o.id)::int AS units_count,
+			li.items AS item_lines,
 			lp.status AS latest_picking_status
 		FROM "order" o
 		JOIN client c ON c.id = o.client_id
 		LEFT JOIN branch b ON b.id = o.branch_id
+		LEFT JOIN LATERAL (
+			SELECT COALESCE(jsonb_agg(jsonb_build_object(
+				'toolId', x.tool_id, 'name', x.name,
+				'quantity', x.quantity, 'imageUrl', x.image_url
+			) ORDER BY x.quantity DESC, x.name ASC), '[]'::jsonb) AS items
+			FROM (
+				SELECT oi.tool_id, oi.name, oi.quantity,
+					(SELECT ti.url FROM tool_image ti
+					 WHERE ti.tool_id = oi.tool_id
+					 ORDER BY ti.sort_order ASC LIMIT 1) AS image_url
+				FROM order_item oi
+				WHERE oi.order_id = o.id
+				ORDER BY oi.quantity DESC, oi.name ASC
+				LIMIT 3
+			) x
+		) li ON true
 		LEFT JOIN LATERAL (
 			SELECT op.status FROM order_picking op
 			WHERE op.order_id = o.id
 			ORDER BY op.started_at DESC, op.id DESC LIMIT 1
 		) lp ON o.status = 'preparing'
 		${whereClause}
-		ORDER BY o.created_at DESC, o.id DESC
+		${orderBy}
 		LIMIT ${BATCH_SIZE + 1}
 	`);
 
@@ -420,126 +429,36 @@ export async function fetchOrdersPage({
 			status: row.status,
 			totalAmount: Number(row.total_amount),
 			itemsCount: row.items_count,
+			unitsCount: row.units_count,
+			items: row.item_lines ?? [],
 			createdAt: toDate(row.created_at),
+			paidAt: row.paid_at ? toDate(row.paid_at) : null,
+			shippedAt: row.shipped_at ? toDate(row.shipped_at) : null,
+			deliveredAt: row.delivered_at ? toDate(row.delivered_at) : null,
 			clientName: row.client_name,
 			branchName: row.branch_name,
+			shippingMethod: row.shipping_method,
 			shippingUnverified: row.shipping_unverified,
 			fulfillmentState:
 				row.status === "preparing"
 					? deriveFulfillmentState(row.latest_picking_status ?? null)
 					: null,
 		}),
-		(last) => ({
-			v: 1,
-			sort: "newest" as const,
-			createdAt: toDate(last.created_at).toISOString(),
-			id: last.id,
-		})
+		(last) =>
+			sort === "paidAtAsc"
+				? {
+						v: 1 as const,
+						sort: "paidAtAsc" as const,
+						paidAt: toDate(last.fulfillment_age).toISOString(),
+						id: last.id,
+					}
+				: {
+						v: 1 as const,
+						sort: "newest" as const,
+						createdAt: toDate(last.created_at).toISOString(),
+						id: last.id,
+					}
 	);
-}
-
-export async function listOrders(
-	filters: OrderListFilters
-): Promise<OrderListResult> {
-	const session = await requireCurrentSession();
-	const scope = await getUserBranchScope(session);
-
-	if (isBlindScope(scope)) {
-		return { items: [], page: 1, total: 0, totalPages: 1 };
-	}
-
-	const tab = resolveTab(filters.tab);
-	const page = Math.max(1, filters.page ?? 1);
-	const offset = (page - 1) * ORDERS_PAGE_SIZE;
-	const conditions = [] as ReturnType<typeof sql>[];
-	const query = filters.q?.trim();
-	const from = normalizeDateParam(filters.from);
-	const to = normalizeDateParam(filters.to);
-
-	const branchCondition = orderBranchCondition(scope);
-	if (branchCondition) {
-		conditions.push(branchCondition);
-	}
-	if (tab.statuses) {
-		const placeholders = sql.join(
-			tab.statuses.map((s) => sql`${s}`),
-			sql`, `
-		);
-		conditions.push(sql`o.status IN (${placeholders})`);
-	}
-	if (query) {
-		conditions.push(
-			sql`(o.number ILIKE ${`%${query}%`} OR c.name ILIKE ${`%${query}%`})`
-		);
-	}
-	if (filters.branchId) {
-		conditions.push(sql`o.branch_id = ${filters.branchId}`);
-	}
-	if (filters.unverifiedShipping) {
-		conditions.push(sql`o.shipping_unverified = true`);
-	}
-	if (from) {
-		conditions.push(sql`o.created_at >= ${from}::date`);
-	}
-	if (to) {
-		conditions.push(sql`o.created_at < (${to}::date + INTERVAL '1 day')`);
-	}
-
-	const whereClause = conditions.length
-		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
-		: sql``;
-
-	const rows = await db.execute<{
-		branch_name: string | null;
-		client_name: string;
-		created_at: Date;
-		id: string;
-		items_count: number;
-		number: string;
-		shipping_unverified: boolean;
-		status: OrderStatus;
-		total_amount: string;
-		total_count: number;
-	}>(sql`
-		SELECT
-			o.id,
-			o.number,
-			o.status,
-			o.total_amount,
-			o.created_at,
-			o.shipping_unverified,
-			c.name AS client_name,
-			b.name AS branch_name,
-			(SELECT COUNT(*) FROM order_item oi WHERE oi.order_id = o.id)::int AS items_count,
-			COUNT(*) OVER()::int AS total_count
-		FROM "order" o
-		JOIN client c ON c.id = o.client_id
-		LEFT JOIN branch b ON b.id = o.branch_id
-		${whereClause}
-		ORDER BY o.created_at DESC, o.number DESC
-		LIMIT ${ORDERS_PAGE_SIZE}
-		OFFSET ${offset}
-	`);
-
-	const total = rows.rows[0]?.total_count ?? 0;
-	const totalPages = total === 0 ? 1 : Math.ceil(total / ORDERS_PAGE_SIZE);
-
-	return {
-		items: rows.rows.map((row) => ({
-			id: row.id,
-			number: row.number,
-			status: row.status,
-			totalAmount: Number(row.total_amount),
-			itemsCount: row.items_count,
-			createdAt: toDate(row.created_at),
-			clientName: row.client_name,
-			branchName: row.branch_name,
-			shippingUnverified: row.shipping_unverified,
-		})),
-		page,
-		total,
-		totalPages,
-	};
 }
 
 export interface OrderActivityRow {
@@ -586,33 +505,6 @@ export async function getRecentOrderActivity(
 	}));
 }
 
-interface OrderTabCounts {
-	all_count: number;
-	canceled: number;
-	delivered: number;
-	paid: number;
-	payment_failed: number;
-	pending_payment: number;
-	preparing: number;
-	returned: number;
-	shipped: number;
-	[key: string]: number;
-}
-
-function emptyTabCounts(): OrderTabCounts {
-	return {
-		all_count: 0,
-		pending_payment: 0,
-		payment_failed: 0,
-		paid: 0,
-		preparing: 0,
-		shipped: 0,
-		delivered: 0,
-		returned: 0,
-		canceled: 0,
-	};
-}
-
 // TTL curto: os counts são um badge informativo e a tabela `order` também é
 // escrita pelo app ecommerce (banco compartilhado), que NÃO dispara revalidação
 // no dashboard. O TTL limita a defasagem máxima; mutações do dashboard revalidam
@@ -627,37 +519,22 @@ export const ORDERS_COUNTS_TAG = "orders-counts";
 const computeOrdersTabCounts = unstable_cache(
 	async (scope: BranchScope): Promise<OrderTabCounts> => {
 		const branchFilter = orderBranchConditionNoAlias(scope);
-		const result = await db.execute<{ status: OrderStatus; count: number }>(sql`
-			SELECT status, COUNT(*)::int AS count
+		const result = await db.execute<{
+			count: number;
+			is_late: boolean;
+			status: OrderStatus;
+		}>(sql`
+			SELECT status,
+				(status IN ('paid','preparing')
+				 AND COALESCE(paid_at, created_at) <= now() - make_interval(hours => ${LATE_TAB_HOURS})
+				) AS is_late,
+				COUNT(*)::int AS count
 			FROM "order"
 			${branchFilter ? sql`WHERE ${branchFilter}` : sql``}
-			GROUP BY status
+			GROUP BY 1, 2
 		`);
 
-		const counts = emptyTabCounts();
-		for (const row of result.rows) {
-			counts.all_count += row.count;
-			// `canceled`/`refunded` somam na mesma tab; os demais mapeiam 1:1. O
-			// switch estreita row.status para o literal, então a indexação é type-safe.
-			switch (row.status) {
-				case "canceled":
-				case "refunded":
-					counts.canceled += row.count;
-					break;
-				case "pending_payment":
-				case "payment_failed":
-				case "paid":
-				case "preparing":
-				case "shipped":
-				case "delivered":
-				case "returned":
-					counts[row.status] = row.count;
-					break;
-				default:
-					break;
-			}
-		}
-		return counts;
+		return foldTabCounts(result.rows);
 	},
 	["orders-tab-counts"],
 	{ revalidate: ORDERS_COUNTS_TTL_SECONDS, tags: [ORDERS_COUNTS_TAG] }
@@ -669,6 +546,106 @@ export async function getOrdersTabCounts(): Promise<Record<string, number>> {
 		return emptyTabCounts();
 	}
 	return computeOrdersTabCounts(scope);
+}
+
+// Consumida pela página de Separação (fila de atrasados fora da listagem).
+export async function getLateOrdersCount(scope: BranchScope): Promise<number> {
+	if (isBlindScope(scope)) {
+		return 0;
+	}
+	const counts = await computeOrdersTabCounts(scope);
+	return counts.late;
+}
+
+// DISTINCT shipping_method no escopo — popula o facet de transportadora do filtro.
+export async function listOrderCarrierOptions(): Promise<{
+	hasUnassigned: boolean;
+	methods: string[];
+}> {
+	const session = await requireCurrentSession();
+	const scope = await getUserBranchScope(session);
+	if (isBlindScope(scope)) {
+		return { methods: [], hasUnassigned: false };
+	}
+	const branchCondition = orderBranchCondition(scope);
+	const rows = await db.execute<{ shipping_method: string | null }>(sql`
+		SELECT DISTINCT o.shipping_method FROM "order" o
+		${branchCondition ? sql`WHERE ${branchCondition}` : sql``}
+		ORDER BY 1
+	`);
+	const methods = rows.rows
+		.map((r) => r.shipping_method)
+		.filter((m): m is string => m !== null);
+	return {
+		methods,
+		hasUnassigned: rows.rows.some((r) => r.shipping_method === null),
+	};
+}
+
+// Produtos ativos do catálogo — popula o facet de produto do filtro (Catálogo
+// é global, sem branch-scoping — ver CLAUDE.md).
+export async function listOrderToolOptions(): Promise<
+	{ id: string; name: string }[]
+> {
+	await requireCurrentSession();
+	return db
+		.select({ id: tool.id, name: tool.name })
+		.from(tool)
+		.where(eq(tool.status, "active"))
+		.orderBy(asc(tool.name));
+}
+
+// Resumo (pedidos/unidades) do produto filtrado por toolId — usado no header
+// da listagem quando o filtro de produto está ativo (renderiza server-side).
+export async function fetchOrdersProductSummary({
+	filters,
+}: {
+	filters: OrdersPageFiltersInput;
+}): Promise<{ orders: number; units: number } | null> {
+	if (!filters.toolId) {
+		return null;
+	}
+	const session = await requireCurrentSession();
+	const scope = await getUserBranchScope(session);
+	if (isBlindScope(scope)) {
+		return { orders: 0, units: 0 };
+	}
+	const tab = resolveTab(filters.tab);
+	const conditions = buildOrdersListConditions({
+		filters: {
+			branchId: filters.branchId,
+			carrier: filters.carrier,
+			from: normalizeDateParam(filters.from),
+			q: filters.q,
+			to: normalizeDateParam(filters.to),
+			toolId: filters.toolId,
+		},
+		scope,
+		tabDef: tab,
+	});
+	const whereClause = conditions.length
+		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+		: sql``;
+	const rows = await db.execute<{ orders: number; units: number }>(sql`
+		SELECT COUNT(DISTINCT o.id)::int AS orders,
+			COALESCE(SUM(oi.quantity), 0)::int AS units
+		FROM "order" o
+		JOIN client c ON c.id = o.client_id
+		JOIN order_item oi ON oi.order_id = o.id AND oi.tool_id = ${filters.toolId}
+		${whereClause}
+	`);
+	return rows.rows[0] ?? { orders: 0, units: 0 };
+}
+
+// Nome do produto filtrado por productId — usado no chip do resumo acima da lista.
+export async function getToolName(id: string): Promise<string | null> {
+	await requireCurrentSession();
+	const rows = await db
+		.select({ name: tool.name })
+		.from(tool)
+		.where(eq(tool.id, id))
+		.limit(1);
+	return rows[0]?.name ?? null;
 }
 
 export type OrderReviewState =

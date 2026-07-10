@@ -11,12 +11,18 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapability } from "@/lib/permissions";
 import { ExportCsvLink } from "./_components/export-csv-link";
+import { LateOrdersToast } from "./_components/late-orders-toast";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrdersInfinite } from "./_components/orders-infinite";
+import { ProductFilterSummary } from "./_components/product-filter-summary";
 import {
 	fetchOrdersPage,
+	fetchOrdersProductSummary,
 	getOrdersTabCounts,
+	getToolName,
 	listOrderBranches,
+	listOrderCarrierOptions,
+	listOrderToolOptions,
 	type OrderListFilters,
 	type OrdersPageFiltersInput,
 } from "./data";
@@ -29,6 +35,27 @@ export const metadata: Metadata = {
 
 interface PageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+// URL atual sem `productId` — destino do "limpar filtro" do resumo de produto.
+function buildClearProductHref(
+	raw: Record<string, string | string[] | undefined>
+): string {
+	const params = new URLSearchParams();
+	for (const [key, value] of Object.entries(raw)) {
+		if (key === "productId" || value === undefined) {
+			continue;
+		}
+		if (Array.isArray(value)) {
+			for (const v of value) {
+				params.append(key, v);
+			}
+		} else {
+			params.set(key, value);
+		}
+	}
+	const qs = params.toString();
+	return `/dashboard/orders${qs ? `?${qs}` : ""}`;
 }
 
 export default function OrdersPage({ searchParams }: PageProps) {
@@ -46,7 +73,6 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 	// Canonicaliza o alias legado (to_prepare→paid) antes de tudo, senão o
 	// hasFilters trata o alias como filtro ativo e acende "Limpar filtros".
 	const activeTab = canonicalOrderTabKey(data.tab) ?? DEFAULT_ORDER_TAB;
-	const unverifiedShipping = data.unverified === "1";
 
 	const filters: OrderListFilters = {
 		tab: activeTab,
@@ -54,8 +80,8 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		from: data.from,
 		to: data.to,
 		branchId: data.branchId,
-		page: data.page,
-		unverifiedShipping,
+		carrier: data.carrier,
+		toolId: data.productId,
 	};
 
 	const pageFilters: OrdersPageFiltersInput = {
@@ -64,14 +90,29 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		from: data.from,
 		to: data.to,
 		branchId: data.branchId,
-		unverifiedShipping,
+		carrier: data.carrier,
+		toolId: data.productId,
 	};
 
-	const [branches, counts, result] = await Promise.all([
+	const [
+		branches,
+		counts,
+		result,
+		carrierOptions,
+		toolOptions,
+		productSummary,
+		productName,
+	] = await Promise.all([
 		listOrderBranches(),
 		getOrdersTabCounts(),
 		fetchOrdersPage({ filters: pageFilters, cursor: null }),
+		listOrderCarrierOptions(),
+		listOrderToolOptions(),
+		fetchOrdersProductSummary({ filters: pageFilters }),
+		data.productId ? getToolName(data.productId) : Promise.resolve(null),
 	]);
+
+	const clearProductHref = buildClearProductHref(raw);
 
 	// O tab default ("Pago") não conta como filtro ativo — só desvios dele.
 	const hasFilters = Boolean(
@@ -79,12 +120,14 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 			filters.from ||
 			filters.to ||
 			filters.branchId ||
-			unverifiedShipping ||
+			data.carrier ||
+			data.productId ||
 			activeTab !== DEFAULT_ORDER_TAB
 	);
 
 	return (
 		<>
+			<LateOrdersToast count={counts.late ?? 0} />
 			<PageHeader
 				action={
 					<div className="flex items-center gap-2">
@@ -97,9 +140,20 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 
 			<OrderFiltersPanel
 				branches={branches}
+				carrierOptions={carrierOptions}
 				counts={counts}
 				filters={filters}
+				toolOptions={toolOptions}
 			/>
+
+			{productSummary && productName && (
+				<ProductFilterSummary
+					clearHref={clearProductHref}
+					name={productName}
+					orders={productSummary.orders}
+					units={productSummary.units}
+				/>
+			)}
 
 			{result.items.length === 0 ? (
 				<Empty>
@@ -125,8 +179,10 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 			) : (
 				<OrdersInfinite
 					filters={pageFilters}
+					highlightToolId={data.productId ?? null}
 					initial={result.items}
 					initialCursor={result.nextCursor}
+					tabKey={activeTab}
 				/>
 			)}
 		</>

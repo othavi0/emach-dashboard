@@ -4,6 +4,8 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { PageHeader } from "@/components/page-header";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { LateOrdersToast } from "../orders/_components/late-orders-toast";
+import { getLateOrdersCount } from "../orders/data";
 import { PickingQueue } from "./_components/picking-queue";
 import { ResumeBanner } from "./_components/resume-banner";
 import {
@@ -36,15 +38,17 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 		rawTab === "em_separacao" || rawTab === "excecoes" ? rawTab : "a_separar";
 
 	// Contadores reais (COUNT) das 3 tabs + apenas a página da tab ativa.
-	const [counts, initialResult, activePicking] = await Promise.all([
+	const [counts, initialResult, activePicking, lateCount] = await Promise.all([
 		fetchPickingQueueCounts(scope),
 		fetchPickingQueuePage({ cursor: null, scope, tab: activeTab }),
 		getActivePickingForUser(session.user.id, scope),
+		getLateOrdersCount(scope),
 	]);
 
 	return (
 		<>
 			<AutoRefresh />
+			<LateOrdersToast count={lateCount} />
 			<PageHeader
 				action={
 					<div className="flex items-center gap-6">
