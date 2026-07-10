@@ -84,14 +84,16 @@ export function OrderCard({
 			</div>
 
 			<div className="flex flex-col gap-1.5 border-border/55 border-t px-4 pt-2 pb-2.5">
-				{item.items.map((line) => (
+				{item.items.map((line, index) => (
 					<div
 						className={cn(
 							"flex items-center gap-2.5",
 							highlightToolId === line.toolId &&
 								"-mx-1.5 rounded-md bg-primary/10 px-1.5 py-0.5 outline outline-1 outline-primary/35"
 						)}
-						key={`${line.toolId}-${line.name}`}
+						// key posicional: lista curta ordenada de forma estável no SQL, sem inputs nem
+						// reordenação; toolId+name colidem entre variantes da mesma ferramenta.
+						key={`${line.toolId}-${index}`}
 					>
 						{line.imageUrl ? (
 							// biome-ignore lint/performance/noImgElement: Supabase public URL
