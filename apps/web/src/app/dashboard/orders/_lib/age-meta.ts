@@ -9,8 +9,22 @@ interface AgeSource {
 
 const HA_PREFIX = /^há /;
 
-function stripHaPrefix(value: string): string {
-	return value.replace(HA_PREFIX, "");
+// `formatRelative` usa `Intl.RelativeTimeFormat` com `numeric: "auto"`, que
+// troca formas numéricas ("há 1 dia") por palavras idiomáticas ("ontem",
+// "anteontem", "este minuto", "mês passado", "ano passado") sem o prefixo
+// "há" — quebra a gramática do label fixo "Pago há"/"Enviado há"/"Criado há"
+// (ex: "pago há anteontem"). Mapeia essas formas de volta pra uma contagem
+// numérica antes do strip, mantendo o label gramatical.
+const RELATIVE_WORD_MAP: Record<string, string> = {
+	"este minuto": "instantes",
+	ontem: "1 dia",
+	anteontem: "2 dias",
+	"mês passado": "1 mês",
+	"ano passado": "1 ano",
+};
+
+function normalizeRelative(value: string): string {
+	return RELATIVE_WORD_MAP[value] ?? value.replace(HA_PREFIX, "");
 }
 
 export function ageMetaForTab(
@@ -23,12 +37,14 @@ export function ageMetaForTab(
 		case "late":
 			return {
 				label: "Pago há",
-				value: stripHaPrefix(formatRelative(item.paidAt ?? item.createdAt)),
+				value: normalizeRelative(formatRelative(item.paidAt ?? item.createdAt)),
 			};
 		case "shipped":
 			return {
 				label: "Enviado há",
-				value: stripHaPrefix(formatRelative(item.shippedAt ?? item.createdAt)),
+				value: normalizeRelative(
+					formatRelative(item.shippedAt ?? item.createdAt)
+				),
 			};
 		case "delivered":
 			return {
@@ -38,7 +54,7 @@ export function ageMetaForTab(
 		default:
 			return {
 				label: "Criado há",
-				value: stripHaPrefix(formatRelative(item.createdAt)),
+				value: normalizeRelative(formatRelative(item.createdAt)),
 			};
 	}
 }
