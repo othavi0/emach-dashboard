@@ -11,6 +11,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { can, requireCapability } from "@/lib/permissions";
 import { ExportCsvLink } from "./_components/export-csv-link";
+import { LateOrdersToast } from "./_components/late-orders-toast";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrdersInfinite } from "./_components/orders-infinite";
 import { ProductFilterSummary } from "./_components/product-filter-summary";
@@ -126,6 +127,7 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 
 	return (
 		<>
+			<LateOrdersToast count={counts.late ?? 0} />
 			<PageHeader
 				action={
 					<div className="flex items-center gap-2">
