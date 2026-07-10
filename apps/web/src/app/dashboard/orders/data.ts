@@ -407,7 +407,7 @@ export async function fetchOrdersPage({
 			SELECT COALESCE(jsonb_agg(jsonb_build_object(
 				'toolId', x.tool_id, 'name', x.name,
 				'quantity', x.quantity, 'imageUrl', x.image_url
-			)), '[]'::jsonb) AS items
+			) ORDER BY x.quantity DESC, x.name ASC), '[]'::jsonb) AS items
 			FROM (
 				SELECT oi.tool_id, oi.name, oi.quantity,
 					(SELECT ti.url FROM tool_image ti
