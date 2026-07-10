@@ -98,6 +98,10 @@ CHECK `actor_coherence` no DB rejeita combinações inválidas.
 
 `stockMovement.variantId` (não mais `toolId`) — toda movimentação por variante. Pra revalidar paths do tool-pai após `adjustStock`: `SELECT toolId FROM tool_variant WHERE id = $variantId` antes de `revalidatePath`.
 
+## Orders — filter-builder único (redesign 2026-07-10)
+
+O WHERE da listagem de pedidos vive SÓ em `dashboard/orders/_lib/orders-where.ts` (`buildOrdersListConditions` + `resolveTab` + `ordersTabSort` + `foldTabCounts`) — consumido por `fetchOrdersPage`, export CSV e resumo de produto. **Não reintroduzir cópias inline de filtro** (já existiram 3; uma delas deixava `?tab=` sem a condição de lateness no export). Gotchas do módulo: é **server-tainted** (drizzle + branch-scope) — client component NUNCA importa dele por valor; constantes client-safe (ex.: `CARRIER_NONE`) moram em `status-meta.ts` (fonte canônica) e `orders-where` importa de lá. Tab `late` é computada (não é status): `paid`/`preparing` ≥72h desde `COALESCE(paid_at, created_at)`; tabs `paid`/`preparing` carregam a condição inversa — mexeu na regra, mexa em `_lib/lateness.ts` (48/72h) e nos counts juntos.
+
 ## Orders — branch-scoping fail-safe
 
 Mutações de pedido (status, anexos) passam por `lockOrderAndAuthorize(tx, cap, orderId)` em `dashboard/orders/actions.ts`: `SELECT ... FOR UPDATE` **e** capability check no mesmo lock — non-`super_admin` só age sobre pedidos da própria filial. Toda transição escreve em `orderStatusHistory`; `canceled`/`refunded`/`returned` exigem `reason`, `preparing` exige `branchId`.
