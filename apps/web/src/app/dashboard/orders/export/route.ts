@@ -1,6 +1,6 @@
 import { db } from "@emach/db";
 import { toDate } from "@emach/db/utils";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 
 import {
 	getUserBranchScope,
@@ -9,8 +9,12 @@ import {
 } from "@/lib/branch-scope";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
+import {
+	buildOrdersListConditions,
+	normalizeDateParam,
+	resolveTab,
+} from "../_lib/orders-where";
 import { ordersListFiltersSchema } from "../schema";
-import { ORDER_TABS } from "../status-meta";
 
 const MAX_ROWS = 50_000;
 const MAX_BYTES = 50 * 1024 * 1024;
@@ -90,13 +94,8 @@ export async function GET(req: Request) {
 	}
 	const filters = parsed.data;
 
-	const conditions = [] as ReturnType<typeof sql>[];
-
-	// Filtro de filial: sempre aplicado antes dos demais filtros (alias `o`).
+	const conditions: SQL[] = [];
 	const branchCond = orderBranchCondition(scope);
-	if (branchCond) {
-		conditions.push(branchCond);
-	}
 
 	// Export de selecionados: IDs explícitos substituem os filtros de listagem.
 	const selectedIds = filters.ids
@@ -105,39 +104,34 @@ export async function GET(req: Request) {
 				.map((s) => s.trim())
 				.filter(Boolean)
 		: [];
+
 	if (selectedIds.length > 0) {
+		if (branchCond) {
+			conditions.push(branchCond);
+		}
 		const placeholders = sql.join(
 			selectedIds.map((id) => sql`${id}`),
 			sql`, `
 		);
 		conditions.push(sql`o.id IN (${placeholders})`);
+	} else {
+		const tab = resolveTab(filters.tab);
+		conditions.push(
+			...buildOrdersListConditions({
+				filters: {
+					q: filters.q,
+					branchId: filters.branchId,
+					carrier: filters.carrier,
+					toolId: filters.productId,
+					from: normalizeDateParam(filters.from),
+					to: normalizeDateParam(filters.to),
+				},
+				scope,
+				tabDef: tab,
+			})
+		);
 	}
 
-	const tab = ORDER_TABS.find((t) => t.key === filters.tab);
-	if (selectedIds.length === 0 && tab?.statuses) {
-		const placeholders = sql.join(
-			tab.statuses.map((s) => sql`${s}`),
-			sql`, `
-		);
-		conditions.push(sql`o.status IN (${placeholders})`);
-	}
-	if (selectedIds.length === 0 && filters.q) {
-		const like = `%${filters.q.replace(/[%_]/g, (m) => `\\${m}`)}%`;
-		conditions.push(
-			sql`(o.number ILIKE ${like} OR c.name ILIKE ${like} OR c.email ILIKE ${like} OR c.document ILIKE ${like})`
-		);
-	}
-	if (selectedIds.length === 0 && filters.branchId) {
-		conditions.push(sql`o.branch_id = ${filters.branchId}`);
-	}
-	if (selectedIds.length === 0 && filters.from) {
-		conditions.push(sql`o.created_at >= ${filters.from}::date`);
-	}
-	if (selectedIds.length === 0 && filters.to) {
-		conditions.push(
-			sql`o.created_at < (${filters.to}::date + INTERVAL '1 day')`
-		);
-	}
 	const where = conditions.length
 		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
 		: sql``;

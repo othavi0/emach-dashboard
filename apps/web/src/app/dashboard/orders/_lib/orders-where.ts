@@ -5,8 +5,28 @@ import type { OrderTabDef } from "../status-meta";
 // CARRIER_NONE mora em status-meta.ts (client-safe) — este módulo importa
 // drizzle-orm/branch-scope (server-tainted) e não pode ser importado por
 // client component (ADR-0015). Consumers importam a constante direto de lá.
-import { CARRIER_NONE } from "../status-meta";
+import {
+	ALL_ORDERS_TAB,
+	CARRIER_NONE,
+	canonicalOrderTabKey,
+	ORDER_TABS,
+} from "../status-meta";
 import { LATE_TAB_HOURS } from "./lateness";
+
+// Resolve a tab pela key (com alias legado, fallback pra "Todos") — fonte
+// única consumida por fetchOrdersPage, resumo de produto e export CSV.
+export function resolveTab(tab?: string) {
+	const key = canonicalOrderTabKey(tab);
+	return ORDER_TABS.find((item) => item.key === key) ?? ALL_ORDERS_TAB;
+}
+
+export function normalizeDateParam(value?: string): string | undefined {
+	if (!value) {
+		return;
+	}
+	const trimmed = value.trim();
+	return trimmed ? trimmed : undefined;
+}
 
 const FIFO_TABS = new Set(["paid", "preparing", "late"]);
 

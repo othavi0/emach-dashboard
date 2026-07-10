@@ -41,14 +41,12 @@ import {
 	buildOrdersListConditions,
 	emptyTabCounts,
 	foldTabCounts,
+	normalizeDateParam,
 	type OrderTabCounts,
 	ordersTabSort,
+	resolveTab,
 } from "./_lib/orders-where";
-import {
-	ALL_ORDERS_TAB,
-	canonicalOrderTabKey,
-	ORDER_TABS,
-} from "./status-meta";
+import type { ALL_ORDERS_TAB, ORDER_TABS } from "./status-meta";
 
 export interface OrderListFilters {
 	branchId?: string;
@@ -266,19 +264,6 @@ function parseNumber(value: string | number | null): number | null {
 		return null;
 	}
 	return typeof value === "number" ? value : Number(value);
-}
-
-function normalizeDateParam(value?: string): string | undefined {
-	if (!value) {
-		return;
-	}
-	const trimmed = value.trim();
-	return trimmed ? trimmed : undefined;
-}
-
-function resolveTab(tab?: string) {
-	const key = canonicalOrderTabKey(tab);
-	return ORDER_TABS.find((item) => item.key === key) ?? ALL_ORDERS_TAB;
 }
 
 function formatActorLabel(entry: {
