@@ -24,6 +24,12 @@ export function ExportCsvLink({ filters }: ExportCsvLinkProps) {
 	if (filters.branchId) {
 		params.set("branchId", filters.branchId);
 	}
+	if (filters.carrier) {
+		params.set("carrier", filters.carrier);
+	}
+	if (filters.toolId) {
+		params.set("productId", filters.toolId);
+	}
 	const qs = params.toString();
 	const href = `/dashboard/orders/export${qs ? `?${qs}` : ""}`;
 
