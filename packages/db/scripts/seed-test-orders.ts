@@ -15,6 +15,10 @@ const HOURS = 3_600_000;
 // Idades desde o pagamento: 2h e 26h (normais), 50h (âmbar), 74h e 120h (Atrasados).
 const PAID_AGES_HOURS = [2, 26, 50, 74, 120] as const;
 const SHIPPING_METHODS = ["SEDEX", "PAC", null, "SEDEX", "PAC"] as const;
+// Sem desconto neste seed — constante única referenciada por `order.discountAmount`
+// e pela fórmula de `totalAmount`, pra invariante subtotal-desconto+frete não
+// quebrar silenciosamente se alguém parametrizar desconto no futuro.
+const DISCOUNT_AMOUNT = "0";
 
 interface ClientRow {
 	id: string;
@@ -44,6 +48,28 @@ async function insertTestOrderLine(
 ): Promise<void> {
 	const { branchId, line, orderId } = params;
 	const itemId = crypto.randomUUID();
+
+	// Débito atômico — espelha o ecommerce na confirmação de pagamento.
+	// UPDATE relativo (quantity = quantity - N) numa operação só, sem SELECT
+	// prévio: elimina o lost-update contra tráfego concorrente do ecommerce.
+	// Roda ANTES do insert de orderItem (checar-e-debitar primeiro, inserir
+	// a linha depois) — se o estoque for insuficiente, aborta sem deixar
+	// orderItem/stockMovement órfãos.
+	const debited = await tx.execute<{ quantity: number }>(
+		sql`UPDATE stock_level
+			SET quantity = quantity - ${line.quantity}
+			WHERE variant_id = ${line.v.variant_id}
+				AND branch_id = ${branchId}
+				AND quantity >= ${line.quantity}
+			RETURNING quantity`
+	);
+	const newQty = debited.rows[0]?.quantity;
+	if (newQty === undefined) {
+		throw new Error(
+			`[seed-test-orders] estoque insuficiente ou stock_level ausente: variant=${line.v.variant_id} branch=${branchId}`
+		);
+	}
+
 	await tx.insert(orderItem).values({
 		id: itemId,
 		orderId,
@@ -64,22 +90,12 @@ async function insertTestOrderLine(
 		manufacturerName: line.v.manufacturer_name,
 	});
 
-	// Débito de estoque — espelha o ecommerce na confirmação de pagamento.
-	const current = await tx.execute<{ quantity: number }>(
-		sql`SELECT quantity FROM stock_level WHERE variant_id = ${line.v.variant_id} AND branch_id = ${branchId}`
-	);
-	const currentQty = current.rows[0]?.quantity;
-	if (currentQty === undefined || currentQty < line.quantity) {
-		throw new Error(
-			`[seed-test-orders] estoque insuficiente variant=${line.v.variant_id}`
-		);
-	}
-	const newQty = currentQty - line.quantity;
+	// stock_movement.order_item_id referencia orderItem.id — insert depois do item.
 	await tx.insert(stockMovement).values({
 		id: crypto.randomUUID(),
 		variantId: line.v.variant_id,
 		branchId,
-		previousQty: currentQty,
+		previousQty: newQty + line.quantity,
 		newQty,
 		delta: -line.quantity,
 		reason: "saida_venda",
@@ -89,9 +105,6 @@ async function insertTestOrderLine(
 		actorType: "system",
 		actorId: null,
 	});
-	await tx.execute(
-		sql`UPDATE stock_level SET quantity = ${newQty} WHERE variant_id = ${line.v.variant_id} AND branch_id = ${branchId}`
-	);
 }
 
 async function insertTestOrder(
@@ -127,7 +140,9 @@ async function insertTestOrder(
 		.toFixed(2);
 	const shippingAmount = SHIPPING_METHODS[index] ? "39.90" : "0";
 	const totalAmount = (
-		Number.parseFloat(subtotal) + Number.parseFloat(shippingAmount)
+		Number.parseFloat(subtotal) -
+		Number.parseFloat(DISCOUNT_AMOUNT) +
+		Number.parseFloat(shippingAmount)
 	).toFixed(2);
 
 	await tx.insert(order).values({
@@ -139,7 +154,7 @@ async function insertTestOrder(
 		paymentMethod: "pix",
 		paymentProviderRef: `TEST-${orderId.slice(0, 8).toUpperCase()}`,
 		subtotalAmount: subtotal,
-		discountAmount: "0",
+		discountAmount: DISCOUNT_AMOUNT,
 		shippingAmount,
 		totalAmount,
 		shippingAddress: {
