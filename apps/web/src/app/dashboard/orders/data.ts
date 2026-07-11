@@ -78,6 +78,7 @@ export interface OrderListItem {
 	itemsCount: number;
 	number: string;
 	paidAt: Date | null;
+	pickerName: string | null;
 	preparingAt: Date | null;
 	shippedAt: Date | null;
 	shippingMethod: string | null;
@@ -373,6 +374,7 @@ export async function fetchOrdersPage({
 		id: string;
 		item_lines: OrderCardItem[] | null;
 		items_count: number;
+		latest_picking_picker: string | null;
 		latest_picking_status: OrderPickingStatus | null;
 		number: string;
 		paid_at: Date | null;
@@ -393,7 +395,7 @@ export async function fetchOrdersPage({
 			(SELECT COUNT(*) FROM order_item oi WHERE oi.order_id = o.id)::int AS items_count,
 			(SELECT COALESCE(SUM(oi.quantity), 0) FROM order_item oi WHERE oi.order_id = o.id)::int AS units_count,
 			li.items AS item_lines,
-			lp.status AS latest_picking_status
+			lp.status AS latest_picking_status, lp.picker_name AS latest_picking_picker
 		FROM "order" o
 		JOIN client c ON c.id = o.client_id
 		LEFT JOIN branch b ON b.id = o.branch_id
@@ -414,7 +416,7 @@ export async function fetchOrdersPage({
 			) x
 		) li ON true
 		LEFT JOIN LATERAL (
-			SELECT op.status FROM order_picking op
+			SELECT op.status, op.picker_name FROM order_picking op
 			WHERE op.order_id = o.id
 			ORDER BY op.started_at DESC, op.id DESC LIMIT 1
 		) lp ON o.status = 'preparing'
@@ -435,6 +437,8 @@ export async function fetchOrdersPage({
 			items: row.item_lines ?? [],
 			createdAt: toDate(row.created_at),
 			paidAt: row.paid_at ? toDate(row.paid_at) : null,
+			pickerName:
+				row.status === "preparing" ? (row.latest_picking_picker ?? null) : null,
 			preparingAt: row.preparing_at ? toDate(row.preparing_at) : null,
 			shippedAt: row.shipped_at ? toDate(row.shipped_at) : null,
 			deliveredAt: row.delivered_at ? toDate(row.delivered_at) : null,

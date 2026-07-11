@@ -4,7 +4,10 @@ import { MapPinIcon, PackageIcon, TruckIcon } from "lucide-react";
 import Link from "next/link";
 
 import { STATUS_BADGE_CAPS } from "@/components/status-visual";
-import { FULFILLMENT_STATE_META } from "../../separacao/fulfillment-meta";
+import {
+	FULFILLMENT_STATE_META,
+	fulfillmentBadgeLabel,
+} from "../../separacao/fulfillment-meta";
 import { ageMetaForTab } from "../_lib/age-meta";
 import { orderBadgeSource } from "../_lib/display-state";
 import { latenessOf } from "../_lib/lateness";
@@ -69,7 +72,7 @@ export function OrderCard({
 								FULFILLMENT_STATE_META[item.fulfillmentState].badgeVariant
 							}
 						>
-							{FULFILLMENT_STATE_META[item.fulfillmentState].label}
+							{fulfillmentBadgeLabel(item.fulfillmentState, item.pickerName)}
 						</Badge>
 					) : (
 						<OrderStatusBadge status={item.status} />
