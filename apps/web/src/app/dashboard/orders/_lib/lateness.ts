@@ -11,17 +11,24 @@ const FULFILLMENT_STATUSES: ReadonlySet<OrderStatus> = new Set([
 
 export type Lateness = "none" | "amber" | "late";
 
-export function latenessOf(
-	status: OrderStatus,
-	paidAt: Date | null,
-	createdAt: Date,
-	now: Date
-): Lateness {
-	if (!FULFILLMENT_STATUSES.has(status)) {
+// Regra spec 2026-07-11: cada etapa conta o próprio relógio — paid de
+// paid_at; preparing de preparing_at (fallback paid_at p/ legado sem a
+// coluna preenchida). Espelhada no SQL de orders-where.ts/data.ts.
+export function latenessOf(args: {
+	createdAt: Date;
+	now: Date;
+	paidAt: Date | null;
+	preparingAt: Date | null;
+	status: OrderStatus;
+}): Lateness {
+	if (!FULFILLMENT_STATUSES.has(args.status)) {
 		return "none";
 	}
-	const base = paidAt ?? createdAt;
-	const ageHours = (now.getTime() - base.getTime()) / 3_600_000;
+	const base =
+		args.status === "preparing"
+			? (args.preparingAt ?? args.paidAt ?? args.createdAt)
+			: (args.paidAt ?? args.createdAt);
+	const ageHours = (args.now.getTime() - base.getTime()) / 3_600_000;
 	if (ageHours >= LATE_TAB_HOURS) {
 		return "late";
 	}

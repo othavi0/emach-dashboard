@@ -64,8 +64,12 @@ describe("buildOrdersListConditions", () => {
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("o.branch_id IN");
 		expect(rendered).toContain("o.status IN");
+		expect(rendered).toContain("CASE WHEN o.status = 'preparing'");
 		expect(rendered).toContain(
-			"COALESCE(o.paid_at, o.created_at) > now() - make_interval(hours =>"
+			"COALESCE(o.preparing_at, o.paid_at, o.created_at)"
+		);
+		expect(rendered).toContain(
+			"ELSE COALESCE(o.paid_at, o.created_at) END > now() - make_interval(hours =>"
 		);
 		expect(params).toEqual(
 			expect.arrayContaining(["branch-1", "branch-2", "paid"])
@@ -79,8 +83,9 @@ describe("buildOrdersListConditions", () => {
 			tabDef: LATE_TAB,
 		});
 		const { sql: rendered } = render(conditions);
+		expect(rendered).toContain("CASE WHEN o.status = 'preparing'");
 		expect(rendered).toContain(
-			"COALESCE(o.paid_at, o.created_at) <= now() - make_interval(hours =>"
+			"ELSE COALESCE(o.paid_at, o.created_at) END <= now() - make_interval(hours =>"
 		);
 	});
 

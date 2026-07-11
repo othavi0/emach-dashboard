@@ -78,6 +78,7 @@ export interface OrderListItem {
 	itemsCount: number;
 	number: string;
 	paidAt: Date | null;
+	preparingAt: Date | null;
 	shippedAt: Date | null;
 	shippingMethod: string | null;
 	shippingUnverified: boolean;
@@ -375,6 +376,7 @@ export async function fetchOrdersPage({
 		latest_picking_status: OrderPickingStatus | null;
 		number: string;
 		paid_at: Date | null;
+		preparing_at: Date | null;
 		shipped_at: Date | null;
 		shipping_method: string | null;
 		shipping_unverified: boolean;
@@ -384,7 +386,7 @@ export async function fetchOrdersPage({
 	}>(sql`
 		SELECT
 			o.id, o.number, o.status, o.total_amount, o.created_at,
-			o.paid_at, o.shipped_at, o.delivered_at,
+			o.paid_at, o.preparing_at, o.shipped_at, o.delivered_at,
 			o.shipping_unverified, o.shipping_method,
 			COALESCE(o.paid_at, o.created_at) AS fulfillment_age,
 			c.name AS client_name, b.name AS branch_name,
@@ -433,6 +435,7 @@ export async function fetchOrdersPage({
 			items: row.item_lines ?? [],
 			createdAt: toDate(row.created_at),
 			paidAt: row.paid_at ? toDate(row.paid_at) : null,
+			preparingAt: row.preparing_at ? toDate(row.preparing_at) : null,
 			shippedAt: row.shipped_at ? toDate(row.shipped_at) : null,
 			deliveredAt: row.delivered_at ? toDate(row.delivered_at) : null,
 			clientName: row.client_name,
@@ -526,7 +529,10 @@ const computeOrdersTabCounts = unstable_cache(
 		}>(sql`
 			SELECT status,
 				(status IN ('paid','preparing')
-				 AND COALESCE(paid_at, created_at) <= now() - make_interval(hours => ${LATE_TAB_HOURS})
+				 AND (CASE WHEN status = 'preparing'
+					THEN COALESCE(preparing_at, paid_at, created_at)
+					ELSE COALESCE(paid_at, created_at) END)
+					<= now() - make_interval(hours => ${LATE_TAB_HOURS})
 				) AS is_late,
 				COUNT(*)::int AS count
 			FROM "order"

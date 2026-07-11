@@ -47,8 +47,11 @@ export interface OrdersWhereFilters {
 	toolId?: string;
 }
 
-// Relógio de atraso: COALESCE(paid_at, created_at) — espelha latenessOf().
-const fulfillmentAge = sql`COALESCE(o.paid_at, o.created_at)`;
+// Relógio de atraso por etapa (spec 2026-07-11): preparing conta da entrada
+// na separação; paid do pagamento — espelha latenessOf().
+const fulfillmentAge = sql`CASE WHEN o.status = 'preparing'
+	THEN COALESCE(o.preparing_at, o.paid_at, o.created_at)
+	ELSE COALESCE(o.paid_at, o.created_at) END`;
 const lateCutoff = sql`now() - make_interval(hours => ${LATE_TAB_HOURS})`;
 
 export function buildOrdersListConditions({

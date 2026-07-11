@@ -27,12 +27,13 @@ export function OrderCard({
 	item: OrderListItem;
 	tabKey: string;
 }) {
-	const lateness = latenessOf(
-		item.status,
-		item.paidAt,
-		item.createdAt,
-		new Date()
-	);
+	const lateness = latenessOf({
+		status: item.status,
+		paidAt: item.paidAt,
+		preparingAt: item.preparingAt,
+		createdAt: item.createdAt,
+		now: new Date(),
+	});
 	const age = ageMetaForTab(tabKey, item);
 	const hiddenItems = item.itemsCount - item.items.length;
 

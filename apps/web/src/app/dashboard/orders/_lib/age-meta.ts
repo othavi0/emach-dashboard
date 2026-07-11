@@ -1,10 +1,14 @@
+import type { OrderStatus } from "@emach/db/schema/orders";
+
 import { formatDate, formatRelative } from "@/lib/format/datetime";
 
 interface AgeSource {
 	createdAt: Date;
 	deliveredAt: Date | null;
 	paidAt: Date | null;
+	preparingAt: Date | null;
 	shippedAt: Date | null;
+	status: OrderStatus;
 }
 
 const HA_PREFIX = /^há /;
@@ -33,12 +37,33 @@ export function ageMetaForTab(
 ): { label: string; value: string } {
 	switch (tabKey) {
 		case "paid":
-		case "preparing":
-		case "late":
 			return {
 				label: "Pago há",
 				value: normalizeRelative(formatRelative(item.paidAt ?? item.createdAt)),
 			};
+		case "preparing":
+		case "picked":
+			return {
+				label: "Em separação há",
+				value: normalizeRelative(
+					formatRelative(item.preparingAt ?? item.paidAt ?? item.createdAt)
+				),
+			};
+		case "late":
+			// Tab mista: cada card mostra o relógio da própria etapa.
+			return item.status === "preparing"
+				? {
+						label: "Em separação há",
+						value: normalizeRelative(
+							formatRelative(item.preparingAt ?? item.paidAt ?? item.createdAt)
+						),
+					}
+				: {
+						label: "Pago há",
+						value: normalizeRelative(
+							formatRelative(item.paidAt ?? item.createdAt)
+						),
+					};
 		case "shipped":
 			return {
 				label: "Enviado há",
