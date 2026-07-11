@@ -258,7 +258,7 @@ export async function updateOrderStatus(
 			const resolvedBranchId = branchId ?? locked.branchId;
 			if (toStatus === "preparing" && !resolvedBranchId) {
 				throw new Error(
-					"Filial obrigatória para iniciar a preparação do pedido"
+					"Filial obrigatória para enviar o pedido para separação"
 				);
 			}
 

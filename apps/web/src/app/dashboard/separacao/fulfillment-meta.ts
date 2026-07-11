@@ -16,7 +16,7 @@ export const FULFILLMENT_STATE_META: Record<
 		badgeVariant: "secondary",
 	},
 	picking_in_progress: {
-		label: "Em separação",
+		label: "Separando",
 		iconKey: "package",
 		badgeVariant: "info",
 	},

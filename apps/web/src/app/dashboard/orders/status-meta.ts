@@ -23,7 +23,7 @@ export interface OrderTabDef {
 
 // Fluxo ativo do operador interno (grupo da esquerda na barra de tabs).
 // Um chip por status do funil (spec 2026-07-08); a antiga aba agregada
-// "A preparar" (paid+preparing) foi dividida em "Pago" e "Em preparação".
+// "A preparar" (paid+preparing) foi dividida em "Pago" e "Em separação".
 export const ORDER_FLOW_TABS = [
 	{
 		key: "paid",
@@ -33,13 +33,13 @@ export const ORDER_FLOW_TABS = [
 	},
 	{
 		key: "preparing",
-		label: "Em preparação",
+		label: "Em separação",
 		statuses: ["preparing"] as DbOrderStatus[],
 		lateness: "exclude",
 	},
 	{
-		// Tab computada (spec 2026-07-10): pedidos pagos/em preparação há ≥72h.
-		// Exclusiva — some de "Pago"/"Em preparação" (lateness: "exclude" acima).
+		// Tab computada (spec 2026-07-10): pedidos pagos/em separação há ≥72h.
+		// Exclusiva — some de "Pago"/"Em separação" (lateness: "exclude" acima).
 		key: "late",
 		label: "Atrasados",
 		statuses: ["paid", "preparing"] as DbOrderStatus[],
@@ -116,7 +116,7 @@ export const ORDER_STATUS_META: Record<
 		tone: "destructive",
 	},
 	paid: { label: "Pago", iconKey: "check", tone: "success" },
-	preparing: { label: "Em preparação", iconKey: "package", tone: "info" },
+	preparing: { label: "Em separação", iconKey: "package", tone: "info" },
 	shipped: { label: "Enviado", iconKey: "truck", tone: "info" },
 	delivered: { label: "Entregue", iconKey: "checkCheck", tone: "success" },
 	returned: { label: "Devolvido", iconKey: "undo", tone: "warning" },

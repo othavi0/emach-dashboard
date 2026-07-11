@@ -17,7 +17,7 @@ describe("ORDER_FLOW_TABS (spec 2026-07-08, tab 'late' spec 2026-07-10)", () => 
 		]);
 		expect(ORDER_FLOW_TABS.map((t) => t.label)).toEqual([
 			"Pago",
-			"Em preparação",
+			"Em separação",
 			"Atrasados",
 			"Enviados",
 			"Entregues",

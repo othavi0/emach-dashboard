@@ -180,7 +180,7 @@ function computeShipGate({
 	};
 }
 
-/** Sub-label do step "Em preparação" no `OrderProgress` (Task 7). */
+/** Sub-label do step "Em separação" no `OrderProgress` (Task 7). */
 function computeProgressFulfillmentLabel(
 	order: OrderDetail,
 	fulfillment: OrderFulfillment | null
