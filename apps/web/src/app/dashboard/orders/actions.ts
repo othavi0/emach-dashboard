@@ -29,6 +29,7 @@ import { deriveFulfillmentState } from "../separacao/_lib/picking-logic";
 import { getLatestPicking } from "../separacao/data";
 import {
 	BULK_SKIP_LABEL,
+	bulkSkipReasonFromError,
 	bulkStartSeparationSkipReason,
 } from "./_lib/bulk-eligibility";
 import { applyStockReturns } from "./_lib/stock-returns";
@@ -354,63 +355,76 @@ export async function bulkStartSeparation(
 		};
 	}
 
+	const orderIds = Array.from(new Set(parsed.data.orderIds));
+	let moved = 0;
+	const skipped: { number: string; reason: string }[] = [];
+
 	try {
 		// Fail-fast global: sem a capability nem adianta iterar.
 		await requireCapability("orders.update_status");
 
-		const numbers = await db
-			.select({ id: order.id, number: order.number })
-			.from(order)
-			.where(inArray(order.id, parsed.data.orderIds));
-		const numberById = new Map(numbers.map((r) => [r.id, r.number]));
+		try {
+			for (const orderId of orderIds) {
+				// Placeholder até a autorização passar — o número real só é lido
+				// (dentro da tx, já travado) depois do lock+capability check, pra
+				// não vazar número de pedido fora do escopo do ator (skip reports
+				// pré-autorização usam só o id truncado).
+				const fallbackLabel = orderId.slice(0, 8);
+				try {
+					await db.transaction(async (tx) => {
+						const locked = await lockOrderAndAuthorize(
+							tx,
+							"orders.update_status",
+							orderId
+						);
+						if (!locked) {
+							skipped.push({ number: fallbackLabel, reason: "não encontrado" });
+							return;
+						}
+						const [row] = await tx
+							.select({ number: order.number })
+							.from(order)
+							.where(eq(order.id, orderId))
+							.limit(1);
+						const label = row?.number ?? fallbackLabel;
 
-		let moved = 0;
-		const skipped: { number: string; reason: string }[] = [];
-
-		for (const orderId of parsed.data.orderIds) {
-			const label = numberById.get(orderId) ?? orderId.slice(0, 8);
-			try {
-				await db.transaction(async (tx) => {
-					const locked = await lockOrderAndAuthorize(
-						tx,
-						"orders.update_status",
-						orderId
-					);
-					if (!locked) {
-						skipped.push({ number: label, reason: "não encontrado" });
-						return;
-					}
-					const reason = bulkStartSeparationSkipReason(locked);
-					if (reason) {
-						skipped.push({ number: label, reason: BULK_SKIP_LABEL[reason] });
-						return;
-					}
-					await tx
-						.update(order)
-						.set(buildOrderStatusUpdate("preparing", undefined, undefined))
-						.where(eq(order.id, orderId));
-					await tx.insert(orderStatusHistory).values({
-						id: crypto.randomUUID(),
-						orderId,
-						fromStatus: "paid",
-						toStatus: "preparing",
-						actorType: "user",
-						actorUserId: locked.session.user.id,
-						reason: null,
+						const reason = bulkStartSeparationSkipReason(locked);
+						if (reason) {
+							skipped.push({ number: label, reason: BULK_SKIP_LABEL[reason] });
+							return;
+						}
+						await tx
+							.update(order)
+							.set(buildOrderStatusUpdate("preparing", undefined, undefined))
+							.where(eq(order.id, orderId));
+						await tx.insert(orderStatusHistory).values({
+							id: crypto.randomUUID(),
+							orderId,
+							fromStatus: "paid",
+							toStatus: "preparing",
+							actorType: "user",
+							actorUserId: locked.session.user.id,
+							reason: null,
+						});
+						moved += 1;
 					});
-					moved += 1;
-				});
-			} catch (error) {
-				if (isCapabilityError(error)) {
-					skipped.push({ number: label, reason: "fora do seu escopo" });
-				} else {
-					throw error;
+				} catch (error) {
+					const skipReason = bulkSkipReasonFromError(error);
+					if (skipReason) {
+						skipped.push({ number: fallbackLabel, reason: skipReason });
+					} else {
+						throw error;
+					}
 				}
 			}
+		} finally {
+			// Escritas parciais já commitadas por pedido processado antes de um
+			// abort no meio do lote (erro de infra) precisam refletir no cache,
+			// mesmo quando o retorno abaixo é {ok:false}.
+			revalidatePath(ORDERS_PATH);
+			revalidateTag(ORDERS_COUNTS_TAG, "max");
 		}
 
-		revalidatePath(ORDERS_PATH);
-		revalidateTag(ORDERS_COUNTS_TAG, "max");
 		return { ok: true, data: { moved, skipped } };
 	} catch (error) {
 		logger.error("bulkStartSeparation", error);

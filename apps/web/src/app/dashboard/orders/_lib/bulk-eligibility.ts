@@ -20,3 +20,19 @@ export const BULK_SKIP_LABEL: Record<BulkSkipReason, string> = {
 	sem_filial: "sem filial",
 	status_diferente: "não está mais em Pago",
 };
+
+// Classifica erro lançado durante o processamento de UM pedido do lote:
+// autorização/escopo → skip reportado; infra/desconhecido → aborta o lote.
+export function bulkSkipReasonFromError(error: unknown): string | null {
+	if (!(error instanceof Error)) {
+		return null;
+	}
+	if (
+		error.message.startsWith("Forbidden:") ||
+		error.message.includes("fora do seu escopo") ||
+		error.message.startsWith("Pedido na triagem")
+	) {
+		return "fora do seu escopo";
+	}
+	return null;
+}
