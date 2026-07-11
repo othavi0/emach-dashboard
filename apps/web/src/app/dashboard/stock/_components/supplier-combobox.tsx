@@ -8,13 +8,10 @@ import {
 	CommandItem,
 	CommandList,
 } from "@emach/ui/components/command";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@emach/ui/components/popover";
+import { Popover, PopoverContent } from "@emach/ui/components/popover";
 import { ChevronsUpDown } from "lucide-react";
 import { useState } from "react";
+import { ComboboxTriggerButton } from "@/components/combobox-trigger-button";
 import type { ActiveSupplierOption } from "@/lib/suppliers";
 
 // Picker de fornecedor com busca (Popover + Command) — fornecedor pode ser muitos;
@@ -39,12 +36,10 @@ export function SupplierCombobox({
 
 	return (
 		<Popover onOpenChange={setOpen} open={open}>
-			<PopoverTrigger
+			<ComboboxTriggerButton
 				aria-invalid={ariaInvalid}
-				className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
 				disabled={disabled}
 				id={id}
-				render={<button type="button" />}
 			>
 				<span
 					className={selected ? "text-foreground" : "text-muted-foreground"}
@@ -52,7 +47,7 @@ export function SupplierCombobox({
 					{selected ? selected.name : "Selecione o fornecedor"}
 				</span>
 				<ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
-			</PopoverTrigger>
+			</ComboboxTriggerButton>
 			<PopoverContent align="start" className="w-(--anchor-width) p-0">
 				<Command>
 					<CommandInput placeholder="Buscar fornecedor…" />

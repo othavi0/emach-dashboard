@@ -8,13 +8,11 @@ import {
 	CommandItem,
 	CommandList,
 } from "@emach/ui/components/command";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@emach/ui/components/popover";
+import { Popover, PopoverContent } from "@emach/ui/components/popover";
 import { ChevronsUpDown, X } from "lucide-react";
 import { useState } from "react";
+
+import { ComboboxTriggerButton } from "@/components/combobox-trigger-button";
 
 interface ProductFilterComboboxProps {
 	id?: string;
@@ -34,11 +32,7 @@ export function ProductFilterCombobox({
 
 	return (
 		<Popover onOpenChange={setOpen} open={open}>
-			<PopoverTrigger
-				className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-				id={id}
-				render={<button type="button" />}
-			>
+			<ComboboxTriggerButton id={id}>
 				<span className={selected ? "truncate" : "text-muted-foreground"}>
 					{selected ? selected.name : "Todos os produtos"}
 				</span>
@@ -53,7 +47,7 @@ export function ProductFilterCombobox({
 				) : (
 					<ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
 				)}
-			</PopoverTrigger>
+			</ComboboxTriggerButton>
 			<PopoverContent align="start" className="w-80 p-0">
 				<Command>
 					<CommandInput placeholder="Buscar produto…" />

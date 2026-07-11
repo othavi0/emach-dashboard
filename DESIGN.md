@@ -229,6 +229,7 @@ Regra de color-blindness (§7) continua: status = **ícone + label + cor**, nunc
   - **Focus:** border flipa pra `border-ring` + `ring-2 ring-ring` (coral 55%). 2px sólido.
   - **Invalid:** `border-destructive` + `ring-1 ring-destructive/20`.
 - `Checkbox` / `RadioGroup` / `Switch`: bg coral quando checked.
+- **Combobox "select-style" (botão que abre `Popover` + `Command` de busca):** trigger **sempre** via `ComboboxTriggerButton` / `COMBOBOX_TRIGGER_CLASS` (`apps/web/src/components/combobox-trigger-button.tsx`) — espelha o `SelectTrigger` (`h-8`, `border-input`, `bg-transparent` + `dark:bg-input/30`, `py-2 pr-2 pl-2.5 text-xs`), deixando o combobox fechado pixel-idêntico ao `Select` ao lado. **Nunca** escrever a className do trigger à mão: 4 comboboxes já divergiram assim (`h-9`/`h-10` + `bg-transparent` sem `dark:` → 4px mais alto e fundo "vazado" no dark, corrigido em 2026-07-11). O corpo (single/multi/clear) fica por conta do call-site. O primitivo `Combobox` do base-ui é typeahead (campo digitável inline) — UX diferente, não substitui o select-style.
 
 ### Help tooltip (`HelpTooltip`)
 
