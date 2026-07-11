@@ -28,6 +28,7 @@
       "!**/convex/_generated",
       "!packages/db/src/migrations",
       "!**/.superpowers",
+      "!**/.impeccable",
       "!**/.agents",
       "!**/.claude",
       "!**/.github/skills",
