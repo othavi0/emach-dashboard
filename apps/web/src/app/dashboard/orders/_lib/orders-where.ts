@@ -28,7 +28,7 @@ export function normalizeDateParam(value?: string): string | undefined {
 	return trimmed ? trimmed : undefined;
 }
 
-const FIFO_TABS = new Set(["paid", "preparing", "late"]);
+const FIFO_TABS = new Set(["paid", "preparing", "picked", "late"]);
 
 // FIFO das filas de expedição pagina por COALESCE(paid_at, created_at) via a
 // variante PaidAtAscCursor JÁ existente em @/lib/cursor — não criar sort novo.
@@ -53,6 +53,14 @@ const fulfillmentAge = sql`CASE WHEN o.status = 'preparing'
 	THEN COALESCE(o.preparing_at, o.paid_at, o.created_at)
 	ELSE COALESCE(o.paid_at, o.created_at) END`;
 const lateCutoff = sql`now() - make_interval(hours => ${LATE_TAB_HOURS})`;
+
+// Última sessão de picking do pedido (mesma semântica do LATERAL lp de
+// data.ts: started_at DESC, id DESC). NULL (sem sessão) ≠ 'completed'.
+const latestPickingStatus = sql`(
+	SELECT op.status FROM order_picking op
+	WHERE op.order_id = o.id
+	ORDER BY op.started_at DESC, op.id DESC LIMIT 1
+)`;
 
 export function buildOrdersListConditions({
 	filters,
@@ -80,6 +88,12 @@ export function buildOrdersListConditions({
 	}
 	if (tabDef.lateness === "exclude") {
 		conditions.push(sql`${fulfillmentAge} > ${lateCutoff}`);
+	}
+	if (tabDef.picking === "picked") {
+		conditions.push(sql`${latestPickingStatus} = 'completed'`);
+	}
+	if (tabDef.picking === "not_picked") {
+		conditions.push(sql`${latestPickingStatus} IS DISTINCT FROM 'completed'`);
 	}
 	const query = filters.q?.trim();
 	if (query) {
@@ -119,6 +133,7 @@ export interface OrderTabCounts {
 	paid: number;
 	payment_failed: number;
 	pending_payment: number;
+	picked: number;
 	preparing: number;
 	returned: number;
 	shipped: number;
@@ -132,6 +147,7 @@ export function emptyTabCounts(): OrderTabCounts {
 		payment_failed: 0,
 		paid: 0,
 		preparing: 0,
+		picked: 0,
 		late: 0,
 		shipped: 0,
 		delivered: 0,
@@ -140,17 +156,26 @@ export function emptyTabCounts(): OrderTabCounts {
 	};
 }
 
-// Pura: agrega linhas status×is_late (uma por combinação existente) nos buckets
-// de tab. `late` soma paid/preparing atrasados; `paid`/`preparing` continuam
-// só os NÃO atrasados (a tab "late" é exclusiva das duas — ver status-meta).
+// Pura: agrega linhas status×is_late×is_picked nos buckets de tab. `late`
+// vence (exclusiva); dentro de preparing não-atrasado, is_picked separa a
+// tab "Separado" da "Em separação".
 export function foldTabCounts(
-	rows: { count: number; is_late: boolean; status: OrderStatus }[]
+	rows: {
+		count: number;
+		is_late: boolean;
+		is_picked: boolean;
+		status: OrderStatus;
+	}[]
 ): OrderTabCounts {
 	const counts = emptyTabCounts();
 	for (const row of rows) {
 		counts.all_count += row.count;
 		if (row.is_late && (row.status === "paid" || row.status === "preparing")) {
 			counts.late += row.count;
+			continue;
+		}
+		if (row.status === "preparing" && row.is_picked) {
+			counts.picked += row.count;
 			continue;
 		}
 		// `canceled`/`refunded` somam na mesma tab; os demais mapeiam 1:1. O
@@ -167,7 +192,7 @@ export function foldTabCounts(
 			case "shipped":
 			case "delivered":
 			case "returned":
-				counts[row.status] = row.count;
+				counts[row.status] += row.count;
 				break;
 			default:
 				break;

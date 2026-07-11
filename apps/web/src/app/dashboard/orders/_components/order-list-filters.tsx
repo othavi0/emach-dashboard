@@ -99,6 +99,9 @@ function tabCount(
 	if (tabKey === "late") {
 		return counts.late ?? 0;
 	}
+	if (tabKey === "picked") {
+		return counts.picked ?? 0;
+	}
 	if (!statuses) {
 		return 0;
 	}

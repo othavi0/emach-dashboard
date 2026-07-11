@@ -18,6 +18,8 @@ export interface OrderTabDef {
 	key: string;
 	label: string;
 	lateness?: TabLateness;
+	/** Divide o status preparing pela última sessão de picking (tab Separado). */
+	picking?: "picked" | "not_picked";
 	statuses: readonly DbOrderStatus[] | null;
 }
 
@@ -36,6 +38,16 @@ export const ORDER_FLOW_TABS = [
 		label: "Em separação",
 		statuses: ["preparing"] as DbOrderStatus[],
 		lateness: "exclude",
+		picking: "not_picked",
+	},
+	{
+		// Tab computada (spec 2026-07-11): preparing com a última sessão de
+		// picking concluída — separado, aguardando código de envio.
+		key: "picked",
+		label: "Separado",
+		statuses: ["preparing"] as DbOrderStatus[],
+		lateness: "exclude",
+		picking: "picked",
 	},
 	{
 		// Tab computada (spec 2026-07-10): pedidos pagos/em separação há ≥72h.

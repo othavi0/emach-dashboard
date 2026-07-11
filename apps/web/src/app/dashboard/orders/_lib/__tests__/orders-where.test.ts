@@ -42,6 +42,10 @@ describe("ordersTabSort", () => {
 		expect(ordersTabSort("shipped")).toBe("newest");
 		expect(ordersTabSort("canceled")).toBe("newest");
 	});
+	it("picked pagina FIFO como as demais filas de expedição", () => {
+		expect(ordersTabSort("picked")).toBe("paidAtAsc");
+		expect(ordersTabSort("shipped")).toBe("newest");
+	});
 });
 
 describe("buildOrdersListConditions", () => {

@@ -525,6 +525,7 @@ const computeOrdersTabCounts = unstable_cache(
 		const result = await db.execute<{
 			count: number;
 			is_late: boolean;
+			is_picked: boolean;
 			status: OrderStatus;
 		}>(sql`
 			SELECT status,
@@ -534,10 +535,15 @@ const computeOrdersTabCounts = unstable_cache(
 					ELSE COALESCE(paid_at, created_at) END)
 					<= now() - make_interval(hours => ${LATE_TAB_HOURS})
 				) AS is_late,
+				(status = 'preparing' AND (
+					SELECT op.status FROM order_picking op
+					WHERE op.order_id = "order".id
+					ORDER BY op.started_at DESC, op.id DESC LIMIT 1
+				) = 'completed') AS is_picked,
 				COUNT(*)::int AS count
 			FROM "order"
 			${branchFilter ? sql`WHERE ${branchFilter}` : sql``}
-			GROUP BY 1, 2
+			GROUP BY 1, 2, 3
 		`);
 
 		return foldTabCounts(result.rows);

@@ -6,11 +6,12 @@ import {
 	ORDER_FLOW_TABS,
 } from "../status-meta";
 
-describe("ORDER_FLOW_TABS (spec 2026-07-08, tab 'late' spec 2026-07-10)", () => {
-	it("tem um chip por status do funil, na ordem do fluxo", () => {
+describe("ORDER_FLOW_TABS (spec 2026-07-11)", () => {
+	it("tem um chip por etapa, na ordem do fluxo", () => {
 		expect(ORDER_FLOW_TABS.map((t) => t.key)).toEqual([
 			"paid",
 			"preparing",
+			"picked",
 			"late",
 			"shipped",
 			"delivered",
@@ -18,19 +19,20 @@ describe("ORDER_FLOW_TABS (spec 2026-07-08, tab 'late' spec 2026-07-10)", () => 
 		expect(ORDER_FLOW_TABS.map((t) => t.label)).toEqual([
 			"Pago",
 			"Em separação",
+			"Separado",
 			"Atrasados",
 			"Enviados",
 			"Entregues",
 		]);
 	});
 
-	it("cada aba de fluxo comum mapeia 1:1 pro próprio status", () => {
-		for (const tab of ORDER_FLOW_TABS) {
-			if (tab.key === "late") {
-				continue;
-			}
-			expect(tab.statuses).toEqual([tab.key]);
-		}
+	it("picked e preparing dividem o status preparing por sessão de picking", () => {
+		const picked = ORDER_FLOW_TABS.find((t) => t.key === "picked");
+		const preparing = ORDER_FLOW_TABS.find((t) => t.key === "preparing");
+		expect(picked?.statuses).toEqual(["preparing"]);
+		expect(picked?.picking).toBe("picked");
+		expect(picked?.lateness).toBe("exclude");
+		expect(preparing?.picking).toBe("not_picked");
 	});
 
 	it("aba computada 'late' cobre paid+preparing e é exclusiva", () => {
@@ -38,9 +40,6 @@ describe("ORDER_FLOW_TABS (spec 2026-07-08, tab 'late' spec 2026-07-10)", () => 
 		expect(late?.statuses).toEqual(["paid", "preparing"]);
 		expect(late?.lateness).toBe("only");
 		expect(ORDER_FLOW_TABS.find((t) => t.key === "paid")?.lateness).toBe(
-			"exclude"
-		);
-		expect(ORDER_FLOW_TABS.find((t) => t.key === "preparing")?.lateness).toBe(
 			"exclude"
 		);
 	});
