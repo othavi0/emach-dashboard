@@ -12,17 +12,14 @@ import {
 import { DatePicker } from "@emach/ui/components/date-picker";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@emach/ui/components/popover";
+import { Popover, PopoverContent } from "@emach/ui/components/popover";
 import { RadioGroup, RadioGroupItem } from "@emach/ui/components/radio-group";
 import { Switch } from "@emach/ui/components/switch";
 import { Textarea } from "@emach/ui/components/textarea";
 import { AlertCircle, ChevronsUpDown, Tag, Ticket, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
+import { ComboboxTriggerButton } from "@/components/combobox-trigger-button";
 import { DiscountInput } from "@/components/discount-input";
 import { FieldError } from "@/components/field-error";
 import { LabeledField } from "@/components/labeled-field";
@@ -125,19 +122,14 @@ function ToolCombobox({
 	return (
 		<div className="flex flex-col gap-2">
 			<Popover onOpenChange={setOpen} open={open}>
-				<PopoverTrigger
-					aria-invalid={ariaInvalid}
-					className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-					disabled={disabled}
-					render={<button type="button" />}
-				>
-					<span className="text-muted-foreground text-sm">
+				<ComboboxTriggerButton aria-invalid={ariaInvalid} disabled={disabled}>
+					<span className="text-muted-foreground">
 						{selectedIds.length === 0
 							? "Selecionar ferramentas…"
 							: `${selectedIds.length} ferramenta${selectedIds.length === 1 ? "" : "s"} selecionada${selectedIds.length === 1 ? "" : "s"}`}
 					</span>
 					<ChevronsUpDown className="size-3.5 opacity-50" />
-				</PopoverTrigger>
+				</ComboboxTriggerButton>
 				<PopoverContent align="start" className="w-72 p-0">
 					<Command>
 						<CommandInput placeholder="Buscar ferramenta…" />

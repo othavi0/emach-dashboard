@@ -11,11 +11,7 @@ import {
 } from "@emach/ui/components/command";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@emach/ui/components/popover";
+import { Popover, PopoverContent } from "@emach/ui/components/popover";
 import {
 	Select,
 	SelectContent,
@@ -27,6 +23,7 @@ import { ChevronsUpDown, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ComboboxTriggerButton } from "@/components/combobox-trigger-button";
 import { FiltersBar } from "@/components/filters-bar";
 import { MaskedInput } from "@/components/masked-input";
 import { percentageMask } from "@/lib/masks";
@@ -199,10 +196,7 @@ export function PromotionsFilters({ availableTools }: PromotionsFiltersProps) {
 					<div className="flex flex-col gap-1.5">
 						<Label>Ferramenta</Label>
 						<Popover onOpenChange={setToolPopoverOpen} open={toolPopoverOpen}>
-							<PopoverTrigger
-								className="flex h-10 w-full items-center justify-between rounded-md border border-border bg-background px-3 py-2 text-sm"
-								render={<button type="button" />}
-							>
+							<ComboboxTriggerButton>
 								<span className="truncate">
 									{selectedTool ? selectedTool.name : "Todas"}
 								</span>
@@ -220,7 +214,7 @@ export function PromotionsFilters({ availableTools }: PromotionsFiltersProps) {
 									</button>
 								)}
 								<ChevronsUpDown className="ml-1 size-3.5 opacity-50" />
-							</PopoverTrigger>
+							</ComboboxTriggerButton>
 							<PopoverContent align="start" className="w-72 p-0">
 								<Command>
 									<CommandInput placeholder="Buscar ferramenta…" />
