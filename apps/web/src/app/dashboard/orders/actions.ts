@@ -27,6 +27,10 @@ import {
 } from "@/lib/permissions";
 import { deriveFulfillmentState } from "../separacao/_lib/picking-logic";
 import { getLatestPicking } from "../separacao/data";
+import {
+	BULK_SKIP_LABEL,
+	bulkStartSeparationSkipReason,
+} from "./_lib/bulk-eligibility";
 import { applyStockReturns } from "./_lib/stock-returns";
 import {
 	fetchOrdersPage as fetchOrdersPageImpl,
@@ -39,6 +43,8 @@ import {
 	type AssignBranchInput,
 	addOrderNoteSchema,
 	assignBranchSchema,
+	type BulkStartSeparationInput,
+	bulkStartSeparationSchema,
 	capForStatus,
 	type MarkShippingReviewedInput,
 	markShippingReviewedSchema,
@@ -319,6 +325,97 @@ export async function updateOrderStatus(
 		// prefix to the UI; surface a clean Portuguese message instead.
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar este pedido." };
+		}
+		return {
+			ok: false,
+			error: error instanceof Error ? error.message : "Erro interno",
+		};
+	}
+}
+
+export interface BulkStartSeparationResult {
+	moved: number;
+	skipped: { number: string; reason: string }[];
+}
+
+/**
+ * Bulk pago→separação (spec 2026-07-11). Cada pedido roda em transação
+ * própria com lock + capability branch-scoped; inelegíveis são pulados e
+ * reportados — um pedido problemático não derruba o lote.
+ */
+export async function bulkStartSeparation(
+	input: BulkStartSeparationInput
+): Promise<ActionResult<BulkStartSeparationResult>> {
+	const parsed = bulkStartSeparationSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+
+	try {
+		// Fail-fast global: sem a capability nem adianta iterar.
+		await requireCapability("orders.update_status");
+
+		const numbers = await db
+			.select({ id: order.id, number: order.number })
+			.from(order)
+			.where(inArray(order.id, parsed.data.orderIds));
+		const numberById = new Map(numbers.map((r) => [r.id, r.number]));
+
+		let moved = 0;
+		const skipped: { number: string; reason: string }[] = [];
+
+		for (const orderId of parsed.data.orderIds) {
+			const label = numberById.get(orderId) ?? orderId.slice(0, 8);
+			try {
+				await db.transaction(async (tx) => {
+					const locked = await lockOrderAndAuthorize(
+						tx,
+						"orders.update_status",
+						orderId
+					);
+					if (!locked) {
+						skipped.push({ number: label, reason: "não encontrado" });
+						return;
+					}
+					const reason = bulkStartSeparationSkipReason(locked);
+					if (reason) {
+						skipped.push({ number: label, reason: BULK_SKIP_LABEL[reason] });
+						return;
+					}
+					await tx
+						.update(order)
+						.set(buildOrderStatusUpdate("preparing", undefined, undefined))
+						.where(eq(order.id, orderId));
+					await tx.insert(orderStatusHistory).values({
+						id: crypto.randomUUID(),
+						orderId,
+						fromStatus: "paid",
+						toStatus: "preparing",
+						actorType: "user",
+						actorUserId: locked.session.user.id,
+						reason: null,
+					});
+					moved += 1;
+				});
+			} catch (error) {
+				if (isCapabilityError(error)) {
+					skipped.push({ number: label, reason: "fora do seu escopo" });
+				} else {
+					throw error;
+				}
+			}
+		}
+
+		revalidatePath(ORDERS_PATH);
+		revalidateTag(ORDERS_COUNTS_TAG, "max");
+		return { ok: true, data: { moved, skipped } };
+	} catch (error) {
+		logger.error("bulkStartSeparation", error);
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para alterar pedidos." };
 		}
 		return {
 			ok: false,
