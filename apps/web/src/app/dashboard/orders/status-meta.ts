@@ -12,7 +12,7 @@ export const DEFAULT_ORDER_TAB = "paid";
 // (server-tainted) — client component nunca pode importar de lá (ADR-0015).
 export const CARRIER_NONE = "__none__";
 
-export type TabLateness = "only" | "exclude";
+export type TabLateness = "only";
 
 export interface OrderTabDef {
 	key: string;
