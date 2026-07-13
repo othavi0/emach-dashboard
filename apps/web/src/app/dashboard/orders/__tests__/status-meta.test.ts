@@ -3,24 +3,25 @@ import { describe, expect, it } from "vitest";
 import {
 	canonicalOrderTabKey,
 	DEFAULT_ORDER_TAB,
+	LATE_SUB_TABS,
 	ORDER_FLOW_TABS,
 } from "../status-meta";
 
 describe("ORDER_FLOW_TABS (spec 2026-07-08, tab 'late' spec 2026-07-10)", () => {
-	it("tem um chip por status do funil, na ordem do fluxo", () => {
+	it("tem um chip por status do funil; 'late' fecha a fileira", () => {
 		expect(ORDER_FLOW_TABS.map((t) => t.key)).toEqual([
 			"paid",
 			"preparing",
-			"late",
 			"shipped",
 			"delivered",
+			"late",
 		]);
 		expect(ORDER_FLOW_TABS.map((t) => t.label)).toEqual([
 			"Pago",
 			"Em preparação",
-			"Atrasados",
 			"Enviados",
 			"Entregues",
+			"Atrasados",
 		]);
 	});
 
@@ -33,16 +34,30 @@ describe("ORDER_FLOW_TABS (spec 2026-07-08, tab 'late' spec 2026-07-10)", () => 
 		}
 	});
 
-	it("aba computada 'late' cobre paid+preparing e é exclusiva", () => {
+	it("aba computada 'late' cobre paid+preparing como OVERLAY (spec 2026-07-13)", () => {
 		const late = ORDER_FLOW_TABS.find((t) => t.key === "late");
 		expect(late?.statuses).toEqual(["paid", "preparing"]);
 		expect(late?.lateness).toBe("only");
-		expect(ORDER_FLOW_TABS.find((t) => t.key === "paid")?.lateness).toBe(
-			"exclude"
-		);
-		expect(ORDER_FLOW_TABS.find((t) => t.key === "preparing")?.lateness).toBe(
-			"exclude"
-		);
+		// Overlay: pedido atrasado NÃO some das abas do próprio status.
+		expect(
+			ORDER_FLOW_TABS.find((t) => t.key === "paid")?.lateness
+		).toBeUndefined();
+		expect(
+			ORDER_FLOW_TABS.find((t) => t.key === "preparing")?.lateness
+		).toBeUndefined();
+	});
+
+	it("sub-abas de Atrasados: Todos, Pagos, Em preparação", () => {
+		expect(LATE_SUB_TABS.map((t) => t.key)).toEqual([
+			"all",
+			"paid",
+			"preparing",
+		]);
+		expect(LATE_SUB_TABS.map((t) => t.label)).toEqual([
+			"Todos",
+			"Pagos",
+			"Em preparação",
+		]);
 	});
 
 	it("default é a fila de entrada (Pago)", () => {

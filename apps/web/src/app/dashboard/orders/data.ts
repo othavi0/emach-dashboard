@@ -52,6 +52,7 @@ export interface OrderListFilters {
 	branchId?: string;
 	carrier?: string;
 	from?: string;
+	lateStatus?: "paid" | "preparing";
 	q?: string;
 	tab?: string;
 	to?: string;
@@ -310,6 +311,7 @@ export interface OrdersPageFiltersInput {
 	branchId?: string;
 	carrier?: string;
 	from?: string;
+	lateStatus?: "paid" | "preparing";
 	q?: string;
 	tab?: string;
 	to?: string;
@@ -340,6 +342,7 @@ export async function fetchOrdersPage({
 			branchId: filters.branchId,
 			carrier: filters.carrier,
 			from: normalizeDateParam(filters.from),
+			lateStatus: filters.lateStatus,
 			q: filters.q,
 			to: normalizeDateParam(filters.to),
 			toolId: filters.toolId,
@@ -616,6 +619,7 @@ export async function fetchOrdersProductSummary({
 			branchId: filters.branchId,
 			carrier: filters.carrier,
 			from: normalizeDateParam(filters.from),
+			lateStatus: filters.lateStatus,
 			q: filters.q,
 			to: normalizeDateParam(filters.to),
 			toolId: filters.toolId,

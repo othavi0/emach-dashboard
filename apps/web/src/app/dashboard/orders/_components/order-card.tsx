@@ -60,19 +60,33 @@ export function OrderCard({
 					</p>
 				</div>
 				<div className="flex flex-shrink-0 flex-col items-end gap-3">
-					{orderBadgeSource(item.status, item.fulfillmentState) ===
-						"fulfillment" && item.fulfillmentState ? (
-						<Badge
-							className={STATUS_BADGE_CAPS}
-							variant={
-								FULFILLMENT_STATE_META[item.fulfillmentState].badgeVariant
-							}
-						>
-							{FULFILLMENT_STATE_META[item.fulfillmentState].label}
-						</Badge>
-					) : (
-						<OrderStatusBadge status={item.status} />
-					)}
+					<div className="flex items-center gap-1.5">
+						{/* Chip de atraso: flag temporal, não segundo badge de estado
+						    (spec 2026-07-13). Omitido na aba Atrasados — lá todos estão. */}
+						{lateness === "late" && tabKey !== "late" && (
+							<Badge
+								className={cn(
+									STATUS_BADGE_CAPS,
+									"bg-warning text-warning-foreground"
+								)}
+							>
+								Atrasado
+							</Badge>
+						)}
+						{orderBadgeSource(item.status, item.fulfillmentState, tabKey) ===
+							"fulfillment" && item.fulfillmentState ? (
+							<Badge
+								className={STATUS_BADGE_CAPS}
+								variant={
+									FULFILLMENT_STATE_META[item.fulfillmentState].badgeVariant
+								}
+							>
+								{FULFILLMENT_STATE_META[item.fulfillmentState].label}
+							</Badge>
+						) : (
+							<OrderStatusBadge status={item.status} />
+						)}
+					</div>
 					<span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10.5px] text-muted-foreground">
 						<TruckIcon aria-hidden className="size-3" />
 						<span className="uppercase">

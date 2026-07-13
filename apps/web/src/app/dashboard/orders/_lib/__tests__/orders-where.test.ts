@@ -7,7 +7,13 @@ import {
 	CARRIER_NONE,
 	ORDER_FLOW_TABS,
 } from "../../status-meta";
-import { buildOrdersListConditions, ordersTabSort } from "../orders-where";
+import {
+	buildOrdersListConditions,
+	effectiveTabStatuses,
+	emptyTabCounts,
+	foldTabCounts,
+	ordersTabSort,
+} from "../orders-where";
 
 const dialect = new PgDialect();
 
@@ -55,7 +61,7 @@ describe("buildOrdersListConditions", () => {
 		expect(rendered).not.toContain("branch_id");
 	});
 
-	it("scope filial gera condição de filial + status + lateness exclude", () => {
+	it("scope filial gera condição de filial + status, sem lateness (overlay)", () => {
 		const conditions = buildOrdersListConditions({
 			filters: {},
 			scope: SCOPED_SCOPE,
@@ -64,9 +70,7 @@ describe("buildOrdersListConditions", () => {
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("o.branch_id IN");
 		expect(rendered).toContain("o.status IN");
-		expect(rendered).toContain(
-			"COALESCE(o.paid_at, o.created_at) > now() - make_interval(hours =>"
-		);
+		expect(rendered).not.toContain("COALESCE(o.paid_at,");
 		expect(params).toEqual(
 			expect.arrayContaining(["branch-1", "branch-2", "paid"])
 		);
@@ -82,6 +86,21 @@ describe("buildOrdersListConditions", () => {
 		expect(rendered).toContain(
 			"COALESCE(o.paid_at, o.created_at) <= now() - make_interval(hours =>"
 		);
+	});
+
+	it("tab 'late' com lateStatus estreita status sem perder a condição de lateness", () => {
+		const conditions = buildOrdersListConditions({
+			filters: { lateStatus: "paid" },
+			scope: ALL_SCOPE,
+			tabDef: LATE_TAB,
+		});
+		const { sql: rendered, params } = render(conditions);
+		expect(rendered).toContain("o.status IN");
+		expect(rendered).toContain(
+			"COALESCE(o.paid_at, o.created_at) <= now() - make_interval(hours =>"
+		);
+		expect(params).toContain("paid");
+		expect(params).not.toContain("preparing");
 	});
 
 	it("tab 'Todos' (statuses null) não filtra por status", () => {
@@ -162,5 +181,53 @@ describe("buildOrdersListConditions", () => {
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("o.branch_id =");
 		expect(params).toContain("branch-9");
+	});
+});
+
+describe("foldTabCounts (overlay, spec 2026-07-13)", () => {
+	it("atrasado soma no bucket do próprio status E em late", () => {
+		const counts = foldTabCounts([
+			{ count: 3, is_late: false, status: "paid" },
+			{ count: 2, is_late: true, status: "paid" },
+			{ count: 1, is_late: true, status: "preparing" },
+			{ count: 4, is_late: false, status: "shipped" },
+		]);
+		expect(counts.paid).toBe(5);
+		expect(counts.preparing).toBe(1);
+		expect(counts.late).toBe(3);
+		expect(counts.late_paid).toBe(2);
+		expect(counts.late_preparing).toBe(1);
+		expect(counts.all_count).toBe(10);
+	});
+
+	it("all_count não dobra: cada pedido conta uma vez", () => {
+		const counts = foldTabCounts([{ count: 7, is_late: true, status: "paid" }]);
+		expect(counts.all_count).toBe(7);
+		expect(counts.paid).toBe(7);
+		expect(counts.late).toBe(7);
+	});
+
+	it("emptyTabCounts expõe as chaves das sub-abas zeradas", () => {
+		const counts = emptyTabCounts();
+		expect(counts.late_paid).toBe(0);
+		expect(counts.late_preparing).toBe(0);
+	});
+});
+
+describe("effectiveTabStatuses (sub-aba lateStatus)", () => {
+	it("na aba late, lateStatus estreita para um único status", () => {
+		expect(effectiveTabStatuses(LATE_TAB, "paid")).toEqual(["paid"]);
+		expect(effectiveTabStatuses(LATE_TAB, "preparing")).toEqual(["preparing"]);
+	});
+
+	it("sem lateStatus, mantém os statuses da def", () => {
+		expect(effectiveTabStatuses(LATE_TAB, undefined)).toEqual([
+			"paid",
+			"preparing",
+		]);
+	});
+
+	it("fora da aba late, lateStatus é ignorado", () => {
+		expect(effectiveTabStatuses(PAID_TAB, "preparing")).toEqual(["paid"]);
 	});
 });

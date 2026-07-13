@@ -125,6 +125,7 @@ export async function GET(req: Request) {
 					toolId: filters.productId,
 					from: normalizeDateParam(filters.from),
 					to: normalizeDateParam(filters.to),
+					lateStatus: filters.lateStatus,
 				},
 				scope,
 				tabDef: tab,

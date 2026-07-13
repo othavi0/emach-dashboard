@@ -16,6 +16,7 @@ import {
 	TabsList,
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
+import { cn } from "@emach/ui/lib/utils";
 import Link from "next/link";
 
 import { FiltersBar } from "@/components/filters-bar";
@@ -31,6 +32,8 @@ import {
 	CARRIER_NONE,
 	canonicalOrderTabKey,
 	DEFAULT_ORDER_TAB,
+	LATE_SUB_TABS,
+	type LateSubTabKey,
 	ORDER_EXCEPTION_TABS,
 	ORDER_FLOW_TABS,
 } from "../status-meta";
@@ -59,12 +62,19 @@ const TRACKED = [
 const BRANCH_ALL = "__all__";
 const CARRIER_ALL = "__all__";
 
-function buildTabHref(filters: OrderListFilterState, tabKey: string): string {
+function buildTabHref(
+	filters: OrderListFilterState,
+	tabKey: string,
+	lateStatus?: LateSubTabKey
+): string {
 	const params = new URLSearchParams();
 	// Sempre explicitar o tab: a ausência de ?tab agora resolve para o default
 	// ("Pago"), então "Todos" e os demais precisam do parâmetro na URL.
 	if (tabKey) {
 		params.set("tab", tabKey);
+	}
+	if (tabKey === "late" && lateStatus && lateStatus !== "all") {
+		params.set("lateStatus", lateStatus);
 	}
 	if (filters.q) {
 		params.set("q", filters.q);
@@ -165,6 +175,38 @@ export function OrderFiltersPanel({
 					<TabsList scrollable>{ORDER_EXCEPTION_TABS.map(renderTab)}</TabsList>
 				</div>
 			</Tabs>
+
+			{currentTab === "late" && (
+				<div className="flex flex-wrap items-center gap-1.5">
+					{LATE_SUB_TABS.map((sub) => {
+						const isActive =
+							sub.key === "all"
+								? !filters.lateStatus
+								: filters.lateStatus === sub.key;
+						const count =
+							sub.key === "all"
+								? (counts.late ?? 0)
+								: (counts[`late_${sub.key}`] ?? 0);
+						return (
+							<Link
+								className={cn(
+									"inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+									isActive
+										? "border-warning/60 bg-warning/15 font-medium text-warning"
+										: "border-border bg-muted text-muted-foreground hover:text-foreground"
+								)}
+								href={buildTabHref(filters, "late", sub.key)}
+								key={sub.key}
+							>
+								{sub.label}
+								<span className="font-mono text-[10.5px] tabular-nums">
+									{count}
+								</span>
+							</Link>
+						);
+					})}
+				</div>
+			)}
 
 			<FiltersBar hasActive={hasActive} onClear={clearAll}>
 				<div className="flex flex-1 flex-col gap-1.5">

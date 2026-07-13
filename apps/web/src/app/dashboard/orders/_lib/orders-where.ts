@@ -42,6 +42,7 @@ export interface OrdersWhereFilters {
 	branchId?: string;
 	carrier?: string; // "__none__" = frete a combinar (IS NULL)
 	from?: string;
+	lateStatus?: "paid" | "preparing";
 	q?: string;
 	to?: string;
 	toolId?: string;
@@ -50,6 +51,18 @@ export interface OrdersWhereFilters {
 // Relógio de atraso: COALESCE(paid_at, created_at) — espelha latenessOf().
 const fulfillmentAge = sql`COALESCE(o.paid_at, o.created_at)`;
 const lateCutoff = sql`now() - make_interval(hours => ${LATE_TAB_HOURS})`;
+
+// Sub-aba de Atrasados: estreita o par paid/preparing pra um status só.
+// Só tem efeito na tab computada (lateness "only") — nas demais é ignorado.
+export function effectiveTabStatuses(
+	tabDef: OrderTabDef,
+	lateStatus?: "paid" | "preparing"
+): readonly OrderStatus[] | null {
+	if (tabDef.lateness === "only" && lateStatus) {
+		return tabDef.statuses?.filter((s) => s === lateStatus) ?? null;
+	}
+	return tabDef.statuses;
+}
 
 export function buildOrdersListConditions({
 	filters,
@@ -65,18 +78,16 @@ export function buildOrdersListConditions({
 	if (branchCondition) {
 		conditions.push(branchCondition);
 	}
-	if (tabDef.statuses) {
+	const statuses = effectiveTabStatuses(tabDef, filters.lateStatus);
+	if (statuses && statuses.length > 0) {
 		const placeholders = sql.join(
-			tabDef.statuses.map((s) => sql`${s}`),
+			statuses.map((s) => sql`${s}`),
 			sql`, `
 		);
 		conditions.push(sql`o.status IN (${placeholders})`);
 	}
 	if (tabDef.lateness === "only") {
 		conditions.push(sql`${fulfillmentAge} <= ${lateCutoff}`);
-	}
-	if (tabDef.lateness === "exclude") {
-		conditions.push(sql`${fulfillmentAge} > ${lateCutoff}`);
 	}
 	const query = filters.q?.trim();
 	if (query) {
@@ -113,6 +124,8 @@ export interface OrderTabCounts {
 	canceled: number;
 	delivered: number;
 	late: number;
+	late_paid: number;
+	late_preparing: number;
 	paid: number;
 	payment_failed: number;
 	pending_payment: number;
@@ -130,6 +143,8 @@ export function emptyTabCounts(): OrderTabCounts {
 		paid: 0,
 		preparing: 0,
 		late: 0,
+		late_paid: 0,
+		late_preparing: 0,
 		shipped: 0,
 		delivered: 0,
 		returned: 0,
@@ -138,17 +153,25 @@ export function emptyTabCounts(): OrderTabCounts {
 }
 
 // Pura: agrega linhas status×is_late (uma por combinação existente) nos buckets
-// de tab. `late` soma paid/preparing atrasados; `paid`/`preparing` continuam
-// só os NÃO atrasados (a tab "late" é exclusiva das duas — ver status-meta).
+// de tab. Overlay (spec 2026-07-13): `late` soma paid/preparing atrasados (+
+// sub-buckets `late_paid`/`late_preparing`) e os buckets `paid`/`preparing`
+// TAMBÉM incluem os atrasados — o pedido atrasado conta nos dois lugares.
 export function foldTabCounts(
 	rows: { count: number; is_late: boolean; status: OrderStatus }[]
 ): OrderTabCounts {
 	const counts = emptyTabCounts();
 	for (const row of rows) {
 		counts.all_count += row.count;
+		// Overlay (spec 2026-07-13): atrasado soma em `late` (+ sub-bucket) E
+		// TAMBÉM no bucket do próprio status — por isso os `+=` no switch
+		// (duas linhas por status: is_late true/false).
 		if (row.is_late && (row.status === "paid" || row.status === "preparing")) {
 			counts.late += row.count;
-			continue;
+			if (row.status === "paid") {
+				counts.late_paid += row.count;
+			} else {
+				counts.late_preparing += row.count;
+			}
 		}
 		// `canceled`/`refunded` somam na mesma tab; os demais mapeiam 1:1. O
 		// switch estreita row.status para o literal, então a indexação é type-safe.
@@ -164,7 +187,7 @@ export function foldTabCounts(
 			case "shipped":
 			case "delivered":
 			case "returned":
-				counts[row.status] = row.count;
+				counts[row.status] += row.count;
 				break;
 			default:
 				break;
