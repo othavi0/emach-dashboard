@@ -16,6 +16,8 @@ export const ordersListFiltersSchema = z
 		branchId: z.string().uuid().optional(),
 		carrier: z.string().trim().max(80).optional(),
 		productId: z.string().uuid().optional(),
+		// Sub-aba de Atrasados (?tab=late&lateStatus=paid) — spec 2026-07-13.
+		lateStatus: z.enum(["paid", "preparing"]).optional(),
 		// CSV de IDs (export de selecionados). Quando presente, exporta só estes.
 		ids: z.string().max(20_000).optional(),
 	})

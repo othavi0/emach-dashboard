@@ -30,6 +30,9 @@ export function ExportCsvLink({ filters }: ExportCsvLinkProps) {
 	if (filters.toolId) {
 		params.set("productId", filters.toolId);
 	}
+	if (filters.lateStatus) {
+		params.set("lateStatus", filters.lateStatus);
+	}
 	const qs = params.toString();
 	const href = `/dashboard/orders/export${qs ? `?${qs}` : ""}`;
 
