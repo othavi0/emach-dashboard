@@ -24,38 +24,54 @@ export interface OrderTabDef {
 // Fluxo ativo do operador interno (grupo da esquerda na barra de tabs).
 // Um chip por status do funil (spec 2026-07-08); a antiga aba agregada
 // "A preparar" (paid+preparing) foi dividida em "Pago" e "Em preparação".
+// "Atrasados" fecha a fileira: é um OVERLAY (spec 2026-07-13), não uma
+// etapa — o pedido atrasado continua na aba do próprio status.
 export const ORDER_FLOW_TABS = [
 	{
 		key: "paid",
 		label: "Pago",
 		statuses: ["paid"] as DbOrderStatus[],
-		lateness: "exclude",
+		// `lateness` explícito (undefined) — sem ele, a inferência de predicado do
+		// TS 5.5+ em `.find()` narrowa pro literal exato desta entrada, que não
+		// declara a chave, e `?.lateness` vira erro de check-types (TS2339).
+		lateness: undefined,
 	},
 	{
 		key: "preparing",
 		label: "Em preparação",
 		statuses: ["preparing"] as DbOrderStatus[],
-		lateness: "exclude",
-	},
-	{
-		// Tab computada (spec 2026-07-10): pedidos pagos/em preparação há ≥72h.
-		// Exclusiva — some de "Pago"/"Em preparação" (lateness: "exclude" acima).
-		key: "late",
-		label: "Atrasados",
-		statuses: ["paid", "preparing"] as DbOrderStatus[],
-		lateness: "only",
+		lateness: undefined,
 	},
 	{
 		key: "shipped",
 		label: "Enviados",
 		statuses: ["shipped"] as DbOrderStatus[],
+		lateness: undefined,
 	},
 	{
 		key: "delivered",
 		label: "Entregues",
 		statuses: ["delivered"] as DbOrderStatus[],
+		lateness: undefined,
+	},
+	{
+		// Tab computada: pedidos pagos/em preparação há ≥72h. Overlay — o
+		// pedido também segue listado em "Pago"/"Em preparação" (spec 2026-07-13).
+		key: "late",
+		label: "Atrasados",
+		statuses: ["paid", "preparing"] as DbOrderStatus[],
+		lateness: "only",
 	},
 ] as const satisfies readonly OrderTabDef[];
+
+// Sub-abas (pills) dentro de "Atrasados": filtram o overlay por status.
+export type LateSubTabKey = "all" | "paid" | "preparing";
+
+export const LATE_SUB_TABS = [
+	{ key: "all", label: "Todos" },
+	{ key: "paid", label: "Pagos" },
+	{ key: "preparing", label: "Em preparação" },
+] as const satisfies readonly { key: LateSubTabKey; label: string }[];
 
 // Chaves antigas que ainda podem chegar por deep-link/bookmark. "to_prepare"
 // era a aba agregada pago+preparando; cai na fila de entrada.
