@@ -40,7 +40,8 @@
     "verify": "bun check-types && bun check && bun --cwd apps/web test",
     "guard:forms": "ast-grep scan",
     "guard:forms:test": "ast-grep test --skip-snapshot-tests",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "doctor": "npx react-doctor@latest"
   },
   "devDependencies": {
     "@ast-grep/cli": "0.43.0",
@@ -48,6 +49,7 @@
     "@emach/config": "workspace:*",
     "@types/node": "^25.8.0",
     "lefthook": "^2.1.9",
+    "react-doctor": "^0.7.7",
     "turbo": "^2.9.14",
     "typescript": "^6.0.3",
     "ultracite": "7.7.0"
