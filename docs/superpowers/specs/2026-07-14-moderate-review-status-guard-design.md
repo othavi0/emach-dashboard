@@ -154,10 +154,14 @@ espelhando `bulk-moderate.test.ts` (mesmos mocks hoisted de `@emach/db`,
 4. Aprovar sem nota → `moderationNote` **ausente** do objeto passado ao `.set()`.
 5. Rejeitar/spam sem nota → erro de validação (regra já existente, agora com
    `expectedStatus` no input).
+6. `expectedStatus` ausente → Zod barra antes de tocar o banco (caller
+   desatualizado). O teste do bulk já faz exatamente isso com
+   `as Omit<BulkModerateReviewsInput, "expectedStatus">` — cast permitido, não é
+   `as any`.
 
-`expectedStatus` ausente **não** vira caso de teste: o campo é obrigatório no tipo,
-então o `tsc` já barra, e forçar o caso em runtime exigiria um cast proibido pelo
-CLAUDE.md.
+A narrow de `CustomerReviewRow.status` de `string` para `ReviewStatus` (em
+`customers/data.ts`) entra junto: a query drizzle já devolve o enum, o tipo é que
+alargava, e sem isso o caller não consegue passar `expectedStatus` tipado.
 
 ## Verificação
 
