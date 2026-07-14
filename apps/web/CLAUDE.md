@@ -120,7 +120,7 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 
 **Gerar secret:** `openssl rand -hex 32`. Em produção: configurar em **Vercel > Project Settings > Environment Variables (Production)**. Vercel Cron só dispara em deploys de produção (não preview).
 
-**Jobs ativos:** `/api/cron/cancel-stale-orders` — diário 04:00 UTC; cancela `pending_payment` com `createdAt < now() - 72h`. `/api/cron/prune-cart-events` — diário 04:30 UTC.
+**Jobs ativos:** `/api/cron/cancel-stale-orders` — diário 04:00 UTC; cancela `pending_payment` com `createdAt < now() - 72h`. `/api/cron/prune-cart-events` — diário 04:30 UTC. `/api/cron/stock-alerts` — dias úteis 07:00 UTC; alerta de reorder point por filial com cooldown de 7 dias (tabela `stock_alert_sent`).
 
 ## Cache (Next 16)
 
