@@ -82,7 +82,7 @@ export function BulkModerateDialog({
 			const { moderatedIds, stale, succeeded } = result.data;
 			if (stale > 0) {
 				notify.warning(
-					`${succeeded} ${plural(succeeded)} moderada(s); ${stale} já havia(m) sido moderada(s) por outra pessoa`
+					`${succeeded} ${plural(succeeded)} moderada(s); ${stale} já havia(m) sido moderada(s) ou removida(s)`
 				);
 			} else {
 				notify.success(`${succeeded} ${plural(succeeded)} moderada(s)`);
