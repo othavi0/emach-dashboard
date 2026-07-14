@@ -2,15 +2,19 @@
 
 import { db } from "@emach/db";
 import { review } from "@emach/db/schema/reviews";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import type { ActionResult } from "@/lib/action-result";
+import { getPgError } from "@/lib/db-error";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { listReviews, type ReviewListItem } from "./data";
 import {
+	type BulkModerateResult,
+	type BulkModerateReviewsInput,
+	bulkModerateReviewsSchema,
 	type ModerateReviewInput,
 	moderateReviewSchema,
 	type ReviewsListFiltersParsed,
@@ -70,5 +74,61 @@ export async function moderateReview(
 	} catch (error) {
 		logger.error("moderateReview", error);
 		return { ok: false, error: "Erro ao moderar avaliação" };
+	}
+}
+
+/**
+ * Modera N avaliações num único UPDATE ... WHERE id IN (...) RETURNING id.
+ * Reviews são globais (sem branch-scoping): um requireCapability antes da query
+ * basta — não há autorização por item a fazer. As linhas devolvidas pelo
+ * RETURNING são a verdade sobre o que foi moderado; o que não voltou é `stale`.
+ */
+export async function bulkModerateReviews(
+	input: BulkModerateReviewsInput
+): Promise<ActionResult<BulkModerateResult>> {
+	const parsed = bulkModerateReviewsSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+
+	const session = await requireCapability("reviews.moderate");
+	const { reviewIds, status, moderationNote } = parsed.data;
+	const note = moderationNote?.trim();
+
+	try {
+		const moderated = await db
+			.update(review)
+			.set({
+				status,
+				moderatedBy: session.user.id,
+				moderatedAt: new Date(),
+				// Sem nota (caso da aprovação) → a coluna não entra no SET: aprovar em
+				// lote não apaga a nota de moderação anterior.
+				...(note ? { moderationNote: note } : {}),
+			})
+			.where(inArray(review.id, reviewIds))
+			.returning({ id: review.id });
+
+		revalidatePath(REVIEWS_PATH);
+
+		if (moderated.length === 0) {
+			return { ok: false, error: "Nenhuma avaliação foi moderada" };
+		}
+
+		return {
+			ok: true,
+			data: {
+				moderatedIds: moderated.map((row) => row.id),
+				stale: reviewIds.length - moderated.length,
+				succeeded: moderated.length,
+			},
+		};
+	} catch (error) {
+		const pg = getPgError(error);
+		logger.error("bulkModerateReviews", { err: error, code: pg?.code });
+		return { ok: false, error: "Erro ao moderar avaliações" };
 	}
 }
