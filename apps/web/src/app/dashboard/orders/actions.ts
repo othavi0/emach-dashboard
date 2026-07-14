@@ -490,6 +490,32 @@ export async function assignBranch(
 	}
 }
 
+// ── DESIGN: bulkAssignBranch (não implementado — issue #308 ficou só em Reviews) ──
+//
+// Assinatura proposta:
+//
+//   export async function bulkAssignBranch(
+//     input: { branchId: string; orderIds: string[] }
+//   ): Promise<ActionResult<{ failed: Array<{ id: string; error: string }>; succeeded: number }>>
+//
+// Contrato de autorização — o INVERSO do de reviews. Reviews são globais: um
+// requireCapability antes de um único UPDATE ... IN (...) basta. Pedidos são
+// branch-scoped, então:
+//
+//   1. requireCapabilityWithContext("orders.update_status", { targetBranchIds: [branchId] })
+//      uma vez antes do loop — o ator precisa de acesso à filial de DESTINO.
+//   2. Por item: db.transaction((tx) => lockOrderAndAuthorize(tx, "orders.update_status", orderId)).
+//      O branchId ATUAL do pedido pode mudar entre a checagem global e a mutação
+//      (race de reatribuição), e pedido na triagem (branchId = null) só admin/super_admin
+//      move. NÃO autorizar o lote inteiro de uma vez.
+//   3. Loop for...of com transações independentes: falha de um item não aborta o lote.
+//   4. BULK_ASSIGN_LIMIT = 20 (1 página; a triagem é o caso de uso).
+//   5. revalidatePath(ORDERS_PATH) uma vez, após o loop.
+//
+// Fiação: uma entrada no array `actions` do BulkActionBar já existente em
+// orders-infinite.tsx, abrindo um BranchPickerDialog que coleta o branchId.
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function updateTrackingCode(
 	input: UpdateTrackingCodeInput
 ): Promise<ActionResult> {
