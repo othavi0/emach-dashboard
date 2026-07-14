@@ -1,5 +1,14 @@
 # Fluxo de separação em Pedidos — Implementation Plan
 
+> **⚠️ Plano EXECUTADO (PR #305) — registro histórico, não reexecutar.** Ele foi
+> escrito quando "Atrasados" era uma tab **exclusiva**. Na integração com a main
+> (2026-07-14) o PR #306 já havia tornado Atrasados um **overlay**, então os
+> trechos abaixo com `lateness: "exclude"` e "atraso vence / é exclusiva" estão
+> **superados** — esse valor não existe mais no `OrderTabDef`. O modelo que
+> valeu: etapa (`paid`/`preparing`/`picked`) e atraso são eixos ortogonais.
+> Fonte de verdade atual: `apps/web/CLAUDE.md` § "Orders — filter-builder único".
+> O Step 2 da Task 6 (saneamento one-off) **já rodou** — ver o aviso lá.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Aplicar o spec `docs/superpowers/specs/2026-07-11-fluxo-separacao-pedidos-design.md`: terminologia "Em separação"/"Separando", bulk pago→separação com skip report, régua de atraso por `preparing_at`, responsável no badge composto e tab "Separado" computada.
@@ -1104,14 +1113,28 @@ git commit -m "feat: envio em massa de pagos para separação"
 
 Run: `bun verify` (check-types + check + test) → verde. Se a Task 5 não rodou `bun run build`, rodar aqui.
 
-- [ ] **Step 2: Saneamento one-off — SÓ com confirmação explícita do user nesta sessão**
+- [x] **Step 2: Saneamento one-off — JÁ EXECUTADO em 2026-07-11 (autorizado pelo user). NÃO reexecutar.**
 
-Perguntar ao user antes de executar (escrita no banco compartilhado):
+Registro histórico: backfill de `preparing_at` nos 6 pedidos que já estavam em
+separação antes da coluna passar a ser preenchida na transição. `paid_at` não
+foi tocado.
+
+⚠️ O banco é **único e compartilhado (dev = prod = ecommerce)**. O predicado
+original era `WHERE status = 'preparing'` — sem alvo explícito, ele reescreve
+**todo** pedido que estiver em separação no momento da execução, incluindo os
+que entraram depois. Se um backfill parecido for necessário de novo, ele tem que
+falhar fechado: listar os IDs primeiro e enumerá-los no `UPDATE`, com
+confirmação explícita do user na sessão.
 
 ```sql
-UPDATE "order" SET preparing_at = now() WHERE status = 'preparing';
--- Esperado: UPDATE 6 (os EM-2026-*). Conferir antes com:
--- SELECT number, preparing_at FROM "order" WHERE status = 'preparing';
+-- 1. Listar e CONFERIR o alvo (read-only):
+SELECT id, number, preparing_at FROM "order"
+ WHERE status = 'preparing' AND preparing_at IS NULL;
+
+-- 2. Só então escrever, com os IDs conferidos no predicado:
+UPDATE "order" SET preparing_at = now()
+ WHERE id IN ('<uuid-1>', '…')  -- exatamente os N da consulta acima
+   AND preparing_at IS NULL;    -- idempotente: nunca reescreve quem já tem
 ```
 
 - [ ] **Step 3: Smoke no browser (dev `:3007`)**

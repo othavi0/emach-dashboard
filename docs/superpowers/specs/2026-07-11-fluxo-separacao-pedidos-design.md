@@ -42,8 +42,13 @@ Resolve a colisão que o spec 2026-07-08 evitava: o macro-status usa
   `lockOrderAndAuthorize` → exige `status='paid'` **e** `branchId` não-nulo →
   `status='preparing'`, `preparingAt=now()` → insere `orderStatusHistory`
   (`actorType:'user'`, `actorUserId` da sessão).
-- Resultado `{ moved, skipped: [{id, number, reason}] }`; toast
+- Resultado `{ moved, skipped: [{number, reason}] }`; toast
   "X enviados para separação · Y pulados (sem filial / status mudou)".
+  O `id` **não** entra no retorno de propósito: o `number` só é lido de dentro
+  da transação, depois que `lockOrderAndAuthorize` passa. Pedido inacessível
+  (não existe, ou fora do escopo de filial do ator) é reportado com um rótulo
+  redigido — o UUID truncado que o próprio caller já enviou —, nunca com o
+  número real, que vazaria a existência/identidade de pedido de outra filial.
 - Pedidos movidos caem na fila "A separar" da página Separação (preparing sem
   sessão — comportamento já existente). O bulk **não** cria sessão de picking
   nem define responsável.
@@ -82,8 +87,15 @@ Resolve a colisão que o spec 2026-07-08 evitava: o macro-status usa
 - "Separado" é computada, como Atrasados: `status='preparing'` **e** última
   sessão de picking `completed`. "Em separação" passa a excluir esses
   (`status='preparing'` e última sessão ≠ `completed`) — sem duplicação.
-- Lateness segue exclusiva e vence: separado ou em separação com +72h (régua
-  nova) aparece só em Atrasados. `lateness: "exclude"` na tab Separado.
+- ~~Lateness segue exclusiva e vence: separado ou em separação com +72h (régua
+  nova) aparece só em Atrasados. `lateness: "exclude"` na tab Separado.~~
+  **Revisto na integração com a main (2026-07-14):** o PR #306 (spec 2026-07-13)
+  chegou primeiro e tornou Atrasados um **overlay** — o pedido atrasado continua
+  listado na aba da própria etapa. Os dois eixos são ortogonais e valem juntos:
+  a etapa decide a aba (`paid`/`preparing`/`picked`, exclusivas entre si) e o
+  atraso é um recorte transversal. Nenhuma aba de etapa carrega `lateness:
+  "exclude"` (o valor deixou de existir); dentro de Atrasados, a pill
+  `?lateStatus=paid|preparing|picked` espelha as etapas 1:1.
 - A condição "última sessão completed" entra no filter-builder único
   (`buildOrdersListConditions`) — tabs, counts, CSV e resumo de produto ficam
   consistentes de graça.
