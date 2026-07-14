@@ -18,9 +18,11 @@ import { notify } from "@/lib/notify";
 
 import { bulkModerateReviews } from "../actions";
 import type { BulkModerateStatus } from "../schema";
+import type { ReviewStatus } from "../status-meta";
 
 interface BulkModerateDialogProps {
 	count: number;
+	expectedStatus: ReviewStatus;
 	onClose: () => void;
 	onSuccess: (moderatedIds: string[]) => void;
 	reviewIds: string[];
@@ -43,6 +45,7 @@ function plural(count: number) {
 
 export function BulkModerateDialog({
 	count,
+	expectedStatus,
 	onClose,
 	onSuccess,
 	reviewIds,
@@ -67,6 +70,7 @@ export function BulkModerateDialog({
 				reviewIds,
 				status,
 				moderationNote: trimmed || undefined,
+				expectedStatus,
 			});
 
 			if (!result.ok) {
@@ -78,7 +82,7 @@ export function BulkModerateDialog({
 			const { moderatedIds, stale, succeeded } = result.data;
 			if (stale > 0) {
 				notify.warning(
-					`${succeeded} ${plural(succeeded)} moderada(s); ${stale} já não estava(m) disponível(is)`
+					`${succeeded} ${plural(succeeded)} moderada(s); ${stale} já havia(m) sido moderada(s) por outra pessoa`
 				);
 			} else {
 				notify.success(`${succeeded} ${plural(succeeded)} moderada(s)`);

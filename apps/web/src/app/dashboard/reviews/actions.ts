@@ -2,7 +2,7 @@
 
 import { db } from "@emach/db";
 import { review } from "@emach/db/schema/reviews";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import type { ActionResult } from "@/lib/action-result";
@@ -95,7 +95,7 @@ export async function bulkModerateReviews(
 	}
 
 	const session = await requireCapability("reviews.moderate");
-	const { reviewIds, status, moderationNote } = parsed.data;
+	const { reviewIds, status, moderationNote, expectedStatus } = parsed.data;
 	const note = moderationNote?.trim();
 
 	try {
@@ -109,7 +109,14 @@ export async function bulkModerateReviews(
 				// lote não apaga a nota de moderação anterior.
 				...(note ? { moderationNote: note } : {}),
 			})
-			.where(inArray(review.id, reviewIds))
+			.where(
+				and(
+					inArray(review.id, reviewIds),
+					// Guarda de concorrência: uma avaliação que outra pessoa moderou entre
+					// a seleção e o submit não casa, não volta no RETURNING e vira `stale`.
+					eq(review.status, expectedStatus)
+				)
+			)
 			.returning({ id: review.id });
 
 		revalidatePath(REVIEWS_PATH);

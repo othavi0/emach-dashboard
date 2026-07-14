@@ -111,6 +111,7 @@ export function ReviewsInfinite({
 			{bulkStatus ? (
 				<BulkModerateDialog
 					count={sel.count}
+					expectedStatus={filters.tab}
 					onClose={() => setBulkStatus(null)}
 					onSuccess={handleBulkSuccess}
 					reviewIds={sel.selectedIds}

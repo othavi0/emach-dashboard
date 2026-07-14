@@ -63,6 +63,9 @@ export const bulkModerateReviewsSchema = z
 				BULK_MODERATE_LIMIT,
 				`Limite de ${BULK_MODERATE_LIMIT} avaliações por operação`
 			),
+		/** Status esperado das avaliações (a aba de origem). Guarda de concorrência:
+		 *  o UPDATE só afeta linhas que AINDA estão nesse status. */
+		expectedStatus: z.enum(["pending", "approved", "rejected", "spam"]),
 		status: z.enum(["approved", "rejected", "spam"]),
 		moderationNote: z.string().max(1000).optional(),
 	})

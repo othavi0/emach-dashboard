@@ -60,7 +60,12 @@ Fluxo:
        moderatedAt: new Date(),
        ...(note ? { moderationNote: note } : {}),
      })
-     .where(inArray(review.id, reviewIds))
+     .where(
+       and(
+         inArray(review.id, reviewIds),
+         eq(review.status, expectedStatus) // guarda de concorrência
+       )
+     )
      .returning({ id: review.id });
    ```
 
@@ -82,6 +87,18 @@ Fluxo:
   statement, os modos de falha de banco (conexão, constraint) atingem o lote
   inteiro de qualquer forma — reportar isso como "parcial" seria mentira. A única
   parcialidade real é o ID que sumiu ou mudou entre a seleção e o submit (`stale`).
+- **`expectedStatus` é a guarda de concorrência (revisão do design, 2026-07-14).**
+  O `WHERE` casa por `id` **e** por `status = expectedStatus`, onde `expectedStatus`
+  é a aba de origem (todo card visível tem o status da aba). Sem essa condição, o
+  lote sobrescreve às cegas: Admin A seleciona X na aba Pendentes para aprovar;
+  antes de A confirmar, Admin B rejeita X com nota; o lote de A ainda casaria X
+  (a linha não sumiu, só mudou de status) e a promoveria a `approved` — deixando
+  a nota de rejeição de B órfã num registro aprovado. Com a guarda, X não casa,
+  não volta no `RETURNING` e entra no `stale`. É o que este documento já prometia
+  ("sumiu **ou** mudou") e a primeira implementação não entregava.
+  A `moderateReview` single-item tem o mesmo buraco e **não** é corrigida aqui —
+  o detalhe precisa de UX própria para o conflito ("moderada por outra pessoa
+  enquanto você olhava"). Fica como issue de hardening à parte.
 - **`moderationNote` só entra no `set` quando preenchida.** Aprovar em lote não
   passa nota; gravar `moderationNote: null` incondicionalmente (como no spike)
   apagaria a nota de moderação anterior das avaliações selecionadas — perda de
@@ -101,6 +118,8 @@ export const bulkModerateReviewsSchema = z
       .array(z.string().uuid())
       .min(1, "Selecione ao menos 1 avaliação")
       .max(BULK_MODERATE_LIMIT, `Limite de ${BULK_MODERATE_LIMIT} avaliações por operação`),
+    /** Status esperado das avaliações (a aba de origem) — guarda de concorrência. */
+    expectedStatus: z.enum(["pending", "approved", "rejected", "spam"]),
     status: z.enum(["approved", "rejected", "spam"]),
     moderationNote: z.string().max(1000).optional(),
   })
@@ -121,9 +140,12 @@ Confirma a ação e coleta a nota quando `status ∈ {rejected, spam}`.
   roda local com `bun guard:forms`).
 - Título: `"Rejeitar 8 avaliações?"`. Botão primário `destructive` em
   `rejected`/`spam`, `default` em `approved`.
+- Recebe `expectedStatus` (a aba de origem) do caller e repassa à action.
 - Feedback:
   - `stale === 0` → `notify.success("8 avaliações moderadas")`
-  - `stale > 0` → `notify.warning("8 moderadas; 2 já não estavam disponíveis")`
+  - `stale > 0` → `notify.warning("8 moderadas; 2 já haviam sido moderadas ou removidas")`
+    (com a guarda de `expectedStatus`, `stale` inclui as que outra pessoa moderou
+    no meio-tempo — a mensagem tem que refletir isso)
   - `ok: false` → `notify.error(result.error)` e o dialog **permanece aberto**
     (o usuário pode corrigir a nota e tentar de novo).
 
@@ -136,7 +158,8 @@ Segue o padrão de `customers-infinite.tsx`: `SelectionToolbar` acima do grid
 
 Ações: **Aprovar** (`default`), **Rejeitar** (`secondary`), **Spam** (`destructive`).
 A ação cujo status é igual ao da aba atual é omitida — aprovar na aba "Aprovadas"
-não muda nada.
+não muda nada. Passa `expectedStatus={filters.tab}` ao dialog: cada aba **é** um
+status, então a aba de origem é o status esperado de todo card selecionado.
 
 **Atualização da lista após o sucesso** (o ponto que o spike errava):
 `useInfiniteList` guarda `items` em `useState` e **não** ressincroniza com uma nova
@@ -182,6 +205,8 @@ a implementação futura:
 8. `RETURNING` devolve 0 linhas → `ok: false, error: "Nenhuma avaliação foi moderada"`.
 9. `moderationNote` vazia em `approved` → o `set` **não** contém `moderationNote`.
 10. Erro de banco (mock lança) → `ok: false`, `logger.error` chamado.
+11. `expectedStatus` ausente → `ok: false` (Zod), sem tocar no banco.
+12. `expectedStatus` presente → o `where` compõe `inArray(id)` **e** `eq(status, expectedStatus)`.
 
 ## Critérios de pronto
 

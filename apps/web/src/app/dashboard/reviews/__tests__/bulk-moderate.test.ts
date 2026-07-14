@@ -37,8 +37,11 @@ vi.mock("next/cache", () => ({
 // Import depois dos mocks
 // ---------------------------------------------------------------------------
 
+import { review } from "@emach/db/schema/reviews";
+import { and, eq, inArray } from "drizzle-orm";
+
 import { bulkModerateReviews } from "../actions";
-import { BULK_MODERATE_LIMIT } from "../schema";
+import { BULK_MODERATE_LIMIT, type BulkModerateReviewsInput } from "../schema";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -94,6 +97,7 @@ describe("bulkModerateReviews", () => {
 		const result = await bulkModerateReviews({
 			reviewIds: [ID_A, ID_B, ID_C],
 			status: "approved",
+			expectedStatus: "pending",
 		});
 
 		expect(result).toEqual({
@@ -114,6 +118,7 @@ describe("bulkModerateReviews", () => {
 		const result = await bulkModerateReviews({
 			reviewIds: [ID_A],
 			status: "rejected",
+			expectedStatus: "pending",
 		});
 
 		expect(result).toEqual({
@@ -128,6 +133,7 @@ describe("bulkModerateReviews", () => {
 			reviewIds: [ID_A],
 			status: "spam",
 			moderationNote: "   ",
+			expectedStatus: "pending",
 		});
 
 		expect(result.ok).toBe(false);
@@ -141,6 +147,7 @@ describe("bulkModerateReviews", () => {
 			reviewIds: [ID_A],
 			status: "rejected",
 			moderationNote: "  conteúdo ofensivo  ",
+			expectedStatus: "pending",
 		});
 
 		expect(result.ok).toBe(true);
@@ -156,7 +163,11 @@ describe("bulkModerateReviews", () => {
 	it("não sobrescreve a nota existente ao aprovar sem nota", async () => {
 		setupUpdate([{ id: ID_A }]);
 
-		await bulkModerateReviews({ reviewIds: [ID_A], status: "approved" });
+		await bulkModerateReviews({
+			reviewIds: [ID_A],
+			status: "approved",
+			expectedStatus: "pending",
+		});
 
 		expect(setSpy).toHaveBeenCalledWith(
 			expect.not.objectContaining({ moderationNote: expect.anything() })
@@ -167,6 +178,7 @@ describe("bulkModerateReviews", () => {
 		const result = await bulkModerateReviews({
 			reviewIds: [],
 			status: "approved",
+			expectedStatus: "pending",
 		});
 
 		expect(result).toEqual({
@@ -185,6 +197,7 @@ describe("bulkModerateReviews", () => {
 		const result = await bulkModerateReviews({
 			reviewIds: tooMany,
 			status: "approved",
+			expectedStatus: "pending",
 		});
 
 		expect(result).toEqual({
@@ -200,6 +213,7 @@ describe("bulkModerateReviews", () => {
 		const result = await bulkModerateReviews({
 			reviewIds: [ID_A, ID_B, ID_C],
 			status: "approved",
+			expectedStatus: "pending",
 		});
 
 		expect(result).toEqual({
@@ -214,6 +228,7 @@ describe("bulkModerateReviews", () => {
 		const result = await bulkModerateReviews({
 			reviewIds: [ID_A],
 			status: "approved",
+			expectedStatus: "pending",
 		});
 
 		expect(result).toEqual({
@@ -228,6 +243,7 @@ describe("bulkModerateReviews", () => {
 		const result = await bulkModerateReviews({
 			reviewIds: [ID_A],
 			status: "approved",
+			expectedStatus: "pending",
 		});
 
 		expect(result).toEqual({
@@ -235,5 +251,48 @@ describe("bulkModerateReviews", () => {
 			error: "Erro ao moderar avaliações",
 		});
 		expect(mockLoggerError).toHaveBeenCalled();
+	});
+
+	it("rejeita quando expectedStatus está ausente (Zod), sem tocar no banco", async () => {
+		// Simula um caller desatualizado (ex: build antigo do client) que ainda
+		// não manda `expectedStatus` — o Zod tem que barrar antes do banco.
+		const legacyInput = { reviewIds: [ID_A], status: "approved" } as Omit<
+			BulkModerateReviewsInput,
+			"expectedStatus"
+		>;
+
+		const result = await bulkModerateReviews(
+			legacyInput as BulkModerateReviewsInput
+		);
+
+		expect(result.ok).toBe(false);
+		expect(mockDbUpdate).not.toHaveBeenCalled();
+	});
+
+	it("compõe o where com inArray(id) e eq(status, expectedStatus)", async () => {
+		setupUpdate([{ id: ID_A }]);
+
+		let capturedWhere: unknown;
+		mockDbUpdate.mockReturnValue({
+			set: (payload: unknown) => {
+				setSpy(payload);
+				return {
+					where: (whereArg: unknown) => {
+						capturedWhere = whereArg;
+						return { returning: () => Promise.resolve([{ id: ID_A }]) };
+					},
+				};
+			},
+		});
+
+		await bulkModerateReviews({
+			reviewIds: [ID_A],
+			status: "approved",
+			expectedStatus: "pending",
+		});
+
+		expect(capturedWhere).toEqual(
+			and(inArray(review.id, [ID_A]), eq(review.status, "pending"))
+		);
 	});
 });
