@@ -50,7 +50,7 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 ### Catálogo
 
 - **Tool** — qualquer item vendável do catálogo. **Termo de arte**: cobre ferramenta, equipamento e acessório indistintamente — não é só "ferramenta" no sentido literal. É o registro "pai", que **não** carrega SKU, preço nem voltagem (isso vive na Tool Variant). No site e-commerce aparece como "produto"; no domínio do admin o termo canônico é **Tool**. A distinção ferramenta/equipamento, quando importa para navegação, é modelada como Category — não como tipo de Tool.
-- **Tool Variant (Variante)** — variação concreta vendável de uma Tool (ex.: 127V vs 220V). Tabela `toolVariant`. **Carrega SKU, preço, custo e voltagem.** Toda Tool tem **≥1 variante**; exatamente uma é a Default Variant.
+- **Tool Variant (Variante)** — variação concreta vendável de uma Tool (ex.: 127V vs 220V). Tabela `toolVariant`. **Carrega SKU, preço e voltagem.** Toda Tool tem **≥1 variante**; exatamente uma é a Default Variant.
 - **Default Variant** — a variante exibida quando nenhuma é escolhida. Uma por Tool (`isDefault=true`, partial unique index).
 - **Tool status** — ciclo de vida **editorial** do catálogo: `draft` (em cadastro) | `active` (publicável) | `discontinued` (saiu de linha). Enum `tool_status`, garantido pelo CHECK `valid_tool_status`. **Não existe valor `out_of_stock`** — disponibilidade é sempre derivada do Stock Level (variante × filial), nunca um status editorial.
 - **Visible on site** — chave manual de vitrine (`visibleOnSite`), independente do Tool status. Uma Tool aparece no site e-commerce quando `status='active'` **e** `visibleOnSite=true` — as duas condições juntas.
@@ -146,33 +146,14 @@ Um **site e-commerce** separado (outro repositório) vende para o cliente final 
 - **Catch-all de categoria** — historicamente existiam duas categorias-raiz catch-all vazias (`sem-categoria` no seed, `geral` resquício de migration). Issue #39 confirmou **0 attribute definitions e 0 tools** sob elas. Issue #41 removeu ambas do seed e do banco: toda Tool tem uma Category real, sem fallback.
 - **`paymentStatus`** — `order` tem dois campos de estado (`status` e `paymentStatus`) com `paid`/`refunded` sobrepostos. Resolvido: o Order passa a ter um eixo único `status`; o campo `paymentStatus` e seu enum são removidos. Ver ADR-0005.
 - **Fornecedor na Tool × na entrada** — historicamente o Fornecedor era **1:1 fixo na Tool** (`tool.supplier_id`, definido na criação da ferramenta). Resolvido: a proveniência pertence à **compra**, não à ferramenta — a relação Fornecedor↔Tool é **N:N derivada das entradas** (`stock_movement.supplier_id` em `reason='entrada_compra'`), e a coluna `tool.supplier_id` foi **removida**. Ver ADR-0015.
-- **Custo no estoque** — a variante tem `cost_amount` e houve a tentação de capturar custo por entrada. Resolvido: **estoque não é gestão financeira** — o fluxo de estoque não captura custo. (A remoção de `tool_variant.cost_amount` é limpeza à parte, fora da feature de fluxo de estoque.)
+- **Custo no estoque** — a variante tinha `cost_amount` e houve a tentação de capturar custo por entrada. Resolvido: **estoque não é gestão financeira** — o fluxo de estoque não captura custo, e a coluna `tool_variant.cost_amount` foi removida do schema.
 - **Transferência entre filiais** — não é um conceito do domínio. Cada Branch tem seu estoque isolado; **não existe operação de transferência** de estoque entre filiais (não há motivo de movimento, UX nem registro para isso). Movimentos entre filiais, se um dia necessários, seriam Baixa numa + Entrada noutra — mas hoje isso está **fora de escopo por decisão de produto**.
 
 ## ADRs
 
-Decisões arquiteturais ficam em `docs/adr/`:
-
-- **ADR-0001** — Orders são criados apenas pelo site e-commerce.
-- **ADR-0002** — Descontos de Promotion nunca empilham.
-- **ADR-0003** — Lead não é um conceito do domínio.
-- **ADR-0004** — Integração com o e-commerce é só DB compartilhada (sem API).
-- **ADR-0005** — Order tem um eixo único de status (inclui aresta `shipped → returned` para falha de entrega).
-- **ADR-0006** — DB workflow é push-only até produção (sem migrations versionadas).
-- **ADR-0007** — Débito de estoque ocorre na transição para `paid`, não na criação do pedido.
-- **ADR-0008** — Documentos do Asaas chegam ao dashboard pelo banco de dados; o dashboard nunca chama a API do Asaas.
-- **ADR-0009** — O schema do e-commerce sincroniza do dashboard via CI (PR automático); o dashboard é a fonte de verdade.
-- **ADR-0010** — ~~Signup de staff é público (aprovação manual), sem flow de invitation.~~ **Superado por ADR-0013.**
-- **ADR-0011** — Audit log de user sobrevive ao delete: FK `set null` + snapshot do nome em `metadata`.
-- **ADR-0012** — ~~Gates role-based desligados; roles mantidos como rótulo (religar antes de produção).~~ **Superado por ADR-0016.**
-- **ADR-0013** — Auth de staff é convite-only (substitui ADR-0010); sem signup público.
-- **ADR-0014** — RLS deny-all nas tabelas expostas via PostgREST (fecha a porta REST para `anon`/`authenticated`).
-- **ADR-0015** — Proveniência de Fornecedor vive na entrada de estoque (N:N derivado), não na Tool; admin tem três operações de estoque (entrada/baixa/ajuste).
-- **ADR-0016** — Religar gates com 3 níveis (`manager` aposentado) e Branch-scoping em dois planos (visibilidade + ação); admin filial-scoped, fail-closed, invariante "todo admin/user tem ≥1 filial". Substitui ADR-0012.
-- **ADR-0017** — Overrides de capability por usuário: registry declarativo (`capabilities.ts`), tabela `user_capability_override` (text livre, não pgEnum), `can()` async com request-cache, anti-escalada em grant, auditoria em `userActivityLog`. Estende ADR-0016.
-- **ADR-0018** — Read server actions enforçam capability (não só mutations): toda fn exportada de `actions.ts` recebe `requireCapability(<recurso>.read)` como primeira instrução; funções em `data.ts`/`*-data.ts` são `server-only` (não-endpoint) — o caller é responsável pelo guard. Estende ADR-0016.
-- **ADR-0019** — Split de god-module em `data.ts` (server-only) + `_lib` + `actions.ts` enxuto: 3 camadas — `data.ts` (`import "server-only"`, reads+tipos+builders) + `_lib/*` (helpers puros, sem auth) + `actions.ts` (`"use server"`, só mutations + thin wrappers com guard). `bun run build` é gate obrigatório após refatorar `"use server"`. Estende ADR-0018.
-- **ADR-0020** — ~~`cookieCache` na sessão do dashboard (staleness de gate aceita).~~ **Superado por ADR-0021.**
-- **ADR-0021** — Remoção do `cookieCache` da sessão do dashboard: RSC não propaga `Set-Cookie` no App Router, então o cache nunca era renovado em SSR; a liability de staleness P0 superou o ganho medido (~dezenas de ms). Sessão volta a ler o Postgres em todo request. Substitui ADR-0020.
+Decisões arquiteturais ficam em `docs/adr/` — o índice canônico, com status e
+cadeias de supersessão, é **`docs/adr/README.md`**. Não duplicar a lista aqui:
+a cópia anterior parou no ADR-0021 enquanto o repo já ia no 0029 (removida em
+2026-07-13).
 
 Se um output contradiz um ADR existente, sinalize explicitamente em vez de sobrescrever em silêncio.

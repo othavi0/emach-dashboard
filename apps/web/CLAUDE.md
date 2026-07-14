@@ -32,7 +32,7 @@ Modelo completo: `docs/adr/0016-religacao-gates-3-niveis-filial.md` + `docs/supe
 
 ### Overrides por usuário (ADR-0017)
 
-Catálogo em **`src/lib/capabilities.ts`** (46 caps, metadata `group/resource/action/defaultRoles`). Nova feature = 1 entrada → aparece na UI e nasce deny-by-default para roles fora de `defaultRoles`. `Capability` type derivado das keys (sem pgEnum).
+Catálogo em **`src/lib/capabilities.ts`** (metadata `group/resource/action/defaultRoles`; a contagem cresce — não citar número fixo em docs). Nova feature = 1 entrada → aparece na UI e nasce deny-by-default para roles fora de `defaultRoles`. `Capability` type derivado das keys (sem pgEnum).
 
 - **`can(session, cap)`** — **async**, resolve role ± overrides via `getUserCapabilities(session)` (request-cache, `cache()` do React, mesmo padrão de `getUserBranchScope`). Todos os callsites foram migrados para `await can(...)`.
 - **`roleHasCapability(role, cap)`** — sync, apenas o default do role (sem overrides); usar quando override não é relevante (ex: UI que exibe o default do role como sugestão).
@@ -120,7 +120,7 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 
 **Gerar secret:** `openssl rand -hex 32`. Em produção: configurar em **Vercel > Project Settings > Environment Variables (Production)**. Vercel Cron só dispara em deploys de produção (não preview).
 
-**Job ativo:** `/api/cron/cancel-stale-orders` — diário 04:00 UTC; cancela `pending_payment` com `createdAt < now() - 72h`.
+**Jobs ativos:** `/api/cron/cancel-stale-orders` — diário 04:00 UTC; cancela `pending_payment` com `createdAt < now() - 72h`. `/api/cron/prune-cart-events` — diário 04:30 UTC.
 
 ## Cache (Next 16)
 
@@ -144,9 +144,18 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 
 **Padrão canônico de split de god-module `actions.ts` (ADR-0019):** 3 camadas — `data.ts` (`import "server-only"`, reads+tipos+builders) + `_lib/*-query-helpers.ts` (helpers puros, sem auth) + `actions.ts` (`"use server"`, só mutations + thin wrappers de read com guard). Read chamado de Client Component ganha wrapper `"use server"` que faz `requireCapability` e delega ao `data.ts` (padrão `fetchToolsPageAction`/`fetchLedgerPageAction`); read só-server importa direto de `data.ts`. Helper sync **não pode ser exportado de `"use server"` pra teste** (mesma regra) → mover-pro-`_lib`-então-testar. Exemplares: `tools/`, `promotions/`, `stock/`.
 
+## React Compiler (`reactCompiler: true`) — padrões anti-bailout (2026-07-13)
+
+O compiler **baila** (componente inteiro perde memoização) em: (a) `try` com `finally` — qualquer um, mesmo `try/catch/finally`; (b) `throw` dentro do **corpo do try** (rethrow dentro do `catch` é suportado). Detecção: `npx react-doctor@latest` (regra `react-hooks-js/todo`).
+
+- Handler async com busy-flag: cleanup no **fim do try** + duplicado no `catch (err) { cleanup(); throw err; }` — nunca `finally`. Fluxos com early-return + notify: extrair `const fail = (msg) => { notify.error(msg); setStatus(null); }` (canônico: `tools/_components/tool-video-field.tsx`).
+- `setState` síncrono em `useEffect` (reset de sheet ao abrir, re-sync de input controlado) força re-render extra → padrão in-render "adjusting state when a prop changes": `const [lastReset, setLastReset] = useState({...}); if (mudou) { setLastReset(...); reset(); }` durante o render (canônicos: `users/_components/user-edit-sheet.tsx`, `components/entity/lazy-tab.tsx`). **Exceção legítima:** hydrate de `localStorage` pós-mount (`use-tool-draft.ts`) — em SSR precisa de effect.
+- `Date.now()`/`new Date()` no corpo do render é impuro → congelar por instância: `const [now] = useState(() => Date.now())`.
+- Scanner: config em `doctor.config.ts` na raiz — `server-auth-actions` e `no-impure-state-updater` estão **off** por falso positivo comprovado (rationale no próprio config; não religar sem reauditar). CI advisory em `.github/workflows/react-doctor.yml`.
+
 ## Testes
 
-`bun --cwd apps/web test` (vitest, `environment: node`). Suíte verde (68 arquivos / 481 testes em 2026-06-17, pós-audit).
+`bun --cwd apps/web test` (vitest, `environment: node`). Suíte verde (96 arquivos / 694 testes em 2026-07-13).
 
 - **`server-only` em testes:** módulos que importam `server-only` (boundary do Next, ex: `src/lib/activity.ts`) são testáveis porque `vitest.config.ts` faz `resolve.alias['server-only'] → src/__mocks__/server-only.ts` (stub vazio). Ao adicionar teste para código que importa `server-only`, não precisa de `vi.mock` — o alias já resolve.
 - Mock de `@emach/db` por `vi.hoisted` + `vi.mock` (ver `__tests__/activity.test.ts` como referência de como mockar o query builder do Drizzle).

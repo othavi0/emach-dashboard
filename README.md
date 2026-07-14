@@ -86,7 +86,7 @@ emach-dashboard/
 │   ├── env/                         # Zod-validated env (@t3-oss/env-core)
 │   └── config/                      # tsconfig.base.json compartilhado
 ├── docs/
-│   ├── adr/                         # Decisões arquiteturais (0001…0017)
+│   ├── adr/                         # Decisões arquiteturais (índice em docs/adr/README.md)
 │   ├── agents/                      # Guias de consumo de domínio/issues p/ agentes
 │   ├── integration/admin-ecommerce.md
 │   └── storage-buckets.md
