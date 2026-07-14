@@ -44,10 +44,18 @@ export function ModerateActions({ review }: { review: ReviewDetail }) {
 					reviewId: review.id,
 					status,
 					moderationNote: moderationNote.trim() || undefined,
+					// O status que o Server Component renderizou é, literalmente, "o que o
+					// moderador tinha na tela quando decidiu".
+					expectedStatus: review.status,
 				});
 
 				if (!result.ok) {
 					notify.error(result.error);
+					// Pode ser conflito (outra pessoa moderou antes): recarrega para o
+					// moderador ver o status e a nota de quem chegou primeiro — o card de
+					// detalhe já renderiza `moderatedByName • moderatedAt` e a nota.
+					reloadTab();
+					router.refresh();
 					return;
 				}
 
@@ -56,6 +64,8 @@ export function ModerateActions({ review }: { review: ReviewDetail }) {
 				router.refresh();
 			} catch {
 				notify.error("Não foi possível salvar a moderação");
+				reloadTab();
+				router.refresh();
 			}
 		});
 	}

@@ -19,6 +19,7 @@ import {
 } from "@emach/db/schema/client-audit";
 import { type ConsentKind, consentLog } from "@emach/db/schema/consent-log";
 import type { OrderStatus } from "@emach/db/schema/orders";
+import type { ReviewStatus } from "@emach/db/schema/reviews";
 import { review } from "@emach/db/schema/reviews";
 import { tool } from "@emach/db/schema/tools";
 import { toDate } from "@emach/db/utils";
@@ -88,7 +89,7 @@ export interface CustomerReviewRow {
 	moderationNote: string | null;
 	orderId: string | null;
 	rating: number;
-	status: string;
+	status: ReviewStatus;
 	title: string | null;
 	toolId: string;
 	toolName: string;

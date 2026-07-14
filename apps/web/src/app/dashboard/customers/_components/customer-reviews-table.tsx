@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReviewStatus } from "@emach/db/schema/reviews";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -82,6 +83,7 @@ function StarRating({ rating }: { rating: number }) {
 type PendingAction = {
 	reviewId: string;
 	status: "rejected" | "spam";
+	expectedStatus: ReviewStatus;
 } | null;
 
 interface CustomerReviewsTableProps {
@@ -116,15 +118,21 @@ export function CustomerReviewsTable({
 		);
 	}
 
-	function handleApprove(reviewId: string) {
+	function handleApprove(reviewId: string, expectedStatus: ReviewStatus) {
 		startTransition(async () => {
-			const result = await moderateReview({ reviewId, status: "approved" });
+			const result = await moderateReview({
+				reviewId,
+				status: "approved",
+				expectedStatus,
+			});
 			if (result.ok) {
 				notify.success("Avaliação aprovada");
 				reloadTab();
 				router.refresh();
 			} else {
 				notify.error(result.error);
+				reloadTab();
+				router.refresh();
 			}
 		});
 	}
@@ -139,6 +147,7 @@ export function CustomerReviewsTable({
 				reviewId: pendingAction.reviewId,
 				status: pendingAction.status,
 				moderationNote,
+				expectedStatus: pendingAction.expectedStatus,
 			});
 			if (result.ok) {
 				notify.success(
@@ -152,6 +161,10 @@ export function CustomerReviewsTable({
 				router.refresh();
 			} else {
 				notify.error(result.error);
+				setPendingAction(null);
+				setNote("");
+				reloadTab();
+				router.refresh();
 			}
 		});
 	}
@@ -223,7 +236,9 @@ export function CustomerReviewsTable({
 																	<Button
 																		aria-label="Aprovar avaliação"
 																		disabled={isPending}
-																		onClick={() => handleApprove(review.id)}
+																		onClick={() =>
+																			handleApprove(review.id, review.status)
+																		}
 																		size="icon-sm"
 																		variant="secondary"
 																	>
@@ -246,6 +261,7 @@ export function CustomerReviewsTable({
 																			setPendingAction({
 																				reviewId: review.id,
 																				status: "rejected",
+																				expectedStatus: review.status,
 																			});
 																			setNote("");
 																		}}
@@ -271,6 +287,7 @@ export function CustomerReviewsTable({
 																			setPendingAction({
 																				reviewId: review.id,
 																				status: "spam",
+																				expectedStatus: review.status,
 																			});
 																			setNote("");
 																		}}
