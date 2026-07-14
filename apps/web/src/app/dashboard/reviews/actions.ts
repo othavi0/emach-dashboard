@@ -55,24 +55,47 @@ export async function moderateReview(
 	}
 
 	const session = await requireCapability("reviews.moderate");
-	const { reviewId, status, moderationNote } = parsed.data;
+	const { reviewId, status, moderationNote, expectedStatus } = parsed.data;
+	const note = moderationNote?.trim();
 
 	try {
-		await db
+		const updated = await db
 			.update(review)
 			.set({
 				status,
 				moderatedBy: session.user.id,
 				moderatedAt: new Date(),
-				moderationNote: moderationNote ?? null,
+				// Sem nota (caso da aprovação) → a coluna não entra no SET: aprovar não
+				// apaga a nota de moderação anterior. Mesma regra do bulk.
+				...(note ? { moderationNote: note } : {}),
 			})
-			.where(eq(review.id, reviewId));
+			.where(
+				and(
+					eq(review.id, reviewId),
+					// Guarda de concorrência: se outra pessoa moderou entre o render e o
+					// clique, a linha não casa e o RETURNING volta vazio.
+					eq(review.status, expectedStatus)
+				)
+			)
+			.returning({ id: review.id });
 
+		// Revalidar também no conflito, antes do return: senão o router.refresh()
+		// do client pode servir de volta o estado velho que causou o conflito.
 		revalidatePath(REVIEWS_PATH);
 		revalidatePath(`${REVIEWS_PATH}/${reviewId}`);
+
+		if (updated.length === 0) {
+			return {
+				ok: false,
+				error:
+					"Esta avaliação já foi moderada por outra pessoa. A tela foi atualizada.",
+			};
+		}
+
 		return { ok: true, data: undefined };
 	} catch (error) {
-		logger.error("moderateReview", error);
+		const pg = getPgError(error);
+		logger.error("moderateReview", { err: error, code: pg?.code });
 		return { ok: false, error: "Erro ao moderar avaliação" };
 	}
 }

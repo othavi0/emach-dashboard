@@ -44,6 +44,9 @@ export function ModerateActions({ review }: { review: ReviewDetail }) {
 					reviewId: review.id,
 					status,
 					moderationNote: moderationNote.trim() || undefined,
+					// O status que o Server Component renderizou é, literalmente, "o que o
+					// moderador tinha na tela quando decidiu".
+					expectedStatus: review.status,
 				});
 
 				if (!result.ok) {

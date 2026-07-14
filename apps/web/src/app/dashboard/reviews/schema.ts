@@ -28,6 +28,10 @@ export type ReviewsListFiltersParsed = z.infer<typeof reviewsListFiltersSchema>;
 export const moderateReviewSchema = z
 	.object({
 		reviewId: z.string().uuid(),
+		/** Status que a tela renderizou. Guarda de concorrência: o UPDATE só afeta
+		 *  a linha se ela AINDA estiver nesse status. Obrigatório de propósito —
+		 *  opcional reabriria o buraco no primeiro caller que esquecesse de passar. */
+		expectedStatus: z.enum(["pending", "approved", "rejected", "spam"]),
 		status: z.enum(["approved", "rejected", "spam"]),
 		moderationNote: z.string().max(1000).optional(),
 	})
