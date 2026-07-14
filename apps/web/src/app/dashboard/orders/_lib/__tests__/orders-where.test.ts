@@ -7,7 +7,14 @@ import {
 	CARRIER_NONE,
 	ORDER_FLOW_TABS,
 } from "../../status-meta";
-import { buildOrdersListConditions, ordersTabSort } from "../orders-where";
+import {
+	buildOrdersListConditions,
+	effectiveTabPicking,
+	effectiveTabStatuses,
+	emptyTabCounts,
+	foldTabCounts,
+	ordersTabSort,
+} from "../orders-where";
 
 const dialect = new PgDialect();
 
@@ -29,6 +36,14 @@ if (!PAID_TAB) {
 const LATE_TAB = ORDER_FLOW_TABS.find((t) => t.key === "late");
 if (!LATE_TAB) {
 	throw new Error("tab 'late' não encontrada em ORDER_FLOW_TABS");
+}
+const PREPARING_TAB = ORDER_FLOW_TABS.find((t) => t.key === "preparing");
+if (!PREPARING_TAB) {
+	throw new Error("tab 'preparing' não encontrada em ORDER_FLOW_TABS");
+}
+const PICKED_TAB = ORDER_FLOW_TABS.find((t) => t.key === "picked");
+if (!PICKED_TAB) {
+	throw new Error("tab 'picked' não encontrada em ORDER_FLOW_TABS");
 }
 
 describe("ordersTabSort", () => {
@@ -59,7 +74,7 @@ describe("buildOrdersListConditions", () => {
 		expect(rendered).not.toContain("branch_id");
 	});
 
-	it("scope filial gera condição de filial + status + lateness exclude", () => {
+	it("scope filial gera condição de filial + status, sem lateness (overlay)", () => {
 		const conditions = buildOrdersListConditions({
 			filters: {},
 			scope: SCOPED_SCOPE,
@@ -68,13 +83,8 @@ describe("buildOrdersListConditions", () => {
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("o.branch_id IN");
 		expect(rendered).toContain("o.status IN");
-		expect(rendered).toContain("CASE WHEN o.status = 'preparing'");
-		expect(rendered).toContain(
-			"COALESCE(o.preparing_at, o.paid_at, o.created_at)"
-		);
-		expect(rendered).toContain(
-			"ELSE COALESCE(o.paid_at, o.created_at) END > now() - make_interval(hours =>"
-		);
+		// Overlay: a aba da etapa não carrega condição de atraso nenhuma.
+		expect(rendered).not.toContain("COALESCE(o.paid_at,");
 		expect(params).toEqual(
 			expect.arrayContaining(["branch-1", "branch-2", "paid"])
 		);
@@ -91,6 +101,22 @@ describe("buildOrdersListConditions", () => {
 		expect(rendered).toContain(
 			"ELSE COALESCE(o.paid_at, o.created_at) END <= now() - make_interval(hours =>"
 		);
+	});
+
+	it("tab 'late' com lateStatus estreita status sem perder a condição de lateness", () => {
+		const conditions = buildOrdersListConditions({
+			filters: { lateStatus: "paid" },
+			scope: ALL_SCOPE,
+			tabDef: LATE_TAB,
+		});
+		const { sql: rendered, params } = render(conditions);
+		expect(rendered).toContain("o.status IN");
+		// Relógio por etapa (spec 2026-07-11) — a pill estreita o status, não a régua.
+		expect(rendered).toContain(
+			"ELSE COALESCE(o.paid_at, o.created_at) END <= now() - make_interval(hours =>"
+		);
+		expect(params).toContain("paid");
+		expect(params).not.toContain("preparing");
 	});
 
 	it("tab 'Todos' (statuses null) não filtra por status", () => {
@@ -171,5 +197,145 @@ describe("buildOrdersListConditions", () => {
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("o.branch_id =");
 		expect(params).toContain("branch-9");
+	});
+});
+
+describe("foldTabCounts (etapa × overlay de atraso)", () => {
+	it("atrasado soma no bucket da própria etapa E em late (spec 2026-07-13)", () => {
+		const counts = foldTabCounts([
+			{ count: 3, is_late: false, is_picked: false, status: "paid" },
+			{ count: 2, is_late: true, is_picked: false, status: "paid" },
+			{ count: 1, is_late: true, is_picked: false, status: "preparing" },
+			{ count: 4, is_late: false, is_picked: false, status: "shipped" },
+		]);
+		expect(counts.paid).toBe(5);
+		expect(counts.preparing).toBe(1);
+		expect(counts.late).toBe(3);
+		expect(counts.late_paid).toBe(2);
+		expect(counts.late_preparing).toBe(1);
+		expect(counts.all_count).toBe(10);
+	});
+
+	it("is_picked divide preparing: Separado nunca soma em Em separação", () => {
+		const counts = foldTabCounts([
+			{ count: 6, is_late: false, is_picked: false, status: "preparing" },
+			{ count: 2, is_late: false, is_picked: true, status: "preparing" },
+		]);
+		expect(counts.preparing).toBe(6);
+		expect(counts.picked).toBe(2);
+		expect(counts.all_count).toBe(8);
+	});
+
+	it("preparing atrasado cai na pill da etapa certa (late_picked × late_preparing)", () => {
+		const counts = foldTabCounts([
+			{ count: 1, is_late: true, is_picked: false, status: "preparing" },
+			{ count: 4, is_late: true, is_picked: true, status: "preparing" },
+		]);
+		// Etapa: cada um no seu bucket, incluindo os atrasados.
+		expect(counts.preparing).toBe(1);
+		expect(counts.picked).toBe(4);
+		// Overlay: os cinco contam em late, divididos pelas pills.
+		expect(counts.late).toBe(5);
+		expect(counts.late_preparing).toBe(1);
+		expect(counts.late_picked).toBe(4);
+		expect(counts.late_paid).toBe(0);
+		// As pills somam exatamente o total de late.
+		expect(counts.late_paid + counts.late_preparing + counts.late_picked).toBe(
+			counts.late
+		);
+	});
+
+	it("all_count não dobra: cada pedido conta uma vez", () => {
+		const counts = foldTabCounts([
+			{ count: 7, is_late: true, is_picked: false, status: "paid" },
+		]);
+		expect(counts.all_count).toBe(7);
+		expect(counts.paid).toBe(7);
+		expect(counts.late).toBe(7);
+	});
+
+	it("emptyTabCounts expõe as chaves das sub-abas zeradas", () => {
+		const counts = emptyTabCounts();
+		expect(counts.late_paid).toBe(0);
+		expect(counts.late_preparing).toBe(0);
+		expect(counts.late_picked).toBe(0);
+		expect(counts.picked).toBe(0);
+	});
+});
+
+describe("effectiveTabStatuses (sub-aba lateStatus)", () => {
+	it("na aba late, lateStatus estreita para um único status", () => {
+		expect(effectiveTabStatuses(LATE_TAB, "paid")).toEqual(["paid"]);
+		expect(effectiveTabStatuses(LATE_TAB, "preparing")).toEqual(["preparing"]);
+	});
+
+	it("sem lateStatus, mantém os statuses da def", () => {
+		expect(effectiveTabStatuses(LATE_TAB, undefined)).toEqual([
+			"paid",
+			"preparing",
+		]);
+	});
+
+	it("a pill 'picked' é o recorte de preparing (não é status próprio)", () => {
+		expect(effectiveTabStatuses(LATE_TAB, "picked")).toEqual(["preparing"]);
+	});
+
+	it("fora da aba late, lateStatus é ignorado", () => {
+		expect(effectiveTabStatuses(PAID_TAB, "preparing")).toEqual(["paid"]);
+	});
+});
+
+describe("effectiveTabPicking (etapa dentro do overlay de Atrasados)", () => {
+	it("a tab manda quando ela própria divide preparing", () => {
+		expect(effectiveTabPicking(PICKED_TAB, undefined)).toBe("picked");
+		expect(effectiveTabPicking(PREPARING_TAB, undefined)).toBe("not_picked");
+	});
+
+	it("na aba late, a pill escolhe a metade de preparing", () => {
+		expect(effectiveTabPicking(LATE_TAB, "picked")).toBe("picked");
+		expect(effectiveTabPicking(LATE_TAB, "preparing")).toBe("not_picked");
+	});
+
+	it("pill 'paid' e ausência de pill não dividem picking", () => {
+		expect(effectiveTabPicking(LATE_TAB, "paid")).toBeUndefined();
+		expect(effectiveTabPicking(LATE_TAB, undefined)).toBeUndefined();
+	});
+});
+
+describe("buildOrdersListConditions × picking", () => {
+	it("aba Separado exige última sessão de picking concluída", () => {
+		const { sql: rendered } = render(
+			buildOrdersListConditions({
+				filters: {},
+				scope: ALL_SCOPE,
+				tabDef: PICKED_TAB,
+			})
+		);
+		expect(rendered).toContain("FROM order_picking op");
+		expect(rendered).toContain("= 'completed'");
+	});
+
+	it("aba Em separação exige o inverso (IS DISTINCT FROM — sem sessão conta)", () => {
+		const { sql: rendered } = render(
+			buildOrdersListConditions({
+				filters: {},
+				scope: ALL_SCOPE,
+				tabDef: PREPARING_TAB,
+			})
+		);
+		expect(rendered).toContain("IS DISTINCT FROM 'completed'");
+	});
+
+	it("pill Separado dentro de Atrasados: lateness only + picking picked", () => {
+		const { sql: rendered } = render(
+			buildOrdersListConditions({
+				filters: { lateStatus: "picked" },
+				scope: ALL_SCOPE,
+				tabDef: LATE_TAB,
+			})
+		);
+		expect(rendered).toContain("<= now() - make_interval(hours =>");
+		expect(rendered).toContain("= 'completed'");
+		expect(rendered).not.toContain("IS DISTINCT FROM");
 	});
 });

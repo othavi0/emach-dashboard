@@ -177,6 +177,7 @@ export function ToolImageGallery({
 
 			const total = selected.length;
 			setStatusLabel(total > 0 ? `Preparando 0 de ${total}…` : "Processando…");
+			// Sem finally: React Compiler baila em try com finalizer.
 			try {
 				const uploaded: ToolImage[] = [];
 				let index = 0;
@@ -227,8 +228,10 @@ export function ToolImageGallery({
 							: `${uploaded.length} imagens enviadas`
 					);
 				}
-			} finally {
 				setStatusLabel(null);
+			} catch (err) {
+				setStatusLabel(null);
+				throw err;
 			}
 		},
 		[sorted, max, onChange]

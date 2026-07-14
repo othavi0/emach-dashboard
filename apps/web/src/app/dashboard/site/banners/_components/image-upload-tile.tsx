@@ -36,6 +36,7 @@ export function ImageUploadTile({
 			return;
 		}
 		setBusy(true);
+		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const fd = new FormData();
 			fd.append("file", file);
@@ -43,9 +44,9 @@ export function ImageUploadTile({
 			const { url } = await uploadBannerImage(fd);
 			onChange(url);
 			notify.success("Imagem enviada");
+			setBusy(false);
 		} catch (err) {
 			notify.error(err instanceof Error ? err.message : "Falha no upload");
-		} finally {
 			setBusy(false);
 		}
 	}

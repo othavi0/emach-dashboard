@@ -53,6 +53,7 @@ export async function countToolsWithActivePromotionAction(
 	toolIds: string[],
 	excludeId?: string
 ): Promise<number> {
+	await requireCapability("promotions.read");
 	return await countToolsWithActivePromotion(toolIds, excludeId);
 }
 

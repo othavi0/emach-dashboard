@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and PRDs for this repo live as GitHub issues on `othavioquiliao/emach-dashboard`. Use the `gh` CLI for all operations.
+Issues and PRDs for this repo live as GitHub issues on `othavi0/emach-dashboard` (confira sempre com `git remote -v` — o owner já foi renomeado uma vez). Use the `gh` CLI for all operations.
 
 ## Conventions
 

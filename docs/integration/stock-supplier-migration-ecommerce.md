@@ -1,5 +1,10 @@
 # Migração: fornecedor por entrada de estoque — instruções para o e-commerce
 
+> **✅ Status (2026-07-13): aplicada em dev.** `tool.supplier_id` já foi dropada e
+> `stock_movement.supplier_id` + CHECK `entrada_requires_supplier` já existem no
+> schema. Resta apenas a seção 4 (coordenação de deploy) quando produção entrar
+> no horizonte. Não é pendência ativa.
+
 > **Para o time do `emach-ecommerce`.** Mudanças de schema no banco **compartilhado** introduzidas pela feature "fluxo de estoque com fornecedor por entrada" (ADR-0015 do dashboard). O dashboard é a fonte de verdade (ADR-0009); estas mudanças chegam ao e-commerce pelo **PR automático de sync de schema** (`sync-db-schema.yml`). Este documento descreve o que mudou e o que o e-commerce precisa fazer.
 
 ## ⚠️ Atenção imediata (banco de dev compartilhado)

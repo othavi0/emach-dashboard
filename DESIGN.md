@@ -167,7 +167,7 @@ Toda tabela de listagem (`/dashboard/<recurso>` com itens enumeráveis) **deve**
 
 **Manter texto** em ações onde o número/contagem é a informação principal (`Ver 3 filiais`) ou em mutações críticas inline (`Salvar` em threshold dirty). Ícone esconde valor que o usuário precisa ler à distância.
 
-**Tabela é para coleção aninhada dentro de uma página de detalhe — não para a listagem-raiz de um recurso.** As listagens principais (`/dashboard/orders`, `tools`, `suppliers`, `reviews`) migraram para **card-grid**; `customers` usa **row-card** (lista vertical — ver catálogo de cards). Tabela hoje só em sub-recursos densos. Implementação canônica: `apps/web/src/app/dashboard/customers/_components/customer-orders-table.tsx`, `categories/_components/attributes-table.tsx`; showcase em `/design#table`.
+**Tabela é para coleção aninhada dentro de uma página de detalhe — não para a listagem-raiz de um recurso.** As listagens principais (`/dashboard/orders`, `tools`, `suppliers`, `reviews`) migraram para **card-grid**; `customers` usa **row-card** (lista vertical — ver catálogo de cards). Tabela hoje só em sub-recursos densos. Implementação canônica: `apps/web/src/app/dashboard/customers/_components/customer-orders-infinite.tsx` (tabela + scroll infinito), `categories/_components/attributes-table.tsx`; showcase em `/design#table`.
 
 **Layout de larguras (dados à esquerda, ações à direita):** `TableActionsHead` e `TableActionsCell` já carregam `w-full` internamente — a coluna de ações absorve toda sobra horizontal e mantém os botões alinhados à direita (`text-right` + `flex justify-end`). Resultado: todas as colunas de dado (ID, Cliente, Status, Total, etc) encolhem ao próprio conteúdo e ficam clusterizadas naturalmente à esquerda. Não use `w-full` em nenhuma coluna de dado — quebra o pattern.
 
@@ -249,13 +249,13 @@ Regra: converter `<p>` verboso de helper em tooltip; **manter visível** caveat 
 | Variant | Aparência | Uso |
 |---|---|---|
 | `default` (padrão) | Pill group em `bg-muted` com `ring-1 ring-border/60` (track visível mesmo dentro de card) + **`gap-1` embutido**. Aba ativa em `bg-primary` coral sólido com `text-primary-foreground` | Filtros primários, segmentação principal (ex: "Ativos / Pendentes / Suspensos") |
-| `line` | `border-b border-border` na lista (a linha base) + `gap-1`. Aba ativa em `text-primary` coral com underline `after:bg-primary` 2px | Sub-navegação dentro de página de detalhe (ex: tabs em customer-tabs perfil/endereços/pedidos) |
+| `line` | `border-b border-border` na lista (a linha base) + `gap-1`. Aba ativa em `text-primary` coral com underline `after:bg-primary` 2px | Sub-navegação dentro de página de detalhe (ex: tabs do detalhe de cliente — `EntityClientTabs` em `customers/[id]/page.tsx`) |
 
 Aba ativa sempre carrega coral (primary). Estado inativo em `text-muted-foreground`, hover sobe pra `text-foreground` (mantém neutro até o user comprometer com a aba). `gap-1` é default — **não passe `className="gap-1"` manual**.
 
 **Orientations:** `horizontal` (default) e `vertical` (passe `orientation="vertical"` no `<Tabs>`).
 
-**Scrollable:** `<TabsList scrollable>` — adiciona overflow-x-auto + fade gradient à direita quando há mais abas que cabem. Use quando muitas categorias possíveis (customer-tabs com perfil/endereços/pedidos/pagamentos/reviews/LGPD/auditoria).
+**Scrollable:** `<TabsList scrollable>` — adiciona overflow-x-auto + fade gradient à direita quando há mais abas que cabem. Use quando muitas categorias possíveis (ex: detalhe de cliente, ~7 abas via `EntityClientTabs` em `customers/[id]/page.tsx`).
 
 **Padrão de contagem — `<TabsCountBadge value={N} />`:**
 
@@ -287,7 +287,7 @@ Helper exportado de `@emach/ui/components/tabs`. Wrapper sobre `<Badge variant="
 
 **Tabs split (dois grupos semânticos).** Quando os filtros se dividem em dois grupos de significado distinto, renderize **dois `<TabsList>`** dentro do mesmo `<Tabs>`, num `flex justify-between` — cada lista vira sua própria pílula `bg-muted`, comunicando os grupos por separação espacial. Canônico: Pedidos (`order-list-filters.tsx`) — esquerda = fluxo do operador (Pago/Em preparação/Enviados/Entregues), direita = fora do fluxo (Aguardando pagamento/Devolvidos/Cancelados). Sem tab "Todos": a página abre listando tudo, **sem tab ativa**; clicar numa tab filtra e clicar na ativa de novo volta a "todos" (toggle, via href que remove o param). Use só quando os grupos têm leitura semântica clara — não para quebrar uma lista longa arbitrariamente.
 
-Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-list-filters.tsx` (filter com TabsCountBadge + **tabs split**), `apps/web/src/app/dashboard/users/page.tsx` (filter com TabsCountBadge), `apps/web/src/app/dashboard/customers/_components/customer-status-tabs.tsx` (filter sem tab "Todos", default "Ativos" quando sem `?status` — exceto sob quick-filter de triagem, que não herda o default; valor agrupado `inactive_blocked`), `apps/web/src/app/dashboard/customers/_components/customer-tabs.tsx` (scrollable ~7 abas, sem badge), `apps/web/src/components/pending-panel.tsx` (sub-tabs em painel), `apps/web/src/app/design/page.tsx` (showcase).
+Implementação canônica: `apps/web/src/app/dashboard/orders/_components/order-list-filters.tsx` (filter com TabsCountBadge + **tabs split**), `apps/web/src/app/dashboard/users/page.tsx` (filter com TabsCountBadge), `apps/web/src/app/dashboard/customers/_components/customer-status-tabs.tsx` (filter sem tab "Todos", default "Ativos" quando sem `?status` — exceto sob quick-filter de triagem, que não herda o default; valor agrupado `inactive_blocked`), `apps/web/src/components/pending-panel.tsx` (sub-tabs em painel), `apps/web/src/app/design/page.tsx` (showcase).
 
 ### Cards & Containers
 
@@ -394,7 +394,7 @@ Regras:
 - **Wrapper `min-h-[18rem]` no ActivityFeed** sempre que pareado com `<PendingPanel compact>`. Sem wrapper, ActivityFeed cresce com conteúdo e desequilibra o par. Padrão único em todas as 4 rotas.
 - **`compact` no PendingPanel** pra esse par (`max-h-60 min-h-44` na área scrollável). Default (sem `compact`) é `max-h-[28rem] min-h-72` — usado em telas standalone fora do par.
 - **Sub-tabs do PendingPanel são Tabs reais** (não ToggleGroup). Carregam `<TabsCountBadge>` no contador. Drop intencional: a cor por `tab.role` no badge das sub-tabs (warning/success/info) **não** é aplicada; uniformidade > sinalização redundante. Sinalização de severidade fica nos badges do header do painel ou no `row.badge` dos itens (continua usando `BADGE_COLORS` por role).
-- **Ícone de status nas linhas (opcional).** `PendingRow` aceita `iconKey`/`tone` (de `status-visual`) → ícone de status colorido à esquerda da linha. `ActivityEvent` aceita `iconKey`/`tone`/`accentLabel` → o ícone vira o do status e o `accentLabel` (nome do status) é renderizado colorido após o `primary` (ex: `#EM-2026-0014 → Em preparação`). Campos **opcionais**: consumidores que não os passam mantêm o ícone+cor por `kind` (`KIND_META`). Canônico: Pedidos (`orders/pending-data.ts` preenche ambos a partir de `ORDER_STATUS_META`).
+- **Ícone de status nas linhas (opcional).** `PendingRow` aceita `iconKey`/`tone` (de `status-visual`) → ícone de status colorido à esquerda da linha. `ActivityEvent` aceita `iconKey`/`tone`/`accentLabel` → o ícone vira o do status e o `accentLabel` (nome do status) é renderizado colorido após o `primary` (ex: `#EM-2026-0014 → Em preparação`). Campos **opcionais**: consumidores que não os passam mantêm o ícone+cor por `kind` (`KIND_META`). Canônico: Pedidos (`apps/web/src/app/dashboard/pending-data.ts` preenche ambos a partir de `ORDER_STATUS_META`).
 
 ### Callout coral (`callout-card-coral`)
 

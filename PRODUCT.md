@@ -6,7 +6,7 @@ product
 
 ## Users
 
-Equipe interna emach (admin / manager / user). Funcionários cadastrando ferramentas, conferindo estoque por filial, processando pedidos, moderando reviews, gerenciando promoções e clientes BR. Contexto: desktop, horário comercial, usuários recorrentes que conhecem o domínio (catálogo de ferramentas industriais, voltagens BR, regras fiscais, hierarquia de categorias). Não é app público — clientes BR consomem via app ecomerce externo separado, com DB compartilhada.
+Equipe interna emach (super_admin / admin / user). Funcionários cadastrando ferramentas, conferindo estoque por filial, processando pedidos, moderando reviews, gerenciando promoções e clientes BR. Contexto: desktop, horário comercial, usuários recorrentes que conhecem o domínio (catálogo de ferramentas industriais, voltagens BR, regras fiscais, hierarquia de categorias). Não é app público — clientes BR consomem via app ecomerce externo separado, com DB compartilhada.
 
 ## Product Purpose
 

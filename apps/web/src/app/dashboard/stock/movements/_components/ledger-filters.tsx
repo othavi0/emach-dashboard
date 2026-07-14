@@ -8,10 +8,11 @@ import {
 	SelectValue,
 } from "@emach/ui/components/select";
 import { cn } from "@emach/ui/lib/utils";
-import { CheckIcon, XIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
+import { ClearFiltersButton } from "@/components/clear-filters-button";
 import type { ActiveSupplierOption } from "@/lib/suppliers";
 
 import {
@@ -170,14 +171,7 @@ export function LedgerFiltersBar({
 			</div>
 
 			{hasActiveFilters ? (
-				<button
-					className="ml-auto inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-muted-foreground text-xs transition hover:bg-muted"
-					onClick={clearFilters}
-					type="button"
-				>
-					<XIcon className="size-3" />
-					Limpar filtros
-				</button>
+				<ClearFiltersButton className="ml-auto" onClear={clearFilters} />
 			) : null}
 		</div>
 	);

@@ -77,17 +77,28 @@ export function BranchStockEditSheet({
 	const [reservedQty, setReservedQty] = useState<number | null>(null);
 	const [isAdjusting, startAdjustTransition] = useTransition();
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reinicia os campos só quando a variante muda
+	// Reset síncrono durante o render quando a variante selecionada muda
+	// (padrão "adjusting state when a prop changes"); o effect abaixo fica só
+	// com o fetch do reservado (sincronização externa).
+	const [lastKey, setLastKey] = useState({
+		branchId,
+		variantId: row?.variantId,
+	});
+	if (lastKey.variantId !== row?.variantId || lastKey.branchId !== branchId) {
+		setLastKey({ branchId, variantId: row?.variantId });
+		if (row) {
+			setMode("entrada");
+			setMinQty(row.minQty);
+			setReorderPoint(row.reorderPoint);
+		}
+		setReservedQty(null);
+	}
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: refaz o fetch só quando a variante muda
 	useEffect(() => {
 		if (!row) {
-			setReservedQty(null);
 			return;
 		}
-		setMode("entrada");
-		setMinQty(row.minQty);
-		setReorderPoint(row.reorderPoint);
-		setReservedQty(null);
-
 		startAdjustTransition(async () => {
 			const reserved = await getReservedQtyByVariantBranchAction(
 				row.variantId,

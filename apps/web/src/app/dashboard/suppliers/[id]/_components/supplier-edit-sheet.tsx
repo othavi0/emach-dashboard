@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
 import { notify } from "@/lib/notify";
 import { useFormErrors } from "@/lib/use-form-errors";
@@ -35,7 +35,11 @@ export function SupplierEditSheet({ supplier }: Props) {
 		useFormErrors<SupplierFormValues>();
 	const [submitting, startTransition] = useTransition();
 
-	useEffect(() => {
+	// Reset síncrono durante o render (padrão "adjusting state when a prop
+	// changes") — sem o re-render extra do reset via effect.
+	const [lastReset, setLastReset] = useState({ open, supplier });
+	if (lastReset.open !== open || lastReset.supplier !== supplier) {
+		setLastReset({ open, supplier });
 		if (open) {
 			setValues({
 				name: supplier.name,
@@ -47,7 +51,7 @@ export function SupplierEditSheet({ supplier }: Props) {
 			});
 			clearErrors();
 		}
-	}, [open, supplier, clearErrors]);
+	}
 
 	const close = () => {
 		const sp = new URLSearchParams(params);

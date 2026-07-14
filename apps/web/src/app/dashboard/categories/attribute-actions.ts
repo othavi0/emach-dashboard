@@ -1,10 +1,7 @@
 "use server";
 
 import { db } from "@emach/db";
-import {
-	attributeDefinition,
-	toolAttributeValue,
-} from "@emach/db/schema/attributes";
+import { attributeDefinition } from "@emach/db/schema/attributes";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { actionErrorMessage } from "@/lib/action-error";
@@ -107,12 +104,4 @@ export async function deleteCategoryAttribute(
 	});
 	revalidatePath(`/dashboard/categories/${categoryId}/edit`);
 	return { ok: true, data: undefined };
-}
-
-export async function getAttributeUsage(id: string): Promise<number> {
-	const rows = await db
-		.select({ toolId: toolAttributeValue.toolId })
-		.from(toolAttributeValue)
-		.where(eq(toolAttributeValue.attributeId, id));
-	return rows.length;
 }

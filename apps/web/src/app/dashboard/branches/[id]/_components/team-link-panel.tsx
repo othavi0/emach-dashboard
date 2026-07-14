@@ -48,12 +48,13 @@ export function TeamLinkPanel({ branchId }: Props) {
 	useEffect(() => {
 		const timer = setTimeout(async () => {
 			setSearching(true);
+			// Sem finally: React Compiler baila em try com finalizer.
 			try {
 				const data = await searchEligibleUsers(branchId, query);
 				setResults(data);
+				setSearching(false);
 			} catch {
 				setResults([]);
-			} finally {
 				setSearching(false);
 			}
 		}, 250);
@@ -77,8 +78,10 @@ export function TeamLinkPanel({ branchId }: Props) {
 			} else {
 				notify.error(result.error);
 			}
-		} finally {
 			setLinking(false);
+		} catch (err) {
+			setLinking(false);
+			throw err;
 		}
 	}
 

@@ -18,6 +18,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { getUserBranchScope } from "@/lib/branch-scope";
+import { getPgError } from "@/lib/db-error";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import {
@@ -339,6 +340,23 @@ export interface BulkStartSeparationResult {
 	skipped: { number: string; reason: string }[];
 }
 
+const BULK_GENERIC_ERROR = "Erro ao enviar pedidos para separação.";
+
+// SQLSTATE → mensagem amigável (apps/web/CLAUDE.md): o erro cru do Postgres
+// nunca chega ao toast. P0001 = RAISE EXCEPTION dos triggers do domínio.
+function pgErrorMessage(pgErr: { code: string }): string {
+	switch (pgErr.code) {
+		case "23503":
+			return "Pedido referencia um registro que não existe mais.";
+		case "23505":
+			return "Este pedido já foi enviado para separação.";
+		case "P0001":
+			return "O pedido não pode ir para separação neste estado.";
+		default:
+			return BULK_GENERIC_ERROR;
+	}
+}
+
 /**
  * Bulk pago→separação (spec 2026-07-11). Cada pedido roda em transação
  * própria com lock + capability branch-scoped; inelegíveis são pulados e
@@ -427,14 +445,17 @@ export async function bulkStartSeparation(
 
 		return { ok: true, data: { moved, skipped } };
 	} catch (error) {
-		logger.error("bulkStartSeparation", error);
+		logger.error("bulkStartSeparation", { err: error });
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar pedidos." };
 		}
-		return {
-			ok: false,
-			error: error instanceof Error ? error.message : "Erro interno",
-		};
+		// Erro de banco: mapear SQLSTATE p/ mensagem amigável. NUNCA devolver
+		// error.message (o toast exibe o retorno cru — vazaria SQL do drizzle).
+		const pgErr = getPgError(error);
+		if (pgErr) {
+			return { ok: false, error: pgErrorMessage(pgErr) };
+		}
+		return { ok: false, error: BULK_GENERIC_ERROR };
 	}
 }
 
@@ -600,6 +621,32 @@ export async function assignBranch(
 		return { ok: false, error: "Erro ao atribuir filial" };
 	}
 }
+
+// ── DESIGN: bulkAssignBranch (não implementado — issue #308 ficou só em Reviews) ──
+//
+// Assinatura proposta:
+//
+//   export async function bulkAssignBranch(
+//     input: { branchId: string; orderIds: string[] }
+//   ): Promise<ActionResult<{ failed: Array<{ id: string; error: string }>; succeeded: number }>>
+//
+// Contrato de autorização — o INVERSO do de reviews. Reviews são globais: um
+// requireCapability antes de um único UPDATE ... IN (...) basta. Pedidos são
+// branch-scoped, então:
+//
+//   1. requireCapabilityWithContext("orders.update_status", { targetBranchIds: [branchId] })
+//      uma vez antes do loop — o ator precisa de acesso à filial de DESTINO.
+//   2. Por item: db.transaction((tx) => lockOrderAndAuthorize(tx, "orders.update_status", orderId)).
+//      O branchId ATUAL do pedido pode mudar entre a checagem global e a mutação
+//      (race de reatribuição), e pedido na triagem (branchId = null) só admin/super_admin
+//      move. NÃO autorizar o lote inteiro de uma vez.
+//   3. Loop for...of com transações independentes: falha de um item não aborta o lote.
+//   4. BULK_ASSIGN_LIMIT = 20 (1 página; a triagem é o caso de uso).
+//   5. revalidatePath(ORDERS_PATH) uma vez, após o loop.
+//
+// Fiação: uma entrada no array `actions` do BulkActionBar já existente em
+// orders-infinite.tsx, abrindo um BranchPickerDialog que coleta o branchId.
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function updateTrackingCode(
 	input: UpdateTrackingCodeInput

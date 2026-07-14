@@ -42,6 +42,7 @@ export interface OrdersWhereFilters {
 	branchId?: string;
 	carrier?: string; // "__none__" = frete a combinar (IS NULL)
 	from?: string;
+	lateStatus?: LateStatusFilter;
 	q?: string;
 	to?: string;
 	toolId?: string;
@@ -62,6 +63,48 @@ const latestPickingStatus = sql`(
 	ORDER BY op.started_at DESC, op.id DESC LIMIT 1
 )`;
 
+// Sub-aba de Atrasados (pill): a etapa, não o status — "picked" é o recorte
+// de `preparing` já separado, espelhando as abas do fluxo 1:1.
+export type LateStatusFilter = "paid" | "preparing" | "picked";
+
+const LATE_SUB_TAB_STATUS: Record<LateStatusFilter, OrderStatus> = {
+	paid: "paid",
+	preparing: "preparing",
+	picked: "preparing",
+};
+
+// Sub-aba de Atrasados: estreita o par paid/preparing pra uma etapa só.
+// Só tem efeito na tab computada (lateness "only") — nas demais é ignorado.
+export function effectiveTabStatuses(
+	tabDef: OrderTabDef,
+	lateStatus?: LateStatusFilter
+): readonly OrderStatus[] | null {
+	if (tabDef.lateness === "only" && lateStatus) {
+		const status = LATE_SUB_TAB_STATUS[lateStatus];
+		return tabDef.statuses?.filter((s) => s === status) ?? null;
+	}
+	return tabDef.statuses;
+}
+
+// Divisão de `preparing` pela última sessão de picking. Vem da tab (abas "Em
+// separação"/"Separado") ou, dentro do overlay de Atrasados, da pill escolhida
+// — as duas superfícies compartilham a MESMA condição.
+export function effectiveTabPicking(
+	tabDef: OrderTabDef,
+	lateStatus?: LateStatusFilter
+): "picked" | "not_picked" | undefined {
+	if (tabDef.picking) {
+		return tabDef.picking;
+	}
+	if (tabDef.lateness !== "only" || !lateStatus) {
+		return;
+	}
+	if (lateStatus === "picked") {
+		return "picked";
+	}
+	return lateStatus === "preparing" ? "not_picked" : undefined;
+}
+
 export function buildOrdersListConditions({
 	filters,
 	scope,
@@ -76,9 +119,10 @@ export function buildOrdersListConditions({
 	if (branchCondition) {
 		conditions.push(branchCondition);
 	}
-	if (tabDef.statuses) {
+	const statuses = effectiveTabStatuses(tabDef, filters.lateStatus);
+	if (statuses && statuses.length > 0) {
 		const placeholders = sql.join(
-			tabDef.statuses.map((s) => sql`${s}`),
+			statuses.map((s) => sql`${s}`),
 			sql`, `
 		);
 		conditions.push(sql`o.status IN (${placeholders})`);
@@ -86,13 +130,11 @@ export function buildOrdersListConditions({
 	if (tabDef.lateness === "only") {
 		conditions.push(sql`${fulfillmentAge} <= ${lateCutoff}`);
 	}
-	if (tabDef.lateness === "exclude") {
-		conditions.push(sql`${fulfillmentAge} > ${lateCutoff}`);
-	}
-	if (tabDef.picking === "picked") {
+	const picking = effectiveTabPicking(tabDef, filters.lateStatus);
+	if (picking === "picked") {
 		conditions.push(sql`${latestPickingStatus} = 'completed'`);
 	}
-	if (tabDef.picking === "not_picked") {
+	if (picking === "not_picked") {
 		conditions.push(sql`${latestPickingStatus} IS DISTINCT FROM 'completed'`);
 	}
 	const query = filters.q?.trim();
@@ -130,6 +172,9 @@ export interface OrderTabCounts {
 	canceled: number;
 	delivered: number;
 	late: number;
+	late_paid: number;
+	late_picked: number;
+	late_preparing: number;
 	paid: number;
 	payment_failed: number;
 	pending_payment: number;
@@ -149,6 +194,9 @@ export function emptyTabCounts(): OrderTabCounts {
 		preparing: 0,
 		picked: 0,
 		late: 0,
+		late_paid: 0,
+		late_preparing: 0,
+		late_picked: 0,
 		shipped: 0,
 		delivered: 0,
 		returned: 0,
@@ -156,9 +204,14 @@ export function emptyTabCounts(): OrderTabCounts {
 	};
 }
 
-// Pura: agrega linhas status×is_late×is_picked nos buckets de tab. `late`
-// vence (exclusiva); dentro de preparing não-atrasado, is_picked separa a
-// tab "Separado" da "Em separação".
+// Pura: agrega linhas status×is_late×is_picked nos buckets de tab. Os dois
+// eixos são ORTOGONAIS e somam em paralelo:
+//   · etapa — `paid` / `preparing` (não separado) / `picked` (separado), um
+//     bucket por pedido, incluindo os atrasados;
+//   · atraso — overlay (spec 2026-07-13): o atrasado soma TAMBÉM em `late` e no
+//     sub-bucket da etapa (`late_paid`/`late_preparing`/`late_picked`), que
+//     alimentam as pills. O mesmo pedido conta nos dois lugares — por isso os
+//     `+=` (há uma linha por combinação status×is_late×is_picked).
 export function foldTabCounts(
 	rows: {
 		count: number;
@@ -172,8 +225,16 @@ export function foldTabCounts(
 		counts.all_count += row.count;
 		if (row.is_late && (row.status === "paid" || row.status === "preparing")) {
 			counts.late += row.count;
-			continue;
+			if (row.status === "paid") {
+				counts.late_paid += row.count;
+			} else if (row.is_picked) {
+				counts.late_picked += row.count;
+			} else {
+				counts.late_preparing += row.count;
+			}
 		}
+		// Etapa: `picked` é o recorte de preparing já separado — nunca soma
+		// também em `preparing` (as duas abas são exclusivas entre si).
 		if (row.status === "preparing" && row.is_picked) {
 			counts.picked += row.count;
 			continue;

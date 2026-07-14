@@ -41,6 +41,7 @@ import {
 	buildOrdersListConditions,
 	emptyTabCounts,
 	foldTabCounts,
+	type LateStatusFilter,
 	normalizeDateParam,
 	type OrderTabCounts,
 	ordersTabSort,
@@ -52,6 +53,7 @@ export interface OrderListFilters {
 	branchId?: string;
 	carrier?: string;
 	from?: string;
+	lateStatus?: LateStatusFilter;
 	q?: string;
 	tab?: string;
 	to?: string;
@@ -312,6 +314,7 @@ export interface OrdersPageFiltersInput {
 	branchId?: string;
 	carrier?: string;
 	from?: string;
+	lateStatus?: LateStatusFilter;
 	q?: string;
 	tab?: string;
 	to?: string;
@@ -342,6 +345,7 @@ export async function fetchOrdersPage({
 			branchId: filters.branchId,
 			carrier: filters.carrier,
 			from: normalizeDateParam(filters.from),
+			lateStatus: filters.lateStatus,
 			q: filters.q,
 			to: normalizeDateParam(filters.to),
 			toolId: filters.toolId,
@@ -539,11 +543,11 @@ const computeOrdersTabCounts = unstable_cache(
 					ELSE COALESCE(paid_at, created_at) END)
 					<= now() - make_interval(hours => ${LATE_TAB_HOURS})
 				) AS is_late,
-				(status = 'preparing' AND (
+				COALESCE(status = 'preparing' AND (
 					SELECT op.status FROM order_picking op
 					WHERE op.order_id = "order".id
 					ORDER BY op.started_at DESC, op.id DESC LIMIT 1
-				) = 'completed') AS is_picked,
+				) = 'completed', false) AS is_picked,
 				COUNT(*)::int AS count
 			FROM "order"
 			${branchFilter ? sql`WHERE ${branchFilter}` : sql``}
@@ -632,6 +636,7 @@ export async function fetchOrdersProductSummary({
 			branchId: filters.branchId,
 			carrier: filters.carrier,
 			from: normalizeDateParam(filters.from),
+			lateStatus: filters.lateStatus,
 			q: filters.q,
 			to: normalizeDateParam(filters.to),
 			toolId: filters.toolId,

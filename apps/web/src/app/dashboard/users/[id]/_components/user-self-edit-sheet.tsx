@@ -8,7 +8,7 @@ import {
 import { Button } from "@emach/ui/components/button";
 import { Input } from "@emach/ui/components/input";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { z } from "zod";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
 import { LabeledField } from "@/components/labeled-field";
@@ -73,14 +73,28 @@ export function UserSelfEditSheet({
 		useFormErrors<z.infer<typeof selfEditSchema>>();
 	const [submitting, startTransition] = useTransition();
 
-	useEffect(() => {
+	// Reset síncrono durante o render (padrão "adjusting state when a prop
+	// changes") — sem o re-render extra do reset via effect.
+	const [lastReset, setLastReset] = useState({
+		initialEmail,
+		initialImage,
+		initialName,
+		open,
+	});
+	if (
+		lastReset.open !== open ||
+		lastReset.initialName !== initialName ||
+		lastReset.initialImage !== initialImage ||
+		lastReset.initialEmail !== initialEmail
+	) {
+		setLastReset({ initialEmail, initialImage, initialName, open });
 		if (open) {
 			setName(initialName);
 			setImage(initialImage);
 			setEmail(initialEmail);
 			clearErrors();
 		}
-	}, [open, initialName, initialImage, initialEmail, clearErrors]);
+	}
 
 	const close = () => {
 		const sp = new URLSearchParams(params);
@@ -95,6 +109,11 @@ export function UserSelfEditSheet({
 			return;
 		}
 		setUploading(true);
+		const resetInput = () => {
+			setUploading(false);
+			e.target.value = "";
+		};
+		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const fd = new FormData();
 			fd.set("file", file);
@@ -104,11 +123,10 @@ export function UserSelfEditSheet({
 			} else {
 				notify.error(res.error);
 			}
+			resetInput();
 		} catch {
 			notify.error("Não foi possível enviar a imagem");
-		} finally {
-			setUploading(false);
-			e.target.value = "";
+			resetInput();
 		}
 	};
 

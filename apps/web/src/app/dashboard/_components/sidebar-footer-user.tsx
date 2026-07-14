@@ -21,7 +21,7 @@ import {
 import { LogOut, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { getInitials } from "@/lib/format/name";
@@ -50,17 +50,22 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 	const [isSigningOut, setIsSigningOut] = useState(false);
 	const [menuOpen, setMenuOpen] = useState(false);
 
-	useEffect(() => {
+	// Fecha o menu quando a sidebar expande — ajuste durante o render (padrão
+	// "adjusting state when a prop changes"), sem effect.
+	const [lastState, setLastState] = useState(state);
+	if (lastState !== state) {
+		setLastState(state);
 		if (state === "expanded") {
 			setMenuOpen(false);
 		}
-	}, [state]);
+	}
 
 	const handleSignOut = async () => {
 		if (isSigningOut) {
 			return;
 		}
 		setIsSigningOut(true);
+		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			await authClient.signOut({
 				fetchOptions: {
@@ -70,8 +75,10 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 					},
 				},
 			});
-		} finally {
 			setIsSigningOut(false);
+		} catch (err) {
+			setIsSigningOut(false);
+			throw err;
 		}
 	};
 

@@ -12,7 +12,7 @@ export const DEFAULT_ORDER_TAB = "paid";
 // (server-tainted) — client component nunca pode importar de lá (ADR-0015).
 export const CARRIER_NONE = "__none__";
 
-export type TabLateness = "only" | "exclude";
+export type TabLateness = "only";
 
 export interface OrderTabDef {
 	key: string;
@@ -26,18 +26,26 @@ export interface OrderTabDef {
 // Fluxo ativo do operador interno (grupo da esquerda na barra de tabs).
 // Um chip por status do funil (spec 2026-07-08); a antiga aba agregada
 // "A preparar" (paid+preparing) foi dividida em "Pago" e "Em separação".
+// Dois eixos ORTOGONAIS convivem aqui:
+//   · etapa — abas mutuamente exclusivas; `preparing` é dividido pela última
+//     sessão de picking em "Em separação" (bipando) e "Separado" (spec 2026-07-11);
+//   · atraso — "Atrasados" fecha a fileira e é um OVERLAY (spec 2026-07-13),
+//     não uma etapa: o pedido atrasado continua listado na aba do próprio status.
 export const ORDER_FLOW_TABS = [
 	{
 		key: "paid",
 		label: "Pago",
 		statuses: ["paid"] as DbOrderStatus[],
-		lateness: "exclude",
+		// `lateness` explícito (undefined) — sem ele, a inferência de predicado do
+		// TS 5.5+ em `.find()` narrowa pro literal exato desta entrada, que não
+		// declara a chave, e `?.lateness` vira erro de check-types (TS2339).
+		lateness: undefined,
 	},
 	{
 		key: "preparing",
 		label: "Em separação",
 		statuses: ["preparing"] as DbOrderStatus[],
-		lateness: "exclude",
+		lateness: undefined,
 		picking: "not_picked",
 	},
 	{
@@ -46,28 +54,42 @@ export const ORDER_FLOW_TABS = [
 		key: "picked",
 		label: "Separado",
 		statuses: ["preparing"] as DbOrderStatus[],
-		lateness: "exclude",
+		lateness: undefined,
 		picking: "picked",
-	},
-	{
-		// Tab computada (spec 2026-07-10): pedidos pagos/em separação há ≥72h.
-		// Exclusiva — some de "Pago"/"Em separação" (lateness: "exclude" acima).
-		key: "late",
-		label: "Atrasados",
-		statuses: ["paid", "preparing"] as DbOrderStatus[],
-		lateness: "only",
 	},
 	{
 		key: "shipped",
 		label: "Enviados",
 		statuses: ["shipped"] as DbOrderStatus[],
+		lateness: undefined,
 	},
 	{
 		key: "delivered",
 		label: "Entregues",
 		statuses: ["delivered"] as DbOrderStatus[],
+		lateness: undefined,
+	},
+	{
+		// Tab computada: pedidos pagos/em separação há ≥72h (relógio por etapa).
+		// Overlay — o pedido também segue listado na aba da própria etapa
+		// ("Pago"/"Em separação"/"Separado"), spec 2026-07-13.
+		key: "late",
+		label: "Atrasados",
+		statuses: ["paid", "preparing"] as DbOrderStatus[],
+		lateness: "only",
 	},
 ] as const satisfies readonly OrderTabDef[];
+
+// Sub-abas (pills) dentro de "Atrasados": filtram o overlay por etapa — 1:1 com
+// as abas do fluxo, então "preparing" aqui exclui os já separados ("picked").
+export type LateSubTabKey = "all" | "paid" | "preparing" | "picked";
+
+export const LATE_SUB_TABS = [
+	{ key: "all", label: "Todos" },
+	{ key: "paid", label: "Pagos" },
+	{ key: "preparing", label: "Em separação" },
+	{ key: "picked", label: "Separado" },
+] as const satisfies readonly { key: LateSubTabKey; label: string }[];
 
 // Chaves antigas que ainda podem chegar por deep-link/bookmark. "to_prepare"
 // era a aba agregada pago+preparando; cai na fila de entrada.

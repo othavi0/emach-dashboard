@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sync the company fork (emach-ferramentas/emach-dashboard) with the origin
-# (othavioquiliao/emach-dashboard) via force-push.
+# (othavi0/emach-dashboard) via force-push.
 #
 # Why force-push? The two repos have unrelated histories (no common ancestor),
 # so a regular merge/PR produces an unreviewable diff. Force-push is the
@@ -15,7 +15,7 @@
 #
 # Requirements:
 #   - gh CLI logged in with TWO accounts:
-#       * othavioquiliao  (origin owner)
+#       * othavi0  (origin owner)
 #       * emach-ferramentas  (fork owner, needs WRITE/ADMIN on the fork)
 #     If `emach-ferramentas` is missing, run:  gh auth login
 #   - gh credential helper configured:  gh auth setup-git
@@ -34,7 +34,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 # --- config ---------------------------------------------------------------
-ORIGIN_OWNER="othavioquiliao"
+ORIGIN_OWNER="othavi0"
 FORK_OWNER="emach-ferramentas"
 REPO_NAME="emach-dashboard"
 FORK_REMOTE_NAME="company-sync-tmp"

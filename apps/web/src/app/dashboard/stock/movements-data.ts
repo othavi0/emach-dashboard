@@ -9,8 +9,10 @@ import { supplier, tool, toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { getUserBranchScope, inScope } from "@/lib/branch-scope";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
-import { requireCapability } from "@/lib/permissions";
-import { requireCurrentSession } from "@/lib/session";
+import {
+	requireCapability,
+	requireCapabilityWithContext,
+} from "@/lib/permissions";
 import {
 	computePeriodCutoff,
 	encodeMovementCursor,
@@ -164,7 +166,20 @@ export async function getStockMovements(
 	toolId: string,
 	limit = 50
 ): Promise<StockMovementRow[]> {
-	await requireCapability("stock.read");
+	const session = await requireCapability("stock.read");
+	const scope = await getUserBranchScope(session);
+
+	// Inventory é filial-scoped (ADR-0016, decisão na #309): admin/user vê só
+	// movimentos das suas filiais; sem vínculo → vazio (fail-closed). Como no
+	// fetchLedgerPage acima, scoped não vê movimento de filial deletada (NULL).
+	if (scope.kind === "scoped" && scope.branchIds.length === 0) {
+		return [];
+	}
+	const conditions = [eq(toolVariant.toolId, toolId)];
+	if (scope.kind === "scoped") {
+		conditions.push(inArray(stockMovement.branchId, scope.branchIds));
+	}
+
 	return await db
 		.select({
 			id: stockMovement.id,
@@ -186,7 +201,7 @@ export async function getStockMovements(
 		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
 		.leftJoin(user, eq(stockMovement.actorId, user.id))
 		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
-		.where(eq(toolVariant.toolId, toolId))
+		.where(and(...conditions))
 		.orderBy(desc(stockMovement.createdAt))
 		.limit(limit);
 }
@@ -199,7 +214,11 @@ export async function getStockMovementsByVariantBranch(
 	branchId: string,
 	limit = 5
 ): Promise<StockMovementRow[]> {
-	await requireCurrentSession();
+	// Capability + branchId ∈ escopo (lança Forbidden fora dele) — cobre o
+	// caminho direto por Server Component; o wrapper "use server" já valida.
+	await requireCapabilityWithContext("stock.read", {
+		targetBranchIds: [branchId],
+	});
 	return await db
 		.select({
 			id: stockMovement.id,
@@ -239,7 +258,9 @@ export async function fetchVariantBranchMovementsPage(
 	branchId: string,
 	cursor: string | null
 ): Promise<InfiniteResult<StockMovementRow>> {
-	await requireCurrentSession();
+	await requireCapabilityWithContext("stock.read", {
+		targetBranchIds: [branchId],
+	});
 
 	const conditions = [
 		eq(stockMovement.variantId, variantId),
@@ -287,7 +308,9 @@ export async function getReservedQtyByVariantBranch(
 	variantId: string,
 	branchId: string
 ): Promise<number> {
-	await requireCurrentSession();
+	await requireCapabilityWithContext("stock.read", {
+		targetBranchIds: [branchId],
+	});
 	const [row] = await db
 		.select({
 			reserved: sql<number>`coalesce(sum(${orderItem.quantity}), 0)::int`,

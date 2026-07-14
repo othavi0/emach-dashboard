@@ -82,6 +82,8 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		branchId: data.branchId,
 		carrier: data.carrier,
 		toolId: data.productId,
+		// Só faz sentido dentro da aba Atrasados; fora dela não propaga.
+		lateStatus: activeTab === "late" ? data.lateStatus : undefined,
 	};
 
 	const pageFilters: OrdersPageFiltersInput = {
@@ -92,6 +94,8 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		branchId: data.branchId,
 		carrier: data.carrier,
 		toolId: data.productId,
+		// Só faz sentido dentro da aba Atrasados; fora dela não propaga.
+		lateStatus: activeTab === "late" ? data.lateStatus : undefined,
 	};
 
 	const [

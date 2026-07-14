@@ -24,8 +24,10 @@ export function NumberTicker({
 			"(prefers-reduced-motion: reduce)"
 		).matches;
 		if (reduce) {
-			setDisplay(value);
-			return;
+			// Agendado via rAF: setState síncrono no corpo do effect força um
+			// segundo render antes do paint (lint set-state-in-effect).
+			const skip = requestAnimationFrame(() => setDisplay(value));
+			return () => cancelAnimationFrame(skip);
 		}
 		const start = performance.now();
 		const duration = 600;

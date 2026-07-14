@@ -79,6 +79,11 @@ export function OrdersInfinite({
 	const runBulkSeparation = () => {
 		startBulk(async () => {
 			const result = await bulkStartSeparation({ orderIds: selectedPaidIds });
+			// Refresh SEMPRE: cada pedido é uma transação própria, então um lote que
+			// retorna {ok:false} pode ter movido parte deles antes de abortar — sem
+			// isso, a lista seguiria mostrando "Pago" para pedido já em separação.
+			setRefreshTick((t) => t + 1);
+			router.refresh();
 			if (!result.ok) {
 				notify.error(result.error);
 				return;
@@ -89,8 +94,6 @@ export function OrdersInfinite({
 			);
 			notify[kind](message);
 			sel.exit();
-			setRefreshTick((t) => t + 1);
-			router.refresh();
 		});
 	};
 

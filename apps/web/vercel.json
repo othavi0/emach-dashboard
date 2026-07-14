@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/prune-cart-events",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/stock-alerts",
+      "schedule": "0 7 * * 1-5"
     }
   ]
 }

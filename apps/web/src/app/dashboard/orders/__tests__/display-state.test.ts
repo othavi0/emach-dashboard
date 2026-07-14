@@ -26,4 +26,19 @@ describe("orderBadgeSource (badge único, spec 2026-07-08)", () => {
 		expect(orderBadgeSource("shipped", "picked")).toBe("status");
 		expect(orderBadgeSource("delivered", null)).toBe("status");
 	});
+
+	it("na aba Atrasados o status manda, mesmo com sub-estado (spec 2026-07-13)", () => {
+		expect(orderBadgeSource("preparing", "awaiting_picking", "late")).toBe(
+			"status"
+		);
+		expect(orderBadgeSource("preparing", "picked", "late")).toBe("status");
+		expect(orderBadgeSource("paid", null, "late")).toBe("status");
+	});
+
+	it("fora da aba Atrasados o comportamento não muda", () => {
+		expect(orderBadgeSource("preparing", "picked", "preparing")).toBe(
+			"fulfillment"
+		);
+		expect(orderBadgeSource("preparing", "picked", "all")).toBe("fulfillment");
+	});
 });

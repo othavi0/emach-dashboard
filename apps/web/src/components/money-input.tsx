@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { AffixInput } from "@/components/affix-input";
 import { formatMoney, parseMoney } from "@/lib/discount-format";
@@ -23,10 +23,13 @@ export function MoneyInput({
 }: MoneyInputProps) {
 	const [display, setDisplay] = useState(() => formatMoney(value ?? 0));
 
-	// re-sincroniza se o valor mudar por fora (ex.: reset do form)
-	useEffect(() => {
+	// re-sincroniza se o valor mudar por fora (ex.: reset do form) — durante o
+	// render (padrão "adjusting state when a prop changes"), sem effect.
+	const [lastValue, setLastValue] = useState(value);
+	if (lastValue !== value) {
+		setLastValue(value);
 		setDisplay(formatMoney(value ?? 0));
-	}, [value]);
+	}
 
 	function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
 		const n = parseMoney(e.target.value);

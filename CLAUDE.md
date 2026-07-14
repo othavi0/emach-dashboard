@@ -7,6 +7,7 @@
 
 - O Supabase deste repo é ÚNICO e COMPARTILHADO (dev = prod = ecommerce). NUNCA `seed`/`truncate`/`drop`/reset/`db:push` destrutivo sem autorização explícita do user NESTA sessão — `db:seed-demo` já truncou 28 tabelas via Task de subagente que não recebeu esta restrição.
 - Todo subagente/Task que toca banco recebe esta restrição COLADA no prompt (subagente não herda este arquivo).
+- PII/credenciais de bootstrap do reset de 2026-06 permanecem no **histórico git** (arquivo `RESET-PLAN.md` em commits anteriores a `03984800`; a working tree está limpa desde então e o arquivo foi removido em 2026-07-13 — purge de histórico nunca foi feito).
 - CWD é a RAIZ do monorepo (turbo/bun) — nunca `cd apps/web`; paths absolutos (3 violações medidas na auditoria 07/06).
 
 ## Auth — invariantes P0 (qualquer violação é bug crítico)
@@ -81,7 +82,7 @@ Stack / scripts / envs → `package.json`, `packages/env/src/server.ts`.
 
 ### Issue tracker
 
-Issues e PRDs vivem como GitHub issues em `othavioquiliao/emach-dashboard` (via `gh` CLI). PRs externos **não** são superfície de triagem. Ver `docs/agents/issue-tracker.md`.
+Issues e PRDs vivem como GitHub issues em `othavi0/emach-dashboard` (via `gh` CLI). PRs externos **não** são superfície de triagem. Ver `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

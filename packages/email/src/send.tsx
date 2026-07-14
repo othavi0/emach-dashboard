@@ -4,6 +4,10 @@ import { resend } from "./client";
 import { ChangeEmailConfirmation } from "./templates/change-email-confirmation";
 import { InviteEmail } from "./templates/invite";
 import { PasswordResetEmail } from "./templates/password-reset";
+import {
+	StockAlertEmail,
+	type StockAlertEmailProps,
+} from "./templates/stock-alert";
 import { VerifyNewEmail } from "./templates/verify-new-email";
 
 export async function sendPasswordResetEmail({
@@ -65,5 +69,30 @@ export async function sendInviteEmail({
 		to,
 		subject: "Convite para o painel E-mach",
 		react: <InviteEmail acceptUrl={acceptUrl} inviterName={inviterName} />,
+	});
+}
+
+export async function sendStockAlertEmail({
+	to,
+	branchName,
+	dashboardUrl,
+	items,
+}: {
+	to: string[];
+	branchName: string;
+	dashboardUrl: string;
+	items: StockAlertEmailProps["items"];
+}): Promise<void> {
+	await resend.emails.send({
+		from: env.EMAIL_FROM,
+		to,
+		subject: `Alerta de estoque — ${branchName} — E-mach`,
+		react: (
+			<StockAlertEmail
+				branchName={branchName}
+				dashboardUrl={dashboardUrl}
+				items={items}
+			/>
+		),
 	});
 }

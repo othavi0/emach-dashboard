@@ -10,7 +10,10 @@ import type { BannerFormValues } from "./banner-schema";
 import { CTA_BASE, CTA_VARIANT_CLASS } from "./cta-variant-class";
 
 function Countdown({ target }: { target: Date }) {
-	const ms = Math.max(0, target.getTime() - Date.now());
+	// "Agora" congelado por instância: Date.now() no corpo do render é impuro
+	// (quebra memoização do Compiler); o preview é um snapshot, não um ticker.
+	const [now] = useState(() => Date.now());
+	const ms = Math.max(0, target.getTime() - now);
 	const d = Math.floor(ms / 86_400_000);
 	const h = Math.floor((ms % 86_400_000) / 3_600_000);
 	const m = Math.floor((ms % 3_600_000) / 60_000);

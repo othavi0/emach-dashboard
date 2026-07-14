@@ -38,6 +38,7 @@ export function useInfiniteList<T>({
 		setError(null);
 		inflightRef.current = true;
 		startTransition(async () => {
+			// Sem finally: React Compiler baila em try com finalizer.
 			try {
 				const next = await fetchPage(null);
 				if (mySeq !== refetchSeq.current) {
@@ -46,12 +47,10 @@ export function useInfiniteList<T>({
 				setItems(next.items);
 				cursorRef.current = next.nextCursor;
 				setCursor(next.nextCursor);
+				inflightRef.current = false;
 			} catch {
 				if (mySeq === refetchSeq.current) {
 					setError("Falha ao recarregar.");
-				}
-			} finally {
-				if (mySeq === refetchSeq.current) {
 					inflightRef.current = false;
 				}
 			}
@@ -69,14 +68,15 @@ export function useInfiniteList<T>({
 		const currentCursor = cursorRef.current;
 		inflightRef.current = true;
 		startTransition(async () => {
+			// Sem finally: React Compiler baila em try com finalizer.
 			try {
 				const next = await fetchPage(currentCursor);
 				setItems((prev) => [...prev, ...next.items]);
 				cursorRef.current = next.nextCursor;
 				setCursor(next.nextCursor);
+				inflightRef.current = false;
 			} catch {
 				setError("Falha ao carregar mais. Tente novamente.");
-			} finally {
 				inflightRef.current = false;
 			}
 		});
