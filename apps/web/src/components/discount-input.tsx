@@ -7,7 +7,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@emach/ui/components/select";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { AffixInput } from "@/components/affix-input";
 import {
@@ -49,11 +49,13 @@ export function DiscountInput({
 	);
 
 	// Re-sincroniza o display ao trocar o tipo — corrige o bug do MaskedInput
-	// (display preso da máscara antiga). Valor numérico é preservado.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: re-sync só ao trocar de tipo
-	useEffect(() => {
+	// (display preso da máscara antiga). Valor numérico é preservado. Ajuste
+	// durante o render, só quando o tipo muda (não quando o valor digitado muda).
+	const [lastType, setLastType] = useState(discountType);
+	if (lastType !== discountType) {
+		setLastType(discountType);
 		setDisplay(formatFor(discountType, discountValue));
-	}, [discountType]);
+	}
 
 	function handleTypeChange(next: DiscountType) {
 		onChange({ discountType: next, discountValue });

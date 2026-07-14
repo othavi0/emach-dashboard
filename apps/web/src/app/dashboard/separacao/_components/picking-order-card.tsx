@@ -1,5 +1,6 @@
 import { ArrowRightIcon, ClockIcon, MapPinIcon } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { formatRelative } from "@/lib/format/datetime";
 import { isPickingStale } from "../_lib/picking-logic";
@@ -29,10 +30,13 @@ interface PickingOrderCardProps {
 }
 
 function PaidAge({ paidAt }: { paidAt: Date | null }) {
+	// "Agora" congelado por instância: Date.now() no corpo do render é impuro
+	// (quebra memoização do Compiler); a fila re-busca com frequência.
+	const [now] = useState(() => Date.now());
 	if (!paidAt) {
 		return null;
 	}
-	const isUrgent = Date.now() - paidAt.getTime() > URGENCY_THRESHOLD_MS;
+	const isUrgent = now - paidAt.getTime() > URGENCY_THRESHOLD_MS;
 	return (
 		<span
 			className={`inline-flex items-center gap-1 ${isUrgent ? "font-semibold text-warning" : "text-muted-foreground"}`}
@@ -45,6 +49,8 @@ function PaidAge({ paidAt }: { paidAt: Date | null }) {
 }
 
 function StatusBadge({ row, tab }: { row: PickingQueueRow; tab: Tab }) {
+	// Mesmo racional do PaidAge: congela o "agora" por instância.
+	const [now] = useState(() => Date.now());
 	if (tab === "excecoes") {
 		return (
 			<span className="inline-flex items-center rounded-md bg-destructive/15 px-2 py-0.5 font-semibold text-[10px] text-destructive">
@@ -59,8 +65,7 @@ function StatusBadge({ row, tab }: { row: PickingQueueRow; tab: Tab }) {
 	}
 	// a_separar
 	const isUrgent =
-		row.paidAt != null &&
-		Date.now() - row.paidAt.getTime() > URGENCY_THRESHOLD_MS;
+		row.paidAt != null && now - row.paidAt.getTime() > URGENCY_THRESHOLD_MS;
 	return isUrgent ? (
 		<span className="inline-flex items-center rounded-md bg-warning/15 px-2 py-0.5 font-semibold text-[10px] text-warning">
 			Urgente

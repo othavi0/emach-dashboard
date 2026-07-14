@@ -32,12 +32,25 @@ export function UserBranchLinkPanel({ userId, linkedBranchIds }: Props) {
 	const [loading, setLoading] = useState(false);
 	const [options, setOptions] = useState<{ id: string; name: string }[]>([]);
 
+	// Loading síncrono durante o render (padrão "adjusting state when a prop
+	// changes"); o effect abaixo fica só com o fetch das opções.
+	const [lastKey, setLastKey] = useState({ linkedBranchIds, open, userId });
+	if (
+		lastKey.open !== open ||
+		lastKey.userId !== userId ||
+		lastKey.linkedBranchIds !== linkedBranchIds
+	) {
+		setLastKey({ linkedBranchIds, open, userId });
+		if (open) {
+			setLoading(true);
+		}
+	}
+
 	useEffect(() => {
 		if (!open) {
 			return;
 		}
 		let active = true;
-		setLoading(true);
 		fetchAvailableBranchesForUserAction(userId)
 			.then((all) => {
 				if (active) {

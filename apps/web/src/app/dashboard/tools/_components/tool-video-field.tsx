@@ -44,10 +44,16 @@ export function ToolVideoField({
 			return;
 		}
 		setStatus("Lendo vídeo…");
+		// Notifica o erro e limpa o status num ponto só. Sem finally nem throw
+		// dentro do try: React Compiler baila nas duas formas.
+		const fail = (message: string) => {
+			notify.error(message);
+			setStatus(null);
+		};
 		try {
 			const duration = await readVideoDuration(file);
 			if (duration > MAX_VIDEO_DURATION_SECONDS) {
-				notify.error(`Vídeo excede ${MAX_VIDEO_DURATION_SECONDS}s.`);
+				fail(`Vídeo excede ${MAX_VIDEO_DURATION_SECONDS}s.`);
 				return;
 			}
 
@@ -57,14 +63,14 @@ export function ToolVideoField({
 			setStatus("Enviando vídeo…");
 			const target = await createToolVideoUploadUrl({ contentType: file.type });
 			if (!target.ok) {
-				notify.error(target.error);
+				fail(target.error);
 				return;
 			}
 			const upload = await supabaseBrowser.storage
 				.from(target.data.bucket)
 				.uploadToSignedUrl(target.data.path, target.data.token, file);
 			if (upload.error) {
-				notify.error("Falha ao enviar o vídeo.");
+				fail("Falha ao enviar o vídeo.");
 				return;
 			}
 			const videoUrl = supabaseBrowser.storage
@@ -83,10 +89,9 @@ export function ToolVideoField({
 				await deleteToolVideoObject(videoUrl).catch(() => undefined);
 				notify.error("Falha ao gerar a capa. Tente novamente.");
 			}
-		} catch (err) {
-			notify.error(err instanceof Error ? err.message : "Erro no vídeo.");
-		} finally {
 			setStatus(null);
+		} catch (err) {
+			fail(err instanceof Error ? err.message : "Erro no vídeo.");
 		}
 	}
 

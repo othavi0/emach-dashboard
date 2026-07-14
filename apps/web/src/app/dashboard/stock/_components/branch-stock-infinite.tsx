@@ -74,6 +74,12 @@ export function BranchStockInfinite({
 			return;
 		}
 		setScanning(true);
+		const resetScanner = () => {
+			setScanning(false);
+			setScannerValue("");
+			scannerRef.current?.focus();
+		};
+		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const result = await lookupVariantByBarcodeAction(value, branchId);
 			if (result.ok) {
@@ -85,10 +91,10 @@ export function BranchStockInfinite({
 			} else {
 				notify.error("Erro ao buscar código — tente novamente");
 			}
-		} finally {
-			setScanning(false);
-			setScannerValue("");
-			scannerRef.current?.focus();
+			resetScanner();
+		} catch (err) {
+			resetScanner();
+			throw err;
 		}
 	}
 

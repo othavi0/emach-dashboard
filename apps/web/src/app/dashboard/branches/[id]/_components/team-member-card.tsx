@@ -42,6 +42,7 @@ export function TeamMemberCard({ branchId, member }: Props) {
 
 	async function handleUnlink() {
 		setUnlinking(true);
+		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const result = await unlinkUserFromBranchAction({
 				branchId,
@@ -55,8 +56,10 @@ export function TeamMemberCard({ branchId, member }: Props) {
 			} else {
 				notify.error(result.error);
 			}
-		} finally {
 			setUnlinking(false);
+		} catch (err) {
+			setUnlinking(false);
+			throw err;
 		}
 	}
 

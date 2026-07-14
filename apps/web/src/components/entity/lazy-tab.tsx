@@ -26,6 +26,13 @@ export function useLazyTabReload(): () => void {
 	return useContext(LazyTabReloadContext);
 }
 
+interface LazyTabState<T> {
+	attempt: number;
+	data: T | null;
+	key: string | undefined;
+	status: LazyTabStatus;
+}
+
 export function useLazyTab<T>(
 	load: () => Promise<T>,
 	reloadKey?: string
@@ -34,38 +41,56 @@ export function useLazyTab<T>(
 	data: T | null;
 	retry: () => void;
 } {
-	const [status, setStatus] = useState<LazyTabStatus>("loading");
-	const [data, setData] = useState<T | null>(null);
-	const [attempt, setAttempt] = useState(0);
+	const [state, setState] = useState<LazyTabState<T>>({
+		attempt: 0,
+		data: null,
+		key: reloadKey,
+		status: "loading",
+	});
 	const loadRef = useRef(load);
-	loadRef.current = load;
+	useEffect(() => {
+		loadRef.current = load;
+	});
 
 	// reloadKey: refaz o fetch quando dados externos ao shell mudam (ex: filtros
 	// lidos de useSearchParams) — sem ele o dado congela no primeiro attempt e a
 	// tab deixa de reagir a filtros trocados após a ativação (review do #261).
+	// Reset síncrono durante o render (padrão "adjusting state when a prop
+	// changes"); o effect abaixo refaz o fetch ao ver o reloadKey novo.
+	if (state.key !== reloadKey) {
+		setState((s) => ({ ...s, data: null, key: reloadKey, status: "loading" }));
+	}
+
 	useEffect(() => {
 		let active = true;
-		setStatus("loading");
-		setData(null);
 		loadRef
 			.current()
 			.then((result) => {
 				if (active) {
-					setData(result);
-					setStatus("ready");
+					setState((s) => ({ ...s, data: result, status: "ready" }));
 				}
 			})
 			.catch(() => {
 				if (active) {
-					setStatus("error");
+					setState((s) => ({ ...s, status: "error" }));
 				}
 			});
 		return () => {
 			active = false;
 		};
-	}, [attempt, reloadKey]);
+	}, [state.attempt, reloadKey]);
 
-	return { status, data, retry: () => setAttempt((a) => a + 1) };
+	return {
+		status: state.status,
+		data: state.data,
+		retry: () =>
+			setState((s) => ({
+				...s,
+				attempt: s.attempt + 1,
+				data: null,
+				status: "loading",
+			})),
+	};
 }
 
 interface ViewProps<T> {

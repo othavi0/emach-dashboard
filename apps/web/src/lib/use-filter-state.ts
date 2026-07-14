@@ -79,9 +79,13 @@ export function useDebouncedParam({
 	const urlValue = searchParams.get(key) ?? "";
 	const [local, setLocal] = useState(urlValue);
 
-	useEffect(() => {
+	// Re-sincroniza o input quando a URL muda por fora (back/forward, limpar
+	// filtros) — durante o render, sem o re-render extra do effect.
+	const [lastUrlValue, setLastUrlValue] = useState(urlValue);
+	if (lastUrlValue !== urlValue) {
+		setLastUrlValue(urlValue);
 		setLocal(urlValue);
-	}, [urlValue]);
+	}
 
 	useEffect(() => {
 		if (local === urlValue) {

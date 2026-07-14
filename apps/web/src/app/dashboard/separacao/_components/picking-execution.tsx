@@ -353,6 +353,7 @@ function usePickingState(
 		}
 		drainingRef.current = true;
 		setIsScanning(true);
+		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			while (queueRef.current.length > 0) {
 				const next = queueRef.current.shift();
@@ -381,9 +382,12 @@ function usePickingState(
 				}
 				clearFeedback();
 			}
-		} finally {
 			drainingRef.current = false;
 			setIsScanning(false);
+		} catch (err) {
+			drainingRef.current = false;
+			setIsScanning(false);
+			throw err;
 		}
 	}
 

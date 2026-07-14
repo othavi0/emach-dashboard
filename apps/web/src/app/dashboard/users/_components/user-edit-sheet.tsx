@@ -4,7 +4,7 @@ import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import { Switch } from "@emach/ui/components/switch";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
 
 import { LabeledField } from "@/components/labeled-field";
@@ -40,14 +40,18 @@ export function UserEditSheet({ user, actorRole }: Props) {
 	const { errors, reportValidationError, clearErrors } = useFormErrors();
 	const [submitting, startTransition] = useTransition();
 
-	useEffect(() => {
+	// Reset síncrono durante o render (padrão "adjusting state when a prop
+	// changes") — sem o re-render extra do reset via effect.
+	const [lastReset, setLastReset] = useState({ open, user });
+	if (lastReset.open !== open || lastReset.user !== user) {
+		setLastReset({ open, user });
 		if (open) {
 			setName(user.name);
 			setRole(user.role);
 			setEmailVerified(user.emailVerified);
 			clearErrors();
 		}
-	}, [open, user, clearErrors]);
+	}
 
 	const close = () => {
 		const sp = new URLSearchParams(params);

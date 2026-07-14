@@ -10,7 +10,7 @@ import {
 	DialogTrigger,
 } from "@emach/ui/components/dialog";
 import { CheckIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { formatDateTime } from "@/lib/format/datetime";
 import { notify } from "@/lib/notify";
 import { generatePasswordResetLink } from "../actions";
@@ -34,16 +34,16 @@ export function ResetPasswordDialog({
 	const [copied, setCopied] = useState(false);
 	const [isPending, startTransition] = useTransition();
 
-	useEffect(() => {
-		if (!open) {
-			setResult(null);
-			setCopied(false);
-		}
-	}, [open]);
-
 	function handleOpen(isOpen: boolean) {
 		setOpen(isOpen);
-		if (isOpen && !result) {
+		// Reset no evento de fechar (todo fechamento passa pelo onOpenChange) —
+		// dispensa o effect de sincronização.
+		if (!isOpen) {
+			setResult(null);
+			setCopied(false);
+			return;
+		}
+		if (!result) {
 			startTransition(async () => {
 				const res = await generatePasswordResetLink({ clientId });
 				if (res.ok) {

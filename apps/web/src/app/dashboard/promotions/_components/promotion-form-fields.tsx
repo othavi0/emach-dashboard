@@ -312,13 +312,15 @@ export function PromotionFormFields({
 		!values.appliesToAll &&
 		values.toolIds.length > HOME_MAX_PRODUCTS;
 
-	// Aviso não-bloqueante: ferramentas com promoção ativa
-	const [conflictCount, setConflictCount] = useState(0);
+	// Aviso não-bloqueante: ferramentas com promoção ativa. O zero de
+	// appliesToAll/lista vazia é derivado no render; o effect só busca.
+	const [fetchedConflicts, setFetchedConflicts] = useState(0);
 	const [, startTransition] = useTransition();
+	const conflictCount =
+		values.appliesToAll || values.toolIds.length === 0 ? 0 : fetchedConflicts;
 
 	useEffect(() => {
 		if (values.appliesToAll || values.toolIds.length === 0) {
-			setConflictCount(0);
 			return;
 		}
 		let cancelled = false;
@@ -328,7 +330,7 @@ export function PromotionFormFields({
 				excludePromotionId
 			).then((count) => {
 				if (!cancelled) {
-					setConflictCount(count);
+					setFetchedConflicts(count);
 				}
 			});
 		});

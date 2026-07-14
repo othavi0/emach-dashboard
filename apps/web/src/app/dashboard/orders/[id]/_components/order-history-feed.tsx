@@ -329,6 +329,7 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 
 	async function handleOpenAttachment(attachmentId: string) {
 		setSigningId(attachmentId);
+		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const res = await signOrderAttachment(attachmentId);
 			if (res.ok) {
@@ -336,8 +337,10 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 			} else {
 				notify.error(res.error);
 			}
-		} finally {
 			setSigningId(null);
+		} catch (err) {
+			setSigningId(null);
+			throw err;
 		}
 	}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
 import { notify } from "@/lib/notify";
@@ -32,12 +32,16 @@ export function BoxCreateSheet() {
 		useFormErrors<BoxFormValues>();
 	const [submitting, startTransition] = useTransition();
 
-	useEffect(() => {
+	// Reset síncrono durante o render (padrão "adjusting state when a prop
+	// changes") — sem o re-render extra do reset via effect.
+	const [wasOpen, setWasOpen] = useState(open);
+	if (wasOpen !== open) {
+		setWasOpen(open);
 		if (open) {
 			setValues(defaultValues);
 			clearErrors();
 		}
-	}, [open, clearErrors]);
+	}
 
 	const close = () => {
 		const sp = new URLSearchParams(params);
