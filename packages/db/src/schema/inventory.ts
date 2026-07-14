@@ -153,9 +153,39 @@ export const userBranchRelations = relations(userBranch, ({ one }) => ({
 	}),
 }));
 
+export const stockAlertSent = pgTable(
+	"stock_alert_sent",
+	{
+		branchId: text("branch_id")
+			.notNull()
+			.references(() => branch.id, { onDelete: "cascade" }),
+		variantId: text("variant_id")
+			.notNull()
+			.references(() => toolVariant.id, { onDelete: "cascade" }),
+		alertLevel: text("alert_level", {
+			enum: ["critical", "reorder"],
+		}).notNull(),
+		sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+	},
+	(table) => [primaryKey({ columns: [table.branchId, table.variantId] })]
+);
+
+export const stockAlertSentRelations = relations(stockAlertSent, ({ one }) => ({
+	branch: one(branch, {
+		fields: [stockAlertSent.branchId],
+		references: [branch.id],
+	}),
+	variant: one(toolVariant, {
+		fields: [stockAlertSent.variantId],
+		references: [toolVariant.id],
+	}),
+}));
+
 export type Branch = typeof branch.$inferSelect;
 export type NewBranch = typeof branch.$inferInsert;
 export type StockLevel = typeof stockLevel.$inferSelect;
 export type NewStockLevel = typeof stockLevel.$inferInsert;
 export type UserBranch = typeof userBranch.$inferSelect;
 export type NewUserBranch = typeof userBranch.$inferInsert;
+export type StockAlertSent = typeof stockAlertSent.$inferSelect;
+export type NewStockAlertSent = typeof stockAlertSent.$inferInsert;
