@@ -64,6 +64,8 @@ export function ModerateActions({ review }: { review: ReviewDetail }) {
 				router.refresh();
 			} catch {
 				notify.error("Não foi possível salvar a moderação");
+				reloadTab();
+				router.refresh();
 			}
 		});
 	}
