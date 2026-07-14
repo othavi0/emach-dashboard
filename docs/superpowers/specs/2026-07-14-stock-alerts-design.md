@@ -49,6 +49,7 @@ Não reusa `getReorderTable` (que é user-scoped, `LIMIT 50`) — query própria
 ```sql
 SELECT
   b.id AS branch_id, b.name AS branch_name,
+  tv.id AS variant_id,
   t.name AS tool_name, tv.sku,
   sl.quantity, sl.min_qty, sl.reorder_point,
   (sl.reorder_point - sl.quantity) AS deficit,

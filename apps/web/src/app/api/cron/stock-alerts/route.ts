@@ -108,22 +108,24 @@ async function resolveRecipients(
 	return await getSuperAdminEmails();
 }
 
-/** Persiste o upsert de cooldown para cada item alertado de uma filial. */
+/** Persiste o upsert de cooldown para cada item alertado de uma filial, atomicamente. */
 async function recordAlertsSent(branchId: string, items: AlertItem[]) {
-	for (const item of items) {
-		await db
-			.insert(stockAlertSent)
-			.values({
-				branchId,
-				variantId: item.variantId,
-				alertLevel: item.alertLevel,
-				sentAt: new Date(),
-			})
-			.onConflictDoUpdate({
-				target: [stockAlertSent.branchId, stockAlertSent.variantId],
-				set: { alertLevel: item.alertLevel, sentAt: new Date() },
-			});
-	}
+	await db.transaction(async (tx) => {
+		for (const item of items) {
+			await tx
+				.insert(stockAlertSent)
+				.values({
+					branchId,
+					variantId: item.variantId,
+					alertLevel: item.alertLevel,
+					sentAt: new Date(),
+				})
+				.onConflictDoUpdate({
+					target: [stockAlertSent.branchId, stockAlertSent.variantId],
+					set: { alertLevel: item.alertLevel, sentAt: new Date() },
+				});
+		}
+	});
 }
 
 /**

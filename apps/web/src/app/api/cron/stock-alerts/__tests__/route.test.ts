@@ -9,18 +9,23 @@ vi.mock("@emach/env/server", () => ({
 	},
 }));
 
-const { mockDbExecute, mockDbInsert, mockSendStockAlertEmail } = vi.hoisted(
-	() => ({
-		mockDbExecute: vi.fn(),
-		mockDbInsert: vi.fn(),
-		mockSendStockAlertEmail: vi.fn(),
-	})
-);
+const {
+	mockDbExecute,
+	mockDbInsert,
+	mockDbTransaction,
+	mockSendStockAlertEmail,
+} = vi.hoisted(() => ({
+	mockDbExecute: vi.fn(),
+	mockDbInsert: vi.fn(),
+	mockDbTransaction: vi.fn(),
+	mockSendStockAlertEmail: vi.fn(),
+}));
 
 vi.mock("@emach/db", () => ({
 	db: {
 		execute: mockDbExecute,
 		insert: mockDbInsert,
+		transaction: mockDbTransaction,
 	},
 }));
 
@@ -95,6 +100,18 @@ function mockInsertOk() {
 	return { values };
 }
 
+/**
+ * Moca db.transaction para executar o callback com um `tx` cujo `insert`
+ * reaproveita o mesmo `mockDbInsert` — asserções `toHaveBeenCalledTimes`
+ * existentes continuam contando os upserts corretamente.
+ */
+function mockTransactionOk() {
+	mockDbTransaction.mockImplementation(
+		(callback: (tx: { insert: typeof mockDbInsert }) => Promise<void>) =>
+			callback({ insert: mockDbInsert })
+	);
+}
+
 // --- testes ---
 
 describe("GET /api/cron/stock-alerts", () => {
@@ -102,6 +119,7 @@ describe("GET /api/cron/stock-alerts", () => {
 		vi.clearAllMocks();
 		mockSendStockAlertEmail.mockResolvedValue(undefined);
 		mockInsertOk();
+		mockTransactionOk();
 	});
 
 	describe("gate de autenticação", () => {
@@ -334,6 +352,45 @@ describe("GET /api/cron/stock-alerts", () => {
 			expect(res.status).toBe(500);
 			expect(await res.json()).toEqual({ ok: false, error: "Internal error" });
 			expect(logger.error).toHaveBeenCalled();
+		});
+	});
+
+	describe("transação de upsert atômica", () => {
+		it("falha no 2º upsert rejeita a transação inteira e a filial cai no catch, mesmo com o e-mail já enviado", async () => {
+			queueExecute([
+				itemRow(),
+				itemRow({
+					variant_id: "v2",
+					sku: "FUR-500W-002",
+					tool_name: "Furadeira 500W",
+					quantity: 3,
+					reorder_point: 8,
+					deficit: 5,
+					alert_level: "reorder",
+				}),
+			]);
+			queueExecute([{ branch_id: "b1", email: "admin@filial.com" }]);
+
+			// tx.insert do 2º item rejeita → db.transaction() rejeita por inteiro
+			// (all-or-nothing: nenhum dos dois upserts fica gravado).
+			mockDbTransaction.mockImplementationOnce(() =>
+				Promise.reject(new Error("upsert do 2º item falhou"))
+			);
+
+			const res = await GET(makeRequest());
+			expect(res.status).toBe(200);
+			expect(await res.json()).toEqual({
+				ok: true,
+				emailsSent: 0,
+				branchesSkipped: 1,
+				itemsAlerted: 0,
+			});
+			// o e-mail já tinha sido enviado antes da transação falhar
+			expect(mockSendStockAlertEmail).toHaveBeenCalledTimes(1);
+			expect(logger.error).toHaveBeenCalledWith(
+				"stockAlertsCron",
+				expect.objectContaining({ branchId: "b1" })
+			);
 		});
 	});
 });
