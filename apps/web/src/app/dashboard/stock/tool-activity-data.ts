@@ -7,6 +7,7 @@ import { stockMovement } from "@emach/db/schema/stock-movements";
 import { supplier, toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq, gte, inArray } from "drizzle-orm";
 
+import { getUserBranchScope, inScope } from "@/lib/branch-scope";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 import type { STOCK_MOVEMENT_REASONS } from "./_components/stock-movement-schema";
@@ -48,7 +49,19 @@ export async function getToolActivity(
 	toolId: string,
 	limit = 100
 ): Promise<ToolActivityRow[]> {
-	await requireCapability("stock.read");
+	const session = await requireCapability("stock.read");
+	const scope = await getUserBranchScope(session);
+
+	// Inventory é filial-scoped (ADR-0016, decisão na #309): admin/user vê só
+	// atividade das suas filiais; sem vínculo → vazio (fail-closed).
+	if (scope.kind === "scoped" && scope.branchIds.length === 0) {
+		return [];
+	}
+	const conditions = [eq(toolVariant.toolId, toolId)];
+	if (scope.kind === "scoped") {
+		conditions.push(inArray(stockMovement.branchId, scope.branchIds));
+	}
+
 	return await db
 		.select({
 			id: stockMovement.id,
@@ -72,7 +85,7 @@ export async function getToolActivity(
 		.leftJoin(branch, eq(stockMovement.branchId, branch.id))
 		.leftJoin(user, eq(stockMovement.actorId, user.id))
 		.leftJoin(supplier, eq(stockMovement.supplierId, supplier.id))
-		.where(eq(toolVariant.toolId, toolId))
+		.where(and(...conditions))
 		.orderBy(desc(stockMovement.createdAt))
 		.limit(limit);
 }
@@ -81,12 +94,25 @@ export async function fetchToolActivityPage(
 	filters: ToolActivityFilters,
 	cursor: string | null
 ): Promise<InfiniteResult<ToolActivityRow>> {
-	await requireCapability("stock.read");
+	const session = await requireCapability("stock.read");
+	const scope = await getUserBranchScope(session);
+
+	if (scope.kind === "scoped" && scope.branchIds.length === 0) {
+		return { items: [], nextCursor: null };
+	}
 
 	const conditions = [eq(toolVariant.toolId, filters.toolId)];
 
 	if (filters.branchId) {
+		// Valida a filial pedida contra o escopo mesmo no caminho direto por
+		// Server Component (o wrapper "use server" também valida).
+		if (!inScope(scope, filters.branchId)) {
+			return { items: [], nextCursor: null };
+		}
 		conditions.push(eq(stockMovement.branchId, filters.branchId));
+	} else if (scope.kind === "scoped") {
+		// Sem filtro explícito: restringe ao escopo (decisão na #309).
+		conditions.push(inArray(stockMovement.branchId, scope.branchIds));
 	}
 	if (filters.reasons && filters.reasons.length > 0) {
 		conditions.push(
