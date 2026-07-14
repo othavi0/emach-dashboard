@@ -7,56 +7,63 @@ import {
 	ORDER_FLOW_TABS,
 } from "../status-meta";
 
-describe("ORDER_FLOW_TABS (spec 2026-07-08, tab 'late' spec 2026-07-10)", () => {
-	it("tem um chip por status do funil; 'late' fecha a fileira", () => {
+describe("ORDER_FLOW_TABS (spec 2026-07-11; overlay 'late' spec 2026-07-13)", () => {
+	it("tem um chip por etapa, na ordem do fluxo; 'late' fecha a fileira", () => {
 		expect(ORDER_FLOW_TABS.map((t) => t.key)).toEqual([
 			"paid",
 			"preparing",
+			"picked",
 			"shipped",
 			"delivered",
 			"late",
 		]);
 		expect(ORDER_FLOW_TABS.map((t) => t.label)).toEqual([
 			"Pago",
-			"Em preparação",
+			"Em separação",
+			"Separado",
 			"Enviados",
 			"Entregues",
 			"Atrasados",
 		]);
 	});
 
-	it("cada aba de fluxo comum mapeia 1:1 pro próprio status", () => {
-		for (const tab of ORDER_FLOW_TABS) {
-			if (tab.key === "late") {
-				continue;
-			}
-			expect(tab.statuses).toEqual([tab.key]);
-		}
+	it("picked e preparing dividem o status preparing por sessão de picking", () => {
+		const picked = ORDER_FLOW_TABS.find((t) => t.key === "picked");
+		const preparing = ORDER_FLOW_TABS.find((t) => t.key === "preparing");
+		expect(picked?.statuses).toEqual(["preparing"]);
+		expect(picked?.picking).toBe("picked");
+		expect(preparing?.picking).toBe("not_picked");
 	});
 
 	it("aba computada 'late' cobre paid+preparing como OVERLAY (spec 2026-07-13)", () => {
 		const late = ORDER_FLOW_TABS.find((t) => t.key === "late");
 		expect(late?.statuses).toEqual(["paid", "preparing"]);
 		expect(late?.lateness).toBe("only");
-		// Overlay: pedido atrasado NÃO some das abas do próprio status.
+		// Overlay: pedido atrasado NÃO some das abas da própria etapa — nem das
+		// duas metades de preparing (Em separação / Separado).
 		expect(
 			ORDER_FLOW_TABS.find((t) => t.key === "paid")?.lateness
 		).toBeUndefined();
 		expect(
 			ORDER_FLOW_TABS.find((t) => t.key === "preparing")?.lateness
 		).toBeUndefined();
+		expect(
+			ORDER_FLOW_TABS.find((t) => t.key === "picked")?.lateness
+		).toBeUndefined();
 	});
 
-	it("sub-abas de Atrasados: Todos, Pagos, Em preparação", () => {
+	it("sub-abas de Atrasados espelham as etapas 1:1", () => {
 		expect(LATE_SUB_TABS.map((t) => t.key)).toEqual([
 			"all",
 			"paid",
 			"preparing",
+			"picked",
 		]);
 		expect(LATE_SUB_TABS.map((t) => t.label)).toEqual([
 			"Todos",
 			"Pagos",
-			"Em preparação",
+			"Em separação",
+			"Separado",
 		]);
 	});
 

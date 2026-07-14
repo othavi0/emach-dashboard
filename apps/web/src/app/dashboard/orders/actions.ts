@@ -18,6 +18,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { getUserBranchScope } from "@/lib/branch-scope";
+import { getPgError } from "@/lib/db-error";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import {
@@ -27,6 +28,11 @@ import {
 } from "@/lib/permissions";
 import { deriveFulfillmentState } from "../separacao/_lib/picking-logic";
 import { getLatestPicking } from "../separacao/data";
+import {
+	BULK_SKIP_LABEL,
+	bulkSkipReasonFromError,
+	bulkStartSeparationSkipReason,
+} from "./_lib/bulk-eligibility";
 import { applyStockReturns } from "./_lib/stock-returns";
 import {
 	fetchOrdersPage as fetchOrdersPageImpl,
@@ -39,6 +45,8 @@ import {
 	type AssignBranchInput,
 	addOrderNoteSchema,
 	assignBranchSchema,
+	type BulkStartSeparationInput,
+	bulkStartSeparationSchema,
 	capForStatus,
 	type MarkShippingReviewedInput,
 	markShippingReviewedSchema,
@@ -258,7 +266,7 @@ export async function updateOrderStatus(
 			const resolvedBranchId = branchId ?? locked.branchId;
 			if (toStatus === "preparing" && !resolvedBranchId) {
 				throw new Error(
-					"Filial obrigatória para iniciar a preparação do pedido"
+					"Filial obrigatória para enviar o pedido para separação"
 				);
 			}
 
@@ -324,6 +332,130 @@ export async function updateOrderStatus(
 			ok: false,
 			error: error instanceof Error ? error.message : "Erro interno",
 		};
+	}
+}
+
+export interface BulkStartSeparationResult {
+	moved: number;
+	skipped: { number: string; reason: string }[];
+}
+
+const BULK_GENERIC_ERROR = "Erro ao enviar pedidos para separação.";
+
+// SQLSTATE → mensagem amigável (apps/web/CLAUDE.md): o erro cru do Postgres
+// nunca chega ao toast. P0001 = RAISE EXCEPTION dos triggers do domínio.
+function pgErrorMessage(pgErr: { code: string }): string {
+	switch (pgErr.code) {
+		case "23503":
+			return "Pedido referencia um registro que não existe mais.";
+		case "23505":
+			return "Este pedido já foi enviado para separação.";
+		case "P0001":
+			return "O pedido não pode ir para separação neste estado.";
+		default:
+			return BULK_GENERIC_ERROR;
+	}
+}
+
+/**
+ * Bulk pago→separação (spec 2026-07-11). Cada pedido roda em transação
+ * própria com lock + capability branch-scoped; inelegíveis são pulados e
+ * reportados — um pedido problemático não derruba o lote.
+ */
+export async function bulkStartSeparation(
+	input: BulkStartSeparationInput
+): Promise<ActionResult<BulkStartSeparationResult>> {
+	const parsed = bulkStartSeparationSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+
+	const orderIds = Array.from(new Set(parsed.data.orderIds));
+	let moved = 0;
+	const skipped: { number: string; reason: string }[] = [];
+
+	try {
+		// Fail-fast global: sem a capability nem adianta iterar.
+		await requireCapability("orders.update_status");
+
+		try {
+			for (const orderId of orderIds) {
+				// Placeholder até a autorização passar — o número real só é lido
+				// (dentro da tx, já travado) depois do lock+capability check, pra
+				// não vazar número de pedido fora do escopo do ator (skip reports
+				// pré-autorização usam só o id truncado).
+				const fallbackLabel = orderId.slice(0, 8);
+				try {
+					await db.transaction(async (tx) => {
+						const locked = await lockOrderAndAuthorize(
+							tx,
+							"orders.update_status",
+							orderId
+						);
+						if (!locked) {
+							skipped.push({ number: fallbackLabel, reason: "não encontrado" });
+							return;
+						}
+						const [row] = await tx
+							.select({ number: order.number })
+							.from(order)
+							.where(eq(order.id, orderId))
+							.limit(1);
+						const label = row?.number ?? fallbackLabel;
+
+						const reason = bulkStartSeparationSkipReason(locked);
+						if (reason) {
+							skipped.push({ number: label, reason: BULK_SKIP_LABEL[reason] });
+							return;
+						}
+						await tx
+							.update(order)
+							.set(buildOrderStatusUpdate("preparing", undefined, undefined))
+							.where(eq(order.id, orderId));
+						await tx.insert(orderStatusHistory).values({
+							id: crypto.randomUUID(),
+							orderId,
+							fromStatus: "paid",
+							toStatus: "preparing",
+							actorType: "user",
+							actorUserId: locked.session.user.id,
+							reason: null,
+						});
+						moved += 1;
+					});
+				} catch (error) {
+					const skipReason = bulkSkipReasonFromError(error);
+					if (skipReason) {
+						skipped.push({ number: fallbackLabel, reason: skipReason });
+					} else {
+						throw error;
+					}
+				}
+			}
+		} finally {
+			// Escritas parciais já commitadas por pedido processado antes de um
+			// abort no meio do lote (erro de infra) precisam refletir no cache,
+			// mesmo quando o retorno abaixo é {ok:false}.
+			revalidatePath(ORDERS_PATH);
+			revalidateTag(ORDERS_COUNTS_TAG, "max");
+		}
+
+		return { ok: true, data: { moved, skipped } };
+	} catch (error) {
+		logger.error("bulkStartSeparation", { err: error });
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para alterar pedidos." };
+		}
+		// Erro de banco: mapear SQLSTATE p/ mensagem amigável. NUNCA devolver
+		// error.message (o toast exibe o retorno cru — vazaria SQL do drizzle).
+		const pgErr = getPgError(error);
+		if (pgErr) {
+			return { ok: false, error: pgErrorMessage(pgErr) };
+		}
+		return { ok: false, error: BULK_GENERIC_ERROR };
 	}
 }
 

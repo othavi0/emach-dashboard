@@ -100,7 +100,14 @@ CHECK `actor_coherence` no DB rejeita combinações inválidas.
 
 ## Orders — filter-builder único (redesign 2026-07-10)
 
-O WHERE da listagem de pedidos vive SÓ em `dashboard/orders/_lib/orders-where.ts` (`buildOrdersListConditions` + `resolveTab` + `ordersTabSort` + `foldTabCounts`) — consumido por `fetchOrdersPage`, export CSV e resumo de produto. **Não reintroduzir cópias inline de filtro** (já existiram 3; uma delas deixava `?tab=` sem a condição de lateness no export). Gotchas do módulo: é **server-tainted** (drizzle + branch-scope) — client component NUNCA importa dele por valor; constantes client-safe (ex.: `CARRIER_NONE`) moram em `status-meta.ts` (fonte canônica) e `orders-where` importa de lá. Tab `late` é computada (não é status): `paid`/`preparing` ≥72h desde `COALESCE(paid_at, created_at)`. É **overlay** (spec 2026-07-13): o pedido atrasado também segue nas tabs do próprio status, e a sub-aba `?lateStatus=paid|preparing` estreita a listagem dentro de `late`. Mexeu na regra, mexa em `_lib/lateness.ts` (48/72h) e no `foldTabCounts` juntos (`late_paid`/`late_preparing` alimentam os pills).
+O WHERE da listagem de pedidos vive SÓ em `dashboard/orders/_lib/orders-where.ts` (`buildOrdersListConditions` + `resolveTab` + `ordersTabSort` + `foldTabCounts`) — consumido por `fetchOrdersPage`, export CSV e resumo de produto. **Não reintroduzir cópias inline de filtro** (já existiram 3; uma delas deixava `?tab=` sem a condição de lateness no export). Gotchas do módulo: é **server-tainted** (drizzle + branch-scope) — client component NUNCA importa dele por valor; constantes client-safe (ex.: `CARRIER_NONE`) moram em `status-meta.ts` (fonte canônica) e `orders-where` importa de lá.
+
+**Dois eixos ORTOGONAIS** governam as tabs — confundir os dois é o erro clássico aqui:
+
+- **Etapa** (abas exclusivas entre si): `paid` → `preparing` ("Em separação") → `picked` ("Separado") → `shipped` → `delivered`. `picked`/`preparing` dividem o MESMO status `preparing` pela ÚLTIMA sessão de picking (`picking: "picked" | "not_picked"` no `OrderTabDef`, subquery `latestPickingStatus` com o MESMO `ORDER BY started_at DESC, id DESC` do LATERAL `lp` de `data.ts` — divergir a ordenação dessincroniza badge×tab).
+- **Atraso** (`late`, computada — não é status): `paid`/`preparing` ≥72h, com **relógio POR ETAPA** (spec 2026-07-11) — `preparing` conta de `COALESCE(preparing_at, paid_at, created_at)`, `paid` de `COALESCE(paid_at, created_at)`. É **overlay** (spec 2026-07-13): o pedido atrasado NÃO sai da aba da própria etapa (nenhuma aba de etapa carrega condição inversa de lateness) e a pill `?lateStatus=paid|preparing|picked` estreita a listagem dentro de `late`, espelhando as etapas 1:1 (`preparing` na pill exclui os já separados, via `effectiveTabPicking`).
+
+Mexeu na régua, mexa junto em `_lib/lateness.ts` (48/72h) + `fulfillmentAge` + os counts `is_late`/`is_picked` de `data.ts` + `foldTabCounts` (que soma o atrasado em `late`/`late_paid`/`late_preparing`/`late_picked` **e** no bucket da etapa — o mesmo pedido conta nos dois lugares; `late_*` alimenta as pills).
 
 ## Orders — branch-scoping fail-safe
 

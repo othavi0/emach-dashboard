@@ -20,7 +20,7 @@ const BASE = "/dashboard/separacao";
 
 const TAB_EMPTY: Record<Tab, string> = {
 	a_separar: "Nenhum pedido aguardando separação.",
-	em_separacao: "Nenhum pedido em separação no momento.",
+	em_separacao: "Nenhum pedido sendo separado no momento.",
 	excecoes: "Sem exceções no momento.",
 };
 
@@ -64,7 +64,7 @@ export function PickingQueue({
 							render={<Link href={`${BASE}?tab=em_separacao`} />}
 							value="em_separacao"
 						>
-							Em separação
+							Separando
 							<TabsCountBadge value={counts.em_separacao} />
 						</TabsTrigger>
 					</TabsList>

@@ -151,7 +151,7 @@ function VConnector({ done }: { done: boolean }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface OrderProgressProps {
-	/** Sub-label do step "Em preparação" com o estado de separação (Task 7). */
+	/** Sub-label do step "Em separação" com o estado de separação (Task 7). */
 	fulfillmentLabel?: string | null;
 	order: OrderDetail;
 }

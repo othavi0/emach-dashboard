@@ -41,6 +41,7 @@ import {
 	buildOrdersListConditions,
 	emptyTabCounts,
 	foldTabCounts,
+	type LateStatusFilter,
 	normalizeDateParam,
 	type OrderTabCounts,
 	ordersTabSort,
@@ -52,7 +53,7 @@ export interface OrderListFilters {
 	branchId?: string;
 	carrier?: string;
 	from?: string;
-	lateStatus?: "paid" | "preparing";
+	lateStatus?: LateStatusFilter;
 	q?: string;
 	tab?: string;
 	to?: string;
@@ -79,6 +80,8 @@ export interface OrderListItem {
 	itemsCount: number;
 	number: string;
 	paidAt: Date | null;
+	pickerName: string | null;
+	preparingAt: Date | null;
 	shippedAt: Date | null;
 	shippingMethod: string | null;
 	shippingUnverified: boolean;
@@ -311,7 +314,7 @@ export interface OrdersPageFiltersInput {
 	branchId?: string;
 	carrier?: string;
 	from?: string;
-	lateStatus?: "paid" | "preparing";
+	lateStatus?: LateStatusFilter;
 	q?: string;
 	tab?: string;
 	to?: string;
@@ -375,9 +378,11 @@ export async function fetchOrdersPage({
 		id: string;
 		item_lines: OrderCardItem[] | null;
 		items_count: number;
+		latest_picking_picker: string | null;
 		latest_picking_status: OrderPickingStatus | null;
 		number: string;
 		paid_at: Date | null;
+		preparing_at: Date | null;
 		shipped_at: Date | null;
 		shipping_method: string | null;
 		shipping_unverified: boolean;
@@ -387,14 +392,14 @@ export async function fetchOrdersPage({
 	}>(sql`
 		SELECT
 			o.id, o.number, o.status, o.total_amount, o.created_at,
-			o.paid_at, o.shipped_at, o.delivered_at,
+			o.paid_at, o.preparing_at, o.shipped_at, o.delivered_at,
 			o.shipping_unverified, o.shipping_method,
 			COALESCE(o.paid_at, o.created_at) AS fulfillment_age,
 			c.name AS client_name, b.name AS branch_name,
 			(SELECT COUNT(*) FROM order_item oi WHERE oi.order_id = o.id)::int AS items_count,
 			(SELECT COALESCE(SUM(oi.quantity), 0) FROM order_item oi WHERE oi.order_id = o.id)::int AS units_count,
 			li.items AS item_lines,
-			lp.status AS latest_picking_status
+			lp.status AS latest_picking_status, lp.picker_name AS latest_picking_picker
 		FROM "order" o
 		JOIN client c ON c.id = o.client_id
 		LEFT JOIN branch b ON b.id = o.branch_id
@@ -415,7 +420,7 @@ export async function fetchOrdersPage({
 			) x
 		) li ON true
 		LEFT JOIN LATERAL (
-			SELECT op.status FROM order_picking op
+			SELECT op.status, op.picker_name FROM order_picking op
 			WHERE op.order_id = o.id
 			ORDER BY op.started_at DESC, op.id DESC LIMIT 1
 		) lp ON o.status = 'preparing'
@@ -436,6 +441,9 @@ export async function fetchOrdersPage({
 			items: row.item_lines ?? [],
 			createdAt: toDate(row.created_at),
 			paidAt: row.paid_at ? toDate(row.paid_at) : null,
+			pickerName:
+				row.status === "preparing" ? (row.latest_picking_picker ?? null) : null,
+			preparingAt: row.preparing_at ? toDate(row.preparing_at) : null,
 			shippedAt: row.shipped_at ? toDate(row.shipped_at) : null,
 			deliveredAt: row.delivered_at ? toDate(row.delivered_at) : null,
 			clientName: row.client_name,
@@ -525,16 +533,25 @@ const computeOrdersTabCounts = unstable_cache(
 		const result = await db.execute<{
 			count: number;
 			is_late: boolean;
+			is_picked: boolean;
 			status: OrderStatus;
 		}>(sql`
 			SELECT status,
 				(status IN ('paid','preparing')
-				 AND COALESCE(paid_at, created_at) <= now() - make_interval(hours => ${LATE_TAB_HOURS})
+				 AND (CASE WHEN status = 'preparing'
+					THEN COALESCE(preparing_at, paid_at, created_at)
+					ELSE COALESCE(paid_at, created_at) END)
+					<= now() - make_interval(hours => ${LATE_TAB_HOURS})
 				) AS is_late,
+				COALESCE(status = 'preparing' AND (
+					SELECT op.status FROM order_picking op
+					WHERE op.order_id = "order".id
+					ORDER BY op.started_at DESC, op.id DESC LIMIT 1
+				) = 'completed', false) AS is_picked,
 				COUNT(*)::int AS count
 			FROM "order"
 			${branchFilter ? sql`WHERE ${branchFilter}` : sql``}
-			GROUP BY 1, 2
+			GROUP BY 1, 2, 3
 		`);
 
 		return foldTabCounts(result.rows);

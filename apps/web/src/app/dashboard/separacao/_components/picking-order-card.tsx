@@ -5,6 +5,7 @@ import { useState } from "react";
 import { formatRelative } from "@/lib/format/datetime";
 import { isPickingStale } from "../_lib/picking-logic";
 import type { PickingQueueRow } from "../data";
+import { fulfillmentBadgeLabel } from "../fulfillment-meta";
 
 /** Pedidos pagos há mais de 24h entram no modo urgente */
 const URGENCY_THRESHOLD_MS = 24 * 60 * 60 * 1000;
@@ -54,14 +55,17 @@ function StatusBadge({ row, tab }: { row: PickingQueueRow; tab: Tab }) {
 	if (tab === "excecoes") {
 		return (
 			<span className="inline-flex items-center rounded-md bg-destructive/15 px-2 py-0.5 font-semibold text-[10px] text-destructive">
-				Exceção
+				{fulfillmentBadgeLabel("picking_exception", row.pickerName ?? null)}
 			</span>
 		);
 	}
 	if (tab === "em_separacao") {
-		// A aba já diz o estado — badge redundante removido (spec 2026-07-08).
-		// O slot de alerta útil ("Parada há X") é renderizado abaixo do meta.
-		return null;
+		// O nome do responsável vive no badge (spec 2026-07-11, mockup B).
+		return (
+			<span className="inline-flex items-center rounded-md bg-warning/15 px-2 py-0.5 font-semibold text-[10px] text-warning">
+				{fulfillmentBadgeLabel("picking_in_progress", row.pickerName ?? null)}
+			</span>
+		);
 	}
 	// a_separar
 	const isUrgent =
@@ -115,12 +119,6 @@ export function PickingOrderCard({ row, tab }: PickingOrderCardProps) {
 					<span aria-hidden className="size-1 rounded-full bg-border" />
 				)}
 				<PaidAge paidAt={row.paidAt} />
-				{tab === "em_separacao" && row.pickerName && (
-					<>
-						<span aria-hidden className="size-1 rounded-full bg-border" />
-						<span>por {row.pickerName}</span>
-					</>
-				)}
 			</div>
 
 			{tab === "em_separacao" &&

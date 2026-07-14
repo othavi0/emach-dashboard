@@ -10,8 +10,10 @@ const NOW = new Date("2026-07-10T12:00:00Z");
 const base = {
 	createdAt: new Date("2026-07-01T12:00:00Z"),
 	paidAt: new Date("2026-07-02T12:00:00Z"),
+	preparingAt: new Date("2026-07-02T18:00:00Z"),
 	shippedAt: new Date("2026-07-03T12:00:00Z"),
 	deliveredAt: new Date("2026-07-04T12:00:00Z"),
+	status: "paid" as const,
 };
 
 describe("ageMetaForTab", () => {
@@ -24,9 +26,16 @@ describe("ageMetaForTab", () => {
 		vi.useRealTimers();
 	});
 
-	it("Pago há nas filas de expedição", () => {
-		for (const tab of ["paid", "preparing", "late"]) {
+	it("Pago há na fila paid e na tab mista late p/ pedido pago", () => {
+		for (const tab of ["paid", "late"]) {
 			expect(ageMetaForTab(tab, base).label).toBe("Pago há");
+		}
+	});
+
+	it("Em separação há na fila preparing/picked e na tab mista late p/ pedido em separação", () => {
+		const preparingBase = { ...base, status: "preparing" as const };
+		for (const tab of ["preparing", "picked", "late"]) {
+			expect(ageMetaForTab(tab, preparingBase).label).toBe("Em separação há");
 		}
 	});
 	it("Enviado há / Entregue em / Criado há", () => {

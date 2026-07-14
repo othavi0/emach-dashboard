@@ -29,7 +29,7 @@ const STATUS_SLA_LABEL: Partial<Record<OrderStatus, string>> = {
 	pending_payment: "Aguardando pagamento há",
 	payment_failed: "Falha de pagamento há",
 	paid: "Pago há",
-	preparing: "Em preparação há",
+	preparing: "Em separação há",
 	shipped: "Enviado há",
 	delivered: "Entregue há",
 	returned: "Devolvido há",

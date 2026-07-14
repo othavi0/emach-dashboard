@@ -575,7 +575,7 @@ export function PickingExecution({
 
 					<div className="flex shrink-0 items-center gap-3">
 						<span className="inline-flex items-center gap-1 rounded-md bg-info/15 px-2.5 py-1 font-semibold text-[11px] text-info">
-							Em separação
+							Separando
 						</span>
 						<Link
 							className={buttonVariants({ size: "sm", variant: "outline" })}
