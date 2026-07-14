@@ -51,6 +51,11 @@ export function ModerateActions({ review }: { review: ReviewDetail }) {
 
 				if (!result.ok) {
 					notify.error(result.error);
+					// Pode ser conflito (outra pessoa moderou antes): recarrega para o
+					// moderador ver o status e a nota de quem chegou primeiro — o card de
+					// detalhe já renderiza `moderatedByName • moderatedAt` e a nota.
+					reloadTab();
+					router.refresh();
 					return;
 				}
 

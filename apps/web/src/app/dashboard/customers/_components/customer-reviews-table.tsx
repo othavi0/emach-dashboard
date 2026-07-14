@@ -131,6 +131,8 @@ export function CustomerReviewsTable({
 				router.refresh();
 			} else {
 				notify.error(result.error);
+				reloadTab();
+				router.refresh();
 			}
 		});
 	}
@@ -159,6 +161,10 @@ export function CustomerReviewsTable({
 				router.refresh();
 			} else {
 				notify.error(result.error);
+				setPendingAction(null);
+				setNote("");
+				reloadTab();
+				router.refresh();
 			}
 		});
 	}
