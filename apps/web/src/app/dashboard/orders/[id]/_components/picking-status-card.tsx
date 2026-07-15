@@ -199,13 +199,29 @@ function ExceptionSection({
 	);
 }
 
-function PickedSummary({ fulfillment }: { fulfillment: OrderFulfillment }) {
+function PickedSummary({
+	fulfillment,
+	orderId,
+}: {
+	fulfillment: OrderFulfillment;
+	orderId: string;
+}) {
 	return (
-		<p className="text-sm">
-			{fulfillment.pickerName} · {formatTime(fulfillment.startedAt)}
-			{fulfillment.completedAt && ` – ${formatTime(fulfillment.completedAt)}`} ·{" "}
-			{fulfillment.totalUnits} unidades conferidas
-		</p>
+		<>
+			<p className="text-sm">
+				{fulfillment.pickerName} · {formatTime(fulfillment.startedAt)}
+				{fulfillment.completedAt && ` – ${formatTime(fulfillment.completedAt)}`}{" "}
+				· {fulfillment.totalUnits} unidades conferidas
+			</p>
+			<Link
+				className={buttonVariants({ size: "sm", variant: "outline" })}
+				href={`/dashboard/orders/shipping-doc?ids=${orderId}`}
+				rel="noopener noreferrer"
+				target="_blank"
+			>
+				Dados de envio
+			</Link>
+		</>
 	);
 }
 
@@ -366,7 +382,7 @@ export function PickingStatusCard({
 				)}
 
 				{!isPostShip && state === "picked" && fulfillment && (
-					<PickedSummary fulfillment={fulfillment} />
+					<PickedSummary fulfillment={fulfillment} orderId={orderId} />
 				)}
 			</CardContent>
 
