@@ -1,19 +1,8 @@
-import { buttonVariants } from "@emach/ui/components/button";
-import {
-	Empty,
-	EmptyContent,
-	EmptyDescription,
-	EmptyHeader,
-	EmptyTitle,
-} from "@emach/ui/components/empty";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { PageHeader } from "@/components/page-header";
-import { can, requireCapability } from "@/lib/permissions";
-import { ExportCsvLink } from "./_components/export-csv-link";
+import { requireCapability } from "@/lib/permissions";
 import { LateOrdersToast } from "./_components/late-orders-toast";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
-import { OrdersInfinite } from "./_components/orders-infinite";
+import { OrdersView } from "./_components/orders-view";
 import { ProductFilterSummary } from "./_components/product-filter-summary";
 import {
 	fetchOrdersPage,
@@ -63,8 +52,7 @@ export default function OrdersPage({ searchParams }: PageProps) {
 }
 
 async function OrdersPageContent({ searchParams }: PageProps) {
-	const session = await requireCapability("orders.read");
-	const canExport = await can(session, "orders.export");
+	await requireCapability("orders.read");
 	const raw = await searchParams;
 	const parsed = ordersListFiltersSchema.safeParse(raw);
 	const data = parsed.success ? parsed.data : ordersListFiltersSchema.parse({});
@@ -132,63 +120,33 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 	return (
 		<>
 			<LateOrdersToast count={counts.late ?? 0} />
-			<PageHeader
-				action={
-					<div className="flex items-center gap-2">
-						{canExport && <ExportCsvLink filters={filters} />}
-					</div>
+			<OrdersView
+				filters={pageFilters}
+				filtersSlot={
+					<OrderFiltersPanel
+						branches={branches}
+						carrierOptions={carrierOptions}
+						counts={counts}
+						filters={filters}
+						toolOptions={toolOptions}
+					/>
 				}
-				description="Listagem operacional com busca por número e cliente, filtros por data e filial e atalhos para fulfillment."
-				title="Pedidos"
+				hasFilters={hasFilters}
+				highlightToolId={data.productId ?? null}
+				initial={result.items}
+				initialCursor={result.nextCursor}
+				summarySlot={
+					productSummary && productName ? (
+						<ProductFilterSummary
+							clearHref={clearProductHref}
+							name={productName}
+							orders={productSummary.orders}
+							units={productSummary.units}
+						/>
+					) : null
+				}
+				tabKey={activeTab}
 			/>
-
-			<OrderFiltersPanel
-				branches={branches}
-				carrierOptions={carrierOptions}
-				counts={counts}
-				filters={filters}
-				toolOptions={toolOptions}
-			/>
-
-			{productSummary && productName && (
-				<ProductFilterSummary
-					clearHref={clearProductHref}
-					name={productName}
-					orders={productSummary.orders}
-					units={productSummary.units}
-				/>
-			)}
-
-			{result.items.length === 0 ? (
-				<Empty>
-					<EmptyHeader>
-						<EmptyTitle>Nenhum pedido encontrado</EmptyTitle>
-						<EmptyDescription>
-							{hasFilters
-								? "Ajuste os filtros para ampliar a busca."
-								: "Nenhum pedido nesta etapa. Use a aba “Todos” para ver o histórico completo."}
-						</EmptyDescription>
-					</EmptyHeader>
-					<EmptyContent>
-						{hasFilters && (
-							<Link
-								className={buttonVariants({ variant: "ghost" })}
-								href="/dashboard/orders"
-							>
-								Limpar filtros
-							</Link>
-						)}
-					</EmptyContent>
-				</Empty>
-			) : (
-				<OrdersInfinite
-					filters={pageFilters}
-					highlightToolId={data.productId ?? null}
-					initial={result.items}
-					initialCursor={result.nextCursor}
-					tabKey={activeTab}
-				/>
-			)}
 		</>
 	);
 }
