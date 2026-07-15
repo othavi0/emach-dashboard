@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+	useCallback,
+	useEffect,
+	useEffectEvent,
+	useRef,
+	useState,
+	useTransition,
+} from "react";
 
 import type { InfiniteResult } from "./infinite";
 
@@ -26,6 +33,15 @@ export function useInfiniteList<T>({
 	const cursorRef = useRef(initialCursor);
 	const refetchSeq = useRef(0);
 
+	// Estabiliza a closure inline recriada a cada render nos ~20 callsites.
+	// useEffectEvent dá uma função estável que sempre chama a versão mais recente
+	// de fetchPage — mantendo-o fora das deps do reset/loadMore sem editar
+	// consumidor, sem effect com dep fresca e sem escrita de ref em render
+	// (ambos re-firariam no-effect-with-fresh-deps / no-ref-current-in-render).
+	const fetchPageEvent = useEffectEvent((cursor: string | null) =>
+		fetchPage(cursor)
+	);
+
 	useEffect(() => {
 		if (resetKey === lastResetKey.current) {
 			return;
@@ -40,7 +56,7 @@ export function useInfiniteList<T>({
 		startTransition(async () => {
 			// Sem finally: React Compiler baila em try com finalizer.
 			try {
-				const next = await fetchPage(null);
+				const next = await fetchPageEvent(null);
 				if (mySeq !== refetchSeq.current) {
 					return;
 				}
@@ -55,7 +71,7 @@ export function useInfiniteList<T>({
 				}
 			}
 		});
-	}, [resetKey, fetchPage]);
+	}, [resetKey]);
 
 	const removeItem = useCallback((predicate: (item: T) => boolean) => {
 		setItems((prev) => prev.filter((item) => !predicate(item)));
