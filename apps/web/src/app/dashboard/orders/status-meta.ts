@@ -52,7 +52,7 @@ export const ORDER_FLOW_TABS = [
 		// Tab computada (spec 2026-07-11): preparing com a última sessão de
 		// picking concluída — separado, aguardando código de envio.
 		key: "picked",
-		label: "Separado",
+		label: "Pronto para enviar",
 		statuses: ["preparing"] as DbOrderStatus[],
 		lateness: undefined,
 		picking: "picked",
@@ -88,7 +88,7 @@ export const LATE_SUB_TABS = [
 	{ key: "all", label: "Todos" },
 	{ key: "paid", label: "Pagos" },
 	{ key: "preparing", label: "Em separação" },
-	{ key: "picked", label: "Separado" },
+	{ key: "picked", label: "Pronto para enviar" },
 ] as const satisfies readonly { key: LateSubTabKey; label: string }[];
 
 // Chaves antigas que ainda podem chegar por deep-link/bookmark. "to_prepare"

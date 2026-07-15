@@ -20,7 +20,7 @@ describe("ORDER_FLOW_TABS (spec 2026-07-11; overlay 'late' spec 2026-07-13)", ()
 		expect(ORDER_FLOW_TABS.map((t) => t.label)).toEqual([
 			"Pago",
 			"Em separação",
-			"Separado",
+			"Pronto para enviar",
 			"Enviados",
 			"Entregues",
 			"Atrasados",
@@ -63,7 +63,7 @@ describe("ORDER_FLOW_TABS (spec 2026-07-11; overlay 'late' spec 2026-07-13)", ()
 			"Todos",
 			"Pagos",
 			"Em separação",
-			"Separado",
+			"Pronto para enviar",
 		]);
 	});
 
