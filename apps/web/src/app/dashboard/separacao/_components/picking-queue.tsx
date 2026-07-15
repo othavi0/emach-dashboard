@@ -8,7 +8,11 @@ import {
 } from "@emach/ui/components/tabs";
 import Link from "next/link";
 
+import { BulkActionBar } from "@/components/bulk/bulk-action-bar";
+import { SelectableItem } from "@/components/bulk/selectable-item";
+import { SelectionToolbar } from "@/components/bulk/selection-toolbar";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
+import { useBulkSelection } from "@/lib/use-bulk-selection";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 import { fetchPickingQueuePageAction } from "../actions";
 import type { PickingQueueRow } from "../data";
@@ -44,10 +48,25 @@ export function PickingQueue({
 			fetchPickingQueuePageAction({ cursor, tab: activeTab }),
 		resetKey: activeTab,
 	});
+	const sel = useBulkSelection({
+		items,
+		getId: (row) => row.orderId,
+		resetKey: activeTab,
+	});
+	// Exceções não imprimem (spec): sem modo seleção nessa tab.
+	const selectable = activeTab !== "excecoes";
+
+	const printSelected = (ids: string[]) => {
+		window.open(
+			`/dashboard/orders/picking-list?ids=${ids.join(",")}`,
+			"_blank",
+			"noopener"
+		);
+	};
 
 	return (
 		<div>
-			{/* Tabs split: esquerda (fila principal) · direita (exceções) */}
+			{/* Tabs split: esquerda (fila principal) · direita (seleção + exceções) */}
 			<div className="mb-4 flex flex-wrap items-center justify-between gap-2">
 				<Tabs value={activeTab}>
 					<TabsList scrollable>
@@ -69,18 +88,32 @@ export function PickingQueue({
 						</TabsTrigger>
 					</TabsList>
 				</Tabs>
-				<Tabs value={activeTab}>
-					<TabsList>
-						<TabsTrigger
-							nativeButton={false}
-							render={<Link href={`${BASE}?tab=excecoes`} />}
-							value="excecoes"
-						>
-							Exceções
-							<TabsCountBadge value={counts.excecoes} />
-						</TabsTrigger>
-					</TabsList>
-				</Tabs>
+				<div className="flex items-center gap-2">
+					{selectable && (
+						<SelectionToolbar
+							active={sel.active}
+							allLoadedSelected={sel.allLoadedSelected}
+							loadedCount={items.length}
+							onCancel={sel.exit}
+							onEnter={sel.enter}
+							onToggleAll={
+								sel.allLoadedSelected ? sel.clear : sel.selectAllLoaded
+							}
+						/>
+					)}
+					<Tabs value={activeTab}>
+						<TabsList>
+							<TabsTrigger
+								nativeButton={false}
+								render={<Link href={`${BASE}?tab=excecoes`} />}
+								value="excecoes"
+							>
+								Exceções
+								<TabsCountBadge value={counts.excecoes} />
+							</TabsTrigger>
+						</TabsList>
+					</Tabs>
+				</div>
 			</div>
 
 			{/* Grid de cards */}
@@ -94,7 +127,14 @@ export function PickingQueue({
 					className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
 				>
 					{items.map((row) => (
-						<PickingOrderCard key={row.orderId} row={row} tab={activeTab} />
+						<SelectableItem
+							active={selectable && sel.active}
+							key={row.orderId}
+							onToggle={() => sel.toggle(row.orderId)}
+							selected={sel.isSelected(row.orderId)}
+						>
+							<PickingOrderCard row={row} tab={activeTab} />
+						</SelectableItem>
 					))}
 				</div>
 			)}
@@ -105,6 +145,18 @@ export function PickingQueue({
 				onLoadMore={loadMore}
 				pending={pending}
 			/>
+
+			{selectable && sel.count > 0 && (
+				<BulkActionBar
+					actions={[
+						{
+							label: `Imprimir lista (${sel.count})`,
+							run: printSelected,
+						},
+					]}
+					selectedIds={sel.selectedIds}
+				/>
+			)}
 		</div>
 	);
 }

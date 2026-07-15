@@ -337,6 +337,7 @@ export async function updateOrderStatus(
 
 export interface BulkStartSeparationResult {
 	moved: number;
+	movedIds: string[];
 	skipped: { number: string; reason: string }[];
 }
 
@@ -375,6 +376,7 @@ export async function bulkStartSeparation(
 
 	const orderIds = Array.from(new Set(parsed.data.orderIds));
 	let moved = 0;
+	const movedIds: string[] = [];
 	const skipped: { number: string; reason: string }[] = [];
 
 	try {
@@ -425,6 +427,7 @@ export async function bulkStartSeparation(
 							reason: null,
 						});
 						moved += 1;
+						movedIds.push(orderId);
 					});
 				} catch (error) {
 					const skipReason = bulkSkipReasonFromError(error);
@@ -443,7 +446,7 @@ export async function bulkStartSeparation(
 			revalidateTag(ORDERS_COUNTS_TAG, "max");
 		}
 
-		return { ok: true, data: { moved, skipped } };
+		return { ok: true, data: { moved, movedIds, skipped } };
 	} catch (error) {
 		logger.error("bulkStartSeparation", { err: error });
 		if (isCapabilityError(error)) {

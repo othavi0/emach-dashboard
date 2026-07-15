@@ -115,7 +115,19 @@ export function OrdersView({
 				result.data.moved,
 				result.data.skipped
 			);
-			notify[kind](message);
+			if (result.data.movedIds.length > 0) {
+				const pdfUrl = `/dashboard/orders/picking-list?ids=${result.data.movedIds.join(",")}`;
+				// Abre o PDF do lote; se o popup blocker engolir, o botão do toast cobre.
+				window.open(pdfUrl, "_blank", "noopener");
+				notify[kind](message, {
+					action: {
+						label: "Imprimir lista",
+						onClick: () => window.open(pdfUrl, "_blank", "noopener"),
+					},
+				});
+			} else {
+				notify[kind](message);
+			}
 			sel.exit();
 		});
 	};

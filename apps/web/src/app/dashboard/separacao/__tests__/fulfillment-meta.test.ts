@@ -8,7 +8,7 @@ describe("fulfillmentBadgeLabel (spec 2026-07-11, mockup B)", () => {
 			fulfillmentBadgeLabel("picking_in_progress", "Othavio Quiliao")
 		).toBe("Separando · Othavio Quiliao");
 		expect(fulfillmentBadgeLabel("picked", "Othavio Quiliao")).toBe(
-			"Separado · Othavio Quiliao"
+			"Pronto para enviar · Othavio Quiliao"
 		);
 	});
 
@@ -25,6 +25,6 @@ describe("fulfillmentBadgeLabel (spec 2026-07-11, mockup B)", () => {
 	});
 
 	it("sem pickerName cai no label simples", () => {
-		expect(fulfillmentBadgeLabel("picked", null)).toBe("Separado");
+		expect(fulfillmentBadgeLabel("picked", null)).toBe("Pronto para enviar");
 	});
 });
