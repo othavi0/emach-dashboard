@@ -665,13 +665,22 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 	});
 
 	it("completePicking idem", async () => {
-		armTx([[OWNED_PICKING], [CANCELED_LOCK]]);
+		const getTx = armTx([[OWNED_PICKING], [CANCELED_LOCK]]);
 		const result = await completePicking(PICKING_ID);
 		expect(result).toMatchObject({ ok: false });
+		expect((result as { ok: false; error: string }).error).toContain(
+			"encerrada"
+		);
+		const updateChain = getTx()?.update.mock.results[0]?.value as
+			| { set: ReturnType<typeof vi.fn> }
+			| undefined;
+		expect(updateChain?.set).toHaveBeenCalledWith(
+			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
+		);
 	});
 
 	it("reportMissing idem", async () => {
-		armTx([
+		const getTx = armTx([
 			[{ id: PICKING_ITEM_ID, pickingId: PICKING_ID }],
 			[OWNED_PICKING],
 			[CANCELED_LOCK],
@@ -681,6 +690,15 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 			"não achei na prateleira"
 		);
 		expect(result).toMatchObject({ ok: false });
+		expect((result as { ok: false; error: string }).error).toContain(
+			"encerrada"
+		);
+		const updateChain = getTx()?.update.mock.results[0]?.value as
+			| { set: ReturnType<typeof vi.fn> }
+			| undefined;
+		expect(updateChain?.set).toHaveBeenCalledWith(
+			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
+		);
 	});
 
 	it("cancelPicking SEGUE permitido com pedido cancelado", async () => {
