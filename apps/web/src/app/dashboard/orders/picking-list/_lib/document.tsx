@@ -456,18 +456,24 @@ export function PickingListDocument({
 					</View>
 					<View style={styles.stat}>
 						<Text style={styles.statNum}>{stats.units}</Text>
-						<Text style={styles.statLabel}>Unidades</Text>
+						<Text style={styles.statLabel}>
+							{stats.units === 1 ? "Unidade" : "Unidades"}
+						</Text>
 					</View>
 					<View
 						style={withCollect ? styles.stat : [styles.stat, styles.statLast]}
 					>
 						<Text style={styles.statNum}>{stats.skus}</Text>
-						<Text style={styles.statLabel}>SKUs</Text>
+						<Text style={styles.statLabel}>
+							{stats.skus === 1 ? "SKU" : "SKUs"}
+						</Text>
 					</View>
 					{withCollect ? (
 						<View style={[styles.stat, styles.statLast]}>
 							<Text style={styles.statNum}>{stats.carriers}</Text>
-							<Text style={styles.statLabel}>Transportadoras</Text>
+							<Text style={styles.statLabel}>
+								{stats.carriers === 1 ? "Transportadora" : "Transportadoras"}
+							</Text>
 						</View>
 					) : null}
 				</View>
