@@ -104,7 +104,6 @@ export function ReviewsInfinite({
 						run: () => setBulkStatus(action.status),
 						variant: action.variant,
 					}))}
-					onClear={sel.clear}
 					selectedIds={sel.selectedIds}
 				/>
 			) : null}

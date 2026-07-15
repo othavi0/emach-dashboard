@@ -12,19 +12,15 @@ export interface BulkAction {
 
 interface BulkActionBarProps {
 	actions: BulkAction[];
-	onClear: () => void;
 	selectedIds: string[];
 }
 
 /**
  * Barra flutuante de ações em massa. Surge quando há ≥1 selecionado. As ações são
- * plugadas por listagem; cada uma recebe os IDs selecionados.
+ * plugadas por listagem; cada uma recebe os IDs selecionados. Desmarcar/sair do
+ * modo fica no SelectionToolbar — a barra não duplica esses controles.
  */
-export function BulkActionBar({
-	actions,
-	onClear,
-	selectedIds,
-}: BulkActionBarProps) {
+export function BulkActionBar({ actions, selectedIds }: BulkActionBarProps) {
 	const count = selectedIds.length;
 	return (
 		<div className="sticky bottom-4 z-40 mt-4 flex items-center gap-4 rounded-xl border border-primary/60 bg-card px-4 py-3 shadow-lg">
@@ -43,9 +39,6 @@ export function BulkActionBar({
 						{action.label}
 					</Button>
 				))}
-				<Button onClick={onClear} size="sm" variant="ghost">
-					Limpar
-				</Button>
 			</div>
 		</div>
 	);

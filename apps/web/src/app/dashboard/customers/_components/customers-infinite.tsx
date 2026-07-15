@@ -83,7 +83,6 @@ export function CustomersInfinite({
 							},
 						},
 					]}
-					onClear={sel.clear}
 					selectedIds={sel.selectedIds}
 				/>
 			)}

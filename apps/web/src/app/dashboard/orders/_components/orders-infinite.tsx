@@ -139,7 +139,6 @@ export function OrdersInfinite({
 								]
 							: []
 					}
-					onClear={sel.clear}
 					selectedIds={sel.selectedIds}
 				/>
 			)}
