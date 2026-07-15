@@ -201,13 +201,6 @@ export const CAPABILITIES = {
 		description: "Estornar pedido",
 		defaultRoles: SA,
 	},
-	"orders.export": {
-		group: "Vendas",
-		resource: "Pedidos",
-		action: "Exportar",
-		description: "Exportar pedidos",
-		defaultRoles: SA,
-	},
 	"orders.pick": {
 		group: "Vendas",
 		resource: "Pedidos",

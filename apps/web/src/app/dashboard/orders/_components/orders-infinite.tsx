@@ -127,8 +127,8 @@ export function OrdersInfinite({
 			/>
 			{sel.count > 0 && (
 				<BulkActionBar
-					actions={[
-						...(selectedPaidIds.length > 0
+					actions={
+						selectedPaidIds.length > 0
 							? [
 									{
 										label: bulkPending
@@ -137,14 +137,8 @@ export function OrdersInfinite({
 										run: runBulkSeparation,
 									},
 								]
-							: []),
-						{
-							label: "Exportar CSV",
-							run: (ids: string[]) => {
-								window.location.href = `/dashboard/orders/export?ids=${ids.join(",")}`;
-							},
-						},
-					]}
+							: []
+					}
 					onClear={sel.clear}
 					selectedIds={sel.selectedIds}
 				/>

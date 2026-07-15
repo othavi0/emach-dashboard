@@ -9,8 +9,7 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
-import { can, requireCapability } from "@/lib/permissions";
-import { ExportCsvLink } from "./_components/export-csv-link";
+import { requireCapability } from "@/lib/permissions";
 import { LateOrdersToast } from "./_components/late-orders-toast";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
 import { OrdersInfinite } from "./_components/orders-infinite";
@@ -63,8 +62,7 @@ export default function OrdersPage({ searchParams }: PageProps) {
 }
 
 async function OrdersPageContent({ searchParams }: PageProps) {
-	const session = await requireCapability("orders.read");
-	const canExport = await can(session, "orders.export");
+	await requireCapability("orders.read");
 	const raw = await searchParams;
 	const parsed = ordersListFiltersSchema.safeParse(raw);
 	const data = parsed.success ? parsed.data : ordersListFiltersSchema.parse({});
@@ -133,11 +131,6 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		<>
 			<LateOrdersToast count={counts.late ?? 0} />
 			<PageHeader
-				action={
-					<div className="flex items-center gap-2">
-						{canExport && <ExportCsvLink filters={filters} />}
-					</div>
-				}
 				description="Listagem operacional com busca por número e cliente, filtros por data e filial e atalhos para fulfillment."
 				title="Pedidos"
 			/>
