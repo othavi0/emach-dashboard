@@ -481,6 +481,7 @@ function usePickingState(
 // ─── componente principal ────────────────────────────────────────────────────
 
 interface PickingExecutionProps {
+	branchName: string | null;
 	canShip: boolean;
 	items: OrderPickingItem[];
 	orderNumber: string;
@@ -488,6 +489,7 @@ interface PickingExecutionProps {
 }
 
 export function PickingExecution({
+	branchName,
 	canShip,
 	items,
 	orderNumber,
@@ -566,7 +568,7 @@ export function PickingExecution({
 									<span aria-hidden className="size-1 rounded-full bg-border" />
 									<span className="flex items-center gap-1">
 										<MapPinIcon aria-hidden className="size-3 shrink-0" />
-										Filial
+										{branchName ?? "Filial"}
 									</span>
 								</>
 							)}
