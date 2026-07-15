@@ -65,6 +65,38 @@ function canManageOthersSession(user: SessionUser): boolean {
 	return user.role === "admin" || user.role === "super_admin";
 }
 
+const ORDER_LEFT_PREPARING_ERROR =
+	"O pedido foi cancelado ou alterado — a sessão de separação foi encerrada.";
+
+/**
+ * Guard P1 (spec 2026-07-15): o ecommerce pode cancelar/estornar o pedido
+ * durante uma sessão ativa. Se o status travado não é mais "preparing",
+ * encerra a sessão (auditada como Sistema) e retorna true — o caller então
+ * retorna erro amigável SEM throw (throw daria rollback no próprio
+ * encerramento). NÃO aplicar em cancelPicking: cancelar a sessão de um
+ * pedido cancelado é exatamente a ação de limpeza.
+ */
+async function autoCancelIfOrderLeftPreparing(
+	tx: Tx,
+	pickingId: string,
+	orderStatus: string
+): Promise<boolean> {
+	if (orderStatus === "preparing") {
+		return false;
+	}
+	await tx
+		.update(orderPicking)
+		.set({
+			status: "canceled",
+			canceledByUserId: null,
+			canceledByName: "Sistema",
+			canceledAt: new Date(),
+			cancelReason: `Pedido saiu de preparação (${orderStatus}) durante a separação`,
+		})
+		.where(eq(orderPicking.id, pickingId));
+	return true;
+}
+
 async function createPickingItems(
 	tx: Tx,
 	pickingId: string,
@@ -202,6 +234,9 @@ export async function scanItem(
 	code: string
 ): Promise<ActionResult<ScanResult>> {
 	try {
+		let orderId: string | undefined;
+		let orderLeft = false;
+
 		const scanResult = await db.transaction(async (tx: Tx) => {
 			// Load picking to get orderId
 			const [picking] = await tx
@@ -224,11 +259,18 @@ export async function scanItem(
 				throw new Error("Pedido não encontrado");
 			}
 
+			orderId = picking.orderId;
+
 			if (picking.status !== "in_progress") {
 				throw new Error("Sessão de separação não está em andamento");
 			}
 
 			assertOwner(picking, locked.session.user);
+
+			if (await autoCancelIfOrderLeftPreparing(tx, picking.id, locked.status)) {
+				orderLeft = true;
+				return;
+			}
 
 			// Load picking items
 			const pickingItems = await tx
@@ -312,6 +354,13 @@ export async function scanItem(
 			} satisfies ScanResult;
 		});
 
+		if (orderLeft || scanResult === undefined) {
+			if (orderId) {
+				revalidatePickingPaths(orderId);
+			}
+			return { ok: false, error: ORDER_LEFT_PREPARING_ERROR };
+		}
+
 		// scanItem é hot-path (N bipagens por sessão): não revalida aqui.
 		// Revalidação ocorre em completePicking / reportMissing / cancelPicking.
 		return { ok: true, data: scanResult };
@@ -339,6 +388,7 @@ export async function reportMissing(
 ): Promise<ActionResult> {
 	try {
 		let orderId: string | undefined;
+		let orderLeft = false;
 
 		await db.transaction(async (tx: Tx) => {
 			// Load picking item to get pickingId
@@ -378,6 +428,11 @@ export async function reportMissing(
 
 			orderId = picking.orderId;
 
+			if (await autoCancelIfOrderLeftPreparing(tx, picking.id, locked.status)) {
+				orderLeft = true;
+				return;
+			}
+
 			// Mark item as not found
 			await tx
 				.update(orderPickingItem)
@@ -396,6 +451,10 @@ export async function reportMissing(
 
 		if (orderId) {
 			revalidatePickingPaths(orderId);
+		}
+
+		if (orderLeft) {
+			return { ok: false, error: ORDER_LEFT_PREPARING_ERROR };
 		}
 
 		return { ok: true, data: undefined };
@@ -426,6 +485,7 @@ export async function completePicking(
 	try {
 		let orderId: string | undefined;
 		let finalStatus: "completed" | "exception" | undefined;
+		let orderLeft = false;
 
 		await db.transaction(async (tx: Tx) => {
 			// Load picking
@@ -456,6 +516,11 @@ export async function completePicking(
 			}
 
 			assertOwner(picking, locked.session.user);
+
+			if (await autoCancelIfOrderLeftPreparing(tx, picking.id, locked.status)) {
+				orderLeft = true;
+				return;
+			}
 
 			// Load items to check completion
 			const items = await tx
@@ -493,6 +558,10 @@ export async function completePicking(
 
 		if (orderId) {
 			revalidatePickingPaths(orderId);
+		}
+
+		if (orderLeft) {
+			return { ok: false, error: ORDER_LEFT_PREPARING_ERROR };
 		}
 
 		if (!finalStatus) {

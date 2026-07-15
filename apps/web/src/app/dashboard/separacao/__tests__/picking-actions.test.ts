@@ -618,3 +618,74 @@ describe("cancelPicking", () => {
 		expect(result).toMatchObject({ ok: false });
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Tests: guard — pedido saiu de preparing durante picking ativo
+// ---------------------------------------------------------------------------
+
+describe("guard: pedido saiu de preparing durante picking ativo", () => {
+	const OWNED_PICKING = {
+		id: PICKING_ID,
+		orderId: ORDER_ID,
+		status: "in_progress",
+		pickerUserId: "usr_1",
+		pickerName: "Picker",
+	};
+	const CANCELED_LOCK = { status: "canceled", branchId: BRANCH_ID };
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockRequireCapability.mockResolvedValue(mockSession);
+	});
+
+	function armTx(selectResults: unknown[][]) {
+		let tx: ReturnType<typeof makeMockTx> | undefined;
+		mockTransaction.mockImplementation(
+			async (cb: (t: ReturnType<typeof makeMockTx>) => unknown) => {
+				tx = makeMockTx(selectResults);
+				return await cb(tx);
+			}
+		);
+		return () => tx;
+	}
+
+	it("scanItem encerra a sessão e retorna erro amigável", async () => {
+		const getTx = armTx([[OWNED_PICKING], [CANCELED_LOCK]]);
+		const result = await scanItem(PICKING_ID, "7891234567890");
+		expect(result).toMatchObject({ ok: false });
+		expect((result as { ok: false; error: string }).error).toContain(
+			"encerrada"
+		);
+		const updateChain = getTx()?.update.mock.results[0]?.value as
+			| { set: ReturnType<typeof vi.fn> }
+			| undefined;
+		expect(updateChain?.set).toHaveBeenCalledWith(
+			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
+		);
+	});
+
+	it("completePicking idem", async () => {
+		armTx([[OWNED_PICKING], [CANCELED_LOCK]]);
+		const result = await completePicking(PICKING_ID);
+		expect(result).toMatchObject({ ok: false });
+	});
+
+	it("reportMissing idem", async () => {
+		armTx([
+			[{ id: PICKING_ITEM_ID, pickingId: PICKING_ID }],
+			[OWNED_PICKING],
+			[CANCELED_LOCK],
+		]);
+		const result = await reportMissing(
+			PICKING_ITEM_ID,
+			"não achei na prateleira"
+		);
+		expect(result).toMatchObject({ ok: false });
+	});
+
+	it("cancelPicking SEGUE permitido com pedido cancelado", async () => {
+		armTx([[OWNED_PICKING], [CANCELED_LOCK]]);
+		const result = await cancelPicking(PICKING_ID, "limpeza");
+		expect(result).toMatchObject({ ok: true });
+	});
+});
