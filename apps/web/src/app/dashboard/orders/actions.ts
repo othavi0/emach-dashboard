@@ -645,7 +645,7 @@ export async function assignBranch(
 //   5. revalidatePath(ORDERS_PATH) uma vez, após o loop.
 //
 // Fiação: uma entrada no array `actions` do BulkActionBar já existente em
-// orders-infinite.tsx, abrindo um BranchPickerDialog que coleta o branchId.
+// orders-view.tsx, abrindo um BranchPickerDialog que coleta o branchId.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function updateTrackingCode(

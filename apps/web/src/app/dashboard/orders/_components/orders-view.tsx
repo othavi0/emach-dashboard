@@ -1,11 +1,21 @@
 "use client";
 
+import { buttonVariants } from "@emach/ui/components/button";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from "@emach/ui/components/empty";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { type ReactNode, useState, useTransition } from "react";
 
 import { BulkActionBar } from "@/components/bulk/bulk-action-bar";
 import { SelectionToolbar } from "@/components/bulk/selection-toolbar";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
+import { PageHeader } from "@/components/page-header";
 import { notify } from "@/lib/notify";
 import { useBulkSelection } from "@/lib/use-bulk-selection";
 import { useInfiniteList } from "@/lib/use-infinite-list";
@@ -14,11 +24,16 @@ import { bulkStartSeparation, fetchOrdersPage } from "../actions";
 import type { OrderListItem, OrdersPageFiltersInput } from "../data";
 import { OrderCardGrid } from "./order-card-grid";
 
-interface OrdersInfiniteProps {
+interface OrdersViewProps {
 	filters: OrdersPageFiltersInput;
+	/** Painel de filtros (Server Component), renderizado entre o header e o grid. */
+	filtersSlot: ReactNode;
+	hasFilters: boolean;
 	highlightToolId?: string | null;
 	initial: OrderListItem[];
 	initialCursor: string | null;
+	/** Resumo do filtro de produto (Server Component), quando ativo. */
+	summarySlot: ReactNode;
 	tabKey: string;
 }
 
@@ -48,13 +63,21 @@ function buildBulkSeparationToast(
 	};
 }
 
-export function OrdersInfinite({
+/**
+ * Casca client da página de Pedidos: possui o estado de lista+seleção e por
+ * isso renderiza o PageHeader ele mesmo — o SelectionToolbar vive no slot de
+ * ação do header. Os pedaços server (filtros, resumo) entram via slots.
+ */
+export function OrdersView({
+	filters,
+	filtersSlot,
+	hasFilters,
+	highlightToolId,
 	initial,
 	initialCursor,
-	filters,
-	highlightToolId,
+	summarySlot,
 	tabKey,
-}: OrdersInfiniteProps) {
+}: OrdersViewProps) {
 	const router = useRouter();
 	// Bump força o useInfiniteList a re-sincronizar com o initial revalidado
 	// após uma mutação em massa (router.refresh não reseta client state).
@@ -98,50 +121,87 @@ export function OrdersInfinite({
 	};
 
 	return (
-		<div aria-live="polite">
-			<div className="mb-3 flex justify-end">
-				<SelectionToolbar
-					active={sel.active}
-					allLoadedSelected={sel.allLoadedSelected}
-					loadedCount={items.length}
-					onCancel={sel.exit}
-					onEnter={sel.enter}
-					onToggleAll={sel.allLoadedSelected ? sel.clear : sel.selectAllLoaded}
-				/>
-			</div>
-			<OrderCardGrid
-				highlightToolId={highlightToolId}
-				items={items}
-				selection={{
-					active: sel.active,
-					isSelected: sel.isSelected,
-					onToggle: sel.toggle,
-				}}
-				tabKey={tabKey}
+		<>
+			<PageHeader
+				action={
+					items.length > 0 ? (
+						<SelectionToolbar
+							active={sel.active}
+							allLoadedSelected={sel.allLoadedSelected}
+							loadedCount={items.length}
+							onCancel={sel.exit}
+							onEnter={sel.enter}
+							onToggleAll={
+								sel.allLoadedSelected ? sel.clear : sel.selectAllLoaded
+							}
+						/>
+					) : undefined
+				}
+				description="Listagem operacional com busca por número e cliente, filtros por data e filial e atalhos para fulfillment."
+				title="Pedidos"
 			/>
-			<InfiniteSentinel
-				error={error}
-				hasMore={hasMore}
-				onLoadMore={loadMore}
-				pending={pending}
-			/>
-			{sel.count > 0 && (
-				<BulkActionBar
-					actions={
-						selectedPaidIds.length > 0
-							? [
-									{
-										label: bulkPending
-											? "Enviando…"
-											: `Enviar para separação (${selectedPaidIds.length})`,
-										run: runBulkSeparation,
-									},
-								]
-							: []
-					}
-					selectedIds={sel.selectedIds}
-				/>
+
+			{filtersSlot}
+			{summarySlot}
+
+			{items.length === 0 ? (
+				<Empty>
+					<EmptyHeader>
+						<EmptyTitle>Nenhum pedido encontrado</EmptyTitle>
+						<EmptyDescription>
+							{hasFilters
+								? "Ajuste os filtros para ampliar a busca."
+								: "Nenhum pedido nesta etapa. Use a aba “Todos” para ver o histórico completo."}
+						</EmptyDescription>
+					</EmptyHeader>
+					<EmptyContent>
+						{hasFilters && (
+							<Link
+								className={buttonVariants({ variant: "ghost" })}
+								href="/dashboard/orders"
+							>
+								Limpar filtros
+							</Link>
+						)}
+					</EmptyContent>
+				</Empty>
+			) : (
+				<div aria-live="polite">
+					<OrderCardGrid
+						highlightToolId={highlightToolId}
+						items={items}
+						selection={{
+							active: sel.active,
+							isSelected: sel.isSelected,
+							onToggle: sel.toggle,
+						}}
+						tabKey={tabKey}
+					/>
+					<InfiniteSentinel
+						error={error}
+						hasMore={hasMore}
+						onLoadMore={loadMore}
+						pending={pending}
+					/>
+					{sel.count > 0 && (
+						<BulkActionBar
+							actions={
+								selectedPaidIds.length > 0
+									? [
+											{
+												label: bulkPending
+													? "Enviando…"
+													: `Enviar para separação (${selectedPaidIds.length})`,
+												run: runBulkSeparation,
+											},
+										]
+									: []
+							}
+							selectedIds={sel.selectedIds}
+						/>
+					)}
+				</div>
 			)}
-		</div>
+		</>
 	);
 }
