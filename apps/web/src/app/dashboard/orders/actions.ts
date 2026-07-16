@@ -45,7 +45,9 @@ import {
 	type AssignBranchInput,
 	addOrderNoteSchema,
 	assignBranchSchema,
+	type BulkAssignBranchInput,
 	type BulkStartSeparationInput,
+	bulkAssignBranchSchema,
 	bulkStartSeparationSchema,
 	capForStatus,
 	type MarkShippingReviewedInput,
@@ -625,31 +627,106 @@ export async function assignBranch(
 	}
 }
 
-// ── DESIGN: bulkAssignBranch (não implementado — issue #308 ficou só em Reviews) ──
-//
-// Assinatura proposta:
-//
-//   export async function bulkAssignBranch(
-//     input: { branchId: string; orderIds: string[] }
-//   ): Promise<ActionResult<{ failed: Array<{ id: string; error: string }>; succeeded: number }>>
-//
-// Contrato de autorização — o INVERSO do de reviews. Reviews são globais: um
-// requireCapability antes de um único UPDATE ... IN (...) basta. Pedidos são
-// branch-scoped, então:
-//
-//   1. requireCapabilityWithContext("orders.update_status", { targetBranchIds: [branchId] })
-//      uma vez antes do loop — o ator precisa de acesso à filial de DESTINO.
-//   2. Por item: db.transaction((tx) => lockOrderAndAuthorize(tx, "orders.update_status", orderId)).
-//      O branchId ATUAL do pedido pode mudar entre a checagem global e a mutação
-//      (race de reatribuição), e pedido na triagem (branchId = null) só admin/super_admin
-//      move. NÃO autorizar o lote inteiro de uma vez.
-//   3. Loop for...of com transações independentes: falha de um item não aborta o lote.
-//   4. BULK_ASSIGN_LIMIT = 20 (1 página; a triagem é o caso de uso).
-//   5. revalidatePath(ORDERS_PATH) uma vez, após o loop.
-//
-// Fiação: uma entrada no array `actions` do BulkActionBar já existente em
-// orders-view.tsx, abrindo um BranchPickerDialog que coleta o branchId.
-// ─────────────────────────────────────────────────────────────────────────────
+export interface BulkAssignBranchResult {
+	assigned: number;
+	skipped: { number: string; reason: string }[];
+}
+
+const BULK_ASSIGN_GENERIC_ERROR = "Erro ao atribuir filial aos pedidos.";
+
+/**
+ * Atribuição de filial em lote — o caso de uso é a triagem (pedidos vindos do
+ * ecommerce com branch_id null). Contrato branch-scoped, o inverso de reviews
+ * (que são globais): a capability da filial de DESTINO é checada UMA vez; cada
+ * pedido roda em transação própria com lock + autorização da filial de ORIGEM
+ * (fecha o race de reatribuição e barra quem não enxerga a triagem). Um pedido
+ * inelegível vira skip reportado — não derruba o lote. Espelha bulkStartSeparation.
+ */
+export async function bulkAssignBranch(
+	input: BulkAssignBranchInput
+): Promise<ActionResult<BulkAssignBranchResult>> {
+	const parsed = bulkAssignBranchSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+
+	const { branchId } = parsed.data;
+	const orderIds = Array.from(new Set(parsed.data.orderIds));
+	let assigned = 0;
+	const skipped: { number: string; reason: string }[] = [];
+
+	try {
+		// Filial de DESTINO, uma vez: o ator precisa de escopo lá para rotear.
+		// Falhar aqui aborta o lote inteiro (não é skip — é falta de permissão).
+		await requireCapabilityWithContext("orders.update_status", {
+			targetBranchIds: [branchId],
+		});
+
+		// Nome da filial de destino lido uma vez (igual para todo o lote) — o
+		// metadata do orderEvent replica o do assignBranch singular.
+		const [destBranch] = await db
+			.select({ name: branch.name })
+			.from(branch)
+			.where(eq(branch.id, branchId))
+			.limit(1);
+		if (!destBranch) {
+			return { ok: false, error: "Filial não encontrada" };
+		}
+
+		try {
+			for (const orderId of orderIds) {
+				const fallbackLabel = orderId.slice(0, 8);
+				try {
+					await db.transaction(async (tx) => {
+						const locked = await lockOrderAndAuthorize(
+							tx,
+							"orders.update_status",
+							orderId
+						);
+						if (!locked) {
+							skipped.push({ number: fallbackLabel, reason: "não encontrado" });
+							return;
+						}
+						await tx
+							.update(order)
+							.set({ branchId })
+							.where(eq(order.id, orderId));
+						await insertOrderEvent(tx, {
+							orderId,
+							eventType: "branch_assigned",
+							metadata: { branchId, branchName: destBranch.name },
+							actorUserId: locked.session.user.id,
+						});
+						assigned += 1;
+					});
+				} catch (error) {
+					const skipReason = bulkSkipReasonFromError(error);
+					if (skipReason) {
+						skipped.push({ number: fallbackLabel, reason: skipReason });
+					} else {
+						throw error;
+					}
+				}
+			}
+		} finally {
+			// Escritas parciais já commitadas antes de um abort no meio do lote
+			// precisam refletir no cache, mesmo com retorno {ok:false}.
+			revalidatePath(ORDERS_PATH);
+			revalidateTag(ORDERS_COUNTS_TAG, "max");
+		}
+
+		return { ok: true, data: { assigned, skipped } };
+	} catch (error) {
+		logger.error("bulkAssignBranch", { err: error });
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para atribuir esta filial." };
+		}
+		return { ok: false, error: BULK_ASSIGN_GENERIC_ERROR };
+	}
+}
 
 export async function updateTrackingCode(
 	input: UpdateTrackingCodeInput

@@ -7,6 +7,7 @@ import type { OrderTabDef } from "../status-meta";
 // client component (ADR-0015). Consumers importam a constante direto de lá.
 import {
 	ALL_ORDERS_TAB,
+	BRANCH_NONE,
 	CARRIER_NONE,
 	canonicalOrderTabKey,
 	ORDER_TABS,
@@ -143,7 +144,9 @@ export function buildOrdersListConditions({
 			sql`(o.number ILIKE ${`%${query}%`} OR c.name ILIKE ${`%${query}%`})`
 		);
 	}
-	if (filters.branchId) {
+	if (filters.branchId === BRANCH_NONE) {
+		conditions.push(sql`o.branch_id IS NULL`);
+	} else if (filters.branchId) {
 		conditions.push(sql`o.branch_id = ${filters.branchId}`);
 	}
 	if (filters.carrier === CARRIER_NONE) {
@@ -182,6 +185,11 @@ export interface OrderTabCounts {
 	preparing: number;
 	returned: number;
 	shipped: number;
+	// Pedidos na triagem (branch_id IS NULL) — overlay ao bucket de etapa (o
+	// pedido é `paid`, então também soma em `paid`). Alimenta a opção "Na
+	// triagem" do filtro de Filial. Naturalmente 0 para quem não enxerga a
+	// triagem (`user` sem includeUnassigned): a query já é branch-scoped.
+	unassigned: number;
 	[key: string]: number;
 }
 
@@ -201,6 +209,7 @@ export function emptyTabCounts(): OrderTabCounts {
 		delivered: 0,
 		returned: 0,
 		canceled: 0,
+		unassigned: 0,
 	};
 }
 
@@ -217,12 +226,20 @@ export function foldTabCounts(
 		count: number;
 		is_late: boolean;
 		is_picked: boolean;
+		// Opcional: a função pura tolera linhas sem a flag (a única fonte real é a
+		// query de counts em data.ts, que sempre a fornece). Ausente = não conta.
+		is_unassigned?: boolean;
 		status: OrderStatus;
 	}[]
 ): OrderTabCounts {
 	const counts = emptyTabCounts();
 	for (const row of rows) {
 		counts.all_count += row.count;
+		// Overlay ortogonal: soma antes de qualquer `continue` de etapa, pois um
+		// pedido na triagem também conta no bucket da própria etapa (`paid`).
+		if (row.is_unassigned) {
+			counts.unassigned += row.count;
+		}
 		if (row.is_late && (row.status === "paid" || row.status === "preparing")) {
 			counts.late += row.count;
 			if (row.status === "paid") {

@@ -1,6 +1,7 @@
 import type { OrderStatus } from "@emach/db/schema/orders";
 import { orderStatusEnum } from "@emach/db/schema/orders";
 import { z } from "zod";
+import { BULK_ASSIGN_LIMIT } from "./status-meta";
 
 const isoDate = z
 	.string()
@@ -130,6 +131,20 @@ export const bulkStartSeparationSchema = z.object({
 export type BulkStartSeparationInput = z.infer<
 	typeof bulkStartSeparationSchema
 >;
+
+// Atribuição de filial em lote (triagem). BULK_ASSIGN_LIMIT vive em status-meta
+// (client-safe) — compartilhado com o BranchPickerDialog.
+export const bulkAssignBranchSchema = z.object({
+	branchId: z.string().uuid(),
+	orderIds: z
+		.array(z.string().uuid())
+		.min(1)
+		.max(BULK_ASSIGN_LIMIT, {
+			message: `Selecione no máximo ${BULK_ASSIGN_LIMIT} pedidos por vez.`,
+		}),
+});
+
+export type BulkAssignBranchInput = z.infer<typeof bulkAssignBranchSchema>;
 
 export const addOrderNoteSchema = z.object({
 	orderId: z.string().uuid(),

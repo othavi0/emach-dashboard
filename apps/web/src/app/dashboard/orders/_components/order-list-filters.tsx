@@ -29,6 +29,7 @@ import type {
 } from "../data";
 import {
 	ALL_ORDERS_TAB,
+	BRANCH_NONE,
 	CARRIER_NONE,
 	canonicalOrderTabKey,
 	DEFAULT_ORDER_TAB,
@@ -275,12 +276,17 @@ export function OrderFiltersPanel({
 					>
 						<SelectTrigger id="orders-branch">
 							<SelectValue>
-								{(v: string) =>
-									v === BRANCH_ALL
-										? "Todas as filiais"
-										: (branches.find((b) => b.id === v)?.name ??
-											"Todas as filiais")
-								}
+								{(v: string) => {
+									if (v === BRANCH_ALL) {
+										return "Todas as filiais";
+									}
+									if (v === BRANCH_NONE) {
+										return "Na triagem";
+									}
+									return (
+										branches.find((b) => b.id === v)?.name ?? "Todas as filiais"
+									);
+								}}
 							</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
@@ -291,6 +297,11 @@ export function OrderFiltersPanel({
 										{branch.name}
 									</SelectItem>
 								))}
+								{(counts.unassigned ?? 0) > 0 && (
+									<SelectItem value={BRANCH_NONE}>
+										Na triagem ({counts.unassigned})
+									</SelectItem>
+								)}
 							</SelectGroup>
 						</SelectContent>
 					</Select>

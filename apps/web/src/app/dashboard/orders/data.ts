@@ -534,6 +534,7 @@ const computeOrdersTabCounts = unstable_cache(
 			count: number;
 			is_late: boolean;
 			is_picked: boolean;
+			is_unassigned: boolean;
 			status: OrderStatus;
 		}>(sql`
 			SELECT status,
@@ -548,10 +549,11 @@ const computeOrdersTabCounts = unstable_cache(
 					WHERE op.order_id = "order".id
 					ORDER BY op.started_at DESC, op.id DESC LIMIT 1
 				) = 'completed', false) AS is_picked,
+				(branch_id IS NULL) AS is_unassigned,
 				COUNT(*)::int AS count
 			FROM "order"
 			${branchFilter ? sql`WHERE ${branchFilter}` : sql``}
-			GROUP BY 1, 2, 3
+			GROUP BY 1, 2, 3, 4
 		`);
 
 		return foldTabCounts(result.rows);

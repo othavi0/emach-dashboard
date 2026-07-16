@@ -12,7 +12,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState, useTransition } from "react";
 
-import { BulkActionBar } from "@/components/bulk/bulk-action-bar";
+import {
+	type BulkAction,
+	BulkActionBar,
+} from "@/components/bulk/bulk-action-bar";
 import { SelectionToolbar } from "@/components/bulk/selection-toolbar";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { PageHeader } from "@/components/page-header";
@@ -20,11 +23,27 @@ import { notify } from "@/lib/notify";
 import { useBulkSelection } from "@/lib/use-bulk-selection";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 
-import { bulkStartSeparation, fetchOrdersPage } from "../actions";
-import type { OrderListItem, OrdersPageFiltersInput } from "../data";
+import {
+	bulkAssignBranch,
+	bulkStartSeparation,
+	fetchOrdersPage,
+} from "../actions";
+import type {
+	BranchOption,
+	OrderListItem,
+	OrdersPageFiltersInput,
+} from "../data";
+import { BranchPickerDialog } from "./branch-picker-dialog";
 import { OrderCardGrid } from "./order-card-grid";
 
 interface OrdersViewProps {
+	/** Filiais para o picker de atribuição em lote (só usado se canAssignBranch). */
+	branches: BranchOption[];
+	/**
+	 * Ator enxerga a triagem (super_admin ou admin com includeUnassigned) — gate
+	 * da ação "Atribuir filial" no BulkActionBar. `user` nunca vê.
+	 */
+	canAssignBranch: boolean;
 	filters: OrdersPageFiltersInput;
 	/** Painel de filtros (Server Component), renderizado entre o header e o grid. */
 	filtersSlot: ReactNode;
@@ -63,12 +82,33 @@ function buildBulkSeparationToast(
 	};
 }
 
+// Irmão de buildBulkSeparationToast para a atribuição de filial em lote — mesma
+// forma {kind, message}, consumida direto por notify[kind](message).
+function buildBulkAssignToast(
+	assigned: number,
+	skipped: { number: string; reason: string }[]
+): { kind: "success" | "warning"; message: string } {
+	if (skipped.length === 0) {
+		return {
+			kind: "success",
+			message: `${assigned} pedido${pluralSuffix(assigned)} atribuído${pluralSuffix(assigned)} à filial`,
+		};
+	}
+	const detail = skipped.map((s) => `${s.number} (${s.reason})`).join(", ");
+	return {
+		kind: "warning",
+		message: `${assigned} atribuído${pluralSuffix(assigned)} · ${skipped.length} pulado${pluralSuffix(skipped.length)}: ${detail}`,
+	};
+}
+
 /**
  * Casca client da página de Pedidos: possui o estado de lista+seleção e por
  * isso renderiza o PageHeader ele mesmo — o SelectionToolbar vive no slot de
  * ação do header. Os pedaços server (filtros, resumo) entram via slots.
  */
 export function OrdersView({
+	branches,
+	canAssignBranch,
 	filters,
 	filtersSlot,
 	hasFilters,
@@ -84,6 +124,8 @@ export function OrdersView({
 	const [refreshTick, setRefreshTick] = useState(0);
 	const resetKey = `${JSON.stringify(filters)}:${refreshTick}`;
 	const [bulkPending, startBulk] = useTransition();
+	const [assignPending, startAssign] = useTransition();
+	const [assignOpen, setAssignOpen] = useState(false);
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
@@ -132,6 +174,30 @@ export function OrdersView({
 		});
 	};
 
+	const runBulkAssign = (branchId: string) => {
+		startAssign(async () => {
+			const result = await bulkAssignBranch({
+				branchId,
+				orderIds: sel.selectedIds,
+			});
+			// Refresh SEMPRE: cada pedido é uma transação própria, um lote {ok:false}
+			// pode ter atribuído parte antes de abortar.
+			setRefreshTick((t) => t + 1);
+			router.refresh();
+			if (!result.ok) {
+				notify.error(result.error);
+				return;
+			}
+			const { kind, message } = buildBulkAssignToast(
+				result.data.assigned,
+				result.data.skipped
+			);
+			notify[kind](message);
+			setAssignOpen(false);
+			sel.exit();
+		});
+	};
+
 	// Tab "Pronto para enviar" (picked): abre o documento de dados de envio do
 	// lote selecionado. A rota re-valida o escopo/etapa server-side (ids fora de
 	// preparing+completed são descartados em silêncio), então basta os ids.
@@ -141,13 +207,23 @@ export function OrdersView({
 		sel.exit();
 	};
 
-	const bulkActions: { label: string; run: () => void }[] = [];
+	// Ações do BulkActionBar: separação (pagos selecionados) + atribuir filial
+	// (triagem) + dados de envio (tab "Pronto para enviar"). Array vazio esconde
+	// a barra.
+	const bulkActions: BulkAction[] = [];
 	if (selectedPaidIds.length > 0) {
 		bulkActions.push({
 			label: bulkPending
 				? "Enviando…"
 				: `Enviar para separação (${selectedPaidIds.length})`,
 			run: runBulkSeparation,
+		});
+	}
+	if (canAssignBranch) {
+		bulkActions.push({
+			label: assignPending ? "Atribuindo…" : `Atribuir filial (${sel.count})`,
+			run: () => setAssignOpen(true),
+			variant: "outline",
 		});
 	}
 	if (tabKey === "picked" && sel.selectedIds.length > 0) {
@@ -220,13 +296,24 @@ export function OrdersView({
 						onLoadMore={loadMore}
 						pending={pending}
 					/>
-					{sel.count > 0 && (
+					{sel.count > 0 && bulkActions.length > 0 && (
 						<BulkActionBar
 							actions={bulkActions}
 							selectedIds={sel.selectedIds}
 						/>
 					)}
 				</div>
+			)}
+
+			{canAssignBranch && (
+				<BranchPickerDialog
+					branches={branches}
+					onConfirm={runBulkAssign}
+					onOpenChange={setAssignOpen}
+					open={assignOpen}
+					orderCount={sel.count}
+					pending={assignPending}
+				/>
 			)}
 		</>
 	);

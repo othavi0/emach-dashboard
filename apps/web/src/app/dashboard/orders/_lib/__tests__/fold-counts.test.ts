@@ -58,3 +58,34 @@ describe("foldTabCounts com bucket picked", () => {
 		expect(counts.picked).toBe(0);
 	});
 });
+
+describe("foldTabCounts — bucket de triagem (is_unassigned)", () => {
+	it("pedido na triagem conta em unassigned E no bucket da própria etapa (paid)", () => {
+		const counts = foldTabCounts([
+			{
+				status: "paid",
+				is_late: false,
+				is_picked: false,
+				is_unassigned: true,
+				count: 4,
+			},
+			{
+				status: "paid",
+				is_late: false,
+				is_picked: false,
+				is_unassigned: false,
+				count: 6,
+			},
+		]);
+		// Overlay ortogonal: os 4 na triagem também estão em "Pago".
+		expect(counts.unassigned).toBe(4);
+		expect(counts.paid).toBe(10);
+	});
+
+	it("sem a flag (linha legada) não conta em unassigned", () => {
+		const counts = foldTabCounts([
+			{ status: "paid", is_late: false, is_picked: false, count: 3 },
+		]);
+		expect(counts.unassigned).toBe(0);
+	});
+});
