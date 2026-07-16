@@ -10,8 +10,37 @@ describe("resolveVariantDeletion", () => {
 			isDefault: false,
 			hasOrders: true,
 			siblings: [sib("a", 0), sib("b", 1)],
+			stockQty: 0,
 		});
 		expect(r.allowed).toBe(false);
+	});
+
+	it("bloqueia quando a variante tem estoque", () => {
+		const r = resolveVariantDeletion({
+			variantId: "a",
+			isDefault: false,
+			hasOrders: false,
+			siblings: [sib("a", 0), sib("b", 1)],
+			stockQty: 12,
+		});
+		expect(r.allowed).toBe(false);
+		if (!r.allowed) {
+			expect(r.error).toContain("12 un em estoque");
+		}
+	});
+
+	it("pedidos têm precedência sobre estoque na mensagem", () => {
+		const r = resolveVariantDeletion({
+			variantId: "a",
+			isDefault: false,
+			hasOrders: true,
+			siblings: [sib("a", 0), sib("b", 1)],
+			stockQty: 5,
+		});
+		expect(r.allowed).toBe(false);
+		if (!r.allowed) {
+			expect(r.error).toContain("pedidos");
+		}
 	});
 
 	it("bloqueia quando é a única variante", () => {
@@ -20,6 +49,7 @@ describe("resolveVariantDeletion", () => {
 			isDefault: true,
 			hasOrders: false,
 			siblings: [sib("a", 0)],
+			stockQty: 0,
 		});
 		expect(r.allowed).toBe(false);
 	});
@@ -30,6 +60,7 @@ describe("resolveVariantDeletion", () => {
 			isDefault: false,
 			hasOrders: false,
 			siblings: [sib("a", 0), sib("b", 1)],
+			stockQty: 0,
 		});
 		expect(r).toEqual({ allowed: true, reassignDefaultTo: null });
 	});
@@ -40,6 +71,7 @@ describe("resolveVariantDeletion", () => {
 			isDefault: true,
 			hasOrders: false,
 			siblings: [sib("c", 2), sib("a", 0), sib("b", 1)],
+			stockQty: 0,
 		});
 		expect(r).toEqual({ allowed: true, reassignDefaultTo: "b" });
 	});

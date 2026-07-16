@@ -83,6 +83,7 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 					canMutate={canMutate}
 					highlightVariantId={variant}
 					orderedVariantIds={detail.orderedVariantIds}
+					stockedVariantIds={detail.stockedVariantIds}
 					toolId={detail.tool.id}
 					toolName={detail.tool.name}
 					variants={detail.variants}

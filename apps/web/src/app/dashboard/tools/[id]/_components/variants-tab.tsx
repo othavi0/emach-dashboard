@@ -44,6 +44,7 @@ interface VariantsTabProps {
 	canMutate: boolean;
 	highlightVariantId?: string;
 	orderedVariantIds: string[];
+	stockedVariantIds: string[];
 	toolId: string;
 	toolName: string;
 	variants: ToolDetailVariant[];
@@ -82,6 +83,7 @@ export function VariantsTab({
 	canDelete,
 	highlightVariantId,
 	orderedVariantIds,
+	stockedVariantIds,
 }: VariantsTabProps) {
 	if (variants.length === 0) {
 		return (
@@ -101,6 +103,7 @@ export function VariantsTab({
 	}
 
 	const orderedSet = new Set(orderedVariantIds);
+	const stockedSet = new Set(stockedVariantIds);
 	const toolHasOrders = orderedVariantIds.length > 0;
 
 	return (
@@ -123,6 +126,7 @@ export function VariantsTab({
 							<EditableRow
 								canDelete={canDelete}
 								hasOrders={orderedSet.has(v.id)}
+								hasStock={stockedSet.has(v.id)}
 								isHighlighted={v.id === highlightVariantId}
 								isOnlyVariant={variants.length === 1}
 								key={v.id}
@@ -166,6 +170,7 @@ export function VariantsTab({
 interface EditableRowProps {
 	canDelete: boolean;
 	hasOrders: boolean;
+	hasStock: boolean;
 	isHighlighted?: boolean;
 	isOnlyVariant: boolean;
 	toolId: string;
@@ -177,6 +182,7 @@ function EditableRow({
 	toolId,
 	canDelete,
 	hasOrders,
+	hasStock,
 	isHighlighted,
 	isOnlyVariant,
 }: EditableRowProps) {
@@ -276,10 +282,14 @@ function EditableRow({
 
 	let deleteControl: React.ReactNode = null;
 	if (canDelete) {
-		// Mesma ordem do helper resolveVariantDeletion (hasOrders antes de única).
+		// Mesma ordem do helper resolveVariantDeletion (pedidos > estoque > única).
 		if (hasOrders) {
 			deleteControl = (
 				<DisabledDeleteIcon reason="Tem pedidos — não pode excluir. Oculte do site." />
+			);
+		} else if (hasStock) {
+			deleteControl = (
+				<DisabledDeleteIcon reason="Tem estoque em filial — zere o estoque antes de excluir." />
 			);
 		} else if (isOnlyVariant) {
 			deleteControl = (
