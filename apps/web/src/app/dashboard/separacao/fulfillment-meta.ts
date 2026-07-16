@@ -25,7 +25,11 @@ export const FULFILLMENT_STATE_META: Record<
 		iconKey: "ban",
 		badgeVariant: "warning",
 	},
-	picked: { label: "Separado", iconKey: "check", badgeVariant: "success" },
+	picked: {
+		label: "Pronto para enviar",
+		iconKey: "check",
+		badgeVariant: "success",
+	},
 };
 
 /**

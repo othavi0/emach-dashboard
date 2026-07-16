@@ -157,7 +157,19 @@ export function OrdersView({
 				result.data.moved,
 				result.data.skipped
 			);
-			notify[kind](message);
+			if (result.data.movedIds.length > 0) {
+				const pdfUrl = `/dashboard/orders/picking-list?ids=${result.data.movedIds.join(",")}`;
+				// Abre o PDF do lote; se o popup blocker engolir, o botão do toast cobre.
+				window.open(pdfUrl, "_blank", "noopener");
+				notify[kind](message, {
+					action: {
+						label: "Imprimir lista",
+						onClick: () => window.open(pdfUrl, "_blank", "noopener"),
+					},
+				});
+			} else {
+				notify[kind](message);
+			}
 			sel.exit();
 		});
 	};
@@ -186,8 +198,18 @@ export function OrdersView({
 		});
 	};
 
-	// Ações do BulkActionBar: separação (só se há pagos selecionados) + atribuir
-	// filial (só para quem enxerga a triagem). O array vazio esconde a barra.
+	// Tab "Pronto para enviar" (picked): abre o documento de dados de envio do
+	// lote selecionado. A rota re-valida o escopo/etapa server-side (ids fora de
+	// preparing+completed são descartados em silêncio), então basta os ids.
+	const openShippingDoc = () => {
+		const url = `/dashboard/orders/shipping-doc?ids=${sel.selectedIds.join(",")}`;
+		window.open(url, "_blank", "noopener");
+		sel.exit();
+	};
+
+	// Ações do BulkActionBar: separação (pagos selecionados) + atribuir filial
+	// (triagem) + dados de envio (tab "Pronto para enviar"). Array vazio esconde
+	// a barra.
 	const bulkActions: BulkAction[] = [];
 	if (selectedPaidIds.length > 0) {
 		bulkActions.push({
@@ -202,6 +224,12 @@ export function OrdersView({
 			label: assignPending ? "Atribuindo…" : `Atribuir filial (${sel.count})`,
 			run: () => setAssignOpen(true),
 			variant: "outline",
+		});
+	}
+	if (tabKey === "picked" && sel.selectedIds.length > 0) {
+		bulkActions.push({
+			label: `Dados de envio (${sel.selectedIds.length})`,
+			run: openShippingDoc,
 		});
 	}
 

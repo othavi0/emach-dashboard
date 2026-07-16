@@ -59,6 +59,9 @@ const nextConfig: NextConfig = {
 	// typedRoutes desabilitado — habilitar requer auditoria de todos os hrefs do codebase.
 	typedRoutes: false,
 	reactCompiler: true,
+	outputFileTracingIncludes: {
+		"/dashboard/orders/picking-list": ["./public/fonts/pdf/**/*"],
+	},
 	experimental: {
 		// Router Cache client-side: o default do Next 16 é `dynamic: 0`, e como
 		// toda rota /dashboard/* é dinâmica (validação de sessão chama `headers()`),

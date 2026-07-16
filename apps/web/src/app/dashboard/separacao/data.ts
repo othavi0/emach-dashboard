@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@emach/db";
+import { branch } from "@emach/db/schema/inventory";
 import {
 	type OrderPicking,
 	type OrderPickingItem,
@@ -49,16 +50,19 @@ export interface PickingQueueRow {
  */
 export async function getOrderBranchId(orderId: string): Promise<{
 	branchId: string | null;
+	branchName: string | null;
 	number: string;
 	status: OrderStatus;
 } | null> {
 	const [row] = await db
 		.select({
 			branchId: order.branchId,
+			branchName: branch.name,
 			number: order.number,
 			status: order.status,
 		})
 		.from(order)
+		.leftJoin(branch, eq(branch.id, order.branchId))
 		.where(eq(order.id, orderId))
 		.limit(1);
 	return row ?? null;

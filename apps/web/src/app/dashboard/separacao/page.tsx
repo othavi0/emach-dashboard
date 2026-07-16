@@ -1,3 +1,5 @@
+import { buttonVariants } from "@emach/ui/components/button";
+import { PrinterIcon } from "lucide-react";
 import type { Metadata } from "next";
 
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -52,6 +54,17 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 			<PageHeader
 				action={
 					<div className="flex items-center gap-6">
+						{activeTab !== "excecoes" && (
+							<a
+								className={buttonVariants({ size: "sm", variant: "outline" })}
+								href={`/dashboard/orders/picking-list?tab=${activeTab}`}
+								rel="noopener"
+								target="_blank"
+							>
+								<PrinterIcon aria-hidden className="size-4" />
+								Imprimir lista
+							</a>
+						)}
 						<div className="text-right">
 							<div className="font-semibold text-2xl tabular-nums">
 								{counts.a_separar}

@@ -88,6 +88,7 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 		const canShip = await can(session, "orders.update_status");
 		return (
 			<PickingExecution
+				branchName={orderRow.branchName}
 				canShip={canShip}
 				items={result.items}
 				orderNumber={orderRow.number}

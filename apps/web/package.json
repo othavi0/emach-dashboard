@@ -20,6 +20,7 @@
     "@emach/email": "workspace:*",
     "@emach/env": "workspace:*",
     "@emach/ui": "workspace:*",
+    "@react-pdf/renderer": "^4.5.1",
     "@supabase/supabase-js": "^2.105.1",
     "better-auth": "catalog:",
     "browser-image-compression": "^2",

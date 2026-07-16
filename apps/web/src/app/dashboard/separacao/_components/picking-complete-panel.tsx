@@ -49,7 +49,7 @@ export function PickingCompletePanel({
 				Separação concluída
 			</p>
 			<p className="mt-1 text-[13px] text-muted-foreground">
-				{`${pickedUnits} de ${totalUnits} unidades conferidas. O pedido está "Separado — pronto pra envio".`}
+				{`${pickedUnits} de ${totalUnits} unidades conferidas. O pedido está "Pronto para enviar".`}
 			</p>
 
 			{canShip && (
