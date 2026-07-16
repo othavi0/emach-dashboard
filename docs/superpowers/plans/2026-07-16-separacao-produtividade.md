@@ -599,6 +599,8 @@ git commit -m "refactor: extrai barra de tabs da separação"
 
 **Decisão de design registrada:** NÃO reusar `KpiCard` de `dashboard/_components/kpi-card.tsx` — ele renderiza o valor via `NumberTicker` (client, animado), que só formata `number | "currency"`; o card de tempo médio exibe string ("1h 12min") e misturar card animado com estático destoa. `StatCard` local estático copia o markup do `KpiCard` (mesmas classes) sem o ticker.
 
+> **Superseded (2026-07-16, pós /code-review):** os dois eixos do review flagaram o fork como Duplicated Code / divergência do spec. Resolução final: `KpiCard` alargado (`value: number | string`, string renderiza estático sem ticker) e o painel reusa `KpiCard` direto; `StatCard` deletado. O spec voltou a valer como escrito.
+
 - [ ] **Step 1: Criar `productivity-panel.tsx`**
 
 Server Component (sem `"use client"`):

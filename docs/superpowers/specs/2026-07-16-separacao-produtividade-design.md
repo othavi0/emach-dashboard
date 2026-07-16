@@ -32,7 +32,10 @@ condição já aplicada à tab `excecoes`).
 
 Conteúdo da tab (Server Component `_components/productivity-panel.tsx`, recebe dados prontos):
 
-1. **Linha de 3 `KpiCard`** (reusa `dashboard/_components/kpi-card.tsx`):
+1. **Linha de 3 `KpiCard`** (reusa `dashboard/_components/kpi-card.tsx`; o
+   componente foi alargado em 2026-07-16 pra aceitar `value: number | string` —
+   string renderiza estático, sem `NumberTicker` — porque o card de tempo médio
+   exibe duração formatada):
    - "Concluídas hoje" — sub: "N unidades separadas"
    - "Concluídas · 7 dias" — sub: "N unidades separadas"
    - "Tempo médio de sessão" — sub: "últimos 7 dias"
@@ -124,7 +127,8 @@ comportamento do operador) fica documentada no código.
 
 - Duração: helper puro `formatSessionDuration(seconds)` → "9min", "1h 12min"
   (< 1min → "<1min"). Vive em `_lib/` (testável).
-- Percentual: `toLocaleString("pt-BR")` com 1 casa ("4,6%"); 0 exceções → "0%".
+- Percentual: `toLocaleString("pt-BR")` com 1 casa **fixa** ("4,6%", "5,0%" —
+  casa fixa mantém a coluna alinhada); 0 exceções → "0%" seco.
 - Datas/números seguem `src/lib/format/*` (fuso fixo, tabular-nums).
 
 ## Error handling
