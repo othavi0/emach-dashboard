@@ -4,18 +4,19 @@ import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { notify } from "@/lib/notify";
 
-interface CopyCodeButtonProps {
-	code: string;
+interface CopyButtonProps {
+	label?: string;
+	value: string;
 }
 
-export function CopyCodeButton({ code }: CopyCodeButtonProps) {
+export function CopyButton({ value, label }: CopyButtonProps) {
 	const [copied, setCopied] = useState(false);
 
 	async function handleCopy(event: React.MouseEvent<HTMLButtonElement>) {
 		event.stopPropagation();
 		event.preventDefault();
 		try {
-			await navigator.clipboard.writeText(code);
+			await navigator.clipboard.writeText(value);
 			setCopied(true);
 			notify.success("Código copiado");
 			setTimeout(() => setCopied(false), 1500);
@@ -26,7 +27,7 @@ export function CopyCodeButton({ code }: CopyCodeButtonProps) {
 
 	return (
 		<button
-			aria-label={`Copiar código ${code}`}
+			aria-label={`Copiar ${label ?? value}`}
 			className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 			onClick={handleCopy}
 			type="button"

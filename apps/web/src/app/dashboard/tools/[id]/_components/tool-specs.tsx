@@ -7,10 +7,15 @@ import {
 import { TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { HelpTooltip } from "@/components/help-tooltip";
-import { formatMeasure } from "@/lib/format/number";
 import { FISCAL_HELP, MODEL_HELP } from "../../_components/fields/spec-help";
 import type { AttributeGroup } from "../_lib/attribute-grouping";
-import type { SpecDivergences } from "../_lib/spec-divergence";
+import type { FixedSpecKey, SpecDivergences } from "../_lib/spec-divergence";
+import {
+	fiscalCandidates,
+	isAttributeFilled,
+	partitionRows,
+	physicalCandidates,
+} from "../_lib/spec-rows";
 import type { ToolDetailRow } from "../_lib/tool-detail-data";
 import { AttributeValue } from "./attribute-value";
 
@@ -20,96 +25,130 @@ interface ToolSpecsProps {
 	tool: ToolDetailRow;
 }
 
+/** `SpecCandidate.key` é `string`; estreita pra `FixedSpecKey` antes de consultar `divergences.fixed` (Set tipado). */
+function isFixedSpecKey(key: string): key is FixedSpecKey {
+	return key === "weightKg" || key === "powerWatts";
+}
+
+/** HelpTooltip por key de campo fixo (mantém as ajudas contextuais atuais). */
+function fieldHelp(key: string): ReactNode {
+	switch (key) {
+		case "model":
+			return <HelpTooltip label="Sobre Modelo" text={MODEL_HELP.model} />;
+		case "invoiceModel":
+			return (
+				<HelpTooltip label="Sobre Modelo NF" text={MODEL_HELP.invoiceModel} />
+			);
+		case "hsCode":
+			return <HelpTooltip label="Sobre HS Code" {...FISCAL_HELP.hsCode} />;
+		case "ncm":
+			return <HelpTooltip label="Sobre NCM" {...FISCAL_HELP.ncm} />;
+		case "cest":
+			return <HelpTooltip label="Sobre CEST" {...FISCAL_HELP.cest} />;
+		default:
+			return null;
+	}
+}
+
 export function ToolSpecs({
 	tool,
 	attributeGroups,
 	divergences,
 }: ToolSpecsProps) {
-	const weightDiverges = divergences.fixed.has("weightKg");
-	const powerDiverges = divergences.fixed.has("powerWatts");
+	const fisicas = partitionRows(physicalCandidates(tool));
+	const fiscal = partitionRows(fiscalCandidates(tool));
+
+	const attributeSections = attributeGroups.map((group) => {
+		const filled = group.attributes.filter(isAttributeFilled);
+		return {
+			group,
+			filled,
+			emptyLabels: group.attributes
+				.filter((a) => !isAttributeFilled(a))
+				.map((a) => a.label),
+		};
+	});
+
+	const emptyLabels = [
+		...fisicas.emptyLabels,
+		...attributeSections.flatMap((s) => s.emptyLabels),
+		...fiscal.emptyLabels,
+	];
 
 	return (
 		<TooltipProvider delay={300}>
 			<div className="flex flex-col gap-5">
-				<SpecSection title="Físicas">
-					<SpecField
-						help={<HelpTooltip label="Sobre Modelo" text={MODEL_HELP.model} />}
-						label="Modelo"
-						value={tool.model}
-					/>
-					<SpecField
-						help={
-							<HelpTooltip
-								label="Sobre Modelo NF"
-								text={MODEL_HELP.invoiceModel}
-							/>
-						}
-						label="Modelo NF"
-						value={tool.invoiceModel}
-					/>
-					<SpecField label="Fabricante" value={tool.manufacturerName} />
-					<SpecField
-						diverges={powerDiverges}
-						label="Potência"
-						value={tool.powerWatts === null ? null : `${tool.powerWatts} W`}
-					/>
-					<SpecField
-						diverges={weightDiverges}
-						label="Peso"
-						value={
-							tool.weightKg === null
-								? null
-								: `${formatMeasure(tool.weightKg) ?? "—"} kg`
-						}
-					/>
-					<SpecField
-						label="Dimensões"
-						value={
-							tool.lengthCm !== null &&
-							tool.widthCm !== null &&
-							tool.heightCm !== null
-								? `${formatMeasure(tool.lengthCm, 2) ?? "?"} × ${formatMeasure(tool.widthCm, 2) ?? "?"} × ${formatMeasure(tool.heightCm, 2) ?? "?"} cm`
-								: null
-						}
-					/>
-				</SpecSection>
-
-				{attributeGroups.map((group) => (
+				{fisicas.rows.length > 0 && (
 					<SpecSection
-						key={group.categoryId}
-						title={`Técnicas · ${group.categoryName}`}
+						filled={fisicas.rows.length}
+						title="Físicas"
+						total={fisicas.total}
 					>
-						{group.attributes.map((a) => (
-							<div key={a.slug}>
-								<dt className="flex items-center gap-1 text-muted-foreground text-xs">
-									{a.label}
-									{divergences.attributeSlugs.has(a.slug) && <DivergenceMark />}
-								</dt>
-								<dd>
-									<AttributeValue attr={a} />
-								</dd>
-							</div>
+						{fisicas.rows.map((row) => (
+							<LeaderRow
+								diverges={
+									isFixedSpecKey(row.key) && divergences.fixed.has(row.key)
+								}
+								help={fieldHelp(row.key)}
+								key={row.key}
+								label={row.label}
+								mono={row.mono}
+							>
+								{row.value}
+							</LeaderRow>
 						))}
 					</SpecSection>
-				))}
+				)}
 
-				<SpecSection title="Classificação fiscal">
-					<SpecField
-						help={<HelpTooltip label="Sobre HS Code" {...FISCAL_HELP.hsCode} />}
-						label="HS Code"
-						value={tool.hsCode}
-					/>
-					<SpecField
-						help={<HelpTooltip label="Sobre NCM" {...FISCAL_HELP.ncm} />}
-						label="NCM"
-						value={tool.ncm}
-					/>
-					<SpecField
-						help={<HelpTooltip label="Sobre CEST" {...FISCAL_HELP.cest} />}
-						label="CEST"
-						value={tool.cest}
-					/>
-				</SpecSection>
+				{attributeSections.map(
+					({ group, filled }) =>
+						filled.length > 0 && (
+							<SpecSection
+								filled={filled.length}
+								key={group.categoryId}
+								title={`Técnicas · ${group.categoryName}`}
+								total={group.attributes.length}
+							>
+								{filled.map((a) => (
+									<LeaderRow
+										diverges={divergences.attributeSlugs.has(a.slug)}
+										key={a.slug}
+										label={a.label}
+									>
+										<AttributeValue attr={a} />
+									</LeaderRow>
+								))}
+							</SpecSection>
+						)
+				)}
+
+				{fiscal.rows.length > 0 && (
+					<SpecSection
+						filled={fiscal.rows.length}
+						title="Classificação fiscal"
+						total={fiscal.total}
+					>
+						{fiscal.rows.map((row) => (
+							<LeaderRow
+								help={fieldHelp(row.key)}
+								key={row.key}
+								label={row.label}
+								mono={row.mono}
+							>
+								{row.value}
+							</LeaderRow>
+						))}
+					</SpecSection>
+				)}
+
+				{emptyLabels.length > 0 && (
+					<p className="border-border/60 border-t pt-2.5 text-muted-foreground text-xs">
+						{emptyLabels.length === 1
+							? "1 campo sem valor"
+							: `${emptyLabels.length} campos sem valor`}
+						: {emptyLabels.join(", ")}
+					</p>
+				)}
 			</div>
 		</TooltipProvider>
 	);
@@ -117,42 +156,61 @@ export function ToolSpecs({
 
 function SpecSection({
 	title,
+	filled,
+	total,
 	children,
 }: {
 	children: ReactNode;
+	filled: number;
 	title: string;
+	total: number;
 }) {
 	return (
 		<section>
 			<h3 className="mb-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">
 				{title}
+				<span className="ml-1.5 font-normal text-[10px] text-muted-foreground/70 normal-case tracking-normal">
+					{filled} de {total}
+				</span>
 			</h3>
-			<dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm md:grid-cols-3">
-				{children}
-			</dl>
+			<dl className="grid gap-x-8 md:grid-cols-2">{children}</dl>
 		</section>
 	);
 }
 
-function SpecField({
+function LeaderRow({
 	label,
-	value,
+	children,
+	mono,
 	help,
 	diverges,
 }: {
+	children: ReactNode;
 	diverges?: boolean;
 	help?: ReactNode;
 	label: string;
-	value: string | null;
+	mono?: boolean;
 }) {
 	return (
-		<div>
-			<dt className="flex items-center gap-1 text-muted-foreground text-xs">
+		<div className="flex items-baseline gap-2 py-1">
+			<dt className="flex shrink-0 items-center gap-1 text-muted-foreground text-xs">
 				{label}
 				{help}
 				{diverges && <DivergenceMark />}
 			</dt>
-			<dd>{value ?? "—"}</dd>
+			<span
+				aria-hidden
+				className="min-w-4 flex-1 self-center border-border border-b border-dotted"
+			/>
+			<dd
+				className={
+					mono
+						? "text-right font-mono text-xs"
+						: "text-right font-medium text-sm"
+				}
+			>
+				{children}
+			</dd>
 		</div>
 	);
 }

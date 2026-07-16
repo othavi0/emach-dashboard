@@ -38,6 +38,7 @@ import {
 	updateToolVariant,
 } from "../../actions";
 import type { ToolDetailVariant } from "../_lib/tool-detail-data";
+import { BarcodePopover } from "./barcode-popover";
 
 interface VariantsTabProps {
 	canDelete: boolean;
@@ -316,11 +317,15 @@ function EditableRow({
 				/>
 			</TableCell>
 			<TableCell>
-				<Input
-					className="h-8 w-[160px] font-mono text-xs"
-					onChange={(e) => setState({ ...state, barcode: e.target.value })}
-					value={state.barcode}
-				/>
+				<div className="flex items-center gap-1.5">
+					<Input
+						className="h-8 w-[160px] font-mono text-xs"
+						onChange={(e) => setState({ ...state, barcode: e.target.value })}
+						value={state.barcode}
+					/>
+					{/* Popover mostra o valor SALVO (variant.barcode), não o rascunho do input */}
+					<BarcodePopover barcode={variant.barcode} trigger="icon" />
+				</div>
 			</TableCell>
 			<TableCell>
 				<Select
@@ -424,7 +429,9 @@ function ReadOnlyRow({
 			ref={rowRef}
 		>
 			<TableCell className="font-mono text-xs">{v.sku}</TableCell>
-			<TableCell className="font-mono text-xs">{v.barcode}</TableCell>
+			<TableCell className="font-mono text-xs">
+				<BarcodePopover barcode={v.barcode} />
+			</TableCell>
 			<TableCell>{v.voltage ?? "—"}</TableCell>
 			<TableCell className="text-right tabular-nums">
 				{fmt(v.priceAmount)}

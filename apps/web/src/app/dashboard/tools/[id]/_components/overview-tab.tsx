@@ -11,8 +11,10 @@ import type {
 	ToolDetailCategory,
 	ToolDetailImage,
 	ToolDetailRow,
+	ToolDetailVariant,
 	ToolStockSummary,
 } from "../_lib/tool-detail-data";
+import { BarcodesCard } from "./barcodes-card";
 import { ImageCarousel } from "./image-carousel";
 import { SectionCard } from "./section-card";
 import { ToolSpecs } from "./tool-specs";
@@ -24,6 +26,7 @@ interface OverviewTabProps {
 	images: ToolDetailImage[];
 	stockSummary: ToolStockSummary;
 	tool: ToolDetailRow;
+	variants: ToolDetailVariant[];
 }
 
 export function OverviewTab({
@@ -33,6 +36,7 @@ export function OverviewTab({
 	attributes,
 	stockSummary,
 	cartSummary,
+	variants,
 }: OverviewTabProps) {
 	const primaryCategory = categories.find((c) => c.isPrimary);
 	const otherCategories = categories.filter((c) => !c.isPrimary);
@@ -92,6 +96,8 @@ export function OverviewTab({
 							)}
 						</p>
 					</SectionCard>
+
+					<BarcodesCard variants={variants} />
 
 					<SectionCard title="Carrinho (ecommerce)">
 						<div className="grid grid-cols-3 text-center">

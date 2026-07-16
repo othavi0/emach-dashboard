@@ -6,6 +6,30 @@ function formatSpecNumber(value: number | null): string {
 	return value === null ? "—" : (formatMeasure(value, 4) ?? "—");
 }
 
+/**
+ * `isAttributeFilled` considera preenchido um numeric_range com só um lado —
+ * então aqui os lados podem chegar parcialmente nulos (min-only/max-only).
+ */
+function formatNumericRange(
+	lo: number | null,
+	hi: number | null,
+	unit: string
+): string {
+	const hasLo = lo !== null;
+	const hasHi = hi !== null;
+
+	if (hasLo && hasHi) {
+		return `${formatSpecNumber(lo)} – ${formatSpecNumber(hi)}${unit}`;
+	}
+	if (hasLo) {
+		return `mín. ${formatSpecNumber(lo)}${unit}`;
+	}
+	if (hasHi) {
+		return `máx. ${formatSpecNumber(hi)}${unit}`;
+	}
+	return "—";
+}
+
 export function AttributeValue({ attr }: { attr: ToolDetailAttribute }) {
 	if (attr.inputType === "color" && attr.options?.kind === "color") {
 		const swatch = attr.options.swatches.find(
@@ -41,9 +65,9 @@ export function AttributeValue({ attr }: { attr: ToolDetailAttribute }) {
 	const unit = attr.unit ? ` ${attr.unit}` : "";
 
 	if (attr.inputType === "numeric_range") {
-		const lo = formatSpecNumber(attr.valueNumeric);
-		const hi = formatSpecNumber(attr.valueNumericMax);
-		return <>{`${lo} – ${hi}${unit}`}</>;
+		return (
+			<>{formatNumericRange(attr.valueNumeric, attr.valueNumericMax, unit)}</>
+		);
 	}
 
 	if (attr.inputType === "number") {
