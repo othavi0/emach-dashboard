@@ -66,6 +66,7 @@ vi.mock("@/lib/session", () => ({
 import {
 	cancelPicking,
 	completePicking,
+	confirmItemManually,
 	reportMissing,
 	scanItem,
 	startPicking,
@@ -572,6 +573,174 @@ describe("reportMissing", () => {
 
 		const result = await reportMissing(PICKING_ITEM_ID, "Motivo qualquer");
 		expect(result).toMatchObject({ ok: false });
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Tests: confirmItemManually
+// ---------------------------------------------------------------------------
+
+describe("confirmItemManually", () => {
+	const VALID_REASON = "Etiqueta física rasgada na caixa";
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockRequireCapability.mockResolvedValue(mockSession);
+	});
+
+	function armTx(selectResults: unknown[][]) {
+		let tx: ReturnType<typeof makeMockTx> | undefined;
+		const captured: Record<string, unknown>[] = [];
+		mockTransaction.mockImplementation(
+			async (cb: (t: ReturnType<typeof makeMockTx>) => unknown) => {
+				tx = makeMockTx(selectResults);
+				tx._insertValues.mockImplementation((vals: Record<string, unknown>) => {
+					captured.push(vals);
+					return Promise.resolve(undefined);
+				});
+				return await cb(tx);
+			}
+		);
+		return { getTx: () => tx, captured };
+	}
+
+	const OWNED_PICKING = {
+		id: PICKING_ID,
+		orderId: ORDER_ID,
+		status: "in_progress",
+		pickerUserId: "usr_1",
+		pickerName: "Picker",
+	};
+	const PREPARING_LOCK = { status: "preparing", branchId: BRANCH_ID };
+
+	function itemRow(overrides: Record<string, unknown> = {}) {
+		return {
+			id: PICKING_ITEM_ID,
+			pickingId: PICKING_ID,
+			variantId: "variant-1",
+			qtyExpected: 3,
+			qtyPicked: 1,
+			notFound: false,
+			...overrides,
+		};
+	}
+
+	it("incrementa qtyPicked e insere 1 scan manual por unidade", async () => {
+		const { getTx, captured } = armTx([
+			[itemRow()],
+			[OWNED_PICKING],
+			[PREPARING_LOCK],
+		]);
+
+		const result = await confirmItemManually(PICKING_ITEM_ID, 2, VALID_REASON);
+
+		expect(result).toMatchObject({ ok: true });
+		if (result.ok) {
+			expect(result.data).toEqual({ qtyPicked: 3, qtyExpected: 3 });
+		}
+		expect(captured).toHaveLength(2);
+		for (const scan of captured) {
+			expect(scan).toMatchObject({
+				pickingItemId: PICKING_ITEM_ID,
+				scannedCode: "manual",
+				manual: true,
+				manualReason: VALID_REASON,
+			});
+		}
+		const updateChain = getTx()?.update.mock.results[0]?.value as
+			| { set: ReturnType<typeof vi.fn> }
+			| undefined;
+		expect(updateChain?.set).toHaveBeenCalledWith(
+			expect.objectContaining({ qtyPicked: 3, notFound: false })
+		);
+	});
+
+	it("rejeita motivo com menos de 10 caracteres", async () => {
+		armTx([[itemRow()], [OWNED_PICKING], [PREPARING_LOCK]]);
+
+		const result = await confirmItemManually(PICKING_ITEM_ID, 1, "curto");
+		expect(result).toMatchObject({ ok: false });
+		expect((result as { ok: false; error: string }).error).toContain("10");
+	});
+
+	it("rejeita quantidade acima do restante", async () => {
+		armTx([[itemRow()], [OWNED_PICKING], [PREPARING_LOCK]]);
+
+		const result = await confirmItemManually(PICKING_ITEM_ID, 3, VALID_REASON);
+		expect(result).toMatchObject({ ok: false });
+		expect((result as { ok: false; error: string }).error).toContain(
+			"restante"
+		);
+	});
+
+	it("rejeita quantidade não inteira ou menor que 1", async () => {
+		armTx([[itemRow()], [OWNED_PICKING], [PREPARING_LOCK]]);
+
+		const zero = await confirmItemManually(PICKING_ITEM_ID, 0, VALID_REASON);
+		expect(zero).toMatchObject({ ok: false });
+
+		armTx([[itemRow()], [OWNED_PICKING], [PREPARING_LOCK]]);
+		const frac = await confirmItemManually(PICKING_ITEM_ID, 1.5, VALID_REASON);
+		expect(frac).toMatchObject({ ok: false });
+	});
+
+	it("rejeita item já completo", async () => {
+		armTx([[itemRow({ qtyPicked: 3 })], [OWNED_PICKING], [PREPARING_LOCK]]);
+
+		const result = await confirmItemManually(PICKING_ITEM_ID, 1, VALID_REASON);
+		expect(result).toMatchObject({ ok: false });
+		expect((result as { ok: false; error: string }).error).toContain(
+			"completo"
+		);
+	});
+
+	it("limpa notFound de item antes reportado como ausente", async () => {
+		const { getTx } = armTx([
+			[itemRow({ notFound: true, qtyPicked: 0 })],
+			[OWNED_PICKING],
+			[PREPARING_LOCK],
+		]);
+
+		const result = await confirmItemManually(PICKING_ITEM_ID, 3, VALID_REASON);
+		expect(result).toMatchObject({ ok: true });
+		const updateChain = getTx()?.update.mock.results[0]?.value as
+			| { set: ReturnType<typeof vi.fn> }
+			| undefined;
+		expect(updateChain?.set).toHaveBeenCalledWith(
+			expect.objectContaining({ qtyPicked: 3, notFound: false })
+		);
+	});
+
+	it("rejeita quando outro usuário tenta confirmar", async () => {
+		armTx([
+			[itemRow()],
+			[{ ...OWNED_PICKING, pickerUserId: "usr_outro" }],
+			[PREPARING_LOCK],
+		]);
+
+		const result = await confirmItemManually(PICKING_ITEM_ID, 1, VALID_REASON);
+		expect(result).toMatchObject({ ok: false });
+		expect((result as { ok: false; error: string }).error).toContain("iniciou");
+	});
+
+	it("encerra a sessão quando o pedido saiu de preparing", async () => {
+		const { getTx } = armTx([
+			[itemRow()],
+			[OWNED_PICKING],
+			[{ status: "canceled", branchId: BRANCH_ID }],
+		]);
+
+		const result = await confirmItemManually(PICKING_ITEM_ID, 1, VALID_REASON);
+		expect(result).toMatchObject({ ok: false });
+		expect((result as { ok: false; error: string }).error).toContain(
+			"encerrada"
+		);
+		const updateChain = getTx()?.update.mock.results[0]?.value as
+			| { set: ReturnType<typeof vi.fn> }
+			| undefined;
+		expect(updateChain?.set).toHaveBeenCalledWith(
+			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
+		);
 	});
 });
 
