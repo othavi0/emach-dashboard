@@ -476,6 +476,152 @@ export async function reportMissing(
 }
 
 // ---------------------------------------------------------------------------
+// confirmItemManually
+// ---------------------------------------------------------------------------
+
+const MIN_MANUAL_REASON_LENGTH = 10;
+
+/**
+ * Confirma unidades de um item SEM bipe (issue #325): etiqueta física
+ * ilegível/danificada ou variante legada sem barcode. Espelha reportMissing
+ * (gates + guards), mas incrementa qtyPicked e registra 1 scan por unidade
+ * com manual=true + manualReason — o relatório de produtividade (#324)
+ * distingue bipe real de confirmação manual.
+ */
+export async function confirmItemManually(
+	pickingItemId: string,
+	qty: number,
+	reason: string
+): Promise<ActionResult<{ qtyPicked: number; qtyExpected: number }>> {
+	try {
+		const trimmedReason = reason.trim();
+		if (trimmedReason.length < MIN_MANUAL_REASON_LENGTH) {
+			return {
+				ok: false,
+				error: `Informe um motivo com pelo menos ${MIN_MANUAL_REASON_LENGTH} caracteres`,
+			};
+		}
+		if (!Number.isInteger(qty) || qty < 1) {
+			return { ok: false, error: "Quantidade inválida" };
+		}
+
+		let orderId: string | undefined;
+		let orderLeft = false;
+		let updated: { qtyPicked: number; qtyExpected: number } | undefined;
+
+		await db.transaction(async (tx: Tx) => {
+			const [item] = await tx
+				.select()
+				.from(orderPickingItem)
+				.where(eq(orderPickingItem.id, pickingItemId))
+				.limit(1);
+
+			if (!item) {
+				throw new Error("Item de separação não encontrado");
+			}
+
+			const [picking] = await tx
+				.select()
+				.from(orderPicking)
+				.where(eq(orderPicking.id, item.pickingId))
+				.limit(1);
+
+			if (!picking) {
+				throw new Error("Sessão de separação não encontrada");
+			}
+
+			const locked = await lockOrderAndAuthorize(
+				tx,
+				"orders.pick",
+				picking.orderId
+			);
+
+			if (!locked) {
+				throw new Error("Pedido não encontrado");
+			}
+
+			assertInProgress(picking);
+			assertOwner(picking, locked.session.user);
+
+			orderId = picking.orderId;
+
+			if (await autoCancelIfOrderLeftPreparing(tx, picking.id, locked.status)) {
+				orderLeft = true;
+				return;
+			}
+
+			const remaining = item.qtyExpected - item.qtyPicked;
+			if (remaining <= 0) {
+				throw new Error("Item já está completo — nada a confirmar");
+			}
+			if (qty > remaining) {
+				throw new Error(
+					`Quantidade acima do restante (falta${remaining === 1 ? "" : "m"} ${remaining})`
+				);
+			}
+
+			const newQtyPicked = item.qtyPicked + qty;
+
+			// Paridade com o re-bipe: confirmar manualmente LIMPA a pendência
+			// de item ausente (o item está fisicamente na mão).
+			await tx
+				.update(orderPickingItem)
+				.set({
+					qtyPicked: newQtyPicked,
+					notFound: false,
+					lastScannedAt: new Date(),
+				})
+				.where(eq(orderPickingItem.id, pickingItemId));
+
+			const { session } = locked;
+			for (let i = 0; i < qty; i++) {
+				await tx.insert(orderPickingScan).values({
+					id: crypto.randomUUID(),
+					pickingId: item.pickingId,
+					pickingItemId,
+					variantId: item.variantId,
+					scannedCode: "manual",
+					manual: true,
+					manualReason: trimmedReason,
+					scannedBy: session.user.id,
+					scannedByName: session.user.name ?? session.user.id,
+				});
+			}
+
+			updated = { qtyPicked: newQtyPicked, qtyExpected: item.qtyExpected };
+		});
+
+		if (orderId) {
+			revalidatePickingPaths(orderId);
+		}
+
+		if (orderLeft) {
+			return { ok: false, error: ORDER_LEFT_PREPARING_ERROR };
+		}
+
+		if (!updated) {
+			throw new Error("Erro ao confirmar item manualmente");
+		}
+
+		return { ok: true, data: updated };
+	} catch (error) {
+		logger.error("confirmItemManually", error);
+
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para confirmar item." };
+		}
+
+		return {
+			ok: false,
+			error:
+				error instanceof Error
+					? error.message
+					: "Erro ao confirmar item manualmente",
+		};
+	}
+}
+
+// ---------------------------------------------------------------------------
 // completePicking
 // ---------------------------------------------------------------------------
 

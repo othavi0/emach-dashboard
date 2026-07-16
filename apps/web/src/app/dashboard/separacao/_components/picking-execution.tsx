@@ -12,6 +12,8 @@ import {
 	AlertDialogTitle,
 } from "@emach/ui/components/alert-dialog";
 import { Button, buttonVariants } from "@emach/ui/components/button";
+import { Input } from "@emach/ui/components/input";
+import { Label } from "@emach/ui/components/label";
 import { Textarea } from "@emach/ui/components/textarea";
 import {
 	ArrowLeftIcon,
@@ -32,6 +34,7 @@ import { canFinalizePicking, summarizePicking } from "../_lib/picking-logic";
 import {
 	cancelPicking,
 	completePicking,
+	confirmItemManually,
 	reportMissing,
 	scanItem,
 } from "../actions";
@@ -60,6 +63,9 @@ interface LocalItem {
 
 type FeedbackKind = "accepted" | "already_complete" | "not_in_order" | null;
 type ItemState = "cur" | "done" | "exc" | "pending";
+
+// Mesmo mínimo do DestructiveActionDialog — a action valida no servidor.
+const MIN_MANUAL_REASON_LENGTH = 10;
 
 // ─── helpers puros ──────────────────────────────────────────────────────────
 
@@ -182,15 +188,17 @@ function getQtyClass(state: ItemState): string {
 
 interface FocusCardProps {
 	feedback: FeedbackKind;
-	isReporting: boolean;
+	isBusy: boolean;
 	item: LocalItem;
+	onManualOpen: (id: string) => void;
 	onReportOpen: (id: string) => void;
 }
 
 function FocusCard({
 	item,
 	feedback,
-	isReporting,
+	isBusy,
+	onManualOpen,
 	onReportOpen,
 }: FocusCardProps) {
 	const countColor = getFocusCountColor(feedback);
@@ -242,10 +250,19 @@ function FocusCard({
 					/>
 				</div>
 
-				<div className="flex justify-end">
+				<div className="flex justify-end gap-2">
 					<Button
 						className="mt-1 w-fit"
-						disabled={item.notFound || isReporting}
+						disabled={isBusy}
+						onClick={() => onManualOpen(item.id)}
+						size="sm"
+						variant="outline"
+					>
+						Confirmar sem bipar
+					</Button>
+					<Button
+						className="mt-1 w-fit"
+						disabled={item.notFound || isBusy}
 						onClick={() => onReportOpen(item.id)}
 						size="sm"
 						variant="outline"
@@ -255,6 +272,102 @@ function FocusCard({
 				</div>
 			</div>
 		</div>
+	);
+}
+
+interface ManualConfirmDialogProps {
+	isConfirming: boolean;
+	item: LocalItem | null;
+	onClose: () => void;
+	onConfirm: () => void;
+	onQtyChange: (qty: number) => void;
+	onReasonChange: (reason: string) => void;
+	qty: number;
+	reason: string;
+}
+
+function ManualConfirmDialog({
+	isConfirming,
+	item,
+	onClose,
+	onConfirm,
+	onQtyChange,
+	onReasonChange,
+	qty,
+	reason,
+}: ManualConfirmDialogProps) {
+	const remaining = item ? item.qtyExpected - item.qtyPicked : 0;
+	const qtyInvalid = !Number.isInteger(qty) || qty < 1 || qty > remaining;
+	const reasonTooShort = reason.trim().length < MIN_MANUAL_REASON_LENGTH;
+
+	return (
+		<AlertDialog
+			onOpenChange={(open) => {
+				if (!open) {
+					onClose();
+				}
+			}}
+			open={item !== null}
+		>
+			<AlertDialogContent>
+				<AlertDialogHeader>
+					<AlertDialogTitle>Confirmar sem bipar</AlertDialogTitle>
+					<AlertDialogDescription>
+						{item && (
+							<span className="font-medium text-foreground">{item.name}</span>
+						)}{" "}
+						— use apenas com o item em mãos e o código de barras ilegível ou
+						ausente. A confirmação fica registrada com seu nome e motivo.
+					</AlertDialogDescription>
+				</AlertDialogHeader>
+				<div className="my-2 flex flex-col gap-3">
+					{remaining > 1 && (
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="manual-qty">Quantidade a confirmar</Label>
+							<Input
+								className="w-24"
+								id="manual-qty"
+								max={remaining}
+								min={1}
+								onChange={(e) => onQtyChange(e.target.valueAsNumber)}
+								type="number"
+								value={Number.isNaN(qty) ? "" : qty}
+							/>
+							<p className="text-[12px] text-muted-foreground">
+								Faltam {remaining} de {item?.qtyExpected}
+							</p>
+						</div>
+					)}
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="manual-reason">Motivo</Label>
+						<Textarea
+							className="resize-none"
+							id="manual-reason"
+							onChange={(e) => onReasonChange(e.target.value)}
+							placeholder="Descreva o motivo (ex: etiqueta rasgada, código ilegível…)"
+							rows={3}
+							value={reason}
+						/>
+						{reason.length > 0 && reasonTooShort ? (
+							<p className="text-[12px] text-warning">
+								Mínimo {MIN_MANUAL_REASON_LENGTH} caracteres.
+							</p>
+						) : null}
+					</div>
+				</div>
+				<AlertDialogFooter>
+					<AlertDialogCancel disabled={isConfirming} onClick={onClose}>
+						Cancelar
+					</AlertDialogCancel>
+					<AlertDialogAction
+						disabled={reasonTooShort || qtyInvalid || isConfirming}
+						onClick={onConfirm}
+					>
+						{isConfirming ? "Confirmando…" : "Confirmar item"}
+					</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
 	);
 }
 
@@ -324,6 +437,10 @@ function usePickingState(
 	const [reportingItemId, setReportingItemId] = useState<string | null>(null);
 	const [reportReason, setReportReason] = useState("");
 	const [isReporting, startReporting] = useTransition();
+	const [manualItemId, setManualItemId] = useState<string | null>(null);
+	const [manualReason, setManualReason] = useState("");
+	const [manualQty, setManualQty] = useState(1);
+	const [isConfirmingManual, startConfirmingManual] = useTransition();
 	const [isCancelOpen, setIsCancelOpen] = useState(false);
 	const [isCanceling, startCanceling] = useTransition();
 	// `completePicking` chama revalidatePath na própria rota — o Server Action
@@ -424,6 +541,42 @@ function usePickingState(
 		setReportReason("");
 	}
 
+	function handleManualOpen(itemId: string) {
+		const item = localItems.find((it) => it.id === itemId);
+		setManualItemId(itemId);
+		setManualReason("");
+		setManualQty(item ? Math.max(item.qtyExpected - item.qtyPicked, 1) : 1);
+	}
+
+	function handleManualConfirm() {
+		if (!manualItemId) {
+			return;
+		}
+		const itemId = manualItemId;
+		const qty = manualQty;
+		const reason = manualReason;
+
+		startConfirmingManual(async () => {
+			const result = await confirmItemManually(itemId, qty, reason);
+			if (result.ok) {
+				setLocalItems((prev) =>
+					prev.map((it) =>
+						it.id === itemId
+							? { ...it, qtyPicked: result.data.qtyPicked, notFound: false }
+							: it
+					)
+				);
+				// Paridade com o scan aceito: mantém o item em foco com feedback verde.
+				setFocusedId(itemId);
+				setFeedback("accepted");
+				clearFeedback();
+			} else {
+				notify.error(result.error);
+			}
+			setManualItemId(null);
+		});
+	}
+
 	function handleReportConfirm() {
 		if (!reportingItemId) {
 			return;
@@ -464,17 +617,26 @@ function usePickingState(
 		reportingItemId,
 		reportReason,
 		isReporting,
+		manualItemId,
+		manualReason,
+		manualQty,
+		isConfirmingManual,
 		isCancelOpen,
 		isCanceling,
 		completedOk,
 		setIsCancelOpen,
 		setReportingItemId,
 		setReportReason,
+		setManualItemId,
+		setManualReason,
+		setManualQty,
 		handleScan,
 		handleComplete,
 		handleCancel,
 		handleReportOpen,
 		handleReportConfirm,
+		handleManualOpen,
+		handleManualConfirm,
 	};
 }
 
@@ -504,17 +666,26 @@ export function PickingExecution({
 		reportingItemId,
 		reportReason,
 		isReporting,
+		manualItemId,
+		manualReason,
+		manualQty,
+		isConfirmingManual,
 		isCancelOpen,
 		isCanceling,
 		completedOk,
 		setIsCancelOpen,
 		setReportingItemId,
 		setReportReason,
+		setManualItemId,
+		setManualReason,
+		setManualQty,
 		handleScan,
 		handleComplete,
 		handleCancel,
 		handleReportOpen,
 		handleReportConfirm,
+		handleManualOpen,
+		handleManualConfirm,
 	} = usePickingState(picking, items);
 
 	const summary = summarizePicking(localItems);
@@ -532,6 +703,7 @@ export function PickingExecution({
 	const focusedItem = localItems.find((it) => it.id === focusedId) ?? null;
 	const reportingItem =
 		localItems.find((it) => it.id === reportingItemId) ?? null;
+	const manualItem = localItems.find((it) => it.id === manualItemId) ?? null;
 	const doneCount = localItems.filter(
 		(it) => it.qtyPicked === it.qtyExpected && !it.notFound
 	).length;
@@ -539,7 +711,8 @@ export function PickingExecution({
 		summary.totalUnits > 0
 			? Math.round((summary.pickedUnits / summary.totalUnits) * 100)
 			: 0;
-	const scanDisabled = isScanning || isCompleting || isReporting;
+	const scanDisabled =
+		isScanning || isCompleting || isReporting || isConfirmingManual;
 	const exceptionColor = summary.exceptions > 0 ? "text-destructive" : "";
 	const canFinalize = canFinalizePicking(localItems);
 	const hasExceptions = summary.exceptions > 0;
@@ -632,8 +805,9 @@ export function PickingExecution({
 							{focusedItem ? (
 								<FocusCard
 									feedback={feedback}
-									isReporting={isReporting}
+									isBusy={isReporting || isConfirmingManual}
 									item={focusedItem}
+									onManualOpen={handleManualOpen}
 									onReportOpen={handleReportOpen}
 								/>
 							) : (
@@ -745,6 +919,18 @@ export function PickingExecution({
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
+
+			{/* Dialog — confirmar sem bipar (não-destrutivo) */}
+			<ManualConfirmDialog
+				isConfirming={isConfirmingManual}
+				item={manualItem}
+				onClose={() => setManualItemId(null)}
+				onConfirm={handleManualConfirm}
+				onQtyChange={setManualQty}
+				onReasonChange={setManualReason}
+				qty={manualQty}
+				reason={manualReason}
+			/>
 
 			{/* Dialog — cancelar separação */}
 			<AlertDialog

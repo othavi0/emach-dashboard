@@ -497,6 +497,11 @@ export const orderPickingScan = pgTable(
 			onDelete: "set null",
 		}),
 		scannedCode: text("scanned_code").notNull(),
+		// Confirmação manual (issue #325): barcode ilegível/legado. manual=true
+		// distingue do bipe real (relatório de produtividade #324); manualReason
+		// guarda o motivo obrigatório informado pelo operador.
+		manual: boolean("manual").notNull().default(false),
+		manualReason: text("manual_reason"),
 		scannedBy: text("scanned_by").references(() => user.id, {
 			onDelete: "set null",
 		}),
