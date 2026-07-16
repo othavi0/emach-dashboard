@@ -132,6 +132,31 @@ export function OrdersView({
 		});
 	};
 
+	// Tab "Pronto para enviar" (picked): abre o documento de dados de envio do
+	// lote selecionado. A rota re-valida o escopo/etapa server-side (ids fora de
+	// preparing+completed são descartados em silêncio), então basta os ids.
+	const openShippingDoc = () => {
+		const url = `/dashboard/orders/shipping-doc?ids=${sel.selectedIds.join(",")}`;
+		window.open(url, "_blank", "noopener");
+		sel.exit();
+	};
+
+	const bulkActions: { label: string; run: () => void }[] = [];
+	if (selectedPaidIds.length > 0) {
+		bulkActions.push({
+			label: bulkPending
+				? "Enviando…"
+				: `Enviar para separação (${selectedPaidIds.length})`,
+			run: runBulkSeparation,
+		});
+	}
+	if (tabKey === "picked" && sel.selectedIds.length > 0) {
+		bulkActions.push({
+			label: `Dados de envio (${sel.selectedIds.length})`,
+			run: openShippingDoc,
+		});
+	}
+
 	return (
 		<>
 			<PageHeader
@@ -197,18 +222,7 @@ export function OrdersView({
 					/>
 					{sel.count > 0 && (
 						<BulkActionBar
-							actions={
-								selectedPaidIds.length > 0
-									? [
-											{
-												label: bulkPending
-													? "Enviando…"
-													: `Enviar para separação (${selectedPaidIds.length})`,
-												run: runBulkSeparation,
-											},
-										]
-									: []
-							}
+							actions={bulkActions}
 							selectedIds={sel.selectedIds}
 						/>
 					)}

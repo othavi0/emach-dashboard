@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
 });
 
 /** Wordmark emach — paths de apps/web/public/emach-nome-branco.svg, fill em tinta. */
-function Wordmark() {
+export function Wordmark() {
 	return (
 		<Svg height={13} viewBox="0 0 2041 377" width={70}>
 			<G transform="translate(0,377) scale(0.1,-0.1)">
