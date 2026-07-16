@@ -15,6 +15,7 @@ import { decodeCursorAs } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { can, requireCapability } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
+import { type Lateness, latenessOf } from "./orders/_lib/lateness";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "./orders/status-meta";
 import { REVIEW_STATUS_LABELS, type ReviewStatus } from "./reviews/status-meta";
 
@@ -22,6 +23,7 @@ export interface DashboardCounts {
 	orders: number;
 	pendingUsers: number;
 	picking: number;
+	pickingExceptions: number;
 	promotionsExpiring: number;
 	reviews: number;
 	stock: number;
@@ -83,16 +85,28 @@ export async function fetchPendingOrders(
 	const keyset = decoded
 		? sql`AND (o.created_at, o.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		: sql``;
+	// LATERAL: status da última sessão de picking por pedido (mesmo ORDER BY
+	// canônico de data.ts/separacao) — usado para sinalizar exceção de separação.
+	// paid_at/preparing_at alimentam a régua de aging (latenessOf, relógio por etapa).
 	const result = await db.execute<{
 		client_name: string;
 		created_at: string;
 		id: string;
 		number: string;
+		paid_at: string | null;
+		picking_status: string | null;
+		preparing_at: string | null;
 		status: string;
 	}>(sql`
-		SELECT o.id, o.number, o.status, o.created_at, c.name AS client_name
+		SELECT o.id, o.number, o.status, o.created_at, o.paid_at, o.preparing_at,
+			c.name AS client_name, lp.status AS picking_status
 		FROM "order" o
 		JOIN client c ON c.id = o.client_id
+		LEFT JOIN LATERAL (
+			SELECT op.status FROM order_picking op
+			WHERE op.order_id = o.id
+			ORDER BY op.started_at DESC, op.id DESC LIMIT 1
+		) lp ON true
 		WHERE o.status IN (${sqlStatusList(ACTIVE_ORDER_STATUSES)})
 		${keyset}
 		ORDER BY o.created_at DESC, o.id DESC
@@ -107,14 +121,49 @@ export async function fetchPendingOrders(
 		}
 		return { label: "Enviado", role: "info" };
 	};
+	const agingFor = (lateness: Lateness): PendingRow["aging"] => {
+		if (lateness === "late") {
+			return { level: "late", label: "Atrasado" };
+		}
+		if (lateness === "amber") {
+			return { level: "warn", label: "48h+" };
+		}
+		return;
+	};
+	const now = new Date();
 	return paginate(
 		result.rows,
-		(r): PendingRow => ({
-			id: r.id,
-			href: `/dashboard/orders/${r.id}`,
-			primary: `#${r.number} · ${r.client_name}`,
-			badge: badgeFor(r.status),
-		}),
+		(r): PendingRow => {
+			const aging = agingFor(
+				latenessOf({
+					createdAt: toDate(r.created_at),
+					now,
+					paidAt: r.paid_at ? toDate(r.paid_at) : null,
+					preparingAt: r.preparing_at ? toDate(r.preparing_at) : null,
+					status: r.status as OrderStatus,
+				})
+			);
+			// Exceção de separação: última sessão em `exception` num pedido preparando.
+			// Sai da fila fechada de /separacao pra ficar visível na overview.
+			if (r.status === "preparing" && r.picking_status === "exception") {
+				return {
+					id: r.id,
+					href: "/dashboard/separacao?tab=excecoes",
+					primary: `#${r.number} · ${r.client_name}`,
+					iconKey: "ban",
+					tone: "warning",
+					badge: { label: "Exceção", role: "warning" },
+					aging,
+				};
+			}
+			return {
+				id: r.id,
+				href: `/dashboard/orders/${r.id}`,
+				primary: `#${r.number} · ${r.client_name}`,
+				badge: badgeFor(r.status),
+				aging,
+			};
+		},
 		(last) => ({
 			v: 1,
 			sort: "newest",
@@ -373,10 +422,23 @@ export const fetchDashboardCounts = cache(
 							AND op.status IN ('in_progress', 'exception', 'completed')
 					))`
 			: sql`0`;
+		// Exceções de separação (badge próprio warning na sidebar). Global e gated por
+		// orders.pick, igual ao picking. Espelha o WHERE de `excecoes` em
+		// fetchPickingQueueCounts (separacao/data.ts) sem o filtro de filial.
+		const pickingExceptionsExpr = canPick
+			? sql`(SELECT COUNT(*)::int FROM "order" o
+				JOIN LATERAL (
+					SELECT op.status FROM order_picking op
+					WHERE op.order_id = o.id
+					ORDER BY op.started_at DESC, op.id DESC LIMIT 1
+				) op ON op.status = 'exception'
+				WHERE o.status = 'preparing')`
+			: sql`0`;
 		const result = await db.execute<{
 			orders: number;
 			pending_users: number;
 			picking: number;
+			picking_exceptions: number;
 			promotions_expiring: number;
 			reviews: number;
 			stock: number;
@@ -388,7 +450,8 @@ export const fetchDashboardCounts = cache(
 			${reviewsExpr} AS reviews,
 			${promotionsExpr} AS promotions_expiring,
 			${pendingUsersExpr} AS pending_users,
-			${pickingExpr} AS picking
+			${pickingExpr} AS picking,
+			${pickingExceptionsExpr} AS picking_exceptions
 	`);
 		const row = result.rows[0];
 		if (!row) {
@@ -398,6 +461,7 @@ export const fetchDashboardCounts = cache(
 			orders: row.orders,
 			pendingUsers: row.pending_users,
 			picking: row.picking,
+			pickingExceptions: row.picking_exceptions,
 			promotionsExpiring: row.promotions_expiring,
 			reviews: row.reviews,
 			stock: row.stock,
