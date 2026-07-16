@@ -47,6 +47,11 @@ describe("formatExceptionRate", () => {
 		expect(formatExceptionRate(1, 41)).toBe("2,4%");
 		expect(formatExceptionRate(4, 87)).toBe("4,6%");
 	});
+
+	it("taxa inteira mantém a casa fixa (consistência de coluna)", () => {
+		expect(formatExceptionRate(1, 20)).toBe("5,0%");
+		expect(formatExceptionRate(1, 10)).toBe("10,0%");
+	});
 });
 
 describe("exceptionTone", () => {

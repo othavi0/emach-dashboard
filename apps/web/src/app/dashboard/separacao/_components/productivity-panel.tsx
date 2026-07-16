@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@emach/ui/components/card";
 import {
 	Table,
 	TableBody,
@@ -10,6 +9,7 @@ import {
 import { cn } from "@emach/ui/lib/utils";
 
 import { getInitials } from "@/lib/format/name";
+import { KpiCard } from "../../_components/kpi-card";
 import {
 	type ExceptionTone,
 	exceptionTone,
@@ -36,30 +36,6 @@ function formatUnits(n: number): string {
 	return `${formatCount(n)} ${label}`;
 }
 
-// Mesmo markup do KpiCard do dashboard home, sem NumberTicker: o valor aqui
-// pode ser string formatada (duração), que o ticker não representa.
-function StatCard({
-	label,
-	value,
-	sub,
-}: {
-	label: string;
-	value: string;
-	sub?: string;
-}) {
-	return (
-		<Card>
-			<CardContent className="flex flex-col gap-1 p-4">
-				<p className="text-muted-foreground text-xs uppercase tracking-wide">
-					{label}
-				</p>
-				<p className="font-semibold text-2xl tabular-nums">{value}</p>
-				{sub && <p className="text-muted-foreground text-xs">{sub}</p>}
-			</CardContent>
-		</Card>
-	);
-}
-
 export function ProductivityPanel({
 	summary,
 	operators,
@@ -70,17 +46,17 @@ export function ProductivityPanel({
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-				<StatCard
+				<KpiCard
 					label="Concluídas hoje"
 					sub={formatUnits(summary.unitsToday)}
-					value={formatCount(summary.completedToday)}
+					value={summary.completedToday}
 				/>
-				<StatCard
+				<KpiCard
 					label="Concluídas · 7 dias"
 					sub={formatUnits(summary.unitsWeek)}
-					value={formatCount(summary.completedWeek)}
+					value={summary.completedWeek}
 				/>
-				<StatCard
+				<KpiCard
 					label="Tempo médio de sessão"
 					sub="últimos 7 dias"
 					value={formatSessionDuration(summary.avgSessionSeconds)}

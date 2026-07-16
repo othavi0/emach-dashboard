@@ -33,7 +33,9 @@ export function KpiCard({
 	format,
 }: {
 	label: string;
-	value: number;
+	// string = valor já formatado (ex: duração "1h 12min") — renderiza estático,
+	// sem NumberTicker (o ticker só anima/formata números).
+	value: number | string;
 	sub?: ReactNode;
 	delta?: number | null;
 	tone?: "default" | "warning" | "destructive";
@@ -56,7 +58,11 @@ export function KpiCard({
 						tone === "destructive" && "text-destructive"
 					)}
 				>
-					<NumberTicker format={format} value={value} />
+					{typeof value === "number" ? (
+						<NumberTicker format={format} value={value} />
+					) : (
+						value
+					)}
 				</p>
 				{delta == null ? (
 					sub && <p className="text-muted-foreground text-xs">{sub}</p>
