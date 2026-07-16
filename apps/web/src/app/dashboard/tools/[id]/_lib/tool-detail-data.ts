@@ -8,7 +8,7 @@ import { category, toolCategory } from "@emach/db/schema/categories";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
 import { orderItem } from "@emach/db/schema/orders";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, type SQL, sql } from "drizzle-orm";
 import { cache } from "react";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { requireCapability } from "@/lib/permissions";
@@ -88,6 +88,9 @@ export interface ToolDetail {
 	categories: ToolDetailCategory[];
 	images: ToolDetailImage[];
 	orderedVariantIds: string[];
+	// Variantes com estoque > 0 em QUALQUER filial (sem branch-scope; ver
+	// comentário na query).
+	stockedVariantIds: string[];
 	stockRows: ToolStockRow[];
 	stockSummary: ToolStockSummary;
 	tool: ToolDetailRow;
@@ -105,11 +108,17 @@ export const getToolDetail = cache(
 			return null;
 		}
 
-		// Condição de scope para stock_level: super_admin vê todas as filiais.
-		const stockScopeCondition =
-			scope.kind === "scoped" && scope.branchIds.length > 0
-				? inArray(stockLevel.branchId, scope.branchIds)
-				: undefined;
+		// Condição de scope para stock_level: super_admin (kind "all") vê todas
+		// as filiais; scoped sem filial é cego (fail-closed, como
+		// branchCondForColumn em branch-scope.ts — não `undefined`, que abriria
+		// o estoque de todas as filiais pra quem não tem vínculo).
+		let stockScopeCondition: SQL | undefined;
+		if (scope.kind === "scoped") {
+			stockScopeCondition =
+				scope.branchIds.length > 0
+					? inArray(stockLevel.branchId, scope.branchIds)
+					: sql`false`;
+		}
 
 		const [
 			categories,
@@ -119,6 +128,7 @@ export const getToolDetail = cache(
 			stockRows,
 			orderedRows,
 			cartRows,
+			stockedRows,
 		] = await Promise.all([
 			db
 				.select({
@@ -199,6 +209,16 @@ export const getToolDetail = cache(
 				FROM cart_event
 				WHERE tool_id = ${id}
 			`),
+			// SEM escopo de filial, de propósito: alimenta o bloqueio de exclusão
+			// da tab de variantes (fato de catálogo — "tem estoque em alguma
+			// filial" — não expõe quantidade nem filial). Escopar aqui deixaria o
+			// ícone de excluir habilitado pra quem não vê a filial com estoque,
+			// mentindo sobre o bloqueio que o server aplica globalmente.
+			db
+				.selectDistinct({ variantId: stockLevel.variantId })
+				.from(stockLevel)
+				.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
+				.where(and(eq(toolVariant.toolId, id), gt(stockLevel.quantity, 0))),
 		]);
 
 		const stockSummary = computeStockSummary(stockRows);
@@ -208,6 +228,7 @@ export const getToolDetail = cache(
 			categories,
 			images,
 			orderedVariantIds: orderedRows.map((r) => r.variantId),
+			stockedVariantIds: stockedRows.map((r) => r.variantId),
 			variants,
 			attributes: attributes.map((a) => ({
 				...a,

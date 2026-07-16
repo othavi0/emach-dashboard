@@ -6,9 +6,10 @@ import {
 	toolAttributeValue,
 } from "@emach/db/schema/attributes";
 import { toolCategory } from "@emach/db/schema/categories";
+import { stockLevel } from "@emach/db/schema/inventory";
 import { orderItem } from "@emach/db/schema/orders";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
@@ -42,6 +43,37 @@ import {
 	primaryCategoryIncompleteError,
 	type ToolsFiltersInput,
 } from "./data";
+
+// Erro de negócio lançado dentro de transação pra abortar com rollback e
+// mensagem amigável (o catch genérico mapeia por instanceof).
+class VariantMutationBlockedError extends Error {}
+
+// Mapeamento compartilhado dos erros do sync de tool/variantes (create/update).
+function mapToolMutationError(error: unknown): { ok: false; error: string } {
+	if (error instanceof VariantMutationBlockedError) {
+		return { ok: false, error: error.message };
+	}
+	const pg = getPgError(error);
+	if (pg?.code === "23505") {
+		if (pg.constraint === "tool_variant_barcode_key") {
+			return {
+				ok: false,
+				error: "Código de barras já cadastrado em outra variante",
+			};
+		}
+		return { ok: false, error: "SKU já existe para outra variante" };
+	}
+	// Backstop do FK restrict (order_item.variant_id) caso algum caminho de
+	// deleção escape dos guards explícitos.
+	if (pg?.code === "23503") {
+		return {
+			ok: false,
+			error:
+				"Uma variante removida tem vínculos (pedidos) e não pode ser excluída.",
+		};
+	}
+	return { ok: false, error: actionErrorMessage(error) };
+}
 
 export async function fetchToolsPageAction(args: {
 	filters: ToolsFiltersInput;
@@ -154,17 +186,7 @@ export async function createTool(
 			}
 		});
 	} catch (error) {
-		const pg = getPgError(error);
-		if (pg?.code === "23505") {
-			if (pg.constraint === "tool_variant_barcode_key") {
-				return {
-					ok: false,
-					error: "Código de barras já cadastrado em outra variante",
-				};
-			}
-			return { ok: false, error: "SKU já existe para outra variante" };
-		}
-		return { ok: false, error: actionErrorMessage(error) };
+		return mapToolMutationError(error);
 	}
 
 	await logUserActivity({
@@ -242,6 +264,40 @@ export async function updateTool(
 				.map((r) => r.id)
 				.filter((vid) => !incomingVariantIds.has(vid));
 			if (variantsToDelete.length > 0) {
+				// Espelha resolveVariantDeletion: variante com pedidos ou estoque não
+				// pode ser removida pelo sync do form (o cascade de stock_level
+				// apagaria estoque físico sem movimento; ver #335/#336).
+				const [orderedBlock] = await tx
+					.select({ sku: toolVariant.sku })
+					.from(orderItem)
+					.innerJoin(toolVariant, eq(toolVariant.id, orderItem.variantId))
+					.where(inArray(orderItem.variantId, variantsToDelete))
+					.limit(1);
+				if (orderedBlock) {
+					throw new VariantMutationBlockedError(
+						`A variante ${orderedBlock.sku} tem pedidos e não pode ser removida. Oculte-a do site.`
+					);
+				}
+				// FOR UPDATE trava as linhas de estoque existentes entre o check e o
+				// delete (mesmo rigor do deleteToolVariant; insert concorrente de
+				// stock_level novo permanece como janela residual aceita).
+				const [stockedBlock] = await tx
+					.select({ sku: toolVariant.sku })
+					.from(stockLevel)
+					.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
+					.where(
+						and(
+							inArray(stockLevel.variantId, variantsToDelete),
+							gt(stockLevel.quantity, 0)
+						)
+					)
+					.limit(1)
+					.for("update");
+				if (stockedBlock) {
+					throw new VariantMutationBlockedError(
+						`A variante ${stockedBlock.sku} tem estoque em filial. Zere o estoque antes de removê-la.`
+					);
+				}
 				await tx
 					.delete(toolVariant)
 					.where(
@@ -266,10 +322,19 @@ export async function updateTool(
 			for (const v of parsed.data.variants) {
 				const norm = normalizeVariantValues(v);
 				if (v.id) {
-					await tx
+					// toolId no WHERE barra overwrite cross-tool via id forjado (#338);
+					// zero linhas afetadas = payload inválido → rollback (senão o tool
+					// poderia terminar sem variante default).
+					const updated = await tx
 						.update(toolVariant)
 						.set(norm)
-						.where(eq(toolVariant.id, v.id));
+						.where(and(eq(toolVariant.id, v.id), eq(toolVariant.toolId, id)))
+						.returning({ id: toolVariant.id });
+					if (updated.length === 0) {
+						throw new VariantMutationBlockedError(
+							"Variante não pertence a esta ferramenta"
+						);
+					}
 				} else {
 					await tx.insert(toolVariant).values({
 						id: crypto.randomUUID(),
@@ -314,7 +379,7 @@ export async function updateTool(
 					await tx
 						.update(toolImage)
 						.set({ sortOrder: i, url: img.url })
-						.where(eq(toolImage.id, img.id));
+						.where(and(eq(toolImage.id, img.id), eq(toolImage.toolId, id)));
 				} else {
 					await tx.insert(toolImage).values({
 						id: crypto.randomUUID(),
@@ -384,17 +449,7 @@ export async function updateTool(
 			}
 		});
 	} catch (error) {
-		const pg = getPgError(error);
-		if (pg?.code === "23505") {
-			if (pg.constraint === "tool_variant_barcode_key") {
-				return {
-					ok: false,
-					error: "Código de barras já cadastrado em outra variante",
-				};
-			}
-			return { ok: false, error: "SKU já existe para outra variante" };
-		}
-		return { ok: false, error: actionErrorMessage(error) };
+		return mapToolMutationError(error);
 	}
 
 	if (toDelete.length > 0) {
@@ -578,10 +633,20 @@ export async function setDefaultToolVariant(input: {
 				.update(toolVariant)
 				.set({ isDefault: false, updatedAt: new Date() })
 				.where(eq(toolVariant.toolId, toolId));
-			await tx
+			// toolId no WHERE + checagem de linha afetada: variantId de outra
+			// ferramenta abortava com a ferramenta alvo zerada de default (#337).
+			const updated = await tx
 				.update(toolVariant)
 				.set({ isDefault: true, updatedAt: new Date() })
-				.where(eq(toolVariant.id, variantId));
+				.where(
+					and(eq(toolVariant.id, variantId), eq(toolVariant.toolId, toolId))
+				)
+				.returning({ id: toolVariant.id });
+			if (updated.length === 0) {
+				throw new VariantMutationBlockedError(
+					"Variante não encontrada para esta ferramenta"
+				);
+			}
 		});
 
 		revalidatePath(`/dashboard/tools/${toolId}`);
@@ -589,6 +654,9 @@ export async function setDefaultToolVariant(input: {
 
 		return { ok: true, data: undefined };
 	} catch (error) {
+		if (error instanceof VariantMutationBlockedError) {
+			return { ok: false, error: error.message };
+		}
 		logger.error("setDefaultToolVariant falhou", error);
 		return { ok: false, error: "Não foi possível marcar como padrão" };
 	}
@@ -675,6 +743,17 @@ export async function deleteToolVariant(input: {
 				.from(orderItem)
 				.where(eq(orderItem.variantId, variantId));
 
+			// stock_level.variant_id é ON DELETE CASCADE: excluir variante com
+			// estoque apagaria as quantidades sem movimento de ajuste (#335).
+			// Sem agregação na query: FOR UPDATE não convive com SUM, e o lock
+			// nas linhas de estoque fecha a janela check→delete.
+			const stockedRows = await tx
+				.select({ quantity: stockLevel.quantity })
+				.from(stockLevel)
+				.where(eq(stockLevel.variantId, variantId))
+				.for("update");
+			const stockQty = stockedRows.reduce((sum, r) => sum + r.quantity, 0);
+
 			const siblings = await tx
 				.select({
 					id: toolVariant.id,
@@ -691,6 +770,7 @@ export async function deleteToolVariant(input: {
 				isDefault: v.isDefault,
 				hasOrders: (ordered?.n ?? 0) > 0,
 				siblings,
+				stockQty,
 			});
 			if (!decision.allowed) {
 				return { error: decision.error, ok: false as const };

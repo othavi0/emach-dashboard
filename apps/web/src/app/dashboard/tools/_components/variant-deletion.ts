@@ -7,6 +7,7 @@ interface VariantDeletionInput {
 	hasOrders: boolean;
 	isDefault: boolean;
 	siblings: VariantSibling[];
+	stockQty: number;
 	variantId: string;
 }
 
@@ -24,12 +25,19 @@ export function resolveVariantDeletion({
 	isDefault,
 	hasOrders,
 	siblings,
+	stockQty,
 }: VariantDeletionInput): VariantDeletionDecision {
 	if (hasOrders) {
 		return {
 			allowed: false,
 			error:
 				"Esta variante tem pedidos e não pode ser excluída. Oculte-a do site.",
+		};
+	}
+	if (stockQty > 0) {
+		return {
+			allowed: false,
+			error: `Esta variante tem ${stockQty} un em estoque. Zere o estoque nas filiais antes de excluir.`,
 		};
 	}
 	if (siblings.length <= 1) {
