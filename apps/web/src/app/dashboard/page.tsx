@@ -11,6 +11,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ActivityFeed } from "@/components/activity-feed";
 import { PendingPanel, type PendingTab } from "@/components/pending-panel";
+import { getUserBranchScope } from "@/lib/branch-scope";
 import { formatDateShort } from "@/lib/format/datetime";
 import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
@@ -40,6 +41,8 @@ import {
 	fetchReorderTable,
 	fetchStockFlow,
 } from "./dashboard-data";
+import { LateOrdersToast } from "./orders/_components/late-orders-toast";
+import { getLateOrdersCount } from "./orders/data";
 
 export const metadata: Metadata = {
 	title: "Visão geral",
@@ -69,13 +72,21 @@ async function DashboardPageContent({
 	const branchId = parseBranchParam(sp.branch);
 	const period = parsePeriodParam(sp.period);
 
-	const [canReadReviews, canReadPromotions] = await Promise.all([
-		can(session, "reviews.read"),
-		can(session, "promotions.read"),
-	]);
+	const [scope, canReadReviews, canReadPromotions, canReadOrders] =
+		await Promise.all([
+			getUserBranchScope(session),
+			can(session, "reviews.read"),
+			can(session, "promotions.read"),
+			can(session, "orders.read"),
+		]);
+	// Toast de atrasados na overview (spec 2026-07-13, régua late ≥72h por etapa).
+	// Sem AutoRefresh aqui: a overview tem gráficos pesados e é tela de análise,
+	// não fila operacional — o alerta no load + refresh-on-navegação basta.
+	const lateCount = canReadOrders ? await getLateOrdersCount(scope) : 0;
 
 	return (
 		<main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-2 py-4">
+			<LateOrdersToast count={lateCount} />
 			<section className="flex flex-wrap items-end justify-between gap-4">
 				<div className="flex flex-col gap-1">
 					<p className="text-muted-foreground text-sm">Painel</p>
