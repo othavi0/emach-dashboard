@@ -31,6 +31,11 @@ function formatCount(n: number): string {
 	return n.toLocaleString("pt-BR");
 }
 
+function formatUnits(n: number): string {
+	const label = n === 1 ? "unidade separada" : "unidades separadas";
+	return `${formatCount(n)} ${label}`;
+}
+
 // Mesmo markup do KpiCard do dashboard home, sem NumberTicker: o valor aqui
 // pode ser string formatada (duração), que o ticker não representa.
 function StatCard({
@@ -67,12 +72,12 @@ export function ProductivityPanel({
 			<div className="grid grid-cols-1 gap-3 md:grid-cols-3">
 				<StatCard
 					label="Concluídas hoje"
-					sub={`${formatCount(summary.unitsToday)} unidades separadas`}
+					sub={formatUnits(summary.unitsToday)}
 					value={formatCount(summary.completedToday)}
 				/>
 				<StatCard
 					label="Concluídas · 7 dias"
-					sub={`${formatCount(summary.unitsWeek)} unidades separadas`}
+					sub={formatUnits(summary.unitsWeek)}
 					value={formatCount(summary.completedWeek)}
 				/>
 				<StatCard
