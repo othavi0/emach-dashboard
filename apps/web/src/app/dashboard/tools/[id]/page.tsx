@@ -70,6 +70,7 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 					images={detail.images}
 					stockSummary={detail.stockSummary}
 					tool={detail.tool}
+					variants={detail.variants}
 				/>
 			),
 		},
