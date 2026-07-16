@@ -75,11 +75,6 @@ export function ToolSpecs({
 		...fiscal.emptyLabels,
 	];
 
-	const nothingFilled =
-		fisicas.rows.length === 0 &&
-		fiscal.rows.length === 0 &&
-		attributeSections.every((s) => s.filled.length === 0);
-
 	return (
 		<TooltipProvider delay={300}>
 			<div className="flex flex-col gap-5">
@@ -144,12 +139,6 @@ export function ToolSpecs({
 							</LeaderRow>
 						))}
 					</SpecSection>
-				)}
-
-				{nothingFilled && (
-					<p className="text-muted-foreground text-sm">
-						Nenhuma especificação preenchida.
-					</p>
 				)}
 
 				{emptyLabels.length > 0 && (
