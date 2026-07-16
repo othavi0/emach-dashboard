@@ -6,7 +6,8 @@
 ## ⛔ Banco único dev=prod (incidente 2026-07)
 
 - O Supabase deste repo é ÚNICO e COMPARTILHADO (dev = prod = ecommerce). NUNCA `seed`/`truncate`/`drop`/reset/`db:push` destrutivo sem autorização explícita do user NESTA sessão — `db:seed-demo` já truncou 28 tabelas via Task de subagente que não recebeu esta restrição.
-- Todo subagente/Task que toca banco recebe esta restrição COLADA no prompt (subagente não herda este arquivo).
+- **Write pontual de linha é OK sem autorização caso-a-caso** — o dado povoado é seed descartável (`EM-TEST-*`/`EM-2026-*`). Vale INSERT/UPDATE/DELETE de poucas linhas via app ou script one-off, ex: fabricar um estado que o seed não tem pra fechar smoke visual (2026-07-16: exceção de picking pra provar a linha de exceção da overview, #329). **Reverter o que criou ao terminar** (guardar o id e deletar; preferível ao fluxo do app, que resolve pra frente e deixa histórico). A fronteira é **volume + irreversibilidade**, não o ato de escrever: o destrutivo em massa do item acima (reset/truncate/drop/seed) continua exigindo autorização explícita.
+- Todo subagente/Task que toca banco recebe **as duas** restrições acima COLADAS no prompt (subagente não herda este arquivo).
 - PII/credenciais de bootstrap do reset de 2026-06 permanecem no **histórico git** (arquivo `RESET-PLAN.md` em commits anteriores a `03984800`; a working tree está limpa desde então e o arquivo foi removido em 2026-07-13 — purge de histórico nunca foi feito).
 - CWD é a RAIZ do monorepo (turbo/bun) — nunca `cd apps/web`; paths absolutos (3 violações medidas na auditoria 07/06).
 
