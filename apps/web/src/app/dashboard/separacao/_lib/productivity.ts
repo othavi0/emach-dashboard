@@ -24,13 +24,19 @@ export function formatSessionDuration(seconds: number | null): string {
 	return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}min`;
 }
 
-/** Percentual de exceção com 1 casa em pt-BR ("4,6%"); 0 ou denominador 0 → "0%". */
+/**
+ * Percentual de exceção com 1 casa FIXA em pt-BR ("4,6%", "5,0%") — casa fixa
+ * mantém a coluna alinhada entre linhas; 0 ou denominador 0 → "0%" seco.
+ */
 export function formatExceptionRate(exceptions: number, total: number): string {
 	if (total === 0 || exceptions === 0) {
 		return "0%";
 	}
 	const pct = (exceptions / total) * 100;
-	return `${pct.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+	return `${pct.toLocaleString("pt-BR", {
+		maximumFractionDigits: 1,
+		minimumFractionDigits: 1,
+	})}%`;
 }
 
 export type ExceptionTone = "muted" | "success" | "warning";
