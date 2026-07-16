@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getUserBranchScope } from "@/lib/branch-scope";
 import { requireCapability } from "@/lib/permissions";
 import { LateOrdersToast } from "./_components/late-orders-toast";
 import { OrderFiltersPanel } from "./_components/order-list-filters";
@@ -52,7 +53,11 @@ export default function OrdersPage({ searchParams }: PageProps) {
 }
 
 async function OrdersPageContent({ searchParams }: PageProps) {
-	await requireCapability("orders.read");
+	const session = await requireCapability("orders.read");
+	// Só quem enxerga a triagem pode atribuir filial em lote: super_admin (vê
+	// tudo) ou admin (includeUnassigned). `user` nunca — a ação nem aparece.
+	const scope = await getUserBranchScope(session);
+	const canAssignBranch = scope.kind === "all" || scope.includeUnassigned;
 	const raw = await searchParams;
 	const parsed = ordersListFiltersSchema.safeParse(raw);
 	const data = parsed.success ? parsed.data : ordersListFiltersSchema.parse({});
@@ -121,6 +126,8 @@ async function OrdersPageContent({ searchParams }: PageProps) {
 		<>
 			<LateOrdersToast count={counts.late ?? 0} />
 			<OrdersView
+				branches={branches}
+				canAssignBranch={canAssignBranch}
 				filters={pageFilters}
 				filtersSlot={
 					<OrderFiltersPanel

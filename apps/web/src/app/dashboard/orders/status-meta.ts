@@ -12,6 +12,16 @@ export const DEFAULT_ORDER_TAB = "paid";
 // (server-tainted) — client component nunca pode importar de lá (ADR-0015).
 export const CARRIER_NONE = "__none__";
 
+// "__none__" no filtro de Filial = pedidos na triagem (branch_id IS NULL),
+// ainda não roteados a partir do ecommerce. Mesmo racional client-safe do
+// CARRIER_NONE; valor coincide mas o parâmetro de URL é outro (branchId).
+export const BRANCH_NONE = "__none__";
+
+// Teto da atribuição de filial em lote (1 página da listagem; a triagem é o
+// caso de uso). Vive aqui (client-safe) porque o schema zod (server) e o
+// BranchPickerDialog (client) compartilham o limite.
+export const BULK_ASSIGN_LIMIT = 20;
+
 export type TabLateness = "only";
 
 export interface OrderTabDef {
