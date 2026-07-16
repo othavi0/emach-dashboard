@@ -15,6 +15,7 @@ import { toDate } from "@emach/db/utils";
 import { eq, sql } from "drizzle-orm";
 import {
 	type BranchScope,
+	branchAndFilter,
 	isBlindScope,
 	orderBranchCondition,
 } from "@/lib/branch-scope";
@@ -506,4 +507,152 @@ export async function getActivePickingForUser(
 		pickedUnits: Number(row.picked_units),
 		totalUnits: Number(row.total_units),
 	};
+}
+
+// ---------------------------------------------------------------------------
+// Produtividade (issue #324) — leituras agregadas, tab "Produtividade".
+// Janela: hoje (dia local America/Sao_Paulo) + últimos 7 dias corridos
+// (hoje + 6 anteriores). "Concluída" = completed OU exception (sessão
+// finalizada); canceled/in_progress ficam fora de tudo.
+// ---------------------------------------------------------------------------
+
+export interface PickingProductivitySummary {
+	avgSessionSeconds: number | null;
+	completedToday: number;
+	completedWeek: number;
+	unitsToday: number;
+	unitsWeek: number;
+}
+
+/**
+ * KPIs agregados do painel. Unidades = SUM(qty_picked) dos itens das sessões
+ * finalizadas na janela — NÃO contar order_picking_scan: re-bipe de item já
+ * completo insere scan sem incrementar unidade (registerScan, caso
+ * alreadyFull) e supercontaria.
+ */
+export async function fetchPickingProductivitySummary(
+	scope: BranchScope
+): Promise<PickingProductivitySummary> {
+	if (isBlindScope(scope)) {
+		return {
+			completedToday: 0,
+			completedWeek: 0,
+			unitsToday: 0,
+			unitsWeek: 0,
+			avgSessionSeconds: null,
+		};
+	}
+
+	const branchFragment = branchAndFilter(scope, sql`op.branch_id`);
+
+	const result = await db.execute<{
+		completed_today: number;
+		completed_week: number;
+		units_today: number;
+		units_week: number;
+		avg_session_seconds: number | null;
+	}>(sql`
+		WITH bounds AS (
+			SELECT date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo')
+				AT TIME ZONE 'America/Sao_Paulo' AS today_start
+		)
+		SELECT
+			COUNT(*) FILTER (WHERE op.completed_at >= b.today_start)::int AS completed_today,
+			COUNT(*)::int AS completed_week,
+			COALESCE(SUM(items.units) FILTER (WHERE op.completed_at >= b.today_start), 0)::int AS units_today,
+			COALESCE(SUM(items.units), 0)::int AS units_week,
+			ROUND(AVG(EXTRACT(EPOCH FROM op.completed_at - op.started_at)))::int AS avg_session_seconds
+		FROM order_picking op
+		CROSS JOIN bounds b
+		LEFT JOIN LATERAL (
+			SELECT COALESCE(SUM(pi.qty_picked), 0)::int AS units
+			FROM order_picking_item pi
+			WHERE pi.picking_id = op.id
+		) items ON true
+		WHERE op.status IN ('completed', 'exception')
+			AND op.completed_at >= b.today_start - interval '6 days'
+			${branchFragment}
+	`);
+
+	const row = result.rows[0];
+	return {
+		completedToday: Number(row?.completed_today ?? 0),
+		completedWeek: Number(row?.completed_week ?? 0),
+		unitsToday: Number(row?.units_today ?? 0),
+		unitsWeek: Number(row?.units_week ?? 0),
+		avgSessionSeconds:
+			row?.avg_session_seconds == null ? null : Number(row.avg_session_seconds),
+	};
+}
+
+export interface PickingOperatorProductivity {
+	avgSessionSeconds: number | null;
+	completedToday: number;
+	completedWeek: number;
+	exceptionCount: number;
+	operatorKey: string;
+	pickerName: string;
+	unitsWeek: number;
+}
+
+/**
+ * Quebra por operador (últimos 7 dias). Agrupa por picker_user_id (picker_name
+ * é snapshot da sessão — user renomeado não duplica linha; exibe o nome mais
+ * recente). Sessões com picker_user_id nulo (user deletado) agrupam pelo
+ * próprio nome, com prefixo "name:" na chave pra não colidir com ids.
+ */
+export async function fetchPickingProductivityByOperator(
+	scope: BranchScope
+): Promise<PickingOperatorProductivity[]> {
+	if (isBlindScope(scope)) {
+		return [];
+	}
+
+	const branchFragment = branchAndFilter(scope, sql`op.branch_id`);
+
+	const result = await db.execute<{
+		operator_key: string;
+		picker_name: string;
+		completed_today: number;
+		completed_week: number;
+		avg_session_seconds: number | null;
+		units_week: number;
+		exception_count: number;
+	}>(sql`
+		WITH bounds AS (
+			SELECT date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo')
+				AT TIME ZONE 'America/Sao_Paulo' AS today_start
+		)
+		SELECT
+			COALESCE(op.picker_user_id, 'name:' || op.picker_name) AS operator_key,
+			(array_agg(op.picker_name ORDER BY op.completed_at DESC))[1] AS picker_name,
+			COUNT(*) FILTER (WHERE op.completed_at >= b.today_start)::int AS completed_today,
+			COUNT(*)::int AS completed_week,
+			ROUND(AVG(EXTRACT(EPOCH FROM op.completed_at - op.started_at)))::int AS avg_session_seconds,
+			COALESCE(SUM(items.units), 0)::int AS units_week,
+			COUNT(*) FILTER (WHERE op.status = 'exception')::int AS exception_count
+		FROM order_picking op
+		CROSS JOIN bounds b
+		LEFT JOIN LATERAL (
+			SELECT COALESCE(SUM(pi.qty_picked), 0)::int AS units
+			FROM order_picking_item pi
+			WHERE pi.picking_id = op.id
+		) items ON true
+		WHERE op.status IN ('completed', 'exception')
+			AND op.completed_at >= b.today_start - interval '6 days'
+			${branchFragment}
+		GROUP BY COALESCE(op.picker_user_id, 'name:' || op.picker_name)
+		ORDER BY completed_week DESC, picker_name ASC
+	`);
+
+	return result.rows.map((row) => ({
+		operatorKey: row.operator_key,
+		pickerName: row.picker_name,
+		completedToday: Number(row.completed_today),
+		completedWeek: Number(row.completed_week),
+		avgSessionSeconds:
+			row.avg_session_seconds == null ? null : Number(row.avg_session_seconds),
+		unitsWeek: Number(row.units_week),
+		exceptionCount: Number(row.exception_count),
+	}));
 }

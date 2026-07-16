@@ -1,13 +1,5 @@
 "use client";
 
-import {
-	Tabs,
-	TabsCountBadge,
-	TabsList,
-	TabsTrigger,
-} from "@emach/ui/components/tabs";
-import Link from "next/link";
-
 import { BulkActionBar } from "@/components/bulk/bulk-action-bar";
 import { SelectableItem } from "@/components/bulk/selectable-item";
 import { SelectionToolbar } from "@/components/bulk/selection-toolbar";
@@ -17,10 +9,9 @@ import { useInfiniteList } from "@/lib/use-infinite-list";
 import { fetchPickingQueuePageAction } from "../actions";
 import type { PickingQueueRow } from "../data";
 import { PickingOrderCard } from "./picking-order-card";
+import { SeparacaoTabs } from "./separacao-tabs";
 
 type Tab = "a_separar" | "em_separacao" | "excecoes";
-
-const BASE = "/dashboard/separacao";
 
 const TAB_EMPTY: Record<Tab, string> = {
 	a_separar: "Nenhum pedido aguardando separação.",
@@ -66,30 +57,11 @@ export function PickingQueue({
 
 	return (
 		<div>
-			{/* Tabs split: esquerda (fila principal) · direita (seleção + exceções) */}
-			<div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-				<Tabs value={activeTab}>
-					<TabsList scrollable>
-						<TabsTrigger
-							nativeButton={false}
-							render={<Link href={`${BASE}?tab=a_separar`} />}
-							value="a_separar"
-						>
-							A separar
-							<TabsCountBadge value={counts.a_separar} />
-						</TabsTrigger>
-						<TabsTrigger
-							nativeButton={false}
-							render={<Link href={`${BASE}?tab=em_separacao`} />}
-							value="em_separacao"
-						>
-							Separando
-							<TabsCountBadge value={counts.em_separacao} />
-						</TabsTrigger>
-					</TabsList>
-				</Tabs>
-				<div className="flex items-center gap-2">
-					{selectable && (
+			<SeparacaoTabs
+				activeTab={activeTab}
+				counts={counts}
+				toolbar={
+					selectable ? (
 						<SelectionToolbar
 							active={sel.active}
 							allLoadedSelected={sel.allLoadedSelected}
@@ -100,21 +72,9 @@ export function PickingQueue({
 								sel.allLoadedSelected ? sel.clear : sel.selectAllLoaded
 							}
 						/>
-					)}
-					<Tabs value={activeTab}>
-						<TabsList>
-							<TabsTrigger
-								nativeButton={false}
-								render={<Link href={`${BASE}?tab=excecoes`} />}
-								value="excecoes"
-							>
-								Exceções
-								<TabsCountBadge value={counts.excecoes} />
-							</TabsTrigger>
-						</TabsList>
-					</Tabs>
-				</div>
-			</div>
+					) : undefined
+				}
+			/>
 
 			{/* Grid de cards */}
 			{items.length === 0 && !pending && !error ? (

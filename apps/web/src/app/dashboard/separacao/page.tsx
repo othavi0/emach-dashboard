@@ -9,8 +9,12 @@ import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { LateOrdersToast } from "../orders/_components/late-orders-toast";
 import { getLateOrdersCount } from "../orders/data";
 import { PickingQueue } from "./_components/picking-queue";
+import { ProductivityPanel } from "./_components/productivity-panel";
 import { ResumeBanner } from "./_components/resume-banner";
+import { type SeparacaoTab, SeparacaoTabs } from "./_components/separacao-tabs";
 import {
+	fetchPickingProductivityByOperator,
+	fetchPickingProductivitySummary,
 	fetchPickingQueueCounts,
 	fetchPickingQueuePage,
 	getActivePickingForUser,
@@ -20,7 +24,16 @@ export const metadata: Metadata = {
 	title: "Separação",
 };
 
-type Tab = "a_separar" | "em_separacao" | "excecoes";
+const TABS: SeparacaoTab[] = [
+	"a_separar",
+	"em_separacao",
+	"excecoes",
+	"produtividade",
+];
+
+function clampTab(raw: string | undefined): SeparacaoTab {
+	return TABS.find((t) => t === raw) ?? "a_separar";
+}
 
 interface PageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -36,16 +49,27 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 
 	const raw = await searchParams;
 	const rawTab = Array.isArray(raw.tab) ? raw.tab[0] : raw.tab;
-	const activeTab: Tab =
-		rawTab === "em_separacao" || rawTab === "excecoes" ? rawTab : "a_separar";
+	const activeTab = clampTab(rawTab);
 
-	// Contadores reais (COUNT) das 3 tabs + apenas a página da tab ativa.
-	const [counts, initialResult, activePicking, lateCount] = await Promise.all([
-		fetchPickingQueueCounts(scope),
-		fetchPickingQueuePage({ cursor: null, scope, tab: activeTab }),
-		getActivePickingForUser(session.user.id, scope),
-		getLateOrdersCount(scope),
-	]);
+	// Contadores reais (COUNT) das 3 tabs de fila + o dado da tab ativa.
+	// Produtividade busca os agregados; tabs de fila buscam a 1ª página.
+	const [counts, activePicking, lateCount, queuePage, summary, operators] =
+		await Promise.all([
+			fetchPickingQueueCounts(scope),
+			getActivePickingForUser(session.user.id, scope),
+			getLateOrdersCount(scope),
+			activeTab === "produtividade"
+				? null
+				: fetchPickingQueuePage({ cursor: null, scope, tab: activeTab }),
+			activeTab === "produtividade"
+				? fetchPickingProductivitySummary(scope)
+				: null,
+			activeTab === "produtividade"
+				? fetchPickingProductivityByOperator(scope)
+				: null,
+		]);
+
+	const showPrint = activeTab === "a_separar" || activeTab === "em_separacao";
 
 	return (
 		<>
@@ -54,7 +78,7 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 			<PageHeader
 				action={
 					<div className="flex items-center gap-6">
-						{activeTab !== "excecoes" && (
+						{showPrint && (
 							<a
 								className={buttonVariants({ size: "sm", variant: "outline" })}
 								href={`/dashboard/orders/picking-list?tab=${activeTab}`}
@@ -99,12 +123,21 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 
 			{activePicking && <ResumeBanner activePicking={activePicking} />}
 
-			<PickingQueue
-				activeTab={activeTab}
-				counts={counts}
-				initial={initialResult.items}
-				initialCursor={initialResult.nextCursor}
-			/>
+			{activeTab === "produtividade" ? (
+				<>
+					<SeparacaoTabs activeTab="produtividade" counts={counts} />
+					{summary && operators && (
+						<ProductivityPanel operators={operators} summary={summary} />
+					)}
+				</>
+			) : (
+				<PickingQueue
+					activeTab={activeTab}
+					counts={counts}
+					initial={queuePage?.items ?? []}
+					initialCursor={queuePage?.nextCursor ?? null}
+				/>
+			)}
 		</>
 	);
 }
