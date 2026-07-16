@@ -141,6 +141,11 @@ const CHECKS: { name: string; query: string }[] = [
 			"SELECT count(*) AS n FROM (SELECT barcode FROM tool_variant GROUP BY barcode HAVING count(*) > 1) d",
 	},
 	{
+		name: "tool_variant com barcode fora do formato EAN-13",
+		query:
+			"SELECT count(*) AS n FROM tool_variant WHERE barcode !~ '^[0-9]{13}$'",
+	},
+	{
 		name: "tool active fora da régua de ativação (specs<4, imagens<3 ou sem ncm)",
 		query: `
 			SELECT count(*) AS n
