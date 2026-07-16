@@ -43,6 +43,7 @@ Prefixo GS1 Brasil mock `7891234` + item ref sequencial + dígito verificador. M
 - **Seed:** `packages/db/scripts/seed/catalog.ts` troca os `barcode:` hardcoded pelos EANs da tabela acima.
 - **Verify:** `packages/db/scripts/seed/verify.ts` ganha check `barcode !~ '^[0-9]{13}$'` → falha (mantém os checks de nulo/duplicado existentes).
 - **Separação:** o matching de scan é **exclusivamente** por `barcode` (`picking-logic.ts:18`) — passa a aceitar os EANs sem mudança de código. **Mudança de comportamento intencional:** hoje digitar o SKU no campo de bipe funciona por acidente (barcode = sku); após o UPDATE, só o EAN coincide. É o comportamento correto (o campo lê o código de barras físico), mas quem testava digitando SKU vai precisar do EAN.
+- **Mesma mudança vale para as outras superfícies de scan/busca por barcode** (achado do review final): o scan da página de Estoque (`branch-stock-infinite.tsx` / `lookupVariantByBarcodeAction`) e a busca da listagem de Ferramentas casam pelo `tool_variant.barcode` — pós-UPDATE, aceitam o EAN (verificado no smoke) e não mais o SKU como "barcode". Sessões de picking **iniciadas antes** do UPDATE continuam casando pelo snapshot antigo (`variant_snapshot` jsonb) — by design.
 
 ### 2. Encoder + componente `BarcodeEan13`
 
