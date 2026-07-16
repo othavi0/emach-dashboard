@@ -5,7 +5,7 @@ import {
 	Ticket,
 	Wrench,
 } from "lucide-react";
-
+import { CopyButton } from "@/components/copy-button";
 import {
 	EntityKpisRow,
 	type KpiItem,
@@ -16,7 +16,6 @@ import {
 	fmtDateTime,
 	formatDiscount,
 } from "../../_components/_lib/format";
-import { CopyCodeButton } from "../../_components/copy-code-button";
 import type { PromotionDetail, PromotionStatus } from "../../data";
 
 const MARKER =
@@ -122,7 +121,7 @@ export function OverviewTab({ detail }: { detail: PromotionDetail }) {
 						<code className="rounded bg-muted px-2 py-1 font-mono text-foreground text-sm">
 							{detail.code}
 						</code>
-						<CopyCodeButton code={detail.code} />
+						<CopyButton label={`código ${detail.code}`} value={detail.code} />
 					</div>
 				) : null}
 
