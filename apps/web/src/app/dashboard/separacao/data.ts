@@ -477,6 +477,10 @@ export interface PickingProductivitySummary {
  * imprimir e efetivamente começar a bipar infla a duração média por pedido.
  * Sessão sem nenhum bipe (ex: todos os itens reportados ausentes sem scan) cai no
  * fallback started_at, preservando o comportamento anterior.
+ * Confirmações manuais (order_picking_scan.manual = true) CONTAM como 1º bipe
+ * de propósito — confirmação manual também é início de trabalho; filtrá-las
+ * faria a sessão cair no started_at (hora do claim), recriando a inflação
+ * que esta D13 elimina.
  */
 export async function fetchPickingProductivitySummary(
 	scope: BranchScope

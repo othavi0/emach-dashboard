@@ -11,7 +11,7 @@ import {
 } from "@emach/db/schema/orders";
 import { toolVariant } from "@emach/db/schema/tools";
 import { and, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { getUserBranchScope, orderInScope } from "@/lib/branch-scope";
@@ -20,6 +20,7 @@ import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { bulkSkipReasonFromError } from "../orders/_lib/bulk-eligibility";
 import { lockOrderAndAuthorize } from "../orders/actions";
+import { ORDERS_COUNTS_TAG } from "../orders/data";
 import {
 	BULK_PICKING_SKIP_LABEL,
 	bulkStartPickingSkipReason,
@@ -43,6 +44,9 @@ function revalidatePickingPaths(orderId: string): void {
 	revalidatePath("/dashboard/separacao");
 	revalidatePath(`/dashboard/separacao/${orderId}`);
 	revalidatePath(`/dashboard/orders/${orderId}`);
+	// Claim tira o pedido de "Pago" — a listagem de orders também precisa revalidar.
+	revalidatePath("/dashboard/orders");
+	revalidateTag(ORDERS_COUNTS_TAG, "max");
 }
 
 type PickingRow = typeof orderPicking.$inferSelect;

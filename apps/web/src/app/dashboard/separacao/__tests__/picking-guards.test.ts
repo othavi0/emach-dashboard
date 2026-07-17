@@ -12,6 +12,9 @@ vi.mock("@emach/db", () => ({
 vi.mock("../../orders/actions", () => ({
 	lockOrderAndAuthorize: mockLockOrderAndAuthorize,
 }));
+vi.mock("../../orders/data", () => ({
+	ORDERS_COUNTS_TAG: "orders-counts",
+}));
 vi.mock("next/cache", () => ({
 	revalidatePath: vi.fn(),
 	revalidateTag: vi.fn(),
