@@ -10,23 +10,29 @@ import {
 	orderStatusHistory,
 } from "@emach/db/schema/orders";
 import { toolVariant } from "@emach/db/schema/tools";
-import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { and, eq } from "drizzle-orm";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { getUserBranchScope, orderInScope } from "@/lib/branch-scope";
 import { getPgError } from "@/lib/db-error";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
+import { bulkSkipReasonFromError } from "../orders/_lib/bulk-eligibility";
 import { lockOrderAndAuthorize } from "../orders/actions";
-import { canFinalizePicking, matchPickItem } from "./_lib/picking-logic";
+import { ORDERS_COUNTS_TAG } from "../orders/data";
+import {
+	BULK_PICKING_SKIP_LABEL,
+	bulkStartPickingSkipReason,
+	canFinalizePicking,
+	matchPickItem,
+} from "./_lib/picking-logic";
 import {
 	fetchPickingQueuePage,
-	getActivePickingForUser,
 	getOrderBranchId,
 	getPickingForOrder,
 } from "./data";
-import type { ScanResult } from "./schema";
+import { bulkStartPickingSchema, type ScanResult } from "./schema";
 
 // ---------------------------------------------------------------------------
 // Internal helper
@@ -38,6 +44,9 @@ function revalidatePickingPaths(orderId: string): void {
 	revalidatePath("/dashboard/separacao");
 	revalidatePath(`/dashboard/separacao/${orderId}`);
 	revalidatePath(`/dashboard/orders/${orderId}`);
+	// Claim tira o pedido de "Pago" — a listagem de orders também precisa revalidar.
+	revalidatePath("/dashboard/orders");
+	revalidateTag(ORDERS_COUNTS_TAG, "max");
 }
 
 type PickingRow = typeof orderPicking.$inferSelect;
@@ -138,6 +147,53 @@ async function createPickingItems(
 	}
 }
 
+/**
+ * Miolo compartilhado de criação de sessão (startPicking + bulkStartPicking):
+ * insere a sessão in_progress no nome do ator, copia os itens do pedido e,
+ * quando o pedido ainda está "paid", transiciona pra "preparing" com history.
+ * O caller já validou status (paid/preparing) e branchId (non-null) antes de
+ * chamar — esta função não repete essas checagens.
+ */
+async function createPickingSession(
+	tx: Tx,
+	orderId: string,
+	branchId: string,
+	status: string,
+	user: SessionUser
+): Promise<string> {
+	const newPickingId = crypto.randomUUID();
+
+	await tx.insert(orderPicking).values({
+		id: newPickingId,
+		orderId,
+		branchId,
+		status: "in_progress",
+		pickerUserId: user.id,
+		pickerName: user.name ?? user.id,
+	});
+
+	await createPickingItems(tx, newPickingId, orderId);
+
+	// If paid → transition to preparing
+	if (status === "paid") {
+		await tx
+			.update(order)
+			.set({ status: "preparing", preparingAt: new Date() })
+			.where(eq(order.id, orderId));
+
+		await tx.insert(orderStatusHistory).values({
+			id: crypto.randomUUID(),
+			orderId,
+			fromStatus: "paid",
+			toStatus: "preparing",
+			actorType: "user",
+			actorUserId: user.id,
+		});
+	}
+
+	return newPickingId;
+}
+
 // ---------------------------------------------------------------------------
 // startPicking
 // ---------------------------------------------------------------------------
@@ -163,38 +219,13 @@ export async function startPicking(
 				throw new Error("Pedido sem filial associada");
 			}
 
-			const { session } = locked;
-			const newPickingId = crypto.randomUUID();
-
-			await tx.insert(orderPicking).values({
-				id: newPickingId,
+			return await createPickingSession(
+				tx,
 				orderId,
-				branchId: locked.branchId,
-				status: "in_progress",
-				pickerUserId: session.user.id,
-				pickerName: session.user.name ?? session.user.id,
-			});
-
-			await createPickingItems(tx, newPickingId, orderId);
-
-			// If paid → transition to preparing
-			if (locked.status === "paid") {
-				await tx
-					.update(order)
-					.set({ status: "preparing", preparingAt: new Date() })
-					.where(eq(order.id, orderId));
-
-				await tx.insert(orderStatusHistory).values({
-					id: crypto.randomUUID(),
-					orderId,
-					fromStatus: "paid",
-					toStatus: "preparing",
-					actorType: "user",
-					actorUserId: session.user.id,
-				});
-			}
-
-			return newPickingId;
+				locked.branchId,
+				locked.status,
+				locked.session.user
+			);
 		});
 
 		revalidatePickingPaths(orderId);
@@ -222,6 +253,158 @@ export async function startPicking(
 			error:
 				error instanceof Error ? error.message : "Erro ao iniciar separação",
 		};
+	}
+}
+
+// ---------------------------------------------------------------------------
+// bulkStartPicking
+// ---------------------------------------------------------------------------
+
+export interface BulkStartPickingResult {
+	moved: number;
+	movedIds: string[];
+	skipped: { number: string; reason: string }[];
+}
+
+const BULK_PICKING_GENERIC_ERROR = "Erro ao iniciar separação em lote.";
+
+/**
+ * Claim em lote da tab "A separar" (D7/D12, spec 2026-07-16): cria uma sessão
+ * de picking in_progress no nome do ator para cada pedido, uma transação por
+ * pedido (lock + capability branch-scoped via lockOrderAndAuthorize). Reusa o
+ * miolo de startPicking (createPickingSession) e a régua de elegibilidade via
+ * bulkStartPickingSkipReason — pedido inelegível é pulado, nunca derruba o
+ * lote (padrão de bulkStartSeparation). A corrida contra outro claim (D12) é
+ * coberta duas vezes: pré-check de sessão in_progress existente (caminho
+ * comum) e catch do 23505 de order_picking_one_active (última defesa).
+ */
+export async function bulkStartPicking(input: {
+	orderIds: string[];
+}): Promise<ActionResult<BulkStartPickingResult>> {
+	const parsed = bulkStartPickingSchema.safeParse(input);
+	if (!parsed.success) {
+		return {
+			ok: false,
+			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
+		};
+	}
+
+	const orderIds = Array.from(new Set(parsed.data.orderIds));
+	let moved = 0;
+	const movedIds: string[] = [];
+	const skipped: { number: string; reason: string }[] = [];
+
+	try {
+		// Fail-fast global: sem a capability nem adianta iterar (padrão de
+		// bulkStartSeparation). A autorização por pedido/filial roda de novo
+		// dentro de lockOrderAndAuthorize — este check só evita processar o
+		// lote inteiro quando o ator não tem a capability de forma alguma.
+		await requireCapability("orders.pick");
+
+		try {
+			for (const orderId of orderIds) {
+				const fallbackLabel = orderId.slice(0, 8);
+				try {
+					await db.transaction(async (tx: Tx) => {
+						const locked = await lockOrderAndAuthorize(
+							tx,
+							"orders.pick",
+							orderId
+						);
+						if (!locked) {
+							skipped.push({ number: fallbackLabel, reason: "não encontrado" });
+							return;
+						}
+
+						const [row] = await tx
+							.select({ number: order.number })
+							.from(order)
+							.where(eq(order.id, orderId))
+							.limit(1);
+						const label = row?.number ?? fallbackLabel;
+
+						const reason = bulkStartPickingSkipReason(locked);
+						if (reason) {
+							skipped.push({
+								number: label,
+								reason: BULK_PICKING_SKIP_LABEL[reason],
+							});
+							return;
+						}
+
+						if (!locked.branchId) {
+							// Inatingível: bulkStartPickingSkipReason já retornou
+							// "sem_filial" acima quando branchId é null. Mantido só
+							// para o TypeScript estreitar `string | null` → `string`.
+							skipped.push({
+								number: label,
+								reason: BULK_PICKING_SKIP_LABEL.sem_filial,
+							});
+							return;
+						}
+						const branchId = locked.branchId;
+
+						const [existingSession] = await tx
+							.select({ id: orderPicking.id })
+							.from(orderPicking)
+							.where(
+								and(
+									eq(orderPicking.orderId, orderId),
+									eq(orderPicking.status, "in_progress")
+								)
+							)
+							.limit(1);
+						if (existingSession) {
+							skipped.push({ number: label, reason: "já em separação" });
+							return;
+						}
+
+						await createPickingSession(
+							tx,
+							orderId,
+							branchId,
+							locked.status,
+							locked.session.user
+						);
+
+						moved += 1;
+						movedIds.push(orderId);
+					});
+				} catch (error) {
+					const pgErr = getPgError(error);
+					if (
+						pgErr?.code === "23505" &&
+						pgErr.constraint === "order_picking_one_active"
+					) {
+						skipped.push({ number: fallbackLabel, reason: "já em separação" });
+						continue;
+					}
+					const skipReason = bulkSkipReasonFromError(error);
+					if (skipReason) {
+						skipped.push({ number: fallbackLabel, reason: skipReason });
+						continue;
+					}
+					throw error;
+				}
+			}
+		} finally {
+			// Escritas parciais já commitadas por pedido processado antes de um
+			// abort no meio do lote (erro de infra) precisam refletir no cache,
+			// mesmo quando o retorno abaixo é {ok:false} (padrão de bulkStartSeparation).
+			for (const id of movedIds) {
+				revalidatePickingPaths(id);
+			}
+		}
+
+		return { ok: true, data: { moved, movedIds, skipped } };
+	} catch (error) {
+		logger.error("bulkStartPicking", error);
+
+		if (isCapabilityError(error)) {
+			return { ok: false, error: "Sem permissão para iniciar separação." };
+		}
+
+		return { ok: false, error: BULK_PICKING_GENERIC_ERROR };
 	}
 }
 
@@ -914,12 +1097,6 @@ export async function fetchPickingQueuePageAction(args: {
 	const session = await requireCapability("orders.pick");
 	const scope = await getUserBranchScope(session);
 	return fetchPickingQueuePage({ ...args, scope });
-}
-
-export async function getActivePickingForUserAction() {
-	const session = await requireCapability("orders.pick");
-	const scope = await getUserBranchScope(session);
-	return getActivePickingForUser(session.user.id, scope);
 }
 
 export async function getPickingForOrderAction(orderId: string) {

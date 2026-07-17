@@ -22,6 +22,11 @@ export const BRANCH_NONE = "__none__";
 // BranchPickerDialog (client) compartilham o limite.
 export const BULK_ASSIGN_LIMIT = 20;
 
+// Teto do envio em lote para separação. Espelha o `.max(100)` de
+// bulkStartSeparationSchema (orders/schema.ts) — ação distinta da atribuição
+// de filial acima, cabendo divergir no futuro.
+export const BULK_SEPARATION_LIMIT = 100;
+
 export type TabLateness = "only";
 
 export interface OrderTabDef {

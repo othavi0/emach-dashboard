@@ -4,9 +4,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Hoisted mocks — defined before vi.mock calls
 // ---------------------------------------------------------------------------
 
-const { mockTransaction, mockRequireCapability } = vi.hoisted(() => ({
+const {
+	mockTransaction,
+	mockRequireCapability,
+	mockRequireCapabilityWithContext,
+} = vi.hoisted(() => ({
 	mockTransaction: vi.fn(),
 	mockRequireCapability: vi.fn(),
+	mockRequireCapabilityWithContext: vi.fn(),
 }));
 
 // Mock @emach/db — only needs db.transaction for actions
@@ -16,15 +21,22 @@ vi.mock("@emach/db", () => ({
 }));
 
 // Mock @/lib/permissions
-vi.mock("@/lib/permissions", () => ({
-	requireCapability: mockRequireCapability,
-	requireCapabilityWithContext: vi
-		.fn()
-		.mockResolvedValue({ user: { id: "usr_1", name: "Picker" } }),
-	getUserCapabilities: vi.fn().mockResolvedValue([]),
-	roleHasCapability: vi.fn().mockReturnValue(true),
-	can: vi.fn().mockResolvedValue(true),
-}));
+vi.mock("@/lib/permissions", () => {
+	// Default idêntico ao anterior — vários describes existentes (scanItem,
+	// completePicking, confirmItemManually, cancelPicking, guard tests)
+	// dependem de pickerUserId "usr_1" bater com este default nos asserts de
+	// assertOwner. NÃO alterar este valor.
+	mockRequireCapabilityWithContext.mockResolvedValue({
+		user: { id: "usr_1", name: "Picker" },
+	});
+	return {
+		requireCapability: mockRequireCapability,
+		requireCapabilityWithContext: mockRequireCapabilityWithContext,
+		getUserCapabilities: vi.fn().mockResolvedValue([]),
+		roleHasCapability: vi.fn().mockReturnValue(true),
+		can: vi.fn().mockResolvedValue(true),
+	};
+});
 
 // Mock @/lib/branch-scope
 vi.mock("@/lib/branch-scope", () => ({
@@ -64,6 +76,7 @@ vi.mock("@/lib/session", () => ({
 // ---------------------------------------------------------------------------
 
 import {
+	bulkStartPicking,
 	cancelPicking,
 	completePicking,
 	confirmItemManually,
@@ -874,5 +887,194 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 		armTx([[OWNED_PICKING], [CANCELED_LOCK]]);
 		const result = await cancelPicking(PICKING_ID, "limpeza");
 		expect(result).toMatchObject({ ok: true });
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Tests: bulkStartPicking
+// ---------------------------------------------------------------------------
+
+describe("bulkStartPicking", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockRequireCapability.mockResolvedValue(mockSession);
+	});
+
+	it("rejeita lote com mais de 20 pedidos (zod)", async () => {
+		const orderIds = Array.from(
+			{ length: 21 },
+			(_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`
+		);
+
+		const result = await bulkStartPicking({ orderIds });
+
+		expect(result).toMatchObject({ ok: false });
+		expect((result as { ok: false; error: string }).error).toContain("20");
+		expect(mockTransaction).not.toHaveBeenCalled();
+	});
+
+	it("pula pedido com corrida no unique constraint (23505) e segue ok", async () => {
+		const pgError = Object.assign(new Error("violates unique constraint"), {
+			cause: {
+				code: "23505",
+				constraint: "order_picking_one_active",
+				message: "violates unique constraint",
+			},
+		});
+
+		mockTransaction.mockImplementationOnce(
+			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) => {
+				const tx = makeMockTx([
+					[{ status: "preparing", branchId: BRANCH_ID }], // lockOrderAndAuthorize
+					[{ number: "EM-2026-0001" }], // order.number (label)
+					[], // existingSession pré-check — nenhuma
+				]);
+				tx._insertValues.mockRejectedValueOnce(pgError);
+				return cb(tx);
+			}
+		);
+
+		const result = await bulkStartPicking({ orderIds: [ORDER_ID] });
+
+		expect(result).toMatchObject({ ok: true });
+		if (result.ok) {
+			expect(result.data.moved).toBe(0);
+			expect(result.data.movedIds).toEqual([]);
+			expect(result.data.skipped).toEqual([
+				{ number: ORDER_ID.slice(0, 8), reason: "já em separação" },
+			]);
+		}
+	});
+
+	it("transiciona paid→preparing e grava history ao criar a sessão", async () => {
+		const captured: Record<string, unknown>[] = [];
+		let tx: ReturnType<typeof makeMockTx> | undefined;
+
+		mockTransaction.mockImplementationOnce(
+			(cb: (t: ReturnType<typeof makeMockTx>) => unknown) => {
+				tx = makeMockTx([
+					[{ status: "paid", branchId: BRANCH_ID }], // lockOrderAndAuthorize
+					[{ number: "EM-2026-0002" }], // order.number (label)
+					[], // existingSession — nenhuma sessão ativa
+					[
+						{
+							id: "item-1",
+							variantId: "variant-1",
+							quantity: 2,
+							sku: "SKU-001",
+							name: "Furadeira",
+							barcode: "12345",
+							voltage: "220V",
+						},
+					], // createPickingItems: orderItem[]
+				]);
+				tx._insertValues.mockImplementation((vals: Record<string, unknown>) => {
+					captured.push(vals);
+					return Promise.resolve(undefined);
+				});
+				return cb(tx);
+			}
+		);
+
+		const result = await bulkStartPicking({ orderIds: [ORDER_ID] });
+
+		expect(result).toMatchObject({ ok: true });
+		if (result.ok) {
+			expect(result.data.moved).toBe(1);
+			expect(result.data.movedIds).toEqual([ORDER_ID]);
+			expect(result.data.skipped).toEqual([]);
+		}
+
+		const updateChain = tx?.update.mock.results[0]?.value as
+			| { set: ReturnType<typeof vi.fn> }
+			| undefined;
+		expect(updateChain?.set).toHaveBeenCalledWith(
+			expect.objectContaining({ status: "preparing" })
+		);
+
+		expect(captured).toContainEqual(
+			expect.objectContaining({
+				orderId: ORDER_ID,
+				fromStatus: "paid",
+				toStatus: "preparing",
+				actorType: "user",
+			})
+		);
+	});
+
+	it("processa múltiplos pedidos e agrega moved/movedIds", async () => {
+		const ORDER_ID_2 = "a1eac10b-58cc-4372-a567-0e02b2c3d480";
+
+		mockTransaction.mockImplementationOnce(
+			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+				cb(
+					makeMockTx([
+						[{ status: "preparing", branchId: BRANCH_ID }],
+						[{ number: "EM-2026-0003" }],
+						[],
+						[],
+					])
+				)
+		);
+		mockTransaction.mockImplementationOnce(
+			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+				cb(
+					makeMockTx([
+						[{ status: "preparing", branchId: BRANCH_ID }],
+						[{ number: "EM-2026-0004" }],
+						[],
+						[],
+					])
+				)
+		);
+
+		const result = await bulkStartPicking({
+			orderIds: [ORDER_ID, ORDER_ID_2],
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		if (result.ok) {
+			expect(result.data.moved).toBe(2);
+			expect(result.data.movedIds).toEqual([ORDER_ID, ORDER_ID_2]);
+			expect(result.data.skipped).toEqual([]);
+		}
+		expect(mockTransaction).toHaveBeenCalledTimes(2);
+	});
+
+	it("pedido fora do escopo de filial é pulado sem abortar o lote", async () => {
+		const ORDER_ID_2 = "a1eac10b-58cc-4372-a567-0e02b2c3d480";
+
+		mockRequireCapabilityWithContext.mockRejectedValueOnce(
+			new Error("Forbidden: filial fora do escopo do ator")
+		);
+
+		mockTransaction.mockImplementationOnce(
+			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+				cb(makeMockTx([[{ status: "preparing", branchId: BRANCH_ID }]]))
+		);
+		mockTransaction.mockImplementationOnce(
+			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+				cb(
+					makeMockTx([
+						[{ status: "preparing", branchId: BRANCH_ID }],
+						[{ number: "EM-2026-0005" }],
+						[],
+						[],
+					])
+				)
+		);
+
+		const result = await bulkStartPicking({
+			orderIds: [ORDER_ID, ORDER_ID_2],
+		});
+
+		expect(result).toMatchObject({ ok: true });
+		if (result.ok) {
+			expect(result.data.moved).toBe(1);
+			expect(result.data.movedIds).toEqual([ORDER_ID_2]);
+			expect(result.data.skipped).toEqual([
+				{ number: ORDER_ID.slice(0, 8), reason: "fora do seu escopo" },
+			]);
+		}
 	});
 });

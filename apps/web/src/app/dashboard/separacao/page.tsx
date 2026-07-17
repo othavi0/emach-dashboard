@@ -1,5 +1,3 @@
-import { buttonVariants } from "@emach/ui/components/button";
-import { PrinterIcon } from "lucide-react";
 import type { Metadata } from "next";
 
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -10,14 +8,12 @@ import { LateOrdersToast } from "../orders/_components/late-orders-toast";
 import { getLateOrdersCount } from "../orders/data";
 import { PickingQueue } from "./_components/picking-queue";
 import { ProductivityPanel } from "./_components/productivity-panel";
-import { ResumeBanner } from "./_components/resume-banner";
 import { type SeparacaoTab, SeparacaoTabs } from "./_components/separacao-tabs";
 import {
 	fetchPickingProductivityByOperator,
 	fetchPickingProductivitySummary,
 	fetchPickingQueueCounts,
 	fetchPickingQueuePage,
-	getActivePickingForUser,
 } from "./data";
 
 export const metadata: Metadata = {
@@ -53,78 +49,31 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 
 	// Contadores reais (COUNT) das 3 tabs de fila + o dado da tab ativa.
 	// Produtividade busca os agregados; tabs de fila buscam a 1ª página.
-	const [counts, activePicking, lateCount, queuePage, summary, operators] =
-		await Promise.all([
-			fetchPickingQueueCounts(scope),
-			getActivePickingForUser(session.user.id, scope),
-			getLateOrdersCount(scope),
-			activeTab === "produtividade"
-				? null
-				: fetchPickingQueuePage({ cursor: null, scope, tab: activeTab }),
-			activeTab === "produtividade"
-				? fetchPickingProductivitySummary(scope)
-				: null,
-			activeTab === "produtividade"
-				? fetchPickingProductivityByOperator(scope)
-				: null,
-		]);
-
-	const showPrint = activeTab === "a_separar" || activeTab === "em_separacao";
+	const [counts, lateCount, queuePage, summary, operators] = await Promise.all([
+		fetchPickingQueueCounts(scope),
+		getLateOrdersCount(scope),
+		activeTab === "produtividade"
+			? null
+			: fetchPickingQueuePage({ cursor: null, scope, tab: activeTab }),
+		activeTab === "produtividade"
+			? fetchPickingProductivitySummary(scope)
+			: null,
+		activeTab === "produtividade"
+			? fetchPickingProductivityByOperator(scope)
+			: null,
+	]);
 
 	return (
 		<>
 			<AutoRefresh />
 			<LateOrdersToast count={lateCount} />
-			<PageHeader
-				action={
-					<div className="flex items-center gap-6">
-						{showPrint && (
-							<a
-								className={buttonVariants({ size: "sm", variant: "outline" })}
-								href={`/dashboard/orders/picking-list?tab=${activeTab}`}
-								rel="noopener"
-								target="_blank"
-							>
-								<PrinterIcon aria-hidden className="size-4" />
-								Imprimir lista
-							</a>
-						)}
-						<div className="text-right">
-							<div className="font-semibold text-2xl tabular-nums">
-								{counts.a_separar}
-							</div>
-							<div className="text-[11px] text-muted-foreground uppercase tracking-widest">
-								A separar
-							</div>
-						</div>
-						<div className="text-right">
-							<div className="font-semibold text-2xl tabular-nums">
-								{counts.em_separacao}
-							</div>
-							<div className="text-[11px] text-muted-foreground uppercase tracking-widest">
-								Separando
-							</div>
-						</div>
-						<div className="text-right">
-							<div
-								className={`font-semibold text-2xl tabular-nums ${counts.excecoes > 0 ? "text-warning" : ""}`}
-							>
-								{counts.excecoes}
-							</div>
-							<div className="text-[11px] text-muted-foreground uppercase tracking-widest">
-								Exceções
-							</div>
-						</div>
-					</div>
-				}
-				description="Fila de pedidos pagos aguardando conferência física"
-				title="Separação"
-			/>
-
-			{activePicking && <ResumeBanner activePicking={activePicking} />}
 
 			{activeTab === "produtividade" ? (
 				<>
+					<PageHeader
+						description="Fila de pedidos pagos aguardando conferência física"
+						title="Separação"
+					/>
 					<SeparacaoTabs activeTab="produtividade" counts={counts} />
 					{summary && operators && (
 						<ProductivityPanel operators={operators} summary={summary} />
@@ -136,6 +85,7 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 					counts={counts}
 					initial={queuePage?.items ?? []}
 					initialCursor={queuePage?.nextCursor ?? null}
+					sessionUserId={session.user.id}
 				/>
 			)}
 		</>

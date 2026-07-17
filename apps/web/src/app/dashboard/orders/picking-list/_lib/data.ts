@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@emach/db";
-import { type SQL, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
 	type BranchScope,
 	isBlindScope,
@@ -37,20 +37,11 @@ export async function fetchPickingListOrders(
 	const branchCond = orderBranchCondition(scope);
 	const branchFragment = branchCond ? sql`AND ${branchCond}` : sql``;
 
-	let modeFragment: SQL;
-	if (params.mode === "ids") {
-		const ph = sql.join(
-			params.ids.map((id) => sql`${id}`),
-			sql`, `
-		);
-		modeFragment = sql`o.id IN (${ph}) AND o.status IN ('paid', 'preparing')`;
-	} else if (params.tab === "a_separar") {
-		// Mesma condição da fila (separacao/data.ts, tab a_separar): sem sessão ativa.
-		modeFragment = sql`o.status IN ('paid', 'preparing') AND (lp.status IS NULL OR lp.status = 'canceled')`;
-	} else {
-		// em_separacao: sessão in_progress existente (unique parcial garante ≤1).
-		modeFragment = sql`o.status = 'preparing' AND lp.status = 'in_progress'`;
-	}
+	const ph = sql.join(
+		params.ids.map((id) => sql`${id}`),
+		sql`, `
+	);
+	const idsFragment = sql`o.id IN (${ph}) AND o.status IN ('paid', 'preparing')`;
 
 	const result = await db.execute<Row>(sql`
 		SELECT
@@ -64,11 +55,6 @@ export async function fetchPickingListOrders(
 		FROM "order" o
 		JOIN client c ON c.id = o.client_id
 		LEFT JOIN LATERAL (
-			SELECT op.status FROM order_picking op
-			WHERE op.order_id = o.id
-			ORDER BY op.started_at DESC, op.id DESC LIMIT 1
-		) lp ON true
-		LEFT JOIN LATERAL (
 			SELECT COALESCE(jsonb_agg(jsonb_build_object(
 				'variantId', oi.variant_id, 'sku', oi.sku, 'barcode', oi.barcode,
 				'name', oi.name, 'model', oi.model, 'voltage', oi.voltage,
@@ -77,7 +63,7 @@ export async function fetchPickingListOrders(
 			FROM order_item oi
 			WHERE oi.order_id = o.id
 		) li ON true
-		WHERE ${modeFragment}
+		WHERE ${idsFragment}
 			${branchFragment}
 		ORDER BY o.paid_at ASC, o.id ASC
 		LIMIT ${MAX_ORDERS}

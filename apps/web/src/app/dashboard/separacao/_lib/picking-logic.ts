@@ -102,3 +102,40 @@ export function isPickingStale(args: {
 	const now = args.now ?? new Date();
 	return now.getTime() - reference.getTime() > STALE_PICKING_MS;
 }
+
+/**
+ * Dono da sessão de picking é o próprio ator logado? Usado no badge
+ * "Separando · Você" da tab em_separacao (spec 2026-07-16, D10) — distingue
+ * tom primary (própria sessão) de warning (colega).
+ */
+export function isSelfPicker(
+	pickerUserId: string | null | undefined,
+	sessionUserId: string
+): boolean {
+	return pickerUserId != null && pickerUserId === sessionUserId;
+}
+
+// ─── Elegibilidade do claim em lote (D12, spec 2026-07-16) ──────────────────
+// Espelha bulkStartSeparationSkipReason (orders/_lib/bulk-eligibility.ts):
+// puro e testável, fora do "use server", chamado por bulkStartPicking sem
+// duplicar a régua individual de startPicking (paid/preparing + branchId).
+
+export type BulkPickingSkipReason = "sem_filial" | "status_diferente";
+
+export function bulkStartPickingSkipReason(locked: {
+	branchId: string | null;
+	status: string;
+}): BulkPickingSkipReason | null {
+	if (locked.status !== "paid" && locked.status !== "preparing") {
+		return "status_diferente";
+	}
+	if (!locked.branchId) {
+		return "sem_filial";
+	}
+	return null;
+}
+
+export const BULK_PICKING_SKIP_LABEL: Record<BulkPickingSkipReason, string> = {
+	sem_filial: "sem filial",
+	status_diferente: "não está mais na fila",
+};
