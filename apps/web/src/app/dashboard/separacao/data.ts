@@ -470,6 +470,13 @@ export interface PickingProductivitySummary {
  * finalizadas na janela — NÃO contar order_picking_scan: re-bipe de item já
  * completo insere scan sem incrementar unidade (registerScan, caso
  * alreadyFull) e supercontaria.
+ *
+ * Duração da sessão (D13, issue #324): COALESCE(MIN(order_picking_scan.scanned_at),
+ * started_at) → completed_at. Com claim em lote (Separar e imprimir), started_at
+ * passa a ser "hora da impressão" — sem o fallback pro 1º bipe, o intervalo entre
+ * imprimir e efetivamente começar a bipar infla a duração média por pedido.
+ * Sessão sem nenhum bipe (ex: todos os itens reportados ausentes sem scan) cai no
+ * fallback started_at, preservando o comportamento anterior.
  */
 export async function fetchPickingProductivitySummary(
 	scope: BranchScope
@@ -502,7 +509,7 @@ export async function fetchPickingProductivitySummary(
 			COUNT(*)::int AS completed_week,
 			COALESCE(SUM(items.units) FILTER (WHERE op.completed_at >= b.today_start), 0)::int AS units_today,
 			COALESCE(SUM(items.units), 0)::int AS units_week,
-			ROUND(AVG(EXTRACT(EPOCH FROM op.completed_at - op.started_at)))::int AS avg_session_seconds
+			ROUND(AVG(EXTRACT(EPOCH FROM op.completed_at - COALESCE(scan.first_scanned_at, op.started_at))))::int AS avg_session_seconds
 		FROM order_picking op
 		CROSS JOIN bounds b
 		LEFT JOIN LATERAL (
@@ -510,6 +517,11 @@ export async function fetchPickingProductivitySummary(
 			FROM order_picking_item pi
 			WHERE pi.picking_id = op.id
 		) items ON true
+		LEFT JOIN LATERAL (
+			SELECT MIN(s.scanned_at) AS first_scanned_at
+			FROM order_picking_scan s
+			WHERE s.picking_id = op.id
+		) scan ON true
 		WHERE op.status IN ('completed', 'exception')
 			AND op.completed_at >= b.today_start - interval '6 days'
 			${branchFragment}
@@ -541,6 +553,10 @@ export interface PickingOperatorProductivity {
  * é snapshot da sessão — user renomeado não duplica linha; exibe o nome mais
  * recente). Sessões com picker_user_id nulo (user deletado) agrupam pelo
  * próprio nome, com prefixo "name:" na chave pra não colidir com ids.
+ *
+ * Duração da sessão (D13, issue #324): mesmo COALESCE(MIN(scan.scanned_at),
+ * started_at) → completed_at de fetchPickingProductivitySummary — ver o
+ * comentário lá para o racional completo.
  */
 export async function fetchPickingProductivityByOperator(
 	scope: BranchScope
@@ -569,7 +585,7 @@ export async function fetchPickingProductivityByOperator(
 			(array_agg(op.picker_name ORDER BY op.completed_at DESC))[1] AS picker_name,
 			COUNT(*) FILTER (WHERE op.completed_at >= b.today_start)::int AS completed_today,
 			COUNT(*)::int AS completed_week,
-			ROUND(AVG(EXTRACT(EPOCH FROM op.completed_at - op.started_at)))::int AS avg_session_seconds,
+			ROUND(AVG(EXTRACT(EPOCH FROM op.completed_at - COALESCE(scan.first_scanned_at, op.started_at))))::int AS avg_session_seconds,
 			COALESCE(SUM(items.units), 0)::int AS units_week,
 			COUNT(*) FILTER (WHERE op.status = 'exception')::int AS exception_count
 		FROM order_picking op
@@ -579,6 +595,11 @@ export async function fetchPickingProductivityByOperator(
 			FROM order_picking_item pi
 			WHERE pi.picking_id = op.id
 		) items ON true
+		LEFT JOIN LATERAL (
+			SELECT MIN(s.scanned_at) AS first_scanned_at
+			FROM order_picking_scan s
+			WHERE s.picking_id = op.id
+		) scan ON true
 		WHERE op.status IN ('completed', 'exception')
 			AND op.completed_at >= b.today_start - interval '6 days'
 			${branchFragment}
