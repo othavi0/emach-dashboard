@@ -2,6 +2,7 @@
 
 import { db } from "@emach/db";
 import {
+	type OrderPickingStatus,
 	order,
 	orderItem,
 	orderPicking,
@@ -10,7 +11,7 @@ import {
 	orderStatusHistory,
 } from "@emach/db/schema/orders";
 import { toolVariant } from "@emach/db/schema/tools";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
@@ -22,9 +23,11 @@ import { bulkSkipReasonFromError } from "../orders/_lib/bulk-eligibility";
 import { lockOrderAndAuthorize } from "../orders/actions";
 import { ORDERS_COUNTS_TAG } from "../orders/data";
 import {
+	BULK_PICKING_EXCEPTION_OWNER_LABEL,
 	BULK_PICKING_SKIP_LABEL,
 	bulkStartPickingSkipReason,
 	canFinalizePicking,
+	exceptionResumeDenial,
 	matchPickItem,
 } from "./_lib/picking-logic";
 import {
@@ -148,6 +151,32 @@ async function createPickingItems(
 }
 
 /**
+ * Última sessão de picking do pedido, dentro da transação — insumo do guard
+ * de posse de exceção (exceptionResumeDenial, spec 2026-07-17). Mesma ordenação
+ * do LATERAL da fila (started_at DESC, id DESC) pra não divergir da tab.
+ */
+async function getLatestSessionForGuard(
+	tx: Tx,
+	orderId: string
+): Promise<{
+	pickerName: string;
+	pickerUserId: string | null;
+	status: OrderPickingStatus;
+} | null> {
+	const [latest] = await tx
+		.select({
+			pickerName: orderPicking.pickerName,
+			pickerUserId: orderPicking.pickerUserId,
+			status: orderPicking.status,
+		})
+		.from(orderPicking)
+		.where(eq(orderPicking.orderId, orderId))
+		.orderBy(desc(orderPicking.startedAt), desc(orderPicking.id))
+		.limit(1);
+	return latest ?? null;
+}
+
+/**
  * Miolo compartilhado de criação de sessão (startPicking + bulkStartPicking):
  * insere a sessão in_progress no nome do ator, copia os itens do pedido e,
  * quando o pedido ainda está "paid", transiciona pra "preparing" com history.
@@ -217,6 +246,12 @@ export async function startPicking(
 
 			if (!locked.branchId) {
 				throw new Error("Pedido sem filial associada");
+			}
+
+			const latest = await getLatestSessionForGuard(tx, orderId);
+			const denial = exceptionResumeDenial(latest, locked.session.user);
+			if (denial) {
+				throw new Error(denial);
 			}
 
 			return await createPickingSession(
@@ -356,6 +391,15 @@ export async function bulkStartPicking(input: {
 							.limit(1);
 						if (existingSession) {
 							skipped.push({ number: label, reason: "já em separação" });
+							return;
+						}
+
+						const latest = await getLatestSessionForGuard(tx, orderId);
+						if (exceptionResumeDenial(latest, locked.session.user)) {
+							skipped.push({
+								number: label,
+								reason: BULK_PICKING_EXCEPTION_OWNER_LABEL,
+							});
 							return;
 						}
 

@@ -42,10 +42,12 @@ vi.mock("../data", () => ({
 }));
 
 import {
+	bulkStartPicking,
 	cancelPicking,
 	completePicking,
 	reportMissing,
 	scanItem,
+	startPicking,
 	takeoverPicking,
 } from "../actions";
 
@@ -53,6 +55,7 @@ const PICKING_ID = "3f2b7c1a-9d4e-4f6a-8b2c-1a2b3c4d5e6f";
 const OWNER = "usr_owner";
 const OWNERSHIP_ERROR_RE = /iniciou/i;
 const STATUS_ERROR_RE = /andamento/i;
+const EXCEPTION_OWNER_ERROR_RE = /João/;
 
 function makeTx(selectResults: unknown[][]) {
 	let i = 0;
@@ -232,5 +235,70 @@ describe("guards de sessão de separação", () => {
 		);
 		const result = await takeoverPicking(PICKING_ID);
 		expect(result.ok).toBe(true);
+	});
+
+	const LATEST_EXCEPTION = {
+		pickerName: "João",
+		pickerUserId: OWNER,
+		status: "exception",
+	};
+
+	it("startPicking sobre exceção alheia por role user → recusado", async () => {
+		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
+		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+			cb(makeTx([[LATEST_EXCEPTION]]))
+		);
+		const result = await startPicking("ord_1");
+		expect(result.ok).toBe(false);
+		expect((result as { ok: false; error: string }).error).toMatch(
+			EXCEPTION_OWNER_ERROR_RE
+		);
+	});
+
+	it("startPicking sobre a própria exceção por role user → ok", async () => {
+		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs(OWNER, "user"));
+		// selects: [última sessão] e depois [itens do pedido] (createPickingItems)
+		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+			cb(makeTx([[LATEST_EXCEPTION], []]))
+		);
+		const result = await startPicking("ord_1");
+		expect(result.ok).toBe(true);
+	});
+
+	it("startPicking sobre exceção alheia por admin → ok", async () => {
+		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_adm", "admin"));
+		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+			cb(makeTx([[LATEST_EXCEPTION], []]))
+		);
+		const result = await startPicking("ord_1");
+		expect(result.ok).toBe(true);
+	});
+
+	it("startPicking sobre sessão canceled de outro → ok (pool geral)", async () => {
+		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
+		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+			cb(makeTx([[{ ...LATEST_EXCEPTION, status: "canceled" }], []]))
+		);
+		const result = await startPicking("ord_1");
+		expect(result.ok).toBe(true);
+	});
+
+	it("bulkStartPicking pula exceção alheia com reason, sem derrubar o lote", async () => {
+		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
+		// selects por pedido: [number], [sessão in_progress existente → nenhuma],
+		// [última sessão → exceção alheia]
+		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
+			cb(makeTx([[{ number: "EM-1" }], [], [LATEST_EXCEPTION]]))
+		);
+		const result = await bulkStartPicking({
+			orderIds: ["3f2b7c1a-9d4e-4f6a-8b2c-1a2b3c4d5e6f"],
+		});
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.data.moved).toBe(0);
+			expect(result.data.skipped).toEqual([
+				{ number: "EM-1", reason: "exceção de outro operador" },
+			]);
+		}
 	});
 });
