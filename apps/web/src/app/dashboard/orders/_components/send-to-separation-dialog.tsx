@@ -20,6 +20,7 @@ import {
 import { Spinner } from "@emach/ui/components/spinner";
 import { useState } from "react";
 import type { BranchOption } from "../data";
+import { BULK_SEPARATION_LIMIT } from "../status-meta";
 
 interface SendToSeparationDialogProps {
 	branches: BranchOption[];
@@ -77,7 +78,11 @@ export function SendToSeparationDialog({
 	}
 
 	const needsBranch = withoutBranchCount > 0;
-	const canConfirm = !pending && (!needsBranch || Boolean(branchId));
+	// Teto por lote (backstop no server via zod); aqui bloqueia proativamente pra
+	// não deixar o usuário confirmar uma seleção que o server recusaria inteira.
+	const overLimit = orderCount > BULK_SEPARATION_LIMIT;
+	const canConfirm =
+		!(pending || overLimit) && (!needsBranch || Boolean(branchId));
 
 	const handleConfirm = () => {
 		onConfirm(needsBranch ? branchId : null);
@@ -92,6 +97,13 @@ export function SendToSeparationDialog({
 						{buildDescription(orderCount, withoutBranchCount)}
 					</DialogDescription>
 				</DialogHeader>
+
+				{overLimit && (
+					<p className="text-destructive text-xs">
+						Selecione no máximo {BULK_SEPARATION_LIMIT} pedidos por vez (você
+						selecionou {orderCount}).
+					</p>
+				)}
 
 				{needsBranch && (
 					<div className="space-y-1">
