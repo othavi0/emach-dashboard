@@ -49,7 +49,7 @@ export function SeparacaoTabs({
 						render={<Link href={`${BASE}?tab=em_separacao`} />}
 						value="em_separacao"
 					>
-						Separando
+						Em andamento
 						<TabsCountBadge value={counts.em_separacao} />
 					</TabsTrigger>
 				</TabsList>
