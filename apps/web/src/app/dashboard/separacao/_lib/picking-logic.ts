@@ -102,3 +102,28 @@ export function isPickingStale(args: {
 	const now = args.now ?? new Date();
 	return now.getTime() - reference.getTime() > STALE_PICKING_MS;
 }
+
+// ─── Elegibilidade do claim em lote (D12, spec 2026-07-16) ──────────────────
+// Espelha bulkStartSeparationSkipReason (orders/_lib/bulk-eligibility.ts):
+// puro e testável, fora do "use server", chamado por bulkStartPicking sem
+// duplicar a régua individual de startPicking (paid/preparing + branchId).
+
+export type BulkPickingSkipReason = "sem_filial" | "status_diferente";
+
+export function bulkStartPickingSkipReason(locked: {
+	branchId: string | null;
+	status: string;
+}): BulkPickingSkipReason | null {
+	if (locked.status !== "paid" && locked.status !== "preparing") {
+		return "status_diferente";
+	}
+	if (!locked.branchId) {
+		return "sem_filial";
+	}
+	return null;
+}
+
+export const BULK_PICKING_SKIP_LABEL: Record<BulkPickingSkipReason, string> = {
+	sem_filial: "sem filial",
+	status_diferente: "não está mais na fila",
+};
