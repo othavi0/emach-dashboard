@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getUserBranchScope, orderInScope } from "@/lib/branch-scope";
-import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PickingExecution } from "../_components/picking-execution";
 import { PickingReadonly } from "../_components/picking-readonly";
 import { StartPicking } from "../_components/start-picking";
