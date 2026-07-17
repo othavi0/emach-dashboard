@@ -8,6 +8,7 @@ import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PickingExecution } from "../_components/picking-execution";
 import { PickingReadonly } from "../_components/picking-readonly";
 import { StartPicking } from "../_components/start-picking";
+import { exceptionResumeDenial } from "../_lib/picking-logic";
 import { getOrderBranchId, getPickingForOrder } from "../data";
 
 export const metadata: Metadata = {
@@ -127,5 +128,25 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 					pickerName: result.picking.pickerName,
 				}
 			: null;
-	return <StartPicking exceptionContext={exceptionContext} orderId={orderId} />;
+	// Posse de exceção (spec 2026-07-17): user só reabre a própria; admin/super
+	// reabrem qualquer uma. Mesma régua do guard de startPicking — a UI esconde
+	// o botão, o backend continua sendo a autoridade.
+	const canStart =
+		exceptionResumeDenial(
+			result
+				? {
+						pickerName: result.picking.pickerName,
+						pickerUserId: result.picking.pickerUserId,
+						status: result.picking.status,
+					}
+				: null,
+			session.user
+		) === null;
+	return (
+		<StartPicking
+			canStart={canStart}
+			exceptionContext={exceptionContext}
+			orderId={orderId}
+		/>
+	);
 }

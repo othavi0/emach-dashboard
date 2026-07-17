@@ -13,6 +13,7 @@ export interface PickingExceptionContext {
 }
 
 interface StartPickingProps {
+	canStart: boolean;
 	exceptionContext?: PickingExceptionContext | null;
 	orderId: string;
 }
@@ -24,7 +25,11 @@ function getStartLabel(isPending: boolean, isReopen: boolean): string {
 	return isReopen ? "Reabrir separação" : "Iniciar separação";
 }
 
-export function StartPicking({ exceptionContext, orderId }: StartPickingProps) {
+export function StartPicking({
+	canStart,
+	exceptionContext,
+	orderId,
+}: StartPickingProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 
@@ -56,9 +61,16 @@ export function StartPicking({ exceptionContext, orderId }: StartPickingProps) {
 					</p>
 				</div>
 			)}
-			<Button disabled={isPending} onClick={handleStart} size="lg">
-				{getStartLabel(isPending, Boolean(exceptionContext))}
-			</Button>
+			{canStart ? (
+				<Button disabled={isPending} onClick={handleStart} size="lg">
+					{getStartLabel(isPending, Boolean(exceptionContext))}
+				</Button>
+			) : (
+				<p className="text-muted-foreground text-sm">
+					Somente {exceptionContext?.pickerName ?? "o operador original"} ou um
+					admin pode reabrir esta separação.
+				</p>
+			)}
 		</div>
 	);
 }
