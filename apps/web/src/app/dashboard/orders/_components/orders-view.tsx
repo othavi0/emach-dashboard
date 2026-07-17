@@ -33,8 +33,10 @@ import type {
 	OrderListItem,
 	OrdersPageFiltersInput,
 } from "../data";
+import { BRANCH_NONE } from "../status-meta";
 import { BranchPickerDialog } from "./branch-picker-dialog";
 import { OrderCardGrid } from "./order-card-grid";
+import { SendToSeparationDialog } from "./send-to-separation-dialog";
 
 interface OrdersViewProps {
 	/** Filiais para o picker de atribuição em lote (só usado se canAssignBranch). */
@@ -126,6 +128,7 @@ export function OrdersView({
 	const [bulkPending, startBulk] = useTransition();
 	const [assignPending, startAssign] = useTransition();
 	const [assignOpen, setAssignOpen] = useState(false);
+	const [sendOpen, setSendOpen] = useState(false);
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
@@ -138,12 +141,30 @@ export function OrdersView({
 		resetKey,
 	});
 
-	const paidById = new Map(items.map((o) => [o.id, o.status === "paid"]));
-	const selectedPaidIds = sel.selectedIds.filter((id) => paidById.get(id));
+	// branchName null === sem filial (mesmo dado que alimenta a triagem); não
+	// precisa de branchId no OrderListItem (ver nota no topo do plano).
+	const paidById = new Map(
+		items.map((o) => [
+			o.id,
+			{ paid: o.status === "paid", withoutBranch: o.branchName === null },
+		])
+	);
+	const selectedPaidIds = sel.selectedIds.filter(
+		(id) => paidById.get(id)?.paid
+	);
+	const selectedWithoutBranchCount = selectedPaidIds.filter(
+		(id) => paidById.get(id)?.withoutBranch
+	).length;
 
-	const runBulkSeparation = () => {
+	// D1: a filial é decidida no dialog (SendToSeparationDialog), não mais no
+	// próprio clique do bulk action — branchId vem do onConfirm do dialog.
+	// D3: zero PDF/toast-com-ação aqui; o papel nasce na fila de Separação.
+	const runBulkSeparation = (branchId: string | null) => {
 		startBulk(async () => {
-			const result = await bulkStartSeparation({ orderIds: selectedPaidIds });
+			const result = await bulkStartSeparation({
+				orderIds: selectedPaidIds,
+				branchId: branchId ?? undefined,
+			});
 			// Refresh SEMPRE: cada pedido é uma transação própria, então um lote que
 			// retorna {ok:false} pode ter movido parte deles antes de abortar — sem
 			// isso, a lista seguiria mostrando "Pago" para pedido já em separação.
@@ -157,19 +178,8 @@ export function OrdersView({
 				result.data.moved,
 				result.data.skipped
 			);
-			if (result.data.movedIds.length > 0) {
-				const pdfUrl = `/dashboard/orders/picking-list?ids=${result.data.movedIds.join(",")}`;
-				// Abre o PDF do lote; se o popup blocker engolir, o botão do toast cobre.
-				window.open(pdfUrl, "_blank", "noopener");
-				notify[kind](message, {
-					action: {
-						label: "Imprimir lista",
-						onClick: () => window.open(pdfUrl, "_blank", "noopener"),
-					},
-				});
-			} else {
-				notify[kind](message);
-			}
+			notify[kind](message);
+			setSendOpen(false);
 			sel.exit();
 		});
 	};
@@ -208,18 +218,19 @@ export function OrdersView({
 	};
 
 	// Ações do BulkActionBar: separação (pagos selecionados) + atribuir filial
-	// (triagem) + dados de envio (tab "Pronto para enviar"). Array vazio esconde
-	// a barra.
+	// (só no contexto de triagem, filtro Filial = "Na triagem" — D2: fora dela o
+	// botão avulso sai da seleção de pagos) + dados de envio (tab "Pronto para
+	// enviar"). Array vazio esconde a barra.
 	const bulkActions: BulkAction[] = [];
 	if (selectedPaidIds.length > 0) {
 		bulkActions.push({
 			label: bulkPending
 				? "Enviando…"
 				: `Enviar para separação (${selectedPaidIds.length})`,
-			run: runBulkSeparation,
+			run: () => setSendOpen(true),
 		});
 	}
-	if (canAssignBranch) {
+	if (canAssignBranch && filters.branchId === BRANCH_NONE) {
 		bulkActions.push({
 			label: assignPending ? "Atribuindo…" : `Atribuir filial (${sel.count})`,
 			run: () => setAssignOpen(true),
@@ -315,6 +326,16 @@ export function OrdersView({
 					pending={assignPending}
 				/>
 			)}
+
+			<SendToSeparationDialog
+				branches={branches}
+				onConfirm={runBulkSeparation}
+				onOpenChange={setSendOpen}
+				open={sendOpen}
+				orderCount={selectedPaidIds.length}
+				pending={bulkPending}
+				withoutBranchCount={selectedWithoutBranchCount}
+			/>
 		</>
 	);
 }
