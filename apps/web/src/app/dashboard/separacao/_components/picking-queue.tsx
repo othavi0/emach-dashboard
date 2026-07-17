@@ -4,6 +4,7 @@ import { BulkActionBar } from "@/components/bulk/bulk-action-bar";
 import { SelectableItem } from "@/components/bulk/selectable-item";
 import { SelectionToolbar } from "@/components/bulk/selection-toolbar";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
+import { PageHeader } from "@/components/page-header";
 import { useBulkSelection } from "@/lib/use-bulk-selection";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 import { fetchPickingQueuePageAction } from "../actions";
@@ -57,10 +58,8 @@ export function PickingQueue({
 
 	return (
 		<div>
-			<SeparacaoTabs
-				activeTab={activeTab}
-				counts={counts}
-				toolbar={
+			<PageHeader
+				action={
 					selectable ? (
 						<SelectionToolbar
 							active={sel.active}
@@ -74,7 +73,11 @@ export function PickingQueue({
 						/>
 					) : undefined
 				}
+				description="Fila de pedidos pagos aguardando conferência física"
+				title="Separação"
 			/>
+
+			<SeparacaoTabs activeTab={activeTab} counts={counts} />
 
 			{/* Grid de cards */}
 			{items.length === 0 && !pending && !error ? (

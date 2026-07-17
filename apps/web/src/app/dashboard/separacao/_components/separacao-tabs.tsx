@@ -7,7 +7,6 @@ import {
 	TabsTrigger,
 } from "@emach/ui/components/tabs";
 import Link from "next/link";
-import type { ReactNode } from "react";
 
 import type { PickingQueueCounts } from "../data";
 
@@ -21,18 +20,17 @@ const BASE = "/dashboard/separacao";
 
 /**
  * Barra de tabs da Separação, compartilhada entre a fila (PickingQueue) e a
- * tab Produtividade. Split: fluxo do operador à esquerda; toolbar de seleção
- * (slot, só a fila usa) + exceções/análise à direita. Produtividade não tem
- * badge (não é fila).
+ * tab Produtividade. Split: fluxo do operador à esquerda; exceções/análise à
+ * direita. Produtividade não tem badge (não é fila). A ação "Selecionar"
+ * mora no PageHeader (PickingQueue), espelhando orders-view — não é mais
+ * slot desta barra.
  */
 export function SeparacaoTabs({
 	activeTab,
 	counts,
-	toolbar,
 }: {
 	activeTab: SeparacaoTab;
 	counts: PickingQueueCounts;
-	toolbar?: ReactNode;
 }) {
 	return (
 		<div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -56,28 +54,25 @@ export function SeparacaoTabs({
 					</TabsTrigger>
 				</TabsList>
 			</Tabs>
-			<div className="flex items-center gap-2">
-				{toolbar}
-				<Tabs value={activeTab}>
-					<TabsList>
-						<TabsTrigger
-							nativeButton={false}
-							render={<Link href={`${BASE}?tab=excecoes`} />}
-							value="excecoes"
-						>
-							Exceções
-							<TabsCountBadge value={counts.excecoes} />
-						</TabsTrigger>
-						<TabsTrigger
-							nativeButton={false}
-							render={<Link href={`${BASE}?tab=produtividade`} />}
-							value="produtividade"
-						>
-							Produtividade
-						</TabsTrigger>
-					</TabsList>
-				</Tabs>
-			</div>
+			<Tabs value={activeTab}>
+				<TabsList>
+					<TabsTrigger
+						nativeButton={false}
+						render={<Link href={`${BASE}?tab=excecoes`} />}
+						value="excecoes"
+					>
+						Exceções
+						<TabsCountBadge value={counts.excecoes} />
+					</TabsTrigger>
+					<TabsTrigger
+						nativeButton={false}
+						render={<Link href={`${BASE}?tab=produtividade`} />}
+						value="produtividade"
+					>
+						Produtividade
+					</TabsTrigger>
+				</TabsList>
+			</Tabs>
 		</div>
 	);
 }
