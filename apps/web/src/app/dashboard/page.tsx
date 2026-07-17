@@ -108,6 +108,7 @@ async function DashboardPageContent({
 
 			<Suspense fallback={<Skeleton className="h-72 w-full" />}>
 				<PendingSection
+					canReadOrders={canReadOrders}
 					canReadPromotions={canReadPromotions}
 					canReadReviews={canReadReviews}
 				/>
@@ -141,16 +142,21 @@ function KpiSkeleton() {
 }
 
 async function PendingSection({
+	canReadOrders,
 	canReadReviews,
 	canReadPromotions,
 }: {
+	canReadOrders: boolean;
 	canReadPromotions: boolean;
 	canReadReviews: boolean;
 }) {
+	// Toda tab gated por capability busca condicionalmente — fetchPending* faz
+	// requireCapability e derruba a home inteira no error boundary se chamado
+	// sem o cap (regressão orders.read SAU→SA, 2026-07-17).
 	const [counts, stock, orders, activity, reviews, promos] = await Promise.all([
 		fetchDashboardCounts(),
 		fetchPendingStock(null),
-		fetchPendingOrders(null),
+		canReadOrders ? fetchPendingOrders(null) : null,
 		fetchDashboardActivity(null),
 		canReadReviews ? fetchPendingReviews(null) : null,
 		canReadPromotions ? fetchExpiringPromotions(null) : null,
@@ -165,7 +171,9 @@ async function PendingSection({
 			initialCursor: stock.nextCursor,
 			fetchPage: fetchPendingStock,
 		},
-		{
+	];
+	if (canReadOrders && orders) {
+		tabs.push({
 			id: "orders",
 			label: "Pedidos",
 			count: counts.orders,
@@ -173,8 +181,8 @@ async function PendingSection({
 			initial: orders.items,
 			initialCursor: orders.nextCursor,
 			fetchPage: fetchPendingOrders,
-		},
-	];
+		});
+	}
 	if (canReadReviews && reviews) {
 		tabs.push({
 			id: "reviews",

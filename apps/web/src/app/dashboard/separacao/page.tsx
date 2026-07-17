@@ -82,6 +82,9 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 			) : (
 				<PickingQueue
 					activeTab={activeTab}
+					canManageOthers={
+						session.user.role === "admin" || session.user.role === "super_admin"
+					}
 					counts={counts}
 					initial={queuePage?.items ?? []}
 					initialCursor={queuePage?.nextCursor ?? null}
