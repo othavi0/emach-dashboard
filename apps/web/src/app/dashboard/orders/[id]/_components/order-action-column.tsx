@@ -30,7 +30,6 @@ import { RefundDialog } from "../../_components/refund-dialog";
 import { StockReturnDialog } from "../../_components/stock-return-dialog";
 import {
 	addOrderNote,
-	assignBranch,
 	markShippingReviewed,
 	updateOrderStatus,
 	updateTrackingCode,
@@ -54,21 +53,20 @@ const PRIMARY_TRANSITION: Partial<Record<OrderStatus, OrderStatus>> = {
 	shipped: "delivered",
 };
 
-type Refresh = () => void;
-
-async function runAssignBranch(
-	orderId: string,
-	branchId: string,
-	refresh: Refresh
-) {
-	const result = await assignBranch({ orderId, branchId });
-	if (!result.ok) {
-		notify.error(result.error);
-		return;
+/**
+ * Label do botão primário. `paid → preparing` é o único caminho pra
+ * "preparing" no mapa acima — renomeado pra unificar o verbo com a listagem
+ * de Pedidos (D4/D1 do redesign de separação: "Enviar para separação").
+ * Demais transições mantêm o padrão genérico "Marcar como X".
+ */
+function primaryActionLabel(nextStatus: OrderStatus): string {
+	if (nextStatus === "preparing") {
+		return "Enviar para separação";
 	}
-	notify.success("Filial atribuída");
-	refresh();
+	return `Marcar como ${ORDER_STATUS_LABELS[nextStatus]}`;
 }
+
+type Refresh = () => void;
 
 async function runTrackingUpdate(
 	orderId: string,
@@ -199,7 +197,6 @@ interface PrimaryActionContentProps {
 	isPending: boolean;
 	isTerminal: boolean;
 	nextStatus: OrderStatus | undefined;
-	onAssignBranch: () => void;
 	onPrimaryStatusUpdate: () => void;
 	onTrackingUpdate: () => void;
 	order: OrderDetail;
@@ -220,7 +217,6 @@ function PrimaryActionContent({
 	isTerminal,
 	nextStatus,
 	order,
-	onAssignBranch,
 	onPrimaryStatusUpdate,
 	onTrackingUpdate,
 	setBranchId,
@@ -265,42 +261,31 @@ function PrimaryActionContent({
 					>
 						Filial responsável
 					</label>
-					<div className="flex gap-2">
-						<Select
-							onValueChange={(v) =>
-								setBranchId(!v || v === "__none__" ? "" : v)
-							}
-							value={branchId || "__none__"}
-						>
-							<SelectTrigger id="branch-assign">
-								<SelectValue>
-									{(v: string) =>
-										v === "__none__"
-											? "Selecionar filial"
-											: (branches.find((b) => b.id === v)?.name ??
-												"Selecionar filial")
-									}
-								</SelectValue>
-							</SelectTrigger>
-							<SelectContent>
-								<SelectGroup>
-									<SelectItem value="__none__">Selecionar filial</SelectItem>
-									{branches.map((branch) => (
-										<SelectItem key={branch.id} value={branch.id}>
-											{branch.name}
-										</SelectItem>
-									))}
-								</SelectGroup>
-							</SelectContent>
-						</Select>
-						<Button
-							disabled={isPending || !branchId}
-							onClick={onAssignBranch}
-							variant="outline"
-						>
-							Salvar
-						</Button>
-					</div>
+					<Select
+						onValueChange={(v) => setBranchId(!v || v === "__none__" ? "" : v)}
+						value={branchId || "__none__"}
+					>
+						<SelectTrigger id="branch-assign">
+							<SelectValue>
+								{(v: string) =>
+									v === "__none__"
+										? "Selecionar filial"
+										: (branches.find((b) => b.id === v)?.name ??
+											"Selecionar filial")
+								}
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								<SelectItem value="__none__">Selecionar filial</SelectItem>
+								{branches.map((branch) => (
+									<SelectItem key={branch.id} value={branch.id}>
+										{branch.name}
+									</SelectItem>
+								))}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
 				</div>
 			)}
 
@@ -340,7 +325,7 @@ function PrimaryActionContent({
 						<Spinner /> Salvando…
 					</>
 				) : (
-					`Marcar como ${ORDER_STATUS_LABELS[nextStatus]}`
+					primaryActionLabel(nextStatus)
 				)}
 			</Button>
 			{shipBlockedLabel && (
@@ -422,14 +407,6 @@ export function OrderActionColumn({
 			order.status === "preparing" ||
 			order.status === "shipped" ||
 			order.status === "returned");
-
-	function handleAssignBranch() {
-		if (!branchId) {
-			notify.error("Selecione uma filial");
-			return;
-		}
-		startTransition(() => runAssignBranch(order.id, branchId, router.refresh));
-	}
 
 	function handleTrackingUpdate() {
 		if (!trackingCode.trim()) {
@@ -538,7 +515,6 @@ export function OrderActionColumn({
 						isPending={isPending}
 						isTerminal={isTerminal}
 						nextStatus={nextStatus}
-						onAssignBranch={handleAssignBranch}
 						onPrimaryStatusUpdate={handlePrimaryStatusUpdate}
 						onTrackingUpdate={handleTrackingUpdate}
 						order={order}
