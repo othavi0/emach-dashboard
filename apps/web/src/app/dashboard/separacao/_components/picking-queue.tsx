@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/page-header";
 import { notify } from "@/lib/notify";
 import { useBulkSelection } from "@/lib/use-bulk-selection";
 import { useInfiniteList } from "@/lib/use-infinite-list";
+import { splitQueueByOwnership } from "../_lib/picking-logic";
 import { bulkStartPicking, fetchPickingQueuePageAction } from "../actions";
 import type { PickingQueueRow } from "../data";
 import { PickingOrderCard } from "./picking-order-card";
@@ -29,6 +30,35 @@ const TAB_EMPTY: Record<Tab, string> = {
 
 function pluralSuffix(count: number): string {
 	return count === 1 ? "" : "s";
+}
+
+/** Labels das seções por tab com dono (mockup A, spec 2026-07-17). */
+const SECTION_LABELS: Record<
+	"em_separacao" | "excecoes",
+	{ mine: string; others: string }
+> = {
+	em_separacao: { mine: "Minhas separações", others: "Outros operadores" },
+	excecoes: { mine: "Minhas exceções", others: "De outros operadores" },
+};
+
+function QueueSectionHeader({
+	count,
+	label,
+}: {
+	count: number;
+	label: string;
+}) {
+	return (
+		<div className="mt-5 mb-2.5 flex items-center gap-2 first:mt-1">
+			<span className="font-bold text-[11px] text-muted-foreground uppercase tracking-[0.09em]">
+				{label}
+			</span>
+			<span className="rounded-md bg-secondary px-1.5 font-semibold text-[10px] text-secondary-foreground leading-[17px]">
+				{count}
+			</span>
+			<span aria-hidden className="h-px flex-1 bg-border" />
+		</div>
+	);
 }
 
 /**
@@ -54,6 +84,7 @@ function buildBulkPickToast(
 
 interface PickingQueueProps {
 	activeTab: Tab;
+	canManageOthers: boolean;
 	counts: { a_separar: number; em_separacao: number; excecoes: number };
 	initial: PickingQueueRow[];
 	initialCursor: string | null;
@@ -62,6 +93,7 @@ interface PickingQueueProps {
 
 export function PickingQueue({
 	activeTab,
+	canManageOthers,
 	counts,
 	initial,
 	initialCursor,
@@ -179,31 +211,61 @@ export function PickingQueue({
 			<SeparacaoTabs activeTab={activeTab} counts={counts} />
 
 			{/* Grid de cards */}
-			{items.length === 0 && !pending && !error ? (
-				<p className="py-10 text-center text-muted-foreground text-sm">
-					{TAB_EMPTY[activeTab]}
-				</p>
-			) : (
-				<div
-					aria-live="polite"
-					className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-				>
-					{items.map((row) => (
-						<SelectableItem
-							active={selectable && sel.active}
-							key={row.orderId}
-							onToggle={() => sel.toggle(row.orderId)}
-							selected={sel.isSelected(row.orderId)}
-						>
-							<PickingOrderCard
-								row={row}
-								sessionUserId={sessionUserId}
-								tab={activeTab}
-							/>
-						</SelectableItem>
-					))}
-				</div>
-			)}
+			{(() => {
+				if (items.length === 0 && !pending && !error) {
+					return (
+						<p className="py-10 text-center text-muted-foreground text-sm">
+							{TAB_EMPTY[activeTab]}
+						</p>
+					);
+				}
+				const renderGrid = (rows: PickingQueueRow[]) => (
+					<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+						{rows.map((row) => (
+							<SelectableItem
+								active={selectable && sel.active}
+								key={row.orderId}
+								onToggle={() => sel.toggle(row.orderId)}
+								selected={sel.isSelected(row.orderId)}
+							>
+								<PickingOrderCard
+									canManageOthers={canManageOthers}
+									row={row}
+									sessionUserId={sessionUserId}
+									tab={activeTab}
+								/>
+							</SelectableItem>
+						))}
+					</div>
+				);
+				if (activeTab === "a_separar") {
+					return <div aria-live="polite">{renderGrid(items)}</div>;
+				}
+				// Tabs com dono: seções Minhas × Outros (mockup A). Seção vazia
+				// não renderiza; o agrupamento fatia as páginas já carregadas
+				// (fila ativa é pequena — aceito na spec).
+				const labels = SECTION_LABELS[activeTab];
+				const { mine, others } = splitQueueByOwnership(items, sessionUserId);
+				return (
+					<div aria-live="polite">
+						{mine.length > 0 && (
+							<>
+								<QueueSectionHeader count={mine.length} label={labels.mine} />
+								{renderGrid(mine)}
+							</>
+						)}
+						{others.length > 0 && (
+							<>
+								<QueueSectionHeader
+									count={others.length}
+									label={labels.others}
+								/>
+								{renderGrid(others)}
+							</>
+						)}
+					</div>
+				);
+			})()}
 
 			<InfiniteSentinel
 				error={error}

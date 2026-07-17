@@ -5,7 +5,12 @@ import { useState, useTransition } from "react";
 
 import { formatRelative } from "@/lib/format/datetime";
 import { notify } from "@/lib/notify";
-import { isPickingStale, isSelfPicker } from "../_lib/picking-logic";
+import {
+	isPickingStale,
+	isSelfPicker,
+	type QueueCardCta,
+	queueCardCta,
+} from "../_lib/picking-logic";
 import { startPicking } from "../actions";
 import type { PickingQueueRow } from "../data";
 import { fulfillmentBadgeLabel } from "../fulfillment-meta";
@@ -15,20 +20,18 @@ const URGENCY_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
 type Tab = "a_separar" | "em_separacao" | "excecoes";
 
-/** Estilo do CTA por aba: primário (a separar), laranja (em separação), neutro (exceções) */
-const CTA_CLASS: Record<Tab, string> = {
-	a_separar: "bg-primary text-primary-foreground",
-	em_separacao: "bg-warning text-warning-foreground",
-	excecoes: "border border-input text-foreground",
-};
-
-const CTA_LABEL: Record<Tab, string> = {
-	a_separar: "Separar",
-	em_separacao: "Retomar separação",
-	excecoes: "Resolver",
+/** Estilo do CTA por intenção (queueCardCta): primário (claim), warning
+ * (retomar própria), outline (ação de admin/resolver), outline-muted
+ * (somente-leitura). */
+const CTA_KIND_CLASS: Record<QueueCardCta["kind"], string> = {
+	primary: "bg-primary text-primary-foreground",
+	warning: "bg-warning text-warning-foreground",
+	outline: "border border-input text-foreground",
+	"outline-muted": "border border-input text-muted-foreground",
 };
 
 interface PickingOrderCardProps {
+	canManageOthers: boolean;
 	row: PickingQueueRow;
 	sessionUserId: string;
 	tab: Tab;
@@ -102,6 +105,7 @@ function StatusBadge({
 }
 
 export function PickingOrderCard({
+	canManageOthers,
 	row,
 	sessionUserId,
 	tab,
@@ -111,7 +115,6 @@ export function PickingOrderCard({
 			? Math.round((row.pickedUnits / row.unitCount) * 100)
 			: null;
 
-	const ctaLabel = CTA_LABEL[tab];
 	const router = useRouter();
 	const [isStarting, startTransition] = useTransition();
 
@@ -135,9 +138,14 @@ export function PickingOrderCard({
 		});
 	}
 
+	const isSelf = isSelfPicker(row.pickerUserId, sessionUserId);
+	const cta = queueCardCta(tab, isSelf, canManageOthers);
+	// Cards de outros operadores ficam esmaecidos (mockup A) nas tabs com dono.
+	const isForeign = tab !== "a_separar" && !isSelf;
+
 	return (
 		<Link
-			className="group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			className={`group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isForeign ? "opacity-60" : ""}`}
 			href={`/dashboard/separacao/${row.orderId}`}
 		>
 			{/* Header */}
@@ -228,41 +236,44 @@ export function PickingOrderCard({
 				</div>
 			)}
 
-			{/* CTA */}
-			<div className="border-border border-t bg-sidebar px-4 py-3">
-				{tab === "a_separar" ? (
-					// biome-ignore lint/a11y/useSemanticElements: role="button" aninhado no Link (padrão DESIGN.md §4, não usar <button> em âncora)
-					<div
-						aria-disabled={isStarting}
-						className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold text-[13px] transition-opacity aria-disabled:cursor-not-allowed aria-disabled:opacity-70 ${CTA_CLASS.a_separar}`}
-						onClick={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							handleStart();
-						}}
-						onKeyDown={(e) => {
-							if (e.key === "Enter" || e.key === " ") {
+			{/* CTA — some quando queueCardCta retorna null (exceção alheia, role
+			    user); o Link raiz continua navegando pro detalhe. */}
+			{cta && (
+				<div className="border-border border-t bg-sidebar px-4 py-3">
+					{tab === "a_separar" ? (
+						// biome-ignore lint/a11y/useSemanticElements: role="button" aninhado no Link (padrão DESIGN.md §4, não usar <button> em âncora)
+						<div
+							aria-disabled={isStarting}
+							className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold text-[13px] transition-opacity aria-disabled:cursor-not-allowed aria-disabled:opacity-70 ${CTA_KIND_CLASS[cta.kind]}`}
+							onClick={(e) => {
 								e.preventDefault();
 								e.stopPropagation();
 								handleStart();
-							}
-						}}
-						role="button"
-						tabIndex={0}
-					>
-						{isStarting ? "Iniciando…" : ctaLabel}
-						<ArrowRightIcon aria-hidden className="size-4" />
-					</div>
-				) : (
-					<div
-						className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold text-[13px] ${CTA_CLASS[tab]}`}
-						// role="none": o <Link> pai já é o elemento interativo
-						role="none"
-					>
-						{ctaLabel}
-					</div>
-				)}
-			</div>
+							}}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" || e.key === " ") {
+									e.preventDefault();
+									e.stopPropagation();
+									handleStart();
+								}
+							}}
+							role="button"
+							tabIndex={0}
+						>
+							{isStarting ? "Iniciando…" : cta.label}
+							<ArrowRightIcon aria-hidden className="size-4" />
+						</div>
+					) : (
+						<div
+							className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold text-[13px] ${CTA_KIND_CLASS[cta.kind]}`}
+							// role="none": o <Link> pai já é o elemento interativo
+							role="none"
+						>
+							{cta.label}
+						</div>
+					)}
+				</div>
+			)}
 		</Link>
 	);
 }
