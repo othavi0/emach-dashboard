@@ -48,7 +48,6 @@ export async function GET(req: Request) {
 		logger.info("picking_list.pdf", {
 			userId: session.user.id,
 			orders: orders.length,
-			mode: resolved.params.mode,
 		});
 		return new Response(new Uint8Array(buffer), {
 			headers: {

@@ -9,31 +9,16 @@ function sp(query: string): URLSearchParams {
 }
 
 describe("resolvePickingListParams", () => {
-	it("modo ids: csv vira array deduplicado", () => {
+	it("csv vira array deduplicado", () => {
 		const r = resolvePickingListParams(sp(`ids=${UUID_A},${UUID_B},${UUID_A}`));
 		expect(r).toEqual({
 			ok: true,
-			params: { ids: [UUID_A, UUID_B], mode: "ids" },
+			params: { ids: [UUID_A, UUID_B] },
 		});
 	});
 
-	it("modo tab: aceita a_separar e em_separacao", () => {
-		expect(resolvePickingListParams(sp("tab=a_separar"))).toEqual({
-			ok: true,
-			params: { mode: "tab", tab: "a_separar" },
-		});
-		expect(resolvePickingListParams(sp("tab=em_separacao"))).toEqual({
-			ok: true,
-			params: { mode: "tab", tab: "em_separacao" },
-		});
-	});
-
-	it("rejeita: sem params, ids+tab juntos, tab inválida, id não-uuid", () => {
+	it("rejeita: sem ids, id não-uuid", () => {
 		expect(resolvePickingListParams(sp("")).ok).toBe(false);
-		expect(resolvePickingListParams(sp(`ids=${UUID_A}&tab=a_separar`)).ok).toBe(
-			false
-		);
-		expect(resolvePickingListParams(sp("tab=excecoes")).ok).toBe(false);
 		expect(resolvePickingListParams(sp("ids=abc")).ok).toBe(false);
 	});
 
