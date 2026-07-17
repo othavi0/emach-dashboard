@@ -103,6 +103,18 @@ export function isPickingStale(args: {
 	return now.getTime() - reference.getTime() > STALE_PICKING_MS;
 }
 
+/**
+ * Dono da sessão de picking é o próprio ator logado? Usado no badge
+ * "Separando · Você" da tab em_separacao (spec 2026-07-16, D10) — distingue
+ * tom primary (própria sessão) de warning (colega).
+ */
+export function isSelfPicker(
+	pickerUserId: string | null | undefined,
+	sessionUserId: string
+): boolean {
+	return pickerUserId != null && pickerUserId === sessionUserId;
+}
+
 // ─── Elegibilidade do claim em lote (D12, spec 2026-07-16) ──────────────────
 // Espelha bulkStartSeparationSkipReason (orders/_lib/bulk-eligibility.ts):
 // puro e testável, fora do "use server", chamado por bulkStartPicking sem

@@ -1,9 +1,12 @@
 import { ArrowRightIcon, ClockIcon, MapPinIcon } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
 import { formatRelative } from "@/lib/format/datetime";
-import { isPickingStale } from "../_lib/picking-logic";
+import { notify } from "@/lib/notify";
+import { isPickingStale, isSelfPicker } from "../_lib/picking-logic";
+import { startPicking } from "../actions";
 import type { PickingQueueRow } from "../data";
 import { fulfillmentBadgeLabel } from "../fulfillment-meta";
 
@@ -27,6 +30,7 @@ const CTA_LABEL: Record<Tab, string> = {
 
 interface PickingOrderCardProps {
 	row: PickingQueueRow;
+	sessionUserId: string;
 	tab: Tab;
 }
 
@@ -49,7 +53,15 @@ function PaidAge({ paidAt }: { paidAt: Date | null }) {
 	);
 }
 
-function StatusBadge({ row, tab }: { row: PickingQueueRow; tab: Tab }) {
+function StatusBadge({
+	row,
+	sessionUserId,
+	tab,
+}: {
+	row: PickingQueueRow;
+	sessionUserId: string;
+	tab: Tab;
+}) {
 	// Mesmo racional do PaidAge: congela o "agora" por instância.
 	const [now] = useState(() => Date.now());
 	if (tab === "excecoes") {
@@ -60,7 +72,15 @@ function StatusBadge({ row, tab }: { row: PickingQueueRow; tab: Tab }) {
 		);
 	}
 	if (tab === "em_separacao") {
-		// O nome do responsável vive no badge (spec 2026-07-11, mockup B).
+		// Dono do ator ganha tom primary + "Você" (D10); colega mantém o warning
+		// com o nome (spec 2026-07-11, mockup B).
+		if (isSelfPicker(row.pickerUserId, sessionUserId)) {
+			return (
+				<span className="inline-flex items-center rounded-md bg-primary/18 px-2 py-0.5 font-semibold text-[10px] text-primary">
+					Separando · Você
+				</span>
+			);
+		}
 		return (
 			<span className="inline-flex items-center rounded-md bg-warning/15 px-2 py-0.5 font-semibold text-[10px] text-warning">
 				{fulfillmentBadgeLabel("picking_in_progress", row.pickerName ?? null)}
@@ -81,13 +101,39 @@ function StatusBadge({ row, tab }: { row: PickingQueueRow; tab: Tab }) {
 	);
 }
 
-export function PickingOrderCard({ row, tab }: PickingOrderCardProps) {
+export function PickingOrderCard({
+	row,
+	sessionUserId,
+	tab,
+}: PickingOrderCardProps) {
 	const progressPct =
 		tab === "em_separacao" && row.pickedUnits !== undefined && row.unitCount > 0
 			? Math.round((row.pickedUnits / row.unitCount) * 100)
 			: null;
 
 	const ctaLabel = CTA_LABEL[tab];
+	const router = useRouter();
+	const [isStarting, startTransition] = useTransition();
+
+	// Card-Link continua navegando pro fallback (deep-link/reabertura, D9); o
+	// CTA é um role="button" aninhado no Link (DESIGN.md §4 — nunca <button>
+	// em âncora) cujo onClick/onKeyDown já cortam propagação antes de chamar
+	// handleStart, que claima a sessão antes de navegar — corrida com outro
+	// operador vira toast, sem navegar (startPicking já resolve "já é de
+	// Fulano" via 23505).
+	function handleStart() {
+		if (isStarting) {
+			return;
+		}
+		startTransition(async () => {
+			const result = await startPicking(row.orderId);
+			if (result.ok) {
+				router.push(`/dashboard/separacao/${row.orderId}`);
+			} else {
+				notify.error(result.error);
+			}
+		});
+	}
 
 	return (
 		<Link
@@ -104,7 +150,7 @@ export function PickingOrderCard({ row, tab }: PickingOrderCardProps) {
 						{row.clientName}
 					</p>
 				</div>
-				<StatusBadge row={row} tab={tab} />
+				<StatusBadge row={row} sessionUserId={sessionUserId} tab={tab} />
 			</div>
 
 			{/* Meta: filial + idade */}
@@ -184,16 +230,38 @@ export function PickingOrderCard({ row, tab }: PickingOrderCardProps) {
 
 			{/* CTA */}
 			<div className="border-border border-t bg-sidebar px-4 py-3">
-				<div
-					className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold text-[13px] ${CTA_CLASS[tab]}`}
-					// role="none": o <Link> pai já é o elemento interativo
-					role="none"
-				>
-					{ctaLabel}
-					{tab === "a_separar" && (
+				{tab === "a_separar" ? (
+					// biome-ignore lint/a11y/useSemanticElements: role="button" aninhado no Link (padrão DESIGN.md §4, não usar <button> em âncora)
+					<div
+						aria-disabled={isStarting}
+						className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold text-[13px] transition-opacity aria-disabled:cursor-not-allowed aria-disabled:opacity-70 ${CTA_CLASS.a_separar}`}
+						onClick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							handleStart();
+						}}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" || e.key === " ") {
+								e.preventDefault();
+								e.stopPropagation();
+								handleStart();
+							}
+						}}
+						role="button"
+						tabIndex={0}
+					>
+						{isStarting ? "Iniciando…" : ctaLabel}
 						<ArrowRightIcon aria-hidden className="size-4" />
-					)}
-				</div>
+					</div>
+				) : (
+					<div
+						className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold text-[13px] ${CTA_CLASS[tab]}`}
+						// role="none": o <Link> pai já é o elemento interativo
+						role="none"
+					>
+						{ctaLabel}
+					</div>
+				)}
 			</div>
 		</Link>
 	);

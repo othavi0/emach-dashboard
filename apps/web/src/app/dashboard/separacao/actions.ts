@@ -28,7 +28,6 @@ import {
 } from "./_lib/picking-logic";
 import {
 	fetchPickingQueuePage,
-	getActivePickingForUser,
 	getOrderBranchId,
 	getPickingForOrder,
 } from "./data";
@@ -1094,12 +1093,6 @@ export async function fetchPickingQueuePageAction(args: {
 	const session = await requireCapability("orders.pick");
 	const scope = await getUserBranchScope(session);
 	return fetchPickingQueuePage({ ...args, scope });
-}
-
-export async function getActivePickingForUserAction() {
-	const session = await requireCapability("orders.pick");
-	const scope = await getUserBranchScope(session);
-	return getActivePickingForUser(session.user.id, scope);
 }
 
 export async function getPickingForOrderAction(orderId: string) {

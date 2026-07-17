@@ -49,8 +49,6 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 
 	// Contadores reais (COUNT) das 3 tabs de fila + o dado da tab ativa.
 	// Produtividade busca os agregados; tabs de fila buscam a 1ª página.
-	// O banner some aqui (nenhum branch abaixo renderiza <ResumeBanner> mais) —
-	// a Task 7 apaga o componente e getActivePickingForUser em definitivo.
 	const [counts, lateCount, queuePage, summary, operators] = await Promise.all([
 		fetchPickingQueueCounts(scope),
 		getLateOrdersCount(scope),
@@ -87,6 +85,7 @@ async function SeparacaoPageContent({ searchParams }: PageProps) {
 					counts={counts}
 					initial={queuePage?.items ?? []}
 					initialCursor={queuePage?.nextCursor ?? null}
+					sessionUserId={session.user.id}
 				/>
 			)}
 		</>

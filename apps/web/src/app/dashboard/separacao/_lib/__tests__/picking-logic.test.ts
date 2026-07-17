@@ -4,6 +4,7 @@ import {
 	bulkStartPickingSkipReason,
 	canScanMore,
 	isPickingComplete,
+	isSelfPicker,
 	matchPickItem,
 	type PickItem,
 	summarizePicking,
@@ -80,6 +81,21 @@ describe("summarizePicking", () => {
 				item({ qtyExpected: 3, qtyPicked: 1, notFound: true }),
 			])
 		).toEqual({ totalUnits: 5, pickedUnits: 3, exceptions: 1 });
+	});
+});
+
+describe("isSelfPicker", () => {
+	it("true quando pickerUserId bate com o usuário da sessão", () => {
+		expect(isSelfPicker("usr_1", "usr_1")).toBe(true);
+	});
+	it("false quando pickerUserId é de outro usuário", () => {
+		expect(isSelfPicker("usr_2", "usr_1")).toBe(false);
+	});
+	it("false quando pickerUserId é null", () => {
+		expect(isSelfPicker(null, "usr_1")).toBe(false);
+	});
+	it("false quando pickerUserId é undefined (tab sem sessão ativa)", () => {
+		expect(isSelfPicker(undefined, "usr_1")).toBe(false);
 	});
 });
 

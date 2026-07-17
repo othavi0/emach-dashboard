@@ -57,6 +57,7 @@ interface PickingQueueProps {
 	counts: { a_separar: number; em_separacao: number; excecoes: number };
 	initial: PickingQueueRow[];
 	initialCursor: string | null;
+	sessionUserId: string;
 }
 
 export function PickingQueue({
@@ -64,6 +65,7 @@ export function PickingQueue({
 	counts,
 	initial,
 	initialCursor,
+	sessionUserId,
 }: PickingQueueProps) {
 	const router = useRouter();
 	// Bump força o useInfiniteList/useBulkSelection a re-sincronizar com o
@@ -193,7 +195,11 @@ export function PickingQueue({
 							onToggle={() => sel.toggle(row.orderId)}
 							selected={sel.isSelected(row.orderId)}
 						>
-							<PickingOrderCard row={row} tab={activeTab} />
+							<PickingOrderCard
+								row={row}
+								sessionUserId={sessionUserId}
+								tab={activeTab}
+							/>
 						</SelectableItem>
 					))}
 				</div>
