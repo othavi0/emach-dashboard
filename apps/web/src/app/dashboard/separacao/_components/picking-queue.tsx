@@ -15,7 +15,7 @@ import { notify } from "@/lib/notify";
 import { useBulkSelection } from "@/lib/use-bulk-selection";
 import { useInfiniteList } from "@/lib/use-infinite-list";
 import { bulkStartPicking, fetchPickingQueuePageAction } from "../actions";
-import type { PickingQueueRow } from "../data";
+import type { PickingQueueCounts, PickingQueueRow } from "../data";
 import { PickingOrderCard } from "./picking-order-card";
 import { SeparacaoTabs } from "./separacao-tabs";
 
@@ -54,10 +54,32 @@ function buildBulkPickToast(
 
 interface PickingQueueProps {
 	activeTab: Tab;
-	counts: { a_separar: number; em_separacao: number; excecoes: number };
+	counts: PickingQueueCounts;
 	initial: PickingQueueRow[];
 	initialCursor: string | null;
 	sessionUserId: string;
+}
+
+/**
+ * Decomposição do "A separar" (paid + preparing) em texto de apoio — os mesmos
+ * rótulos das tabs de Pedidos ("Pago"/"Em separação") pra o operador reconciliar
+ * os totais entre as duas telas. Só as partes > 0 entram na soma.
+ */
+function aSepararBreakdown(counts: PickingQueueCounts): string | null {
+	const parts: string[] = [];
+	if (counts.a_separar_paid > 0) {
+		parts.push(
+			`${counts.a_separar_paid} pago${counts.a_separar_paid === 1 ? "" : "s"}`
+		);
+	}
+	if (counts.a_separar_preparing > 0) {
+		parts.push(`${counts.a_separar_preparing} em separação`);
+	}
+	// Um recorte só não é "soma" — não há ambiguidade a desfazer.
+	if (parts.length < 2) {
+		return null;
+	}
+	return `${counts.a_separar} a separar = ${parts.join(" + ")}`;
 }
 
 export function PickingQueue({
@@ -177,6 +199,12 @@ export function PickingQueue({
 			/>
 
 			<SeparacaoTabs activeTab={activeTab} counts={counts} />
+
+			{activeTab === "a_separar" && aSepararBreakdown(counts) && (
+				<p className="-mt-2 mb-4 text-muted-foreground text-sm">
+					{aSepararBreakdown(counts)}
+				</p>
+			)}
 
 			{/* Grid de cards */}
 			{items.length === 0 && !pending && !error ? (

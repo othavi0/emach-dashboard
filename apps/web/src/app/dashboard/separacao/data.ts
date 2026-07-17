@@ -388,6 +388,10 @@ export async function fetchPickingQueuePage(args: {
 
 export interface PickingQueueCounts {
 	a_separar: number;
+	/** Recorte de `a_separar`: pedidos ainda `paid` (separação não iniciada). */
+	a_separar_paid: number;
+	/** Recorte de `a_separar`: pedidos `preparing` sem sessão ativa/concluída. */
+	a_separar_preparing: number;
 	em_separacao: number;
 	excecoes: number;
 }
@@ -401,14 +405,25 @@ export async function fetchPickingQueueCounts(
 	scope: BranchScope
 ): Promise<PickingQueueCounts> {
 	if (isBlindScope(scope)) {
-		return { a_separar: 0, em_separacao: 0, excecoes: 0 };
+		return {
+			a_separar: 0,
+			a_separar_paid: 0,
+			a_separar_preparing: 0,
+			em_separacao: 0,
+			excecoes: 0,
+		};
 	}
 
 	const branchCondition = orderBranchCondition(scope);
 	const branchFragment = branchCondition ? sql` AND ${branchCondition}` : sql``;
 
+	// `a_separar` é quebrado por status (`paid` vs `preparing`) porque a UI mostra
+	// a decomposição sob a tab — o operador reconcilia com as tabs de Pedidos
+	// ("Pago" vs "Em separação"). As duas subqueries usam a MESMA condição de
+	// lp da fila; a soma reproduz o total antigo por construção.
 	const result = await db.execute<{
-		a_separar: number;
+		a_separar_paid: number;
+		a_separar_preparing: number;
 		em_separacao: number;
 		excecoes: number;
 	}>(sql`
@@ -420,10 +435,21 @@ export async function fetchPickingQueueCounts(
 					WHERE op.order_id = o.id
 					ORDER BY op.started_at DESC, op.id DESC LIMIT 1
 				) lp ON true
-				WHERE o.status IN ('paid', 'preparing')
+				WHERE o.status = 'paid'
 					AND (lp.status IS NULL OR lp.status = 'canceled')
 					${branchFragment}
-			) AS a_separar,
+			) AS a_separar_paid,
+			(
+				SELECT COUNT(*)::int FROM "order" o
+				LEFT JOIN LATERAL (
+					SELECT op.status FROM order_picking op
+					WHERE op.order_id = o.id
+					ORDER BY op.started_at DESC, op.id DESC LIMIT 1
+				) lp ON true
+				WHERE o.status = 'preparing'
+					AND (lp.status IS NULL OR lp.status = 'canceled')
+					${branchFragment}
+			) AS a_separar_preparing,
 			(
 				SELECT COUNT(*)::int FROM "order" o
 				JOIN order_picking op ON op.order_id = o.id AND op.status = 'in_progress'
@@ -443,8 +469,13 @@ export async function fetchPickingQueueCounts(
 	`);
 
 	const row = result.rows[0];
+	const aSepararPaid = row?.a_separar_paid ?? 0;
+	const aSepararPreparing = row?.a_separar_preparing ?? 0;
 	return {
-		a_separar: row?.a_separar ?? 0,
+		// Fonte única: total derivado da soma dos recortes (nunca deriva do UI).
+		a_separar: aSepararPaid + aSepararPreparing,
+		a_separar_paid: aSepararPaid,
+		a_separar_preparing: aSepararPreparing,
 		em_separacao: row?.em_separacao ?? 0,
 		excecoes: row?.excecoes ?? 0,
 	};
