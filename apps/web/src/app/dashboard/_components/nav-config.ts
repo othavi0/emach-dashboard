@@ -56,6 +56,7 @@ export const NAV_GROUPS: NavGroupConfig[] = [
 				label: "Pedidos",
 				href: "/dashboard/orders" as Route,
 				icon: ShoppingCart,
+				capability: "orders.read",
 				badgeKey: "orders",
 			},
 			{

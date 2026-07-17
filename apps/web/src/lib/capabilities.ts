@@ -171,7 +171,7 @@ export const CAPABILITIES = {
 		resource: "Pedidos",
 		action: "Ver",
 		description: "Visualizar pedidos",
-		defaultRoles: SAU,
+		defaultRoles: SA,
 	},
 	"orders.update_status": {
 		group: "Vendas",

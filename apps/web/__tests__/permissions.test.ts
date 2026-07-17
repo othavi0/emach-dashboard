@@ -62,8 +62,11 @@ describe("matriz de capability (3 níveis)", () => {
 		expect(roleHasCapability("admin", "reviews.moderate")).toBe(true);
 		expect(roleHasCapability("admin", "orders.refund")).toBe(true);
 	});
-	it("user é operacional: lê, ajusta estoque, atualiza status — nada destrutivo", () => {
-		expect(roleHasCapability("user", "orders.read")).toBe(true);
+	it("user é operacional: separa, ajusta estoque, atualiza status — nada destrutivo", () => {
+		// orders.read migrou SAU→SA (2026-07): user separa (orders.pick) mas não
+		// vê a seção Pedidos nem o detalhe do pedido.
+		expect(roleHasCapability("user", "orders.read")).toBe(false);
+		expect(roleHasCapability("user", "orders.pick")).toBe(true);
 		expect(roleHasCapability("user", "stock.adjust")).toBe(true);
 		expect(roleHasCapability("user", "orders.update_status")).toBe(true);
 		expect(roleHasCapability("user", "tools.create")).toBe(false);

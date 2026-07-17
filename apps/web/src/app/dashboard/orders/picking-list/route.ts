@@ -15,7 +15,10 @@ export const runtime = "nodejs";
 
 export async function GET(req: Request) {
 	try {
-		const session = await requireCapability("orders.read");
+		// Lista de separação é artefato do fluxo de picking — gated por
+		// orders.pick (não orders.read): o operador de separação (role user, sem
+		// orders.read desde 2026-07) precisa imprimir a lista.
+		const session = await requireCapability("orders.pick");
 		const resolved = resolvePickingListParams(new URL(req.url).searchParams);
 		if (!resolved.ok) {
 			return new Response(resolved.error, { status: 400 });
