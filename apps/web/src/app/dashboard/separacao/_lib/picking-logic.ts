@@ -139,3 +139,82 @@ export const BULK_PICKING_SKIP_LABEL: Record<BulkPickingSkipReason, string> = {
 	sem_filial: "sem filial",
 	status_diferente: "não está mais na fila",
 };
+
+// ─── Posse de exceção (spec 2026-07-17) ──────────────────────────────────────
+// A última sessão em 'exception' pertence ao pickerUserId dela: role user só
+// reabre a própria; admin/super_admin reabrem qualquer uma. Sessão 'canceled'
+// (ou pickerUserId null — operador deletado) volta ao pool geral. Puro e
+// compartilhado entre startPicking, bulkStartPicking e a UI de reabertura
+// ([orderId]/page.tsx) — mesma régua nos três pontos, sem duplicar.
+
+export function exceptionResumeDenial(
+	latest: {
+		pickerName: string;
+		pickerUserId: string | null;
+		status: OrderPickingStatus;
+	} | null,
+	actor: { id: string; role?: string | null }
+): string | null {
+	if (!latest || latest.status !== "exception") {
+		return null;
+	}
+	if (latest.pickerUserId === null || latest.pickerUserId === actor.id) {
+		return null;
+	}
+	if (actor.role === "admin" || actor.role === "super_admin") {
+		return null;
+	}
+	return `Apenas ${latest.pickerName} ou um admin pode retomar esta exceção`;
+}
+
+export const BULK_PICKING_EXCEPTION_OWNER_LABEL = "exceção de outro operador";
+
+// ─── Agrupamento da fila por operador (mockup A, spec 2026-07-17) ────────────
+
+export function splitQueueByOwnership<T extends { pickerUserId?: string }>(
+	items: T[],
+	sessionUserId: string
+): { mine: T[]; others: T[] } {
+	const mine: T[] = [];
+	const others: T[] = [];
+	for (const item of items) {
+		if (isSelfPicker(item.pickerUserId, sessionUserId)) {
+			mine.push(item);
+		} else {
+			others.push(item);
+		}
+	}
+	return { mine, others };
+}
+
+// ─── CTA do card da fila por role (mockup A, spec 2026-07-17) ────────────────
+// null = sem CTA (card alheio em excecoes pra role user; o card inteiro ainda
+// navega pro detalhe, que mostra o motivo sem botão de reabrir).
+
+export interface QueueCardCta {
+	kind: "primary" | "warning" | "outline" | "outline-muted";
+	label: string;
+}
+
+export function queueCardCta(
+	tab: "a_separar" | "em_separacao" | "excecoes",
+	isSelf: boolean,
+	canManageOthers: boolean
+): QueueCardCta | null {
+	if (tab === "a_separar") {
+		return { kind: "primary", label: "Separar" };
+	}
+	if (tab === "em_separacao") {
+		if (isSelf) {
+			return { kind: "warning", label: "Retomar separação" };
+		}
+		return canManageOthers
+			? { kind: "outline", label: "Assumir separação" }
+			: { kind: "outline-muted", label: "Ver andamento" };
+	}
+	// excecoes
+	if (isSelf || canManageOthers) {
+		return { kind: "outline", label: "Resolver" };
+	}
+	return null;
+}
