@@ -12,6 +12,8 @@ import {
 // é uma key real do registry (pega typo na lista de regressão).
 // Matriz alvo do role user (estoqueista/operacional) — ver ADR-0016 + spec
 // docs/superpowers/specs/2026-06-16-permissoes-role-user-design.md
+// orders.read migrou SAU→SA em 2026-07: user opera a fila de separação
+// (orders.pick) mas não enxerga a seção Pedidos nem o detalhe do pedido.
 const OPERATIONAL_USER: readonly Capability[] = [
 	"tools.read",
 	"categories.read",
@@ -20,7 +22,6 @@ const OPERATIONAL_USER: readonly Capability[] = [
 	"suppliers.manage",
 	"stock.read",
 	"stock.adjust",
-	"orders.read",
 	"orders.update_status",
 	"orders.add_note",
 	"orders.pick",

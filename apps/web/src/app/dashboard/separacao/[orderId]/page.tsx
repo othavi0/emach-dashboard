@@ -23,7 +23,13 @@ interface PageProps {
  * entregue, etc.) — o painel de despacho (PickingExecution/PickingCompletePanel)
  * não faz mais sentido aqui. Estado terminal simples com link pro detalhe.
  */
-function PickingDispatched({ orderId }: { orderId: string }) {
+function PickingDispatched({
+	orderId,
+	canViewOrder,
+}: {
+	orderId: string;
+	canViewOrder: boolean;
+}) {
 	return (
 		<div className="rounded-xl border border-border bg-card p-5">
 			<div className="flex items-start justify-between gap-4">
@@ -36,12 +42,16 @@ function PickingDispatched({ orderId }: { orderId: string }) {
 						mais ação de separação por aqui.
 					</p>
 				</div>
-				<Link
-					className={buttonVariants({ size: "sm", variant: "outline" })}
-					href={`/dashboard/orders/${orderId}`}
-				>
-					Ver pedido
-				</Link>
+				{/* Detalhe do pedido exige orders.read; operador de separação sem essa
+				    capability (role user) não vê o atalho — bateria em guard. */}
+				{canViewOrder ? (
+					<Link
+						className={buttonVariants({ size: "sm", variant: "outline" })}
+						href={`/dashboard/orders/${orderId}`}
+					>
+						Ver pedido
+					</Link>
+				) : null}
 			</div>
 		</div>
 	);
@@ -83,7 +93,10 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 			result.picking.status === "completed" &&
 			orderRow.status !== "preparing"
 		) {
-			return <PickingDispatched orderId={orderId} />;
+			const canViewOrder = await can(session, "orders.read");
+			return (
+				<PickingDispatched canViewOrder={canViewOrder} orderId={orderId} />
+			);
 		}
 		const canShip = await can(session, "orders.update_status");
 		return (
