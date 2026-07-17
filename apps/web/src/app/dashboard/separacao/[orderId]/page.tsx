@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getUserBranchScope, orderInScope } from "@/lib/branch-scope";
-import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
+import { requireCapabilityOrRedirect } from "@/lib/permissions";
 import { PickingExecution } from "../_components/picking-execution";
 import { PickingReadonly } from "../_components/picking-readonly";
 import { StartPicking } from "../_components/start-picking";
@@ -20,7 +20,7 @@ interface PageProps {
 
 /**
  * Sessão de picking já 'completed', mas o pedido saiu de "preparing" (enviado,
- * entregue, etc.) — o painel de despacho (PickingExecution/PickingCompletePanel)
+ * entregue, etc.) — o painel de conclusão (PickingExecution/PickingCompletePanel)
  * não faz mais sentido aqui. Estado terminal simples com link pro detalhe.
  */
 function PickingDispatched({ orderId }: { orderId: string }) {
@@ -66,7 +66,7 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 	// "completed" entra aqui junto de "in_progress" (só o dono): completePicking
 	// revalida esta rota via revalidatePath, o que dispara um refresh automático
 	// do Server Component assim que o Server Action resolve. Se esse refresh
-	// caísse fora de PickingExecution, o painel "Despachar agora" (estado local
+	// caísse fora de PickingExecution, o painel de conclusão (estado local
 	// completedOk) seria substituído pela tela de "Iniciar separação" antes do
 	// usuário conseguir vê-lo — PickingExecution deriva completedOk a partir de
 	// picking.status, então mantê-lo como o mesmo componente preserva o painel.
@@ -85,11 +85,9 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 		) {
 			return <PickingDispatched orderId={orderId} />;
 		}
-		const canShip = await can(session, "orders.update_status");
 		return (
 			<PickingExecution
 				branchName={orderRow.branchName}
-				canShip={canShip}
 				items={result.items}
 				orderNumber={orderRow.number}
 				picking={result.picking}

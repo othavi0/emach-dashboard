@@ -644,7 +644,6 @@ function usePickingState(
 
 interface PickingExecutionProps {
 	branchName: string | null;
-	canShip: boolean;
 	items: OrderPickingItem[];
 	orderNumber: string;
 	picking: OrderPicking;
@@ -652,7 +651,6 @@ interface PickingExecutionProps {
 
 export function PickingExecution({
 	branchName,
-	canShip,
 	items,
 	orderNumber,
 	picking,
@@ -693,7 +691,6 @@ export function PickingExecution({
 	if (completedOk) {
 		return (
 			<PickingCompletePanel
-				canShip={canShip}
 				orderId={picking.orderId}
 				pickedUnits={summary.pickedUnits}
 				totalUnits={summary.totalUnits}
