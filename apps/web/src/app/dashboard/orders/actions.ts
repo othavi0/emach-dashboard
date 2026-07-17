@@ -361,9 +361,13 @@ function pgErrorMessage(pgErr: { code: string }): string {
 }
 
 /**
- * Bulk pago→separação (spec 2026-07-11). Cada pedido roda em transação
- * própria com lock + capability branch-scoped; inelegíveis são pulados e
- * reportados — um pedido problemático não derruba o lote.
+ * Bulk pago→separação (spec 2026-07-11, D1 do redesign 2026-07-16). Cada
+ * pedido roda em transação própria com lock + capability branch-scoped;
+ * inelegíveis são pulados e reportados — um pedido problemático não derruba
+ * o lote. Quando `branchId` é informado (novo dialog "Enviar para
+ * separação"), aplica-se SÓ aos pedidos SEM filial própria (nunca
+ * sobrescreve quem já tem) e a filial de destino é auditada via orderEvent
+ * "branch_assigned", igual ao `assignBranch` singular.
  */
 export async function bulkStartSeparation(
 	input: BulkStartSeparationInput
@@ -376,14 +380,33 @@ export async function bulkStartSeparation(
 		};
 	}
 
+	const { branchId } = parsed.data;
 	const orderIds = Array.from(new Set(parsed.data.orderIds));
 	let moved = 0;
 	const movedIds: string[] = [];
 	const skipped: { number: string; reason: string }[] = [];
 
 	try {
-		// Fail-fast global: sem a capability nem adianta iterar.
-		await requireCapability("orders.update_status");
+		// Fail-fast: com filial informada, checa a capability contra a filial de
+		// DESTINO uma vez (padrão bulkAssignBranch) — sem isso nem adianta
+		// iterar. Sem filial, mantém o check genérico de sempre (intacto).
+		let destBranchName: string | undefined;
+		if (branchId) {
+			await requireCapabilityWithContext("orders.update_status", {
+				targetBranchIds: [branchId],
+			});
+			const [destBranch] = await db
+				.select({ name: branch.name })
+				.from(branch)
+				.where(eq(branch.id, branchId))
+				.limit(1);
+			if (!destBranch) {
+				return { ok: false, error: "Filial não encontrada" };
+			}
+			destBranchName = destBranch.name;
+		} else {
+			await requireCapability("orders.update_status");
+		}
 
 		try {
 			for (const orderId of orderIds) {
@@ -410,14 +433,27 @@ export async function bulkStartSeparation(
 							.limit(1);
 						const label = row?.number ?? fallbackLabel;
 
-						const reason = bulkStartSeparationSkipReason(locked);
+						// Pedido sem filial própria herda a informada no lote — a
+						// elegibilidade usa essa filial efetiva pra decidir se ainda
+						// falta filial (nunca sobrescreve quem já tem uma).
+						const effectiveBranchId = locked.branchId ?? branchId ?? null;
+						const reason = bulkStartSeparationSkipReason({
+							status: locked.status,
+							branchId: effectiveBranchId,
+						});
 						if (reason) {
 							skipped.push({ number: label, reason: BULK_SKIP_LABEL[reason] });
 							return;
 						}
+
+						const branchIdToApply =
+							locked.branchId === null ? branchId : undefined;
+
 						await tx
 							.update(order)
-							.set(buildOrderStatusUpdate("preparing", undefined, undefined))
+							.set(
+								buildOrderStatusUpdate("preparing", undefined, branchIdToApply)
+							)
 							.where(eq(order.id, orderId));
 						await tx.insert(orderStatusHistory).values({
 							id: crypto.randomUUID(),
@@ -428,6 +464,19 @@ export async function bulkStartSeparation(
 							actorUserId: locked.session.user.id,
 							reason: null,
 						});
+
+						if (branchIdToApply) {
+							await insertOrderEvent(tx, {
+								orderId,
+								eventType: "branch_assigned",
+								metadata: {
+									branchId: branchIdToApply,
+									branchName: destBranchName ?? branchIdToApply,
+								},
+								actorUserId: locked.session.user.id,
+							});
+						}
+
 						moved += 1;
 						movedIds.push(orderId);
 					});

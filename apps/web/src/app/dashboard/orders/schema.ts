@@ -126,6 +126,9 @@ export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 
 export const bulkStartSeparationSchema = z.object({
 	orderIds: z.array(z.string().uuid()).min(1).max(100),
+	// Dialog "Enviar para separação" (D1, spec 2026-07-16): quando informada,
+	// aplica-se SÓ aos pedidos do lote sem filial própria — nunca sobrescreve.
+	branchId: z.string().uuid().optional(),
 });
 
 export type BulkStartSeparationInput = z.infer<
