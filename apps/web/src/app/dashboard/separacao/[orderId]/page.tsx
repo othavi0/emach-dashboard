@@ -5,9 +5,9 @@ import { notFound } from "next/navigation";
 
 import { getUserBranchScope, orderInScope } from "@/lib/branch-scope";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
+import { AutoClaimPicking } from "../_components/auto-claim-picking";
 import { PickingExecution } from "../_components/picking-execution";
 import { PickingReadonly } from "../_components/picking-readonly";
-import { StartPicking } from "../_components/start-picking";
 import { exceptionResumeDenial } from "../_lib/picking-logic";
 import { getOrderBranchId, getPickingForOrder } from "../data";
 
@@ -143,7 +143,7 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 			session.user
 		) === null;
 	return (
-		<StartPicking
+		<AutoClaimPicking
 			canStart={canStart}
 			exceptionContext={exceptionContext}
 			orderId={orderId}
