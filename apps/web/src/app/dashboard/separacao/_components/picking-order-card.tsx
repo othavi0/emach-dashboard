@@ -118,12 +118,11 @@ export function PickingOrderCard({
 	const router = useRouter();
 	const [isStarting, startTransition] = useTransition();
 
-	// Card-Link continua navegando pro fallback (deep-link/reabertura, D9); o
-	// CTA é um role="button" aninhado no Link (DESIGN.md §4 — nunca <button>
-	// em âncora) cujo onClick/onKeyDown já cortam propagação antes de chamar
-	// handleStart, que claima a sessão antes de navegar — corrida com outro
-	// operador vira toast, sem navegar (startPicking já resolve "já é de
-	// Fulano" via 23505).
+	// A separar: o card inteiro claima (div role=button → handleStart →
+	// startPicking → push). Outras tabs: Link pro detalhe (deep-link/reabertura,
+	// D9). handleStart no-ops se isStarting; corrida com outro operador vira
+	// toast sem navegar (startPicking resolve "já é de Fulano" via 23505).
+	// Bulk: SelectableItem capture+stopPropagation impede o click do card.
 	function handleStart() {
 		if (isStarting) {
 			return;
@@ -143,11 +142,10 @@ export function PickingOrderCard({
 	// Cards de outros operadores ficam esmaecidos (mockup A) nas tabs com dono.
 	const isForeign = tab !== "a_separar" && !isSelf;
 
-	return (
-		<Link
-			className={`group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isForeign ? "opacity-60" : ""}`}
-			href={`/dashboard/separacao/${row.orderId}`}
-		>
+	const cardClassName = `group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isForeign ? "opacity-60" : ""}`;
+
+	const body = (
+		<>
 			{/* Header */}
 			<div className="flex items-start justify-between gap-3 px-4 pt-4 pb-1">
 				<div className="min-w-0">
@@ -237,28 +235,15 @@ export function PickingOrderCard({
 			)}
 
 			{/* CTA — some quando queueCardCta retorna null (exceção alheia, role
-			    user); o Link raiz continua navegando pro detalhe. */}
+			    user). Em a_separar: só visual (root já claima); nas outras tabs
+			    o Link raiz navega pro detalhe. */}
 			{cta && (
 				<div className="border-border border-t bg-sidebar px-4 py-3">
 					{tab === "a_separar" ? (
-						// biome-ignore lint/a11y/useSemanticElements: role="button" aninhado no Link (padrão DESIGN.md §4, não usar <button> em âncora)
 						<div
-							aria-disabled={isStarting}
-							className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold text-[13px] transition-opacity aria-disabled:cursor-not-allowed aria-disabled:opacity-70 ${CTA_KIND_CLASS[cta.kind]}`}
-							onClick={(e) => {
-								e.preventDefault();
-								e.stopPropagation();
-								handleStart();
-							}}
-							onKeyDown={(e) => {
-								if (e.key === "Enter" || e.key === " ") {
-									e.preventDefault();
-									e.stopPropagation();
-									handleStart();
-								}
-							}}
-							role="button"
-							tabIndex={0}
+							className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold text-[13px] ${CTA_KIND_CLASS[cta.kind]} ${isStarting ? "opacity-70" : ""}`}
+							// role="none": o root do card já é o interativo
+							role="none"
 						>
 							{isStarting ? "Iniciando…" : cta.label}
 							<ArrowRightIcon aria-hidden className="size-4" />
@@ -274,6 +259,38 @@ export function PickingOrderCard({
 					)}
 				</div>
 			)}
+		</>
+	);
+
+	if (tab === "a_separar") {
+		return (
+			// biome-ignore lint/a11y/useSemanticElements: card clicável (DESIGN.md §4)
+			<div
+				aria-disabled={isStarting}
+				className={`${cardClassName} cursor-pointer aria-disabled:cursor-not-allowed aria-disabled:opacity-70`}
+				onClick={() => {
+					handleStart();
+				}}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						handleStart();
+					}
+				}}
+				role="button"
+				tabIndex={0}
+			>
+				{body}
+			</div>
+		);
+	}
+
+	return (
+		<Link
+			className={cardClassName}
+			href={`/dashboard/separacao/${row.orderId}`}
+		>
+			{body}
 		</Link>
 	);
 }
