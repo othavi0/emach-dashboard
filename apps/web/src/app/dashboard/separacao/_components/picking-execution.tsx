@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { notify } from "@/lib/notify";
 import { canFinalizePicking, summarizePicking } from "../_lib/picking-logic";
@@ -39,7 +39,7 @@ import {
 	scanItem,
 } from "../actions";
 import { PickingCompletePanel } from "./picking-complete-panel";
-import { ScanInput } from "./scan-input";
+import { ScanInput, scanInputOutcomeFromKind } from "./scan-input";
 
 // ─── tipos ──────────────────────────────────────────────────────────────────
 
@@ -468,55 +468,43 @@ function usePickingState(
 		picking.status === "completed"
 	);
 
-	// Fila sequencial de scans: evita under-pick silencioso quando o operador
-	// bipa rapidamente (ou bipa a mesma unidade N vezes em qty>1).
-	const queueRef = useRef<string[]>([]);
-	const drainingRef = useRef(false);
-
 	function clearFeedback() {
 		setTimeout(() => setFeedback(null), 3000);
 	}
 
-	async function handleScan(code: string) {
-		queueRef.current.push(code);
-		if (drainingRef.current) {
-			return;
-		}
-		drainingRef.current = true;
+	/**
+	 * Um código por chamada. Serialização de bip em rajada fica no ScanInput.
+	 * Retorna "clear" no sucesso e "keep" no erro (código fica selecionado).
+	 */
+	async function handleScan(code: string): Promise<"clear" | "keep"> {
 		setIsScanning(true);
 		// Sem finally: React Compiler baila em try com finalizer.
 		try {
-			while (queueRef.current.length > 0) {
-				const next = queueRef.current.shift();
-				if (next === undefined) {
-					break;
-				}
-				const result = await scanItem(picking.id, next);
-				if (!result.ok) {
-					notify.error(result.error);
-					setFeedback(null);
-					continue;
-				}
-				const scan = result.data;
-				if (scan.kind === "accepted") {
-					setLocalItems((prev) =>
-						prev.map((it) =>
-							it.id === scan.pickingItemId
-								? { ...it, qtyPicked: scan.qtyPicked, notFound: false }
-								: it
-						)
-					);
-					setFocusedId(scan.pickingItemId);
-					setFeedback("accepted");
-				} else {
-					setFeedback(scan.kind);
-				}
-				clearFeedback();
+			const result = await scanItem(picking.id, code);
+			if (!result.ok) {
+				notify.error(result.error);
+				setFeedback(null);
+				setIsScanning(false);
+				return "keep";
 			}
-			drainingRef.current = false;
+			const scan = result.data;
+			if (scan.kind === "accepted") {
+				setLocalItems((prev) =>
+					prev.map((it) =>
+						it.id === scan.pickingItemId
+							? { ...it, qtyPicked: scan.qtyPicked, notFound: false }
+							: it
+					)
+				);
+				setFocusedId(scan.pickingItemId);
+				setFeedback("accepted");
+			} else {
+				setFeedback(scan.kind);
+			}
+			clearFeedback();
 			setIsScanning(false);
+			return scanInputOutcomeFromKind(scan.kind);
 		} catch (err) {
-			drainingRef.current = false;
 			setIsScanning(false);
 			throw err;
 		}

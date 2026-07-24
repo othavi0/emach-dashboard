@@ -4,9 +4,18 @@ import { Input } from "@emach/ui/components/input";
 import { BarcodeIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
+/** Resultado que o pai devolve após processar o bip. */
+export type ScanInputOutcome = "clear" | "keep";
+
 interface ScanInputProps {
 	disabled?: boolean;
-	onScan: (code: string) => void;
+	/**
+	 * Processa um código. Retorne `"keep"` para manter o texto selecionado
+	 * (erro / fora do pedido); `"clear"` ou undefined limpa o campo.
+	 */
+	onScan: (
+		code: string
+	) => ScanInputOutcome | undefined | Promise<ScanInputOutcome | undefined>;
 }
 
 /** Trim do código lido (Enter ou paste). Exportado para teste unitário. */
@@ -14,18 +23,71 @@ export function normalizeScanCode(raw: string): string {
 	return raw.trim();
 }
 
+/**
+ * Mapeia o kind do scanItem para o outcome do input.
+ * `accepted` e `already_complete` limpam; `not_in_order` mantém.
+ */
+export function scanInputOutcomeFromKind(
+	kind: "accepted" | "already_complete" | "not_in_order"
+): ScanInputOutcome {
+	if (kind === "not_in_order") {
+		return "keep";
+	}
+	return "clear";
+}
+
 export function ScanInput({ disabled, onScan }: ScanInputProps) {
 	const [value, setValue] = useState("");
 	const ref = useRef<HTMLInputElement>(null);
+	const pendingRef = useRef<string[]>([]);
+	const drainingRef = useRef(false);
+
+	function applyOutcome(code: string, outcome: ScanInputOutcome | undefined) {
+		if (outcome === "keep") {
+			setValue(code);
+			requestAnimationFrame(() => {
+				ref.current?.focus();
+				ref.current?.select();
+			});
+			return;
+		}
+		setValue("");
+		requestAnimationFrame(() => ref.current?.focus());
+	}
+
+	async function drain() {
+		if (drainingRef.current) {
+			return;
+		}
+		drainingRef.current = true;
+		try {
+			while (pendingRef.current.length > 0) {
+				const code = pendingRef.current.shift();
+				if (code === undefined) {
+					break;
+				}
+				const outcome = await Promise.resolve(onScan(code));
+				applyOutcome(code, outcome);
+			}
+		} finally {
+			drainingRef.current = false;
+		}
+	}
 
 	function submit(raw: string) {
 		const code = normalizeScanCode(raw);
 		if (!code) {
 			return;
 		}
-		setValue("");
-		onScan(code);
-		requestAnimationFrame(() => ref.current?.focus());
+		// Mostra o código enquanto o server processa (paste com preventDefault
+		// não grava no state sozinho).
+		setValue(code);
+		pendingRef.current.push(code);
+		// Fire-and-forget serial drain (biome noVoid — named call).
+		async function run() {
+			await drain();
+		}
+		run();
 	}
 
 	function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -64,6 +126,7 @@ export function ScanInput({ disabled, onScan }: ScanInputProps) {
 			</div>
 			<p className="pl-0.5 text-[12px] text-muted-foreground">
 				Foco automático · leitor dá Enter sozinho · colar também valida na hora
+				· em erro o código fica selecionado
 			</p>
 		</div>
 	);
