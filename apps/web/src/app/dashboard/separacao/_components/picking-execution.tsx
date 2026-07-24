@@ -103,6 +103,20 @@ function firstIncompleteId(items: LocalItem[]): string | null {
 	);
 }
 
+/** Linha secundária da checklist — nunca expõe barcode (anti-cola visual). */
+export function pickingItemSecondaryLine(item: {
+	notFound: boolean;
+	voltage: string | null;
+}): string | null {
+	if (item.notFound) {
+		return "Falta reportada · em exceção";
+	}
+	if (item.voltage) {
+		return item.voltage;
+	}
+	return null;
+}
+
 function getFocusCountColor(f: FeedbackKind): string {
 	if (f === "accepted") {
 		return "text-success";
@@ -220,11 +234,6 @@ function FocusCard({
 					{item.voltage && (
 						<span className="rounded-[5px] bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
 							{item.voltage}
-						</span>
-					)}
-					{item.barcode && (
-						<span className="font-mono text-[11px] text-muted-foreground">
-							{item.barcode}
 						</span>
 					)}
 				</div>
@@ -399,16 +408,21 @@ function ChecklistItemRow({ item, focusedId }: ChecklistItemRowProps) {
 
 			<div className="min-w-0 flex-1">
 				<p className="truncate font-medium text-[13px]">{item.name}</p>
-				{state === "exc" ? (
-					<p className="text-[11px] text-destructive">
-						Falta reportada · em exceção
-					</p>
-				) : (
-					<p className="text-[11px] text-muted-foreground">
-						{item.voltage ? `${item.voltage} · ` : ""}
-						{item.barcode ?? "—"}
-					</p>
-				)}
+				{(() => {
+					const secondary = pickingItemSecondaryLine(item);
+					if (!secondary) {
+						return null;
+					}
+					return (
+						<p
+							className={`text-[11px] ${
+								item.notFound ? "text-destructive" : "text-muted-foreground"
+							}`}
+						>
+							{secondary}
+						</p>
+					);
+				})()}
 			</div>
 
 			<span className={`shrink-0 text-[13px] tabular-nums ${qtyClass}`}>
