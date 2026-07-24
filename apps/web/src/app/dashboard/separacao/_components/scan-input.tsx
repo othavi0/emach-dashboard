@@ -9,21 +9,36 @@ interface ScanInputProps {
 	onScan: (code: string) => void;
 }
 
+/** Trim do código lido (Enter ou paste). Exportado para teste unitário. */
+export function normalizeScanCode(raw: string): string {
+	return raw.trim();
+}
+
 export function ScanInput({ disabled, onScan }: ScanInputProps) {
 	const [value, setValue] = useState("");
 	const ref = useRef<HTMLInputElement>(null);
 
-	function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-		if (e.key !== "Enter") {
-			return;
-		}
-		const code = value.trim();
+	function submit(raw: string) {
+		const code = normalizeScanCode(raw);
 		if (!code) {
 			return;
 		}
 		setValue("");
 		onScan(code);
 		requestAnimationFrame(() => ref.current?.focus());
+	}
+
+	function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+		if (e.key !== "Enter") {
+			return;
+		}
+		submit(value);
+	}
+
+	function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+		e.preventDefault();
+		const raw = e.clipboardData.getData("text");
+		submit(raw);
 	}
 
 	return (
@@ -40,6 +55,7 @@ export function ScanInput({ disabled, onScan }: ScanInputProps) {
 					disabled={disabled}
 					onChange={(e) => setValue(e.target.value)}
 					onKeyDown={handleKeyDown}
+					onPaste={handlePaste}
 					placeholder="Bipe o código de barras…"
 					ref={ref}
 					type="text"
@@ -47,7 +63,7 @@ export function ScanInput({ disabled, onScan }: ScanInputProps) {
 				/>
 			</div>
 			<p className="pl-0.5 text-[12px] text-muted-foreground">
-				Foco automático no campo · o leitor digita o código e dá Enter sozinho
+				Foco automático · leitor dá Enter sozinho · colar também valida na hora
 			</p>
 		</div>
 	);
