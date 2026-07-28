@@ -48,6 +48,84 @@ Validações de tipo e tamanho (**2 MB pós-compressão** via `MAX_SIZE_BYTES`, 
 - `deleteTool`: busca URLs antes do `DELETE tool` e limpa cada arquivo após o delete (cascade já removeu registros).
 - `removeAt` (gallery × button): chama `deleteToolImage` imediatamente mas o registro só some do DB se o form for salvo. Se usuário fechar sem salvar, arquivo **removido** do bucket mas URL ainda no state — divergência aceitável (user já sinalizou intenção de remover).
 
+## banner-images
+
+Armazena as imagens dos banners do site (desktop e mobile). Bucket **público** — leitura direta sem autenticação.
+
+### Criar via Dashboard (cloud)
+
+1. Supabase Dashboard → Storage → **New bucket**
+2. Nome: `banner-images`
+3. Public: **ON**
+4. File size limit: **5 MB** (folga do bucket; o app valida **4 MB** por padrão — ver Arquitetura de acesso)
+5. Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`
+
+### Criar via SQL (alternativa)
+
+```sql
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'banner-images',
+  'banner-images',
+  true,
+  5242880,
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+);
+```
+
+### Padrão de URL pública
+
+```
+https://<project-ref>.supabase.co/storage/v1/object/public/banner-images/<path>
+```
+
+Salvar a URL resultante nas colunas de imagem de `banner`.
+
+### Arquitetura de acesso
+
+Upload e delete acontecem **server-side** via server actions em `apps/web/src/app/dashboard/site/banners/_components/image-actions.ts` (`uploadBannerImage` / `deleteBannerImage`), gated por `site.update_banners` (exclusivo de `super_admin`), usando `uploadToPublicBucket`/`removeStorageObject` (`apps/web/src/lib/storage.ts`) com `SUPABASE_SERVICE_ROLE_KEY`. A constante do bucket é `BANNER_IMAGES_BUCKET` (`apps/web/src/lib/supabase-server.ts`). Toda operação é auditada em `userActivityLog` (`banner.image_uploaded` / `banner.image_deleted`). Bucket RLS permanece fechado para `anon` — apenas leitura pública via URL direta.
+
+Validação de tipo (JPG/PNG/WEBP) no server; o limite de tamanho vem do form via `maxBytes` (default **4 MB**).
+
+## tool-videos
+
+Armazena os vídeos de produto das ferramentas (`tool.video_url`). Bucket **público** — leitura direta sem autenticação.
+
+### Criar via Dashboard (cloud)
+
+1. Supabase Dashboard → Storage → **New bucket**
+2. Nome: `tool-videos`
+3. Public: **ON**
+4. File size limit: **50 MB**
+5. Allowed MIME types: `video/mp4`, `video/webm`
+
+### Criar via SQL (alternativa)
+
+```sql
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'tool-videos',
+  'tool-videos',
+  true,
+  52428800,
+  ARRAY['video/mp4', 'video/webm']
+);
+```
+
+### Padrão de URL pública
+
+```
+https://<project-ref>.supabase.co/storage/v1/object/public/tool-videos/<uuid>.<ext>
+```
+
+Salvar a URL resultante em `tool.video_url` (o poster vai em `tool.video_poster_url`).
+
+### Arquitetura de acesso
+
+Diferente dos buckets de imagem, o upload é **direto do browser** via **signed upload URL**: a server action `createToolVideoUploadUrl` (`apps/web/src/app/dashboard/tools/_components/video-actions.ts`, gated por `tools.update`) gera `{path, token}` com `supabaseAdmin.storage.createSignedUploadUrl()` e o client envia o arquivo direto ao bucket — o vídeo (até 50 MB) não trafega pela server action. Delete server-side via `deleteToolVideoObject` (gated por `tools.delete`). Constante `TOOL_VIDEOS_BUCKET` (`apps/web/src/lib/supabase-server.ts`); operações auditadas em `userActivityLog`.
+
+Validações no client + server: MP4/WebM, **50 MB** (`MAX_VIDEO_BYTES`) e duração máxima de **60s** (`MAX_VIDEO_DURATION_SECONDS`) em `apps/web/src/lib/video-validation.ts`.
+
 ## user-avatars
 
 Armazena a foto de perfil dos usuários do dashboard (self-service). Bucket **público** — leitura direta sem autenticação.
