@@ -95,7 +95,6 @@ function baseTool(overrides: Record<string, unknown> = {}) {
 	return {
 		name: "Furadeira de impacto",
 		status: "active" as const,
-		// NCM obrigatório ao ativar (ADR-0027)
 		ncm: "84672100",
 		weightKg: 2,
 		lengthCm: 30,
@@ -129,7 +128,7 @@ function baseTool(overrides: Record<string, unknown> = {}) {
 }
 
 describe("activationRequirementIssues", () => {
-	it("retorna vazio quando specs≥4, imagens≥3 e ncm presentes", () => {
+	it("retorna vazio quando specs≥4 e imagens≥3", () => {
 		expect(
 			activationRequirementIssues(toolFormSchema.parse(baseTool()))
 		).toEqual([]);
@@ -153,11 +152,11 @@ describe("activationRequirementIssues", () => {
 		).toBe(true);
 	});
 
-	it("aponta ncm ausente", () => {
+	it("ncm ausente NÃO bloqueia ativação (emenda 2026-07-28 ao ADR-0027)", () => {
 		const data = toolFormSchema.parse(baseTool({ ncm: undefined }));
 		expect(
 			activationRequirementIssues(data).some((i) => i.path[0] === "ncm")
-		).toBe(true);
+		).toBe(false);
 	});
 
 	it("aponta imagens abaixo do mínimo", () => {

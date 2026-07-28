@@ -3,6 +3,8 @@
 **Data:** 2026-07-01
 **Status:** Aceito — estende o ADR-0004 (integração DB-only) e o ADR-0008 (documentos Asaas via DB).
 
+> **Emenda 2026-07-28 — item 3 (NCM-gate) suspenso.** Na prática o gate forçava o operador a inventar NCM para conseguir ativar (a emissão de NF-e ainda não existe e o dado fiscal real muitas vezes não está em mãos no cadastro) — dado fabricado é pior que ausente para uma futura NF-e. O NCM voltou a ser opcional também em `active`; a régua de ativação mantém só imagens (≥3) e specs (≥4). **Religar o gate — com backfill dos ativos sem NCM — quando a emissão fiscal for real.** Os itens 1, 2 e 4 permanecem valendo.
+
 ## Contexto
 
 O `order` tem os campos `nfe_number`, `nfe_url`, `nfe_xml_url`, `nfe_status`, mas a auditoria de 2026-07-01 confirmou que a NF-e é **estruturalmente inemissível de forma compliant**:

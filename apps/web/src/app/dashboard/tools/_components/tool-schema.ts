@@ -189,7 +189,7 @@ export type ToolImageValue = z.infer<typeof toolImageSchema>;
 export type ToolStatusValue = (typeof TOOL_STATUS_OPTIONS)[number];
 
 /**
- * A régua de ativação (specs/imagens/ncm) é um gate de TRANSIÇÃO: só vale quando
+ * A régua de ativação (specs/imagens) é um gate de TRANSIÇÃO: só vale quando
  * o tool ENTRA em `active` (create já-active ou draft/discontinued→active).
  * Editar um tool que já era `active` não re-valida — evita aprisionar edições
  * não relacionadas (issue #290). No create, passe `initialStatus = "draft"`.
@@ -221,12 +221,9 @@ export function activationRequirementIssues(
 			message: `Ativar exige mínimo de ${MIN_IMAGES_ACTIVE} imagens`,
 		});
 	}
-	if (!data.ncm?.trim()) {
-		issues.push({
-			path: ["ncm"],
-			message: "Ativar exige NCM preenchido (obrigatório para NF-e)",
-		});
-	}
+	// NCM saiu da régua em 2026-07-28 (emenda ao ADR-0027): a emissão de NF-e
+	// ainda não existe e o gate só forçava dado inventado. Religar quando a
+	// emissão fiscal for real.
 	if (
 		countFilledSpecs(data.attributeValues, data.attributeAssignments) <
 		MIN_SPECS_ACTIVE

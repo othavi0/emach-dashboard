@@ -146,14 +146,13 @@ const CHECKS: { name: string; query: string }[] = [
 			"SELECT count(*) AS n FROM tool_variant WHERE barcode !~ '^[0-9]{13}$'",
 	},
 	{
-		name: "tool active fora da régua de ativação (specs<4, imagens<3 ou sem ncm)",
+		name: "tool active fora da régua de ativação (specs<4 ou imagens<3)",
 		query: `
 			SELECT count(*) AS n
 			FROM tool t
 			WHERE t.status = 'active'
 			  AND (
-				(t.ncm IS NULL OR btrim(t.ncm) = '')
-				OR (SELECT count(*) FROM tool_image ti WHERE ti.tool_id = t.id) < 3
+				(SELECT count(*) FROM tool_image ti WHERE ti.tool_id = t.id) < 3
 				OR (
 					SELECT count(*) FROM tool_attribute_value tav
 					JOIN tool_attribute_assignment taa
