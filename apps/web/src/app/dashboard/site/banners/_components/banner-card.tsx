@@ -8,8 +8,9 @@ import { Switch } from "@emach/ui/components/switch";
 import { cn } from "@emach/ui/lib/utils";
 import { GripVertical, Monitor, Pencil, Smartphone } from "lucide-react";
 import Link from "next/link";
-import { CTA_POS, PRODUCT_POS } from "./banner-layout-pos";
-import { CTA_BASE, CTA_VARIANT_CLASS } from "./cta-variant-class";
+import { CompositionRenderer } from "./composition/composition-renderer";
+import { compositionSchema } from "./composition/composition-schema";
+import { legacyToComposition } from "./composition/derive-legacy";
 import { DeleteBannerDialog } from "./delete-banner-dialog";
 
 function SlotChip({ label }: { label: string }) {
@@ -18,6 +19,28 @@ function SlotChip({ label }: { label: string }) {
 			{label}
 		</span>
 	);
+}
+
+// Composição pra render do card: usa o dual-write quando válido; janela
+// pré-backfill (composition null ou fora do schema) deriva na hora com os
+// mesmos flags do editor-reducer (hasCta = AND label+href, ver T9/T12).
+function compositionForCard(item: Banner) {
+	const parsed = compositionSchema.safeParse(item.composition);
+	if (parsed.success) {
+		return parsed.data;
+	}
+	return legacyToComposition({
+		layout: item.layout,
+		productScale: item.productScale,
+		ctaScale: item.ctaScale,
+		hasTitle: item.title !== null,
+		hasSubtitle: item.subtitle !== null,
+		hasBadge: item.badgeText !== null,
+		hasSpecs: item.specs !== null && item.specs.length > 0,
+		hasCountdown: item.countdownTarget !== null,
+		hasProduct: item.productImageUrl !== null,
+		hasCta: item.ctaLabel !== null && item.ctaHref !== null,
+	});
 }
 
 export function BannerCard({
@@ -43,6 +66,7 @@ export function BannerCard({
 	} = useSortable({ id: item.id, disabled: !sortable });
 
 	const hasBackground = Boolean(item.backgroundImageUrl);
+	const composition = compositionForCard(item);
 
 	return (
 		<div
@@ -57,51 +81,12 @@ export function BannerCard({
 				opacity: isDragging ? 0.5 : undefined,
 			}}
 		>
-			<div className="relative aspect-video bg-black">
-				{hasBackground ? (
-					<>
-						{/* biome-ignore lint/performance/noImgElement: Supabase public URL */}
-						{/* biome-ignore lint/correctness/useImageSize: dimensões via CSS (inset-0 size-full) */}
-						<img
-							alt={item.altText ?? ""}
-							className="absolute inset-0 size-full object-cover"
-							src={item.backgroundImageUrl as string}
-						/>
-					</>
-				) : (
-					<>
-						<div className="absolute inset-0 bg-black" />
-						<div className="absolute inset-0 flex items-center justify-center">
-							<div className="size-24 rounded-full bg-red-600/20 blur-2xl" />
-						</div>
-					</>
-				)}
-				{item.productImageUrl && (
-					// biome-ignore lint/performance/noImgElement: Supabase public URL
-					// biome-ignore lint/correctness/useImageSize: dimensões via CSS (size-3/5)
-					<img
-						alt=""
-						className={cn(
-							"absolute size-3/5 object-contain drop-shadow-[0_20px_24px_rgba(0,0,0,0.55)]",
-							PRODUCT_POS[item.layout]
-						)}
-						src={item.productImageUrl}
-						style={{ scale: String(item.productScale / 100) }}
-					/>
-				)}
-				{item.ctaLabel && (
-					<span
-						className={cn(
-							"absolute z-10 px-3 py-1.5 text-[11px]",
-							CTA_BASE,
-							CTA_VARIANT_CLASS[item.ctaVariant],
-							CTA_POS[item.layout]
-						)}
-						style={{ scale: String(item.ctaScale / 100) }}
-					>
-						{item.ctaLabel} →
-					</span>
-				)}
+			<div className="relative aspect-video overflow-hidden bg-black">
+				<CompositionRenderer
+					banner={item}
+					composition={composition}
+					viewport="desktop"
+				/>
 				{typeof order === "number" && (
 					<span className="absolute top-2 left-2 rounded-md bg-black/60 px-2 py-0.5 font-bold text-white text-xs backdrop-blur">
 						#{order}
