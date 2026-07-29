@@ -25,7 +25,16 @@ export function NavigationAnnouncer() {
 	}, [pathname]);
 
 	return (
-		<span aria-live="polite" className="sr-only" role="status">
+		// suppressHydrationWarning: com um Sheet/Dialog SSR-aberto (deep-link
+		// ?newBox=1), o base-ui marca os elementos fora do dialog com
+		// data-base-ui-inert via DOM ANTES deste boundary <Suspense> hidratar —
+		// o atributo de terceiro dispara falso mismatch de hidratação.
+		<span
+			aria-live="polite"
+			className="sr-only"
+			role="status"
+			suppressHydrationWarning
+		>
 			{message}
 		</span>
 	);
