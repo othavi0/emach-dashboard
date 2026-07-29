@@ -125,6 +125,34 @@ export const SAFE_STACK_ORDER: ElementKey[] = [
 	"cta",
 ];
 
+// Divide os elementos do desktop em 3 grupos pro renderer mobile: sem
+// override mobile → empilha (safe stack); override com placement → posiciona
+// absoluto; override com hidden → não renderiza. Só considera keys presentes
+// em desktop.elements (não existe no desktop = não existe no mobile).
+export function partitionMobileElements(c: BannerComposition): {
+	stacked: ElementKey[];
+	positioned: [ElementKey, ElementPlacement][];
+	hidden: ElementKey[];
+} {
+	const stacked: ElementKey[] = [];
+	const positioned: [ElementKey, ElementPlacement][] = [];
+	const hiddenKeys: ElementKey[] = [];
+	for (const key of SAFE_STACK_ORDER) {
+		if (c.desktop.elements[key] === undefined) {
+			continue;
+		}
+		const override = c.mobile.elements[key];
+		if (override === undefined) {
+			stacked.push(key);
+		} else if ("hidden" in override) {
+			hiddenKeys.push(key);
+		} else {
+			positioned.push([key, override]);
+		}
+	}
+	return { stacked, positioned, hidden: hiddenKeys };
+}
+
 // Área segura em % do container; bottom reserva a faixa dos dots do carrossel.
 export const SAFE_AREA = {
 	x: 2,

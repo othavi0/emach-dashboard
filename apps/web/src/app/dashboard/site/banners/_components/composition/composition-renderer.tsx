@@ -7,13 +7,14 @@
 import type { Banner } from "@emach/db/schema/banner";
 import { cn } from "@emach/ui/lib/utils";
 import Image from "next/image";
-import type { PointerEvent, ReactNode } from "react";
+import type { CSSProperties, PointerEvent, ReactNode } from "react";
 import { useState } from "react";
 import { CTA_BASE, CTA_VARIANT_CLASS } from "../cta-variant-class";
 import {
 	type BannerComposition,
 	type ElementKey,
 	type ElementPlacement,
+	partitionMobileElements,
 	SAFE_STACK_ORDER,
 	type Viewport,
 } from "./composition-schema";
@@ -24,6 +25,7 @@ import {
 	placementToStyle,
 	textSide,
 } from "./placement-css";
+import { SafeStack } from "./safe-stack";
 
 export type RendererBanner = Pick<
 	Banner,
@@ -42,8 +44,6 @@ export type RendererBanner = Pick<
 	| "ctaVariant"
 	| "countdownTarget"
 >;
-
-type DesktopElements = BannerComposition["desktop"]["elements"];
 
 function resolveBackgroundUrl(banner: RendererBanner, viewport: Viewport) {
 	if (viewport === "desktop") {
@@ -122,197 +122,160 @@ function ElementBox({
 	);
 }
 
-function renderBadge(
-	banner: RendererBanner,
-	elements: DesktopElements,
-	box: BoxProps
-) {
-	const placement = elements.badge;
-	if (!(placement && banner.badgeText)) {
+// Conteúdo puro de cada elemento (sem posicionamento) — reusado tanto pelo
+// bloco absoluto (ElementBox, via renderPositioned) quanto pela pilha segura
+// mobile (SafeStack). Cada função só decide SE renderiza, com base no dado do
+// banner; ONDE renderiza é responsabilidade do chamador.
+function renderBadgeContent(banner: RendererBanner): ReactNode {
+	if (!banner.badgeText) {
 		return null;
 	}
 	return (
-		<ElementBox box={box} elementKey="badge" key="badge" placement={placement}>
-			<span className="inline-block rounded-sm bg-white px-2 py-0.5 font-[family-name:var(--font-barlow-condensed)] font-bold text-[#181818] text-[10px]">
-				{banner.badgeText}
-			</span>
-		</ElementBox>
+		<span className="inline-block rounded-sm bg-white px-2 py-0.5 font-[family-name:var(--font-barlow-condensed)] font-bold text-[#181818] text-[10px]">
+			{banner.badgeText}
+		</span>
 	);
 }
 
-function renderTitle(
-	banner: RendererBanner,
-	elements: DesktopElements,
-	box: BoxProps
-) {
-	const placement = elements.title;
-	if (!(placement && banner.title)) {
+function renderTitleContent(banner: RendererBanner): ReactNode {
+	if (!banner.title) {
 		return null;
 	}
 	return (
-		<ElementBox
-			box={box}
-			className="flex flex-col gap-1"
-			elementKey="title"
-			key="title"
-			placement={placement}
-		>
+		<div className="flex flex-col gap-1">
 			<p className="font-[family-name:var(--font-barlow-condensed)] font-bold text-white text-xl uppercase leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
 				{banner.title}
 			</p>
 			<span className="my-1 h-[3px] w-10 bg-[#da291c]" />
-		</ElementBox>
+		</div>
 	);
 }
 
-function renderSubtitle(
-	banner: RendererBanner,
-	elements: DesktopElements,
-	box: BoxProps
-) {
-	const placement = elements.subtitle;
-	if (!(placement && banner.subtitle)) {
+function renderSubtitleContent(banner: RendererBanner): ReactNode {
+	if (!banner.subtitle) {
 		return null;
 	}
-	return (
-		<ElementBox
-			box={box}
-			elementKey="subtitle"
-			key="subtitle"
-			placement={placement}
-		>
-			<p className="text-[11px] text-white/85">{banner.subtitle}</p>
-		</ElementBox>
-	);
+	return <p className="text-[11px] text-white/85">{banner.subtitle}</p>;
 }
 
-function renderSpecs(
-	banner: RendererBanner,
-	elements: DesktopElements,
-	box: BoxProps
-) {
-	const placement = elements.specs;
+function renderSpecsContent(banner: RendererBanner): ReactNode {
 	const specs = banner.specs ?? [];
-	if (!(placement && specs.length > 0)) {
+	if (specs.length === 0) {
 		return null;
 	}
 	return (
-		<ElementBox box={box} elementKey="specs" key="specs" placement={placement}>
-			<ul className="flex flex-wrap gap-1">
-				{specs.map((spec, i) => (
-					// key por índice ok: lista curta (≤6) de strings sem ID estável, sem reordenação
-					<li
-						className="rounded-sm bg-white/15 px-1.5 py-0.5 font-[family-name:var(--font-barlow-condensed)] font-medium text-[10px] text-white uppercase"
-						key={i}
-					>
-						{spec}
-					</li>
-				))}
-			</ul>
-		</ElementBox>
+		<ul className="flex flex-wrap gap-1">
+			{specs.map((spec, i) => (
+				// key por índice ok: lista curta (≤6) de strings sem ID estável, sem reordenação
+				<li
+					className="rounded-sm bg-white/15 px-1.5 py-0.5 font-[family-name:var(--font-barlow-condensed)] font-medium text-[10px] text-white uppercase"
+					key={i}
+				>
+					{spec}
+				</li>
+			))}
+		</ul>
 	);
 }
 
-function renderCountdown(
+function renderCountdownContent(banner: RendererBanner): ReactNode {
+	if (!banner.countdownTarget) {
+		return null;
+	}
+	return <Countdown target={banner.countdownTarget} />;
+}
+
+function renderProductContent(productUrl: string | null): ReactNode {
+	if (!productUrl) {
+		return null;
+	}
+	return (
+		<div className="relative size-full">
+			<Image
+				alt=""
+				className="object-contain drop-shadow-[0_24px_24px_rgba(0,0,0,0.6)]"
+				fill
+				sizes="60vw"
+				src={productUrl}
+			/>
+		</div>
+	);
+}
+
+function renderCtaContent(
 	banner: RendererBanner,
-	elements: DesktopElements,
-	box: BoxProps
-) {
-	const placement = elements.countdown;
-	if (!(placement && banner.countdownTarget)) {
+	style?: CSSProperties
+): ReactNode {
+	if (!(banner.ctaLabel && banner.ctaHref)) {
 		return null;
 	}
 	return (
-		<ElementBox
-			box={box}
-			elementKey="countdown"
-			key="countdown"
-			placement={placement}
+		<span
+			className={cn(
+				CTA_BASE,
+				CTA_VARIANT_CLASS[banner.ctaVariant],
+				"px-3 py-1.5 text-[11px]"
+			)}
+			style={style}
 		>
-			<Countdown target={banner.countdownTarget} />
-		</ElementBox>
+			{banner.ctaLabel} →
+		</span>
 	);
 }
 
-function renderProduct(
-	elements: DesktopElements,
-	productUrl: string | null,
-	box: BoxProps
-) {
-	const placement = elements.product;
-	if (!(placement && productUrl)) {
-		return null;
-	}
-	return (
-		<ElementBox
-			box={box}
-			className="size-3/5"
-			elementKey="product"
-			key="product"
-			placement={placement}
-		>
-			<div className="relative size-full">
-				<Image
-					alt=""
-					className="object-contain drop-shadow-[0_24px_24px_rgba(0,0,0,0.6)]"
-					fill
-					sizes="60vw"
-					src={productUrl}
-				/>
-			</div>
-		</ElementBox>
-	);
-}
-
-function renderCta(
-	banner: RendererBanner,
-	elements: DesktopElements,
-	box: BoxProps
-) {
-	const placement = elements.cta;
-	if (!(placement && banner.ctaLabel && banner.ctaHref)) {
-		return null;
-	}
-	return (
-		<ElementBox box={box} elementKey="cta" key="cta" placement={placement}>
-			<span
-				className={cn(
-					CTA_BASE,
-					CTA_VARIANT_CLASS[banner.ctaVariant],
-					"px-3 py-1.5 text-[11px]"
-				)}
-			>
-				{banner.ctaLabel} →
-			</span>
-		</ElementBox>
-	);
-}
-
-function renderElement(
+// Função compartilhada do módulo composition (Task 12) — despacha pro
+// conteúdo puro de cada elemento. `style` é usado pelos casos que precisam de
+// um ajuste inline no contexto da pilha (ex: CTA full-width no SafeStack).
+export function renderElement(
 	key: ElementKey,
 	banner: RendererBanner,
-	elements: DesktopElements,
 	productUrl: string | null,
-	box: BoxProps
-) {
+	style?: CSSProperties
+): ReactNode {
 	switch (key) {
 		case "badge":
-			return renderBadge(banner, elements, box);
+			return renderBadgeContent(banner);
 		case "title":
-			return renderTitle(banner, elements, box);
+			return renderTitleContent(banner);
 		case "subtitle":
-			return renderSubtitle(banner, elements, box);
+			return renderSubtitleContent(banner);
 		case "specs":
-			return renderSpecs(banner, elements, box);
+			return renderSpecsContent(banner);
 		case "countdown":
-			return renderCountdown(banner, elements, box);
+			return renderCountdownContent(banner);
 		case "product":
-			return renderProduct(elements, productUrl, box);
+			return renderProductContent(productUrl);
 		case "cta":
-			return renderCta(banner, elements, box);
+			return renderCtaContent(banner, style);
 		default:
 			return null;
 	}
+}
+
+// Elemento posicionado de forma absoluta (desktop sempre; mobile só os
+// overrides com placement — os demais vão pra SafeStack).
+function renderPositioned(
+	key: ElementKey,
+	placement: ElementPlacement,
+	banner: RendererBanner,
+	productUrl: string | null,
+	box: BoxProps
+): ReactNode {
+	const content = renderElement(key, banner, productUrl);
+	if (content === null) {
+		return null;
+	}
+	return (
+		<ElementBox
+			box={box}
+			className={key === "product" ? "size-3/5" : undefined}
+			elementKey={key}
+			key={key}
+			placement={placement}
+		>
+			{content}
+		</ElementBox>
+	);
 }
 
 export function CompositionRenderer({
@@ -333,13 +296,13 @@ export function CompositionRenderer({
 		viewport === "mobile"
 			? (composition.mobile.background ?? composition.desktop.background)
 			: composition.desktop.background;
-	// Fase 2 (Task 7): só o viewport desktop posiciona por placement. A Task 12
-	// introduz a pilha segura mobile (partição desktop/mobile com overrides
-	// "hidden"); até lá, viewport "mobile" reaproveita os elements do desktop.
-	const elements = composition.desktop.elements;
 	const productUrl = resolveProductUrl(banner, viewport);
 	const hasText = Boolean(banner.title || banner.subtitle);
 	const box: BoxProps = { onElementPointerDown, selected, viewport };
+	// Mobile particiona os elements do desktop em pilha segura / posicionados
+	// absoluto / escondidos (Task 12); desktop sempre posiciona por placement.
+	const partition =
+		viewport === "mobile" ? partitionMobileElements(composition) : null;
 
 	return (
 		<div className="relative h-full w-full overflow-hidden bg-[#0b0a09] font-[family-name:var(--font-barlow)]">
@@ -382,8 +345,25 @@ export function CompositionRenderer({
 					className={`absolute inset-0 ${GRADIENT_CLASS[textSide(composition)]}`}
 				/>
 			)}
-			{SAFE_STACK_ORDER.map((key) =>
-				renderElement(key, banner, elements, productUrl, box)
+			{viewport === "desktop" &&
+				SAFE_STACK_ORDER.map((key) => {
+					const placement = composition.desktop.elements[key];
+					if (!placement) {
+						return null;
+					}
+					return renderPositioned(key, placement, banner, productUrl, box);
+				})}
+			{partition && (
+				<>
+					{partition.positioned.map(([key, placement]) =>
+						renderPositioned(key, placement, banner, productUrl, box)
+					)}
+					<SafeStack
+						banner={banner}
+						keys={partition.stacked}
+						productUrl={productUrl}
+					/>
+				</>
 			)}
 		</div>
 	);
