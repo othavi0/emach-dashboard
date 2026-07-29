@@ -99,7 +99,7 @@ export function EditorCanvas({
 				// ancestrais, então cobre também os elementos arrastáveis
 				// renderizados dentro de CompositionRenderer sem precisar
 				// anotar cada ElementBox individualmente.
-				"relative mx-auto w-full touch-none overflow-hidden rounded-xl border border-border",
+				"relative mx-auto w-full touch-none select-none overflow-hidden rounded-xl border border-border",
 				state.viewport === "desktop"
 					? "aspect-video"
 					: "aspect-[9/16] max-w-[300px]"

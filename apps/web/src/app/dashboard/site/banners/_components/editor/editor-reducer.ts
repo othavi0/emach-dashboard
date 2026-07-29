@@ -185,8 +185,8 @@ function dragDesktop(
 	}
 	const moved: ElementPlacement = {
 		...current,
-		offsetX: current.offsetX + deltaX,
-		offsetY: current.offsetY + deltaY,
+		offsetX: Math.round(current.offsetX + deltaX),
+		offsetY: Math.round(current.offsetY + deltaY),
 	};
 	setDesktopElement(elements, key, clampPlacement(moved, "desktop"));
 	return true;
@@ -211,8 +211,8 @@ function dragMobile(
 	};
 	const moved: ElementPlacement = {
 		...base,
-		offsetX: base.offsetX + deltaX,
-		offsetY: base.offsetY + deltaY,
+		offsetX: Math.round(base.offsetX + deltaX),
+		offsetY: Math.round(base.offsetY + deltaY),
 	};
 	setMobileElement(elements, key, clampPlacement(moved, "mobile"));
 	return true;

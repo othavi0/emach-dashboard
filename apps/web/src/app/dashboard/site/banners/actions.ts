@@ -18,6 +18,25 @@ import { deriveLegacyLayout } from "./_components/composition/derive-legacy";
 
 const BANNERS_PATH = "/dashboard/site/banners";
 
+// Dual-write legado: quando a `composition` (fonte nova) existe, deriva
+// layout/productScale/ctaScale legados a partir dela pra manter as colunas
+// antigas em sincronia (leitores que ainda dependem delas). Sem composition,
+// os campos legados do form seguem intactos.
+function buildPersistedBannerFields(v: BannerFormValues) {
+	const legacy = v.composition ? deriveLegacyLayout(v.composition) : null;
+	return {
+		...v,
+		...(legacy === null
+			? {}
+			: {
+					layout: legacy.layout,
+					productScale: legacy.productScale,
+					ctaScale: legacy.ctaScale,
+					composition: v.composition,
+				}),
+	};
+}
+
 async function countActive(excludeId?: string): Promise<number> {
 	const where = excludeId
 		? and(eq(banner.isActive, true), ne(banner.id, excludeId))
@@ -53,18 +72,7 @@ export async function createBanner(
 		return { ok: false, error: "Dados inválidos. Revise os campos." };
 	}
 	const v = parsed.data;
-	const legacy = v.composition ? deriveLegacyLayout(v.composition) : null;
-	const persisted = {
-		...v,
-		...(legacy === null
-			? {}
-			: {
-					layout: legacy.layout,
-					productScale: legacy.productScale,
-					ctaScale: legacy.ctaScale,
-					composition: v.composition,
-				}),
-	};
+	const persisted = buildPersistedBannerFields(v);
 
 	try {
 		if (v.isActive && (await countActive()) >= MAX_ACTIVE_BANNERS) {
@@ -98,7 +106,7 @@ export async function createBanner(
 			countdownTarget: persisted.countdownTarget,
 			isActive: persisted.isActive,
 			sortOrder: (maxRow?.max ?? -1) + 1,
-			...(legacy === null ? {} : { composition: persisted.composition }),
+			...(v.composition ? { composition: persisted.composition } : {}),
 		});
 		await logUserActivity({
 			actorUserId: session.user.id,
@@ -126,18 +134,7 @@ export async function updateBanner(
 		return { ok: false, error: "Dados inválidos. Revise os campos." };
 	}
 	const v = parsed.data;
-	const legacy = v.composition ? deriveLegacyLayout(v.composition) : null;
-	const persisted = {
-		...v,
-		...(legacy === null
-			? {}
-			: {
-					layout: legacy.layout,
-					productScale: legacy.productScale,
-					ctaScale: legacy.ctaScale,
-					composition: v.composition,
-				}),
-	};
+	const persisted = buildPersistedBannerFields(v);
 
 	try {
 		if (v.isActive && (await countActive(id)) >= MAX_ACTIVE_BANNERS) {
@@ -167,7 +164,7 @@ export async function updateBanner(
 				ctaScale: persisted.ctaScale,
 				countdownTarget: persisted.countdownTarget,
 				isActive: persisted.isActive,
-				...(legacy === null ? {} : { composition: persisted.composition }),
+				...(v.composition ? { composition: persisted.composition } : {}),
 			})
 			.where(eq(banner.id, id));
 		await logUserActivity({

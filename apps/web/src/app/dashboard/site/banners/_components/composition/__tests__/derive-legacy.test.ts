@@ -38,6 +38,19 @@ describe("deriveLegacyLayout", () => {
 		// CHECK legado de ctaScale é 80–140 — 80 passa direto
 		expect(deriveLegacyLayout(c).ctaScale).toBe(80);
 	});
+	test("escala fora do range do CHECK legado é clampada no limite", () => {
+		const c = legacyToComposition({ layout: "split", ...ALL_ON });
+		if (c.desktop.elements.cta) {
+			c.desktop.elements.cta.scale = 200;
+		}
+		if (c.desktop.elements.product) {
+			c.desktop.elements.product.scale = 30;
+		}
+		// ctaScale 80–140: 200 clampa pro teto 140.
+		expect(deriveLegacyLayout(c).ctaScale).toBe(140);
+		// productScale 50–160: 30 clampa pro piso 50.
+		expect(deriveLegacyLayout(c).productScale).toBe(50);
+	});
 	test("composição sem título nem produto cai no fallback split", () => {
 		const c = legacyToComposition({
 			layout: "split",

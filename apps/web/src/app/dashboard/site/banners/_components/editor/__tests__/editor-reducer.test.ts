@@ -45,6 +45,17 @@ describe("drag", () => {
 		expect(s1.dirty).toBe(true);
 	});
 
+	test("desktop: arredonda offset pra inteiro antes do clamp (evita float no jsonb)", () => {
+		const s1 = editorReducer(
+			{ ...s0, selected: "title" },
+			{ type: "drag", key: "title", deltaX: -2.4103, deltaY: 0.6 }
+		);
+		const offsetX = s1.composition.desktop.elements.title?.offsetX;
+		const offsetY = s1.composition.desktop.elements.title?.offsetY;
+		expect(Number.isInteger(offsetX)).toBe(true);
+		expect(Number.isInteger(offsetY)).toBe(true);
+	});
+
 	test("mobile: drag em elemento herdado cria override", () => {
 		const s1 = editorReducer(
 			{ ...s0, viewport: "mobile" },
