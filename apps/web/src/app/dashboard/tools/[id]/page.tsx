@@ -32,9 +32,10 @@ export default function ToolDetailPage({ params, searchParams }: PageProps) {
 async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCurrentSession();
 	const [{ id }, { tab, variant }] = await Promise.all([params, searchParams]);
-	const [canMutate, canDelete, detail] = await Promise.all([
+	const [canMutate, canDelete, canAdjustStock, detail] = await Promise.all([
 		can(session, "tools.update"),
 		can(session, "tools.delete"),
+		can(session, "stock.adjust"),
 		getToolDetail(id),
 	]);
 
@@ -103,7 +104,8 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 				) : undefined,
 			content: (
 				<EstoqueTab
-					canMutate={canMutate}
+					branches={detail.branches}
+					canAdjustStock={canAdjustStock}
 					stockRows={detail.stockRows}
 					toolId={detail.tool.id}
 					toolImageUrl={detail.images[0]?.url ?? null}

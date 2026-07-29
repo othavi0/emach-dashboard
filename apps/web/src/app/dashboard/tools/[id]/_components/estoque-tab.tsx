@@ -7,11 +7,17 @@ import type { BranchStockRow } from "@/app/dashboard/stock/branch-stock-data";
 import type { ActiveSupplierOption } from "@/lib/suppliers";
 import { groupStockByVariant } from "../_lib/stock-grouping";
 import { fetchActiveSuppliersAction } from "../_lib/tab-actions";
-import type { ToolDetailVariant, ToolStockRow } from "../_lib/tool-detail-data";
+import type {
+	ToolDetailBranch,
+	ToolDetailVariant,
+	ToolStockRow,
+} from "../_lib/tool-detail-data";
 import { ToolStockBranchCard } from "./tool-stock-branch-card";
+import { ToolStockGhostCard } from "./tool-stock-ghost-card";
 
 interface EstoqueTabProps {
-	canMutate: boolean;
+	branches: ToolDetailBranch[];
+	canAdjustStock: boolean;
 	stockRows: ToolStockRow[];
 	toolId: string;
 	toolImageUrl: string | null;
@@ -20,7 +26,8 @@ interface EstoqueTabProps {
 }
 
 export function EstoqueTab({
-	canMutate,
+	branches,
+	canAdjustStock,
 	stockRows,
 	toolId,
 	toolImageUrl,
@@ -56,14 +63,47 @@ export function EstoqueTab({
 		};
 	}, [selected]);
 
-	const groups = groupStockByVariant(stockRows, variants);
+	// Fantasmas só pra quem pode movimentar estoque (o servidor segue
+	// autoritativo via requireCapabilityWithContext no recordStockEntry).
+	const groups = groupStockByVariant(
+		stockRows,
+		variants,
+		canAdjustStock ? branches : []
+	);
+	const visibleGroups = groups.filter(
+		(g) => g.branches.length > 0 || g.ghostBranches.length > 0
+	);
 
-	if (groups.length === 0) {
+	if (visibleGroups.length === 0) {
 		return (
 			<p className="py-12 text-center text-muted-foreground text-sm">
 				Sem variantes ou filiais com estoque registrado.
 			</p>
 		);
+	}
+
+	const variantById = new Map(variants.map((v) => [v.id, v]));
+
+	// Linha sintética (qty 0) pra abrir a sheet de Entrada numa filial ainda
+	// sem stock_level — o vínculo real nasce no insert lazy do applyMovement.
+	function selectGhost(variantId: string, ghostBranch: ToolDetailBranch) {
+		const v = variantById.get(variantId);
+		if (!v) {
+			return;
+		}
+		setSelected({
+			branchCity: ghostBranch.city,
+			branchId: ghostBranch.id,
+			branchName: ghostBranch.name,
+			branchState: ghostBranch.state,
+			minQty: 0,
+			quantity: 0,
+			reorderPoint: 0,
+			variantBarcode: v.barcode,
+			variantId: v.id,
+			variantSku: v.sku,
+			variantVoltage: v.voltage,
+		});
 	}
 
 	const selectedRow: BranchStockRow | null = selected
@@ -83,7 +123,7 @@ export function EstoqueTab({
 
 	return (
 		<div className="flex flex-col gap-6">
-			{groups.map((group) => (
+			{visibleGroups.map((group) => (
 				<section key={group.variantId}>
 					<div className="mb-3 flex flex-wrap items-center gap-2">
 						<span className="rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-foreground text-xs">
@@ -104,6 +144,13 @@ export function EstoqueTab({
 								onSelect={setSelected}
 							/>
 						))}
+						{group.ghostBranches.map((ghostBranch) => (
+							<ToolStockGhostCard
+								branch={ghostBranch}
+								key={`${group.variantId}:ghost:${ghostBranch.id}`}
+								onSelect={(b) => selectGhost(group.variantId, b)}
+							/>
+						))}
 					</div>
 				</section>
 			))}
@@ -111,7 +158,7 @@ export function EstoqueTab({
 			<BranchStockEditSheet
 				branchId={selected?.branchId ?? ""}
 				branchName={selected?.branchName ?? ""}
-				canMutate={canMutate}
+				canMutate={canAdjustStock}
 				lead="branch"
 				onClose={() => setSelected(null)}
 				row={selectedRow}

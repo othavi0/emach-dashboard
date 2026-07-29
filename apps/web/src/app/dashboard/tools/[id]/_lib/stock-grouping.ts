@@ -1,26 +1,36 @@
-import type { ToolStockRow } from "./tool-detail-data";
+import type { ToolDetailBranch, ToolStockRow } from "./tool-detail-data";
 
 export interface VariantStockGroup {
 	branches: ToolStockRow[];
+	// Filiais visíveis sem stock_level pra esta variante — viram cards
+	// fantasma (afford de primeira entrada). Vazio quando o usuário não
+	// pode movimentar estoque.
+	ghostBranches: ToolDetailBranch[];
 	variantId: string;
 	variantSku: string;
 	variantVoltage: string | null;
 }
 
-interface VariantOrderInfo {
+interface VariantInfo {
+	barcode: string;
 	id: string;
 	isDefault: boolean;
+	sku: string;
 	sortOrder: number;
+	voltage: string | null;
 }
 
 /**
- * Agrupa células de estoque (variante × filial) por variante.
+ * Agrupa células de estoque (variante × filial) por variante — TODAS as
+ * variantes da ferramenta, mesmo sem célula (rendem só fantasmas).
  * Ordena os grupos com a variante default primeiro, depois por sortOrder.
- * Variantes sem nenhuma célula são omitidas. SKU/voltagem vêm da própria célula.
+ * `allBranches` = filiais ativas visíveis ao usuário; as sem célula na
+ * variante entram em `ghostBranches`.
  */
 export function groupStockByVariant(
 	stockRows: ToolStockRow[],
-	variantOrder: VariantOrderInfo[]
+	variants: VariantInfo[],
+	allBranches: ToolDetailBranch[]
 ): VariantStockGroup[] {
 	const byVariant = new Map<string, ToolStockRow[]>();
 	for (const row of stockRows) {
@@ -32,31 +42,24 @@ export function groupStockByVariant(
 		}
 	}
 
-	const rank = new Map(variantOrder.map((v) => [v.id, v]));
-	const groups: VariantStockGroup[] = [];
-	for (const [variantId, branches] of byVariant) {
-		const first = branches[0];
-		if (!first) {
-			continue;
-		}
-		groups.push({
-			branches,
-			variantId,
-			variantSku: first.variantSku,
-			variantVoltage: first.variantVoltage,
-		});
-	}
-
-	groups.sort((a, b) => {
-		const va = rank.get(a.variantId);
-		const vb = rank.get(b.variantId);
-		const da = va?.isDefault ? 0 : 1;
-		const db = vb?.isDefault ? 0 : 1;
+	const sorted = [...variants].sort((a, b) => {
+		const da = a.isDefault ? 0 : 1;
+		const db = b.isDefault ? 0 : 1;
 		if (da !== db) {
 			return da - db;
 		}
-		return (va?.sortOrder ?? 0) - (vb?.sortOrder ?? 0);
+		return a.sortOrder - b.sortOrder;
 	});
 
-	return groups;
+	return sorted.map((v) => {
+		const branches = byVariant.get(v.id) ?? [];
+		const linked = new Set(branches.map((r) => r.branchId));
+		return {
+			branches,
+			ghostBranches: allBranches.filter((b) => !linked.has(b.id)),
+			variantId: v.id,
+			variantSku: v.sku,
+			variantVoltage: v.voltage,
+		};
+	});
 }

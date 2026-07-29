@@ -311,6 +311,8 @@ Cards de grid/listagem seguem 5 arquétipos. Todos compartilham o **shell** e (n
 
 A **listagem-raiz de pedidos** usa o **Stat-card com bloco de itens** (`order-card.tsx`, grade `lg:grid-cols-2`, footer de 3 métricas; card ≥48h desde o pagamento ganha `border-warning/40` + idade `text-warning`); o **Entity-card** (footer de 1 métrica) fica para a versão compacta dentro de coleções aninhadas. A **listagem-raiz de clientes** usa o **Row-card** (lista vertical, decisão 2026-07): datas em `formatDate` (dd/mm/aaaa) e relativo capitalizado ("Há 3 dias"); sem ação de editar inline — a linha inteira navega pro detalhe.
 
+**Variante ghost (afford de criar no lugar do item):** qualquer arquétipo pode ter um estado "fantasma" — o slot que ainda não existe, clicável pra criar ali. Shell trocado por `border-dashed bg-muted/30` (sem shadow), miolo muted, rótulo de ação (`+ Registrar entrada`, `+ Adicionar`) em `text-muted-foreground` que acende no hover (`hover:border-foreground/40`, texto → foreground). **Nunca coral** (máx. 1 CTA coral por surface). Mesma interação do card real (`role="button"` + Enter/Space). Canônicos: tile de upload da galeria (`tools/_components/tool-image-gallery.tsx`), tile de banner (`site/banners/_components/image-upload-tile.tsx`), filial sem vínculo na aba Estoque da ferramenta (`tools/[id]/_components/tool-stock-ghost-card.tsx`, 2026-07-29).
+
 ### Footer edge-to-edge (regra de card)
 
 O footer de um card é uma faixa que **encosta nas bordas laterais e inferior** — a `border-t` (e as divisórias `border-r` entre métricas) vai de ponta a ponta, nunca recuada por padding. Três formas conforme a estrutura do card:

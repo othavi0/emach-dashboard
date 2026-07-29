@@ -58,6 +58,13 @@ export interface ToolStockRow {
 	variantVoltage: string | null;
 }
 
+export interface ToolDetailBranch {
+	city: string | null;
+	id: string;
+	name: string;
+	state: string | null;
+}
+
 export interface ToolStockAlert {
 	branchId: string;
 	branchName: string;
@@ -84,6 +91,9 @@ export interface ToolCartSummary {
 
 export interface ToolDetail {
 	attributes: ToolDetailAttribute[];
+	// Filiais ativas visíveis ao usuário (branch-scope) — base dos cards
+	// fantasma da aba Estoque (primeira entrada em filial sem vínculo).
+	branches: ToolDetailBranch[];
 	cartSummary: ToolCartSummary;
 	categories: ToolDetailCategory[];
 	images: ToolDetailImage[];
@@ -113,10 +123,15 @@ export const getToolDetail = cache(
 		// branchCondForColumn em branch-scope.ts — não `undefined`, que abriria
 		// o estoque de todas as filiais pra quem não tem vínculo).
 		let stockScopeCondition: SQL | undefined;
+		let branchScopeCondition: SQL | undefined;
 		if (scope.kind === "scoped") {
 			stockScopeCondition =
 				scope.branchIds.length > 0
 					? inArray(stockLevel.branchId, scope.branchIds)
+					: sql`false`;
+			branchScopeCondition =
+				scope.branchIds.length > 0
+					? inArray(branch.id, scope.branchIds)
 					: sql`false`;
 		}
 
@@ -129,6 +144,7 @@ export const getToolDetail = cache(
 			orderedRows,
 			cartRows,
 			stockedRows,
+			branches,
 		] = await Promise.all([
 			db
 				.select({
@@ -219,12 +235,27 @@ export const getToolDetail = cache(
 				.from(stockLevel)
 				.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
 				.where(and(eq(toolVariant.toolId, id), gt(stockLevel.quantity, 0))),
+			db
+				.select({
+					id: branch.id,
+					name: branch.name,
+					city: branch.city,
+					state: branch.state,
+				})
+				.from(branch)
+				.where(
+					branchScopeCondition
+						? and(eq(branch.status, "active"), branchScopeCondition)
+						: eq(branch.status, "active")
+				)
+				.orderBy(asc(branch.name)),
 		]);
 
 		const stockSummary = computeStockSummary(stockRows);
 
 		return {
 			tool: row.tool,
+			branches,
 			categories,
 			images,
 			orderedVariantIds: orderedRows.map((r) => r.variantId),

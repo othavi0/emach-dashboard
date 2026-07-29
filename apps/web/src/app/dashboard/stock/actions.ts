@@ -162,7 +162,9 @@ async function revalidateStockPaths(
 	revalidatePath(`/dashboard/branches/${branchId}`);
 	revalidatePath(`/dashboard/branches/${branchId}/stock`);
 	if (toolId) {
-		revalidatePath(`/dashboard/tools/${toolId}/stock`);
+		// A rota /stock é só redirect pra ?tab=estoque — revalidar o detalhe,
+		// que é quem carrega stockRows (aba Estoque eager).
+		revalidatePath(`/dashboard/tools/${toolId}`);
 	}
 	revalidatePath("/dashboard", "layout");
 }
