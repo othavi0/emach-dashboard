@@ -20,7 +20,10 @@ describe("round-trip legado", () => {
 			const c = legacyToComposition({ layout, ...ALL_ON });
 			const d = deriveLegacyLayout(c);
 			expect(d.layout).toBe(layout);
-			expect(d.productScale).toBe(110);
+			// center_mid não tem slot de produto no legado: o elemento é
+			// omitido e productScale volta ao fallback default (100).
+			const expectedProductScale = layout === "center_mid" ? 100 : 110;
+			expect(d.productScale).toBe(expectedProductScale);
 			expect(d.ctaScale).toBe(120);
 		});
 	}

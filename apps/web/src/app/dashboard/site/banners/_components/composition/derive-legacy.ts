@@ -62,10 +62,10 @@ export function legacyToComposition(input: {
 	if (input.hasCountdown) {
 		elements.countdown = p(trio.title);
 	}
-	if (input.hasProduct) {
-		// Layouts sem slot próprio pro produto (ex: center_mid) coabitam com o
-		// título — preserva a escala pro round-trip mesmo sem posição dedicada.
-		elements.product = p(trio.product ?? trio.title, input.productScale);
+	if (input.hasProduct && trio.product !== null) {
+		// center_mid não tem slot de produto no legado (LAYOUT_CONFIG.product
+		// = null no hero-carousel da loja) — omitir, não inventar posição.
+		elements.product = p(trio.product, input.productScale);
 	}
 	if (input.hasCta) {
 		elements.cta = p(trio.cta, input.ctaScale);
