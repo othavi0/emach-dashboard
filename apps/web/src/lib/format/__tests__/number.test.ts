@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatMeasure } from "../number";
+import { formatMeasure, formatWeight } from "../number";
 
 describe("formatMeasure", () => {
 	it("retorna null para vazio/null/undefined", () => {
@@ -35,5 +35,30 @@ describe("formatMeasure", () => {
 		expect(formatMeasure(0)).toBe("0");
 		expect(formatMeasure("0.000")).toBe("0");
 		expect(formatMeasure(-1.5)).toBe("-1,5");
+	});
+});
+
+describe("formatWeight", () => {
+	it("≥ 1 kg exibe em kg pt-BR", () => {
+		expect(formatWeight(2.5)).toBe("2,5 kg");
+		expect(formatWeight("3.000")).toBe("3 kg");
+		expect(formatWeight("1.400")).toBe("1,4 kg");
+	});
+
+	it("sub-kg exibe em gramas inteiras", () => {
+		expect(formatWeight(0.35)).toBe("350 g");
+		expect(formatWeight("0.350")).toBe("350 g");
+		expect(formatWeight("0.080")).toBe("80 g");
+	});
+
+	it("zero exibe em kg (comportamento atual)", () => {
+		expect(formatWeight(0)).toBe("0 kg");
+	});
+
+	it("nulo/vazio/NaN retornam null", () => {
+		expect(formatWeight(null)).toBeNull();
+		expect(formatWeight(undefined)).toBeNull();
+		expect(formatWeight("")).toBeNull();
+		expect(formatWeight("abc")).toBeNull();
 	});
 });

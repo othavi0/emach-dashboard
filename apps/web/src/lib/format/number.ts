@@ -25,3 +25,24 @@ export function formatMeasure(
 		maximumFractionDigits: maxFractionDigits,
 	});
 }
+
+/**
+ * Formata peso escolhendo a unidade legível: ≥ 1 kg em kg, sub-kg em gramas
+ * inteiras. Aceita a string crua de coluna `numeric` (mesma razão do
+ * formatMeasure acima). Quem cadastrou 350 g lê "350 g", não "0,35 kg".
+ */
+export function formatWeight(
+	value: string | number | null | undefined
+): string | null {
+	if (value === null || value === undefined || value === "") {
+		return null;
+	}
+	const n = typeof value === "number" ? value : Number(value);
+	if (Number.isNaN(n)) {
+		return null;
+	}
+	if (n > 0 && n < 1) {
+		return `${formatMeasure(Math.round(n * 1000), 0)} g`;
+	}
+	return `${formatMeasure(n)} kg`;
+}
