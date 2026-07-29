@@ -197,7 +197,9 @@ export function CompositionRenderer({
 					<SafeStack
 						banner={banner}
 						keys={partition.stacked}
+						onElementPointerDown={onElementPointerDown}
 						productUrl={productUrl}
+						selected={selected}
 					/>
 				</>
 			)}
