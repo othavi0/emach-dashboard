@@ -66,6 +66,7 @@ function ElementRow({
 			)}
 		>
 			<Switch
+				aria-label={`Ativar ${ELEMENT_LABELS[elementKey]}`}
 				checked={enabled}
 				onCheckedChange={(checked) =>
 					dispatch({ type: "toggleElement", enabled: checked, key: elementKey })

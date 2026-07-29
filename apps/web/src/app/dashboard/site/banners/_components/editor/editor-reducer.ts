@@ -41,7 +41,8 @@ export type EditorAction =
 	  };
 
 // Fallback quando o elemento não tem placement default no DEFAULT_COMPOSITION.
-const FALLBACK_PLACEMENT: ElementPlacement = {
+// Exportado: o inspector reaproveita como placement inicial do "Personalizar".
+export const FALLBACK_PLACEMENT: ElementPlacement = {
 	anchor: "mc",
 	offsetX: 0,
 	offsetY: 0,

@@ -23,20 +23,14 @@ import { CtaVariantPicker } from "../cta-variant-picker";
 import { ImageUploadTile } from "../image-upload-tile";
 import { SpecsEditor } from "../specs-editor";
 import { AnchorPicker } from "./anchor-picker";
-import type { EditorAction, EditorState } from "./editor-reducer";
+import {
+	type EditorAction,
+	type EditorState,
+	FALLBACK_PLACEMENT,
+} from "./editor-reducer";
 import { ELEMENT_LABELS } from "./element-rail";
 
 const TEXT_KEY_SET = new Set<ElementKey>(TEXT_KEYS);
-
-// Mesmo default genérico do reducer (FALLBACK_PLACEMENT) — ponto de partida
-// tanto pra um elemento sem placement no desktop quanto pro "Personalizar" no
-// mobile (sai da pilha segura pra posição livre).
-const DEFAULT_PLACEMENT: ElementPlacement = {
-	anchor: "mc",
-	offsetX: 0,
-	offsetY: 0,
-	scale: 100,
-};
 
 const BG_MOBILE_MODE_OPTIONS: {
 	value: BannerBgMobileMode;
@@ -374,12 +368,45 @@ function ElementInspector({
 	errors: Record<string, string>;
 }) {
 	const label = ELEMENT_LABELS[elementKey];
+	const desktopPlacement = Reflect.get(
+		state.composition.desktop.elements,
+		elementKey
+	) as ElementPlacement | undefined;
+
+	// Elemento desligado (sem placement no desktop): não renderiza os
+	// controles de posição/conteúdo — mexer num slider não pode habilitar o
+	// elemento por efeito colateral. Ligar é sempre explícito, mesma action
+	// do Switch do rail.
+	if (desktopPlacement === undefined) {
+		return (
+			<div className="flex flex-col gap-3">
+				<SectionHeading>{label}</SectionHeading>
+				<div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
+					<p className="flex items-start gap-1.5 text-muted-foreground text-xs">
+						<TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+						Elemento desligado.
+					</p>
+					<Button
+						className="self-start"
+						onClick={() =>
+							dispatch({
+								type: "toggleElement",
+								enabled: true,
+								key: elementKey,
+							})
+						}
+						size="sm"
+						type="button"
+						variant="outline"
+					>
+						Ligar elemento
+					</Button>
+				</div>
+			</div>
+		);
+	}
 
 	if (state.viewport === "desktop") {
-		const placement =
-			(Reflect.get(state.composition.desktop.elements, elementKey) as
-				| ElementPlacement
-				| undefined) ?? DEFAULT_PLACEMENT;
 		return (
 			<div className="flex flex-col gap-5">
 				<SectionHeading>{label}</SectionHeading>
@@ -388,7 +415,7 @@ function ElementInspector({
 					onChange={(next) =>
 						dispatch({ type: "setPlacement", key: elementKey, placement: next })
 					}
-					placement={placement}
+					placement={desktopPlacement}
 				/>
 				<ContentFields
 					dispatch={dispatch}
@@ -441,7 +468,7 @@ function ElementInspector({
 										dispatch({
 											type: "setMobileOverride",
 											key: elementKey,
-											override: DEFAULT_PLACEMENT,
+											override: FALLBACK_PLACEMENT,
 										})
 									}
 									size="sm"
