@@ -386,17 +386,202 @@ preço negativo. Desconto percentual já é limitado a 100% no admin.
 
 ---
 
-## Render do hero (`banner`)
+## Render do hero (`banner`) — composition v1
 
-O dashboard é a fonte de verdade da composição do banner; o storefront (`hero-carousel.tsx`) renderiza. O preview do dashboard espelha o que o storefront deve produzir — divergência entre os dois é bug (ver issue dashboard#204).
+O dashboard é a fonte de verdade da **composição** do banner (posição/forma de cada elemento); o
+storefront (`hero-carousel.tsx`) renderiza. Desde a spec 2026-07-29 ("Banner Builder por
+elemento"), a fonte de verdade **deixou de ser** o enum `layout` + `product_scale`/`cta_scale` e
+passou a ser a coluna nova **`composition`** (jsonb, nullable). O preview do dashboard (canvas do
+editor + card da listagem) espelha 1:1 o que o storefront deve produzir via o mesmo componente de
+referência — divergência entre os dois é bug. **Status da migração:** o dashboard já escreve
+`composition` em todo save; o storefront ainda não lê essa coluna — migração rastreada em
+[emach-ecommerce#210](https://github.com/othavi0/emach-ecommerce/issues/210) (ver "Transição"
+abaixo).
 
-**`background_mobile_mode`** (enum `banner_background_mobile_mode`: `inherit` | `custom` | `none`) controla o fundo em telas pequenas. O storefront **deve** honrar:
+Conteúdo (textos, link, URLs de imagem, `ctaVariant`, `specs`, `countdownTarget`,
+`backgroundMobileMode`/`backgroundImageMobileUrl`) continua nas colunas atuais — a `composition`
+guarda só **forma/posição**. Nenhuma coluna existente foi removida.
+
+### Shape
+
+```ts
+type Anchor9 = "tl" | "tc" | "tr" | "ml" | "mc" | "mr" | "bl" | "bc" | "br";
+type ElementKey = "badge" | "title" | "subtitle" | "specs" | "countdown" | "product" | "cta";
+
+type ElementPlacement = {
+  anchor: Anchor9;
+  offsetX: number;   // -20..20 (% do container, a partir do ponto-base da âncora)
+  offsetY: number;   // -20..20
+  scale: number;      // inteiro; ver faixa por elemento abaixo
+  maxWidth?: number;  // só badge/title/subtitle/specs/countdown: 12..80 (ch)
+};
+
+type BackgroundConfig = {
+  zoom: number;   // 100..200 (%)
+  focal: Anchor9; // ponto focal do corte (object-position)
+};
+
+type MobileOverride =
+  | { hidden: true }   // esconde só no mobile
+  | ElementPlacement;  // destacado da pilha, posição livre no 9:16
+
+type BannerComposition = {
+  version: 1;
+  desktop: {
+    background: BackgroundConfig;                              // imagem em si vem das colunas atuais
+    elements: Partial<Record<ElementKey, ElementPlacement>>;    // ausente = elemento desligado
+  };
+  mobile: {
+    background?: BackgroundConfig;                              // ausente = mesmo zoom/focal do desktop
+    elements: Partial<Record<ElementKey, MobileOverride>>;      // ausente = herda a pilha segura
+  };
+};
+```
+
+Faixa de `scale` por elemento (`SCALE_BOUNDS`, inteiro):
+
+| Elemento | `scale` |
+| --- | --- |
+| `badge`, `title`, `subtitle`, `specs`, `countdown` | 60–160 |
+| `product` | 50–160 |
+| `cta` | 80–140 |
+
+`maxWidth` (12–80, em `ch`) só existe nos 5 elementos de texto (`badge`/`title`/`subtitle`/
+`specs`/`countdown`); `product` e `cta` não têm.
+
+**Elemento ligado** = presente em `desktop.elements`. Elemento sem entry não renderiza mesmo com
+conteúdo preenchido na coluna (ex.: título com texto mas sem entry em `desktop.elements.title` =
+oculto). **`composition = null`** = banner ainda não migrado (pré-backfill) — nesse caso o
+storefront deve cair no caminho legado (`layout`/`productScale`/`ctaScale`), nunca quebrar.
+
+### Semântica de âncora, offset e escala
+
+Cada `Anchor9` é uma grade 3×3 (`t/m/b` linha × `l/c/r` coluna). O **ponto-base** da âncora (antes
+do offset) é uma posição fixa em % do container:
+
+- Coluna (`charAt(1)`): `l` → `5%`, `c` → `50%`, `r` → `95%`.
+- Linha (`charAt(0)`): `t` → `5%`, `m` → `50%`, `b` → `88%` no desktop / `84%` no mobile (a linha
+  inferior recua mais no mobile pra reservar espaço aos indicadores do carrossel).
+
+A posição final do elemento é `left = base.x + offsetX`, `top = base.y + offsetY` (ambos em %). O
+elemento é então traduzido pra ancorar o **ponto de referência** (não o canto top-left da box) no
+ponto calculado — equivalente a `transform-origin` + `translate` no CSS:
+
+```
+translateX: l → 0%, c → -50%, r → -100%
+translateY: t → 0%, m → -50%, b → -100%
+transformOrigin: mesma tabela em %, aplicada nos dois eixos (0%/50%/100%)
+transform: translate(tx, ty) scale(scale / 100)
+```
+
+`offsetX`/`offsetY` são validados pelo zod só na faixa `-20..20`; o **clamp de área segura**
+(abaixo) é responsabilidade do editor do dashboard — a `composition` que chega ao storefront já
+sai clampada, o renderer de referência não reclama.
+
+Se `maxWidth` estiver presente, aplica `max-width: <valor>ch` no elemento.
+
+### Área segura (clamp, aplicado no editor)
+
+Nenhum elemento é posicionado com sua bounding box fora de: margem lateral `2%`, topo `2%`, base
+`10%` no desktop / `16%` no mobile (faixa reservada aos indicadores do carrossel + botão de pause
+da loja).
+
+### Fundo (zoom + ponto focal)
+
+`background.zoom` (100–200%) e `background.focal` (`Anchor9`) controlam o recorte da imagem:
+
+```
+transform: scale(zoom / 100)
+transformOrigin: focal mapeado pra % (mesma tabela 0%/50%/100% da âncora, nos dois eixos)
+object-position (no <img object-fit: cover>): mesmo valor de transformOrigin
+```
+
+**Modos mobile do fundo** (`background_mobile_mode`, enum `banner_background_mobile_mode`:
+`inherit` | `custom` | `none` — coluna própria, **fora** da `composition`) continuam sendo o
+contrato de qual **imagem** usar no mobile; o storefront **deve** honrar:
 
 - `inherit` — usar `background_image_url` (desktop) também no mobile.
 - `custom` — usar `background_image_mobile_url`; se nulo, cair para o desktop.
-- `none` — **não** exibir imagem de fundo no mobile (só o gradiente/fundo sólido da marca). Produto e demais slots continuam.
+- `none` — **não** exibir imagem de fundo no mobile (só o gradiente/fundo sólido da marca). Produto
+  e demais slots continuam.
 
-Banners criados antes da coluna recebem `inherit` (default); o backfill marcou `custom` os que já tinham `background_image_mobile_url`, preservando o comportamento anterior (`mobileUrl ?? desktopUrl`).
+Banners criados antes da coluna recebem `inherit` (default); o backfill marcou `custom` os que já
+tinham `background_image_mobile_url`, preservando o comportamento anterior (`mobileUrl ??
+desktopUrl`). `composition.mobile.background` (zoom/focal) só existe quando há imagem própria no
+mobile; ausente = herda o zoom/focal do desktop.
+
+### Pilha segura mobile
+
+Ordem fixa, sem reordenação (`SAFE_STACK_ORDER`): **badge → título → specs → descrição →
+countdown → produto → CTA**.
+
+Só elementos presentes em `desktop.elements` entram na partição mobile (chave ausente no desktop =
+ausente no mobile também). Para cada um, o override em `mobile.elements[key]` decide:
+
+- **Ausente** → entra na pilha segura (empilhado, ordem acima, a partir do terço inferior do
+  banner 9:16 — texto alinhado à esquerda, produto centralizado, CTA full-width na base).
+- **`{ hidden: true }`** → não renderiza no mobile.
+- **`ElementPlacement`** → sai da pilha e posiciona absoluto no 9:16 (mesma semântica de
+  âncora/offset/escala do desktop, mas com o `base.y` da linha inferior em `84%`).
+
+### Gradiente de legibilidade (automático, não configurável)
+
+Só renderiza quando há `title` **ou** `subtitle` preenchido (independente de estarem ligados na
+composition). Direção derivada da coluna da âncora do título (fallback pra subtitle se título
+ausente; `center` se nenhum dos dois):
+
+| Coluna da âncora | Direção do gradiente |
+| --- | --- |
+| `l` (esquerda) | `to right` (escuro à esquerda, transparente à direita) |
+| `r` (direita) | `to left` |
+| `c` ou nenhum título/subtítulo com âncora | `to top` |
+
+### Transição: dual-write (colunas legadas)
+
+Enquanto o storefront não migra para ler `composition`, **toda mutação de banner** (`createBanner`/
+`updateBanner`) grava, na mesma transação, `composition` **e** deriva as colunas legadas
+(`layout`, `productScale`, `ctaScale`) pela função pura `deriveLegacyLayout` — escolhendo 1 dos 8
+valores de `banner_layout` pelo trio (coluna da âncora do título, presença/lado do produto, âncora
+do CTA). É uma **aproximação**, não uma cópia exata (o layout legado não representa offset/escala
+livres) — o editor mostra um aviso discreto disso.
+
+**Quando a issue de migração do storefront for concluída e o sync confirmado em produção, o
+dual-write deve ser removido** e `layout`/`productScale`/`ctaScale` passam a **deprecated**
+(colunas mantidas no schema por enquanto, mas sem leitor).
+
+### Duas armadilhas de render descobertas no smoke visual
+
+1. **Elemento posicionado absoluto precisa de `width: max-content`.** Sem isso, um elemento
+   ancorado perto da borda (ex.: CTA em `br`) sofre *shrink-to-fit* contra o espaço restante até a
+   borda do container e quebra palavra a palavra, mesmo sem `maxWidth` definido. Aplicar
+   `width: max-content` (Tailwind `w-max`) em todo elemento posicionado exceto `product`.
+   `maxWidth` (quando presente) continua limitando pelo cap de caracteres do texto, não pelo espaço
+   disponível.
+2. **A box do produto precisa de dimensão explícita.** `next/image` com `fill` colapsa pra `0×0`
+   sem uma caixa dimensionada por baixo (o wrapper de posicionamento só tem `left`/`top`/
+   `transform`, sem `width`/`height` próprios). Baseline fixo por viewport (a `scale` do
+   `transform` segue multiplicando por cima):
+   - Desktop / mobile posicionado (override com `ElementPlacement`): `height: 60%; width: 38%`
+     no desktop, `height: 32%; width: 70%` no mobile.
+   - Mobile na pilha segura (sem override): a pilha já tem box própria (`height: 38%; width: 82%`,
+     centralizada) — não passa pelo caminho acima.
+
+### Implementação de referência (dashboard)
+
+`composition-renderer.tsx` é o componente puro `(banner, composition, viewport) → JSX` usado pelo
+canvas do editor **e** pelo card da listagem — é a implementação de referência pro storefront:
+
+- `apps/web/src/app/dashboard/site/banners/_components/composition/composition-schema.ts` — zod,
+  types, `SCALE_BOUNDS`, `SAFE_AREA`, `SAFE_STACK_ORDER`, `anchorBasePosition`,
+  `partitionMobileElements`, `clampOffsets`.
+- `.../composition/placement-css.ts` — `placementToStyle`, `backgroundToStyle`,
+  `focalToObjectPosition`, `textSide`, `GRADIENT_CLASS`.
+- `.../composition/composition-renderer.tsx` — montagem do banner completo (fundo, gradiente,
+  elementos desktop, partição mobile).
+- `.../composition/element-renders.tsx` — markup de cada elemento (`renderElement`).
+- `.../composition/safe-stack.tsx` — render da pilha segura mobile.
+- `.../composition/derive-legacy.ts` — `deriveLegacyLayout` (dual-write) e o mapa inverso do
+  backfill.
 
 ---
 
