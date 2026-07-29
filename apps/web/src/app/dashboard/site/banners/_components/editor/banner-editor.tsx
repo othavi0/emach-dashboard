@@ -13,9 +13,30 @@ import { createBanner, updateBanner } from "../../actions";
 import { type BannerFormValues, bannerFormSchema } from "../banner-schema";
 import { BANNER_TEMPLATES } from "../composition/templates";
 import { EditorCanvas } from "./editor-canvas";
-import { editorReducer, initialEditorState } from "./editor-reducer";
+import {
+	type EditorSelection,
+	editorReducer,
+	FIELD_TO_SELECTION,
+	initialEditorState,
+} from "./editor-reducer";
 import { ElementRail } from "./element-rail";
 import { Inspector } from "./inspector";
+
+// Erro vazio de specs (linha em branco no SpecsEditor) não pode bloquear o
+// submit — mesma sanitização do banner-form.tsx legado antes do safeParse.
+function sanitizeSpecs(
+	specs: BannerFormValues["specs"]
+): BannerFormValues["specs"] {
+	if (!Array.isArray(specs)) {
+		return specs;
+	}
+	const trimmed = specs.map((s) => s.trim()).filter((s) => s.length > 0);
+	return trimmed.length > 0 ? trimmed : null;
+}
+
+function selectionForField(field: string): EditorSelection | undefined {
+	return Reflect.get(FIELD_TO_SELECTION, field) as EditorSelection | undefined;
+}
 
 export function BannerEditor({ banner }: { banner?: Banner }) {
 	const router = useRouter();
@@ -32,10 +53,23 @@ export function BannerEditor({ banner }: { banner?: Banner }) {
 		clearErrors();
 		const payload: BannerFormValues = {
 			...state.content,
+			specs: sanitizeSpecs(state.content.specs),
 			composition: state.composition,
 		};
 		const parsed = bannerFormSchema.safeParse(payload);
 		if (!parsed.success) {
+			const firstPath = parsed.error.issues[0]?.path[0];
+			const selection =
+				typeof firstPath === "string"
+					? selectionForField(firstPath)
+					: undefined;
+			if (selection) {
+				// Seleciona o painel do campo ANTES de reportar: o Inspector só
+				// monta o FieldError do painel selecionado — sem isso o erro cai
+				// num painel invisível. A dupla rAF de focusFirstError (dentro de
+				// reportValidationError) já cobre o re-render deste dispatch.
+				dispatch({ type: "select", target: selection });
+			}
 			reportValidationError(parsed.error);
 			return;
 		}

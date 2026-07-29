@@ -17,6 +17,7 @@ interface DragTracker {
 	lastClientY: number;
 	moved: boolean;
 	pointerId: number;
+	target: HTMLElement;
 }
 
 export function EditorCanvas({
@@ -35,13 +36,15 @@ export function EditorCanvas({
 		e: ReactPointerEvent<Element>
 	) {
 		e.stopPropagation();
-		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		const target = e.currentTarget as HTMLElement;
+		target.setPointerCapture(e.pointerId);
 		dragRef.current = {
 			key,
 			pointerId: e.pointerId,
 			lastClientX: e.clientX,
 			lastClientY: e.clientY,
 			moved: false,
+			target,
 		};
 	}
 
@@ -80,6 +83,11 @@ export function EditorCanvas({
 		if (!drag.moved) {
 			dispatch({ type: "select", target: drag.key });
 		}
+		// Contrato explícito do brief: liberar a captura do ponteiro no fim do
+		// gesto (setPointerCapture some sozinho no pointerup nativo, mas
+		// releasePointerCapture explícito documenta a intenção e cobre o
+		// pointercancel).
+		drag.target.releasePointerCapture(drag.pointerId);
 		dragRef.current = null;
 		setDragging(false);
 	}
@@ -87,7 +95,11 @@ export function EditorCanvas({
 	return (
 		<div
 			className={cn(
-				"relative mx-auto w-full overflow-hidden rounded-xl border border-border",
+				// touch-none no container: touch-action intersecta a cadeia de
+				// ancestrais, então cobre também os elementos arrastáveis
+				// renderizados dentro de CompositionRenderer sem precisar
+				// anotar cada ElementBox individualmente.
+				"relative mx-auto w-full touch-none overflow-hidden rounded-xl border border-border",
 				state.viewport === "desktop"
 					? "aspect-video"
 					: "aspect-[9/16] max-w-[300px]"

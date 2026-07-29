@@ -17,6 +17,30 @@ import { BANNER_TEMPLATES } from "../composition/templates";
 
 export type EditorSelection = ElementKey | "background" | null;
 
+// Mapeia campo do form → seleção do editor onde o campo aparece. Usado no
+// submit: um erro de campo dentro de um painel não selecionado fica invisível
+// no DOM (o Inspector só monta o painel selecionado), então o banner-editor
+// despacha `select` pra essa seleção antes de reportar o erro. Exportado —
+// T13 (mobile) reaproveita o mesmo mapa pros overrides.
+export const FIELD_TO_SELECTION: Partial<
+	Record<keyof BannerFormValues, EditorSelection>
+> = {
+	title: "title",
+	subtitle: "subtitle",
+	badgeText: "badge",
+	specs: "specs",
+	countdownTarget: "countdown",
+	productImageUrl: "product",
+	productImageMobileUrl: "product",
+	ctaLabel: "cta",
+	ctaHref: "cta",
+	ctaVariant: "cta",
+	backgroundImageUrl: "background",
+	backgroundImageMobileUrl: "background",
+	backgroundMobileMode: "background",
+	altText: "background",
+};
+
 export interface EditorState {
 	composition: BannerComposition;
 	content: BannerFormValues;
