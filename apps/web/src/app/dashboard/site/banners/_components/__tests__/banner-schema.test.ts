@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { bannerFormSchema, MAX_ACTIVE_BANNERS } from "../banner-schema";
+import { DEFAULT_COMPOSITION } from "../composition/composition-schema";
 
 const base = {
 	backgroundImageUrl:
@@ -191,5 +192,23 @@ describe("bannerFormSchema", () => {
 
 	it("expõe MAX_ACTIVE_BANNERS = 6", () => {
 		expect(MAX_ACTIVE_BANNERS).toBe(6);
+	});
+
+	it("composition ausente continua válida (form legado)", () => {
+		expect(bannerFormSchema.safeParse(base).success).toBe(true);
+	});
+
+	it("composition válida passa", () => {
+		expect(
+			bannerFormSchema.safeParse({ ...base, composition: DEFAULT_COMPOSITION })
+				.success
+		).toBe(true);
+	});
+
+	it("composition malformada falha", () => {
+		expect(
+			bannerFormSchema.safeParse({ ...base, composition: { version: 9 } })
+				.success
+		).toBe(false);
 	});
 });

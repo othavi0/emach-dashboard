@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { compositionSchema } from "./composition/composition-schema";
 
 export const MAX_ACTIVE_BANNERS = 6;
 
@@ -49,6 +50,7 @@ export const bannerFormSchema = z
 		ctaScale: z.number().int().min(80).max(140).default(100),
 		countdownTarget: z.date().nullable(),
 		isActive: z.boolean(),
+		composition: compositionSchema.optional(),
 	})
 	.superRefine((v, ctx) => {
 		if (!(v.backgroundImageUrl || v.title || v.badgeText)) {

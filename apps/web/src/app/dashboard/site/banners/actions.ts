@@ -14,6 +14,7 @@ import {
 	bannerFormSchema,
 	MAX_ACTIVE_BANNERS,
 } from "./_components/banner-schema";
+import { deriveLegacyLayout } from "./_components/composition/derive-legacy";
 
 const BANNERS_PATH = "/dashboard/site/banners";
 
@@ -52,6 +53,18 @@ export async function createBanner(
 		return { ok: false, error: "Dados inválidos. Revise os campos." };
 	}
 	const v = parsed.data;
+	const legacy = v.composition ? deriveLegacyLayout(v.composition) : null;
+	const persisted = {
+		...v,
+		...(legacy === null
+			? {}
+			: {
+					layout: legacy.layout,
+					productScale: legacy.productScale,
+					ctaScale: legacy.ctaScale,
+					composition: v.composition,
+				}),
+	};
 
 	try {
 		if (v.isActive && (await countActive()) >= MAX_ACTIVE_BANNERS) {
@@ -66,25 +79,26 @@ export async function createBanner(
 		const id = crypto.randomUUID();
 		await db.insert(banner).values({
 			id,
-			backgroundImageUrl: v.backgroundImageUrl,
-			backgroundImageMobileUrl: v.backgroundImageMobileUrl,
-			backgroundMobileMode: v.backgroundMobileMode,
-			productImageUrl: v.productImageUrl,
-			productImageMobileUrl: v.productImageMobileUrl,
-			title: v.title,
-			subtitle: v.subtitle,
-			specs: v.specs,
-			altText: v.altText,
-			badgeText: v.badgeText,
-			ctaLabel: v.ctaLabel,
-			ctaHref: v.ctaHref,
-			ctaVariant: v.ctaVariant,
-			layout: v.layout,
-			productScale: v.productScale,
-			ctaScale: v.ctaScale,
-			countdownTarget: v.countdownTarget,
-			isActive: v.isActive,
+			backgroundImageUrl: persisted.backgroundImageUrl,
+			backgroundImageMobileUrl: persisted.backgroundImageMobileUrl,
+			backgroundMobileMode: persisted.backgroundMobileMode,
+			productImageUrl: persisted.productImageUrl,
+			productImageMobileUrl: persisted.productImageMobileUrl,
+			title: persisted.title,
+			subtitle: persisted.subtitle,
+			specs: persisted.specs,
+			altText: persisted.altText,
+			badgeText: persisted.badgeText,
+			ctaLabel: persisted.ctaLabel,
+			ctaHref: persisted.ctaHref,
+			ctaVariant: persisted.ctaVariant,
+			layout: persisted.layout,
+			productScale: persisted.productScale,
+			ctaScale: persisted.ctaScale,
+			countdownTarget: persisted.countdownTarget,
+			isActive: persisted.isActive,
 			sortOrder: (maxRow?.max ?? -1) + 1,
+			...(legacy === null ? {} : { composition: persisted.composition }),
 		});
 		await logUserActivity({
 			actorUserId: session.user.id,
@@ -112,6 +126,18 @@ export async function updateBanner(
 		return { ok: false, error: "Dados inválidos. Revise os campos." };
 	}
 	const v = parsed.data;
+	const legacy = v.composition ? deriveLegacyLayout(v.composition) : null;
+	const persisted = {
+		...v,
+		...(legacy === null
+			? {}
+			: {
+					layout: legacy.layout,
+					productScale: legacy.productScale,
+					ctaScale: legacy.ctaScale,
+					composition: v.composition,
+				}),
+	};
 
 	try {
 		if (v.isActive && (await countActive(id)) >= MAX_ACTIVE_BANNERS) {
@@ -123,24 +149,25 @@ export async function updateBanner(
 		await db
 			.update(banner)
 			.set({
-				backgroundImageUrl: v.backgroundImageUrl,
-				backgroundImageMobileUrl: v.backgroundImageMobileUrl,
-				backgroundMobileMode: v.backgroundMobileMode,
-				productImageUrl: v.productImageUrl,
-				productImageMobileUrl: v.productImageMobileUrl,
-				title: v.title,
-				subtitle: v.subtitle,
-				specs: v.specs,
-				altText: v.altText,
-				badgeText: v.badgeText,
-				ctaLabel: v.ctaLabel,
-				ctaHref: v.ctaHref,
-				ctaVariant: v.ctaVariant,
-				layout: v.layout,
-				productScale: v.productScale,
-				ctaScale: v.ctaScale,
-				countdownTarget: v.countdownTarget,
-				isActive: v.isActive,
+				backgroundImageUrl: persisted.backgroundImageUrl,
+				backgroundImageMobileUrl: persisted.backgroundImageMobileUrl,
+				backgroundMobileMode: persisted.backgroundMobileMode,
+				productImageUrl: persisted.productImageUrl,
+				productImageMobileUrl: persisted.productImageMobileUrl,
+				title: persisted.title,
+				subtitle: persisted.subtitle,
+				specs: persisted.specs,
+				altText: persisted.altText,
+				badgeText: persisted.badgeText,
+				ctaLabel: persisted.ctaLabel,
+				ctaHref: persisted.ctaHref,
+				ctaVariant: persisted.ctaVariant,
+				layout: persisted.layout,
+				productScale: persisted.productScale,
+				ctaScale: persisted.ctaScale,
+				countdownTarget: persisted.countdownTarget,
+				isActive: persisted.isActive,
+				...(legacy === null ? {} : { composition: persisted.composition }),
 			})
 			.where(eq(banner.id, id));
 		await logUserActivity({
