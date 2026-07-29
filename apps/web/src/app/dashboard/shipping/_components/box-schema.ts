@@ -27,3 +27,15 @@ export const boxSchema = z.object({
 });
 
 export type BoxFormValues = z.infer<typeof boxSchema>;
+
+/** Estado do form: numéricos ficam vazios (undefined) até o usuário digitar;
+ * o boxSchema exige os obrigatórios no submit. */
+export interface BoxFormState {
+	active: boolean;
+	internalHeightCm?: number;
+	internalLengthCm?: number;
+	internalWidthCm?: number;
+	maxWeightKg?: number;
+	name: string;
+	tareWeightKg?: number;
+}

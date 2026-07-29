@@ -7,15 +7,15 @@ import { LabeledField } from "@/components/labeled-field";
 import { MaskedInput } from "@/components/masked-input";
 import { decimalMask } from "@/lib/masks";
 
-import type { BoxFormValues } from "./box-schema";
+import type { BoxFormState, BoxFormValues } from "./box-schema";
 
-type Patch = (next: Partial<BoxFormValues>) => void;
+type Patch = (next: Partial<BoxFormState>) => void;
 
 interface Props {
 	disabled?: boolean;
 	errors?: Partial<Record<keyof BoxFormValues, string>>;
 	onPatch: Patch;
-	values: BoxFormValues;
+	values: BoxFormState;
 }
 
 export function BoxFormFields({
@@ -42,7 +42,7 @@ export function BoxFormFields({
 				<LabeledField
 					error={errors.internalLengthCm}
 					id="box-length"
-					label="Comprimento (cm)"
+					label="Compr. (cm)"
 					required
 				>
 					{(field) => (
@@ -50,7 +50,7 @@ export function BoxFormFields({
 							{...field}
 							disabled={disabled}
 							mask={decimalMask}
-							onChange={(v) => onPatch({ internalLengthCm: v ?? 0 })}
+							onChange={(v) => onPatch({ internalLengthCm: v })}
 							placeholder="30"
 							value={values.internalLengthCm}
 						/>
@@ -67,7 +67,7 @@ export function BoxFormFields({
 							{...field}
 							disabled={disabled}
 							mask={decimalMask}
-							onChange={(v) => onPatch({ internalWidthCm: v ?? 0 })}
+							onChange={(v) => onPatch({ internalWidthCm: v })}
 							placeholder="20"
 							value={values.internalWidthCm}
 						/>
@@ -84,7 +84,7 @@ export function BoxFormFields({
 							{...field}
 							disabled={disabled}
 							mask={decimalMask}
-							onChange={(v) => onPatch({ internalHeightCm: v ?? 0 })}
+							onChange={(v) => onPatch({ internalHeightCm: v })}
 							placeholder="15"
 							value={values.internalHeightCm}
 						/>
@@ -104,7 +104,7 @@ export function BoxFormFields({
 							{...field}
 							disabled={disabled}
 							mask={decimalMask}
-							onChange={(v) => onPatch({ maxWeightKg: v ?? 0 })}
+							onChange={(v) => onPatch({ maxWeightKg: v })}
 							placeholder="20"
 							value={values.maxWeightKg}
 						/>
@@ -120,7 +120,7 @@ export function BoxFormFields({
 							{...field}
 							disabled={disabled}
 							mask={decimalMask}
-							onChange={(v) => onPatch({ tareWeightKg: v ?? 0 })}
+							onChange={(v) => onPatch({ tareWeightKg: v })}
 							placeholder="0,5"
 							value={values.tareWeightKg}
 						/>

@@ -18,7 +18,6 @@ export interface ToolFormContextValue {
 	categories: CategoryOption[];
 	definitionsByCategory: Record<string, AttributeDefinition[]>;
 	existingSlug?: string;
-	fillFactor: number;
 	mode: "create" | "edit";
 	toolId?: string;
 }

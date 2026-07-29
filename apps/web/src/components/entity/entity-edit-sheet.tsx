@@ -15,6 +15,8 @@ interface Props {
 	cancelLabel?: string;
 	children: ReactNode;
 	description?: ReactNode;
+	/** Conteúdo extra no início do rodapé (ex: ação destrutiva do registro). */
+	footerStart?: ReactNode;
 	onOpenChange: (open: boolean) => void;
 	onSubmit: (e: FormEvent<HTMLFormElement>) => void;
 	open: boolean;
@@ -30,6 +32,7 @@ export function EntityEditSheet({
 	onOpenChange,
 	title,
 	description,
+	footerStart,
 	submitting = false,
 	submitLabel = "Salvar",
 	cancelLabel = "Cancelar",
@@ -51,6 +54,7 @@ export function EntityEditSheet({
 				<form className="flex min-h-0 flex-1 flex-col" onSubmit={onSubmit}>
 					<div className="flex-1 overflow-y-auto p-6">{children}</div>
 					<SheetFooter className="border-border border-t">
+						{footerStart}
 						<Button
 							disabled={submitting}
 							onClick={() => onOpenChange(false)}

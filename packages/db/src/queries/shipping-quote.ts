@@ -11,7 +11,6 @@ export interface QuoteItem {
 	qty: number;
 	shipsInOwnBox: boolean;
 	stackable: boolean;
-	uprightOnly?: boolean;
 	weightKg: number;
 	widthCm: number;
 }
@@ -33,32 +32,15 @@ export interface ShippingPackage {
 	widthCm: number;
 }
 
-export interface PackOptions {
-	/** Acréscimo externo por dimensão (cm) — parede/aba da caixa. Default 0. */
-	boxPaddingCm?: number;
-	/** Fração máxima do volume interno ocupável. Default 0.9. */
-	fillFactor?: number;
-}
-
-// Default de PackOptions.fillFactor — fração máxima do volume interno ocupável.
-const DEFAULT_FILL_FACTOR = 0.9;
+// Fração máxima do volume interno ocupável — folga fixa que compensa o
+// encaixe imperfeito dos itens na consolidação.
+const FILL_FACTOR = 0.9;
 
 function sortedDesc(a: number, b: number, c: number): [number, number, number] {
 	return [a, b, c].sort((x, y) => y - x) as [number, number, number];
 }
 
 function fitsByDims(item: QuoteItem, box: QuoteBox): boolean {
-	if (item.uprightOnly) {
-		// Altura fixa: só as horizontais podem trocar entre si.
-		if (item.heightCm > box.internalHeightCm) {
-			return false;
-		}
-		const iMax = Math.max(item.lengthCm, item.widthCm);
-		const iMin = Math.min(item.lengthCm, item.widthCm);
-		const bMax = Math.max(box.internalLengthCm, box.internalWidthCm);
-		const bMin = Math.min(box.internalLengthCm, box.internalWidthCm);
-		return iMax <= bMax && iMin <= bMin;
-	}
 	const i = sortedDesc(item.lengthCm, item.widthCm, item.heightCm);
 	const b = sortedDesc(
 		box.internalLengthCm,
@@ -73,9 +55,6 @@ function unitVolume(u: QuoteItem): number {
 }
 
 function footprint(u: QuoteItem): number {
-	if (u.uprightOnly) {
-		return u.lengthCm * u.widthCm;
-	}
 	const s = sortedDesc(u.lengthCm, u.widthCm, u.heightCm);
 	return s[0] * s[1];
 }
@@ -96,11 +75,7 @@ function dispatchWeight(u: QuoteItem): number {
 // Um conjunto de unidades cabe numa caixa se: cada unidade cabe por eixo
 // (com rotação), o peso total (+ tara) ≤ máximo, e o volume ocupado total ≤
 // volume interno × fator de folga.
-function fitsSet(
-	units: QuoteItem[],
-	box: QuoteBox,
-	fillFactor: number
-): boolean {
+function fitsSet(units: QuoteItem[], box: QuoteBox): boolean {
 	let weight = box.tareWeightKg;
 	let occupied = 0;
 	for (const u of units) {
@@ -110,22 +85,18 @@ function fitsSet(
 		weight += dispatchWeight(u);
 		occupied += occupiedVolume(u, box);
 	}
-	return weight <= box.maxWeightKg && occupied <= boxVolume(box) * fillFactor;
+	return weight <= box.maxWeightKg && occupied <= boxVolume(box) * FILL_FACTOR;
 }
 
-function emitPackage(
-	units: QuoteItem[],
-	box: QuoteBox,
-	paddingCm: number
-): ShippingPackage {
+function emitPackage(units: QuoteItem[], box: QuoteBox): ShippingPackage {
 	let weight = box.tareWeightKg;
 	for (const u of units) {
 		weight += dispatchWeight(u);
 	}
 	return {
-		lengthCm: box.internalLengthCm + paddingCm,
-		widthCm: box.internalWidthCm + paddingCm,
-		heightCm: box.internalHeightCm + paddingCm,
+		lengthCm: box.internalLengthCm,
+		widthCm: box.internalWidthCm,
+		heightCm: box.internalHeightCm,
 		weightKg: weight,
 		outOfCatalog: false,
 	};
@@ -134,10 +105,9 @@ function emitPackage(
 // Menor caixa (por volume) em que o conjunto inteiro cabe.
 function smallestFittingBox(
 	units: QuoteItem[],
-	boxesAsc: QuoteBox[],
-	fillFactor: number
+	boxesAsc: QuoteBox[]
 ): QuoteBox | undefined {
-	return boxesAsc.find((box) => fitsSet(units, box, fillFactor));
+	return boxesAsc.find((box) => fitsSet(units, box));
 }
 
 interface PackBin {
@@ -147,11 +117,8 @@ interface PackBin {
 
 export function packItems(
 	items: QuoteItem[],
-	boxes: QuoteBox[],
-	opts?: PackOptions
+	boxes: QuoteBox[]
 ): ShippingPackage[] {
-	const fillFactor = opts?.fillFactor ?? DEFAULT_FILL_FACTOR;
-	const paddingCm = opts?.boxPaddingCm ?? 0;
 	const packages: ShippingPackage[] = [];
 
 	// Expande qty em unidades.
@@ -189,7 +156,7 @@ export function packItems(
 	// (subconjunto de conjunto viável é viável na mesma caixa).
 	const bins: PackBin[] = [];
 	for (const u of rest) {
-		const alone = smallestFittingBox([u], boxesAsc, fillFactor);
+		const alone = smallestFittingBox([u], boxesAsc);
 		if (!alone) {
 			// Não cabe em NENHUMA caixa ativa → "a combinar".
 			packages.push({
@@ -203,11 +170,7 @@ export function packItems(
 		}
 		let placed = false;
 		for (const bin of bins) {
-			const candidate = smallestFittingBox(
-				[...bin.units, u],
-				boxesAsc,
-				fillFactor
-			);
+			const candidate = smallestFittingBox([...bin.units, u], boxesAsc);
 			if (candidate) {
 				bin.units.push(u);
 				bin.box = candidate;
@@ -220,7 +183,7 @@ export function packItems(
 		}
 	}
 	for (const bin of bins) {
-		packages.push(emitPackage(bin.units, bin.box, paddingCm));
+		packages.push(emitPackage(bin.units, bin.box));
 	}
 
 	return packages;

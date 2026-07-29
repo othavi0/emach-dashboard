@@ -6,8 +6,6 @@ interface PreviewRow {
 }
 
 interface ShippingPreviewRailProps {
-	boxPaddingCm: number;
-	fillFactorPct: number;
 	insuranceCapAmount: number;
 	insurancePolicy: ShippingInsurancePolicy;
 	originLabel: string | null;
@@ -22,8 +20,6 @@ export function ShippingPreviewRail({
 	originLabel,
 	insurancePolicy,
 	insuranceCapAmount,
-	fillFactorPct,
-	boxPaddingCm,
 }: ShippingPreviewRailProps) {
 	const rows: PreviewRow[] = [
 		{
@@ -36,10 +32,6 @@ export function ShippingPreviewRail({
 				insurancePolicy === "cart_value"
 					? `Valor do carrinho (até ${BRL.format(insuranceCapAmount)})`
 					: "Sem seguro",
-		},
-		{
-			label: "Empacotamento",
-			value: `Até ${fillFactorPct}% de ocupação · +${boxPaddingCm} cm por dimensão`,
 		},
 		{
 			label: "Cotação",

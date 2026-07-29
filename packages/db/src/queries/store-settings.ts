@@ -8,8 +8,6 @@ import {
 } from "../schema/store-settings";
 
 export interface ShippingSettings {
-	boxPaddingCm: number;
-	fillFactor: number;
 	insuranceCapAmount: number;
 	insurancePolicy: ShippingInsurancePolicy;
 	originBranchId: string | null;
@@ -21,8 +19,6 @@ const DEFAULTS: ShippingSettings = {
 	originCep: null,
 	insurancePolicy: "none",
 	insuranceCapAmount: 3000,
-	fillFactor: 0.9,
-	boxPaddingCm: 0,
 };
 
 /**
@@ -39,8 +35,6 @@ export async function getShippingSettings(
 			originCep: branch.cep,
 			insurancePolicy: storeSettings.shippingInsurancePolicy,
 			insuranceCapAmount: storeSettings.shippingInsuranceCapAmount,
-			fillFactor: storeSettings.shippingFillFactor,
-			boxPaddingCm: storeSettings.shippingBoxPaddingCm,
 		})
 		.from(storeSettings)
 		.leftJoin(branch, eq(storeSettings.shippingOriginBranchId, branch.id))
@@ -56,8 +50,6 @@ export async function getShippingSettings(
 		originCep: row.originCep,
 		insurancePolicy: row.insurancePolicy,
 		insuranceCapAmount: Number(row.insuranceCapAmount),
-		fillFactor: Number(row.fillFactor),
-		boxPaddingCm: Number(row.boxPaddingCm),
 	};
 }
 

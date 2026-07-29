@@ -88,8 +88,6 @@ export async function updateShippingSettings(
 		shippingOriginBranchId: parsed.data.originBranchId ?? null,
 		shippingInsurancePolicy: parsed.data.insurancePolicy,
 		shippingInsuranceCapAmount: parsed.data.insuranceCapAmount.toFixed(2),
-		shippingFillFactor: (parsed.data.fillFactorPct / 100).toFixed(2),
-		shippingBoxPaddingCm: parsed.data.boxPaddingCm.toFixed(2),
 	};
 
 	try {
@@ -186,6 +184,35 @@ export async function updateBox(
 		targetId: id,
 		targetType: "shipping_box",
 		metadata: { name: parsed.data.name },
+	});
+	revalidatePath(SHIPPING_PATH);
+	return { ok: true, data: { id } };
+}
+
+export async function deleteBox(
+	id: string
+): Promise<ActionResult<{ id: string }>> {
+	const session = await requireCapability("shipping.manage");
+	let name: string;
+	try {
+		const [row] = await db
+			.delete(shippingBox)
+			.where(eq(shippingBox.id, id))
+			.returning({ name: shippingBox.name });
+		if (!row) {
+			return { ok: false, error: "Caixa não encontrada" };
+		}
+		name = row.name;
+	} catch (error) {
+		logger.error("deleteBox falhou", error);
+		return { ok: false, error: actionErrorMessage(error) };
+	}
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "shipping.box.deleted",
+		targetId: id,
+		targetType: "shipping_box",
+		metadata: { name },
 	});
 	revalidatePath(SHIPPING_PATH);
 	return { ok: true, data: { id } };

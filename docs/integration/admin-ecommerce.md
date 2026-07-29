@@ -22,7 +22,7 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `supplier`            | Dashboard        | E-commerce  | Fornecedores. E-commerce lê para exibir informações de fabricante.                               |
 | `category`            | Dashboard        | Ambos       | Árvore de categorias. E-commerce lê para navegação de catálogo.                                  |
 | `tool_category`       | Dashboard        | Ambos       | Vínculo tool ↔ categoria. E-commerce lê para filtrar por categoria.                              |
-| `tool`                | Dashboard        | Ambos       | Produto-pai. E-commerce lê para exibir catálogo. Colunas de frete: `packaging_weight_kg`, `stackable`, `ships_in_own_box`, `upright_only` — ver "Consolidação em caixas + cotação Frenet". |
+| `tool`                | Dashboard        | Ambos       | Produto-pai. E-commerce lê para exibir catálogo. Colunas de frete: `packaging_weight_kg`, `stackable`, `ships_in_own_box` — ver "Consolidação em caixas + cotação Frenet". |
 | `tool_variant`        | Dashboard        | Ambos       | Variante vendável (SKU, preço, voltagem). E-commerce lê para carrinho e checkout.                |
 | `tool_image`          | Dashboard        | Ambos       | Imagens do produto. E-commerce exibe na vitrine.                                                 |
 | `attribute_definition`| Dashboard        | Ambos       | Specs técnicas dinâmicas. E-commerce lê para exibir ficha técnica.                              |
@@ -32,7 +32,7 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `stock_level`         | Dashboard        | Ambos       | Quantidade por variante × filial. E-commerce lê para exibir disponibilidade.                     |
 | `stock_movement`      | Shared           | Dashboard   | Dashboard escreve ajustes manuais (actor `user`). E-commerce escreve débitos de venda (`saida_venda`, actor `system`) na transição para `paid`. |
 | `user_branch`         | Dashboard        | Dashboard   | Escopo de staff × filial. E-commerce não usa.                                                    |
-| `store_settings`      | Dashboard        | E-commerce  | Singleton (`id='singleton'`) de configurações da loja: origem do despacho (`shipping_origin_branch_id` → `branch`), política de seguro de frete e folgas de empacotamento (`shipping_fill_factor`, `shipping_box_padding_cm`). E-commerce lê via `getShippingSettings` e repassa `fillFactor`/`boxPaddingCm` como `opts` de `packItems`. |
+| `store_settings`      | Dashboard        | E-commerce  | Singleton (`id='singleton'`) de configurações da loja: origem do despacho (`shipping_origin_branch_id` → `branch`) e política de seguro de frete. E-commerce lê via `getShippingSettings`. |
 | `banner`              | Dashboard        | E-commerce  | Banners do hero/carrossel da home. E-commerce lê para renderizar. Os campos de render (`layout`, escalas, `badge_text`, `countdown_target`, `background_mobile_mode`) devem ser honrados fielmente — ver "Render do hero". |
 | `promotion`           | Dashboard        | Ambos       | Promoções e cupons. E-commerce aplica desconto no checkout.                                      |
 | `promotion_tool`      | Dashboard        | Ambos       | Vínculo promoção ↔ tool. E-commerce lê para calcular preço final.                               |
@@ -84,15 +84,15 @@ Singleton (`store_settings`, `id='singleton'`) editado só no dashboard (`/dashb
 
 Helper compartilhado em `@emach/db/queries/store-settings`:
 
-- `getShippingSettings(db)` → `{ originBranchId, originCep, insurancePolicy, insuranceCapAmount, fillFactor, boxPaddingCm }`. Sem linha singleton → DEFAULTS (`originCep: null`, `insurancePolicy: 'none'`, `insuranceCapAmount: 3000`, `fillFactor: 0.9`, `boxPaddingCm: 0`), espelhando o comportamento atual do storefront.
+- `getShippingSettings(db)` → `{ originBranchId, originCep, insurancePolicy, insuranceCapAmount }`. Sem linha singleton → DEFAULTS (`originCep: null`, `insurancePolicy: 'none'`, `insuranceCapAmount: 3000`), espelhando o comportamento atual do storefront.
 
 **Contrato para o e-commerce:**
 
-- `originCep` (CEP da filial de origem, ou `null`) substitui o `getOriginBranchCep()` baseado em `env.DEFAULT_BRANCH_ID`. Quando `null`, o storefront mantém o fallback atual.
-- `insurancePolicy`: `'none'` (sem valor declarado adicional) ou `'cart_value'` (declara o valor do carrinho até `insuranceCapAmount` como `ShipmentInvoiceValue` na cotação Frenet).
+- `originCep` (CEP da filial de origem, ou `null`): origem da cotação. O storefront **já consome** — usa `originCep` como `SellerCEP` quando tem 8 dígitos válidos; senão cai no fallback `env.FRENET_SELLER_CEP`.
+- `insurancePolicy`: `'none'` (sem valor declarado adicional) ou `'cart_value'` (declara o valor do carrinho até `insuranceCapAmount` como `ShipmentInvoiceValue` na cotação Frenet). Também já consumido pelo storefront.
 - **Frete grátis** não vive aqui: é só via cupom/promoção (`promotion`). O `R$ 299` hardcoded no storefront é bug a remover (issue separado no emach-ecommerce).
 
-A v1 da cotação Frenet no storefront usa `env.FRENET_SELLER_CEP` como origem e declara o subtotal integral — o swap para `getShippingSettings` (origem + política de seguro) é pendência rastreada em issue no repo emach-ecommerce.
+As colunas `shipping_fill_factor` e `shipping_box_padding_cm` foram removidas do schema em 2026-07-29 (nunca foram consumidas pela cotação; o motor usa folga fixa de 0.9). O drop físico das colunas no banco é coordenado — ver "Regra de sincronização" abaixo.
 
 ---
 
@@ -117,7 +117,9 @@ produto** (`tool`). Antes de cotar, o checkout consolida o carrinho em caixas re
 | `packaging_weight_kg`                    | Peso da embalagem/proteção. Peso de despacho = `weight_kg + packaging_weight_kg`.    |
 | `stackable`                              | Pode empilhar sobre/sob outros itens na consolidação de volume.                      |
 | `ships_in_own_box`                       | Viaja em embalagem própria (ex: item longo); não consolida com outros itens.         |
-| `upright_only`                           | "Este lado para cima" — não pode ser deitado no encaixe; a altura é fixa e só as duas dimensões horizontais podem trocar entre si (ex: compressor com óleo). |
+
+A coluna `upright_only` foi removida do schema em 2026-07-29 (nunca foi enviada
+pelo checkout à cotação). O drop físico é coordenado — ver "Regra de sincronização".
 
 ### Funções compartilhadas (`@emach/db/queries/shipping*`)
 
@@ -125,39 +127,20 @@ Sincronizadas ao ecommerce via CI (ADR-0009):
 
 ```ts
 import { getActiveBoxes } from "@emach/db/queries/shipping";
-import {
-	packItems,
-	type PackOptions,
-	type QuoteItem,
-} from "@emach/db/queries/shipping-quote";
+import { packItems, type QuoteItem } from "@emach/db/queries/shipping-quote";
 
 const boxes = await getActiveBoxes(db);
-const packages = packItems(items, boxes, opts);
+const packages = packItems(items, boxes);
 // → cada ShippingPackage vira { Weight, Length, Height, Width, Quantity: 1 }
 //   no ShippingItemArray da Frenet.
 ```
 
-`opts?: PackOptions` é **opcional** — `fillFactor` (fração do volume interno ocupável, default
-`0.9`) e `boxPaddingCm` (acréscimo externo por dimensão do pacote, ex: parede/aba da caixa,
-default `0`) partem com o mesmo comportamento de hoje se omitidos. O storefront deve passá-los a
-partir do singleton `getShippingSettings` (`fillFactor`/`boxPaddingCm`, configuráveis em
-`/dashboard/shipping?tab=config`) em vez de fixar defaults locais:
-
-```ts
-const settings = await getShippingSettings(db);
-const packages = packItems(items, boxes, {
-	fillFactor: settings.fillFactor,
-	boxPaddingCm: settings.boxPaddingCm,
-});
-```
-
-`QuoteItem.uprightOnly` é **opcional** (`?: boolean`) — mapeia `tool.upright_only` ao montar os
-itens da cotação. `undefined`/omitido preserva o comportamento atual (item pode deitar para
-otimizar o encaixe); `true` fixa a altura e só permite girar nas duas dimensões horizontais.
+A consolidação usa folga fixa de ocupação (0.9 do volume interno) embutida no motor —
+não há mais `PackOptions` (removido em 2026-07-29 junto com as colunas de settings).
 
 Pacote marcado `outOfCatalog: true` (item que não cabe nem na maior caixa ativa) → o checkout
 exibe **"Frete a combinar"** sem chamar a Frenet. Pacotes `outOfCatalog` e `shipsInOwnBox` usam as
-dimensões do próprio produto e **não** recebem `boxPaddingCm`.
+dimensões do próprio produto.
 
 O motor antigo de tabelas próprias (`carrier`/`carrier_zone`/`carrier_rate` + `quoteShipping`)
 foi removido em 2026-07-03 (issue #287 do dashboard).

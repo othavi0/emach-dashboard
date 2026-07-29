@@ -155,24 +155,17 @@ describe("packItems", () => {
 		expect(residual?.weightKg).toBeCloseTo(17.5, 3); // 15 + 2 + tara box-s 0.5
 	});
 
-	it("fillFactor menor força caixa maior (0.5 vs default 0.9)", () => {
-		// Furadeira não-empilhável ocupa 31500 na box-s (0.9×36750=33075 ok;
-		// 0.5×36750=18375 não) → com 0.5 sobe pra box-l.
-		const strict = packItems([{ ...FURADEIRA, qty: 1 }], BOXES, {
-			fillFactor: 0.5,
-		});
-		expect(strict[0]?.lengthCm).toBe(70);
-		const relaxed = packItems([{ ...FURADEIRA, qty: 1 }], BOXES);
-		expect(relaxed[0]?.lengthCm).toBe(35);
+	it("fill factor fixo de 0.9 permite a furadeira na box-s (ocupação 31500/36750)", () => {
+		// Furadeira não-empilhável ocupa 31500 na box-s; 0.9×36750=33075 ok.
+		const pkgs = packItems([{ ...FURADEIRA, qty: 1 }], BOXES);
+		expect(pkgs[0]?.lengthCm).toBe(35);
 	});
 
-	it("boxPaddingCm soma nas dims do pacote de catálogo, não no 'a combinar'", () => {
-		const pkgs = packItems([{ ...FURADEIRA, qty: 1 }], BOXES, {
-			boxPaddingCm: 2,
-		});
-		expect(pkgs[0]?.lengthCm).toBe(37);
-		expect(pkgs[0]?.widthCm).toBe(37);
-		expect(pkgs[0]?.heightCm).toBe(32);
+	it("pacote de catálogo cota com as dims internas da caixa, sem acréscimo", () => {
+		const pkgs = packItems([{ ...FURADEIRA, qty: 1 }], BOXES);
+		expect(pkgs[0]?.lengthCm).toBe(35);
+		expect(pkgs[0]?.widthCm).toBe(35);
+		expect(pkgs[0]?.heightCm).toBe(30);
 	});
 
 	it("catálogo vazio (boxes=[]) → pacote fora de catálogo com dims/peso do item", () => {
@@ -183,10 +176,9 @@ describe("packItems", () => {
 		expect(pkgs[0]?.weightKg).toBeCloseTo(17, 3); // 15 + 2, sem tara
 	});
 
-	it("uprightOnly: altura fixa não deita — exige caixa mais alta", () => {
-		// 20×20×58 em pé: box-l (H 50) não serve; box-xl (H 60) sim.
-		// Sem a trava, deitaria e caberia na box-l.
-		const emPe: QuoteItem = {
+	it("item alto deita pra caber (rotação livre nos 3 eixos)", () => {
+		// 20×20×58 deitado cabe na box-l (70×60×50) sem precisar da box-xl.
+		const alto: QuoteItem = {
 			lengthCm: 20,
 			widthCm: 20,
 			heightCm: 58,
@@ -194,12 +186,8 @@ describe("packItems", () => {
 			packagingWeightKg: 0,
 			stackable: true,
 			shipsInOwnBox: false,
-			uprightOnly: true,
 			qty: 1,
 		};
-		expect(packItems([emPe], BOXES)[0]?.lengthCm).toBe(90); // box-xl
-		expect(
-			packItems([{ ...emPe, uprightOnly: false }], BOXES)[0]?.lengthCm
-		).toBe(70); // box-l, deitado
+		expect(packItems([alto], BOXES)[0]?.lengthCm).toBe(70); // box-l
 	});
 });

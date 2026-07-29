@@ -1,5 +1,18 @@
 "use client";
 
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@emach/ui/components/alert-dialog";
+import { Button } from "@emach/ui/components/button";
+import { Spinner } from "@emach/ui/components/spinner";
+import { Trash2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -7,16 +20,16 @@ import { EntityEditSheet } from "@/components/entity/entity-edit-sheet";
 import { notify } from "@/lib/notify";
 import { useFormErrors } from "@/lib/use-form-errors";
 
-import { updateBox } from "../actions";
+import { deleteBox, updateBox } from "../actions";
 import type { ShippingBoxRow } from "../data";
 import { BoxFormFields } from "./box-form-fields";
-import { type BoxFormValues, boxSchema } from "./box-schema";
+import { type BoxFormState, type BoxFormValues, boxSchema } from "./box-schema";
 
 interface Props {
 	boxes: ShippingBoxRow[];
 }
 
-function toFormValues(b: ShippingBoxRow): BoxFormValues {
+function toFormValues(b: ShippingBoxRow): BoxFormState {
 	return {
 		name: b.name,
 		internalLengthCm: Number(b.internalLengthCm),
@@ -28,13 +41,8 @@ function toFormValues(b: ShippingBoxRow): BoxFormValues {
 	};
 }
 
-const defaultValues: BoxFormValues = {
+const defaultValues: BoxFormState = {
 	name: "",
-	internalLengthCm: 0,
-	internalWidthCm: 0,
-	internalHeightCm: 0,
-	maxWeightKg: 0,
-	tareWeightKg: 0,
 	active: true,
 };
 
@@ -46,10 +54,16 @@ export function BoxEditSheet({ boxes }: Props) {
 	const box = editId ? boxes.find((b) => b.id === editId) : undefined;
 	const open = Boolean(editId && box);
 
-	const [values, setValues] = useState<BoxFormValues>(defaultValues);
+	// Lazy init: em deep-link (?editBox= no primeiro render) o sheet já nasce
+	// aberto e o reset síncrono abaixo não dispara — inicializar do box.
+	const [values, setValues] = useState<BoxFormState>(() =>
+		open && box ? toFormValues(box) : defaultValues
+	);
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<BoxFormValues>();
 	const [submitting, startTransition] = useTransition();
+	const [confirmDelete, setConfirmDelete] = useState(false);
+	const [deleting, startDeleteTransition] = useTransition();
 
 	// Reset síncrono durante o render (padrão "adjusting state when a prop
 	// changes") — sem o re-render extra do reset via effect.
@@ -59,6 +73,7 @@ export function BoxEditSheet({ boxes }: Props) {
 		if (open && box) {
 			setValues(toFormValues(box));
 			clearErrors();
+			setConfirmDelete(false);
 		}
 	}
 
@@ -91,21 +106,82 @@ export function BoxEditSheet({ boxes }: Props) {
 		});
 	};
 
+	const handleDelete = () => {
+		if (!editId) {
+			return;
+		}
+		startDeleteTransition(async () => {
+			const res = await deleteBox(editId);
+			if (res.ok) {
+				notify.success("Caixa excluída");
+				setConfirmDelete(false);
+				close();
+				router.refresh();
+			} else {
+				notify.error(res.error);
+			}
+		});
+	};
+
 	return (
-		<EntityEditSheet
-			description="Atualize os dados da embalagem"
-			onOpenChange={(v) => !v && close()}
-			onSubmit={handleSubmit}
-			open={open}
-			submitting={submitting}
-			title={box ? `Editar ${box.name}` : "Editar caixa"}
-		>
-			<BoxFormFields
-				disabled={submitting}
-				errors={errors}
-				onPatch={(p) => setValues((prev) => ({ ...prev, ...p }))}
-				values={values}
-			/>
-		</EntityEditSheet>
+		<>
+			<EntityEditSheet
+				description="Atualize os dados da embalagem"
+				footerStart={
+					<Button
+						className="text-destructive"
+						disabled={submitting || deleting}
+						onClick={() => setConfirmDelete(true)}
+						type="button"
+						variant="outline"
+					>
+						<Trash2 aria-hidden className="size-3.5" />
+						Excluir caixa
+					</Button>
+				}
+				onOpenChange={(v) => !v && close()}
+				onSubmit={handleSubmit}
+				open={open}
+				submitting={submitting}
+				title={box ? `Editar ${box.name}` : "Editar caixa"}
+			>
+				<BoxFormFields
+					disabled={submitting}
+					errors={errors}
+					onPatch={(p) => setValues((prev) => ({ ...prev, ...p }))}
+					values={values}
+				/>
+			</EntityEditSheet>
+			<AlertDialog onOpenChange={setConfirmDelete} open={confirmDelete}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Excluir caixa?</AlertDialogTitle>
+						<AlertDialogDescription>
+							A caixa <strong>{box?.name}</strong> será removida do catálogo de
+							envio permanentemente. Produtos que só cabiam nela passam a sair
+							como "Frete a combinar" na loja. Esta ação não pode ser desfeita.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+						<AlertDialogAction
+							disabled={deleting}
+							onClick={(e) => {
+								e.preventDefault();
+								handleDelete();
+							}}
+						>
+							{deleting ? (
+								<>
+									<Spinner /> Excluindo…
+								</>
+							) : (
+								"Excluir"
+							)}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</>
 	);
 }

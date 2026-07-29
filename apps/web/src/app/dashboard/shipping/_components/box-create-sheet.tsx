@@ -9,15 +9,10 @@ import { useFormErrors } from "@/lib/use-form-errors";
 
 import { createBox } from "../actions";
 import { BoxFormFields } from "./box-form-fields";
-import { type BoxFormValues, boxSchema } from "./box-schema";
+import { type BoxFormState, type BoxFormValues, boxSchema } from "./box-schema";
 
-const defaultValues: BoxFormValues = {
+const defaultValues: BoxFormState = {
 	name: "",
-	internalLengthCm: 0,
-	internalWidthCm: 0,
-	internalHeightCm: 0,
-	maxWeightKg: 0,
-	tareWeightKg: 0,
 	active: true,
 };
 
@@ -27,7 +22,7 @@ export function BoxCreateSheet() {
 	const params = useSearchParams();
 	const open = params.get("newBox") === "1";
 
-	const [values, setValues] = useState<BoxFormValues>(defaultValues);
+	const [values, setValues] = useState<BoxFormState>(defaultValues);
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<BoxFormValues>();
 	const [submitting, startTransition] = useTransition();

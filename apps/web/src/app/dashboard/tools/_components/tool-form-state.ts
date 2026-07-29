@@ -38,7 +38,6 @@ export const EMPTY_TOOL_VALUES: ToolFormState = {
 	packagingWeightKg: undefined,
 	stackable: true,
 	shipsInOwnBox: false,
-	uprightOnly: false,
 	categoryIds: [],
 	primaryCategoryId: "",
 	visibleOnSite: true,

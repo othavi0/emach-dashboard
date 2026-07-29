@@ -11,7 +11,6 @@ export interface FitCheckItem {
 	lengthCm: number;
 	packagingWeightKg: number;
 	stackable: boolean;
-	uprightOnly?: boolean;
 	weightKg: number;
 	widthCm: number;
 }
@@ -21,17 +20,6 @@ function sortedDesc(a: number, b: number, c: number): [number, number, number] {
 }
 
 function fitsByDims(item: FitCheckItem, box: QuoteBox): boolean {
-	if (item.uprightOnly) {
-		// Altura fixa: só as horizontais podem trocar entre si.
-		if (item.heightCm > box.internalHeightCm) {
-			return false;
-		}
-		const iMax = Math.max(item.lengthCm, item.widthCm);
-		const iMin = Math.min(item.lengthCm, item.widthCm);
-		const bMax = Math.max(box.internalLengthCm, box.internalWidthCm);
-		const bMin = Math.min(box.internalLengthCm, box.internalWidthCm);
-		return iMax <= bMax && iMin <= bMin;
-	}
 	const i = sortedDesc(item.lengthCm, item.widthCm, item.heightCm);
 	const b = sortedDesc(
 		box.internalLengthCm,
@@ -42,18 +30,11 @@ function fitsByDims(item: FitCheckItem, box: QuoteBox): boolean {
 }
 
 function footprint(item: FitCheckItem): number {
-	if (item.uprightOnly) {
-		return item.lengthCm * item.widthCm;
-	}
 	const s = sortedDesc(item.lengthCm, item.widthCm, item.heightCm);
 	return s[0] * s[1];
 }
 
-function fitsShippingBox(
-	item: FitCheckItem,
-	box: QuoteBox,
-	fillFactor: number
-): boolean {
+function fitsShippingBox(item: FitCheckItem, box: QuoteBox): boolean {
 	if (!fitsByDims(item, box)) {
 		return false;
 	}
@@ -68,14 +49,13 @@ function fitsShippingBox(
 		: footprint(item) * box.internalHeightCm;
 	const boxVolume =
 		box.internalLengthCm * box.internalWidthCm * box.internalHeightCm;
-	return occupied <= boxVolume * fillFactor;
+	return occupied <= boxVolume * FILL_FACTOR;
 }
 
 /** true se a unidade cabe em ALGUMA caixa ativa — mesma regra do checkout. */
 export function fitsAnyActiveBox(
 	item: FitCheckItem,
-	boxes: QuoteBox[],
-	fillFactor: number = FILL_FACTOR
+	boxes: QuoteBox[]
 ): boolean {
-	return boxes.some((box) => fitsShippingBox(item, box, fillFactor));
+	return boxes.some((box) => fitsShippingBox(item, box));
 }

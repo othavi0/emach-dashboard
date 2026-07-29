@@ -2,7 +2,6 @@ import "server-only";
 
 import { db } from "@emach/db";
 import { getActiveBoxes } from "@emach/db/queries/shipping";
-import { getShippingSettings } from "@emach/db/queries/store-settings";
 import { shippingBox } from "@emach/db/schema/shipping";
 import { tool } from "@emach/db/schema/tools";
 import { and, asc, eq } from "drizzle-orm";
@@ -49,9 +48,8 @@ export interface ToolWithoutBox {
 /** Produtos ativos que consolidam em caixa mas não cabem em NENHUMA caixa
  * ativa — na loja saem como "Frete a combinar". Mesma régua do checkout. */
 export async function getToolsWithoutBox(): Promise<ToolWithoutBox[]> {
-	const [activeBoxes, settings, rows] = await Promise.all([
+	const [activeBoxes, rows] = await Promise.all([
 		getActiveBoxes(db),
-		getShippingSettings(db),
 		db
 			.select({
 				id: tool.id,
@@ -62,7 +60,6 @@ export async function getToolsWithoutBox(): Promise<ToolWithoutBox[]> {
 				heightCm: tool.heightCm,
 				packagingWeightKg: tool.packagingWeightKg,
 				stackable: tool.stackable,
-				uprightOnly: tool.uprightOnly,
 			})
 			.from(tool)
 			.where(and(eq(tool.status, "active"), eq(tool.shipsInOwnBox, false)))
@@ -80,10 +77,8 @@ export async function getToolsWithoutBox(): Promise<ToolWithoutBox[]> {
 						weightKg: Number(r.weightKg),
 						packagingWeightKg: Number(r.packagingWeightKg),
 						stackable: r.stackable,
-						uprightOnly: r.uprightOnly,
 					},
-					activeBoxes,
-					settings.fillFactor
+					activeBoxes
 				)
 		)
 		.map(({ id, name, weightKg, lengthCm, widthCm, heightCm }) => ({
