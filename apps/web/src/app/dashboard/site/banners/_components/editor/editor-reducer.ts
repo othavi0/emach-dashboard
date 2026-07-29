@@ -12,7 +12,10 @@ import {
 	type MobileOverride,
 	type Viewport,
 } from "../composition/composition-schema";
-import { legacyToComposition } from "../composition/derive-legacy";
+import {
+	deriveHasFlagsFromBanner,
+	legacyToComposition,
+} from "../composition/derive-legacy";
 import { BANNER_TEMPLATES } from "../composition/templates";
 
 export type EditorSelection = ElementKey | "background" | null;
@@ -408,15 +411,7 @@ function compositionFromBanner(banner: Banner): BannerComposition {
 		layout: banner.layout,
 		productScale: banner.productScale,
 		ctaScale: banner.ctaScale,
-		hasTitle: banner.title !== null,
-		hasSubtitle: banner.subtitle !== null,
-		hasBadge: banner.badgeText !== null,
-		hasSpecs: banner.specs !== null && banner.specs.length > 0,
-		hasCountdown: banner.countdownTarget !== null,
-		hasProduct: banner.productImageUrl !== null,
-		// AND (não OR do deriveSlots do form legado): elemento cta na composition
-		// = renderizável, e renderer/zod exigem label+href juntos.
-		hasCta: banner.ctaLabel !== null && banner.ctaHref !== null,
+		...deriveHasFlagsFromBanner(banner),
 	});
 }
 

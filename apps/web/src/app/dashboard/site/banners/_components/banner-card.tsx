@@ -8,9 +8,13 @@ import { Switch } from "@emach/ui/components/switch";
 import { cn } from "@emach/ui/lib/utils";
 import { GripVertical, Monitor, Pencil, Smartphone } from "lucide-react";
 import Link from "next/link";
+import { logger } from "@/lib/logger";
 import { CompositionRenderer } from "./composition/composition-renderer";
 import { compositionSchema } from "./composition/composition-schema";
-import { legacyToComposition } from "./composition/derive-legacy";
+import {
+	deriveHasFlagsFromBanner,
+	legacyToComposition,
+} from "./composition/derive-legacy";
 import { DeleteBannerDialog } from "./delete-banner-dialog";
 
 function SlotChip({ label }: { label: string }) {
@@ -24,22 +28,24 @@ function SlotChip({ label }: { label: string }) {
 // Composição pra render do card: usa o dual-write quando válido; janela
 // pré-backfill (composition null ou fora do schema) deriva na hora com os
 // mesmos flags do editor-reducer (hasCta = AND label+href, ver T9/T12).
+// composition !== null && !parsed.success = schema drift (não é o caso
+// pré-backfill esperado) — logado pra ficar observável (fix round 1).
 function compositionForCard(item: Banner) {
 	const parsed = compositionSchema.safeParse(item.composition);
 	if (parsed.success) {
 		return parsed.data;
 	}
+	if (item.composition !== null) {
+		logger.error("banner-card.composition-parse", {
+			bannerId: item.id,
+			issues: parsed.error.issues,
+		});
+	}
 	return legacyToComposition({
 		layout: item.layout,
 		productScale: item.productScale,
 		ctaScale: item.ctaScale,
-		hasTitle: item.title !== null,
-		hasSubtitle: item.subtitle !== null,
-		hasBadge: item.badgeText !== null,
-		hasSpecs: item.specs !== null && item.specs.length > 0,
-		hasCountdown: item.countdownTarget !== null,
-		hasProduct: item.productImageUrl !== null,
-		hasCta: item.ctaLabel !== null && item.ctaHref !== null,
+		...deriveHasFlagsFromBanner(item),
 	});
 }
 

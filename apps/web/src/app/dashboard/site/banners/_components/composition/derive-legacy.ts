@@ -1,3 +1,4 @@
+import type { Banner } from "@emach/db/schema/banner";
 import type { BannerLayout } from "../banner-schema";
 import type {
 	Anchor9,
@@ -31,6 +32,43 @@ const p = (
 	maxWidth === undefined
 		? { anchor, offsetX: 0, offsetY: 0, scale }
 		: { anchor, offsetX: 0, offsetY: 0, scale, maxWidth };
+
+type HasFlagsSource = Pick<
+	Banner,
+	| "title"
+	| "subtitle"
+	| "badgeText"
+	| "specs"
+	| "countdownTarget"
+	| "productImageUrl"
+	| "ctaLabel"
+	| "ctaHref"
+>;
+
+// Fonte única dos flags has* consumidos por legacyToComposition — antes
+// triplicado (idêntico) em backfill-banner-composition.ts, editor-reducer.ts
+// e banner-card.tsx. Zero mudança de semântica: só dedup (fix round 1, T14).
+export function deriveHasFlagsFromBanner(banner: HasFlagsSource): {
+	hasTitle: boolean;
+	hasSubtitle: boolean;
+	hasBadge: boolean;
+	hasSpecs: boolean;
+	hasCountdown: boolean;
+	hasProduct: boolean;
+	hasCta: boolean;
+} {
+	return {
+		hasTitle: banner.title !== null,
+		hasSubtitle: banner.subtitle !== null,
+		hasBadge: banner.badgeText !== null,
+		hasSpecs: banner.specs !== null && banner.specs.length > 0,
+		hasCountdown: banner.countdownTarget !== null,
+		hasProduct: banner.productImageUrl !== null,
+		// AND (não OR do deriveSlots do form legado): elemento cta na composition
+		// = renderizável, e renderer/zod exigem label+href juntos.
+		hasCta: banner.ctaLabel !== null && banner.ctaHref !== null,
+	};
+}
 
 export function legacyToComposition(input: {
 	layout: BannerLayout;

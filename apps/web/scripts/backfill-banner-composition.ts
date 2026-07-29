@@ -12,7 +12,10 @@
 import { db } from "@emach/db";
 import { banner } from "@emach/db/schema/banner";
 import { eq, isNull } from "drizzle-orm";
-import { legacyToComposition } from "../src/app/dashboard/site/banners/_components/composition/derive-legacy";
+import {
+	deriveHasFlagsFromBanner,
+	legacyToComposition,
+} from "../src/app/dashboard/site/banners/_components/composition/derive-legacy";
 
 async function main() {
 	const rows = await db.select().from(banner).where(isNull(banner.composition));
@@ -21,13 +24,7 @@ async function main() {
 			layout: row.layout,
 			productScale: row.productScale,
 			ctaScale: row.ctaScale,
-			hasTitle: row.title !== null,
-			hasSubtitle: row.subtitle !== null,
-			hasBadge: row.badgeText !== null,
-			hasSpecs: row.specs !== null && row.specs.length > 0,
-			hasCountdown: row.countdownTarget !== null,
-			hasProduct: row.productImageUrl !== null,
-			hasCta: row.ctaLabel !== null && row.ctaHref !== null,
+			...deriveHasFlagsFromBanner(row),
 		});
 		await db.update(banner).set({ composition }).where(eq(banner.id, row.id));
 		process.stdout.write(`backfilled ${row.id} (${row.layout})\n`);
