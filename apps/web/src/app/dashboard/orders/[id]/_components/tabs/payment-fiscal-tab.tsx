@@ -14,7 +14,7 @@ import {
 	TableRow,
 } from "@emach/ui/components/table";
 
-import { formatMeasure } from "@/lib/format/number";
+import { formatMeasure, formatWeight } from "@/lib/format/number";
 import type { OrderDetail } from "../../../data";
 import { AsaasBlock } from "../asaas-block";
 
@@ -110,9 +110,7 @@ export function PaymentFiscalTab({ order }: { order: OrderDetail }) {
 									{item.cest ?? "—"}
 								</TableCell>
 								<TableCell className="text-right font-mono text-xs">
-									{item.weightKg === null
-										? "—"
-										: `${formatMeasure(item.weightKg) ?? "—"} kg`}
+									{formatWeight(item.weightKg) ?? "—"}
 								</TableCell>
 								<TableCell className="text-right font-mono text-xs">
 									{formatDims(item.lengthCm, item.widthCm, item.heightCm)}

@@ -1,4 +1,4 @@
-import { formatMeasure } from "@/lib/format/number";
+import { formatMeasure, formatWeight } from "@/lib/format/number";
 import type { ToolDetailAttribute, ToolDetailRow } from "./tool-detail-data";
 
 export interface SpecCandidate {
@@ -64,10 +64,7 @@ export function physicalCandidates(tool: PhysicalSpecSource): SpecCandidate[] {
 		{
 			key: "weightKg",
 			label: "Peso",
-			value:
-				tool.weightKg === null
-					? null
-					: `${formatMeasure(tool.weightKg) ?? "—"} kg`,
+			value: formatWeight(tool.weightKg),
 		},
 		{ key: "dimensions", label: "Dimensões", value: dimensions },
 	];

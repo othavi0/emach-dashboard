@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { SwitchTabButton } from "@/components/entity/switch-tab-button";
 import { ToolDescription } from "@/components/tool-description";
 import { formatDayMonthShortYear } from "@/lib/format/datetime";
-import { formatMeasure } from "@/lib/format/number";
+import { formatWeight } from "@/lib/format/number";
 import { groupAttributesByCategory } from "../_lib/attribute-grouping";
 import { detectSpecDivergences } from "../_lib/spec-divergence";
 import type {
@@ -131,7 +131,7 @@ export function OverviewTab({
 							)}
 							<MetaRow label="Embalagem">
 								{Number(tool.packagingWeightKg) > 0
-									? `+${formatMeasure(tool.packagingWeightKg)} kg`
+									? `+${formatWeight(tool.packagingWeightKg)}`
 									: "—"}
 							</MetaRow>
 							<MetaRow label="Envio">

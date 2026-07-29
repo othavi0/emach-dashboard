@@ -68,6 +68,12 @@ describe("physicalCandidates", () => {
 		const rows = physicalCandidates({ ...base, widthCm: null });
 		expect(rows.find((r) => r.key === "dimensions")?.value).toBeNull();
 	});
+
+	it("peso sub-kg exibe em gramas", () => {
+		const rows = physicalCandidates({ ...base, weightKg: "0.350" });
+		const byKey = new Map(rows.map((r) => [r.key, r]));
+		expect(byKey.get("weightKg")?.value).toBe("350 g");
+	});
 });
 
 describe("fiscalCandidates", () => {
