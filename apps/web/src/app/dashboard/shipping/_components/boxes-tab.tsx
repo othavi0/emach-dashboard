@@ -2,7 +2,7 @@ import { buttonVariants } from "@emach/ui/components/button";
 import { Plus, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 
-import { formatMeasure } from "@/lib/format/number";
+import { formatMeasure, formatWeight } from "@/lib/format/number";
 import { can, requireCapability } from "@/lib/permissions";
 
 import { getBoxes, getToolsWithoutBox } from "../data";
@@ -67,8 +67,8 @@ export async function BoxesTab() {
 								</Link>{" "}
 								<span className="text-muted-foreground text-xs">
 									{formatMeasure(t.lengthCm)} × {formatMeasure(t.widthCm)} ×{" "}
-									{formatMeasure(t.heightCm)} cm · {formatMeasure(t.weightKg)}{" "}
-									kg
+									{formatMeasure(t.heightCm)} cm ·{" "}
+									{formatWeight(t.weightKg) ?? "—"}
 								</span>
 							</li>
 						))}
