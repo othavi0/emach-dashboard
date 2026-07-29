@@ -51,6 +51,13 @@ export const banner = pgTable(
 		// Ficha técnica do hero: lista de strings curtas (ex: ["1200W", "800 RPM"]).
 		// Renderizada como DOM no storefront (#229), não queimada na arte. null/[] = sem painel.
 		specs: jsonb("specs").$type<string[]>(),
+		// Composição por elemento (spec 2026-07-29). Estrutura validada por zod no app
+		// (apps/web .../composition/composition-schema.ts); NULL = banner pré-backfill.
+		composition: jsonb("composition").$type<{
+			version: 1;
+			desktop: Record<string, unknown>;
+			mobile: Record<string, unknown>;
+		} | null>(),
 		altText: text("alt_text"),
 		badgeText: text("badge_text"),
 		ctaLabel: text("cta_label"),
