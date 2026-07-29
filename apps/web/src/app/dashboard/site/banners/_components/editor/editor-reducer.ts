@@ -143,15 +143,17 @@ function clampPlacement(
 	return { ...placement, offsetX, offsetY };
 }
 
+// Retorna false quando o drag é no-op (nada pra mover) — o dispatcher usa
+// isso pra não marcar dirty num estado que não mudou de fato.
 function dragDesktop(
 	elements: BannerComposition["desktop"]["elements"],
 	key: ElementKey,
 	deltaX: number,
 	deltaY: number
-) {
+): boolean {
 	const current = getDesktopElement(elements, key);
 	if (!current) {
-		return;
+		return false;
 	}
 	const moved: ElementPlacement = {
 		...current,
@@ -159,6 +161,7 @@ function dragDesktop(
 		offsetY: current.offsetY + deltaY,
 	};
 	setDesktopElement(elements, key, clampPlacement(moved, "desktop"));
+	return true;
 }
 
 function dragMobile(
@@ -166,11 +169,11 @@ function dragMobile(
 	key: ElementKey,
 	deltaX: number,
 	deltaY: number
-) {
+): boolean {
 	const current = getMobileElement(elements, key);
 	if (current && "hidden" in current) {
 		// Elemento oculto no mobile: arrastar não faz sentido, no-op.
-		return;
+		return false;
 	}
 	const base: ElementPlacement = current ?? {
 		anchor: "mc",
@@ -184,6 +187,7 @@ function dragMobile(
 		offsetY: base.offsetY + deltaY,
 	};
 	setMobileElement(elements, key, clampPlacement(moved, "mobile"));
+	return true;
 }
 
 function dragAction(
@@ -191,20 +195,22 @@ function dragAction(
 	action: Extract<EditorAction, { type: "drag" }>
 ): EditorState {
 	const composition = structuredClone(state.composition);
-	if (state.viewport === "desktop") {
-		dragDesktop(
-			composition.desktop.elements,
-			action.key,
-			action.deltaX,
-			action.deltaY
-		);
-	} else {
-		dragMobile(
-			composition.mobile.elements,
-			action.key,
-			action.deltaX,
-			action.deltaY
-		);
+	const changed =
+		state.viewport === "desktop"
+			? dragDesktop(
+					composition.desktop.elements,
+					action.key,
+					action.deltaX,
+					action.deltaY
+				)
+			: dragMobile(
+					composition.mobile.elements,
+					action.key,
+					action.deltaX,
+					action.deltaY
+				);
+	if (!changed) {
+		return state;
 	}
 	return { ...state, composition, dirty: true };
 }
@@ -260,14 +266,11 @@ function setPlacementAction(
 	action: Extract<EditorAction, { type: "setPlacement" }>
 ): EditorState {
 	const composition = structuredClone(state.composition);
+	const placement = clampPlacement(action.placement, state.viewport);
 	if (state.viewport === "desktop") {
-		setDesktopElement(
-			composition.desktop.elements,
-			action.key,
-			action.placement
-		);
+		setDesktopElement(composition.desktop.elements, action.key, placement);
 	} else {
-		setMobileElement(composition.mobile.elements, action.key, action.placement);
+		setMobileElement(composition.mobile.elements, action.key, placement);
 	}
 	return { ...state, composition, dirty: true };
 }
@@ -386,14 +389,16 @@ function compositionFromBanner(banner: Banner): BannerComposition {
 		hasSpecs: banner.specs !== null && banner.specs.length > 0,
 		hasCountdown: banner.countdownTarget !== null,
 		hasProduct: banner.productImageUrl !== null,
-		hasCta: banner.ctaLabel !== null || banner.ctaHref !== null,
+		// AND (não OR do deriveSlots do form legado): elemento cta na composition
+		// = renderizável, e renderer/zod exigem label+href juntos.
+		hasCta: banner.ctaLabel !== null && banner.ctaHref !== null,
 	});
 }
 
 export function initialEditorState(banner: Banner | null): EditorState {
 	if (banner === null) {
 		return {
-			content: EMPTY_CONTENT,
+			content: structuredClone(EMPTY_CONTENT),
 			composition: structuredClone(DEFAULT_COMPOSITION),
 			viewport: "desktop",
 			selected: null,

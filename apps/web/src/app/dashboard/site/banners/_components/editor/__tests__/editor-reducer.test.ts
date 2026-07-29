@@ -54,17 +54,32 @@ describe("drag", () => {
 		expect(o !== undefined && !("hidden" in o)).toBe(true);
 	});
 
-	test("mobile: drag em override oculto é no-op", () => {
+	test("mobile: drag em override oculto é no-op e não marca dirty", () => {
 		const withHidden = editorReducer(s0, {
 			type: "setMobileOverride",
 			key: "title",
 			override: { hidden: true },
 		});
+		// dirty resetado pra isolar o efeito do próprio drag no-op (o
+		// setMobileOverride anterior já marca dirty por conta própria).
 		const s1 = editorReducer(
-			{ ...withHidden, viewport: "mobile" },
+			{ ...withHidden, viewport: "mobile", dirty: false },
 			{ type: "drag", key: "title", deltaX: 5, deltaY: 5 }
 		);
 		expect(s1.composition.mobile.elements.title).toEqual({ hidden: true });
+		expect(s1.dirty).toBe(false);
+	});
+
+	test("desktop: drag em elemento sem placement é no-op e não marca dirty", () => {
+		// badge não tem placement no DEFAULT_COMPOSITION.desktop.elements
+		const s1 = editorReducer(s0, {
+			type: "drag",
+			key: "badge",
+			deltaX: 5,
+			deltaY: 5,
+		});
+		expect(s1.composition.desktop.elements.badge).toBeUndefined();
+		expect(s1.dirty).toBe(false);
 	});
 });
 
@@ -150,6 +165,22 @@ describe("applyTemplate", () => {
 	});
 });
 
+describe("setPlacement", () => {
+	test("clampa o placement recebido (não confia no valor do inspector)", () => {
+		const s1 = editorReducer(
+			{ ...s0, viewport: "mobile" },
+			{
+				type: "setPlacement",
+				key: "cta",
+				placement: { anchor: "br", offsetX: 0, offsetY: 20, scale: 100 },
+			}
+		);
+		expect(s1.composition.mobile.elements.cta).toMatchObject({
+			offsetY: 0,
+		});
+	});
+});
+
 describe("setMobileOverride", () => {
 	test("null volta a herdar (remove override)", () => {
 		const withOverride = editorReducer(s0, {
@@ -181,6 +212,16 @@ describe("initialEditorState", () => {
 		const s1 = initialEditorState(banner);
 		expect(s1.composition.desktop.elements.title?.anchor).toBe("mc");
 		expect(s1.composition.desktop.elements.product).toBeUndefined();
+	});
+
+	test("banner legado com só ctaLabel (sem href) não vira elemento cta", () => {
+		const banner = makeBanner({
+			composition: null,
+			ctaLabel: "Ver catálogo",
+			ctaHref: null,
+		});
+		const s1 = initialEditorState(banner);
+		expect(s1.composition.desktop.elements.cta).toBeUndefined();
 	});
 
 	test("banner existente com composition usa a composition salva", () => {
