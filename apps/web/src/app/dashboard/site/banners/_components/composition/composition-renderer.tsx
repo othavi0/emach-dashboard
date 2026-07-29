@@ -88,6 +88,23 @@ function ElementBox({
 	);
 }
 
+// Box baseline por elemento posicionado (fix round 2, T14):
+// - product: ElementBox só tem left/top/transform (via placementToStyle),
+//   sem width/height — o <Image fill> de renderProductContent colapsa pra
+//   0×0 sem uma caixa dimensionada por baixo. Dimensão baseline por viewport
+//   (scale do transform segue multiplicando por cima); o SafeStack mobile já
+//   tem box próprio (h-[38%] w-[82%]) e não passa por aqui.
+// - demais elementos: w-max (width: max-content) — sem isso, elementos
+//   ancorados perto da borda direita (ex. CTA "br") sofrem shrink-to-fit
+//   contra o espaço até a borda e quebram palavra a palavra. maxWidth (ch)
+//   de title/subtitle continua limitando pelo cap do texto, não pelo espaço.
+function positionedBoxClassName(key: ElementKey, viewport: Viewport): string {
+	if (key === "product") {
+		return viewport === "mobile" ? "h-[32%] w-[70%]" : "h-[60%] w-[38%]";
+	}
+	return "w-max";
+}
+
 // Elemento posicionado de forma absoluta (desktop sempre; mobile só os
 // overrides com placement — os demais vão pra SafeStack).
 function renderPositioned(
@@ -104,7 +121,7 @@ function renderPositioned(
 	return (
 		<ElementBox
 			box={box}
-			className={key === "product" ? "size-3/5" : undefined}
+			className={positionedBoxClassName(key, box.viewport)}
 			elementKey={key}
 			key={key}
 			placement={placement}
