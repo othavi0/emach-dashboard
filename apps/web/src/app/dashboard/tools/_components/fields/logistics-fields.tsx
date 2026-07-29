@@ -5,6 +5,7 @@ import { TriangleAlert } from "lucide-react";
 import { HelpTooltip } from "@/components/help-tooltip";
 import { LabeledField } from "@/components/labeled-field";
 import { MaskedInput } from "@/components/masked-input";
+import { WeightInput } from "@/components/weight-input";
 import type { Mask } from "@/lib/masks";
 import { decimalMask, integerMask } from "@/lib/masks";
 import { fitsAnyActiveBox } from "../../_lib/fits-shipping-box";
@@ -52,17 +53,23 @@ export function LogisticsFields({
 				/>
 			</p>
 			<div className="grid gap-4 md:grid-cols-5">
-				<FieldNum
-					disabled={disabled}
+				<LabeledField
 					error={errors.weightKg}
 					id="weightKg"
-					label="Peso (kg)"
-					mask={decimalMask}
-					onChange={(v) => onPatch({ weightKg: v })}
-					placeholder="Ex: 2,5"
+					label="Peso"
 					required
-					value={values.weightKg}
-				/>
+				>
+					{(field) => (
+						<WeightInput
+							{...field}
+							defaultUnit="kg"
+							disabled={disabled}
+							onChange={(v) => onPatch({ weightKg: v })}
+							required
+							value={values.weightKg}
+						/>
+					)}
+				</LabeledField>
 				<FieldNum
 					disabled={disabled}
 					error={errors.lengthCm}
@@ -119,17 +126,16 @@ export function LogisticsFields({
 				<div className="flex max-w-xs flex-col gap-2">
 					<LabeledField
 						error={errors.packagingWeightKg}
-						hint="Somado ao peso do produto no despacho."
 						id="packagingWeightKg"
-						label="Peso da embalagem (kg)"
+						label="Peso da embalagem"
 					>
 						{(field) => (
-							<MaskedInput
+							<WeightInput
 								{...field}
+								defaultUnit="g"
 								disabled={disabled}
-								mask={decimalMask}
+								hint="Somado ao peso do produto no despacho."
 								onChange={(v) => onPatch({ packagingWeightKg: v })}
-								placeholder="0"
 								value={values.packagingWeightKg}
 							/>
 						)}
