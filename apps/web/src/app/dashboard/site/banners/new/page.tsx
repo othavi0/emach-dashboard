@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { requireCapability } from "@/lib/permissions";
-import { BannerForm } from "../_components/banner-form";
+import { BannerEditor } from "../_components/editor/banner-editor";
 
 export const metadata: Metadata = {
 	title: "Novo banner",
@@ -19,7 +19,7 @@ async function NewBannerPageContent() {
 				description="Crie um novo banner para o carrossel da home."
 				title="Novo banner"
 			/>
-			<BannerForm />
+			<BannerEditor />
 		</>
 	);
 }

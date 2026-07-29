@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
-import { BannerForm } from "../../_components/banner-form";
+import { BannerEditor } from "../../_components/editor/banner-editor";
 import { fetchBanner } from "../../actions";
 
 export const metadata: Metadata = {
@@ -34,7 +34,7 @@ async function EditBannerPageContent({
 				description="Edite o banner do carrossel."
 				title={banner.title}
 			/>
-			<BannerForm banner={banner} />
+			<BannerEditor banner={banner} />
 		</>
 	);
 }
