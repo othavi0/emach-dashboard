@@ -279,7 +279,7 @@ function renderCta(
 				className={cn(
 					CTA_BASE,
 					CTA_VARIANT_CLASS[banner.ctaVariant],
-					"block px-3 py-1.5 text-[11px]"
+					"px-3 py-1.5 text-[11px]"
 				)}
 			>
 				{banner.ctaLabel} →
@@ -362,6 +362,19 @@ export function CompositionRenderer({
 						style={{ objectPosition: focalToObjectPosition(bgCfg.focal) }}
 					/>
 				</div>
+			)}
+			{bgUrl === null && (
+				// Sem imagem de fundo é estado real (banner "vazio"): glow decorativo
+				// vermelho — igual ao banner-live-preview.tsx.
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute top-1/2 left-1/2 size-2/3 -translate-x-1/2 -translate-y-1/2 rounded-full"
+					style={{
+						background:
+							"radial-gradient(circle, rgba(218,41,28,0.3), transparent 70%)",
+						filter: "blur(20px)",
+					}}
+				/>
 			)}
 			{hasText && (
 				<div
