@@ -519,18 +519,15 @@ ausente; `center` se nenhum dos dois):
 | `r` (direita) | `to left` |
 | `c` ou nenhum título/subtítulo com âncora | `to top` |
 
-### Transição: dual-write (colunas legadas)
+### Transição: dual-write (colunas legadas) — CONCLUÍDA (2026-07-30)
 
-Enquanto o storefront não migra para ler `composition`, **toda mutação de banner** (`createBanner`/
-`updateBanner`) grava, na mesma transação, `composition` **e** deriva as colunas legadas
-(`layout`, `productScale`, `ctaScale`) pela função pura `deriveLegacyLayout` — escolhendo 1 dos 8
-valores de `banner_layout` pelo trio (coluna da âncora do título, presença/lado do produto, âncora
-do CTA). É uma **aproximação**, não uma cópia exata (o layout legado não representa offset/escala
-livres) — o editor mostra um aviso discreto disso.
-
-**Quando a issue de migração do storefront for concluída e o sync confirmado em produção, o
-dual-write deve ser removido** e `layout`/`productScale`/`ctaScale` passam a **deprecated**
-(colunas mantidas no schema por enquanto, mas sem leitor).
+O storefront lê `composition` **em produção** desde o merge do ecommerce#212 (paridade visual
+confirmada e registrada na ecommerce#210). O dual-write foi **removido** do dashboard na mesma
+data: `createBanner`/`updateBanner` gravam só `composition`; **`layout`/`product_scale`/
+`cta_scale` são deprecated** — mantidas no schema com o último valor gravado, sem escritor e sem
+leitor primário (o único uso restante é o fallback de leitura `legacyToComposition` para
+`composition` NULL/inválida, nos dois apps). Não reintroduzir escrita nessas colunas; remoção
+física do schema fica pra um ciclo futuro (exige sync coordenado — ADR-0009).
 
 ### Duas armadilhas de render descobertas no smoke visual
 
@@ -563,8 +560,8 @@ canvas do editor **e** pelo card da listagem — é a implementação de referê
   elementos desktop, partição mobile).
 - `.../composition/element-renders.tsx` — markup de cada elemento (`renderElement`).
 - `.../composition/safe-stack.tsx` — render da pilha segura mobile.
-- `.../composition/derive-legacy.ts` — `deriveLegacyLayout` (dual-write) e o mapa inverso do
-  backfill.
+- `.../composition/derive-legacy.ts` — `legacyToComposition` (fallback de leitura + mapa do
+  backfill histórico); `deriveLegacyLayout` foi removida junto com o dual-write.
 
 ---
 

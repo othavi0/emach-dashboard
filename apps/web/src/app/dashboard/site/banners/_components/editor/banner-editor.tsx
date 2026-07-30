@@ -133,9 +133,6 @@ export function BannerEditor({ banner }: { banner?: Banner }) {
 						/>
 						Publicar
 					</label>
-					<p className="max-w-56 text-muted-foreground text-xs">
-						O site renderiza uma aproximação deste banner até a loja atualizar.
-					</p>
 					<Button disabled={pending} onClick={handleSave} type="button">
 						Salvar
 					</Button>

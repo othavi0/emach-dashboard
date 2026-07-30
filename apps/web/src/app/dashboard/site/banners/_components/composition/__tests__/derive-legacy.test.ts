@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { BANNER_LAYOUTS } from "../../banner-schema";
-import { deriveLegacyLayout, legacyToComposition } from "../derive-legacy";
+import type { BannerLayout } from "../../banner-schema";
+import { legacyToComposition } from "../derive-legacy";
 
 const ALL_ON = {
 	hasTitle: true,
@@ -14,54 +14,52 @@ const ALL_ON = {
 	ctaScale: 120,
 };
 
-describe("round-trip legado", () => {
-	for (const layout of BANNER_LAYOUTS) {
-		test(`${layout}: legacyToComposition → deriveLegacyLayout = identidade`, () => {
-			const c = legacyToComposition({ layout, ...ALL_ON });
-			const d = deriveLegacyLayout(c);
-			expect(d.layout).toBe(layout);
-			// center_mid não tem slot de produto no legado: o elemento é
-			// omitido e productScale volta ao fallback default (100).
-			const expectedProductScale = layout === "center_mid" ? 100 : 110;
-			expect(d.productScale).toBe(expectedProductScale);
-			expect(d.ctaScale).toBe(120);
-		});
-	}
-});
+// deriveLegacyLayout (dual-write) foi removida (ecommerce#210, 2026-07-30).
+// O guard do mapa legado agora é direto: cada layout produz o trio de âncoras
+// esperado — mesma tabela usada pelo backfill e pelo fallback do card.
+describe("legacyToComposition — trios por layout", () => {
+	const trio = (layout: BannerLayout) => {
+		const c = legacyToComposition({ layout, ...ALL_ON });
+		return [
+			c.desktop.elements.title?.anchor,
+			c.desktop.elements.product?.anchor,
+			c.desktop.elements.cta?.anchor,
+		];
+	};
 
-describe("deriveLegacyLayout", () => {
-	test("escala fora do CHECK legado é clampada", () => {
-		const c = legacyToComposition({ layout: "split", ...ALL_ON });
-		if (c.desktop.elements.cta) {
-			c.desktop.elements.cta.scale = 80;
-		}
-		// CHECK legado de ctaScale é 80–140 — 80 passa direto
-		expect(deriveLegacyLayout(c).ctaScale).toBe(80);
+	test("mapa completo dos 8 layouts", () => {
+		expect(trio("split")).toEqual(["bl", "mr", "br"]);
+		expect(trio("stack_left")).toEqual(["bl", "mr", "bc"]);
+		expect(trio("center_bottom")).toEqual(["bc", "tc", "bc"]);
+		expect(trio("center_mid")).toEqual(["mc", undefined, "bc"]);
+		expect(trio("center_cta_right")).toEqual(["ml", "tc", "br"]);
+		expect(trio("mirror_split")).toEqual(["mr", "ml", "br"]);
+		expect(trio("hero_center")).toEqual(["tc", "mc", "bc"]);
+		expect(trio("text_right")).toEqual(["tc", "mc", "br"]);
 	});
-	test("escala fora do range do CHECK legado é clampada no limite", () => {
+
+	test("escalas do banner legado preservadas no placement", () => {
 		const c = legacyToComposition({ layout: "split", ...ALL_ON });
-		if (c.desktop.elements.cta) {
-			c.desktop.elements.cta.scale = 200;
-		}
-		if (c.desktop.elements.product) {
-			c.desktop.elements.product.scale = 30;
-		}
-		// ctaScale 80–140: 200 clampa pro teto 140.
-		expect(deriveLegacyLayout(c).ctaScale).toBe(140);
-		// productScale 50–160: 30 clampa pro piso 50.
-		expect(deriveLegacyLayout(c).productScale).toBe(50);
+		expect(c.desktop.elements.product?.scale).toBe(110);
+		expect(c.desktop.elements.cta?.scale).toBe(120);
 	});
-	test("composição sem título nem produto cai no fallback split", () => {
+
+	test("center_mid omite product mesmo com hasProduct (sem slot no legado)", () => {
+		const c = legacyToComposition({ layout: "center_mid", ...ALL_ON });
+		expect(c.desktop.elements.product).toBeUndefined();
+	});
+
+	test("flags desligadas omitem os elementos", () => {
 		const c = legacyToComposition({
 			layout: "split",
 			...ALL_ON,
 			hasTitle: false,
-			hasProduct: false,
-			hasSubtitle: false,
 			hasBadge: false,
 			hasSpecs: false,
-			hasCountdown: false,
 		});
-		expect(deriveLegacyLayout(c).layout).toBe("split");
+		expect(c.desktop.elements.title).toBeUndefined();
+		expect(c.desktop.elements.badge).toBeUndefined();
+		expect(c.desktop.elements.specs).toBeUndefined();
+		expect(c.desktop.elements.subtitle).toBeDefined();
 	});
 });

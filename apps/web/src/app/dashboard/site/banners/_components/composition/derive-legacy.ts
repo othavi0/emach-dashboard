@@ -115,60 +115,6 @@ export function legacyToComposition(input: {
 	};
 }
 
-const col = (a: Anchor9) => a[1] as "l" | "c" | "r";
-const row = (a: Anchor9) => a[0] as "t" | "m" | "b";
-
-function classifyLayout(
-	title: Anchor9,
-	product: Anchor9 | null,
-	cta: Anchor9 | null
-): BannerLayout {
-	const tc = col(title);
-	const tr = row(title);
-	if (tc === "l" && product !== null && col(product) === "r") {
-		if (cta !== null && col(cta) === "r") {
-			return "split";
-		}
-		return "stack_left";
-	}
-	if (tc === "l") {
-		return "center_cta_right";
-	}
-	if (tc === "r") {
-		return "mirror_split";
-	}
-	if (tr === "b") {
-		return "center_bottom";
-	}
-	if (tr === "m") {
-		return "center_mid";
-	}
-	// texto no topo-centro: hero_center vs text_right pelo CTA
-	if (cta !== null && col(cta) === "r") {
-		return "text_right";
-	}
-	return "hero_center";
-}
-
-export function deriveLegacyLayout(c: BannerComposition): {
-	layout: BannerLayout;
-	productScale: number;
-	ctaScale: number;
-} {
-	const e = c.desktop.elements;
-	const title =
-		e.title?.anchor ?? e.subtitle?.anchor ?? e.badge?.anchor ?? null;
-	const product = e.product?.anchor ?? null;
-	const cta = e.cta?.anchor ?? null;
-
-	const layout: BannerLayout =
-		title === null ? "split" : classifyLayout(title, product, cta);
-
-	const clamp = (v: number, lo: number, hi: number) =>
-		Math.min(Math.max(v, lo), hi);
-	return {
-		layout,
-		productScale: clamp(e.product?.scale ?? 100, 50, 160),
-		ctaScale: clamp(e.cta?.scale ?? 100, 80, 140),
-	};
-}
+// deriveLegacyLayout (dual-write) removida em 2026-07-30 — paridade da loja
+// confirmada em produção (ecommerce#210). legacyToComposition permanece: é o
+// fallback de leitura (banner-card) e o mapa do backfill histórico.
