@@ -4,116 +4,102 @@ import { registerPdfFonts } from "../../../picking-list/_lib/fonts";
 import { EmptyShippingDocDocument, ShippingDocDocument } from "../shipping-doc";
 import type { ShippingDocOrder } from "../shipping-doc-logic";
 
-const ORDERS: ShippingDocOrder[] = [
-	{
-		id: "o1",
-		items: [
-			{
-				lineTotal: 899.9,
-				name: "Lixadeira Telescópica Parede/Teto 750W MLP750 Menegotti",
-				quantity: 1,
-				unitPrice: 899.9,
-			},
-		],
-		number: "#EM-2026-0142",
+function order(id: string, itemCount: number): ShippingDocOrder {
+	return {
+		id,
+		number: `EM-TEST-91${id}`,
+		items: Array.from({ length: itemCount }, (_, i) => ({
+			name: `Desempenadeira Elétrica ${i}`,
+			quantity: 1,
+			sku: `SKU-${i}`,
+			voltage: i % 2 === 0 ? "127V" : "220V",
+		})),
 		recipient: {
-			city: "Joinville",
-			complement: "Apto 42",
-			document: "39053344705",
-			name: "Carlos Eduardo Ramos",
-			neighborhood: "América",
-			number: "88",
-			phone: "47988887777",
-			state: "SC",
-			street: "Rua das Palmeiras",
-			zipCode: "89201000",
-		},
-		sender: {
-			cep: "80010000",
 			city: "Curitiba",
-			complement: null,
-			name: "Filial Curitiba",
-			neighborhood: "Centro",
-			phone: "4133334444",
-			state: "PR",
-			street: "Rua XV de Novembro",
-			streetNumber: "1200",
-		},
-		shippingMethod: "Correios · SEDEX",
-		shippingServiceCode: "COR-04162",
-	},
-	{
-		id: "o2",
-		items: [
-			{
-				lineTotal: 240,
-				name: "Balde Caçamba 50L",
-				quantity: 2,
-				unitPrice: 120,
-			},
-		],
-		number: "#EM-2026-0139",
-		recipient: {
-			city: null,
-			complement: null,
+			complement: "apt 02",
 			document: null,
-			name: "Cliente sem endereço completo",
-			neighborhood: null,
-			number: null,
+			name: "Othavio Quiliao",
+			neighborhood: "Cristo Rei",
+			number: "106",
 			phone: null,
-			state: null,
-			street: null,
-			zipCode: null,
+			state: "PR",
+			street: "Rua Oyapock",
+			zipCode: "80050450",
 		},
 		sender: {
-			cep: null,
-			city: null,
+			cep: "88336310",
+			city: "Balneário Camboriú",
 			complement: null,
-			name: null,
-			neighborhood: null,
+			name: "Balneário Camboriú",
+			neighborhood: "Nova Esperança",
 			phone: null,
-			state: null,
-			street: null,
-			streetNumber: null,
+			state: "SC",
+			street: "Rua Pascoal Moreira Cabral Leme",
+			streetNumber: "64",
 		},
-		shippingMethod: null,
+		shippingMethod: "PAC",
 		shippingServiceCode: null,
-	},
-];
+	};
+}
+
+const EMPTY_RECIPIENT = {
+	city: null,
+	complement: null,
+	document: null,
+	name: null,
+	neighborhood: null,
+	number: null,
+	phone: null,
+	state: null,
+	street: null,
+	zipCode: null,
+};
+
+// PNG 1x1 transparente válido — evita depender do bwip-js no teste do documento.
+const TINY_PNG =
+	"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
 describe("ShippingDocDocument", () => {
-	it("renderiza PDF válido com 2 pedidos (uma folha cada)", async () => {
+	it("renderiza PDF válido com 3 pedidos pequenos (2 folhas) e barcode", async () => {
 		registerPdfFonts();
+		const orders = [order("01", 2), order("02", 4), order("03", 1)];
 		const buf = await renderToBuffer(
 			<ShippingDocDocument
-				generatedAt={new Date("2026-07-15T17:32:00Z")}
-				operatorName="Othavio"
-				orders={ORDERS}
+				cepBarcodes={{ "01": TINY_PNG, "02": TINY_PNG, "03": TINY_PNG }}
+				orders={orders}
 			/>
 		);
 		expect(buf.subarray(0, 5).toString()).toBe("%PDF-");
 		expect(buf.length).toBeGreaterThan(2000);
 	});
 
-	it("renderiza pedido com campos ausentes sem quebrar (graceful)", async () => {
+	it("pedido grande (9 itens) e campos ausentes renderizam sem quebrar", async () => {
 		registerPdfFonts();
+		const big = order("04", 9);
+		const bare: ShippingDocOrder = {
+			...order("05", 1),
+			recipient: EMPTY_RECIPIENT,
+			sender: {
+				cep: null,
+				city: null,
+				complement: null,
+				name: null,
+				neighborhood: null,
+				phone: null,
+				state: null,
+				street: null,
+				streetNumber: null,
+			},
+		};
 		const buf = await renderToBuffer(
-			<ShippingDocDocument
-				generatedAt={new Date("2026-07-15T17:32:00Z")}
-				operatorName="Othavio"
-				orders={[ORDERS[1] as ShippingDocOrder]}
-			/>
+			<ShippingDocDocument cepBarcodes={{}} orders={[big, bare]} />
 		);
 		expect(buf.subarray(0, 5).toString()).toBe("%PDF-");
 	});
 
 	it("renderiza documento vazio", async () => {
 		registerPdfFonts();
-		const buf = await renderToBuffer(
-			<EmptyShippingDocDocument
-				generatedAt={new Date("2026-07-15T17:32:00Z")}
-			/>
-		);
+		const buf = await renderToBuffer(<EmptyShippingDocDocument />);
 		expect(buf.subarray(0, 5).toString()).toBe("%PDF-");
 	});
 });
