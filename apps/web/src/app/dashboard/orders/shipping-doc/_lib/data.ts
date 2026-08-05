@@ -107,8 +107,8 @@ export async function fetchShippingDocOrders(
 			SELECT COALESCE(jsonb_agg(jsonb_build_object(
 				'name', oi.name,
 				'quantity', oi.quantity,
-				'unitPrice', oi.unit_price,
-				'lineTotal', oi.line_total
+				'sku', oi.sku,
+				'voltage', oi.voltage
 			) ORDER BY oi.name ASC), '[]'::jsonb) AS items
 			FROM order_item oi
 			WHERE oi.order_id = o.id
@@ -122,10 +122,10 @@ export async function fetchShippingDocOrders(
 	return result.rows.map((r) => ({
 		id: r.id,
 		items: (r.items ?? []).map((item) => ({
-			lineTotal: Number(item.lineTotal),
 			name: item.name,
 			quantity: Number(item.quantity),
-			unitPrice: Number(item.unitPrice),
+			sku: item.sku ?? null,
+			voltage: item.voltage ?? null,
 		})),
 		number: r.number,
 		recipient: {
