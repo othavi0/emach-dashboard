@@ -32,7 +32,10 @@ export async function GET(req: Request) {
 		const barcodeEntries = await Promise.all(
 			orders.map(async (o) => {
 				const uri = await cepBarcodeDataUri(o.recipient.zipCode).catch(
-					() => null
+					(err) => {
+						logger.error("shipping_doc.barcode", { orderId: o.id, err });
+						return null;
+					}
 				);
 				return uri ? ([o.id, uri] as const) : null;
 			})
