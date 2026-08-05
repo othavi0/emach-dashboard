@@ -3,8 +3,8 @@
 import { Checkbox } from "@emach/ui/components/checkbox";
 import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
-import { Textarea } from "@emach/ui/components/textarea";
 import { Star } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useMemo } from "react";
 
 import { FieldError } from "@/components/field-error";
@@ -17,6 +17,19 @@ import {
 import { useToolFormContext } from "../tool-form-context";
 import { slugify } from "../tool-schema";
 import type { ToolFieldGroupProps } from "./types";
+
+const MarkdownEditor = dynamic(
+	() =>
+		import("@/components/markdown-editor").then((m) => ({
+			default: m.MarkdownEditor,
+		})),
+	{
+		loading: () => (
+			<div className="h-32 animate-pulse rounded-md border border-input bg-muted/40" />
+		),
+		ssr: false,
+	}
+);
 
 export function IdentityFields({
 	values,
@@ -94,21 +107,18 @@ export function IdentityFields({
 			<LabeledField
 				help={
 					<HelpTooltip
-						body="Use **negrito**, listas com - e títulos. É renderizado na página pública da ferramenta."
-						example="**Potente** e leve - 700W - Bivolt"
-						title="Aceita Markdown"
+						body="Selecione o texto e use a barra: negrito, itálico e listas. O que você vê aqui é como aparece na página da ferramenta."
+						title="Editor de texto"
 					/>
 				}
 				id="description"
 				label="Descrição"
 			>
 				{(field) => (
-					<Textarea
+					<MarkdownEditor
 						{...field}
 						disabled={disabled}
-						onChange={(e) => onPatch({ description: e.target.value })}
-						placeholder="Especificações, destaques e uso recomendado. Aceita markdown."
-						rows={4}
+						onChange={(markdown) => onPatch({ description: markdown })}
 						value={values.description ?? ""}
 					/>
 				)}
