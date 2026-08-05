@@ -71,6 +71,12 @@ describe("ShippingDocDocument", () => {
 		);
 		expect(buf.subarray(0, 5).toString()).toBe("%PDF-");
 		expect(buf.length).toBeGreaterThan(2000);
+		// Regressão: 3 pedidos pequenos pareiam em 2 folhas — nenhuma delas pode
+		// transbordar pra uma página fantasma de continuação (fix round 1, F2).
+		const pageCount = (
+			buf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []
+		).length;
+		expect(pageCount).toBe(2);
 	});
 
 	it("pedido grande (9 itens) e campos ausentes renderizam sem quebrar", async () => {

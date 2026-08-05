@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 34,
 		paddingVertical: 26,
 	},
-	half: { height: "50%" },
+	half: { flex: 1 },
 	halfTop: { paddingBottom: 14 },
 	halfBottom: { paddingTop: 14 },
 	cutRow: {
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
 		fontWeight: 600,
 		width: 24,
 	},
-	itemName: { flex: 1, fontSize: 8, fontWeight: 500, lineHeight: 1.3 },
+	itemName: { fontSize: 8, fontWeight: 500, lineHeight: 1.3 },
 	itemSku: { color: LIGHT, fontFamily: "IBM Plex Mono", fontSize: 6 },
 	senderBox: {
 		borderColor: HAIRLINE,
