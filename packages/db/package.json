@@ -16,6 +16,8 @@
     "db:apply-sql": "bun run scripts/apply-sql.ts",
     "db:seed-demo": "bun run scripts/seed-demo.ts",
     "db:seed-test-orders": "bun run scripts/seed-test-orders.ts",
+    "db:seed-ready-to-ship": "bun run scripts/seed-ready-to-ship.ts",
+    "db:unseed-ready-to-ship": "bun run scripts/unseed-ready-to-ship.ts",
     "db:reset-demo": "bun run scripts/reset-demo.ts",
     "check-types": "tsc --noEmit",
     "test": "vitest run"
