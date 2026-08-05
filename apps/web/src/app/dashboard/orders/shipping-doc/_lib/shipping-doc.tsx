@@ -233,6 +233,7 @@ function Label({
 	);
 }
 
+// ✂ do mockup virou rótulo textual: Barlow/Plex Mono não têm glyph confiável no react-pdf.
 function CutLine() {
 	return (
 		<View style={styles.cutRow}>

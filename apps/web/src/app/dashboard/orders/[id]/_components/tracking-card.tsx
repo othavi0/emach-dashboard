@@ -40,6 +40,7 @@ export function TrackingCard({
 	const [draft, setDraft] = useState(trackingCode ?? "");
 	const hasCode = Boolean(trackingCode);
 	const showInput = !hasCode || editing;
+	const showRead = hasCode && !(showInput && canUpdateStatus);
 
 	function handleSave() {
 		const code = draft.trim();
@@ -110,7 +111,8 @@ export function TrackingCard({
 							</Button>
 						)}
 					</div>
-				) : (
+				) : null}
+				{showRead && (
 					<div className="flex items-center justify-between gap-2">
 						<span className="font-mono text-sm">{trackingCode}</span>
 						{canUpdateStatus && (
@@ -124,7 +126,6 @@ export function TrackingCard({
 						)}
 					</div>
 				)}
-				{!(showInput || canUpdateStatus) && null}
 			</CardContent>
 		</Card>
 	);

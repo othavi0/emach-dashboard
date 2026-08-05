@@ -31,7 +31,9 @@ export async function GET(req: Request) {
 
 		const barcodeEntries = await Promise.all(
 			orders.map(async (o) => {
-				const uri = await cepBarcodeDataUri(o.recipient.zipCode);
+				const uri = await cepBarcodeDataUri(o.recipient.zipCode).catch(
+					() => null
+				);
 				return uri ? ([o.id, uri] as const) : null;
 			})
 		);

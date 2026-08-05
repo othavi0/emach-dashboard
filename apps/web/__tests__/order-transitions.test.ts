@@ -220,12 +220,6 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				toStatus: "shipped",
 			});
 			expect(result.success).toBe(true);
-			if (!result.success) {
-				const issue = result.error.issues.find(
-					(i) => i.path[0] === "trackingCode"
-				);
-				expect(issue).toBeUndefined();
-			}
 		});
 
 		it("shipped com trackingCode → válido", () => {
