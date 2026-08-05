@@ -91,13 +91,6 @@ export const updateOrderStatusSchema = z
 			.optional(),
 	})
 	.superRefine((data, ctx) => {
-		if (data.toStatus === "shipped" && !data.trackingCode) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: "Código de rastreio obrigatório ao marcar como enviado",
-				path: ["trackingCode"],
-			});
-		}
 		const requiresReason: (typeof data.toStatus)[] = [
 			"canceled",
 			"refunded",
