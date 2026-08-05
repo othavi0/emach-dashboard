@@ -239,7 +239,7 @@ export function OrdersView({
 	}
 	if (tabKey === "picked" && sel.selectedIds.length > 0) {
 		bulkActions.push({
-			label: `Dados de envio (${sel.selectedIds.length})`,
+			label: `Emitir etiquetas (${sel.selectedIds.length})`,
 			run: openShippingDoc,
 		});
 	}

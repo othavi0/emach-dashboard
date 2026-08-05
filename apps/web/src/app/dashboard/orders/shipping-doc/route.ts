@@ -49,7 +49,7 @@ export async function GET(req: Request) {
 		return new Response(new Uint8Array(buffer), {
 			headers: {
 				"Cache-Control": "no-store",
-				"Content-Disposition": `inline; filename="dados-envio-${generatedAt.getTime()}.pdf"`,
+				"Content-Disposition": `inline; filename="etiqueta-envio-${generatedAt.getTime()}.pdf"`,
 				"Content-Type": "application/pdf",
 			},
 		});

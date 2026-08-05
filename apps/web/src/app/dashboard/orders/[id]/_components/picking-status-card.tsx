@@ -219,7 +219,7 @@ function PickedSummary({
 				rel="noopener noreferrer"
 				target="_blank"
 			>
-				Dados de envio
+				Emitir etiqueta
 			</Link>
 		</>
 	);
