@@ -106,6 +106,7 @@ export function MarkdownEditor({
 				disabled && "cursor-not-allowed opacity-50"
 			)}
 			id={id}
+			tabIndex={-1}
 		>
 			<div className="flex items-center gap-0.5 border-border border-b px-1 py-0.5">
 				{controls.map((control) => (
