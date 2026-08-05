@@ -32,7 +32,6 @@ import {
 	addOrderNote,
 	markShippingReviewed,
 	updateOrderStatus,
-	updateTrackingCode,
 } from "../../actions";
 import type {
 	BranchOption,
@@ -41,9 +40,11 @@ import type {
 	OrderStatus,
 } from "../../data";
 import { ORDER_STATUS_LABELS } from "../../status-meta";
+import { showTrackingCard } from "../_lib/tracking-card-state";
 import { ForceShipDialog } from "./force-ship-dialog";
 import { OrderProgress } from "./order-progress";
 import { PickingStatusCard } from "./picking-status-card";
+import { TrackingCard } from "./tracking-card";
 
 const PRIMARY_TRANSITION: Partial<Record<OrderStatus, OrderStatus>> = {
 	pending_payment: "canceled",
@@ -67,20 +68,6 @@ function primaryActionLabel(nextStatus: OrderStatus): string {
 }
 
 type Refresh = () => void;
-
-async function runTrackingUpdate(
-	orderId: string,
-	trackingCode: string,
-	refresh: Refresh
-) {
-	const result = await updateTrackingCode({ orderId, trackingCode });
-	if (!result.ok) {
-		notify.error(result.error);
-		return;
-	}
-	notify.success("Rastreio atualizado");
-	refresh();
-}
 
 async function runMarkShippingReviewed(orderId: string, refresh: Refresh) {
 	const result = await markShippingReviewed({ orderId });
@@ -189,6 +176,27 @@ function computeProgressFulfillmentLabel(
 	return FULFILLMENT_STATE_META[fulfillment.state].label;
 }
 
+/**
+ * Slot do card Rastreio (Task 7, spec D3) — extraído (assim como
+ * `computeShipGate`/`computeProgressFulfillmentLabel`) para manter a
+ * complexidade cognitiva de `OrderActionColumn` sob controle.
+ */
+function trackingCardSlot(
+	order: OrderDetail,
+	canUpdateStatus: boolean
+): React.ReactNode {
+	if (!showTrackingCard(order.status)) {
+		return null;
+	}
+	return (
+		<TrackingCard
+			canUpdateStatus={canUpdateStatus}
+			orderId={order.id}
+			trackingCode={order.shippingTrackingCode}
+		/>
+	);
+}
+
 interface PrimaryActionContentProps {
 	branches: BranchOption[];
 	branchId: string;
@@ -198,7 +206,6 @@ interface PrimaryActionContentProps {
 	isTerminal: boolean;
 	nextStatus: OrderStatus | undefined;
 	onPrimaryStatusUpdate: () => void;
-	onTrackingUpdate: () => void;
 	order: OrderDetail;
 	setBranchId: (v: string) => void;
 	setStatusReason: (v: string) => void;
@@ -218,7 +225,6 @@ function PrimaryActionContent({
 	nextStatus,
 	order,
 	onPrimaryStatusUpdate,
-	onTrackingUpdate,
 	setBranchId,
 	setStatusReason,
 	setTrackingCode,
@@ -295,23 +301,17 @@ function PrimaryActionContent({
 						className="text-muted-foreground text-xs"
 						htmlFor="tracking-code"
 					>
-						Código de rastreio
+						Código de rastreio · opcional
 					</label>
-					<div className="flex gap-2">
-						<Input
-							id="tracking-code"
-							onChange={(event) => setTrackingCode(event.target.value)}
-							placeholder="Ex: BR123456789"
-							value={trackingCode}
-						/>
-						<Button
-							disabled={isPending || !trackingCode.trim()}
-							onClick={onTrackingUpdate}
-							variant="outline"
-						>
-							Salvar
-						</Button>
-					</div>
+					<Input
+						id="tracking-code"
+						onChange={(event) => setTrackingCode(event.target.value)}
+						placeholder="Ex: NL123456789BR"
+						value={trackingCode}
+					/>
+					<p className="text-muted-foreground text-xs">
+						Sem código? Envia assim mesmo e registra depois.
+					</p>
 				</div>
 			)}
 
@@ -408,16 +408,6 @@ export function OrderActionColumn({
 			order.status === "shipped" ||
 			order.status === "returned");
 
-	function handleTrackingUpdate() {
-		if (!trackingCode.trim()) {
-			notify.error("Informe um código de rastreio");
-			return;
-		}
-		startTransition(() =>
-			runTrackingUpdate(order.id, trackingCode.trim(), router.refresh)
-		);
-	}
-
 	function handleMarkShippingReviewed() {
 		startTransition(() => runMarkShippingReviewed(order.id, router.refresh));
 	}
@@ -501,6 +491,9 @@ export function OrderActionColumn({
 				orderStatus={order.status}
 			/>
 
+			{/* ── Rastreio (pós-envio) ── */}
+			{trackingCardSlot(order, canUpdateStatus)}
+
 			{/* ── Próxima ação ── */}
 			<Card>
 				<CardHeader>
@@ -516,7 +509,6 @@ export function OrderActionColumn({
 						isTerminal={isTerminal}
 						nextStatus={nextStatus}
 						onPrimaryStatusUpdate={handlePrimaryStatusUpdate}
-						onTrackingUpdate={handleTrackingUpdate}
 						order={order}
 						setBranchId={setBranchId}
 						setStatusReason={setStatusReason}
