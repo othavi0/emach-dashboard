@@ -28,7 +28,8 @@ export function MarkdownEditor({
 		editorProps: {
 			attributes: {
 				"aria-multiline": "true",
-				class: "min-h-24 px-2.5 py-2 text-xs outline-none",
+				class:
+					"min-h-24 px-2.5 py-2 text-xs outline-none [&_li]:mt-1 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-2 [&_p]:first:mt-0 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5",
 				role: "textbox",
 			},
 		},
