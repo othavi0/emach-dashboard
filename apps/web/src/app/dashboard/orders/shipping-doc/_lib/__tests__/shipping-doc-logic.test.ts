@@ -1,154 +1,144 @@
 import { describe, expect, it } from "vitest";
 import {
-	contentDeclarationTotals,
-	displayPhone,
-	formatCarrierService,
-	maskDocument,
-	recipientAddressLines,
-	type ShippingDocRecipient,
-	type ShippingDocSender,
-	senderAddressLines,
+	itemsSummary,
+	labelRecipientLines,
+	paginateLabels,
+	type ShippingDocItem,
+	type ShippingDocOrder,
+	senderInline,
 } from "../shipping-doc-logic";
 
-const FULL_SENDER: ShippingDocSender = {
-	cep: "80010000",
-	city: "Curitiba",
-	complement: "Galpão 3",
-	name: "Filial Curitiba",
-	neighborhood: "Centro",
-	phone: "4133334444",
-	state: "PR",
-	street: "Rua XV de Novembro",
-	streetNumber: "1200",
-};
+function makeItem(n: number): ShippingDocItem {
+	return { name: `Item ${n}`, quantity: 1, sku: null, voltage: null };
+}
 
-const FULL_RECIPIENT: ShippingDocRecipient = {
-	city: "Joinville",
-	complement: "Apto 42",
-	document: "39053344705",
-	name: "Carlos Eduardo Ramos",
-	neighborhood: "América",
-	number: "88",
-	phone: "47988887777",
-	state: "SC",
-	street: "Rua das Palmeiras",
-	zipCode: "89201000",
-};
-
-describe("senderAddressLines", () => {
-	it("monta rua+número+complemento, bairro, cidade/UF e CEP", () => {
-		expect(senderAddressLines(FULL_SENDER)).toEqual([
-			"Rua XV de Novembro, 1200 — Galpão 3",
-			"Centro",
-			"Curitiba/PR",
-			"CEP 80010-000",
-		]);
-	});
-
-	it("omite campos ausentes sem deixar 'undefined'", () => {
-		const partial: ShippingDocSender = {
-			cep: null,
+function makeOrder(id: string, itemCount: number): ShippingDocOrder {
+	return {
+		id,
+		number: `EM-${id}`,
+		items: Array.from({ length: itemCount }, (_, i) => makeItem(i)),
+		recipient: {
 			city: "Curitiba",
-			complement: null,
-			name: "Filial",
-			neighborhood: null,
+			complement: "apt 02",
+			document: null,
+			name: "Othavio Quiliao",
+			neighborhood: "Cristo Rei",
+			number: "106",
 			phone: null,
-			state: null,
-			street: "Rua A",
-			streetNumber: null,
-		};
-		expect(senderAddressLines(partial)).toEqual(["Rua A", "Curitiba"]);
+			state: "PR",
+			street: "Rua Oyapock",
+			zipCode: "80050450",
+		},
+		sender: {
+			cep: "88336310",
+			city: "Balneário Camboriú",
+			complement: "Loja Pinheiro",
+			name: "Balneário Camboriú",
+			neighborhood: "Nova Esperança",
+			phone: null,
+			state: "SC",
+			street: "Rua Pascoal Moreira Cabral Leme",
+			streetNumber: "64",
+		},
+		shippingMethod: "PAC",
+		shippingServiceCode: null,
+	};
+}
+
+describe("paginateLabels", () => {
+	it("pareia pedidos pequenos 2 por folha, ímpar deixa bottom null", () => {
+		const sheets = paginateLabels([
+			makeOrder("a", 2),
+			makeOrder("b", 3),
+			makeOrder("c", 1),
+		]);
+		expect(sheets).toHaveLength(2);
+		expect(sheets[0]).toMatchObject({ kind: "pair" });
+		expect(sheets[1]).toMatchObject({ kind: "pair", bottom: null });
 	});
 
-	it("devolve lista vazia quando nada há", () => {
-		const empty: ShippingDocSender = {
-			cep: null,
+	it("pedido com mais de 8 itens ganha folha exclusiva, preservando ordem", () => {
+		const sheets = paginateLabels([
+			makeOrder("a", 2),
+			makeOrder("big", 9),
+			makeOrder("c", 1),
+		]);
+		expect(sheets.map((s) => s.kind)).toEqual(["full", "pair"]);
+		const pair = sheets[1];
+		if (pair?.kind !== "pair") {
+			throw new Error("esperava pair");
+		}
+		expect(pair.top.id).toBe("a");
+		expect(pair.bottom?.id).toBe("c");
+	});
+
+	it("lista vazia devolve zero folhas", () => {
+		expect(paginateLabels([])).toEqual([]);
+	});
+});
+
+describe("labelRecipientLines", () => {
+	it("monta street, locality e cep formatado", () => {
+		const lines = labelRecipientLines(makeOrder("a", 1).recipient);
+		expect(lines.street).toBe("Rua Oyapock, 106 — apt 02");
+		expect(lines.locality).toBe("Cristo Rei · Curitiba/PR");
+		expect(lines.cep).toBe("80050-450");
+	});
+
+	it("degrada com campos ausentes sem 'undefined'", () => {
+		const lines = labelRecipientLines({
 			city: null,
 			complement: null,
+			document: null,
 			name: null,
 			neighborhood: null,
+			number: null,
 			phone: null,
-			state: null,
+			state: "PR",
 			street: null,
-			streetNumber: null,
-		};
-		expect(senderAddressLines(empty)).toEqual([]);
+			zipCode: null,
+		});
+		expect(lines.street).toBeNull();
+		expect(lines.locality).toBe("PR");
+		expect(lines.cep).toBeNull();
 	});
 });
 
-describe("recipientAddressLines", () => {
-	it("usa number/zipCode do snapshot", () => {
-		expect(recipientAddressLines(FULL_RECIPIENT)).toEqual([
-			"Rua das Palmeiras, 88 — Apto 42",
-			"América",
-			"Joinville/SC",
-			"CEP 89201-000",
-		]);
-	});
-
-	it("CEP inválido é omitido (não vira linha 'CEP ...')", () => {
-		const lines = recipientAddressLines({ ...FULL_RECIPIENT, zipCode: "123" });
-		expect(lines.some((l) => l.startsWith("CEP"))).toBe(false);
-	});
-});
-
-describe("maskDocument", () => {
-	it("mascara CPF expondo só os blocos do meio", () => {
-		expect(maskDocument("390.533.447-05")).toBe("***.533.447-**");
-	});
-
-	it("mascara CNPJ", () => {
-		expect(maskDocument("11222333000181")).toBe("**.222.333/****-**");
-	});
-
-	it("documento com tamanho inesperado vira null (não vaza dígito cru)", () => {
-		expect(maskDocument("123")).toBeNull();
-		expect(maskDocument(null)).toBeNull();
-	});
-});
-
-describe("displayPhone", () => {
-	it("formata celular BR", () => {
-		expect(displayPhone("47988887777")).toBe("(47) 98888-7777");
-	});
-
-	it("null vira null (nunca string vazia)", () => {
-		expect(displayPhone(null)).toBeNull();
-	});
-});
-
-describe("formatCarrierService", () => {
-	it("junta método e código quando ambos existem", () => {
-		expect(formatCarrierService("Correios · SEDEX", "COR-04162")).toBe(
-			"Correios · SEDEX · COR-04162"
+describe("senderInline", () => {
+	it("linha única com separador ·", () => {
+		expect(senderInline(makeOrder("a", 1).sender)).toBe(
+			"Rua Pascoal Moreira Cabral Leme, 64 — Loja Pinheiro · Nova Esperança · Balneário Camboriú/SC · CEP 88336-310"
 		);
 	});
 
-	it("degrada para o que existir", () => {
-		expect(formatCarrierService("Correios", null)).toBe("Correios");
-		expect(formatCarrierService(null, "COR-04162")).toBe("COR-04162");
-	});
-
-	it("sem transportadora usa rótulo 'Frete a combinar'", () => {
-		expect(formatCarrierService(null, null)).toBe("Frete a combinar");
+	it("null quando não há nenhum campo", () => {
+		expect(
+			senderInline({
+				cep: null,
+				city: null,
+				complement: null,
+				name: null,
+				neighborhood: null,
+				phone: null,
+				state: null,
+				street: null,
+				streetNumber: null,
+			})
+		).toBeNull();
 	});
 });
 
-describe("contentDeclarationTotals", () => {
-	it("soma quantidades e valores de linha", () => {
-		expect(
-			contentDeclarationTotals([
-				{ lineTotal: 150, name: "A", quantity: 3, unitPrice: 50 },
-				{ lineTotal: 80, name: "B", quantity: 2, unitPrice: 40 },
-			])
-		).toEqual({ totalItems: 2, totalQuantity: 5, totalValue: 230 });
+describe("itemsSummary", () => {
+	it("plural e soma de unidades", () => {
+		const items = [
+			{ name: "A", quantity: 2, sku: null, voltage: null },
+			{ name: "B", quantity: 3, sku: null, voltage: null },
+		];
+		expect(itemsSummary(items)).toBe("2 itens · 5 un.");
 	});
-
-	it("lista vazia zera tudo", () => {
-		expect(contentDeclarationTotals([])).toEqual({
-			totalItems: 0,
-			totalQuantity: 0,
-			totalValue: 0,
-		});
+	it("singular", () => {
+		expect(
+			itemsSummary([{ name: "A", quantity: 1, sku: null, voltage: null }])
+		).toBe("1 item · 1 un.");
 	});
 });

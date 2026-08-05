@@ -1,6 +1,4 @@
-import { normalizeDocument } from "@/lib/cpf-cnpj";
 import { formatCep } from "@/lib/format/branch";
-import { formatPhone } from "@/lib/format/phone";
 
 // Remetente = filial do pedido (endereço estruturado de `branch`).
 export interface ShippingDocSender {
@@ -30,10 +28,10 @@ export interface ShippingDocRecipient {
 }
 
 export interface ShippingDocItem {
-	lineTotal: number;
 	name: string;
 	quantity: number;
-	unitPrice: number;
+	sku: string | null;
+	voltage: string | null;
 }
 
 export interface ShippingDocOrder {
@@ -46,23 +44,12 @@ export interface ShippingDocOrder {
 	shippingServiceCode: string | null;
 }
 
-export interface ContentDeclarationTotals {
-	totalItems: number;
-	totalQuantity: number;
-	totalValue: number;
-}
+/** Régua da metade: acima disso o pedido ganha folha exclusiva (spec D2). */
+export const MAX_ITEMS_PER_HALF = 8;
 
-export const NO_CARRIER_LABEL = "Frete a combinar";
-
-const BRL = new Intl.NumberFormat("pt-BR", {
-	currency: "BRL",
-	style: "currency",
-});
-
-/** Formata valor em Real (pt-BR). Reaproveitado na declaração de conteúdo. */
-export function formatBRL(value: number): string {
-	return BRL.format(value);
-}
+export type LabelSheet =
+	| { kind: "pair"; top: ShippingDocOrder; bottom: ShippingDocOrder | null }
+	| { kind: "full"; order: ShippingDocOrder };
 
 /** "Rua X, 123 — Apto 4" — número e complemento colados quando presentes. */
 function streetLine(
@@ -88,71 +75,63 @@ function cityStateLine(
 	return city ?? state ?? null;
 }
 
-/** Linhas de endereço do remetente (filial), campos ausentes omitidos sem "undefined". */
-export function senderAddressLines(sender: ShippingDocSender): string[] {
-	const cep = formatCep(sender.cep);
-	return [
-		streetLine(sender.street, sender.streetNumber, sender.complement),
-		sender.neighborhood,
-		cityStateLine(sender.city, sender.state),
-		cep ? `CEP ${cep}` : null,
-	].filter((line): line is string => Boolean(line));
-}
-
-/** Linhas de endereço do destinatário (snapshot), campos ausentes omitidos. */
-export function recipientAddressLines(
-	recipient: ShippingDocRecipient
-): string[] {
-	const cep = formatCep(recipient.zipCode);
-	return [
-		streetLine(recipient.street, recipient.number, recipient.complement),
-		recipient.neighborhood,
-		cityStateLine(recipient.city, recipient.state),
-		cep ? `CEP ${cep}` : null,
-	].filter((line): line is string => Boolean(line));
-}
-
-/** Telefone formatado ou null (nunca "" no documento). */
-export function displayPhone(raw: string | null): string | null {
-	const formatted = formatPhone(raw);
-	return formatted ? formatted : null;
-}
-
 /**
- * Mascara CPF/CNPJ por padrão (LGPD, decisão do issue #321): expõe só os
- * blocos do meio, oculta prefixo e dígitos verificadores. Doc com tamanho
- * inesperado vira null (não vaza dígito cru na etiqueta).
+ * 2 etiquetas por A4: pedidos com até MAX_ITEMS_PER_HALF itens pareiam em
+ * ordem; maiores saem primeiro em folha exclusiva. Lote ímpar deixa a última
+ * metade em branco (bottom null).
  */
-export function maskDocument(raw: string | null): string | null {
-	const digits = normalizeDocument(raw);
-	if (digits.length === 11) {
-		return `***.${digits.slice(3, 6)}.${digits.slice(6, 9)}-**`;
+export function paginateLabels(orders: ShippingDocOrder[]): LabelSheet[] {
+	const sheets: LabelSheet[] = [];
+	const halves: ShippingDocOrder[] = [];
+	for (const order of orders) {
+		if (order.items.length > MAX_ITEMS_PER_HALF) {
+			sheets.push({ kind: "full", order });
+		} else {
+			halves.push(order);
+		}
 	}
-	if (digits.length === 14) {
-		return `**.${digits.slice(2, 5)}.${digits.slice(5, 8)}/****-**`;
+	for (let i = 0; i < halves.length; i += 2) {
+		const top = halves[i];
+		if (!top) {
+			break;
+		}
+		sheets.push({ kind: "pair", top, bottom: halves[i + 1] ?? null });
 	}
-	return null;
+	return sheets;
 }
 
-/** "Correios · SEDEX · COR-04162" — método e código de serviço quando ambos existem. */
-export function formatCarrierService(
-	method: string | null,
-	serviceCode: string | null
-): string {
-	if (method && serviceCode) {
-		return `${method} · ${serviceCode}`;
-	}
-	return method ?? serviceCode ?? NO_CARRIER_LABEL;
+export function labelRecipientLines(r: ShippingDocRecipient): {
+	cep: string | null;
+	locality: string | null;
+	street: string | null;
+} {
+	const cep = formatCep(r.zipCode);
+	return {
+		cep: cep || null,
+		locality:
+			[r.neighborhood, cityStateLine(r.city, r.state)]
+				.filter(Boolean)
+				.join(" · ") || null,
+		street: streetLine(r.street, r.number, r.complement),
+	};
 }
 
-export function contentDeclarationTotals(
-	items: ShippingDocItem[]
-): ContentDeclarationTotals {
-	let totalQuantity = 0;
-	let totalValue = 0;
-	for (const item of items) {
-		totalQuantity += item.quantity;
-		totalValue += item.lineTotal;
-	}
-	return { totalItems: items.length, totalQuantity, totalValue };
+/** Endereço da filial em linha única — remetente compacto da etiqueta. */
+export function senderInline(s: ShippingDocSender): string | null {
+	const cep = formatCep(s.cep);
+	const line = [
+		streetLine(s.street, s.streetNumber, s.complement),
+		s.neighborhood,
+		cityStateLine(s.city, s.state),
+		cep ? `CEP ${cep}` : null,
+	]
+		.filter(Boolean)
+		.join(" · ");
+	return line || null;
+}
+
+export function itemsSummary(items: ShippingDocItem[]): string {
+	const units = items.reduce((sum, i) => sum + i.quantity, 0);
+	const itemWord = items.length === 1 ? "item" : "itens";
+	return `${items.length} ${itemWord} · ${units} un.`;
 }
