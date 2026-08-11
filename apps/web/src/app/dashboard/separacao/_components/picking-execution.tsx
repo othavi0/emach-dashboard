@@ -12,7 +12,6 @@ import {
 	AlertDialogTitle,
 } from "@emach/ui/components/alert-dialog";
 import { Button, buttonVariants } from "@emach/ui/components/button";
-import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import { Textarea } from "@emach/ui/components/textarea";
 import {
@@ -29,6 +28,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { MaskedInput } from "@/components/masked-input";
+import { integerMask } from "@/lib/masks";
 import { notify } from "@/lib/notify";
 import { canFinalizePicking, summarizePicking } from "../_lib/picking-logic";
 import {
@@ -333,14 +334,12 @@ function ManualConfirmDialog({
 					{remaining > 1 && (
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="manual-qty">Quantidade a confirmar</Label>
-							<Input
+							<MaskedInput
 								className="w-24"
 								id="manual-qty"
-								max={remaining}
-								min={1}
-								onChange={(e) => onQtyChange(e.target.valueAsNumber)}
-								type="number"
-								value={Number.isNaN(qty) ? "" : qty}
+								mask={integerMask}
+								onChange={(next) => onQtyChange(next ?? Number.NaN)}
+								value={Number.isNaN(qty) ? undefined : qty}
 							/>
 							<p className="text-[12px] text-muted-foreground">
 								Faltam {remaining} de {item?.qtyExpected}
