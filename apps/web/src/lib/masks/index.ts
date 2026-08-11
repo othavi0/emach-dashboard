@@ -8,6 +8,7 @@ export interface Mask<T> {
 }
 
 // biome-ignore lint/performance/noBarrelFile: pasta de máscaras intencionalmente reexporta para import ergonômico
+export { amountMask } from "./amount";
 export { cepMask } from "./cep";
 export { cestMask } from "./cest";
 export { cnpjMask } from "./cnpj";
