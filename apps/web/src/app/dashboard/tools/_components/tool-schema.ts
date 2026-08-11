@@ -53,10 +53,7 @@ export const updateVariantSchema = z.object({
 	sku: z.string().min(1).max(64).optional(),
 	barcode: z.string().trim().min(1).max(128).optional(),
 	voltage: z.enum(VOLTAGE_OPTIONS).nullable().optional(),
-	priceAmount: z
-		.string()
-		.regex(/^\d+(\.\d{1,2})?$/, "Preço inválido")
-		.optional(),
+	priceAmount: z.number().nonnegative("Preço não pode ser negativo").optional(),
 });
 
 export type UpdateVariantInput = z.infer<typeof updateVariantSchema>;

@@ -27,6 +27,8 @@ import {
 } from "@emach/ui/components/tooltip";
 import { CheckCircle2, Lock } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { MaskedInput } from "@/components/masked-input";
+import { amountMask } from "@/lib/masks";
 import { notify } from "@/lib/notify";
 
 import { DeleteToolDialog } from "../../_components/delete-tool-dialog";
@@ -53,7 +55,7 @@ interface VariantsTabProps {
 
 interface RowState {
 	barcode: string;
-	priceAmount: string;
+	priceAmount: number | undefined;
 	sku: string;
 	voltage: string | null;
 }
@@ -63,7 +65,7 @@ function makeRowState(v: ToolDetailVariant): RowState {
 		barcode: v.barcode ?? "",
 		sku: v.sku,
 		voltage: v.voltage,
-		priceAmount: v.priceAmount,
+		priceAmount: Number(v.priceAmount),
 	};
 }
 
@@ -203,6 +205,10 @@ function EditableRow({
 	const dirty = isDirty(initial, state);
 
 	function handleSave() {
+		if (state.priceAmount === undefined && initial.priceAmount !== undefined) {
+			notify.error("Informe o preço");
+			return;
+		}
 		startTransition(async () => {
 			const result = await updateToolVariant({
 				variantId: variant.id,
@@ -348,11 +354,10 @@ function EditableRow({
 				</Select>
 			</TableCell>
 			<TableCell className="text-right">
-				<Input
+				<MaskedInput
 					className="h-8 text-right tabular-nums"
-					inputMode="decimal"
-					onChange={(e) => setState({ ...state, priceAmount: e.target.value })}
-					placeholder="0.00"
+					mask={amountMask}
+					onChange={(next) => setState({ ...state, priceAmount: next })}
 					value={state.priceAmount}
 				/>
 			</TableCell>

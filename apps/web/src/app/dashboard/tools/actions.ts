@@ -574,7 +574,7 @@ export async function updateToolVariant(
 			updateFields.voltage = fields.voltage;
 		}
 		if (fields.priceAmount !== undefined) {
-			updateFields.priceAmount = fields.priceAmount;
+			updateFields.priceAmount = fields.priceAmount.toFixed(2);
 		}
 
 		if (Object.keys(updateFields).length === 0) {
