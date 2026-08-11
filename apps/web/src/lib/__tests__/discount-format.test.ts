@@ -26,4 +26,11 @@ describe("discount-format", () => {
 		expect(formatMoney(1234.5)).toBe("1.234,50");
 		expect(formatMoney(0)).toBe("");
 	});
+
+	it("percent: não colapsa separador de milhar", () => {
+		expect(parsePercent("1.234,56")).toBe(100); // clamp, não 1.23456
+		expect(parsePercent("10.5")).toBe(10.5);
+		expect(parsePercent("10,5")).toBe(10.5);
+		expect(sanitizePercent("1.234,5")).toBe("1.234,5");
+	});
 });
