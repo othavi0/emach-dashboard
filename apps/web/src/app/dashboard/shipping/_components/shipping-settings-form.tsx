@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@emach/ui/components/button";
-import { Input } from "@emach/ui/components/input";
 import {
 	Select,
 	SelectContent,
@@ -14,6 +13,8 @@ import { Spinner } from "@emach/ui/components/spinner";
 import { useState, useTransition } from "react";
 
 import { LabeledField } from "@/components/labeled-field";
+import { MaskedInput } from "@/components/masked-input";
+import { amountMask } from "@/lib/masks";
 import { notify } from "@/lib/notify";
 import { useFormErrors } from "@/lib/use-form-errors";
 import type { OriginBranchOption } from "../actions";
@@ -49,8 +50,8 @@ export function ShippingSettingsForm({
 	const [insurancePolicy, setInsurancePolicy] = useState(
 		settings.insurancePolicy
 	);
-	const [capAmount, setCapAmount] = useState(
-		String(settings.insuranceCapAmount)
+	const [capAmount, setCapAmount] = useState<number | undefined>(
+		settings.insuranceCapAmount
 	);
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -60,7 +61,7 @@ export function ShippingSettingsForm({
 		const values: ShippingSettingsFormValues = {
 			originBranchId: originBranchId === NO_ORIGIN ? undefined : originBranchId,
 			insurancePolicy,
-			insuranceCapAmount: Number(capAmount),
+			insuranceCapAmount: capAmount ?? Number.NaN,
 		};
 
 		const parsed = shippingSettingsSchema.safeParse(values);
@@ -168,11 +169,10 @@ export function ShippingSettingsForm({
 						label="Teto do seguro (R$)"
 					>
 						{(field) => (
-							<Input
+							<MaskedInput
 								{...field}
-								inputMode="decimal"
-								onChange={(e) => setCapAmount(e.target.value)}
-								placeholder="3000.00"
+								mask={amountMask}
+								onChange={setCapAmount}
 								value={capAmount}
 							/>
 						)}
