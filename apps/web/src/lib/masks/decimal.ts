@@ -1,23 +1,16 @@
 import type { Mask } from "./index";
+import { parseLocaleNumber } from "./parse-decimal";
+
+/** Colunas de medida são numeric(10,3) — milésimos são válidos. */
+const DECIMAL_MAX_FRACTION = 3;
+const NON_NUMERIC = /[^\d.,]/g;
 
 function sanitizeDecimal(display: string): string {
-	let cleaned = display.replace(/\./g, ",").replace(/[^\d,]/g, "");
-	const firstComma = cleaned.indexOf(",");
-	if (firstComma >= 0) {
-		cleaned =
-			cleaned.slice(0, firstComma + 1) +
-			cleaned.slice(firstComma + 1).replace(/,/g, "");
-	}
-	return cleaned;
+	return display.replace(NON_NUMERIC, "");
 }
 
 function parseDecimalDisplay(display: string): number | undefined {
-	const cleaned = sanitizeDecimal(display).replace(",", ".");
-	if (!cleaned || cleaned === ".") {
-		return;
-	}
-	const n = Number(cleaned);
-	return Number.isNaN(n) ? undefined : n;
+	return parseLocaleNumber(display, DECIMAL_MAX_FRACTION);
 }
 
 function formatDecimal(raw: number | undefined): string {

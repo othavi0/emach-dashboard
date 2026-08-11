@@ -1,37 +1,20 @@
 import type { Mask } from "./index";
+import { parseLocaleNumber } from "./parse-decimal";
 
 const PCT_MAX = 100;
+const PCT_MAX_FRACTION = 2;
+const NON_NUMERIC = /[^\d.,]/g;
 
 function sanitizePct(display: string): string {
-	let cleaned = display
-		.replace("%", "")
-		.replace(/\./g, ",")
-		.replace(/[^\d,]/g, "");
-	const firstComma = cleaned.indexOf(",");
-	if (firstComma >= 0) {
-		cleaned =
-			cleaned.slice(0, firstComma + 1) +
-			cleaned.slice(firstComma + 1).replace(/,/g, "");
-	}
-	return cleaned;
+	return display.replace(NON_NUMERIC, "");
 }
 
 function parsePct(display: string): number | undefined {
-	const cleaned = sanitizePct(display).replace(",", ".");
-	if (!cleaned || cleaned === ".") {
+	const n = parseLocaleNumber(display, PCT_MAX_FRACTION);
+	if (n === undefined) {
 		return;
 	}
-	const n = Number(cleaned);
-	if (Number.isNaN(n)) {
-		return;
-	}
-	if (n > PCT_MAX) {
-		return PCT_MAX;
-	}
-	if (n < 0) {
-		return 0;
-	}
-	return n;
+	return Math.min(PCT_MAX, Math.max(0, n));
 }
 
 function formatPct(raw: number | undefined): string {
