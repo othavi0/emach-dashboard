@@ -15,6 +15,15 @@ describe("parseLocaleNumber", () => {
 		expect(parseLocaleNumber("1.2.3,4", 2)).toBe(123.4);
 	});
 
+	it("dois ou mais separadores do mesmo caractere são todos milhar, sem decimal", () => {
+		expect(parseLocaleNumber("1.000.000", 2)).toBe(1_000_000);
+		expect(parseLocaleNumber("1.000.000", 3)).toBe(1_000_000);
+		expect(parseLocaleNumber("1,234,567", 2)).toBe(1_234_567);
+		expect(parseLocaleNumber("1,234,567", 3)).toBe(1_234_567);
+		// separadores de tipos diferentes continuam decimal no último (regra anterior, sem regressão)
+		expect(parseLocaleNumber("1.234.567,89", 2)).toBe(1_234_567.89);
+	});
+
 	it("sem separador, lê o número inteiro", () => {
 		expect(parseLocaleNumber("1500", 2)).toBe(1500);
 		expect(parseLocaleNumber("0", 2)).toBe(0);

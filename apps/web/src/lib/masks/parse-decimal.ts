@@ -5,10 +5,17 @@ const THOUSANDS_GROUP_SIZE = 3;
 /**
  * Lê um número digitado em pt-BR ou en-US sem exigir um separador específico.
  *
- * Regra: o ÚLTIMO separador (`.` ou `,`) delimita a parte decimal; os
- * anteriores são separador de milhar e são descartados. Um separador único
- * seguido de exatamente 3 dígitos é milhar quando o campo não aceita 3 casas
- * decimais — é o único caso ambíguo ("1.500" é 1500 em dinheiro, 1,5 em peso).
+ * Três regras, nesta ordem:
+ * 1. Dois ou mais separadores, todos o MESMO caractere → todos são milhar;
+ *    não há parte decimal ("1.000.000" → 1000000, "1,234,567" → 1234567).
+ * 2. Separadores de tipos diferentes → o ÚLTIMO é o decimal, os anteriores
+ *    são milhar e descartados ("1.234,56" e "1,234.56" → 1234.56).
+ * 3. Separador único: ambíguo só quando seguido de exatamente 3 dígitos —
+ *    aí é milhar se o campo não aceita 3 casas decimais, senão é decimal
+ *    ("1.500" é 1500 em dinheiro, 1,5 em peso).
+ *
+ * Valores negativos não são aceitos: o sinal é descartado junto com os
+ * demais símbolos (mesmo tratamento de "R$", "%", espaços etc.).
  */
 export function parseLocaleNumber(
 	display: string,
@@ -19,23 +26,30 @@ export function parseLocaleNumber(
 		return;
 	}
 
+	const separators = cleaned.match(SEPARATORS) ?? [];
+	if (separators.length === 0) {
+		return toNumber(cleaned, maxFractionDigits);
+	}
+
+	const digitsOnly = cleaned.replace(SEPARATORS, "");
+	if (!digitsOnly) {
+		return;
+	}
+
+	const isUniformSeparator = new Set(separators).size === 1;
+	if (separators.length > 1 && isUniformSeparator) {
+		return toNumber(digitsOnly, maxFractionDigits);
+	}
+
 	const lastSeparator = Math.max(
 		cleaned.lastIndexOf("."),
 		cleaned.lastIndexOf(",")
 	);
-	if (lastSeparator < 0) {
-		return toNumber(cleaned, maxFractionDigits);
-	}
-
 	const intDigits = cleaned.slice(0, lastSeparator).replace(SEPARATORS, "");
 	const fracDigits = cleaned.slice(lastSeparator + 1).replace(SEPARATORS, "");
-	if (!(intDigits || fracDigits)) {
-		return;
-	}
 
-	const separatorCount = (cleaned.match(SEPARATORS) ?? []).length;
 	const isThousandsSeparator =
-		separatorCount === 1 &&
+		separators.length === 1 &&
 		intDigits.length > 0 &&
 		fracDigits.length === THOUSANDS_GROUP_SIZE &&
 		maxFractionDigits < THOUSANDS_GROUP_SIZE;
