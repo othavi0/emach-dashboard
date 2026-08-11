@@ -7,7 +7,7 @@ import { LabeledField } from "@/components/labeled-field";
 import { MaskedInput } from "@/components/masked-input";
 import { WeightInput } from "@/components/weight-input";
 import type { Mask } from "@/lib/masks";
-import { decimalMask, integerMask } from "@/lib/masks";
+import { dimensionMask, integerMask } from "@/lib/masks";
 import { fitsAnyActiveBox } from "../../_lib/fits-shipping-box";
 import { useToolFormContext } from "../tool-form-context";
 import type { ToolFormState } from "../tool-form-state";
@@ -73,7 +73,7 @@ export function LogisticsFields({
 					error={errors.lengthCm}
 					id="lengthCm"
 					label="Comprimento (cm)"
-					mask={decimalMask}
+					mask={dimensionMask}
 					onChange={(v) => onPatch({ lengthCm: v })}
 					placeholder="Ex: 30"
 					required
@@ -84,7 +84,7 @@ export function LogisticsFields({
 					error={errors.widthCm}
 					id="widthCm"
 					label="Largura (cm)"
-					mask={decimalMask}
+					mask={dimensionMask}
 					onChange={(v) => onPatch({ widthCm: v })}
 					placeholder="Ex: 10"
 					required
@@ -95,7 +95,7 @@ export function LogisticsFields({
 					error={errors.heightCm}
 					id="heightCm"
 					label="Altura (cm)"
-					mask={decimalMask}
+					mask={dimensionMask}
 					onChange={(v) => onPatch({ heightCm: v })}
 					placeholder="Ex: 20"
 					required

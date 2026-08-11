@@ -13,7 +13,7 @@ export { cepMask } from "./cep";
 export { cestMask } from "./cest";
 export { cnpjMask } from "./cnpj";
 export { brlMask } from "./currency-brl";
-export { decimalMask } from "./decimal";
+export { decimalMask, dimensionMask, specNumberMask } from "./decimal";
 export { hsCodeMask } from "./hs-code";
 export { integerMask } from "./integer";
 export { ncmMask } from "./ncm";

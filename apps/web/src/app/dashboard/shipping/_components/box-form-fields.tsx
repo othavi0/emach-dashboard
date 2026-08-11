@@ -5,7 +5,7 @@ import { Switch } from "@emach/ui/components/switch";
 
 import { LabeledField } from "@/components/labeled-field";
 import { MaskedInput } from "@/components/masked-input";
-import { decimalMask } from "@/lib/masks";
+import { decimalMask, dimensionMask } from "@/lib/masks";
 
 import type { BoxFormState, BoxFormValues } from "./box-schema";
 
@@ -49,7 +49,7 @@ export function BoxFormFields({
 						<MaskedInput
 							{...field}
 							disabled={disabled}
-							mask={decimalMask}
+							mask={dimensionMask}
 							onChange={(v) => onPatch({ internalLengthCm: v })}
 							placeholder="30"
 							value={values.internalLengthCm}
@@ -66,7 +66,7 @@ export function BoxFormFields({
 						<MaskedInput
 							{...field}
 							disabled={disabled}
-							mask={decimalMask}
+							mask={dimensionMask}
 							onChange={(v) => onPatch({ internalWidthCm: v })}
 							placeholder="20"
 							value={values.internalWidthCm}
@@ -83,7 +83,7 @@ export function BoxFormFields({
 						<MaskedInput
 							{...field}
 							disabled={disabled}
-							mask={decimalMask}
+							mask={dimensionMask}
 							onChange={(v) => onPatch({ internalHeightCm: v })}
 							placeholder="15"
 							value={values.internalHeightCm}

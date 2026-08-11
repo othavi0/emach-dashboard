@@ -14,7 +14,7 @@ import {
 import { Switch } from "@emach/ui/components/switch";
 
 import { MaskedInput } from "@/components/masked-input";
-import { decimalMask } from "@/lib/masks";
+import { specNumberMask } from "@/lib/masks";
 
 import type { AttributeValueInput } from "./tool-schema";
 
@@ -92,7 +92,7 @@ export function DynamicSpecsEditor({
 								</Label>
 								<MaskedInput
 									id={`attr-${def.slug}`}
-									mask={decimalMask}
+									mask={specNumberMask}
 									onChange={(next) =>
 										onChange(def.slug, {
 											...v,
@@ -164,7 +164,7 @@ export function DynamicSpecsEditor({
 								</Label>
 								<div className="grid grid-cols-2 gap-2">
 									<MaskedInput
-										mask={decimalMask}
+										mask={specNumberMask}
 										onChange={(next) =>
 											onChange(def.slug, {
 												...v,
@@ -175,7 +175,7 @@ export function DynamicSpecsEditor({
 										value={v.valueNumeric ?? undefined}
 									/>
 									<MaskedInput
-										mask={decimalMask}
+										mask={specNumberMask}
 										onChange={(next) =>
 											onChange(def.slug, {
 												...v,
