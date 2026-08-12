@@ -85,9 +85,9 @@ export function VariantsTab({
 	toolName,
 	canMutate,
 	canDelete,
-	deletionFacts: _deletionFacts,
+	deletionFacts,
 	highlightVariantId,
-	isArchived: _isArchived,
+	isArchived,
 	orderedVariantIds,
 	stockedVariantIds,
 }: VariantsTabProps) {
@@ -110,7 +110,6 @@ export function VariantsTab({
 
 	const orderedSet = new Set(orderedVariantIds);
 	const stockedSet = new Set(stockedVariantIds);
-	const toolHasOrders = orderedVariantIds.length > 0;
 
 	return (
 		<TooltipProvider delay={200}>
@@ -156,14 +155,10 @@ export function VariantsTab({
 								</p>
 							</div>
 							<DeleteToolDialog
-								disabledReason={
-									toolHasOrders
-										? "Esta ferramenta tem pedidos e não pode ser excluída. Oculte-a do site."
-										: null
-								}
+								facts={deletionFacts}
+								isArchived={isArchived}
 								toolId={toolId}
 								toolName={toolName}
-								triggerLabel="Excluir ferramenta"
 							/>
 						</div>
 					</div>
