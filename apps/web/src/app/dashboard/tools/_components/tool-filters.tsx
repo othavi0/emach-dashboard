@@ -29,6 +29,7 @@ interface ToolFiltersProps {
 }
 
 const ALL = "__all__";
+const ALL_WITH_ARCHIVED = "active,draft,discontinued";
 const BASE = "/dashboard/tools";
 const TRACKED = [
 	"search",
@@ -178,7 +179,10 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 						<SelectValue>
 							{(v: string) => {
 								if (v === ALL) {
-									return "Todos";
+									return "Ativas e rascunhos";
+								}
+								if (v === ALL_WITH_ARCHIVED) {
+									return "Todas (com arquivadas)";
 								}
 								return (
 									TOOL_STATUS_LABELS[
@@ -190,7 +194,10 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 					</SelectTrigger>
 					<SelectContent>
 						<SelectGroup>
-							<SelectItem value={ALL}>Todos</SelectItem>
+							<SelectItem value={ALL}>Ativas e rascunhos</SelectItem>
+							<SelectItem value={ALL_WITH_ARCHIVED}>
+								Todas (com arquivadas)
+							</SelectItem>
 							{TOOL_STATUS_OPTIONS.map((s) => (
 								<SelectItem key={s} value={s}>
 									{TOOL_STATUS_LABELS[s]}

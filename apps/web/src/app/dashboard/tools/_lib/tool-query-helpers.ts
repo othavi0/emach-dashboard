@@ -123,3 +123,26 @@ export function attributeValueRow(
 			return null;
 	}
 }
+
+/** Status que representa "arquivada" no catálogo (ver ADR do design 2026-08-11). */
+export const ARCHIVED_TOOL_STATUS = "discontinued";
+
+export type ToolStatusFilter =
+	| { kind: "in"; statuses: string[] }
+	| { kind: "exclude-archived" };
+
+/**
+ * Sem filtro explícito de status, a listagem esconde as arquivadas — é o que
+ * torna "arquivar" uma saída de verdade para ferramenta que não pode ser
+ * excluída. Com filtro, o usuário mandou e o filtro vale como escrito.
+ */
+export function resolveToolStatusFilter(raw?: string): ToolStatusFilter {
+	const statuses = (raw ?? "")
+		.split(",")
+		.map((s) => s.trim())
+		.filter(Boolean);
+	if (statuses.length === 0) {
+		return { kind: "exclude-archived" };
+	}
+	return { kind: "in", statuses };
+}

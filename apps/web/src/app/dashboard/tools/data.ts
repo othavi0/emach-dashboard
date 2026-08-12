@@ -22,6 +22,10 @@ import {
 } from "../categories/_lib/category-completeness";
 import { getEffectiveAttributeCount } from "../categories/_lib/effective-attributes";
 import type { ToolStatusValue } from "./_components/tool-schema";
+import {
+	ARCHIVED_TOOL_STATUS,
+	resolveToolStatusFilter,
+} from "./_lib/tool-query-helpers";
 
 export type ToolSort = "newest" | "name";
 export type ToolsListMode = "catalog" | "repor" | "esgotado";
@@ -123,15 +127,15 @@ export function buildToolsWhereClause(
 	} else if (filters.visible === "false") {
 		whereParts.push(sql`t.visible_on_site = false`);
 	}
-	if (filters.status) {
-		const statuses = filters.status.split(",").filter(Boolean);
-		if (statuses.length > 0) {
-			const placeholders = sql.join(
-				statuses.map((s) => sql`${s}`),
-				sql`, `
-			);
-			whereParts.push(sql`t.status IN (${placeholders})`);
-		}
+	const statusFilter = resolveToolStatusFilter(filters.status);
+	if (statusFilter.kind === "in") {
+		const placeholders = sql.join(
+			statusFilter.statuses.map((s) => sql`${s}`),
+			sql`, `
+		);
+		whereParts.push(sql`t.status IN (${placeholders})`);
+	} else {
+		whereParts.push(sql`t.status <> ${ARCHIVED_TOOL_STATUS}`);
 	}
 	if (filters.ncm) {
 		whereParts.push(sql`t.ncm ILIKE ${`${filters.ncm}%`}`);
