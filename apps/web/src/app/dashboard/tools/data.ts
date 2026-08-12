@@ -6,6 +6,10 @@ import {
 	attributeDefinition,
 } from "@emach/db/schema/attributes";
 import { toolCategory } from "@emach/db/schema/categories";
+import { stockLevel } from "@emach/db/schema/inventory";
+import { orderItem } from "@emach/db/schema/orders";
+import { review } from "@emach/db/schema/reviews";
+import { toolVariant } from "@emach/db/schema/tools";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
 import { branchAndFilter, getUserBranchScope } from "@/lib/branch-scope";
@@ -275,4 +279,48 @@ export async function fetchToolsPage({
 						id: last.id,
 					}
 	);
+}
+
+export interface ToolDeletionFacts {
+	orderCount: number;
+	reviewCount: number;
+	stockBranchCount: number;
+	stockQty: number;
+}
+
+/**
+ * Fatos que governam a exclusão de uma ferramenta. SEM branch-scope de
+ * propósito: o bloqueio do servidor é global (mesma razão documentada em
+ * `[id]/_lib/tool-detail-data.ts` para `stockedVariantIds`) — escopar aqui faria
+ * a UI prometer uma exclusão que o servidor recusa.
+ */
+export async function fetchToolDeletionFacts(
+	toolId: string
+): Promise<ToolDeletionFacts> {
+	const [orders, reviews, stock] = await Promise.all([
+		db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(orderItem)
+			.innerJoin(toolVariant, eq(toolVariant.id, orderItem.variantId))
+			.where(eq(toolVariant.toolId, toolId)),
+		db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(review)
+			.where(eq(review.toolId, toolId)),
+		db
+			.select({
+				qty: sql<number>`coalesce(sum(${stockLevel.quantity}), 0)::int`,
+				branches: sql<number>`count(distinct ${stockLevel.branchId}) filter (where ${stockLevel.quantity} > 0)::int`,
+			})
+			.from(stockLevel)
+			.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
+			.where(eq(toolVariant.toolId, toolId)),
+	]);
+
+	return {
+		orderCount: orders[0]?.n ?? 0,
+		reviewCount: reviews[0]?.n ?? 0,
+		stockQty: stock[0]?.qty ?? 0,
+		stockBranchCount: stock[0]?.branches ?? 0,
+	};
 }

@@ -31,6 +31,7 @@ import {
 } from "./_components/tool-schema";
 import { resolveVariantDeletion } from "./_components/variant-deletion";
 import { deleteToolVideoObject } from "./_components/video-actions";
+import { resolveToolDeletion } from "./_lib/tool-deletion";
 import {
 	attributeValueRow,
 	normalizeToolPayload,
@@ -39,6 +40,7 @@ import {
 import {
 	currentPrimaryCategoryId,
 	fetchDefinitionsBySlug,
+	fetchToolDeletionFacts,
 	fetchToolsPage,
 	primaryCategoryIncompleteError,
 	type ToolsFiltersInput,
@@ -495,17 +497,9 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 		.from(tool)
 		.where(eq(tool.id, id));
 
-	const [orderedForTool] = await db
-		.select({ n: sql<number>`count(*)::int` })
-		.from(orderItem)
-		.innerJoin(toolVariant, eq(toolVariant.id, orderItem.variantId))
-		.where(eq(toolVariant.toolId, id));
-	if ((orderedForTool?.n ?? 0) > 0) {
-		return {
-			ok: false,
-			error:
-				"Esta ferramenta tem pedidos e não pode ser excluída. Oculte-a do site (visibilidade) em vez disso.",
-		};
+	const decision = resolveToolDeletion(await fetchToolDeletionFacts(id));
+	if (!decision.allowed) {
+		return { ok: false, error: decision.reason };
 	}
 
 	try {
