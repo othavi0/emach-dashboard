@@ -532,6 +532,43 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
+/**
+ * Arquiva a ferramenta: sai do catálogo ativo e da vitrine, mas nada é
+ * destruído. É a saída oferecida quando a exclusão está bloqueada (pedido,
+ * avaliação ou estoque). Guardada por `tools.update` e não `tools.delete`
+ * porque não destrói dado — `admin` também arquiva.
+ *
+ * NÃO mexe em estoque: quantidade é dado físico e zerar sem movimento de ajuste
+ * deixaria buraco no ledger (mesma razão do guard de exclusão de variante, #335).
+ */
+export async function archiveTool(id: string): Promise<ActionResult> {
+	const session = await requireCapability("tools.update");
+
+	try {
+		await db
+			.update(tool)
+			.set({
+				status: "discontinued",
+				visibleOnSite: false,
+				updatedAt: new Date(),
+			})
+			.where(eq(tool.id, id));
+	} catch (error) {
+		logger.error("archiveTool falhou", error);
+		return { ok: false, error: actionErrorMessage(error) };
+	}
+
+	await logUserActivity({
+		actorUserId: session.user.id,
+		action: "tool.archived",
+		targetId: id,
+		targetType: "tool",
+	});
+	revalidatePath(TOOLS_PATH);
+	revalidatePath(`${TOOLS_PATH}/${id}`);
+	return { ok: true, data: undefined };
+}
+
 export async function updateToolVariant(
 	input: UpdateVariantInput
 ): Promise<ActionResult> {
