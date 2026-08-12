@@ -27,11 +27,10 @@ export function partitionRows(candidates: SpecCandidate[]): PartitionedRows {
 	return { rows, emptyLabels, total: candidates.length };
 }
 
-// weightKg/lengthCm/widthCm/heightCm são `.notNull()` no schema (`packages/db/src/schema/tools.ts`),
-// mas os CHECK constraints do banco ("IS NULL OR ... >= 0") e o consumo pré-existente em
-// tool-specs.tsx tratam esses campos como potencialmente ausentes — sobrescrevemos a
-// nulabilidade aqui em vez de herdar `string` estrito do Pick<>. Um ToolDetailRow real
-// (campos `string`) continua atribuível, pois `string` é subtipo de `string | null`.
+// weightKg/lengthCm/widthCm/heightCm são anuláveis no schema desde o rascunho
+// leve (tool ativa os garante via CHECK active_requires_shipping_data) — a
+// nulabilidade explícita aqui agora espelha o banco, e o render já tratava
+// ausência antes da mudança.
 export type PhysicalSpecSource = Pick<
 	ToolDetailRow,
 	"model" | "invoiceModel" | "manufacturerName" | "powerWatts"

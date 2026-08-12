@@ -8,7 +8,7 @@ import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCurrentSession } from "@/lib/session";
 
 export interface BranchStockRow {
-	barcode: string;
+	barcode: string | null;
 	imageUrl: string | null;
 	minQty: number;
 	quantity: number;
@@ -32,7 +32,7 @@ export interface BranchStockFiltersInput {
 }
 
 interface BranchStockDbRow extends Record<string, unknown> {
-	barcode: string;
+	barcode: string | null;
 	image_url: string | null;
 	min_qty: number;
 	quantity: number;

@@ -7,6 +7,7 @@ import {
 } from "@/components/entity/entity-client-tabs";
 import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
+import { canDeleteToolByStatus } from "../_lib/tool-deletion";
 import { ActivityTabLoader } from "./_components/activity-tab-loader";
 import { EstoqueTab } from "./_components/estoque-tab";
 import { OverviewTab } from "./_components/overview-tab";
@@ -32,7 +33,7 @@ export default function ToolDetailPage({ params, searchParams }: PageProps) {
 async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCurrentSession();
 	const [{ id }, { tab, variant }] = await Promise.all([params, searchParams]);
-	const [canMutate, canDelete, canAdjustStock, detail] = await Promise.all([
+	const [canMutate, canDeleteCap, canAdjustStock, detail] = await Promise.all([
 		can(session, "tools.update"),
 		can(session, "tools.delete"),
 		can(session, "stock.adjust"),
@@ -42,6 +43,13 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 	if (!detail) {
 		notFound();
 	}
+
+	// Rascunho nunca foi público: quem gere o catálogo (admin) pode descartá-lo.
+	// Mesma regra pura aplicada pelo servidor em deleteTool.
+	const canDelete = canDeleteToolByStatus(detail.tool.status, {
+		hasDelete: canDeleteCap,
+		hasUpdate: canMutate,
+	});
 
 	const defaultValue = "visao-geral";
 	// ?variant= define a tab inicial (Variantes) só quando nenhuma ?tab= explícita foi dada.

@@ -46,12 +46,14 @@ export function SheetHead({
 		lead === "branch" ? (
 			<>
 				{row.toolName} · SKU {row.sku}
-				{row.voltage ? ` · ${row.voltage}` : ""} · {row.barcode}
+				{row.voltage ? ` · ${row.voltage}` : ""}
+				{row.barcode ? ` · ${row.barcode}` : ""}
 			</>
 		) : (
 			<>
 				SKU {row.sku}
-				{row.voltage ? ` · ${row.voltage}` : ""} · {row.barcode} · {branchName}
+				{row.voltage ? ` · ${row.voltage}` : ""}
+				{row.barcode ? ` · ${row.barcode}` : ""} · {branchName}
 			</>
 		);
 

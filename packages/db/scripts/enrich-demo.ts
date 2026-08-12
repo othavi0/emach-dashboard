@@ -550,6 +550,10 @@ async function main() {
 					if (!v) {
 						throw new Error(`variante ${it.sku} não encontrada`);
 					}
+					// priceAmount é anulável (rascunho); pedido demo exige variante vendável.
+					if (v.price === null) {
+						throw new Error(`variante ${it.sku} sem preço — não vendável`);
+					}
 					const t = toolById.get(v.toolId);
 					const lineTotal = Number(v.price) * it.qty;
 					return { v, t, qty: it.qty, unitPrice: v.price, lineTotal };

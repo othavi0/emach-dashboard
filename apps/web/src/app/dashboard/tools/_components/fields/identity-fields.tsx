@@ -125,9 +125,10 @@ export function IdentityFields({
 			</LabeledField>
 
 			<div className="flex flex-col gap-2">
+				{/* Sem asterisco: categoria é exigência de ativação, não de rascunho */}
 				<Label className="flex items-center gap-1.5">
-					Categorias <span className="text-destructive">*</span>
-					<HelpTooltip text="Onde a ferramenta aparece na árvore do site. A categoria principal (★) define as especificações técnicas disponíveis." />
+					Categorias
+					<HelpTooltip text="Onde a ferramenta aparece na árvore do site — obrigatória para ativar. A categoria principal (★) define as especificações técnicas disponíveis." />
 				</Label>
 				<div className="flex flex-col gap-1 rounded border border-border p-3">
 					{categories.map((cat) => {

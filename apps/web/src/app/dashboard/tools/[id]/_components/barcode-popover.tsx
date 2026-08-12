@@ -11,7 +11,7 @@ import { CopyButton } from "@/components/copy-button";
 import { isValidEan13 } from "@/lib/ean13";
 
 interface BarcodePopoverProps {
-	barcode: string;
+	barcode: string | null;
 	trigger?: "text" | "icon";
 }
 
@@ -19,6 +19,10 @@ export function BarcodePopover({
 	barcode,
 	trigger = "text",
 }: BarcodePopoverProps) {
+	// Rascunho pode não ter barcode — sem código não há popover a abrir.
+	if (!barcode) {
+		return <span className="text-muted-foreground text-xs">—</span>;
+	}
 	return (
 		<Popover>
 			{trigger === "text" ? (

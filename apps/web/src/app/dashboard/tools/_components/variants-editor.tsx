@@ -55,7 +55,7 @@ function computeDuplicateBarcodes(variants: ToolVariantInput[]): Set<string> {
 	const seen = new Map<string, number>();
 	const dups = new Set<string>();
 	for (const v of variants) {
-		const key = v.barcode.trim().toLowerCase();
+		const key = (v.barcode ?? "").trim().toLowerCase();
 		if (!key) {
 			continue;
 		}
@@ -109,14 +109,14 @@ export function VariantsEditor({
 		<div className="flex flex-col gap-3">
 			{value.length === 0 && (
 				<p className="text-muted-foreground text-sm">
-					Adicione ao menos uma variante. Ferramentas sem variação elétrica
-					ficam com voltagem em branco.
+					Rascunho pode ficar sem variantes — para ativar, adicione ao menos
+					uma. Ferramentas sem variação elétrica ficam com voltagem em branco.
 				</p>
 			)}
 			{value.map((variant, index) => {
 				const skuKey = variant.sku.trim().toLowerCase();
 				const isSkuDuplicate = skuKey !== "" && duplicateSkus.has(skuKey);
-				const barcodeKey = variant.barcode.trim().toLowerCase();
+				const barcodeKey = (variant.barcode ?? "").trim().toLowerCase();
 				const isBarcodeDuplicate =
 					barcodeKey !== "" && duplicateBarcodes.has(barcodeKey);
 				return (
@@ -144,17 +144,14 @@ export function VariantsEditor({
 							)}
 						</div>
 						<div className="flex flex-col gap-2">
-							<Label htmlFor={`var-barcode-${index}`}>
-								Código de barras
-								<span className="text-destructive"> *</span>
-							</Label>
+							{/* Sem asterisco: barcode é exigência de ativação, não de rascunho */}
+							<Label htmlFor={`var-barcode-${index}`}>Código de barras</Label>
 							<Input
 								aria-invalid={isBarcodeDuplicate || undefined}
-								aria-required="true"
 								className="font-mono"
 								id={`var-barcode-${index}`}
 								onChange={(e) => update(index, { barcode: e.target.value })}
-								value={variant.barcode}
+								value={variant.barcode ?? ""}
 							/>
 							{isBarcodeDuplicate && (
 								<p className="text-destructive text-xs">
@@ -187,16 +184,13 @@ export function VariantsEditor({
 							</Select>
 						</div>
 						<div className="flex flex-col gap-2">
-							<Label htmlFor={`var-price-${index}`}>
-								Preço
-								<span className="text-destructive"> *</span>
-							</Label>
+							{/* Sem asterisco: preço é exigência de ativação, não de rascunho */}
+							<Label htmlFor={`var-price-${index}`}>Preço</Label>
 							<MaskedInput
-								aria-required="true"
 								id={`var-price-${index}`}
 								mask={brlMask}
 								onChange={(v) => update(index, { priceAmount: v ?? 0 })}
-								value={variant.priceAmount}
+								value={variant.priceAmount ?? 0}
 							/>
 						</div>
 						<div className="flex items-end justify-end">

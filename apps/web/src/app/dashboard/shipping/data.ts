@@ -66,7 +66,24 @@ export async function getToolsWithoutBox(): Promise<ToolWithoutBox[]> {
 			.orderBy(asc(tool.name)),
 	]);
 
-	return rows
+	// Dims são anuláveis no schema (rascunho), mas o CHECK
+	// active_requires_shipping_data garante presença em tool ativa — o
+	// predicate só materializa a garantia pro type system.
+	const withDims = rows.filter(
+		(
+			r
+		): r is (typeof rows)[number] & {
+			heightCm: string;
+			lengthCm: string;
+			weightKg: string;
+			widthCm: string;
+		} =>
+			r.weightKg !== null &&
+			r.lengthCm !== null &&
+			r.widthCm !== null &&
+			r.heightCm !== null
+	);
+	return withDims
 		.filter(
 			(r) =>
 				!fitsAnyActiveBox(

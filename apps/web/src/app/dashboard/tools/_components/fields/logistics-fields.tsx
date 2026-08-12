@@ -43,27 +43,24 @@ export function LogisticsFields({
 	return (
 		<div className="flex flex-col gap-4">
 			<p className="flex items-center gap-1.5 text-muted-foreground text-xs">
-				A loja usa peso e medidas para cotar o frete no checkout.
+				A loja usa peso e medidas para cotar o frete no checkout — obrigatórios
+				para ativar, opcionais em rascunho.
 				<HelpTooltip
 					body="A loja consolida os itens do carrinho nas caixas de envio cadastradas e cota o frete na Frenet. Sem esses valores, o cliente não consegue fechar o pedido. Item que não cabe na maior caixa ativa aparece como 'Frete a combinar'."
 					example="Peso 2,5 kg · 30×20×10 cm"
-					title="Por que peso e dimensões são obrigatórios"
+					title="Por que peso e dimensões são obrigatórios para ativar"
 				/>
 			</p>
+			{/* Sem `required`: peso/dimensões são exigência de ativação (publish gate),
+			    não de rascunho — o erro aparece ao tentar salvar como Ativo. */}
 			<div className="grid gap-4 md:grid-cols-5">
-				<LabeledField
-					error={errors.weightKg}
-					id="weightKg"
-					label="Peso"
-					required
-				>
+				<LabeledField error={errors.weightKg} id="weightKg" label="Peso">
 					{(field) => (
 						<WeightInput
 							{...field}
 							defaultUnit="kg"
 							disabled={disabled}
 							onChange={(v) => onPatch({ weightKg: v })}
-							required
 							value={values.weightKg}
 						/>
 					)}
@@ -76,7 +73,6 @@ export function LogisticsFields({
 					mask={dimensionMask}
 					onChange={(v) => onPatch({ lengthCm: v })}
 					placeholder="Ex: 30"
-					required
 					value={values.lengthCm}
 				/>
 				<FieldNum
@@ -87,7 +83,6 @@ export function LogisticsFields({
 					mask={dimensionMask}
 					onChange={(v) => onPatch({ widthCm: v })}
 					placeholder="Ex: 10"
-					required
 					value={values.widthCm}
 				/>
 				<FieldNum
@@ -98,7 +93,6 @@ export function LogisticsFields({
 					mask={dimensionMask}
 					onChange={(v) => onPatch({ heightCm: v })}
 					placeholder="Ex: 20"
-					required
 					value={values.heightCm}
 				/>
 				<FieldNum

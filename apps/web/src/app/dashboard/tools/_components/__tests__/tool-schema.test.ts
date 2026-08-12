@@ -5,6 +5,7 @@ import {
 	collectToolIssues,
 	countFilledSpecs,
 	MIN_SPECS_ACTIVE,
+	publishRequirementIssues,
 	shouldEnforceActivation,
 	toolFormSchema,
 } from "../tool-schema";
@@ -187,15 +188,152 @@ describe("collectToolIssues", () => {
 		expect(issues.some((i) => i.path[0] === "attributeValues")).toBe(true);
 	});
 
-	it("erro estrutural (variante sem barcode) aparece independente de enforceActivation", () => {
+	it("requisito de publicação (variante sem barcode em tool active) aparece independente de enforceActivation", () => {
 		const values = baseTool({
 			variants: [
 				{ sku: "S1", priceAmount: 100, isDefault: true, sortOrder: 0 },
 			],
 		});
+		const issues = collectToolIssues(values, { enforceActivation: false });
+		expect(issues.some((i) => i.path[0] === "variants")).toBe(true);
+	});
+});
+
+describe("toolFormSchema — rascunho leve (só nome obrigatório)", () => {
+	function draftMinimal(overrides: Record<string, unknown> = {}) {
+		return {
+			name: "Ferramenta em rascunho",
+			status: "draft" as const,
+			categoryIds: [],
+			primaryCategoryId: "",
+			images: [],
+			variants: [],
+			attributeAssignments: [],
+			attributeValues: {},
+			...overrides,
+		};
+	}
+
+	it("rascunho só com nome passa", () => {
+		expect(toolFormSchema.safeParse(draftMinimal()).success).toBe(true);
+	});
+
+	it("rascunho sem nome falha", () => {
+		const r = toolFormSchema.safeParse(draftMinimal({ name: "" }));
+		expect(r.success).toBe(false);
+	});
+
+	it("linha pristine do editor de variantes é filtrada (não exige SKU)", () => {
+		const r = toolFormSchema.safeParse(
+			draftMinimal({
+				variants: [
+					{
+						sku: "",
+						barcode: "",
+						voltage: "",
+						priceAmount: 0,
+						isDefault: true,
+						sortOrder: 0,
+					},
+				],
+			})
+		);
+		expect(r.success).toBe(true);
+		if (r.success) {
+			expect(r.data.variants).toEqual([]);
+		}
+	});
+
+	it("variante COM conteúdo continua exigindo SKU", () => {
+		const r = toolFormSchema.safeParse(
+			draftMinimal({
+				variants: [
+					{
+						sku: "",
+						barcode: "789",
+						priceAmount: 0,
+						isDefault: true,
+						sortOrder: 0,
+					},
+				],
+			})
+		);
+		expect(r.success).toBe(false);
+	});
+
+	it("rascunho aceita variante com SKU e sem barcode/preço", () => {
+		const r = toolFormSchema.safeParse(
+			draftMinimal({
+				variants: [{ sku: "SKU-1", isDefault: true, sortOrder: 0 }],
+			})
+		);
+		expect(r.success).toBe(true);
+	});
+
+	it("primária fora das categorias continua estrutural (falha mesmo em rascunho)", () => {
+		const r = toolFormSchema.safeParse(
+			draftMinimal({ categoryIds: ["cat-1"], primaryCategoryId: "cat-2" })
+		);
+		expect(r.success).toBe(false);
+	});
+
+	it("rascunho não gera issues de publicação no collectToolIssues", () => {
 		expect(
-			collectToolIssues(values, { enforceActivation: false }).length
-		).toBeGreaterThan(0);
+			collectToolIssues(draftMinimal(), { enforceActivation: false })
+		).toEqual([]);
+	});
+});
+
+describe("publishRequirementIssues — exigências de tool active", () => {
+	it("tool completa não gera issues", () => {
+		expect(publishRequirementIssues(toolFormSchema.parse(baseTool()))).toEqual(
+			[]
+		);
+	});
+
+	it("peso/dimensões ausentes apontam cada campo", () => {
+		const data = toolFormSchema.parse(
+			baseTool({ weightKg: undefined, heightCm: undefined })
+		);
+		const paths = publishRequirementIssues(data).map((i) => i.path[0]);
+		expect(paths).toContain("weightKg");
+		expect(paths).toContain("heightCm");
+		expect(paths).not.toContain("lengthCm");
+	});
+
+	it("sem categorias aponta categoryIds e primaryCategoryId", () => {
+		const data = toolFormSchema.parse(
+			baseTool({ categoryIds: [], primaryCategoryId: "" })
+		);
+		const paths = publishRequirementIssues(data).map((i) => i.path[0]);
+		expect(paths).toContain("categoryIds");
+		expect(paths).toContain("primaryCategoryId");
+	});
+
+	it("sem variantes aponta variants", () => {
+		const data = toolFormSchema.parse(baseTool({ variants: [] }));
+		expect(
+			publishRequirementIssues(data).some((i) => i.path[0] === "variants")
+		).toBe(true);
+	});
+
+	it("variante sem preço aponta variants", () => {
+		const data = toolFormSchema.parse(
+			baseTool({
+				variants: [
+					{ sku: "S1", barcode: "789", isDefault: true, sortOrder: 0 },
+				],
+			})
+		);
+		expect(
+			publishRequirementIssues(data).some((i) => i.path[0] === "variants")
+		).toBe(true);
+	});
+
+	it("editar tool active não consegue limpar o peso (gate vale sem transição)", () => {
+		const values = baseTool({ weightKg: undefined });
+		const issues = collectToolIssues(values, { enforceActivation: false });
+		expect(issues.some((i) => i.path[0] === "weightKg")).toBe(true);
 	});
 });
 
@@ -262,7 +400,7 @@ describe("toolFormSchema — barcode duplicado entre variantes", () => {
 		}
 	});
 
-	it("rejeita variante sem barcode", () => {
+	it("variante sem barcode passa no schema (vira exigência de publicação)", () => {
 		const r = toolFormSchema.safeParse(
 			baseTool({
 				variants: [
@@ -270,7 +408,7 @@ describe("toolFormSchema — barcode duplicado entre variantes", () => {
 				],
 			})
 		);
-		expect(r.success).toBe(false);
+		expect(r.success).toBe(true);
 	});
 
 	it("rejeita barcode duplicado após trim ('BAR' e 'BAR ')", () => {

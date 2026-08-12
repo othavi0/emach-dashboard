@@ -19,10 +19,11 @@ import { logUserActivity } from "@/lib/activity";
 import { getPgError } from "@/lib/db-error";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
-import { requireCapability } from "@/lib/permissions";
+import { can, requireCapability } from "@/lib/permissions";
 import { deleteToolImage } from "./_components/image-actions";
 import {
 	activationRequirementIssues,
+	publishRequirementIssues,
 	slugify,
 	type ToolFormValues,
 	toolFormSchema,
@@ -31,7 +32,10 @@ import {
 } from "./_components/tool-schema";
 import { resolveVariantDeletion } from "./_components/variant-deletion";
 import { deleteToolVideoObject } from "./_components/video-actions";
-import { resolveToolDeletion } from "./_lib/tool-deletion";
+import {
+	canDeleteToolByStatus,
+	resolveToolDeletion,
+} from "./_lib/tool-deletion";
 import {
 	attributeValueRow,
 	normalizeToolPayload,
@@ -96,14 +100,18 @@ export async function createTool(
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
 	if (parsed.data.status === "active") {
-		const [issue] = activationRequirementIssues(parsed.data);
+		const [issue] = [
+			...publishRequirementIssues(parsed.data),
+			...activationRequirementIssues(parsed.data),
+		];
 		if (issue) {
 			return { ok: false, error: issue.message };
 		}
 	}
-	const categoryError = await primaryCategoryIncompleteError(
-		parsed.data.primaryCategoryId
-	);
+	// Sem categoria principal (rascunho) não há o que validar de completude.
+	const categoryError = parsed.data.primaryCategoryId
+		? await primaryCategoryIncompleteError(parsed.data.primaryCategoryId)
+		: null;
 	if (categoryError) {
 		return { ok: false, error: categoryError };
 	}
@@ -120,13 +128,17 @@ export async function createTool(
 		await db.transaction(async (tx) => {
 			await tx.insert(tool).values({ id, slug, ...payload });
 
-			await tx.insert(toolVariant).values(
-				parsed.data.variants.map((v) => ({
-					id: crypto.randomUUID(),
-					toolId: id,
-					...normalizeVariantValues(v),
-				}))
-			);
+			// Rascunho pode nascer sem variantes/categorias — insert de array
+			// vazio lança no drizzle.
+			if (parsed.data.variants.length > 0) {
+				await tx.insert(toolVariant).values(
+					parsed.data.variants.map((v) => ({
+						id: crypto.randomUUID(),
+						toolId: id,
+						...normalizeVariantValues(v),
+					}))
+				);
+			}
 
 			if (parsed.data.images.length > 0) {
 				await tx.insert(toolImage).values(
@@ -139,13 +151,15 @@ export async function createTool(
 				);
 			}
 
-			await tx.insert(toolCategory).values(
-				parsed.data.categoryIds.map((catId) => ({
-					toolId: id,
-					categoryId: catId,
-					isPrimary: catId === parsed.data.primaryCategoryId,
-				}))
-			);
+			if (parsed.data.categoryIds.length > 0) {
+				await tx.insert(toolCategory).values(
+					parsed.data.categoryIds.map((catId) => ({
+						toolId: id,
+						categoryId: catId,
+						isPrimary: catId === parsed.data.primaryCategoryId,
+					}))
+				);
+			}
 
 			const assignmentRows: (typeof toolAttributeAssignment.$inferInsert)[] =
 				[];
@@ -216,17 +230,29 @@ export async function updateTool(
 		.from(tool)
 		.where(eq(tool.id, id))
 		.limit(1);
-	if (prev?.status !== "active" && parsed.data.status === "active") {
-		const [issue] = activationRequirementIssues(parsed.data);
-		if (issue) {
-			return { ok: false, error: issue.message };
+	if (parsed.data.status === "active") {
+		// Requisitos de publicação valem em TODO save com status active (impedem
+		// remover peso/preço de tool ativa); a régua de imagens/specs continua
+		// transição-only (#290).
+		const [publishIssue] = publishRequirementIssues(parsed.data);
+		if (publishIssue) {
+			return { ok: false, error: publishIssue.message };
+		}
+		if (prev?.status !== "active") {
+			const [issue] = activationRequirementIssues(parsed.data);
+			if (issue) {
+				return { ok: false, error: issue.message };
+			}
 		}
 	}
 	// Gate só barra quando a primária MUDA para uma incompleta — não punir edição
 	// de tool cuja primária já existente degradou (deleção de atributo posterior),
 	// senão a ferramenta vira ineditável até alguém consertar a categoria.
 	const previousPrimary = await currentPrimaryCategoryId(id);
-	if (parsed.data.primaryCategoryId !== previousPrimary) {
+	if (
+		parsed.data.primaryCategoryId !== "" &&
+		parsed.data.primaryCategoryId !== previousPrimary
+	) {
 		const categoryError = await primaryCategoryIncompleteError(
 			parsed.data.primaryCategoryId
 		);
@@ -394,13 +420,15 @@ export async function updateTool(
 
 			// --- Categorias ---
 			await tx.delete(toolCategory).where(eq(toolCategory.toolId, id));
-			await tx.insert(toolCategory).values(
-				parsed.data.categoryIds.map((catId) => ({
-					toolId: id,
-					categoryId: catId,
-					isPrimary: catId === parsed.data.primaryCategoryId,
-				}))
-			);
+			if (parsed.data.categoryIds.length > 0) {
+				await tx.insert(toolCategory).values(
+					parsed.data.categoryIds.map((catId) => ({
+						toolId: id,
+						categoryId: catId,
+						isPrimary: catId === parsed.data.primaryCategoryId,
+					}))
+				);
+			}
 
 			// --- Atribuições e valores de atributos ---
 			await tx
@@ -479,13 +507,30 @@ export async function updateTool(
 }
 
 export async function deleteTool(id: string): Promise<ActionResult> {
-	const session = await requireCapability("tools.delete");
+	// Rascunho é material de trabalho (nunca foi público): quem gere o catálogo
+	// (tools.update, admin+) pode descartá-lo. Fora de rascunho, exclusão segue
+	// exclusiva de tools.delete (super_admin) — ADR-0016.
+	const session = await requireCapability("tools.update");
 
 	const [toolRow] = await db
-		.select({ name: tool.name })
+		.select({ name: tool.name, status: tool.status })
 		.from(tool)
 		.where(eq(tool.id, id))
 		.limit(1);
+	if (!toolRow) {
+		return { ok: false, error: "Ferramenta não encontrada." };
+	}
+	const allowed = canDeleteToolByStatus(toolRow.status, {
+		hasDelete: await can(session, "tools.delete"),
+		hasUpdate: true, // requireCapability("tools.update") acima já garantiu
+	});
+	if (!allowed) {
+		return {
+			ok: false,
+			error:
+				"Somente rascunhos podem ser excluídos por admins. Para ferramentas publicadas, peça a um super admin ou arquive.",
+		};
+	}
 
 	const urls = await db
 		.select({ url: toolImage.url })

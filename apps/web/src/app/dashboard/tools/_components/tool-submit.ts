@@ -5,6 +5,7 @@ import { createTool, updateTool } from "../actions";
 import type { ToolFormState } from "./tool-form-state";
 import {
 	activationRequirementIssues,
+	publishRequirementIssues,
 	type ToolFormValues,
 	toolFormSchema,
 } from "./tool-schema";
@@ -26,18 +27,23 @@ export function parseToolForm(
 			fieldErrors: zodIssuesToFieldErrors<ToolFormValues>(result.error),
 		};
 	}
-	if (opts.enforceActivation) {
-		const actIssues = activationRequirementIssues(result.data);
-		if (actIssues.length > 0) {
-			const fieldErrors: Partial<Record<keyof ToolFormValues, string>> = {};
-			for (const issue of actIssues) {
-				const key = issue.path[0];
-				if (key !== undefined && fieldErrors[key] === undefined) {
-					fieldErrors[key] = issue.message;
-				}
+	// Requisitos de publicação valem sempre que o status salvo é `active`;
+	// a régua de ativação (imagens/specs) só na transição (enforceActivation).
+	const gateIssues = [
+		...(result.data.status === "active"
+			? publishRequirementIssues(result.data)
+			: []),
+		...(opts.enforceActivation ? activationRequirementIssues(result.data) : []),
+	];
+	if (gateIssues.length > 0) {
+		const fieldErrors: Partial<Record<keyof ToolFormValues, string>> = {};
+		for (const issue of gateIssues) {
+			const key = issue.path[0];
+			if (key !== undefined && fieldErrors[key] === undefined) {
+				fieldErrors[key] = issue.message;
 			}
-			return { ok: false, fieldErrors };
 		}
+		return { ok: false, fieldErrors };
 	}
 	return { ok: true, data: result.data, fieldErrors: {} };
 }

@@ -93,11 +93,39 @@ export function VariantsTab({
 	orderedVariantIds,
 	stockedVariantIds,
 }: VariantsTabProps) {
+	const dangerZone = (canMutate || canDelete) && (
+		<div className="rounded-[10px] border border-destructive/40 bg-destructive/5 p-4">
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				<div>
+					<p className="font-medium text-destructive text-sm">
+						{canDelete ? "Excluir ferramenta" : "Arquivar ferramenta"}
+					</p>
+					<p className="text-muted-foreground text-xs">
+						{canDelete
+							? "Remove a ferramenta e todas as variantes. Não pode ser desfeito."
+							: "Tira a ferramenta da listagem e do site. Nada é perdido."}
+					</p>
+				</div>
+				<DeleteToolDialog
+					canDelete={canDelete}
+					facts={deletionFacts}
+					isArchived={isArchived}
+					toolId={toolId}
+					toolName={toolName}
+				/>
+			</div>
+		</div>
+	);
+
+	// Rascunho pode não ter variantes — a zona de exclusão continua acessível.
 	if (variants.length === 0) {
 		return (
-			<p className="py-12 text-center text-muted-foreground text-sm">
-				Nenhuma variante cadastrada.
-			</p>
+			<div className="flex flex-col gap-6">
+				<p className="py-12 text-center text-muted-foreground text-sm">
+					Nenhuma variante cadastrada.
+				</p>
+				{dangerZone}
+			</div>
 		);
 	}
 
@@ -144,29 +172,7 @@ export function VariantsTab({
 					</TableBody>
 				</Table>
 
-				{(canMutate || canDelete) && (
-					<div className="rounded-[10px] border border-destructive/40 bg-destructive/5 p-4">
-						<div className="flex flex-wrap items-center justify-between gap-3">
-							<div>
-								<p className="font-medium text-destructive text-sm">
-									{canDelete ? "Excluir ferramenta" : "Arquivar ferramenta"}
-								</p>
-								<p className="text-muted-foreground text-xs">
-									{canDelete
-										? "Remove a ferramenta e todas as variantes. Não pode ser desfeito."
-										: "Tira a ferramenta da listagem e do site. Nada é perdido."}
-								</p>
-							</div>
-							<DeleteToolDialog
-								canDelete={canDelete}
-								facts={deletionFacts}
-								isArchived={isArchived}
-								toolId={toolId}
-								toolName={toolName}
-							/>
-						</div>
-					</div>
-				)}
+				{dangerZone}
 			</div>
 		</TooltipProvider>
 	);

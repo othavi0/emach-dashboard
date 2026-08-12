@@ -5,10 +5,24 @@ import type { ToolDetailVariant } from "../_lib/tool-detail-data";
 import { SectionCard } from "./section-card";
 
 export function BarcodesCard({ variants }: { variants: ToolDetailVariant[] }) {
+	// Rascunho pode ter variante sem barcode — sem código não há o que renderizar.
+	const withBarcode = variants.filter(
+		(v): v is (typeof variants)[number] & { barcode: string } =>
+			v.barcode !== null
+	);
+	if (withBarcode.length === 0) {
+		return (
+			<SectionCard title="Códigos de barras">
+				<p className="text-muted-foreground text-sm">
+					Nenhuma variante tem código de barras ainda.
+				</p>
+			</SectionCard>
+		);
+	}
 	return (
 		<SectionCard title="Códigos de barras">
 			<ul className="flex flex-col">
-				{variants.map((v, index) => (
+				{withBarcode.map((v, index) => (
 					<li
 						className={
 							index > 0 ? "mt-3 border-border/60 border-t pt-3" : undefined

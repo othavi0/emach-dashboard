@@ -53,7 +53,7 @@ export interface ToolStockRow {
 	minQty: number;
 	quantity: number;
 	reorderPoint: number;
-	variantBarcode: string;
+	variantBarcode: string | null;
 	variantId: string;
 	variantSku: string;
 	variantVoltage: string | null;

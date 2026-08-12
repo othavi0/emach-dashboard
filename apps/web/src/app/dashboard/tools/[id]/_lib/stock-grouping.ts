@@ -12,7 +12,7 @@ export interface VariantStockGroup {
 }
 
 interface VariantInfo {
-	barcode: string;
+	barcode: string | null;
 	id: string;
 	isDefault: boolean;
 	sku: string;

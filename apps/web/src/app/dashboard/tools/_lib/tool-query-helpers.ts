@@ -30,10 +30,10 @@ export function normalizeToolPayload(input: ToolFormValues) {
 		ncm: nullableText(input.ncm),
 		cest: nullableText(input.cest),
 		powerWatts: toInt(input.powerWatts),
-		weightKg: input.weightKg.toFixed(3),
-		lengthCm: input.lengthCm.toFixed(2),
-		widthCm: input.widthCm.toFixed(2),
-		heightCm: input.heightCm.toFixed(2),
+		weightKg: input.weightKg?.toFixed(3) ?? null,
+		lengthCm: input.lengthCm?.toFixed(2) ?? null,
+		widthCm: input.widthCm?.toFixed(2) ?? null,
+		heightCm: input.heightCm?.toFixed(2) ?? null,
 		packagingWeightKg: input.packagingWeightKg.toFixed(3),
 		stackable: input.stackable,
 		shipsInOwnBox: input.shipsInOwnBox,
@@ -48,9 +48,9 @@ export function normalizeVariantValues(
 ): Omit<typeof toolVariant.$inferInsert, "id" | "toolId"> {
 	return {
 		sku: v.sku.trim(),
-		barcode: v.barcode.trim(),
+		barcode: nullableText(v.barcode),
 		voltage: v.voltage ? v.voltage : null,
-		priceAmount: v.priceAmount.toFixed(2),
+		priceAmount: v.priceAmount?.toFixed(2) ?? null,
 		isDefault: v.isDefault,
 		sortOrder: v.sortOrder,
 	};

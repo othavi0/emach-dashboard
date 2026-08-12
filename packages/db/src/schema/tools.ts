@@ -68,10 +68,12 @@ export const tool = pgTable(
 		invoiceModel: text("invoice_model"),
 		status: text("status").$type<ToolStatus>().notNull().default("draft"),
 		powerWatts: integer("power_watts"),
-		weightKg: numeric("weight_kg", { precision: 10, scale: 3 }).notNull(),
-		lengthCm: numeric("length_cm", { precision: 10, scale: 2 }).notNull(),
-		widthCm: numeric("width_cm", { precision: 10, scale: 2 }).notNull(),
-		heightCm: numeric("height_cm", { precision: 10, scale: 2 }).notNull(),
+		// Anuláveis para rascunho (captura rápida); o CHECK active_requires_shipping_data
+		// garante que tool ativa sempre tem peso/dimensões (a loja cota frete com eles).
+		weightKg: numeric("weight_kg", { precision: 10, scale: 3 }),
+		lengthCm: numeric("length_cm", { precision: 10, scale: 2 }),
+		widthCm: numeric("width_cm", { precision: 10, scale: 2 }),
+		heightCm: numeric("height_cm", { precision: 10, scale: 2 }),
 		manufacturerName: text("manufacturer_name"),
 		hsCode: text("hs_code"),
 		ncm: text("ncm"),
@@ -124,6 +126,12 @@ export const tool = pgTable(
 			"packaging_weight_non_negative",
 			sql`${table.packagingWeightKg} >= 0`
 		),
+		// Backstop do gate de publicação: rascunho pode nascer só com nome, mas
+		// tool ativa exige dados de frete completos (a loja consome pra cotar).
+		check(
+			"active_requires_shipping_data",
+			sql`${table.status} <> 'active' OR (${table.weightKg} IS NOT NULL AND ${table.lengthCm} IS NOT NULL AND ${table.widthCm} IS NOT NULL AND ${table.heightCm} IS NOT NULL)`
+		),
 	]
 );
 
@@ -135,9 +143,10 @@ export const toolVariant = pgTable(
 			.notNull()
 			.references(() => tool.id, { onDelete: "cascade" }),
 		sku: text("sku").notNull().unique(),
-		barcode: text("barcode").notNull(),
+		// Anuláveis para rascunho; o gate de publicação (app) exige ambos ao ativar.
+		barcode: text("barcode"),
 		voltage: voltageEnum("voltage"),
-		priceAmount: numeric("price_amount", { precision: 10, scale: 2 }).notNull(),
+		priceAmount: numeric("price_amount", { precision: 10, scale: 2 }),
 		isDefault: boolean("is_default").notNull().default(false),
 		visibleOnSite: boolean("visible_on_site").notNull().default(true),
 		sortOrder: integer("sort_order").notNull().default(0),
@@ -152,7 +161,11 @@ export const toolVariant = pgTable(
 	(table) => [
 		index("tool_variant_tool_id_idx").on(table.toolId),
 		unique("tool_variant_tool_sort_unique").on(table.toolId, table.sortOrder),
-		unique("tool_variant_barcode_key").on(table.barcode),
+		// Unicidade só quando preenchido — rascunhos sem barcode não colidem entre
+		// si. Nome preservado: o mapeamento de erro em actions.ts casa por ele.
+		uniqueIndex("tool_variant_barcode_key")
+			.on(table.barcode)
+			.where(sql`${table.barcode} IS NOT NULL`),
 		uniqueIndex("tool_variant_one_default_per_tool")
 			.on(table.toolId)
 			.where(sql`${table.isDefault} = true`),

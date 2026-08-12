@@ -68,9 +68,18 @@ describe("TOOL_STEPS", () => {
 });
 
 describe("getStepFieldErrors", () => {
-	it("acusa nome e categoria faltando no passo identity", () => {
+	it("em rascunho, acusa só o nome no passo identity (categoria é exigência de ativação)", () => {
 		const errors = getStepFieldErrors(EMPTY, "identity", false);
 		expect(errors.name).toBeTruthy();
+		expect(errors.categoryIds ?? errors.primaryCategoryId).toBeUndefined();
+	});
+
+	it("em active, acusa categoria faltando no passo identity", () => {
+		const errors = getStepFieldErrors(
+			{ ...EMPTY, name: "Furadeira", status: "active" as const },
+			"identity",
+			false
+		);
 		expect(errors.categoryIds ?? errors.primaryCategoryId).toBeTruthy();
 	});
 
@@ -79,8 +88,17 @@ describe("getStepFieldErrors", () => {
 		expect(errors.weightKg).toBeUndefined();
 	});
 
-	it("acusa peso faltando no passo logistics", () => {
+	it("em rascunho, peso ausente não é erro no passo logistics", () => {
 		const errors = getStepFieldErrors(EMPTY, "logistics", false);
+		expect(errors.weightKg).toBeUndefined();
+	});
+
+	it("em active, acusa peso faltando no passo logistics", () => {
+		const errors = getStepFieldErrors(
+			{ ...EMPTY, name: "Furadeira", status: "active" as const },
+			"logistics",
+			false
+		);
 		expect(errors.weightKg).toBeTruthy();
 	});
 

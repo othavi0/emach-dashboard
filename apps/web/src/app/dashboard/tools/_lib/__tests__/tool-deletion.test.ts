@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveToolDeletion } from "../tool-deletion";
+import { canDeleteToolByStatus, resolveToolDeletion } from "../tool-deletion";
 
 const facts = (
 	over: Partial<Parameters<typeof resolveToolDeletion>[0]> = {}
@@ -64,5 +64,36 @@ describe("resolveToolDeletion", () => {
 		if (!r.allowed) {
 			expect(r.reason).toContain("avaliação");
 		}
+	});
+});
+
+describe("canDeleteToolByStatus — gate por status × capability", () => {
+	it("tools.delete (super_admin) exclui qualquer status", () => {
+		for (const status of ["draft", "active", "discontinued"]) {
+			expect(
+				canDeleteToolByStatus(status, { hasDelete: true, hasUpdate: true })
+			).toBe(true);
+		}
+	});
+
+	it("tools.update (admin) exclui SÓ rascunho", () => {
+		expect(
+			canDeleteToolByStatus("draft", { hasDelete: false, hasUpdate: true })
+		).toBe(true);
+		expect(
+			canDeleteToolByStatus("active", { hasDelete: false, hasUpdate: true })
+		).toBe(false);
+		expect(
+			canDeleteToolByStatus("discontinued", {
+				hasDelete: false,
+				hasUpdate: true,
+			})
+		).toBe(false);
+	});
+
+	it("sem capability nenhuma, nem rascunho", () => {
+		expect(
+			canDeleteToolByStatus("draft", { hasDelete: false, hasUpdate: false })
+		).toBe(false);
 	});
 });

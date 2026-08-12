@@ -29,20 +29,25 @@ const optionalInt = z
 	.nonnegative("Deve ser maior ou igual a zero")
 	.optional()
 	.or(z.nan().transform(() => undefined));
-// Peso e dimensões são obrigatórios: a loja consome esses dados para cotar frete.
-const requiredPositiveNumber = z
-	.number({ error: "Campo obrigatório" })
-	.positive("Deve ser maior que zero");
+// Peso e dimensões viram obrigatórios só na publicação (publishRequirementIssues):
+// rascunho salva sem eles; a loja só consome tools ativas, que passam pelo gate.
+const optionalPositiveNumber = z
+	.number()
+	.positive("Deve ser maior que zero")
+	.optional()
+	.or(z.nan().transform(() => undefined));
 
 export const toolVariantSchema = z.object({
 	id: z.string().optional(),
 	sku: z.string().min(1, "SKU obrigatório"),
-	barcode: z.string().trim().min(1, "Código de barras obrigatório").max(128),
+	// Obrigatório só na publicação — rascunho pode não ter o código ainda.
+	barcode: z.string().trim().max(128).optional().or(z.literal("")),
 	voltage: z.enum(VOLTAGE_OPTIONS).optional().or(z.literal("")),
 	priceAmount: z
 		.number()
 		.nonnegative("Preço não pode ser negativo")
-		.refine((n) => !Number.isNaN(n), "Preço inválido"),
+		.optional()
+		.or(z.nan().transform(() => undefined)),
 	isDefault: z.boolean().default(false),
 	sortOrder: z.number().int().min(0),
 });
@@ -65,6 +70,25 @@ export const attributeValueInputSchema = z.object({
 	valueBool: z.boolean().nullable().optional(),
 });
 export type AttributeValueInput = z.infer<typeof attributeValueInputSchema>;
+
+/**
+ * Linha de variante que o usuário nunca tocou (estado inicial do editor):
+ * SKU e barcode vazios, sem voltagem e sem preço digitado. Filtrada antes da
+ * validação para que rascunho só-com-nome não esbarre em "SKU obrigatório".
+ */
+function isPristineVariant(row: unknown): boolean {
+	if (typeof row !== "object" || row === null) {
+		return false;
+	}
+	const v = row as Partial<ToolVariantInput>;
+	const sku = typeof v.sku === "string" ? v.sku.trim() : "";
+	const barcode = typeof v.barcode === "string" ? v.barcode.trim() : "";
+	const price =
+		typeof v.priceAmount === "number" && !Number.isNaN(v.priceAmount)
+			? v.priceAmount
+			: 0;
+	return sku === "" && barcode === "" && !v.voltage && price === 0 && !v.id;
+}
 
 function checkVariantDuplicates(
 	variants: ToolVariantInput[],
@@ -112,10 +136,10 @@ export const toolFormSchema = z
 		ncm: optionalString,
 		cest: optionalString,
 		powerWatts: optionalInt,
-		weightKg: requiredPositiveNumber,
-		lengthCm: requiredPositiveNumber,
-		widthCm: requiredPositiveNumber,
-		heightCm: requiredPositiveNumber,
+		weightKg: optionalPositiveNumber,
+		lengthCm: optionalPositiveNumber,
+		widthCm: optionalPositiveNumber,
+		heightCm: optionalPositiveNumber,
 		// Embalagem & envio — insumos do packItems no checkout (Frenet).
 		packagingWeightKg: z
 			.number()
@@ -125,17 +149,22 @@ export const toolFormSchema = z
 			.transform((v) => v ?? 0),
 		stackable: z.boolean().default(true),
 		shipsInOwnBox: z.boolean().default(false),
-		categoryIds: z
-			.array(z.string().min(1))
-			.min(1, "Selecione ao menos uma categoria"),
-		primaryCategoryId: z.string().min(1, "Selecione a categoria principal"),
+		// Categorias e variantes são exigências de publicação, não estruturais —
+		// rascunho salva só com nome (ver publishRequirementIssues).
+		categoryIds: z.array(z.string().min(1)),
+		primaryCategoryId: optionalString.default(""),
 		visibleOnSite: z.boolean().default(true),
 		images: z
 			.array(toolImageSchema)
 			.max(MAX_IMAGES, `Máximo de ${MAX_IMAGES} imagens`),
-		variants: z
-			.array(toolVariantSchema)
-			.min(1, "Adicione ao menos uma variante"),
+		// A linha pristine do editor (SKU e barcode vazios, sem preço) não conta —
+		// senão "salvar rascunho só com nome" tropeça no "SKU obrigatório" da
+		// linha inicial que o usuário nunca tocou.
+		variants: z.preprocess(
+			(v) =>
+				Array.isArray(v) ? v.filter((row) => !isPristineVariant(row)) : v,
+			z.array(toolVariantSchema)
+		),
 		attributeValues: z
 			.record(z.string(), attributeValueInputSchema)
 			.default({}),
@@ -151,7 +180,12 @@ export const toolFormSchema = z
 				message: "Vídeo e poster devem ser definidos juntos",
 			});
 		}
-		if (!data.categoryIds.includes(data.primaryCategoryId)) {
+		// Estrutural só quando há principal: exigir principal em si é regra de
+		// publicação (publishRequirementIssues), não de rascunho.
+		if (
+			data.primaryCategoryId !== "" &&
+			!data.categoryIds.includes(data.primaryCategoryId)
+		) {
 			ctx.addIssue({
 				code: "custom",
 				path: ["primaryCategoryId"],
@@ -159,7 +193,7 @@ export const toolFormSchema = z
 			});
 		}
 		const defaults = data.variants.filter((v) => v.isDefault);
-		if (defaults.length !== 1) {
+		if (data.variants.length > 0 && defaults.length !== 1) {
 			ctx.addIssue({
 				code: "custom",
 				path: ["variants"],
@@ -232,6 +266,62 @@ export function activationRequirementIssues(
 	return issues;
 }
 
+/**
+ * Campos que um tool ativo não pode ficar sem — dados que a loja consome
+ * (frete, preço, catálogo). Diferente da régua de ativação (transição-only,
+ * #290), vale SEMPRE que o status salvo é `active`: todo tool ativo tem esses
+ * dados, então nunca aprisiona edição — só impede removê-los de um tool ativo.
+ * Rascunho ignora tudo isto (só exige nome, no schema).
+ */
+export function publishRequirementIssues(
+	data: ToolFormValues
+): ActivationIssue[] {
+	const issues: ActivationIssue[] = [];
+	const missingShipping = (
+		["weightKg", "lengthCm", "widthCm", "heightCm"] as const
+	).filter((f) => data[f] === undefined);
+	for (const field of missingShipping) {
+		issues.push({
+			path: [field],
+			message: "Obrigatório para ativar — a loja usa para cotar frete",
+		});
+	}
+	if (data.categoryIds.length < 1) {
+		issues.push({
+			path: ["categoryIds"],
+			message: "Ativar exige ao menos uma categoria",
+		});
+	}
+	if (data.primaryCategoryId === "") {
+		issues.push({
+			path: ["primaryCategoryId"],
+			message: "Ativar exige uma categoria principal",
+		});
+	}
+	if (data.variants.length < 1) {
+		issues.push({
+			path: ["variants"],
+			message: "Ativar exige ao menos uma variante",
+		});
+	} else {
+		const missingBarcode = data.variants.some((v) => !v.barcode?.trim());
+		if (missingBarcode) {
+			issues.push({
+				path: ["variants"],
+				message: "Ativar exige código de barras em todas as variantes",
+			});
+		}
+		const missingPrice = data.variants.some((v) => v.priceAmount === undefined);
+		if (missingPrice) {
+			issues.push({
+				path: ["variants"],
+				message: "Ativar exige preço em todas as variantes",
+			});
+		}
+	}
+	return issues;
+}
+
 export interface ToolIssue {
 	message: string;
 	path: PropertyKey[];
@@ -239,7 +329,8 @@ export interface ToolIssue {
 
 /**
  * Superfície única de validação do form: invariantes estruturais (schema) +
- * requisitos de ativação quando `enforceActivation`. Consumido pelo submit e
+ * requisitos de publicação quando o status salvo é `active` + régua de
+ * ativação quando `enforceActivation` (transição). Consumido pelo submit e
  * pelos badges/erros por passo do wizard.
  */
 export function collectToolIssues(
@@ -253,13 +344,14 @@ export function collectToolIssues(
 			message: i.message,
 		}));
 	}
-	if (opts.enforceActivation) {
-		return activationRequirementIssues(parsed.data).map((i) => ({
-			path: [...i.path],
-			message: i.message,
-		}));
+	const issues: ToolIssue[] = [];
+	if (parsed.data.status === "active") {
+		issues.push(...publishRequirementIssues(parsed.data));
 	}
-	return [];
+	if (opts.enforceActivation) {
+		issues.push(...activationRequirementIssues(parsed.data));
+	}
+	return issues.map((i) => ({ path: [...i.path], message: i.message }));
 }
 
 function isSpecFilled(v: AttributeValueInput): boolean {

@@ -4,6 +4,22 @@ export interface ToolDeletionInput {
 	stockQty: number;
 }
 
+/**
+ * Quem pode excluir, por status: rascunho nunca foi público, então quem gere o
+ * catálogo (`tools.update`, admin+) pode descartá-lo; fora de rascunho a
+ * exclusão segue exclusiva de `tools.delete` (super_admin, ADR-0016). Pura —
+ * server (`deleteTool`) e UI (`tools/[id]/page.tsx`) aplicam a mesma regra.
+ */
+export function canDeleteToolByStatus(
+	status: string,
+	caps: { hasDelete: boolean; hasUpdate: boolean }
+): boolean {
+	if (caps.hasDelete) {
+		return true;
+	}
+	return status === "draft" && caps.hasUpdate;
+}
+
 export type ToolDeletionDecision =
 	| { allowed: true }
 	| { allowed: false; reason: string; suggestArchive: boolean };
