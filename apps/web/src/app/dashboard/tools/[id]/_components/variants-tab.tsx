@@ -392,13 +392,23 @@ function EditableRow({
 function DisabledDeleteIcon({ reason }: { reason: string }) {
 	return (
 		<Tooltip>
+			{/* O trigger é o <span>, não o botão: elemento `disabled` não emite
+			    eventos de ponteiro e o tooltip nunca abriria. */}
 			<TooltipTrigger
 				render={
-					<Button disabled size="icon-sm" variant="ghost">
-						<Lock aria-hidden className="size-3.5 text-muted-foreground" />
-					</Button>
+					<span
+						aria-label={reason}
+						className="inline-flex"
+						role="note"
+						// biome-ignore lint/a11y/noNoninteractiveTabindex: span é o único jeito de tornar o motivo do cadeado alcançável por teclado sem tirar o disabled do botão real
+						tabIndex={0}
+					/>
 				}
-			/>
+			>
+				<Button disabled size="icon-sm" variant="ghost">
+					<Lock aria-hidden className="size-3.5 text-muted-foreground" />
+				</Button>
+			</TooltipTrigger>
 			<TooltipContent>{reason}</TooltipContent>
 		</Tooltip>
 	);
