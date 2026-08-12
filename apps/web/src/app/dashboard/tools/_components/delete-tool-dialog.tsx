@@ -103,6 +103,7 @@ export function DeleteToolDialog({
 									e.preventDefault();
 									handleDelete();
 								}}
+								variant="destructive"
 							>
 								{isPending ? (
 									<>
