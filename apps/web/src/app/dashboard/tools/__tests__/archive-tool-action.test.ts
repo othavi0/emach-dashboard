@@ -88,5 +88,6 @@ describe("archiveTool", () => {
 		const result = await archiveTool("tool-1");
 
 		expect(result.ok).toBe(false);
+		expect(mockLogActivity).not.toHaveBeenCalled();
 	});
 });
