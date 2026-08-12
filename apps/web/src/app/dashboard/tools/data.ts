@@ -303,7 +303,8 @@ export async function fetchToolDeletionFacts(
 ): Promise<ToolDeletionFacts> {
 	const [orders, reviews, stock] = await Promise.all([
 		db
-			.select({ n: sql<number>`count(*)::int` })
+			// Pedidos distintos, não linhas de order_item — um pedido com 3 itens da ferramenta conta 1.
+			.select({ n: sql<number>`count(distinct ${orderItem.orderId})::int` })
 			.from(orderItem)
 			.innerJoin(toolVariant, eq(toolVariant.id, orderItem.variantId))
 			.where(eq(toolVariant.toolId, toolId)),
