@@ -142,19 +142,21 @@ export function VariantsTab({
 					</TableBody>
 				</Table>
 
-				{canDelete && (
+				{(canMutate || canDelete) && (
 					<div className="rounded-[10px] border border-destructive/40 bg-destructive/5 p-4">
 						<div className="flex flex-wrap items-center justify-between gap-3">
 							<div>
 								<p className="font-medium text-destructive text-sm">
-									Excluir ferramenta
+									{canDelete ? "Excluir ferramenta" : "Arquivar ferramenta"}
 								</p>
 								<p className="text-muted-foreground text-xs">
-									Remove a ferramenta e todas as variantes. Não pode ser
-									desfeito.
+									{canDelete
+										? "Remove a ferramenta e todas as variantes. Não pode ser desfeito."
+										: "Tira a ferramenta da listagem e do site. Nada é perdido."}
 								</p>
 							</div>
 							<DeleteToolDialog
+								canDelete={canDelete}
 								facts={deletionFacts}
 								isArchived={isArchived}
 								toolId={toolId}

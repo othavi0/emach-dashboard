@@ -22,18 +22,103 @@ import { archiveTool, deleteTool } from "../actions";
 import type { ToolDeletionFacts } from "../data";
 
 interface DeleteToolDialogProps {
+	canDelete: boolean;
 	facts: ToolDeletionFacts;
 	isArchived: boolean;
 	toolId: string;
 	toolName: string;
 }
 
-export function DeleteToolDialog({
+function buildStockNote(facts: ToolDeletionFacts): string | null {
+	if (facts.stockQty <= 0) {
+		return null;
+	}
+	const unit = facts.stockBranchCount > 1 ? "filiais" : "filial";
+	return `Ainda há ${facts.stockQty} un em ${facts.stockBranchCount} ${unit} — o estoque não será alterado.`;
+}
+
+/** Trigger + dialog para papéis com `tools.update` mas sem `tools.delete` (admin): só arquivar. */
+function ArchiveOnlyDialog({
+	facts,
+	toolId,
+	toolName,
+}: {
+	facts: ToolDeletionFacts;
+	toolId: string;
+	toolName: string;
+}) {
+	const router = useRouter();
+	const [open, setOpen] = useState(false);
+	const [isPending, startTransition] = useTransition();
+
+	function handleArchive() {
+		startTransition(async () => {
+			const result = await archiveTool(toolId);
+			if (result.ok) {
+				notify.success("Ferramenta arquivada");
+				setOpen(false);
+				router.refresh();
+				return;
+			}
+			notify.error(result.error);
+		});
+	}
+
+	const stockNote = buildStockNote(facts);
+
+	return (
+		<AlertDialog onOpenChange={setOpen} open={open}>
+			<AlertDialogTrigger
+				aria-label={`Arquivar ferramenta ${toolName}`}
+				render={<Button size="sm" variant="outline" />}
+			>
+				<Archive aria-hidden className="mr-1.5 size-3.5" />
+				Arquivar ferramenta
+			</AlertDialogTrigger>
+			<AlertDialogContent>
+				<AlertDialogHeader>
+					<AlertDialogTitle>Arquivar ferramenta?</AlertDialogTitle>
+					<AlertDialogDescription>
+						A ferramenta <strong>{toolName}</strong> sai da listagem e do site.
+						Nada é perdido.
+						{stockNote ? ` ${stockNote}` : ""}
+					</AlertDialogDescription>
+				</AlertDialogHeader>
+				<AlertDialogFooter>
+					<AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
+					<AlertDialogAction
+						disabled={isPending}
+						onClick={(e) => {
+							e.preventDefault();
+							handleArchive();
+						}}
+					>
+						{isPending ? (
+							<>
+								<Spinner /> Arquivando…
+							</>
+						) : (
+							"Arquivar"
+						)}
+					</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
+	);
+}
+
+/** Trigger + dialog para `tools.delete` (super_admin): exclusão, com fallback pra arquivar quando bloqueada. */
+function ToolDeletionDialog({
 	facts,
 	isArchived,
 	toolId,
 	toolName,
-}: DeleteToolDialogProps) {
+}: {
+	facts: ToolDeletionFacts;
+	isArchived: boolean;
+	toolId: string;
+	toolName: string;
+}) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
@@ -66,12 +151,7 @@ export function DeleteToolDialog({
 		});
 	}
 
-	const stockNote =
-		facts.stockQty > 0
-			? `Ainda há ${facts.stockQty} un em ${facts.stockBranchCount} ${
-					facts.stockBranchCount > 1 ? "filiais" : "filial"
-				} — o estoque não será alterado.`
-			: null;
+	const stockNote = buildStockNote(facts);
 
 	return (
 		<AlertDialog onOpenChange={setOpen} open={open}>
@@ -154,5 +234,27 @@ export function DeleteToolDialog({
 				)}
 			</AlertDialogContent>
 		</AlertDialog>
+	);
+}
+
+export function DeleteToolDialog({
+	canDelete,
+	facts,
+	isArchived,
+	toolId,
+	toolName,
+}: DeleteToolDialogProps) {
+	if (!canDelete) {
+		return (
+			<ArchiveOnlyDialog facts={facts} toolId={toolId} toolName={toolName} />
+		);
+	}
+	return (
+		<ToolDeletionDialog
+			facts={facts}
+			isArchived={isArchived}
+			toolId={toolId}
+			toolName={toolName}
+		/>
 	);
 }
