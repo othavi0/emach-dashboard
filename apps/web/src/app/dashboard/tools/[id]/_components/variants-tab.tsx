@@ -85,11 +85,9 @@ export function VariantsTab({
 	toolName,
 	canMutate,
 	canDelete,
-	// biome-ignore lint/correctness/noUnusedFunctionParameters: consumido pelo DeleteToolDialog reescrito na Task 5
-	deletionFacts,
+	deletionFacts: _deletionFacts,
 	highlightVariantId,
-	// biome-ignore lint/correctness/noUnusedFunctionParameters: consumido pelo DeleteToolDialog reescrito na Task 5
-	isArchived,
+	isArchived: _isArchived,
 	orderedVariantIds,
 	stockedVariantIds,
 }: VariantsTabProps) {
