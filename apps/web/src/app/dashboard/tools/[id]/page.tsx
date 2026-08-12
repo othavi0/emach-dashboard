@@ -83,7 +83,9 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 				<VariantsTab
 					canDelete={canDelete}
 					canMutate={canMutate}
+					deletionFacts={detail.deletionFacts}
 					highlightVariantId={variant}
+					isArchived={detail.tool.status === "discontinued"}
 					orderedVariantIds={detail.orderedVariantIds}
 					stockedVariantIds={detail.stockedVariantIds}
 					toolId={detail.tool.id}

@@ -12,6 +12,7 @@ import { and, asc, eq, gt, inArray, type SQL, sql } from "drizzle-orm";
 import { cache } from "react";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { requireCapability } from "@/lib/permissions";
+import { fetchToolDeletionFacts, type ToolDeletionFacts } from "../../data";
 
 export type ToolDetailRow = typeof tool.$inferSelect;
 
@@ -96,6 +97,7 @@ export interface ToolDetail {
 	branches: ToolDetailBranch[];
 	cartSummary: ToolCartSummary;
 	categories: ToolDetailCategory[];
+	deletionFacts: ToolDeletionFacts;
 	images: ToolDetailImage[];
 	orderedVariantIds: string[];
 	// Variantes com estoque > 0 em QUALQUER filial (sem branch-scope; ver
@@ -145,6 +147,7 @@ export const getToolDetail = cache(
 			cartRows,
 			stockedRows,
 			branches,
+			deletionFacts,
 		] = await Promise.all([
 			db
 				.select({
@@ -249,6 +252,7 @@ export const getToolDetail = cache(
 						: eq(branch.status, "active")
 				)
 				.orderBy(asc(branch.name)),
+			fetchToolDeletionFacts(id),
 		]);
 
 		const stockSummary = computeStockSummary(stockRows);
@@ -257,6 +261,7 @@ export const getToolDetail = cache(
 			tool: row.tool,
 			branches,
 			categories,
+			deletionFacts,
 			images,
 			orderedVariantIds: orderedRows.map((r) => r.variantId),
 			stockedVariantIds: stockedRows.map((r) => r.variantId),

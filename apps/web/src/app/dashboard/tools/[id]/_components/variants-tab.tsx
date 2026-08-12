@@ -37,13 +37,16 @@ import {
 	setVariantVisibility,
 	updateToolVariant,
 } from "../../actions";
+import type { ToolDeletionFacts } from "../../data";
 import type { ToolDetailVariant } from "../_lib/tool-detail-data";
 import { BarcodePopover } from "./barcode-popover";
 
 interface VariantsTabProps {
 	canDelete: boolean;
 	canMutate: boolean;
+	deletionFacts: ToolDeletionFacts;
 	highlightVariantId?: string;
+	isArchived: boolean;
 	orderedVariantIds: string[];
 	stockedVariantIds: string[];
 	toolId: string;
@@ -82,7 +85,11 @@ export function VariantsTab({
 	toolName,
 	canMutate,
 	canDelete,
+	// biome-ignore lint/correctness/noUnusedFunctionParameters: consumido pelo DeleteToolDialog reescrito na Task 5
+	deletionFacts,
 	highlightVariantId,
+	// biome-ignore lint/correctness/noUnusedFunctionParameters: consumido pelo DeleteToolDialog reescrito na Task 5
+	isArchived,
 	orderedVariantIds,
 	stockedVariantIds,
 }: VariantsTabProps) {
