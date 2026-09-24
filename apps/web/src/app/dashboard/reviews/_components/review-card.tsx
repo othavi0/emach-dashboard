@@ -8,7 +8,7 @@ import { StarRating } from "./star-rating";
 export function ReviewCard({ review }: { review: ReviewListItem }) {
 	return (
 		<Link
-			className="group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+			className="group flex h-full flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			href={`/dashboard/reviews/${review.id}`}
 		>
 			{/* Imagem do produto com badge de status */}
@@ -46,7 +46,7 @@ export function ReviewCard({ review }: { review: ReviewListItem }) {
 			</div>
 
 			{/* Rodapé edge-to-edge: estrelas (nota) + data */}
-			<div className="flex items-center justify-between border-border border-t px-4 py-2.5 text-muted-foreground text-xs">
+			<div className="mt-auto flex items-center justify-between border-border border-t px-4 py-2.5 text-muted-foreground text-xs">
 				<StarRating rating={review.rating} />
 				<span>{formatDate(review.createdAt)}</span>
 			</div>

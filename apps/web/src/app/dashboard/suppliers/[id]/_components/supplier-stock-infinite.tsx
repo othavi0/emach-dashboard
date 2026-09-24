@@ -94,7 +94,7 @@ function SupplierStockCard({ tool }: { tool: SupplierStockToolRow }) {
 			</div>
 
 			{/* Footer de 2 métricas: estoque geral + recebido */}
-			<div className="grid grid-cols-2 border-border border-t">
+			<div className="mt-auto grid grid-cols-2 border-border border-t">
 				<div className="flex flex-col items-center border-border border-r py-2.5">
 					<span className="font-bold text-[13px] text-foreground tabular-nums">
 						{tool.generalStock}

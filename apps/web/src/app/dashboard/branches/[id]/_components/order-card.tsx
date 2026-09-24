@@ -32,7 +32,7 @@ export function BranchOrderCard({ order }: { order: BranchOrderRow }) {
 				<OrderStatusBadge status={order.status as OrderStatus} />
 			</div>
 
-			<div className="flex flex-col items-center border-border border-t py-2.5">
+			<div className="mt-auto flex flex-col items-center border-border border-t py-2.5">
 				<span className="font-bold text-[18px] text-foreground tabular-nums">
 					{BRL.format(order.totalAmount)}
 				</span>

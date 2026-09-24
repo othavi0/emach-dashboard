@@ -77,7 +77,7 @@ export function BannerCard({
 	return (
 		<div
 			className={cn(
-				"group overflow-hidden rounded-[10px] border border-border bg-card transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm",
+				"group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm",
 				!item.isActive && "opacity-70"
 			)}
 			ref={setNodeRef}
@@ -127,7 +127,7 @@ export function BannerCard({
 				)}
 			</div>
 
-			<div className="px-3 pt-3">
+			<div className="px-3 pt-3 pb-3">
 				{item.title ? (
 					<h3 className="truncate font-semibold text-sm">{item.title}</h3>
 				) : (
@@ -155,7 +155,7 @@ export function BannerCard({
 				)}
 			</div>
 
-			<div className="mt-3 flex items-center justify-between border-border border-t px-3 py-2">
+			<div className="mt-auto flex items-center justify-between border-border border-t px-3 py-2">
 				<div className="flex items-center gap-1">
 					<Link
 						aria-label={`Editar ${item.title ?? "banner"}`}

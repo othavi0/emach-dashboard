@@ -94,7 +94,7 @@ export function OverviewTab({
 					</p>
 				</section>
 
-				<section className="overflow-hidden rounded-lg border border-border bg-card">
+				<section className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
 					<div className="px-4 pt-4 pb-3">
 						<h3 className="font-semibold text-muted-foreground text-xs uppercase tracking-wide">
 							Atributos técnicos · {attributes.length}
@@ -125,7 +125,7 @@ export function OverviewTab({
 							</div>
 						))
 					)}
-					<div className="border-border border-t bg-muted px-4 py-3">
+					<div className="mt-auto border-border border-t bg-muted px-4 py-3">
 						<Link
 							className="text-info text-xs hover:underline"
 							href={`/dashboard/categories/${categoryId}/edit`}

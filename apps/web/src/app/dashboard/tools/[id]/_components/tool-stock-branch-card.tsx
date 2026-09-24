@@ -67,7 +67,7 @@ export function ToolStockBranchCard({
 				)}
 			</div>
 
-			<div className="grid grid-cols-3 border-border border-t">
+			<div className="mt-auto grid grid-cols-3 border-border border-t">
 				<div className="flex flex-col items-center border-border border-r py-2.5">
 					<span
 						className={`font-bold text-[18px] tabular-nums ${quantityColor}`}

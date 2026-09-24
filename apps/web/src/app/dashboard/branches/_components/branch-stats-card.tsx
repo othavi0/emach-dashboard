@@ -81,7 +81,7 @@ export function BranchStatsCard({
 				{headerAction}
 			</div>
 
-			<div className="grid grid-cols-3 border-border border-t">
+			<div className="mt-auto grid grid-cols-3 border-border border-t">
 				{stats.map((stat, i) => (
 					<div
 						className={`flex flex-col items-center py-2.5 ${

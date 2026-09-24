@@ -144,7 +144,7 @@ export function OverviewTab({ detail, kpis }: Props) {
 					<CardHeader>
 						<CardTitle className="text-sm">Operação</CardTitle>
 					</CardHeader>
-					<CardContent className="flex flex-col gap-4">
+					<CardContent className="flex flex-1 flex-col gap-4">
 						<div>
 							<p className="text-muted-foreground text-xs uppercase tracking-wide">
 								Horário de funcionamento
@@ -195,7 +195,7 @@ export function OverviewTab({ detail, kpis }: Props) {
 								</p>
 							)}
 						</div>
-						<div className="-mx-4 -mb-4 grid grid-cols-2 border-border border-t">
+						<div className="-mx-4 mt-auto -mb-4 grid grid-cols-2 border-border border-t">
 							<div className="flex flex-col items-center border-border border-r py-2.5">
 								<span className="font-bold text-[18px] text-foreground tabular-nums">
 									{formatDate(detail.createdAt)}

@@ -67,7 +67,7 @@ export function OverviewTab({ detail, kpis }: Props) {
 							{detail.status === "active" ? "Ativo" : "Arquivado"}
 						</Badge>
 					</CardHeader>
-					<CardContent className="flex flex-col gap-4">
+					<CardContent className="flex flex-1 flex-col gap-4">
 						<dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 							<div>
 								<dt className="text-muted-foreground text-xs uppercase tracking-wide">
@@ -120,7 +120,7 @@ export function OverviewTab({ detail, kpis }: Props) {
 								</dd>
 							</div>
 						</dl>
-						<div className="-mx-4 -mb-4 grid grid-cols-2 border-border border-t">
+						<div className="-mx-4 mt-auto -mb-4 grid grid-cols-2 border-border border-t">
 							<div className="flex flex-col items-center border-border border-r py-2.5">
 								<span className="font-bold text-[14px] text-foreground tabular-nums">
 									{formatDate(detail.createdAt)}

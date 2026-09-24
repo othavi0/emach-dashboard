@@ -142,7 +142,7 @@ export function PickingOrderCard({
 	// Cards de outros operadores ficam esmaecidos (mockup A) nas tabs com dono.
 	const isForeign = tab !== "a_separar" && !isSelf;
 
-	const cardClassName = `group flex flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isForeign ? "opacity-60" : ""}`;
+	const cardClassName = `group flex h-full flex-col overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_0_1px_rgba(20,20,19,0.04)] transition-[border-color,box-shadow] hover:border-border/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isForeign ? "opacity-60" : ""}`;
 
 	const body = (
 		<>
@@ -196,7 +196,7 @@ export function PickingOrderCard({
 
 			{/* Barra de progresso para "em separação" */}
 			{progressPct !== null && (
-				<div className="px-4 pb-2">
+				<div className="mt-auto px-4 pb-2">
 					<div className="mb-1 flex justify-between text-[11px] text-muted-foreground">
 						<span>
 							{row.pickedUnits} de {row.unitCount} unidades
