@@ -59,6 +59,7 @@ uv run --env-file apps/web/.env scripts/remove-tool-image-bg.py --out /tmp/bg --
 
 - Ignora foto que já tem transparência ou cuja borda não é branca (pôster de vídeo, foto de ambiente). Rodar de novo só processa foto nova.
 - O `--apply` sobe o PNG revisado de `--out`, não recalcula.
+- Cada imagem pede cerca de 18 GB (medido: 5,4 GB de RAM + 13 GB de swap) e, com swap, leva cerca de 3,5 min em CPU. Em máquina de 16 GB, rode fora do terminal (`systemd-run --user -p MemoryHigh=5G -p MemoryMax=10G ...`) para o OOM não levar o terminal junto.
 - O original continua no bucket. Rollback: `rollback.csv` em `--out` tem `id,url_antiga,url_nova` para voltar com `UPDATE tool_image`.
 - A escrita não passa pelas server actions, então não registra atividade (`logUserActivity`).
 
