@@ -48,6 +48,20 @@ Validações de tipo e tamanho (**2 MB pós-compressão** via `MAX_SIZE_BYTES`, 
 - `deleteTool`: busca URLs antes do `DELETE tool` e limpa cada arquivo após o delete (cascade já removeu registros).
 - `removeAt` (gallery × button): chama `deleteToolImage` imediatamente mas o registro só some do DB se o form for salvo. Se usuário fechar sem salvar, arquivo **removido** do bucket mas URL ainda no state — divergência aceitável (user já sinalizou intenção de remover).
 
+### Remoção de fundo
+
+`scripts/remove-tool-image-bg.py` tira o fundo branco das fotos de `tool_image` com o modelo BiRefNet (via `rembg`, CPU) e uma correção que usa o fundo branco conhecido. Roda fora do app porque o modelo tem 973 MB.
+
+```bash
+uv run --env-file apps/web/.env scripts/remove-tool-image-bg.py --out /tmp/bg          # só gera PNGs para revisar
+uv run --env-file apps/web/.env scripts/remove-tool-image-bg.py --out /tmp/bg --apply  # sobe .webp novo e troca a URL
+```
+
+- Ignora foto que já tem transparência ou cuja borda não é branca (pôster de vídeo, foto de ambiente). Rodar de novo só processa foto nova.
+- O `--apply` sobe o PNG revisado de `--out`, não recalcula.
+- O original continua no bucket. Rollback: `rollback.csv` em `--out` tem `id,url_antiga,url_nova` para voltar com `UPDATE tool_image`.
+- A escrita não passa pelas server actions, então não registra atividade (`logUserActivity`).
+
 ## banner-images
 
 Armazena as imagens dos banners do site (desktop e mobile). Bucket **público** — leitura direta sem autenticação.
