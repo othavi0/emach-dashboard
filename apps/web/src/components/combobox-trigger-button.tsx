@@ -12,7 +12,7 @@ import type { ComponentProps } from "react";
  * focus ring-1/offset-1, aria-invalid — para que todo combobox fique pixel-idêntico aos
  * Selects vizinhos. Centraliza a única parte que precisa ser consistente (a className do
  * trigger), impedindo a divergência copy-paste que existia em 4 comboboxes hand-written
- * (h-9/h-10 + bg-transparent sem dark). Ver docs/superpowers/specs/2026-07-11-*.
+ * (h-9/h-10 + bg-transparent sem dark).
  *
  * O conteúdo (label + ícone trailing chevron/clear) fica por conta de cada call-site, que
  * legitimamente varia (single/multi/clear/invalid) — passado via `children`.

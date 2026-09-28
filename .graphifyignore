@@ -3,11 +3,9 @@
 # default pelo graphify — não precisam estar aqui. Liste só o que é específico deste repo.
 
 # --- Tooling de agente / skills (não é código do produto Emach) ---
-# As skills ficam triplicadas (.agents, .claude, .github) e inflavam ~metade do grafo.
-.agents/
+# As skills vendorizadas em .claude/skills inflavam ~metade do grafo.
 .claude/
 .superpowers/
-.github/skills/
 
 # --- Caches de build não cobertos pelo default ---
 .turbo/
