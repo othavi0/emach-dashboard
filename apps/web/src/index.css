@@ -13,3 +13,272 @@
 	top: 0;
 	left: 0;
 }
+
+/*
+ * Telas de auth (AuthShell): parede de painel perfurado e a ECI900 sendo
+ * escaneada. A textura e o mask radial não cabem em utilitário do Tailwind.
+ * O bloco global de reduced-motion só zera a duração, não o delay: sem o
+ * bloco do fim, a foto ficaria escondida por 0,5 s e as cotas por 2,9 s.
+ */
+.auth-wall {
+	--auth-ease: cubic-bezier(0.16, 1, 0.3, 1);
+	--auth-lit-x: 50%;
+	--auth-lit-y: 18%;
+	--auth-lit-r: 60%;
+	--auth-dim: color-mix(
+		in oklab,
+		var(--muted-foreground) 75%,
+		var(--background)
+	);
+	--auth-dim-offset: -22px;
+	background-color: oklch(0.15 0.006 65);
+}
+
+.auth-holes,
+.auth-holes-lit {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background-size: 28px 28px;
+}
+
+.auth-holes {
+	z-index: -2;
+	background-image: radial-gradient(
+		circle,
+		oklch(0.07 0.004 70) 0 2.6px,
+		oklch(0.22 0.008 65 / 0.8) 3.3px,
+		transparent 3.8px
+	);
+}
+
+.auth-holes-lit {
+	z-index: -1;
+	background-color: oklch(0.25 0.022 58);
+	background-image: radial-gradient(
+		circle,
+		oklch(0.05 0.004 70) 0 2.6px,
+		oklch(0.42 0.04 55) 3.3px,
+		transparent 3.9px
+	);
+	mask-image: radial-gradient(
+		var(--auth-lit-r) var(--auth-lit-r) at var(--auth-lit-x) var(--auth-lit-y),
+		oklch(0 0 0) 0%,
+		oklch(0 0 0 / 0.35) 45%,
+		transparent 100%
+	);
+}
+
+.auth-vignette {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background: linear-gradient(
+		0deg,
+		oklch(0.09 0.004 70 / 0.9) 0%,
+		transparent 55%
+	);
+}
+
+.auth-tool {
+	position: relative;
+	height: 220px;
+	aspect-ratio: 1175 / 1339;
+}
+
+.auth-tool-shadow {
+	position: absolute;
+	right: 12%;
+	bottom: -4%;
+	left: 12%;
+	height: 9%;
+	background: radial-gradient(closest-side, oklch(0 0 0 / 0.7), transparent);
+	border-radius: 50%;
+	filter: blur(6px);
+}
+
+.auth-scan-line {
+	pointer-events: none;
+	opacity: 0.9;
+	animation: auth-line-out 1200ms 2600ms var(--auth-ease) forwards;
+}
+
+.auth-scan-photo {
+	filter: drop-shadow(0 34px 30px oklch(0 0 0 / 0.6));
+	clip-path: inset(0 0 100% 0);
+	animation: auth-reveal 2600ms 500ms var(--auth-ease) forwards;
+}
+
+.auth-scan-beam {
+	position: absolute;
+	top: 0;
+	right: -6%;
+	left: -6%;
+	height: 2px;
+	background: var(--primary);
+	box-shadow:
+		0 0 18px 3px color-mix(in oklab, var(--primary) 55%, transparent),
+		0 0 2px oklch(0.85 0.08 45);
+	opacity: 0;
+	animation: auth-sweep 2600ms 500ms var(--auth-ease) forwards;
+}
+
+.auth-dims {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	opacity: 0;
+	animation: auth-fade-in 800ms 2900ms var(--auth-ease) forwards;
+}
+
+.auth-dim-h {
+	position: absolute;
+	right: 0;
+	bottom: var(--auth-dim-offset);
+	left: 0;
+	height: 1px;
+	background: var(--auth-dim);
+}
+
+.auth-dim-h::before,
+.auth-dim-h::after {
+	position: absolute;
+	top: -6px;
+	width: 1px;
+	height: 13px;
+	content: "";
+	background: var(--auth-dim);
+}
+
+.auth-dim-h::before {
+	left: 0;
+}
+
+.auth-dim-h::after {
+	right: 0;
+}
+
+.auth-dim-label {
+	position: absolute;
+	top: -9px;
+	left: 50%;
+	padding: 0 10px;
+	font:
+		500 12px / 18px var(--font-ibm-plex-mono),
+		monospace;
+	color: var(--muted-foreground);
+	letter-spacing: 0.04em;
+	background: oklch(0.14 0.006 65);
+	transform: translateX(-50%);
+}
+
+.auth-dim-v {
+	position: absolute;
+	top: 0;
+	right: var(--auth-dim-offset);
+	bottom: 0;
+	width: 1px;
+	background: var(--auth-dim);
+}
+
+.auth-dim-v::before,
+.auth-dim-v::after {
+	position: absolute;
+	left: -6px;
+	width: 13px;
+	height: 1px;
+	content: "";
+	background: var(--auth-dim);
+}
+
+.auth-dim-v::before {
+	top: 0;
+}
+
+.auth-dim-v::after {
+	bottom: 0;
+}
+
+@media (min-width: 900px) {
+	.auth-wall {
+		--auth-lit-x: 64%;
+		--auth-lit-y: 46%;
+		--auth-lit-r: 30%;
+		--auth-dim-offset: -40px;
+	}
+
+	.auth-vignette {
+		background:
+			linear-gradient(
+				90deg,
+				oklch(0.09 0.004 70 / 0.92) 0%,
+				oklch(0.09 0.004 70 / 0.4) 36%,
+				transparent 62%
+			),
+			radial-gradient(
+				120% 90% at 65% 50%,
+				transparent 55%,
+				oklch(0.07 0.004 70 / 0.7) 100%
+			);
+	}
+
+	/* O terceiro termo encolhe a ferramenta entre 900 e ~1100 px, onde a
+	   coluna do palco fica mais estreita que ela e cortaria a cota vertical. */
+	.auth-tool {
+		height: min(70vh, 640px, calc((100vw - 560px) * 1339 / 1175));
+	}
+}
+
+@keyframes auth-reveal {
+	to {
+		clip-path: inset(0 0 0 0);
+	}
+}
+
+@keyframes auth-line-out {
+	to {
+		opacity: 0.12;
+	}
+}
+
+@keyframes auth-sweep {
+	0% {
+		top: 0;
+		opacity: 1;
+	}
+	92% {
+		opacity: 1;
+	}
+	100% {
+		top: 100%;
+		opacity: 0;
+	}
+}
+
+@keyframes auth-fade-in {
+	to {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.auth-scan-line,
+	.auth-scan-photo,
+	.auth-scan-beam,
+	.auth-dims {
+		animation: none;
+	}
+
+	.auth-scan-line {
+		opacity: 0.12;
+	}
+
+	.auth-scan-photo {
+		clip-path: none;
+	}
+
+	.auth-dims {
+		opacity: 1;
+	}
+}
