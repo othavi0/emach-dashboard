@@ -30,9 +30,9 @@ export function ForgotPasswordForm() {
 	if (sent) {
 		return (
 			<div>
-				<h1 className="font-medium font-serif text-3xl uppercase tracking-[0.015em]">
+				<h2 className="font-sans font-semibold text-2xl tracking-tight">
 					Verifique seu email
-				</h1>
+				</h2>
 				<p className="mt-2 text-muted-foreground text-sm leading-relaxed">
 					Se houver uma conta com esse email, enviamos um link para redefinir a
 					senha. O link expira em 1 hora.
@@ -49,9 +49,9 @@ export function ForgotPasswordForm() {
 
 	return (
 		<div>
-			<h1 className="font-medium font-serif text-3xl uppercase tracking-[0.015em]">
+			<h2 className="font-sans font-semibold text-2xl tracking-tight">
 				Recuperar acesso
-			</h1>
+			</h2>
 			<p className="mt-1 text-muted-foreground text-sm">
 				Enviaremos um link de redefinição para o seu email.
 			</p>

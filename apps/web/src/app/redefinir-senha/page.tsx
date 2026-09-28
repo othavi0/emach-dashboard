@@ -38,9 +38,9 @@ async function ResetPasswordPageContent({
 				<ResetPasswordForm token={token} />
 			) : (
 				<div>
-					<h1 className="font-medium font-serif text-3xl uppercase tracking-[0.015em]">
+					<h2 className="font-sans font-semibold text-2xl tracking-tight">
 						Link inválido
-					</h1>
+					</h2>
 					<p className="mt-2 text-muted-foreground text-sm leading-relaxed">
 						Este link de redefinição não é válido. Solicite um novo na tela de
 						recuperação.

@@ -49,9 +49,9 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
 	return (
 		<div>
-			<h1 className="font-medium font-serif text-3xl uppercase tracking-[0.015em]">
+			<h2 className="font-sans font-semibold text-2xl tracking-tight">
 				Nova senha
-			</h1>
+			</h2>
 			<p className="mt-1 text-muted-foreground text-sm">
 				Defina uma senha para sua conta.
 			</p>
