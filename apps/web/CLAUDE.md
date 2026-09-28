@@ -168,3 +168,13 @@ O compiler **baila** (componente inteiro perde memoização) em: (a) `try` com `
 - **`server-only` em testes:** módulos que importam `server-only` (boundary do Next, ex: `src/lib/activity.ts`) são testáveis porque `vitest.config.ts` faz `resolve.alias['server-only'] → src/__mocks__/server-only.ts` (stub vazio). Ao adicionar teste para código que importa `server-only`, não precisa de `vi.mock` — o alias já resolve.
 - Mock de `@emach/db` por `vi.hoisted` + `vi.mock` (ver `__tests__/activity.test.ts` como referência de como mockar o query builder do Drizzle).
 - **No CI a suíte precisa de env dummy:** importar `@emach/db` dispara a validação de `@emach/env` no load. O step `Tests` do `ci.yml` provê valores **dummy** (não-secrets) que satisfazem o schema Zod; local o `.env` cobre. Sem env → `Invalid environment variables` no CI (mesmo com o DB mockado). Adicionar var nova obrigatória em `packages/env/src/server.ts` exige atualizar o bloco `env:` do CI.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
