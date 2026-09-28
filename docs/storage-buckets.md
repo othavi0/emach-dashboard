@@ -100,7 +100,7 @@ Salvar a URL resultante nas colunas de imagem de `banner`.
 
 Upload e delete acontecem **server-side** via server actions em `apps/web/src/app/dashboard/site/banners/_components/image-actions.ts` (`uploadBannerImage` / `deleteBannerImage`), gated por `site.update_banners` (exclusivo de `super_admin`), usando `uploadToPublicBucket`/`removeStorageObject` (`apps/web/src/lib/storage.ts`) com `SUPABASE_SERVICE_ROLE_KEY`. A constante do bucket é `BANNER_IMAGES_BUCKET` (`apps/web/src/lib/supabase-server.ts`). Toda operação é auditada em `userActivityLog` (`banner.image_uploaded` / `banner.image_deleted`). Bucket RLS permanece fechado para `anon` — apenas leitura pública via URL direta.
 
-Validação de tipo (JPG/PNG/WEBP) no server; o limite de tamanho vem do form via `maxBytes` (default **4 MB**).
+Validação de tipo (JPG/PNG/WEBP) no server; o limite de tamanho vem do form via `maxBytes`. O editor envia **4 MiB** para a imagem desktop e **2 MiB** para a mobile; 4 MiB é só o fallback do server.
 
 ## tool-videos
 
@@ -184,7 +184,7 @@ Validações de tipo e tamanho (**2 MB**, JPG/PNG/WEBP) acontecem no server (`up
 
 ### Cleanup de storage
 
-Sem cleanup: avatares antigos (trocados ou nunca salvos) não são removidos do bucket. Divergência aceita — mesmo padrão do `removeAt` de `tool-images`, custo de storage de fotos de perfil é desprezível.
+`updateOwnProfile` remove o avatar anterior do bucket em best-effort (falha só vai para o `logger`). Só fica órfão o upload que nunca foi salvo. Divergência aceita — custo de storage de fotos de perfil é desprezível.
 
 ## order-documents
 
@@ -219,7 +219,7 @@ VALUES (
 <orderId>/<uuid>.<ext>
 ```
 
-O **path** do objeto (não uma URL) é salvo em `order_attachment.file_url`. Signed URLs expiram — gerá-las só na leitura via `createSignedUrl()` (`apps/web/src/lib/storage.ts`). `getOrderDetail` assina cada anexo ao montar o detalhe do pedido.
+O **path** do objeto (não uma URL) é salvo em `order_attachment.file_url`. Signed URLs expiram — gerá-las só na leitura via `createSignedUrl()` (`apps/web/src/lib/storage.ts`). `getOrderDetail` não assina os anexos. A signed URL (TTL de 1 h) sai sob demanda de `signOrderAttachment` (`orders/_components/attachment-actions.ts`), que reautoriza `orders.read` com escopo de filial.
 
 ### Arquitetura de acesso
 
