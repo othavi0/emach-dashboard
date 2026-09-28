@@ -40,4 +40,4 @@ Religar a autorização com **dois eixos ortogonais**:
 
 ## Referências
 
-Design completo: `docs/superpowers/specs/2026-06-15-niveis-autorizacao-design.md`. Termos: ver CONTEXT.md (Role, Branch-scoping, Filial de fulfillment, Pedido na triagem, invariante #8).
+Design completo na spec do PR #175 (`docs/superpowers/specs/2026-06-15-niveis-autorizacao-design.md`, removida do repo em 2026-09-28; ler pelo histórico do git). Termos: ver CONTEXT.md (Role, Branch-scoping, Filial de fulfillment, Pedido na triagem, invariante #8).

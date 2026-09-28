@@ -7,6 +7,8 @@
 
 > **Para o time do `emach-ecommerce`.** Mudanças de schema no banco **compartilhado** introduzidas pela feature "fluxo de estoque com fornecedor por entrada" (ADR-0015 do dashboard). O dashboard é a fonte de verdade (ADR-0009); estas mudanças chegam ao e-commerce pelo **PR automático de sync de schema** (`sync-db-schema.yml`). Este documento descreve o que mudou e o que o e-commerce precisa fazer.
 
+
+> **Status (2026-09-28): histórico.** A migração já está no schema (`tool.supplier_id` não existe mais). O banco hoje é único (dev = prod = ecommerce), então as seções que separam "banco de dev" e "produção" descrevem o plano da época, não o ambiente atual.
 ## ⚠️ Atenção imediata (banco de dev compartilhado)
 
 O banco de **desenvolvimento é o mesmo** para os dois apps. As mudanças destrutivas abaixo **já foram aplicadas no banco de dev**. Ou seja: qualquer código do e-commerce que leia `tool.supplier_id` **já está quebrado em dev agora**. Trate como prioridade.
@@ -23,7 +25,7 @@ A coluna `tool.supplier_id` (e o índice `tool_supplier_id_idx`) foi **dropada**
 
 - Remover `supplierId` (`supplier_id`) da cópia do schema de `tool` (Drizzle).
 - Remover qualquer query, tipo ou componente que leia `tool.supplierId` / `t.supplier_id`. O tipo `Tool` (`typeof tool.$inferSelect`) **não tem mais** esse campo.
-- Em particular, a query `getToolBySlug` em `queries/catalog.ts` (sincronizada) **deixou de selecionar** `t.supplier_id AS "supplierId"`. Se o storefront usava `tool.supplierId` para algo (exibição, filtro), remover esse uso.
+- Em particular, a query `getToolBySlug` em `queries/tools.ts` (sincronizada) **deixou de selecionar** `t.supplier_id AS "supplierId"`. Se o storefront usava `tool.supplierId` para algo (exibição, filtro), remover esse uso.
 
 **SQL aplicado no banco (referência):**
 

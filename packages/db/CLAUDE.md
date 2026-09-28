@@ -14,9 +14,9 @@ Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte 
 - **Gotcha predicado de partial index:** `drizzle-kit push` casa índice por nome + colunas e **não faz diff do `WHERE`**. Mudar só o predicado (ex: `IN ('a','b')` → `IN ('a','b','c')`) reporta "Changes applied" mas é no-op — o índice no banco continua o antigo. Em dev, recriar manualmente: `DROP INDEX <nome>; CREATE [UNIQUE] INDEX ... WHERE (...)` numa transação, depois confirmar com `SELECT indexdef FROM pg_indexes WHERE indexname='<nome>'`. (Incidente #91.)
 - **Gotcha CHECK novo × dados existentes:** adicionar um `check()` via `db:sync` **falha** se alguma linha já viola (`ERROR: check constraint "x" is violated by some row`, SQLSTATE `23514`) — a coluna/index até é criada, mas o CHECK não. **Backfill/corrigir os dados ANTES.** Ex (ADR-0015): ao adicionar `entrada_requires_supplier` em `stock_movement`, 60 entradas legadas sem fornecedor foram convertidas pra `ajuste_inventario` antes do push.
 - **Drops:** PR explícito + comunicar ao app ecomerce (DB compartilhada). Em dev sem TTY (subagent/script), o `drizzle-kit push` de um drop pendura no prompt — fazer o `ALTER TABLE ... DROP COLUMN` direto via pg client + remover do schema TS; depois `db:push` vê schema≡banco (no-op). Coluna dropada leva índice/FK junto.
-- Quando produção entrar no horizonte: gerar baseline `0000` limpo a partir do schema atual e versionar a partir daí.
+- Quando o dado deixar de ser descartável: gerar baseline `0000` limpo a partir do schema atual e versionar a partir daí.
 
-**Drop & recreate em dev** (quando renames ambíguos quebram push sem TTY): `DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres, public;` via pg client, depois `bunx drizzle-kit push && bun db:apply-sql && bun db:seed-demo`. Só em dev.
+**Drop & recreate** (quando renames ambíguos quebram push sem TTY): `DROP SCHEMA public CASCADE` + push + `db:apply-sql` + `db:seed-demo`. ⛔ **Proibido sem autorização explícita do user na sessão:** o banco é único e compartilhado (dev = prod = ecommerce, ver aviso no CLAUDE.md da raiz).
 
 ## Triggers PL/pgSQL
 
@@ -31,7 +31,7 @@ Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte 
 - ID: `text("id").primaryKey()`, preencher com `crypto.randomUUID()` no caller.
 - FK: explicitar `onDelete: "cascade" | "restrict" | "set null"`. Default = `restrict` por integridade.
 - Money: `numeric(10, 2)` para preço/custo de produto; `numeric(12, 2)` em totais de pedido. **Nunca `real`/`double`**.
-- **Timestamp: sempre `timestamp("x", { withTimezone: true })`** (= `timestamptz`). Migrado em 2026-06-10 (todas as 78 colunas). **Nunca declarar `timestamp(...)` sem tz** — coluna naïve quebra paginação por cursor em runtime não-UTC: o cursor é serializado via `new Date(rawString).toISOString()`, que em dev BR (−03) injeta +3h, e o keyset `< ${cursor}::timestamp` passa a reincluir o item-cursor → loop de refetch + duplicate keys. Banco compartilhado: migração coordenada com ecommerce (issue ecommerce#79).
+- **Timestamp: sempre `timestamp("x", { withTimezone: true })`** (= `timestamptz`). Migrado em 2026-06-10 (todas as colunas da época). **Nunca declarar `timestamp(...)` sem tz** — coluna naïve quebra paginação por cursor em runtime não-UTC: o cursor é serializado via `new Date(rawString).toISOString()`, que em dev BR (−03) injeta +3h, e o keyset `< ${cursor}::timestamp` passa a reincluir o item-cursor → loop de refetch + duplicate keys. Banco compartilhado: migração coordenada com ecommerce (issue ecommerce#79).
 - Auditoria: `actorType pgEnum('actor_type', ['user','system'])` + FK do ator (user). **Nome da coluna varia por tabela:** `stockMovement.actorId`; as demais (`orderStatusHistory`, `clientAuditLog`, `supplierAuditLog`, `userActivityLog`) usam `actorUserId`. CHECK `actor_coherence` garante coerência.
 - "No máximo 1 marcado": `uniqueIndex(...).on(parentId).where(sql\`${isDefault} = true\`)` — ex `tool_variant.isDefault` (1 default por tool).
 - `unique()` em colunas de busca natural (sku, barcode, slug, document).
@@ -42,7 +42,7 @@ Quando um user pode ser deletado e a tabela tem FK `actorUserId` pra `user`, pre
 
 ## Exports
 
-`src/schema/index.ts` é um **barrel intencional** (marcado com `// biome-ignore lint/performance/noBarrelFile`). Re-exporta como API pública `@emach/db/schema`. Manter sincronizado ao criar arquivos novos.
+`src/schema/index.ts` é um **barrel intencional** (marcado com `// biome-ignore lint/performance/noBarrelFile`). Re-exporta o schema inteiro em `@emach/db/schema/index` (os consumidores importam por arquivo, ex. `@emach/db/schema/orders`). Manter sincronizado ao criar arquivos novos.
 
 Import preferido em consumidores: `import { category } from "@emach/db/schema/categories"` — barrel é fallback.
 
@@ -63,7 +63,7 @@ Sintoma: `Intl.DateTimeFormat.format(value)` lança `RangeError: Invalid time va
   ```
 
 - `db.query.X.findMany` (relational) e `db.select().from(...)` (query builder) **não** sofrem do bug — devolvem `Date`. Sem coerção.
-- Retornos de objetos inteiros: `coerceDates(obj, [...keys])` — função **interna** de `queries/catalog.ts` (não exportada). Para reuso fora dali, mover para `utils.ts` com export. `@emach/db/utils` exporta só `toDate`.
+- Retornos de objetos inteiros: `coerceDates(obj, [...keys])`. `@emach/db/utils` exporta `toDate` e `coerceDates` (usados por `queries/tools.ts`, `categories.ts`, `promotions.ts` e `reviews.ts`).
 - **Colunas `::date` (date-only) → off-by-one no display:** `db.execute` devolve `'YYYY-MM-DD'` (string). `new Date('2026-05-01')` parseia como **meia-noite UTC**, então `format()` em fuso negativo (dev BR = UTC-3) mostra o **dia anterior**. Para séries de data exibidas (eixo de gráfico), parsear como meia-noite **local** — helper `localDate(s)` em `queries/dashboard.ts` (`new Date(\`${s}T00:00:00\`)`). `toDate` não resolve isso (date-only não tem hora). Manifesta em dev BR; em prod Vercel-UTC fica correto, mas é latente.
 
 ## Armadilha: `db.execute<T>` devolve colunas em snake_case
@@ -106,9 +106,9 @@ Drizzle 0.45 embrulha o erro do driver numa `DrizzleQueryError` cujo `.message` 
 
 ## Schema compartilhado com app ecomerce (ADR-0009)
 
-Site ecomerce escreve em `order`, `orderItem`, `stockMovement`, `client*`, `review`, `consentLog`. Cópia do schema TS no repo `emach-ecommerce` é sincronizada **automaticamente por CI** — workflow `sync-db-schema.yml` abre PR no ecommerce sempre que `packages/db/src/{schema,queries,sql/triggers.sql,sql/rls.sql}` muda na `main` (direção unidirecional dashboard → ecommerce).
+Site ecomerce escreve em `order`, `orderItem`, `orderStatusHistory`, `stockMovement`, `client*`, `review`, `refundRequest`, `consentLog`, `cartEvent` e no contador de uso de `promotion`. Cópia do schema TS no repo `emach-ecommerce` é sincronizada **automaticamente por CI** — workflow `sync-db-schema.yml` abre PR no ecommerce sempre que `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` muda na `main` (direção unidirecional dashboard → ecommerce).
 
-**⚠️ Superfície de sync = só `schema/`, `queries/`, `sql/triggers.sql`, `sql/rls.sql`.** Um arquivo dentro dessa superfície **não pode importar de fora dela** (ex: `src/` raiz) — o ecommerce recebe a cópia mas não o irmão não-sincronizado e o `check-types` lá quebra com `TS2307 Cannot find module`. Incidente #88: `queries/dashboard.ts` importava `../order-status-groups` (raiz de `src/`). Helpers compartilhados por queries vivem **em `queries/`**.
+**⚠️ Superfície de sync = só `schema/`, `queries/`, `utils.ts`, `sql/triggers.sql`, `sql/rls.sql`.** Um arquivo dentro dessa superfície **não pode importar de fora dela** (ex: `src/` raiz; `utils.ts` é a única exceção da raiz, porque é espelhado) — o ecommerce recebe a cópia mas não o irmão não-sincronizado e o `check-types` lá quebra com `TS2307 Cannot find module`. Incidente #88: `queries/dashboard.ts` importava `../order-status-groups` (raiz de `src/`). Helpers compartilhados por queries vivem **em `queries/`**.
 
 **Atenção pós-refactor de variants:** `stock_level`, `stock_movement`, `order_item` referenciam `tool_variant.id` (não mais `tool.id`). Ecomerce envia `variantId` em pedidos e movimentos. `tool_variant` traz SKU vendável; `tool` é o produto-pai (info comum).
 
@@ -116,11 +116,11 @@ Mudanças nessas tabelas exigem coordenação de deploy.
 
 ## Queries owned-by-dashboard
 
-`packages/db/src/queries/*.ts` é ferramenta de leitura/regra de negócio que o storefront consome. Lista atual: `reviews.ts` (`canCreateReview`), `catalog.ts` (11 funções: `getTools`, `getToolBySlug`, `getCategoryTree`, ...), `store-settings.ts` (`getShippingSettings` — config de frete singleton lida pelo storefront).
+`packages/db/src/queries/*.ts` é ferramenta de leitura/regra de negócio que o storefront consome. Lista atual: `tools.ts` (`getTools`, `getToolBySlug`, `searchTools`...), `categories.ts` (`getCategoryTree`...), `promotions.ts`, `catalog-helpers.ts`, `reviews.ts` (`canCreateReview`), `store-settings.ts` (`getShippingSettings`, config de frete singleton lida pelo storefront), `shipping.ts`, `shipping-quote.ts`, `branch-cep.ts`, `dashboard.ts`, `dashboard-period.ts`, `order-status-groups.ts`.
 
 **Regra:** dashboard é fonte de verdade. Mudanças de regra começam aqui e propagam via CI. **Não editar em isolamento no ecommerce**.
 
-Assinatura padrão: `db: NodePgDatabase<Record<string, unknown>>` parametrizado (não singleton), tipos exportados via `export type`, sem `select *` (esconder `costAmount` em endpoints públicos).
+Assinatura padrão: `db: NodePgDatabase<Record<string, unknown>>` parametrizado (não singleton), tipos exportados via `export type`, sem `select *`.
 
 ## Storage de imagens (`tool-images`)
 
@@ -134,14 +134,14 @@ Detalhes (formatos aceitos, cap 2MB pós-compressão, bucket privado de anexos):
 
 ### Anonimização LGPD
 
-Não há script nem server action de anonimização de cliente ("direito ao esquecimento"). Só export existe (`client_export_log` + `dashboard/customers/export/`). **Implementar antes de produção.**
+Não há script nem server action de anonimização de cliente ("direito ao esquecimento"). Só export existe (`client_export_log` + `dashboard/customers/export/`). **Pendente** (ADR-0029).
 
 ### Gates role-based religados (ADR-0016) + overrides por usuário (ADR-0017)
 
-`requireCapability*`, `can()`, `requireRole`, `getUserBranchScope` enforçam (3 níveis + Branch-scoping) desde 2026-06-15. Ver `docs/adr/0016-religacao-gates-3-niveis-filial.md`. **`manager → admin` migrado e o valor `manager` removido do enum `user_role` em 2026-06-16** (enum agora = `super_admin`/`admin`/`user`; era alias de admin). **Pré-produção (dados):** popular `user_branch` (todo admin/user precisa de ≥1 filial — fail-closed deixa cego sem vínculo). Verificação: `SELECT id,email FROM "user" WHERE role IN ('admin','user') AND status='active' AND id NOT IN (SELECT user_id FROM user_branch)` deve voltar zero linhas.
+`requireCapability*`, `can()`, `requireRole`, `getUserBranchScope` enforçam (3 níveis + Branch-scoping) desde 2026-06-15. Ver `docs/adr/0016-religacao-gates-3-niveis-filial.md`. **`manager → admin` migrado e o valor `manager` removido do enum `user_role` em 2026-06-16** (enum agora = `super_admin`/`admin`/`user`; era alias de admin). **Invariante de dados:** popular `user_branch` (todo admin/user precisa de ≥1 filial — fail-closed deixa cego sem vínculo). Verificação: `SELECT id,email FROM "user" WHERE role IN ('admin','user') AND status='active' AND id NOT IN (SELECT user_id FROM user_branch)` deve voltar zero linhas.
 
 **Tabela `user_capability_override`** (`src/schema/user-capability-override.ts`) — overrides grant/revoke de capability por usuário. `capability` é `text` livre validado pelo registry em código (`isCapability()` em `src/lib/capabilities.ts`), **não pgEnum** — evita `ALTER TYPE` + `db:sync` a cada nova capability (push-only, ADR-0006). PK composta `(user_id, capability)`. Tabela vazia = no-op (comportamento idêntico ao role puro); rollout aditivo sem migração de dados. Ver ADR-0017.
 
 ## Scripts adicionais
 
-`bun db:seed-demo` (reconstrói DB de dev inteira) e `bun db:reset-demo` (só trunca demo) em `packages/db/scripts/`.
+`bun db:seed-demo` (trunca e repopula o banco inteiro) e `bun db:reset-demo` (só trunca demo) em `packages/db/scripts/`. ⛔ Os dois são destrutivos no banco único dev = prod: só com autorização explícita do user na sessão.

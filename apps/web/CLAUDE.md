@@ -14,11 +14,11 @@ Dashboard Next 16 / React 19. Regras gerais (auth invariantes, anti-patterns, go
 
 **Religado em 2026-06-15 (ADR-0016, substitui 0012).** `requireCapability`, `requireCapabilityOrRedirect`, `requireCapabilityWithContext`, `requireCapabilityWithContextOrRedirect`, `can` **enforçam** a matriz de 3 níveis (`super_admin`/`admin`/`user`). `requireCapabilityWithContext` valida tb `targetBranchIds ⊆ escopo` (Branch-scoping). Snapshot da matriz antiga (4 níveis, incluía `manager`) em `src/lib/permissions.disabled.ts` (não-importada, `@ts-nocheck`, só histórico). O valor `manager` foi removido do enum DB e de todo o código vivo em 2026-06-16 (era alias de admin — ver ADR-0016).
 
-**O padrão obrigatório em server actions continua sendo `await requireCapability(cap)` ou `requireCapabilityWithContext(cap, ctx)`** — assim, quando religar, todos os endpoints já estão cobertos sem varredura. **Nunca remover essas chamadas; novos endpoints precisam delas.**
+**O padrão obrigatório em server actions continua sendo `await requireCapability(cap)` ou `requireCapabilityWithContext(cap, ctx)`** — assim todo endpoint nasce coberto. **Nunca remover essas chamadas; novos endpoints precisam delas.**
 
 **Inclui as READ actions** (`fetch*`/`list*`/`get*` exportadas de um `actions.ts`): são endpoints POST chamáveis por qualquer sessão, **não só as mutations**. O audit de 2026-06 achou ~15 reads sem guard (branches/suppliers/stock/categories) e adicionou `<recurso>.read`. **Exceção:** funções em `data.ts`/`*-data.ts` são `server-only` (não-endpoints, guardadas pelo caller) — não precisam de guard próprio. Ver ADR-0018.
 
-Guard-rails mantidos dentro dos no-ops:
+Guard-rails adicionais:
 
 - `ensureActive(session)` — bloqueia `pending` / `suspended` (defesa-em-profundidade).
 - Self-action guard em `users.suspend` / `users.delete` / `users.update_role`.
@@ -28,7 +28,7 @@ Guard-rails mantidos dentro dos no-ops:
 
 Bootstrap do primeiro `super_admin` via SQL: `UPDATE "user" SET role='super_admin', status='active' WHERE email='...'`.
 
-Modelo completo: `docs/adr/0016-religacao-gates-3-niveis-filial.md` + `docs/superpowers/specs/2026-06-15-niveis-autorizacao-design.md`. **Pré-produção:** popular `user_branch` (todo admin/user precisa de ≥1 filial) + smoke multi-role.
+Modelo completo: `docs/adr/0016-religacao-gates-3-niveis-filial.md`. **Invariante de dados:** popular `user_branch` (todo admin/user precisa de ≥1 filial) + smoke multi-role.
 
 ### Overrides por usuário (ADR-0017)
 
@@ -66,8 +66,8 @@ Catálogo em **`src/lib/capabilities.ts`** (metadata `group/resource/action/defa
 
 Default ao construir detalhe de entidade (`/dashboard/<recurso>/[id]`) ou listagem de CRUD. Referência: filiais (`branches/[id]`). Adaptar ao domínio é permitido; o esqueleto é fixo. Novas entidades seguem; existentes migram aos poucos.
 
-- **Detalhe:** `EntityIdentityHeader` + `EntityClientTabs` (padrão canônico das 9 páginas de detalhe — tools, promotions, suppliers, categories, shipping/carriers, orders, branches, users, customers; PR #259 piloto, #264 shell compartilhado, #275 fundação, ADR-0024). Troca de tab é **100% client-side** (`window.history.replaceState`, **nunca** `router.replace` — não toca o servidor); `initialTab` clampado no server e resincronizado a partir da URL no mount/`popstate`. Contrato eager/lazy: **eager** = dado que já vem do `detail` (renderiza uma vez como Server Component, prop pro shell); **lazy** = dado pesado que não vem no detail, buscado sob demanda via `"use server"` action + `requireCapability` própria na 1ª ativação, via `LazyTab` (skeleton + error/retry). A ação primária do header (Editar / Vincular / Adicionar) é reativa no cliente via `useActiveTab` — **nunca** decidida por `sp.tab` no detalhe. **Nunca** pôr essa ação no corpo da tab nem fixa em todas as abas. `EntityTabs` (server-nav, sincroniza `?tab=` via `router.replace`) só para páginas **não-detalhe** com tabs (`shipping/page.tsx`, `site/settings/page.tsx`) e tabs de navegação com `href`.
-- **Cards de listagem:** reusar um dos 4 arquétipos (stat / media / identity / entity — `DESIGN.md` §4), não inventar shell novo. Footer **edge-to-edge** (`border-t` até a borda; `-mx-4 px-4` quando o card tem padding `p-4`).
+- **Detalhe:** `EntityIdentityHeader` + `EntityClientTabs` (padrão canônico das 8 páginas de detalhe — tools, promotions, suppliers, categories, orders, branches, users, customers; PR #259 piloto, #264 shell compartilhado, #275 fundação, ADR-0024). Troca de tab é **100% client-side** (`window.history.replaceState`, **nunca** `router.replace` — não toca o servidor); `initialTab` clampado no server e resincronizado a partir da URL no mount/`popstate`. Contrato eager/lazy: **eager** = dado que já vem do `detail` (renderiza uma vez como Server Component, prop pro shell); **lazy** = dado pesado que não vem no detail, buscado sob demanda via `"use server"` action + `requireCapability` própria na 1ª ativação, via `LazyTab` (skeleton + error/retry). A ação primária do header (Editar / Vincular / Adicionar) é reativa no cliente via `useActiveTab` — **nunca** decidida por `sp.tab` no detalhe. **Nunca** pôr essa ação no corpo da tab nem fixa em todas as abas. `EntityTabs` (server-nav, sincroniza `?tab=` via `router.replace`) só para páginas **não-detalhe** com tabs (`shipping/page.tsx`, `site/settings/page.tsx`) e tabs de navegação com `href`.
+- **Cards de listagem:** reusar um dos 5 arquétipos (stat / media / identity / entity / row — `DESIGN.md` §4), não inventar shell novo. Footer **edge-to-edge** (`border-t` até a borda; `-mx-4 px-4` quando o card tem padding `p-4`).
 - **Mutação:** editar simples = drawer (`Sheet` via `?edit=1`); criar ou form complexo (muitos campos, ex: tool) = página (`/new`); destrutivo = `AlertDialog` controlado (`open` state, `e.preventDefault()` no action + fechar no sucesso, `stopPropagation` se dentro de card clicável). Botão destrutivo **nunca** `variant="default"` (coral) — usar `destructive`/`outline`/`ghost`.
 - **Badge de contagem em tab:** `secondary` (`TabsCountBadge` no Tabs base; `secondary rounded-md` no `EntityClientTabs`/`EntityTabs`). Preferir count vindo de KPI agregado (ex: `kpis.teamSize`) a carregar a coleção inteira só pra `.length` — assim a tab carrega lazy.
 - **Cards de listagem não têm ação de editar inline.** Editar é sempre via detalhe da entidade (drawer `?edit=1`). Atalhos de navegação (ex: ver estoque) são permitidos como `<Link>` ícone `ghost` com `border border-border bg-muted`.
@@ -105,7 +105,7 @@ O WHERE da listagem de pedidos vive SÓ em `dashboard/orders/_lib/orders-where.t
 
 **Dois eixos ORTOGONAIS** governam as tabs — confundir os dois é o erro clássico aqui:
 
-- **Etapa** (abas exclusivas entre si): `paid` → `preparing` ("Em separação") → `picked` ("Separado") → `shipped` → `delivered`. `picked`/`preparing` dividem o MESMO status `preparing` pela ÚLTIMA sessão de picking (`picking: "picked" | "not_picked"` no `OrderTabDef`, subquery `latestPickingStatus` com o MESMO `ORDER BY started_at DESC, id DESC` do LATERAL `lp` de `data.ts` — divergir a ordenação dessincroniza badge×tab).
+- **Etapa** (abas exclusivas entre si): `paid` → `preparing` ("Em separação") → `picked` ("Pronto para enviar") → `shipped` → `delivered`. `picked`/`preparing` dividem o MESMO status `preparing` pela ÚLTIMA sessão de picking (`picking: "picked" | "not_picked"` no `OrderTabDef`, subquery `latestPickingStatus` com o MESMO `ORDER BY started_at DESC, id DESC` do LATERAL `lp` de `data.ts` — divergir a ordenação dessincroniza badge×tab).
 - **Atraso** (`late`, computada — não é status): `paid`/`preparing` ≥72h, com **relógio POR ETAPA** (spec 2026-07-11) — `preparing` conta de `COALESCE(preparing_at, paid_at, created_at)`, `paid` de `COALESCE(paid_at, created_at)`. É **overlay** (spec 2026-07-13): o pedido atrasado NÃO sai da aba da própria etapa (nenhuma aba de etapa carrega condição inversa de lateness) e a pill `?lateStatus=paid|preparing|picked` estreita a listagem dentro de `late`, espelhando as etapas 1:1 (`preparing` na pill exclui os já separados, via `effectiveTabPicking`).
 
 Mexeu na régua, mexa junto em `_lib/lateness.ts` (48/72h) + `fulfillmentAge` + os counts `is_late`/`is_picked` de `data.ts` + `foldTabCounts` (que soma o atrasado em `late`/`late_paid`/`late_preparing`/`late_picked` **e** no bucket da etapa — o mesmo pedido conta nos dois lugares; `late_*` alimenta as pills).
@@ -134,11 +134,11 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 
 - **NÃO habilitar `cacheComponents` (PPR) — ADR-0022.** Foi tentado (006-B) e revertido: o PPR mostra a casca estática da rota nova **na hora** na navegação → força skeleton ou tela preta, **incompatível com o freeze de navegação do #222** (segura a página atual + barra de progresso). Ganho marginal num dashboard autenticado. Corolário: navegação **não usa `loading.tsx`** (o freeze depende da ausência dele). Comportamento de nav sob/sem PPR **só é confiável em `next build` + `next start`** — o `next dev` não prerenderiza a casca e engana.
 
-`cacheTag` por feature (`'orders'`, `'customers'`, `'site-banners'`...). `revalidateTag` em mutations. Ver skill `next-cache-components`.
+Cache de dado: `unstable_cache` com `tags` (ex.: `computeOrdersTabCounts` em `orders/data.ts`, tag `ORDERS_COUNTS_TAG`) e `revalidateTag(tag, "max")` nas mutations. `"site-banners"` só é revalidada aqui; nenhum cache deste app usa essa tag.
 
 - **Next 16 exige o 2º arg `revalidateTag(tag, profile)`** — a forma de 1 arg está **deprecada** e quebra o build (`check-types` aceita, build NÃO). Usar `revalidateTag(tag, "max")` (profile recomendado, stale-while-revalidate). Canônico: `site/banners/actions.ts`.
 
-**Dedup request-scoped sem Cache Components:** fetcher chamado em mais de um lugar no mesmo render (ex: `fetchDashboardCounts` no `layout.tsx` para badges **e** na `page.tsx` para o painel) → envolver em `cache()` do `react`. Dedupa a query no mesmo request sem precisar ligar `use cache`/Cache Components. Só funciona para a **mesma** função com os mesmos args; queries diferentes que contam o mesmo dado não deduplicam (ver issue de extrair counts num único fetch).
+**Dedup request-scoped sem Cache Components:** fetcher chamado em mais de um lugar no mesmo render (ex: badge no layout e painel na page lendo a mesma contagem) → envolver em `cache()` do `react`. Dedupa a query no mesmo request sem precisar ligar `use cache`/Cache Components. Só funciona para a **mesma** função com os mesmos args; queries diferentes que contam o mesmo dado não deduplicam (ver issue de extrair counts num único fetch).
 
 ## Listas drag-reorder (dnd-kit)
 
@@ -163,8 +163,18 @@ O compiler **baila** (componente inteiro perde memoização) em: (a) `try` com `
 
 ## Testes
 
-`bun --cwd apps/web test` (vitest, `environment: node`). Suíte verde (96 arquivos / 694 testes em 2026-07-13).
+`bun --cwd apps/web test` (vitest, `environment: node`). 
 
 - **`server-only` em testes:** módulos que importam `server-only` (boundary do Next, ex: `src/lib/activity.ts`) são testáveis porque `vitest.config.ts` faz `resolve.alias['server-only'] → src/__mocks__/server-only.ts` (stub vazio). Ao adicionar teste para código que importa `server-only`, não precisa de `vi.mock` — o alias já resolve.
 - Mock de `@emach/db` por `vi.hoisted` + `vi.mock` (ver `__tests__/activity.test.ts` como referência de como mockar o query builder do Drizzle).
 - **No CI a suíte precisa de env dummy:** importar `@emach/db` dispara a validação de `@emach/env` no load. O step `Tests` do `ci.yml` provê valores **dummy** (não-secrets) que satisfazem o schema Zod; local o `.env` cobre. Sem env → `Invalid environment variables` no CI (mesmo com o DB mockado). Adicionar var nova obrigatória em `packages/env/src/server.ts` exige atualizar o bloco `env:` do CI.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

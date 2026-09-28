@@ -29,9 +29,7 @@
       "!packages/db/src/migrations",
       "!**/.superpowers",
       "!**/.impeccable",
-      "!**/.agents",
       "!**/.claude",
-      "!**/.github/skills",
       "!**/graphify-out"
     ]
   },

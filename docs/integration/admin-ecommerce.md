@@ -49,6 +49,12 @@ Cada tabela tem um dono primário (quem cria e mantém os registros) e pode ter 
 | `consent_log`         | E-commerce       | Dashboard   | Consentimentos LGPD do cliente. Dashboard lê para auditoria de compliance.                       |
 | `client_audit_log`    | Dashboard        | Dashboard   | Mutações de dados de cliente feitas pelo staff. E-commerce não toca.                             |
 | `client_export_log`   | Dashboard        | Dashboard   | Registro de exports CSV/LGPD. E-commerce não toca.                                               |
+| `order_event`        | Dashboard        | Dashboard   | Eventos operacionais do pedido que não mudam status (`tracking_set`, `branch_assigned`, `shipping_reviewed`, `ship_forced`). |
+| `refund_request`     | Shared           | Ambos       | Fonte de verdade do reembolso (ADR-0025). O cliente abre a solicitação no e-commerce; o staff revisa e executa no dashboard. |
+| `stock_alert_sent`   | Dashboard        | Dashboard   | Controle de alertas de estoque já enviados pelo cron `/api/cron/stock-alerts`. |
+| `supplier_audit_log` | Dashboard        | Dashboard   | Mutações de fornecedor feitas pelo staff. |
+| `user_activity_log`  | Dashboard        | Dashboard   | Feed de atividade do staff (ADR-0011). |
+| `user_capability_override`| Dashboard        | Dashboard   | Overrides de capability por usuário (ADR-0017). |
 
 ---
 
@@ -80,7 +86,7 @@ Helper compartilhado em `@emach/db/queries/branch-cep`:
 
 ## Configurações de frete (`store_settings` + `getShippingSettings`)
 
-Singleton (`store_settings`, `id='singleton'`) editado só no dashboard (`/dashboard/site/settings`, aba Frete). Define a **origem do despacho** e a **política de seguro** da cotação da loja.
+Singleton (`store_settings`, `id='singleton'`) editado só no dashboard (`/dashboard/shipping`). Define a **origem do despacho** e a **política de seguro** da cotação da loja.
 
 Helper compartilhado em `@emach/db/queries/store-settings`:
 
@@ -163,7 +169,7 @@ foi removido em 2026-07-03 (issue #287 do dashboard).
 | `shipping_amount`      | `numeric(12,2)` em BRL                                           | Sim         | Custo de frete (default `0`).                                                                         |
 | `total_amount`         | `numeric(12,2)` em BRL                                           | Sim         | `subtotal - discount + shipping`.                                                                     |
 | `shipping_address`     | `jsonb` com shape `ShippingAddress`                              | Sim         | Snapshot do endereço no momento da compra. Ver shape abaixo.                                          |
-| `created_at`           | `timestamp` UTC                                                  | Sim         | `defaultNow()` — deixar o DB preencher.                                                               |
+| `created_at`           | `timestamptz`                                                    | Sim         | `defaultNow()` — deixar o DB preencher.                                                               |
 | `payment_method`       | `text`                                                           | Não         | Ex.: `"pix"`, `"credit_card"`. Preencher quando conhecido.                                            |
 | `payment_provider_ref` | `text`                                                           | Não         | ID da cobrança no Asaas (ex.: `pay_abc123`). Preencher após criar cobrança no gateway.               |
 | `branch_id`            | FK → `branch.id`                                                 | Não         | Filial de fulfillment. O admin define em `preparing`; o e-commerce pode deixar nulo na criação.      |
@@ -222,7 +228,6 @@ auto-promo**. A invariante `subtotal − discount + shipping = total` fecha nume
 | `length_cm`        | `numeric(10,2)`         | Não         | Dimensões para frete.                                                           |
 | `width_cm`         | `numeric(10,2)`         | Não         | Dimensões para frete.                                                           |
 | `height_cm`        | `numeric(10,2)`         | Não         | Dimensões para frete.                                                           |
-| `cost`             | `numeric(12,2)` em BRL  | Não         | Snapshot do custo de aquisição copiado de `tool_variant.cost` no momento do checkout, para análise de margem pelo admin. **Campo interno — nunca renderizar no checkout nem em qualquer tela do cliente.** O e-commerce deve gravá-lo na inserção mas não pode exibi-lo. |
 
 > **Importante:** `order_item` é imutável após o INSERT. Os snapshots de nome, SKU, voltagem, dimensões e NCM ficam congelados — mudanças posteriores na Tool ou na Variant não afetam o histórico do pedido.
 
@@ -354,7 +359,7 @@ Na confirmação do pedido (transição para `paid`):
 - Qualquer write automático: `actor_type='system'`, sem `actor_id` (CHECK `actor_coherence`).
 
 A promoção **automática** (`type='promotion'`) **não** passa por aqui — já é aplicada no preço de
-listagem por `packages/db/src/queries/catalog.ts`, que escolhe o **maior desconto efetivo** entre
+listagem por `packages/db/src/queries/tools.ts` (com `promotions.ts`), que escolhe o **maior desconto efetivo** entre
 a promoção global (`applies_to_all`) e a específica. Cupom e promoção automática nunca somam: o
 catálogo decide a vitrine; o cupom decide o checkout.
 
@@ -567,7 +572,7 @@ canvas do editor **e** pelo card da listagem — é a implementação de referê
 
 ## Regra de sincronização do schema TS
 
-As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **automatizada por CI** — o workflow `sync-db-schema.yml` espelha `packages/db/src/{schema,queries,sql/triggers.sql}` para o repo `emach-ecommerce` via Pull Request automático sempre que esses arquivos mudam na `main`. Direção unidirecional: dashboard → ecommerce. Ver ADR-0009.
+As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **automatizada por CI** — o workflow `sync-db-schema.yml` espelha `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` para o repo `emach-ecommerce` via Pull Request automático sempre que esses arquivos mudam na `main`. Direção unidirecional: dashboard → ecommerce. Ver ADR-0009.
 
 Quando qualquer arquivo em `packages/db/src/schema/` for alterado:
 

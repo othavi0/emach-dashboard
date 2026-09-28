@@ -2,12 +2,12 @@
 
 Dashboard interno + base para futuro ecomerce BR. Monorepo Bun + Turborepo. Auth dual (Better Auth) sobre Supabase Postgres.
 
-> **Para agentes/IA:** o guia canônico de stack, regras, design e workflows é `CLAUDE.md` no root (espelhado em `AGENTS.md`). Sistema visual completo em `DESIGN.md`.
+> **Para agentes/IA:** o guia canônico de stack, regras, design e workflows é `CLAUDE.md` no root. Sistema visual completo em `DESIGN.md`.
 
 ## Stack
 
 - **Runtime:** Bun 1.3 (workspaces + catalog)
-- **Build:** Turborepo 2.9 (TUI)
+- **Build:** Turborepo 2.11 (TUI)
 - **Frontend:** Next 16 + React 19 (`apps/web`, port 3001)
 - **UI:** shadcn/ui + Tailwind 4 + Base UI React (`packages/ui`)
 - **DB:** PostgreSQL via Supabase + Drizzle ORM (`packages/db`)
@@ -32,8 +32,8 @@ PostgreSQL + Drizzle ORM via Supabase.
 3. Aplicar schema (push-only — ver ADR-0006):
 
 ```bash
-bun db:sync                                  # drizzle-kit push + triggers + indexes
-bun --cwd packages/db db:seed-demo           # fixture completo de dev (trunca + popula + verifica invariantes)
+bun db:sync                                  # drizzle-kit push + triggers + RLS
+# ⛔ não rode db:seed-demo: o banco é único (dev = prod), e o seed trunca tudo
 ```
 
 Servidor de desenvolvimento:
@@ -78,7 +78,7 @@ Blocks específicos do app: rodar shadcn CLI dentro de `apps/web` (não em `pack
 emach-dashboard/
 ├── apps/
 │   └── web/                         # Next 16 dashboard (port 3001)
-│       └── src/app/dashboard/{tools,categories,suppliers,branches,stock,promotions,orders,reviews,customers,users,site}
+│       └── src/app/dashboard/{tools,categories,suppliers,branches,stock,promotions,orders,separacao,shipping,reviews,customers,users,site,dev-preview}
 ├── packages/
 │   ├── ui/                          # shadcn/ui primitives + globals.css
 │   ├── auth/                        # Better Auth dashboard: dashboard.ts (ecommerce no repo ecommerce — ADR-0004)
@@ -92,11 +92,12 @@ emach-dashboard/
 │   └── storage-buckets.md
 ├── scripts/
 │   ├── clean.sh
-│   └── validate-bts.mjs
-├── CLAUDE.md                        # Guia canônico para Claude Code (e Codex via AGENTS.md)
+│   ├── remove-tool-image-bg.py
+│   └── sync-fork.sh
+├── CLAUDE.md                        # Guia canônico para Claude Code
 ├── DESIGN.md                        # Sistema visual industrial-workshop dark + coral + condensada
 ├── PRODUCT.md                       # Register product + personality + anti-references
-└── .mcp.json                        # MCP servers: context7, supabase, shadcn, ...
+└── .mcp.json                        # MCP servers: supabase, shadcn, next-devtools, better-auth
 ```
 
 ## Available Scripts
@@ -109,10 +110,10 @@ emach-dashboard/
 | `bun check-types`                                   | `tsc --noEmit` em todos os workspaces                                     |
 | `bun check`                                         | Ultracite check (lint/format dry-run; falha se issue)                     |
 | `bun fix`                                           | Ultracite fix (aplica auto-format)                                        |
-| `bun db:sync`                                       | drizzle-kit push + triggers + indexes (push-only — ADR-0006)              |
-| `bun db:push`                                       | Só o schema Drizzle (sem triggers/indexes)                                |
+| `bun db:sync`                                       | drizzle-kit push + triggers + RLS (push-only — ADR-0006)                  |
+| `bun db:push`                                       | Só o schema Drizzle (sem triggers/RLS)                                    |
 | `bun db:studio`                                     | UI inspetora de tabelas (drizzle-kit)                                     |
 | `bun --cwd packages/db db:apply-sql`                | Aplica `src/sql/{triggers,rls}.sql` (triggers + RLS deny-all, idempotente) |
-| `bun --cwd packages/db db:seed-demo`                | Fixture completo de dev (trunca + popula + verifica invariantes)          |
-| `bun --cwd packages/db db:reset-demo`               | Só trunca as tabelas demo (estado limpo, sem repopular)                   |
+| `bun --cwd packages/db db:seed-demo`                | ⛔ Trunca e repopula o banco único (dev = prod); só com autorização       |
+| `bun --cwd packages/db db:reset-demo`               | ⛔ Trunca as tabelas demo no banco único; só com autorização               |
 | `bun clean`                                         | Remove `node_modules` + caches Turbo/Next                                 |

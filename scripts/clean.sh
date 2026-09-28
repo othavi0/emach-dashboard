@@ -9,7 +9,7 @@
 #   ./scripts/clean.sh -y --cache   # combine flags
 #
 # Safe by design: only removes well-known artifact directories/files.
-# Never touches .git, source code, .claude/.codex/.agents configs or .env files.
+# Never touches .git, source code, .claude configs or .env files.
 
 set -euo pipefail
 
@@ -53,8 +53,6 @@ fi
 PRUNE_DIRS=(
   ".git"
   ".claude"
-  ".codex"
-  ".agents"
   ".superpowers"
 )
 
