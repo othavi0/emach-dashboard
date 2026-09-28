@@ -17,7 +17,7 @@ Duas instâncias **completamente isoladas** Better Auth no mesmo banco:
 
 | Instância                                  | Import                  | Cookie prefix | trustedOrigins     |
 | ------------------------------------------ | ----------------------- | ------------- | ------------------ |
-| Dashboard (super_admin/admin/user) | `@emach/auth/dashboard` | default       | `CORS_ORIGIN`      |
+| Dashboard (super_admin/admin/user) | `@emach/auth/dashboard` | default       | `CORS_ORIGIN` em produção, `http://localhost:*` em dev |
 | Ecomerce (clientes BR, vive no repo `emach-ecommerce`) | `@emach/auth/ecommerce` | `ecommerce`   | `ECOMMERCE_ORIGIN` |
 
 1. `apps/web` **pode** importar `@emach/db/schema/client` (admin lê dados de cliente). `apps/web` **nunca** importa `@emach/auth/ecommerce`. App ecomerce **nunca** importa `@emach/db/schema/auth`.
@@ -29,7 +29,7 @@ Duas instâncias **completamente isoladas** Better Auth no mesmo banco:
 
 Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `pending/active/suspended`. Acesso é **convite-only** (ADR-0013): sem signup público; admin convida → user nasce `pending` com `inviteToken` → vira `active` ao aceitar. Bootstrap do primeiro `super_admin` via SQL direto.
 
-**Gates role-based religados (ADR-0016, substitui 0012).** `requireCapability*`, `can()`, `requireRole`, `getUserBranchScope` enforçam de verdade. **3 níveis**: `super_admin`/`admin`/`user`. Dois eixos: Capability (tipo de ação) + Branch-scoping (filial) **só em Vendas/Inventory** — Catálogo/Clientes/Reviews/Settings são globais. `admin` é filial-scoped; exclusivos de `super_admin`: `branches.manage`, `users.delete`, `shipping.manage`, `site.*` (update e publish_announcements), e `*.delete` de catálogo. **Fail-closed**: admin/user sem vínculo em `user_branch` vê nada → **popular `user_branch` é pré-requisito** (invariante: todo admin/user tem ≥1 filial; ver CONTEXT.md #8). Guard-rails: status, self-action, last-super-admin, **last-branch**. Bootstrap 1º super_admin via SQL.
+**Gates role-based religados (ADR-0016, substitui 0012).** `requireCapability*`, `can()`, `requireRole`, `getUserBranchScope` enforçam de verdade. **3 níveis**: `super_admin`/`admin`/`user`. Dois eixos: Capability (tipo de ação) + Branch-scoping (filial) **só em Vendas/Inventory** — Catálogo/Clientes/Reviews/Settings são globais. `admin` é filial-scoped; exclusivos de `super_admin`: `branches.manage`, `users.delete`, `shipping.manage`, `site.*` (`site.update_banners`, `site.update_settings` e `site.publish_announcements`), e `*.delete` de catálogo. **Fail-closed**: admin/user sem vínculo em `user_branch` vê nada → **popular `user_branch` é pré-requisito** (invariante: todo admin/user tem ≥1 filial; ver CONTEXT.md #8). Guard-rails: status, self-action, last-super-admin, **last-branch**. Bootstrap 1º super_admin via SQL.
 
 ## Anti-patterns banidos (P0/P1)
 

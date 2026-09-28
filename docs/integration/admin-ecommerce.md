@@ -253,6 +253,8 @@ payment_failed ──→ pending_payment
 
 **Fronteira:** o e-commerce é responsável pelo Order até `paid` (inclusive). A partir de `paid`, **apenas o dashboard** progride o status. Ver ADR-0001 e ADR-0005.
 
+**Exceção:** o cron `/api/cron/cancel-stale-orders` do dashboard (`0 4 * * *`) move `pending_payment` para `canceled` (pedidos com mais de 72 horas) e grava `order_status_history` com `actor_type='system'`.
+
 Transições completas (fonte canônica: `apps/web/src/app/dashboard/orders/schema.ts`):
 
 | De                | Para                                    |
@@ -356,7 +358,7 @@ Na confirmação do pedido (transição para `paid`):
   O contador nunca pode ultrapassar `max_redemptions` sob disparo concorrente.
 - Persistir o cupom aplicado no pedido: `order.coupon_id` (FK → `promotion.id`, `set null`) +
   o valor abatido em `order.discount_amount`.
-- Qualquer write automático: `actor_type='system'`, sem `actor_id` (CHECK `actor_coherence`).
+- Qualquer write automático no `stock_movement` de `saida_venda`: `actor_type='system'`, sem `actor_id` (CHECK `actor_coherence`). A tabela `promotion` não tem colunas de actor nem esse CHECK.
 
 A promoção **automática** (`type='promotion'`) **não** passa por aqui — já é aplicada no preço de
 listagem por `packages/db/src/queries/tools.ts` (com `promotions.ts`), que escolhe o **maior desconto efetivo** entre
@@ -493,14 +495,15 @@ contrato de qual **imagem** usar no mobile; o storefront **deve** honrar:
 - `none` — **não** exibir imagem de fundo no mobile (só o gradiente/fundo sólido da marca). Produto
   e demais slots continuam.
 
-Banners criados antes da coluna recebem `inherit` (default); o backfill marcou `custom` os que já
+O default atual da coluna é `none` (o editor também começa em `none`); na criação da coluna o
+default era `inherit` e o backfill marcou `custom` os banners que já
 tinham `background_image_mobile_url`, preservando o comportamento anterior (`mobileUrl ??
 desktopUrl`). `composition.mobile.background` (zoom/focal) só existe quando há imagem própria no
 mobile; ausente = herda o zoom/focal do desktop.
 
 ### Pilha segura mobile
 
-Ordem fixa, sem reordenação (`SAFE_STACK_ORDER`): **badge → título → specs → descrição →
+Ordem fixa, sem reordenação (`SAFE_STACK_ORDER`): **badge → título → specs → subtítulo (`subtitle`) →
 countdown → produto → CTA**.
 
 Só elementos presentes em `desktop.elements` entram na partição mobile (chave ausente no desktop =
@@ -528,10 +531,11 @@ ausente; `center` se nenhum dos dois):
 
 O storefront lê `composition` **em produção** desde o merge do ecommerce#212 (paridade visual
 confirmada e registrada na ecommerce#210). O dual-write foi **removido** do dashboard na mesma
-data: `createBanner`/`updateBanner` gravam só `composition`; **`layout`/`product_scale`/
-`cta_scale` são deprecated** — mantidas no schema com o último valor gravado, sem escritor e sem
-leitor primário (o único uso restante é o fallback de leitura `legacyToComposition` para
-`composition` NULL/inválida, nos dois apps). Não reintroduzir escrita nessas colunas; remoção
+data: `createBanner` grava só `composition`; **`layout`/`product_scale`/`cta_scale` são
+deprecated** e sem leitor primário (o único uso restante é o fallback de leitura
+`legacyToComposition` para `composition` NULL/inválida, nos dois apps). Hoje o `updateBanner`
+ainda regrava as três colunas a cada save (`site/banners/actions.ts:141-143`), então elas seguem
+com escritor nesse caminho. Não introduzir escrita nova nessas colunas; remoção
 física do schema fica pra um ciclo futuro (exige sync coordenado — ADR-0009).
 
 ### Duas armadilhas de render descobertas no smoke visual
