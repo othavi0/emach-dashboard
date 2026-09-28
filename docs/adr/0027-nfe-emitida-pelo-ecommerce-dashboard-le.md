@@ -21,7 +21,7 @@ Precisamos decidir **quem emite** a NF-e e firmar o schema mínimo.
 1. **A emissão fiscal ocorre no lado ecommerce/provedor (Asaas).** O ecommerce (ou o provedor via webhook do ecommerce) emite a nota e **grava os campos fiscais no `order`** via banco compartilhado. O dashboard **só lê e exibe** — coerente com o ADR-0004 (integração é DB-only; o dashboard não chama API externa) e o ADR-0008 (documentos do Asaas chegam pelo banco).
 2. **Schema fiscal completo.** Adicionar ao `order`: `nfe_series` (text) e `nfe_access_key` (text, 44 dígitos — CHECK de tamanho quando presente).
 3. **NCM obrigatório ao ativar tool.** O `toolFormSchema.superRefine` passa a exigir `ncm` preenchido quando `status='active'` (espelha o gate de imagens/specs). Rascunho fica livre.
-4. **Vocabulário único de `nfe_status`.** Uma constante compartilhada (`authorized`/`pending`/`cancelled`/`rejected`) alinha trigger, badge e contrato; o badge passa a reconhecer `cancelled`.
+4. **Vocabulário único de `nfe_status`.** Uma constante compartilhada (`authorized`/`pending`/`cancelled`/`rejected`) alinha trigger, badge e contrato; o badge passa a reconhecer `cancelled`. **Atualização (2026-09-28):** só a parte do badge foi feita; a constante compartilhada não existe (o mapa vive local em `orders/[id]/_components/asaas-block.tsx`).
 
 ## Opções consideradas
 

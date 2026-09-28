@@ -10,7 +10,7 @@ O dashboard e o site e-commerce são monorepos separados que compartilham o mesm
 
 ## Decisão
 
-Automatizar: um GitHub Action no repo `emach-dashboard` (fonte de verdade), disparado em push na `main` quando `packages/db/src/**` muda, abre um Pull Request no repo `emach-ecommerce` espelhando `schema/`, `queries/`, `utils.ts` e `sql/triggers.sql`. (`utils.ts` entrou na superfície porque os arquivos de `queries/` importam helpers dele — ex. `coerceDates`; sem espelhá-lo, o build dos query files sincronizados quebra no ecommerce.)
+Automatizar: um GitHub Action no repo `emach-dashboard` (fonte de verdade), disparado em push na `main` quando `schema/`, `queries/`, `utils.ts` ou `sql/{triggers,rls}.sql` mudam, abre um Pull Request no repo `emach-ecommerce` espelhando esses caminhos. (`utils.ts` entrou na superfície porque os arquivos de `queries/` importam helpers dele — ex. `coerceDates`; sem espelhá-lo, o build dos query files sincronizados quebra no ecommerce.)
 
 Os repos seguem separados — os deploys são independentes e o dashboard vai virar ferramenta interna além de site. Por isso não foi adotado nem o monorepo único (juntaria os deploys) nem o pacote `@emach/db` publicado num registry (cobra cerimônia de `publish`/versão sem haver consumidor externo nem produção — ver ADR-0006). O espelhamento via CI é a menor mudança que elimina o sync manual sem inventar modelo mental novo.
 
@@ -18,7 +18,7 @@ A direção é unidirecional: dashboard → ecommerce. Mudança de schema sempre
 
 ## Consequências
 
-- Mudanças de schema, queries (`catalog.ts`, `reviews.ts`) e `sql/triggers.sql` no dashboard geram um PR automático no ecommerce; basta revisar e mergear.
+- Mudanças de schema, queries (`tools.ts`, `categories.ts`, `promotions.ts`, `reviews.ts` e demais de `queries/`) e `sql/triggers.sql` no dashboard geram um PR automático no ecommerce; basta revisar e mergear.
 - A entrega é via PR, não commit direto: o CI do ecommerce roda no PR e pega quebra de código local contra o schema novo antes de entrar na `main`.
 - O ecommerce passa a guardar triggers em `sql/triggers.sql` (antes `migrations/_triggers.sql`); a pasta morta `migrations/` é removida.
 - Um job de CI no ecommerce falha se `packages/db/src/{schema,sql,queries}` divergir do `main` do dashboard — pega o caso de PR de sync esquecido sem mergear.

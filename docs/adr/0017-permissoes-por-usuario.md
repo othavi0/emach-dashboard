@@ -19,7 +19,7 @@ Estender o modelo role-based com **overrides de capability por usuário**, compo
 
 ### 1. Registry declarativo (`src/lib/capabilities.ts`)
 
-Catálogo `CAPABILITIES` com 47 entradas, cada uma com metadata:
+Catálogo `CAPABILITIES` com 47 entradas na criação (48 em 2026-09, com `orders.pick`), cada uma com metadata:
 
 ```ts
 { group, resource, action, description, defaultRoles: Role[] }
@@ -38,7 +38,7 @@ Schema em `packages/db/src/schema/user-capability-override.ts`:
 |---|---|---|
 | `userId` | text FK `user.id` | `onDelete: "cascade"` |
 | `capability` | text | valor livre, validado pelo registry em código (não pgEnum) |
-| `effect` | pgEnum `grant/revoke` | override positivo ou negativo |
+| `effect` | `text` com `enum: ["grant", "revoke"]` (tipado só no TS, sem pgEnum) | override positivo ou negativo |
 | `grantedBy` | text FK `user.id` | ator que concedeu; `onDelete: "set null"` |
 | `grantedAt` | timestamptz | timestamp do evento |
 
@@ -82,7 +82,7 @@ Aba "Permissões" em `dashboard/users/[id]` — grid tri-state por grupo de capa
 
 ### Invariante: overrides não se aplicam a super_admin (issue #184)
 
-`super_admin` é funcionalmente irrestrito por role. Um override `grant` sobre ele é redundante; um `revoke` o degrada abaixo do teto do role e, no caso de `permissions.manage`, abre um lock-out só recuperável via SQL (dois super_admins se revogando mutuamente — nenhum é "o último", então `assertNotLastActiveSuperAdmin` não dispara). Decisão (Opção A): overrides valem **apenas para `admin`/`user`**. Defesa em 3 camadas: (1) `getUserCapabilities` ignora overrides quando `role === super_admin`; (2) `setUserCapability` rejeita `grant`/`revoke` sobre alvo super_admin (mantém `inherit` para limpeza); (3) a aba "Permissões" mostra estado explicativo para alvo super_admin. Alternativas B (guard "≥1 super_admin com a cap"), C (`permissions.manage` em `LAST_SUPER_ADMIN_GUARDED`) e D (caps `defaultRoles: S` não-revogáveis) cobririam só o lock-out de uma cap, não a classe inteira. Design completo: `docs/superpowers/specs/2026-06-16-issue-184-overrides-super-admin-design.md`.
+`super_admin` é funcionalmente irrestrito por role. Um override `grant` sobre ele é redundante; um `revoke` o degrada abaixo do teto do role e, no caso de `permissions.manage`, abre um lock-out só recuperável via SQL (dois super_admins se revogando mutuamente — nenhum é "o último", então `assertNotLastActiveSuperAdmin` não dispara). Decisão (Opção A): overrides valem **apenas para `admin`/`user`**. Defesa em 3 camadas: (1) `getUserCapabilities` ignora overrides quando `role === super_admin`; (2) `setUserCapability` rejeita `grant`/`revoke` sobre alvo super_admin (mantém `inherit` para limpeza); (3) a aba "Permissões" mostra estado explicativo para alvo super_admin. Alternativas B (guard "≥1 super_admin com a cap"), C (`permissions.manage` em `LAST_SUPER_ADMIN_GUARDED`) e D (caps `defaultRoles: S` não-revogáveis) cobririam só o lock-out de uma cap, não a classe inteira. Design completo na spec do PR #193 (removida do repo em 2026-09-28; ler pelo histórico do git).
 
 **Cleanup de dados legados (opcional, idempotente):** como a Camada 1 já neutraliza overrides legados sobre super_admins, é só higiene — `DELETE FROM user_capability_override WHERE user_id IN (SELECT id FROM "user" WHERE role = 'super_admin');` (push-only, ADR-0006 — script SQL pontual, não migration versionada).
 

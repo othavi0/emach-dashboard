@@ -2,7 +2,7 @@
 
 **Data:** 2026-06-19
 **Status:** Aceito
-**Relaciona:** Spec do #222 (`docs/superpowers/specs/2026-06-18-navegacao-progress-bar-design.md` — freeze de navegação + barra de progresso). Spec/plano do 006-B (`docs/superpowers/{specs,plans}/2026-06-19-006-b-cache-components-foundation*` — a tentativa revertida). ADR-0021 (sessão lida fresca a cada request).
+**Relaciona:** Spec do #222 (freeze de navegação + barra de progresso). Spec e plano do 006-B (a tentativa revertida). As duas specs saíram de `docs/superpowers/` em 2026-09-28; ler pelo histórico do git. ADR-0021 (sessão lida fresca a cada request).
 
 ## Contexto
 
