@@ -101,7 +101,7 @@ export function OrderCard({
 				</div>
 			</div>
 
-			<div className="flex min-h-[84px] flex-col gap-1.5 border-border/55 border-t px-4 pt-2 pb-2.5">
+			<div className="flex min-h-[84px] flex-1 flex-col justify-center gap-1.5 border-border/55 border-t px-4 pt-2 pb-2.5">
 				{item.items.map((line, index) => (
 					<div
 						className={cn(
