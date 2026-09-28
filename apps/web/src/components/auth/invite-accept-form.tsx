@@ -48,9 +48,9 @@ export function InviteAcceptForm({
 
 	return (
 		<div>
-			<h1 className="font-medium font-serif text-3xl uppercase tracking-[0.015em]">
+			<h2 className="font-sans font-semibold text-2xl tracking-tight">
 				Criar acesso
-			</h1>
+			</h2>
 			<p className="mt-1 text-muted-foreground text-sm">
 				Defina seu nome e senha para entrar no painel.
 			</p>

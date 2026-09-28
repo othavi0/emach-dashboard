@@ -40,9 +40,9 @@ async function InvitePageContent({
 				<InviteAcceptForm email={invite.email} token={token} />
 			) : (
 				<div>
-					<h1 className="font-medium font-serif text-3xl uppercase tracking-[0.015em]">
+					<h2 className="font-sans font-semibold text-2xl tracking-tight">
 						Convite inválido
-					</h1>
+					</h2>
 					<p className="mt-2 text-muted-foreground text-sm leading-relaxed">
 						Este convite não é válido ou expirou. Peça para um administrador
 						enviar um novo.

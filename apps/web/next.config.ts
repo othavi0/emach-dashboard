@@ -114,6 +114,13 @@ const nextConfig: NextConfig = {
 			},
 		];
 	},
+	async redirects() {
+		return [
+			// 307 antes de qualquer render: o gate do /login já manda sessão
+			// ativa para /dashboard, /pending ou /suspended.
+			{ source: "/", destination: "/login", permanent: false },
+		];
+	},
 };
 
 export default withBundleAnalyzer(nextConfig);

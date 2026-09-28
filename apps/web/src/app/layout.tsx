@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow, Barlow_Condensed, IBM_Plex_Mono } from "next/font/google";
-import { Suspense } from "react";
 
 import "../index.css";
-import AppHeader from "@/components/app-header";
 import Providers from "@/components/providers";
 
 // Corpo / UI chrome / sidebar / tabelas (DESIGN.md §3). Token `font-sans`.
@@ -101,12 +99,6 @@ export default function RootLayout({
 			<body className="min-h-svh antialiased">
 				<Providers>
 					<div className="flex min-h-svh flex-col bg-background">
-						{/* AppHeader é "use client" e usa usePathname(). Sob Next 16 cacheComponents,
-						    o Suspense é obrigatório para isolar a leitura de pathname dinâmico
-						    do shell estático — sem ele o build falha. */}
-						<Suspense>
-							<AppHeader />
-						</Suspense>
 						{children}
 					</div>
 				</Providers>
