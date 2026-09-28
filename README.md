@@ -7,7 +7,7 @@ Dashboard interno + base para futuro ecomerce BR. Monorepo Bun + Turborepo. Auth
 ## Stack
 
 - **Runtime:** Bun 1.3 (workspaces + catalog)
-- **Build:** Turborepo 2.11 (TUI)
+- **Build:** Turborepo 2.10 (TUI)
 - **Frontend:** Next 16 + React 19 (`apps/web`, port 3001)
 - **UI:** shadcn/ui + Tailwind 4 + Base UI React (`packages/ui`)
 - **DB:** PostgreSQL via Supabase + Drizzle ORM (`packages/db`)
@@ -78,11 +78,12 @@ Blocks específicos do app: rodar shadcn CLI dentro de `apps/web` (não em `pack
 emach-dashboard/
 ├── apps/
 │   └── web/                         # Next 16 dashboard (port 3001)
-│       └── src/app/dashboard/{tools,categories,suppliers,branches,stock,promotions,orders,separacao,shipping,reviews,customers,users,site,dev-preview}
+│       └── src/app/dashboard/{tools,categories,suppliers,branches,stock,promotions,orders,separacao,shipping,reviews,customers,users,site,dev-preview,sem-acesso}
 ├── packages/
 │   ├── ui/                          # shadcn/ui primitives + globals.css
 │   ├── auth/                        # Better Auth dashboard: dashboard.ts (ecommerce no repo ecommerce — ADR-0004)
 │   ├── db/                          # Drizzle schema + createDb factory + scripts
+│   ├── email/                       # E-mails transacionais (Resend)
 │   ├── env/                         # Zod-validated env (@t3-oss/env-core)
 │   └── config/                      # tsconfig.base.json compartilhado
 ├── docs/
@@ -116,4 +117,16 @@ emach-dashboard/
 | `bun --cwd packages/db db:apply-sql`                | Aplica `src/sql/{triggers,rls}.sql` (triggers + RLS deny-all, idempotente) |
 | `bun --cwd packages/db db:seed-demo`                | ⛔ Trunca e repopula o banco único (dev = prod); só com autorização       |
 | `bun --cwd packages/db db:reset-demo`               | ⛔ Trunca as tabelas demo no banco único; só com autorização               |
+| `bun --cwd packages/db db:seed-test-orders`         | ⛔ Insere pedidos de teste no banco único (dev = prod); só com autorização |
+| `bun --cwd packages/db db:seed-ready-to-ship`       | ⛔ Insere pedidos prontos para envio no banco único; só com autorização   |
+| `bun --cwd packages/db db:unseed-ready-to-ship`     | ⛔ Apaga pedidos `EM-TEST-91*` e devolve o estoque no banco único; só com autorização |
+| `bun verify`                                        | `check-types` + `check` + testes de `apps/web`                            |
+| `bun --cwd apps/web test`                           | Vitest de `apps/web` (`test:watch` para modo watch)                       |
+| `bun --cwd packages/db test`                        | Vitest de `packages/db`                                                   |
+| `bun guard:forms`                                   | `ast-grep scan` (regras de formulário)                                    |
+| `bun guard:forms:test`                              | Testes das regras do `guard:forms`                                        |
+| `bun doctor`                                        | `react-doctor` (diagnóstico de React)                                     |
+| `bun sync:fork`                                     | Sincroniza o fork (`scripts/sync-fork.sh`); `sync:fork:dry` só simula     |
 | `bun clean`                                         | Remove `node_modules` + caches Turbo/Next                                 |
+| `bun clean-all`                                     | Como `clean`, sem confirmação e limpando o cache do bun                   |
+| `bun clean-dry`                                     | Mostra o que `clean` removeria, sem apagar                                |
