@@ -157,7 +157,7 @@ export function ToolImageGallery({
 		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
 	);
 
-	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: upload com validação e fallback parcial; refactor em docs/plano-melhorias.md
+	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: validação, compressão e upload por arquivo com falha parcial; quebrar exige o resultado por arquivo como tipo
 	async function uploadFiles(files: FileList | File[]) {
 		const fileArray = Array.from(files);
 		const slotsLeft = max - sorted.length;

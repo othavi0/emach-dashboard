@@ -18,7 +18,6 @@ const LOOSE_OR_TRUE = /\b(or|true)\b/i;
 const RUN_INVALID = /run inválido/;
 const SIX_HEX = /^[0-9A-F]{6}$/;
 
-/** FKs `set null` para tabela do plano que o cleanup aceita, porque bloqueia. */
 const SET_NULL_ALLOWLIST = [
 	"stock_movement.order_id",
 	"stock_movement.order_item_id",

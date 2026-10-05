@@ -1,8 +1,4 @@
-// packages/db/scripts/db-read.ts
-// Consulta ao banco único sem MCP, sem risco de escrita:
-//   bun run scripts/db-read.ts "<sql>" [--limit N] [--timeout S]
-// Roda dentro de BEGIN READ ONLY com statement_timeout e sempre termina em
-// ROLLBACK. A consulta vira um cursor (DECLARE ... FOR <sql>) mandado pelo
+// A consulta vira um cursor (DECLARE ... FOR <sql>) mandado pelo
 // protocolo estendido, que o Postgres recusa com mais de um comando:
 // "SELECT 1; COMMIT; DELETE ..." não escapa da transação. O FETCH de limit+1
 // faz o servidor parar ali; `rows` do pg não serve, ele pagina até o fim.

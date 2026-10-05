@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Prepara um worktree novo para subir o app: liga apps/web/.env ao do checkout
-# principal e faz bun install real. Rodar de novo não muda nada.
-#
-#   scripts/worktree-setup.sh
 set -euo pipefail
 
 root=$(git rev-parse --show-toplevel)

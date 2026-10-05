@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Tabela de casos dos hooks do harness e do scripts/run-capped.sh:
-# entrada -> exit esperado (e trecho esperado na saída). Roda no CI.
-#
-#   scripts/test-hooks.sh
 set -uo pipefail
 
 root=$(git rev-parse --show-toplevel)
@@ -16,7 +12,6 @@ trap 'rm -rf "$tmp" "$src"/hook-test-*.ts' EXIT
 pass=0
 fail=0
 
-# check <nome> <exit esperado> <trecho esperado na saída ou ""> <stdin> -- <comando...>
 check() {
 	local name=$1 want_rc=$2 want_out=$3 input=$4
 	shift 5
@@ -71,8 +66,6 @@ check "sem bus de usuário roda sem teto e avisa" 3 "sem teto" "" -- \
 check "RUN_CAPPED já setado roda direto, sem aviso" 0 "" "" -- \
 	bash -c 'out=$(env -u DBUS_SESSION_BUS_ADDRESS -u XDG_RUNTIME_DIR RUN_CAPPED=1 "$1" true 2>&1) && [ -z "$out" ]' _ "$capped"
 
-# O CI não tem systemd de usuário: lá o caminho com teto vira o de fallback, e
-# o teste diz qual dos dois exercitou.
 if systemd-run --user --scope --quiet true > /dev/null 2>&1; then
 	echo "caminho: com teto (systemd de usuário presente)"
 	check "comando roda num scope com MemoryMax e RUN_CAPPED=1" 0 "" "" -- env MEM_MAX=3G "$capped" sh -c '

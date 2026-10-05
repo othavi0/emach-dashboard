@@ -1,7 +1,3 @@
-// packages/db/scripts/fixtures-marks.ts
-// Marcadores das fixtures e plano de limpeza. Módulo à parte, sem importar o
-// `db`, para o teste unitário carregar sem abrir conexão.
-
 import { banner } from "@emach/db/schema/banner";
 import {
 	order,
@@ -18,14 +14,9 @@ import { stockMovement } from "@emach/db/schema/stock-movements";
 import { inArray, type SQL, sql } from "drizzle-orm";
 import { type PgColumn, type PgTable, QueryBuilder } from "drizzle-orm/pg-core";
 
-/**
- * Prefixos que casam toda fixture, inclusive o formato antigo sem execução
- * (`EM-TEST-FX-XXXXXXXX` e `[EM-TEST-FX]`). Não casam `EM-TEST-90NN`/`91NN`.
- */
 const ANY_ORDER_PREFIX = "EM-TEST-FX-";
 const ANY_TEXT_PREFIX = "[EM-TEST-FX";
 
-/** Token de uma execução de `create`: 6 hex maiúsculos. */
 export type RunId = string & { readonly __brand: "FixtureRunId" };
 
 const RUN_ID = /^[0-9A-F]{6}$/;
@@ -67,7 +58,6 @@ export interface CleanupStep {
 	where: SQL;
 }
 
-/** Linha que o app grava sobre a fixture e que o cleanup não pode apagar. */
 export interface CleanupBlocker {
 	fk: PgColumn;
 	id: PgColumn;
@@ -102,9 +92,6 @@ export function cleanupPlan(scope: CleanupScope): CleanupPlan {
 		.where(inArray(orderPicking.orderId, orderIds));
 
 	return {
-		// Reembolso, devolução e envio creditam ou debitam stock_level de
-		// variante real; apagar o pedido perderia o rastro (stock_movement é
-		// `set null`) e refund_request é `restrict`.
 		blockers: [
 			{
 				fk: refundRequest.orderId,
@@ -122,7 +109,6 @@ export function cleanupPlan(scope: CleanupScope): CleanupPlan {
 				where: inArray(stockMovement.orderItemId, itemIds),
 			},
 		],
-		// Filha antes da mãe. As `cascade` saem explícitas para a contagem.
 		steps: [
 			{ table: review, where: inArray(review.orderId, orderIds) },
 			{

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# PostToolUse (Write|Edit): formata o arquivo editado e devolve ao agente o erro
-# de lint (biome e, em .ts/.tsx, ast-grep) que o fix não corrige. Em PostToolUse
-# só o stderr com exit 2 chega ao modelo; com exit 0 a saída vai para o log de
+# Em PostToolUse só o stderr com exit 2 chega ao modelo; com exit 0 a saída vai para o log de
 # debug, e com exit 1 o erro aparece ao user sem bloquear a tool.
 set -u
 
@@ -17,21 +15,17 @@ f=$(jq -r '.tool_input.file_path // empty')
 # calado; por isso o toplevel do próprio arquivo vem antes do CLAUDE_PROJECT_DIR.
 root=$(git -C "$(dirname "$f")" rev-parse --show-toplevel 2> /dev/null) || root=${CLAUDE_PROJECT_DIR:-}
 [ -n "$root" ] && cd "$root" || exit 0
-# Arquivo de outro repo (memória em ~/.claude, repo irmão) não tem este lint.
 [ -f sgconfig.yml ] && [ -f .claude/hooks/post-edit-lint.sh ] || exit 0
 
 max=20
 problems=""
 
-# Os --skip deixam passar import, helper e parâmetro ainda sem uso entre Edits
-# em sequência; o CI e o pre-commit pegam o que sobrar.
 if ! out=$(bun run fix --skip=correctness/noUnusedImports --skip=correctness/noUnusedVariables \
 	--skip=correctness/noUnusedFunctionParameters --reporter=github --max-diagnostics="$max" "$f" 2>&1); then
 	errors=$(printf '%s\n' "$out" | sed -n 's/^::error title=\([^,]*\),file=\([^,]*\),line=\([0-9]*\),.*::\(.*\)$/\2:\3 \1: \4/p' | head -n "$max")
 	if [ -n "$errors" ]; then
 		problems=$errors
 	else
-		# Saída != 0 sem diagnóstico é o próprio fix quebrado; calar isso já escondeu falha antes.
 		problems="bun run fix falhou sem diagnóstico:
 $(printf '%s\n' "$out" | tail -n 5)"
 	fi

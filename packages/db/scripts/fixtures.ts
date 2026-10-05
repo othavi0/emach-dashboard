@@ -1,12 +1,3 @@
-// packages/db/scripts/fixtures.ts
-// Fabrica um estado pontual para smoke visual e o remove depois.
-//   bun run scripts/fixtures.ts create <superfície> [--branch <id>] [--run <run>]
-//   bun run scripts/fixtures.ts cleanup --run <run> | --all
-// Escrita pontual (permitida sem --force): reusa client, filial e variante
-// reais e nunca toca stock_level nem stock_movement. Cada `create` grava o
-// token da execução no marcador (fixtures-marks.ts); o cleanup recusa se o
-// app gravou reembolso ou movimento de estoque sobre a fixture.
-
 import { banner } from "@emach/db/schema/banner";
 import { client } from "@emach/db/schema/client";
 import { branch } from "@emach/db/schema/inventory";
@@ -34,6 +25,8 @@ import {
 } from "./fixtures-marks";
 import type { Tx } from "./seed/context";
 
+const HIDDEN_FROM_STOREFRONT = false;
+
 const HOURS = 3_600_000;
 
 interface CreateOptions {
@@ -43,7 +36,6 @@ interface CreateOptions {
 }
 
 interface Created {
-	/** Outra tela onde a fixture aparece, além de `route`. */
 	extraRoutes?: { route: string; shows: string }[];
 	ids: Record<string, string>;
 	orderNumber?: string;
@@ -80,8 +72,6 @@ async function loadBase(tx: Tx, opts: CreateOptions): Promise<Base> {
 		);
 	}
 
-	// Client ativo mais antigo, por (created_at, id). Não se cria client: o
-	// banco tem um só e ele não tem pedido real (packages/db/CLAUDE.md).
 	const [clientRow] = await tx
 		.select({ id: client.id })
 		.from(client)
@@ -137,7 +127,6 @@ const REACHED_AT_COLUMN = {
 	keyof typeof order.$inferInsert
 >;
 
-/** Pedido com 1 item e o histórico de status até `status`, 1h entre cada passo. */
 async function insertFixtureOrder(
 	tx: Tx,
 	base: Base,
@@ -289,12 +278,11 @@ const SURFACES: Record<
 
 	banner: async (tx, opts) => {
 		const id = crypto.randomUUID();
-		// is_active fica false: o site público lê o mesmo banco.
 		await tx.insert(banner).values({
 			id,
 			title: `${opts.marks.text} Banner de fixture`,
 			altText: opts.marks.text,
-			isActive: false,
+			isActive: HIDDEN_FROM_STOREFRONT,
 		});
 		return {
 			surface: "banner",

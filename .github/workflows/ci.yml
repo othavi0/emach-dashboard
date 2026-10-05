@@ -36,7 +36,6 @@ jobs:
       - name: Lint Python (ruff)
         run: uvx ruff@0.16.10 check .
 
-      # turbo em envMode loose repassa o env abaixo a todos os pacotes.
       - name: Tests
         run: bun run test
         env:

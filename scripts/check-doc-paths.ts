@@ -1,19 +1,10 @@
-// Falha quando um .md versionado cita um caminho do repo que não existe mais.
-//   bun scripts/check-doc-paths.ts [raiz]
-// Pontos cegos: um sufixo curto ("orders/data.ts") passa se existir em qualquer
-// lugar; linha com "ecommerce" é pulada inteira; âncora #secao não é validada;
-// nome sem "/" entre crases não é checado.
-
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
 
-// Skills de terceiros citam o layout do upstream; ADR, auditoria e plano são
-// registro datado ou proposta, então caminho que existia na época não é deriva.
 const EXCLUDED_FILE =
 	/(^|\/)skills\/|^docs\/superpowers\/|^docs\/(adr|audits)\/|^plans\//;
-// Linha que cita o outro repo usa caminhos dele.
-const CROSS_REPO = /ecommerce/i;
+const SKIP_LINE_CITING_OTHER_REPO = /ecommerce/i;
 const LINK = /(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 const CODE = /`([^`\n]+)`/g;
 const FENCE = /^(```|~~~)/;
@@ -56,15 +47,12 @@ function strip(p: string): string {
 
 const exists = (p: string) => existsSync(join(root, p));
 
-// Doc cita sufixo curto ("orders/data.ts" por
-// apps/web/src/app/(dashboard)/dashboard/orders/data.ts): aceita o caminho entre
-// crases quando ele é sufixo de algum arquivo ou diretório rastreado.
-const tails = new Set<string>();
+const trackedPathSuffixes = new Set<string>();
 for (const t of gitLsFiles()) {
 	const parts = t.split("/");
 	for (let i = 0; i < parts.length; i++) {
 		for (let j = i + 1; j <= parts.length; j++) {
-			tails.add(parts.slice(i, j).join("/"));
+			trackedPathSuffixes.add(parts.slice(i, j).join("/"));
 		}
 	}
 }
@@ -82,14 +70,16 @@ function refsOf(file: string): Ref[] {
 			inFence = !inFence;
 			continue;
 		}
-		if (inFence || CROSS_REPO.test(l)) {
+		if (inFence || SKIP_LINE_CITING_OTHER_REPO.test(l)) {
 			continue;
 		}
-		for (const m of l.matchAll(LINK)) {
-			out.push({ file, line: i + 1, raw: m[1], kind: "link" });
+		for (const [, raw] of l.matchAll(LINK)) {
+			if (raw) {
+				out.push({ file, line: i + 1, raw, kind: "link" });
+			}
 		}
-		for (const m of l.replace(LINK, "").matchAll(CODE)) {
-			const t = m[1].trim();
+		for (const [, code] of l.replace(LINK, "").matchAll(CODE)) {
+			const t = (code ?? "").trim();
 			if (t.includes("/") && (EXT.test(strip(t)) || PREFIX.test(t))) {
 				out.push({ file, line: i + 1, raw: t, kind: "code" });
 			}
@@ -104,7 +94,9 @@ function resolves(r: Ref, p: string): boolean {
 		return exists(fromFile);
 	}
 	return (
-		exists(p) || exists(fromFile) || tails.has(p.replace(LEADING_DOT_SLASH, ""))
+		exists(p) ||
+		exists(fromFile) ||
+		trackedPathSuffixes.has(p.replace(LEADING_DOT_SLASH, ""))
 	);
 }
 
