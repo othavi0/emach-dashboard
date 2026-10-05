@@ -20,7 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
 import { GripVertical, Star, Upload, X } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { compressImageForUpload } from "@/lib/image-compression";
 import { notify } from "@/lib/notify";
 
@@ -157,86 +157,82 @@ export function ToolImageGallery({
 		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
 	);
 
-	// ast-grep-ignore: no-manual-memo o Compiler não compila ToolImageGallery (for-of dentro de try/catch); sai junto com o refactor do upload
-	const uploadFiles = useCallback(
-		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: upload com validação e fallback parcial; refactor em docs/plano-melhorias.md
-		async (files: FileList | File[]) => {
-			const fileArray = Array.from(files);
-			const slotsLeft = max - sorted.length;
+	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: upload com validação e fallback parcial; refactor em docs/plano-melhorias.md
+	async function uploadFiles(files: FileList | File[]) {
+		const fileArray = Array.from(files);
+		const slotsLeft = max - sorted.length;
 
-			if (slotsLeft <= 0) {
-				notify.error(`Máximo de ${max} imagens atingido`);
-				return;
+		if (slotsLeft <= 0) {
+			notify.error(`Máximo de ${max} imagens atingido`);
+			return;
+		}
+
+		const selected = fileArray.slice(0, slotsLeft);
+		if (fileArray.length > slotsLeft) {
+			notify.info(
+				`Apenas ${slotsLeft} de ${fileArray.length} arquivos serão enviados (limite ${max})`
+			);
+		}
+
+		const total = selected.length;
+		setStatusLabel(total > 0 ? `Preparando 0 de ${total}…` : "Processando…");
+		// Sem finally: React Compiler baila em try com finalizer.
+		try {
+			const uploaded: ToolImage[] = [];
+			let index = 0;
+			for (const file of selected) {
+				index += 1;
+				if (!ALLOWED_TYPES.has(file.type)) {
+					notify.error(`${file.name}: formato inválido (JPG/PNG/WEBP)`);
+					continue;
+				}
+				if (file.size > MAX_RAW_INPUT_BYTES) {
+					notify.error(`${file.name}: arquivo bruto excede 15MB`);
+					continue;
+				}
+
+				setStatusLabel(`Comprimindo ${index} de ${total}…`);
+				let compressed: File;
+				try {
+					compressed = await compressImageForUpload(file);
+				} catch {
+					notify.error(`${file.name}: falha ao processar imagem`);
+					continue;
+				}
+
+				if (compressed.size > MAX_COMPRESSED_BYTES) {
+					notify.error(`${file.name}: imagem ainda grande após compressão`);
+					continue;
+				}
+
+				setStatusLabel(`Enviando ${index} de ${total}…`);
+				try {
+					const formData = new FormData();
+					formData.append("file", compressed);
+					const { url } = await uploadToolImage(formData);
+					uploaded.push({ url, sortOrder: 0 });
+				} catch (err) {
+					const message =
+						err instanceof Error ? err.message : "erro desconhecido";
+					notify.error(`${file.name}: ${message}`);
+				}
 			}
 
-			const selected = fileArray.slice(0, slotsLeft);
-			if (fileArray.length > slotsLeft) {
-				notify.info(
-					`Apenas ${slotsLeft} de ${fileArray.length} arquivos serão enviados (limite ${max})`
+			if (uploaded.length > 0) {
+				const merged = reindex([...sorted, ...uploaded]);
+				onChange(merged);
+				notify.success(
+					uploaded.length === 1
+						? "Imagem enviada"
+						: `${uploaded.length} imagens enviadas`
 				);
 			}
-
-			const total = selected.length;
-			setStatusLabel(total > 0 ? `Preparando 0 de ${total}…` : "Processando…");
-			// Sem finally: React Compiler baila em try com finalizer.
-			try {
-				const uploaded: ToolImage[] = [];
-				let index = 0;
-				for (const file of selected) {
-					index += 1;
-					if (!ALLOWED_TYPES.has(file.type)) {
-						notify.error(`${file.name}: formato inválido (JPG/PNG/WEBP)`);
-						continue;
-					}
-					if (file.size > MAX_RAW_INPUT_BYTES) {
-						notify.error(`${file.name}: arquivo bruto excede 15MB`);
-						continue;
-					}
-
-					setStatusLabel(`Comprimindo ${index} de ${total}…`);
-					let compressed: File;
-					try {
-						compressed = await compressImageForUpload(file);
-					} catch {
-						notify.error(`${file.name}: falha ao processar imagem`);
-						continue;
-					}
-
-					if (compressed.size > MAX_COMPRESSED_BYTES) {
-						notify.error(`${file.name}: imagem ainda grande após compressão`);
-						continue;
-					}
-
-					setStatusLabel(`Enviando ${index} de ${total}…`);
-					try {
-						const formData = new FormData();
-						formData.append("file", compressed);
-						const { url } = await uploadToolImage(formData);
-						uploaded.push({ url, sortOrder: 0 });
-					} catch (err) {
-						const message =
-							err instanceof Error ? err.message : "erro desconhecido";
-						notify.error(`${file.name}: ${message}`);
-					}
-				}
-
-				if (uploaded.length > 0) {
-					const merged = reindex([...sorted, ...uploaded]);
-					onChange(merged);
-					notify.success(
-						uploaded.length === 1
-							? "Imagem enviada"
-							: `${uploaded.length} imagens enviadas`
-					);
-				}
-				setStatusLabel(null);
-			} catch (err) {
-				setStatusLabel(null);
-				throw err;
-			}
-		},
-		[sorted, max, onChange]
-	);
+			setStatusLabel(null);
+		} catch (err) {
+			setStatusLabel(null);
+			throw err;
+		}
+	}
 
 	function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
 		const files = event.target.files;
