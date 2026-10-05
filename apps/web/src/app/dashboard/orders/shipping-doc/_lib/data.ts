@@ -105,6 +105,7 @@ export async function fetchShippingDocOrders(
 		) lp ON true
 		LEFT JOIN LATERAL (
 			SELECT COALESCE(jsonb_agg(jsonb_build_object(
+				'id', oi.id,
 				'name', oi.name,
 				'quantity', oi.quantity,
 				'sku', oi.sku,
@@ -122,6 +123,7 @@ export async function fetchShippingDocOrders(
 	return result.rows.map((r) => ({
 		id: r.id,
 		items: (r.items ?? []).map((item) => ({
+			id: item.id,
 			name: item.name,
 			quantity: Number(item.quantity),
 			sku: item.sku ?? null,

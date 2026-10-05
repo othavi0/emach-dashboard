@@ -102,15 +102,14 @@ export function OrderCard({
 			</div>
 
 			<div className="flex min-h-[84px] flex-1 flex-col justify-center gap-1.5 border-border/55 border-t px-4 pt-2 pb-2.5">
-				{item.items.map((line, index) => (
+				{item.items.map((line) => (
 					<div
 						className={cn(
 							"flex items-center gap-2.5",
 							highlightToolId === line.toolId &&
 								"-mx-1.5 rounded-md bg-primary/10 px-1.5 py-0.5 outline outline-1 outline-primary/35"
 						)}
-						// biome-ignore lint/suspicious/noArrayIndexKey: lista curta ordenada no SQL, sem inputs; toolId+name colidem entre variantes da mesma ferramenta
-						key={`${line.toolId}-${index}`}
+						key={line.id}
 					>
 						{line.imageUrl ? (
 							// biome-ignore lint/performance/noImgElement: Supabase public URL
