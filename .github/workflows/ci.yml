@@ -54,14 +54,15 @@ jobs:
           EMAIL_FROM: ci@test.local
           NODE_ENV: test
 
-      - name: Guard de forms — self-test da regra
-        # Falha se a regra não carregar (ast-grep test sai 0 com "0 passed" quando
-        # a config/regra some — sem este guard o CI ficaria verde sem enforcement).
+      - name: Guard ast-grep — self-test das regras
+        # ast-grep test sai 0 com menos regras quando uma config some; sem
+        # comparar com o número de arquivos de regra, o CI ficaria verde sem enforcement.
         run: |
+          rules=$(find tooling/ast-grep/rules -name '*.yml' | wc -l)
           out="$(bun guard:forms:test 2>&1)"
           echo "$out"
-          echo "$out" | grep -qE '[1-9][0-9]* passed' || {
-            echo "::error::regra raw-validation-error não carregou (0 casos testados)"
+          echo "$out" | grep -qE "ok\. ${rules} passed; 0 failed" || {
+            echo "::error::esperava ${rules} regras ast-grep testadas e verdes"
             exit 1
           }
 
