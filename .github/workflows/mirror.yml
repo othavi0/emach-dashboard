@@ -34,7 +34,7 @@ jobs:
           MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
         run: |
           if [ -z "$MIRROR_TOKEN" ]; then
-            echo "::warning::MIRROR_TOKEN ausente — pulando mirror. Amplie o escopo do PAT do mirror do ecommerce (conta emach-ferramentas) para incluir este repo de deploy e cadastre-o como secret."
-            exit 0
+            echo "::error::MIRROR_TOKEN vazio: a main não chegou ao repo de deploy. Cadastre um PAT fine-grained da conta emach-ferramentas com acesso a emach-ferramentas/emach-dashboard e escopos Contents e Workflows: Read and write (gh secret set MIRROR_TOKEN)."
+            exit 1
           fi
           git push "https://x-access-token:${MIRROR_TOKEN}@github.com/emach-ferramentas/emach-dashboard.git" HEAD:main
