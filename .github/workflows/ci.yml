@@ -27,8 +27,9 @@ jobs:
       - name: Typecheck
         run: bun check-types
 
+      # turbo em envMode loose repassa o env abaixo a todos os pacotes.
       - name: Tests
-        run: bun --cwd apps/web test
+        run: bun run test
         env:
           # Valores DUMMY só p/ satisfazer a validação de @emach/env no import de
           # @emach/db durante os testes (que mockam o DB). NÃO são secrets reais.
