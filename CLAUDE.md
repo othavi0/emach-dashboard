@@ -9,7 +9,8 @@
 - **Write pontual de linha é OK sem autorização caso-a-caso** — o dado povoado é seed descartável (`EM-TEST-*`/`EM-2026-*`). Vale INSERT/UPDATE/DELETE de poucas linhas via app ou script one-off, ex: fabricar um estado que o seed não tem pra fechar smoke visual (2026-07-16: exceção de picking pra provar a linha de exceção da overview, #329). **Reverter o que criou ao terminar** (guardar o id e deletar; preferível ao fluxo do app, que resolve pra frente e deixa histórico). A fronteira é **volume + irreversibilidade**, não o ato de escrever: o destrutivo em massa do item acima (reset/truncate/drop/seed) continua exigindo autorização explícita.
 - Todo subagente/Task que toca banco recebe **as duas** restrições acima COLADAS no prompt (subagente não herda este arquivo).
 - PII/credenciais de bootstrap do reset de 2026-06 permanecem no **histórico git** (arquivo `RESET-PLAN.md` em commits anteriores a `03984800`; a working tree está limpa desde então e o arquivo foi removido em 2026-07-13 — purge de histórico nunca foi feito).
-- CWD é a RAIZ do monorepo (turbo/bun) — nunca `cd apps/web`; paths absolutos (3 violações medidas na auditoria 07/06).
+- Dado fabricado para smoke sai por `bun run --cwd packages/db db:fixtures create <superfície>` e volta por `db:fixtures cleanup --run <run>` (o `create` imprime o run). Consulta sem o MCP: `db:read`, só leitura. Detalhes em `packages/db/CLAUDE.md`.
+- CWD é a raiz do monorepo. O `dev` de `apps/web` e o `scripts/remove-tool-image-bg.py` se cercam sozinhos com `scripts/run-capped.sh` (teto de memória por systemd, ajustável por `MEM_HIGH`/`MEM_MAX`). Comando pesado novo passa pelo mesmo script. Dev server: `PORT=<n> bun dev:web`. Em dev o auth aceita qualquer `localhost:<porta>`, então trocar de porta não pede edição do `.env`.
 
 ## Auth — invariantes P0 (qualquer violação é bug crítico)
 
@@ -33,12 +34,12 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 
 ## Anti-patterns banidos (P0/P1)
 
-- `console.log/warn/error` em produção. Usar `logger` de `apps/web/src/lib/logger.ts`.
-- `: any`, `<any>`, `as any`, `@ts-ignore`, `@ts-expect-error` (exceto `.next/` gerado).
-- `key={index}` em `.map()` — preferir IDs estáveis; exceção (lista curta de primitivos sem ID, inputs controlados) documentada com comentário inline `//`. **Não** usar `biome-ignore lint/suspicious/noArrayIndexKey`: a regra não é enforçada pelo preset ultracite aqui, então o ignore vira warning `suppressions/unused`.
+`bun check` (biome) barra `console`, `any`, `@ts-ignore`, `key={index}` e o import de `forwardRef`. `bun guard:forms` (ast-grep) barra `useMemo`, `useCallback` e `@ts-expect-error`. As exceções ficam nos próprios checks:
+
+- Log em produção passa por `logger` (`apps/web/src/lib/logger.ts`).
+- `key={index}` só em lista curta de primitivos sem id ou de inputs controlados, com `// biome-ignore lint/suspicious/noArrayIndexKey: <motivo>` na linha logo acima do atributo `key`. `packages/ui` (shadcn) fica fora da regra.
+- `useMemo`/`useCallback` só onde o React Compiler não compila o componente, com `// ast-grep-ignore: no-manual-memo <motivo>` (`no-manual-memo-ts` em `.ts`).
 - `<img>` puro — sempre `next/image` (exceto thumbs Supabase com biome-ignore).
-- `React.forwardRef` — React 19 usa `ref` como prop normal.
-- `useMemo`/`useCallback` manuais — React Compiler ativo (`next.config.ts: reactCompiler: true`).
 - Barrel files (`index.ts` re-export only). Exceções marcadas com `biome-ignore lint/performance/noBarrelFile`: `packages/db/src/schema/index.ts` (API pública do pacote `@emach/db`) e `apps/web/src/lib/masks/index.ts` (import ergonômico das máscaras de input). Outros barrels em `src/index.ts` de pacotes que exportam lógica real (ex: `packages/db/src/index.ts`) **não são barrels** pela definição do biome — não precisam de anotação.
 - `async function` em Client Component — usar Server Component pra fetching.
 - `.forEach()` em hot path — `for...of`.
@@ -51,20 +52,20 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 ## Gotchas
 
 - **`createDb()` × `db` singleton:** `packages/auth/*` usa `createDb()` pra evitar ciclo de import com env; resto usa `db`. Não consolidar.
-- **Hook auto-format PostToolUse:** `.claude/settings.json` roda `bun fix --skip=correctness/noUnusedImports` só no arquivo editado, após `Write`/`Edit` (o `--skip` preserva import ainda sem uso entre Edits em sequência). Pode reordenar campos e quebrar `old_string` de Edits subsequentes — re-ler se falhar.
-- **lefthook pre-commit:** `lefthook` (devDep) instala git hooks via script `prepare` (em todo `bun install`). No `git commit`, o job `lint-fix` roda `bun fix` só nos arquivos staged e re-stageia o que corrigiu (`stage_fixed`), e `react-doctor --staged` imprime regressões sem bloquear o commit. ⚠️ git **worktrees compartilham `.git/hooks`** — em integração multi-commit usando worktrees, os hooks firam nos commits do main tree (podem reformatar e deixar a mudança fora do commit). Se atrapalhar, scrub: `for h in .git/hooks/*; do grep -qil lefthook "$h" && rm -f "$h"; done` (reinstala no próximo `bun install`).
+- **Hook PostToolUse (`.claude/hooks/post-edit-lint.sh`):** formata o arquivo editado e devolve com exit 2 o erro de lint que o fix não corrige. Pode reordenar campos e quebrar `old_string` de Edits seguintes: re-ler se o Edit falhar.
+- **lefthook pre-commit:** o `react-doctor` imprime regressões sem bloquear o commit. Worktree novo: `scripts/worktree-setup.sh` liga `apps/web/.env` ao checkout principal e faz `bun install` real. ⚠️ git **worktrees compartilham `.git/hooks`** — em integração multi-commit usando worktrees, os hooks firam nos commits do main tree (podem reformatar e deixar a mudança fora do commit). Se atrapalhar, scrub: `for h in .git/hooks/*; do grep -qil lefthook "$h" && rm -f "$h"; done` (reinstala no próximo `bun install`).
 - **Server actions com upload base64:** limite Next 16 default é 1MB. Configurado em `apps/web/next.config.ts` como `experimental.serverActions.bodySizeLimit = "8mb"`.
 - **Drizzle-kit push + TTY:** rename ambíguo de coluna falha sem TTY. Dropar+recriar o schema resolve, mas é destrutivo no banco único: só com autorização explícita do user na sessão.
 - **`db.execute()` raw devolve timestamp como string** (drizzle 0.45.x bug). Coercer com `toDate` de `@emach/db/utils` no boundary. Detalhes em `packages/db/CLAUDE.md`.
 - **IDs:** `crypto.randomUUID()` no caller (server actions/scripts) — sem nanoid.
-- **Deploy Vercel:** funções DEVEM rodar em `gru1` (`"regions": ["gru1"]` no `apps/web/vercel.json`) — no default `iad1` cada query ao Supabase sa-east-1 paga ~140ms e a navegação RSC chega a 1,9s (incidente 2026-07-28). A região do **build** (`iad1` no log) é outra coisa e não importa. **O mirror pro repo de deploy está quebrado**: o secret `MIRROR_TOKEN` existe com nome cadastrado desde 2026-07-16 mas **valor vazio** — o step loga `MIRROR_TOKEN: ` e faz `exit 0` com warning, então o run do `mirror.yml` fica **verde sem pushar** (run verde ≠ mirror ok; conferir `gh api repos/emach-ferramentas/emach-dashboard/commits/main` ou o log do step). Merge na main NÃO chega em produção sozinho (fix: PAT fine-grained da conta `emach-ferramentas` com write no repo espelho + `gh secret set MIRROR_TOKEN`; a conta `othavi0` só tem `pull` no espelho, não dá pra pushar direto). Deploy manual: `npx vercel deploy --prod` (projeto `emach-dashboard`, scope `emach-s-projects`) — exige o `.vercelignore` da raiz (limite Vercel de 100MB/arquivo; caches `.next`/`.turbo` estouram).
+- **Deploy Vercel:** funções DEVEM rodar em `gru1` (`"regions": ["gru1"]` no `apps/web/vercel.json`) — no default `iad1` cada query ao Supabase sa-east-1 paga ~140ms e a navegação RSC chega a 1,9s (incidente 2026-07-28). A região do **build** (`iad1` no log) é outra coisa e não importa. A produção sai do repo espelho `emach-ferramentas/emach-dashboard`, que o `mirror.yml` empurra a cada merge na main. Run vermelho do mirror quer dizer que a main não chegou em produção. Sem `MIRROR_TOKEN`, o run falha. O PAT é da conta `emach-ferramentas` com Contents e Workflows: Read and write; a conta `othavi0` só tem `pull` no espelho. Deploy manual: `npx vercel deploy --prod` (projeto `emach-dashboard`, scope `emach-s-projects`) — exige o `.vercelignore` da raiz (limite Vercel de 100MB/arquivo; caches `.next`/`.turbo` estouram).
 - **`.vercelignore` apaga `.git` → `prepare` não pode exigir git (build quebrado 2026-07-30):** o `.vercelignore` é aplicado **depois do clone**, inclusive no build git-triggered, então `lefthook install` puro no `prepare` matava o `bun install` com `exit status 128` antes de compilar. `prepare` agora é guardado por `git rev-parse --git-dir`. Qualquer script novo no `prepare` que dependa de `.git` volta a quebrar o deploy.
 
 ## Smoke run-time
 
-`bun check-types` não detecta SQL inválido em template strings nem queries com colunas removidas. Após mexer em schema/queries SSR: `bun dev:web` + visitar rotas afetadas. Stack trace rápido via `nextjs_call <port> get_errors` (MCP `next-devtools`).
+`bun check-types` não detecta SQL inválido em template strings nem queries com colunas removidas. Após mexer em schema/queries SSR: subir o dev server (`PORT=<n> bun dev:web`) e visitar as rotas afetadas. Stack trace rápido via `nextjs_call <port> get_errors` (MCP `next-devtools`).
 
-`check-types` (tsc) também **não pega regras de lint** (`useAwait`, `noNestedTernary`, etc.) — o CI roda `bun check` (ultracite). Antes de commitar/PR, rodar **`bun check`** além de `check-types`. Atalho: **`bun verify`** encadeia os três (`check-types && check && test`). Exceção: warnings que o código canônico de referência também tem (ex: `role="button"` em card clicável, nested-ternary em header contextual de detalhe espelhando `branches`) — manter por consistência, não corrigir divergindo do padrão.
+`check-types` (tsc) também **não pega regras de lint** (`useAwait`, `noNestedTernary`, etc.). Antes de commitar ou abrir PR: **`bun verify`**. Exceção: warnings que o código canônico de referência também tem (ex: `role="button"` em card clicável, nested-ternary em header contextual de detalhe espelhando `branches`) — manter por consistência, não corrigir divergindo do padrão.
 
 ## Onde estão os outros mistakes-logs
 
