@@ -1,6 +1,7 @@
 import { StarIcon } from "lucide-react";
 
-const STAR_COUNT = 5;
+const STAR_POSITIONS = [1, 2, 3, 4, 5] as const;
+const STAR_COUNT = STAR_POSITIONS.length;
 
 export function StarRating({ rating }: { rating: number }) {
 	const clamped = Math.max(0, Math.min(STAR_COUNT, Math.round(rating)));
@@ -10,13 +11,15 @@ export function StarRating({ rating }: { rating: number }) {
 			className="inline-flex items-center gap-0.5 text-warning"
 			role="img"
 		>
-			{Array.from({ length: STAR_COUNT }, (_, i) => (
+			{STAR_POSITIONS.map((position) => (
 				<StarIcon
 					aria-hidden="true"
 					className={
-						i < clamped ? "size-3.5 fill-current" : "size-3.5 opacity-30"
+						position <= clamped
+							? "size-3.5 fill-current"
+							: "size-3.5 opacity-30"
 					}
-					key={`star-${i}-${i < clamped ? "on" : "off"}`}
+					key={position}
 				/>
 			))}
 		</span>

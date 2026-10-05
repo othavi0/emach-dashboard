@@ -122,6 +122,7 @@ export function VariantsEditor({
 				return (
 					<div
 						className="grid gap-3 rounded-md border border-border bg-card p-4 md:grid-cols-[2fr_2fr_1fr_1fr_auto]"
+						// biome-ignore lint/suspicious/noArrayIndexKey: variante nova não tem id e o SKU muda durante a digitação
 						key={index}
 					>
 						<div className="flex flex-col gap-2">
@@ -217,6 +218,7 @@ export function VariantsEditor({
 						value={String(value.findIndex((v) => v.isDefault))}
 					>
 						{value.map((variant, index) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: o value do radio já é o índice; variante nova não tem id
 							<div className="flex items-center gap-2" key={index}>
 								<RadioGroupItem
 									id={`primary-var-${index}`}

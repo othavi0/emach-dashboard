@@ -70,10 +70,69 @@
         "noUnusedTemplateLiteral": "error",
         "useNumberNamespace": "error",
         "noInferrableTypes": "error",
-        "noUselessElse": "error"
+        "noUselessElse": "error",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "react": {
+                "importNames": ["forwardRef"],
+                "message": "React 19 passa ref como prop comum; forwardRef é banido (CLAUDE.md). noReactForwardRef não roda aqui porque o react vem como catalog:."
+              }
+            }
+          }
+        }
+      },
+      "suspicious": {
+        "noConsole": "error",
+        "noArrayIndexKey": "error",
+        "noReactForwardRef": "error"
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["apps/web/src/lib/logger.ts", "**/scripts/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "react": {
+                    "importNames": ["forwardRef"],
+                    "message": "React 19 passa ref como prop comum; forwardRef é banido (CLAUDE.md). noReactForwardRef não roda aqui porque o react vem como catalog:."
+                  },
+                  "@emach/auth/ecommerce": "apps/web nunca importa a instância ecommerce (CLAUDE.md, Auth #1). Use @emach/auth/dashboard."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ui/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noArrayIndexKey": "off"
+          }
+        }
+      }
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "double"

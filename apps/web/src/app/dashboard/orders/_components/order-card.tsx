@@ -109,8 +109,7 @@ export function OrderCard({
 							highlightToolId === line.toolId &&
 								"-mx-1.5 rounded-md bg-primary/10 px-1.5 py-0.5 outline outline-1 outline-primary/35"
 						)}
-						// key posicional: lista curta ordenada de forma estável no SQL, sem inputs nem
-						// reordenação; toolId+name colidem entre variantes da mesma ferramenta.
+						// biome-ignore lint/suspicious/noArrayIndexKey: lista curta ordenada no SQL, sem inputs; toolId+name colidem entre variantes da mesma ferramenta
 						key={`${line.toolId}-${index}`}
 					>
 						{line.imageUrl ? (

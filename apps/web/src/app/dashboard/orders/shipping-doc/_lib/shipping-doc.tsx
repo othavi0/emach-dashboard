@@ -148,6 +148,7 @@ function ItemsColumn({ order }: { order: ShippingDocOrder }) {
 			</View>
 			{order.items.map((item, index) => (
 				<View
+					// biome-ignore lint/suspicious/noArrayIndexKey: PDF renderizado uma vez; ShippingDocItem não tem id e sku pode ser nulo
 					key={`${item.sku ?? item.name}-${index}`}
 					style={styles.itemRow}
 					wrap={false}

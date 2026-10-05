@@ -89,9 +89,9 @@ function renderSpecsContent(banner: RendererBanner): ReactNode {
 	return (
 		<ul className="flex flex-wrap gap-1">
 			{specs.map((spec, i) => (
-				// key por índice ok: lista curta (≤6) de strings sem ID estável, sem reordenação
 				<li
 					className="rounded-sm bg-white/15 px-1.5 py-0.5 font-[family-name:var(--font-barlow-condensed)] font-medium text-[10px] text-white uppercase"
+					// biome-ignore lint/suspicious/noArrayIndexKey: até 6 strings sem id, podem repetir, sem reordenação
 					key={i}
 				>
 					{spec}

@@ -34,9 +34,10 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@emach/ui/components/tooltip";
-import { BanIcon, CheckCircleIcon, StarIcon, XCircleIcon } from "lucide-react";
+import { BanIcon, CheckCircleIcon, XCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { StarRating } from "@/app/dashboard/reviews/_components/star-rating";
 import { moderateReview } from "@/app/dashboard/reviews/actions";
 import { useLazyTabReload } from "@/components/entity/lazy-tab";
 import { notify } from "@/lib/notify";
@@ -58,27 +59,6 @@ const REVIEW_STATUS_VARIANTS: Record<
 	rejected: "destructive",
 	spam: "destructive",
 };
-
-function StarRating({ rating }: { rating: number }) {
-	const clamped = Math.max(0, Math.min(5, Math.round(rating)));
-	return (
-		<span
-			aria-label={`${clamped} de 5 estrelas`}
-			className="inline-flex items-center gap-0.5 text-warning"
-			role="img"
-		>
-			{Array.from({ length: 5 }, (_, i) => (
-				<StarIcon
-					aria-hidden="true"
-					className={
-						i < clamped ? "size-3.5 fill-current" : "size-3.5 opacity-30"
-					}
-					key={`star-${i}`}
-				/>
-			))}
-		</span>
-	);
-}
 
 type PendingAction = {
 	reviewId: string;

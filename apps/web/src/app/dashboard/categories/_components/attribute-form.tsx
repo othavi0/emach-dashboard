@@ -224,6 +224,7 @@ export function AttributeForm({
 						<HelpTooltip text="Cada opção tem rótulo visível e um slug técnico (gerado do rótulo)." />
 					</h3>
 					{values.options.map((opt, index) => (
+						// biome-ignore lint/suspicious/noArrayIndexKey: inputs controlados sem id; o slug repete enquanto o rótulo está vazio
 						<div className="grid grid-cols-[2fr_2fr_auto] gap-2" key={index}>
 							<Input
 								onChange={(e) => {
@@ -286,6 +287,7 @@ export function AttributeForm({
 					{values.swatches.map((sw, index) => (
 						<div
 							className="grid grid-cols-[1fr_2fr_2fr_auto] gap-2"
+							// biome-ignore lint/suspicious/noArrayIndexKey: inputs controlados sem id; nome e hex repetem durante a digitação
 							key={index}
 						>
 							<Input
