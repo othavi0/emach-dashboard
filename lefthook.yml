@@ -22,3 +22,7 @@ pre-commit:
       glob: "*.{js,jsx,mjs,cjs,ts,tsx,json,jsonc,css}"
       run: bun run fix {staged_files}
       stage_fixed: true
+    # bunx ultracite não cobre .py; os scripts Python escrevem no banco único.
+    - name: py-lint
+      glob: "*.py"
+      run: uvx ruff check {staged_files}

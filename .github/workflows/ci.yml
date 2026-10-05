@@ -27,6 +27,12 @@ jobs:
       - name: Typecheck
         run: bun check-types
 
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v10.2.0
+
+      - name: Lint Python (ruff)
+        run: uvx ruff check .
+
       # turbo em envMode loose repassa o env abaixo a todos os pacotes.
       - name: Tests
         run: bun run test
