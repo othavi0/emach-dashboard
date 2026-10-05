@@ -68,3 +68,6 @@ jobs:
 
       - name: Guard de forms — scan
         run: bun guard:forms
+
+      - name: Hooks do harness e run-capped — tabela de casos
+        run: scripts/test-hooks.sh
