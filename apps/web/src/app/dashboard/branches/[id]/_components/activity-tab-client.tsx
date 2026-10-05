@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@emach/ui/components/button";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { fetchBranchActivityPage } from "@/app/dashboard/branches/actions";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
@@ -41,10 +41,7 @@ export function ActivityTabClient({
 	const [kinds, setKinds] = useState<BranchActivityKind[]>(initialKinds);
 	const [toolId, setToolId] = useState<string | undefined>(initialToolId);
 
-	const filters = useMemo<BranchActivityFilters>(
-		() => ({ branchId, period, kinds, toolId }),
-		[branchId, period, kinds, toolId]
-	);
+	const filters: BranchActivityFilters = { branchId, period, kinds, toolId };
 
 	const resetKey = JSON.stringify(filters);
 

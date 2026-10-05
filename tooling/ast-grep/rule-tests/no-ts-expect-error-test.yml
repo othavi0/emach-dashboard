@@ -1,0 +1,12 @@
+id: no-ts-expect-error
+valid:
+  - 'const a: number = 1; // tipo explícito'
+  - '/* @ts-check */ const b = 2;'
+  - 'const s = "@ts-expect-error";'
+invalid:
+  - |
+    // @ts-expect-error tipo da lib está errado
+    const a: number = "x";
+  - |
+    /* @ts-expect-error */
+    const b: number = "y";

@@ -9,7 +9,13 @@ import {
 } from "../shipping-doc-logic";
 
 function makeItem(n: number): ShippingDocItem {
-	return { name: `Item ${n}`, quantity: 1, sku: null, voltage: null };
+	return {
+		id: `item-${n}`,
+		name: `Item ${n}`,
+		quantity: 1,
+		sku: null,
+		voltage: null,
+	};
 }
 
 function makeOrder(id: string, itemCount: number): ShippingDocOrder {
@@ -131,14 +137,16 @@ describe("senderInline", () => {
 describe("itemsSummary", () => {
 	it("plural e soma de unidades", () => {
 		const items = [
-			{ name: "A", quantity: 2, sku: null, voltage: null },
-			{ name: "B", quantity: 3, sku: null, voltage: null },
+			{ id: "a", name: "A", quantity: 2, sku: null, voltage: null },
+			{ id: "b", name: "B", quantity: 3, sku: null, voltage: null },
 		];
 		expect(itemsSummary(items)).toBe("2 itens · 5 un.");
 	});
 	it("singular", () => {
 		expect(
-			itemsSummary([{ name: "A", quantity: 1, sku: null, voltage: null }])
+			itemsSummary([
+				{ id: "a", name: "A", quantity: 1, sku: null, voltage: null },
+			])
 		).toBe("1 item · 1 un.");
 	});
 });

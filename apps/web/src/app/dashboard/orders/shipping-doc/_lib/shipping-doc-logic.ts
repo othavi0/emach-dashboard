@@ -28,6 +28,7 @@ export interface ShippingDocRecipient {
 }
 
 export interface ShippingDocItem {
+	id: string;
 	name: string;
 	quantity: number;
 	sku: string | null;

@@ -146,12 +146,8 @@ function ItemsColumn({ order }: { order: ShippingDocOrder }) {
 				<Text style={[styles.micro, { width: 24 }]}>Qtd</Text>
 				<Text style={[styles.micro, { flex: 1 }]}>Item</Text>
 			</View>
-			{order.items.map((item, index) => (
-				<View
-					key={`${item.sku ?? item.name}-${index}`}
-					style={styles.itemRow}
-					wrap={false}
-				>
+			{order.items.map((item) => (
+				<View key={item.id} style={styles.itemRow} wrap={false}>
 					<Text style={styles.qty}>{`${item.quantity}×`}</Text>
 					<View style={{ flex: 1 }}>
 						<Text style={styles.itemName}>

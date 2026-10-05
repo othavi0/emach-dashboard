@@ -10,7 +10,6 @@ import {
 import { cn } from "@emach/ui/lib/utils";
 import { CheckIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
 
 import { ClearFiltersButton } from "@/components/clear-filters-button";
 import type { ActiveSupplierOption } from "@/lib/suppliers";
@@ -48,20 +47,17 @@ export function LedgerFiltersBar({
 	const router = useRouter();
 	const searchParams = useSearchParams();
 
-	const push = useCallback(
-		(updates: Record<string, string | undefined>) => {
-			const params = new URLSearchParams(searchParams.toString());
-			for (const [key, value] of Object.entries(updates)) {
-				if (value === undefined || value === "") {
-					params.delete(key);
-				} else {
-					params.set(key, value);
-				}
+	const push = (updates: Record<string, string | undefined>) => {
+		const params = new URLSearchParams(searchParams.toString());
+		for (const [key, value] of Object.entries(updates)) {
+			if (value === undefined || value === "") {
+				params.delete(key);
+			} else {
+				params.set(key, value);
 			}
-			router.push(`?${params.toString()}`);
-		},
-		[router, searchParams]
-	);
+		}
+		router.push(`?${params.toString()}`);
+	};
 
 	const handlePeriodChange = (period: PeriodPreset) => {
 		// 7d é o default (sem query param); os demais viram ?period=.

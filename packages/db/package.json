@@ -19,6 +19,8 @@
     "db:seed-ready-to-ship": "bun run scripts/seed-ready-to-ship.ts",
     "db:unseed-ready-to-ship": "bun run scripts/unseed-ready-to-ship.ts",
     "db:reset-demo": "bun run scripts/reset-demo.ts",
+    "db:fixtures": "bun run scripts/fixtures.ts",
+    "db:read": "bun run scripts/db-read.ts",
     "check-types": "tsc --noEmit",
     "test": "vitest run"
   },

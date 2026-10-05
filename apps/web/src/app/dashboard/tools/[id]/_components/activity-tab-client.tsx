@@ -2,7 +2,7 @@
 
 import { Button } from "@emach/ui/components/button";
 import { Spinner } from "@emach/ui/components/spinner";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { fetchToolActivityPageAction } from "@/app/dashboard/stock/actions";
 import type {
@@ -40,10 +40,7 @@ export function ActivityTabClient({
 	const [branchId, setBranchId] = useState<string | undefined>();
 	const [reasons, setReasons] = useState<string[]>([...ALL_REASONS]);
 
-	const filters = useMemo<ToolActivityFilters>(
-		() => ({ toolId, branchId, period, reasons }),
-		[toolId, branchId, period, reasons]
-	);
+	const filters: ToolActivityFilters = { toolId, branchId, period, reasons };
 
 	const resetKey = JSON.stringify(filters);
 

@@ -7,7 +7,8 @@
     "./send": "./src/send.tsx"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@emach/env": "workspace:*",
@@ -18,6 +19,7 @@
   "devDependencies": {
     "@emach/config": "workspace:*",
     "@types/react": "catalog:",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   }
 }

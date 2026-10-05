@@ -130,12 +130,13 @@ async function BranchFilterSlot({ value }: { value: string | null }) {
 	return <BranchFilter options={options} value={value} />;
 }
 
+const KPI_SKELETON_KEYS = ["receita", "pedidos", "rupturas", "ticket"];
+
 function KpiSkeleton() {
 	return (
 		<div className={cn("grid grid-cols-2 gap-3", kpiGridClass(4))}>
-			{Array.from({ length: 4 }, (_, i) => (
-				// lista estática de 4 placeholders sem id próprio — índice é estável
-				<Skeleton className="h-24 w-full" key={`kpi-skeleton-${i}`} />
+			{KPI_SKELETON_KEYS.map((key) => (
+				<Skeleton className="h-24 w-full" key={key} />
 			))}
 		</div>
 	);

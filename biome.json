@@ -70,10 +70,47 @@
         "noUnusedTemplateLiteral": "error",
         "useNumberNamespace": "error",
         "noInferrableTypes": "error",
-        "noUselessElse": "error"
+        "noUselessElse": "error",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "react": {
+                "importNames": ["forwardRef", "default"],
+                "message": "React 19 passa ref como prop comum: forwardRef é banido, e o import default de react também (React.forwardRef escaparia, porque noReactForwardRef não roda com react em catalog:)."
+              }
+            }
+          }
+        }
+      },
+      "suspicious": {
+        "noConsole": "error",
+        "noArrayIndexKey": "error"
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["apps/web/src/lib/logger.ts", "**/scripts/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ui/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noArrayIndexKey": "off"
+          }
+        }
+      }
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "double"

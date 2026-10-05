@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { HelpTooltip } from "@/components/help-tooltip";
 import { notify } from "@/lib/notify";
 
@@ -55,7 +55,7 @@ export function CategoriesTree({
 	const [, startTransition] = useTransition();
 	const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 	const [order, setOrder] = useState(categories);
-	const tree = useMemo(() => buildCategoryTree(order), [order]);
+	const tree = buildCategoryTree(order);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } })

@@ -61,6 +61,7 @@ export interface OrderListFilters {
 }
 
 export interface OrderCardItem {
+	id: string;
 	imageUrl: string | null;
 	name: string;
 	quantity: number;
@@ -405,11 +406,11 @@ export async function fetchOrdersPage({
 		LEFT JOIN branch b ON b.id = o.branch_id
 		LEFT JOIN LATERAL (
 			SELECT COALESCE(jsonb_agg(jsonb_build_object(
-				'toolId', x.tool_id, 'name', x.name,
+				'id', x.id, 'toolId', x.tool_id, 'name', x.name,
 				'quantity', x.quantity, 'imageUrl', x.image_url
 			) ORDER BY x.quantity DESC, x.name ASC), '[]'::jsonb) AS items
 			FROM (
-				SELECT oi.tool_id, oi.name, oi.quantity,
+				SELECT oi.id, oi.tool_id, oi.name, oi.quantity,
 					(SELECT ti.url FROM tool_image ti
 					 WHERE ti.tool_id = oi.tool_id
 					 ORDER BY ti.sort_order ASC LIMIT 1) AS image_url

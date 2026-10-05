@@ -24,11 +24,20 @@ jobs:
       - name: Lint (ultracite)
         run: bun check
 
+      - name: Caminhos citados nos docs
+        run: bun run check:docs
+
       - name: Typecheck
         run: bun check-types
 
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v10.2.0
+
+      - name: Lint Python (ruff)
+        run: uvx ruff@0.16.10 check .
+
       - name: Tests
-        run: bun --cwd apps/web test
+        run: bun run test
         env:
           # Valores DUMMY só p/ satisfazer a validação de @emach/env no import de
           # @emach/db durante os testes (que mockam o DB). NÃO são secrets reais.
@@ -44,16 +53,20 @@ jobs:
           EMAIL_FROM: ci@test.local
           NODE_ENV: test
 
-      - name: Guard de forms — self-test da regra
-        # Falha se a regra não carregar (ast-grep test sai 0 com "0 passed" quando
-        # a config/regra some — sem este guard o CI ficaria verde sem enforcement).
+      - name: Guard ast-grep — self-test das regras
+        # ast-grep test sai 0 com menos regras quando uma config some; sem
+        # comparar com o número de arquivos de regra, o CI ficaria verde sem enforcement.
         run: |
+          rules=$(find tooling/ast-grep/rules -name '*.yml' | wc -l)
           out="$(bun guard:forms:test 2>&1)"
           echo "$out"
-          echo "$out" | grep -qE '[1-9][0-9]* passed' || {
-            echo "::error::regra raw-validation-error não carregou (0 casos testados)"
+          echo "$out" | grep -qE "ok\. ${rules} passed; 0 failed" || {
+            echo "::error::esperava ${rules} regras ast-grep testadas e verdes"
             exit 1
           }
 
       - name: Guard de forms — scan
         run: bun guard:forms
+
+      - name: Hooks do harness e run-capped — tabela de casos
+        run: scripts/test-hooks.sh

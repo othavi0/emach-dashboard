@@ -13,7 +13,6 @@ import {
 	SelectValue,
 } from "@emach/ui/components/select";
 import { XIcon } from "lucide-react";
-import { useMemo } from "react";
 
 interface AttributeAssignmentsEditorProps {
 	allDefinitions: AttributeDefinition[];
@@ -34,33 +33,22 @@ export function AttributeAssignmentsEditor({
 	suggested,
 	value,
 }: AttributeAssignmentsEditorProps) {
-	const assignedSet = useMemo(() => new Set(value), [value]);
-	const suggestedSlugs = useMemo(
-		() => new Set(suggested.map((d) => d.slug)),
-		[suggested]
-	);
+	const assignedSet = new Set(value);
+	const suggestedSlugs = new Set(suggested.map((d) => d.slug));
 
-	const rows = useMemo<Row[]>(() => {
-		const out: Row[] = suggested.map((def) => ({
-			def,
-			isAssigned: assignedSet.has(def.slug),
-			source: "suggested",
-		}));
-		// extras: assigned mas não estão no pool sugerido
-		for (const def of allDefinitions) {
-			if (assignedSet.has(def.slug) && !suggestedSlugs.has(def.slug)) {
-				out.push({ def, isAssigned: true, source: "extra" });
-			}
+	const rows: Row[] = suggested.map((def) => ({
+		def,
+		isAssigned: assignedSet.has(def.slug),
+		source: "suggested",
+	}));
+	for (const def of allDefinitions) {
+		if (assignedSet.has(def.slug) && !suggestedSlugs.has(def.slug)) {
+			rows.push({ def, isAssigned: true, source: "extra" });
 		}
-		return out;
-	}, [suggested, allDefinitions, assignedSet, suggestedSlugs]);
+	}
 
-	const availableExtras = useMemo(
-		() =>
-			allDefinitions.filter(
-				(d) => !(assignedSet.has(d.slug) || suggestedSlugs.has(d.slug))
-			),
-		[allDefinitions, assignedSet, suggestedSlugs]
+	const availableExtras = allDefinitions.filter(
+		(d) => !(assignedSet.has(d.slug) || suggestedSlugs.has(d.slug))
 	);
 
 	function toggle(slug: string, checked: boolean) {

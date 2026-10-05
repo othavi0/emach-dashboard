@@ -9,6 +9,7 @@ function order(id: string, itemCount: number): ShippingDocOrder {
 		id,
 		number: `EM-TEST-91${id}`,
 		items: Array.from({ length: itemCount }, (_, i) => ({
+			id: `item-${i}`,
 			name: `Desempenadeira Elétrica ${i}`,
 			quantity: 1,
 			sku: `SKU-${i}`,

@@ -1,0 +1,9 @@
+id: no-ts-expect-error
+language: tsx
+severity: error
+message: >-
+  @ts-expect-error esconde erro de tipo (CLAUDE.md, anti-patterns). Corrija o tipo; o
+  suspicious/noTsIgnore do biome só cobre @ts-ignore.
+rule:
+  kind: comment
+  regex: '@ts-expect-error'

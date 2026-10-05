@@ -1,7 +1,6 @@
 "use client";
 
 import {
-	useCallback,
 	useEffect,
 	useEffectEvent,
 	useRef,
@@ -73,11 +72,11 @@ export function useInfiniteList<T>({
 		});
 	}, [resetKey]);
 
-	const removeItem = useCallback((predicate: (item: T) => boolean) => {
+	const removeItem = (predicate: (item: T) => boolean) => {
 		setItems((prev) => prev.filter((item) => !predicate(item)));
-	}, []);
+	};
 
-	const loadMore = useCallback(() => {
+	const loadMore = () => {
 		if (!cursorRef.current || inflightRef.current) {
 			return;
 		}
@@ -96,7 +95,7 @@ export function useInfiniteList<T>({
 				inflightRef.current = false;
 			}
 		});
-	}, [fetchPage]);
+	};
 
 	return {
 		items,
