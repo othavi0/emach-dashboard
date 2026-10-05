@@ -5,7 +5,6 @@ import { Input } from "@emach/ui/components/input";
 import { Label } from "@emach/ui/components/label";
 import { Star } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
 
 import { FieldError } from "@/components/field-error";
 import { HelpTooltip } from "@/components/help-tooltip";
@@ -64,12 +63,10 @@ export function IdentityFields({
 		);
 	}
 
-	const slugPreview = useMemo(() => {
-		if (mode === "edit" && existingSlug) {
-			return existingSlug;
-		}
-		return slugify(values.name) || "—";
-	}, [mode, existingSlug, values.name]);
+	const slugPreview =
+		mode === "edit" && existingSlug
+			? existingSlug
+			: slugify(values.name) || "—";
 
 	function toggleCategory(catId: string, checked: boolean) {
 		onPatch((prev) => {

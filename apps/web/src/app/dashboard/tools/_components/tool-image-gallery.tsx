@@ -157,6 +157,7 @@ export function ToolImageGallery({
 		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
 	);
 
+	// ast-grep-ignore: no-manual-memo o Compiler não compila ToolImageGallery (for-of dentro de try/catch); sai junto com o refactor do upload
 	const uploadFiles = useCallback(
 		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: upload com validação e fallback parcial; refactor em docs/plano-melhorias.md
 		async (files: FileList | File[]) => {

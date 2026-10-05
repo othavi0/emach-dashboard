@@ -2,7 +2,7 @@
 
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { fetchVariantBranchMovementsPageAction } from "../actions";
 import type { StockMovementRow } from "../movements-data";
@@ -106,7 +106,7 @@ export function MovementsCard({
 		});
 	}, [variantId, branchId]);
 
-	const loadMore = useCallback(() => {
+	const loadMore = () => {
 		if (!cursor) {
 			return;
 		}
@@ -120,7 +120,7 @@ export function MovementsCard({
 			setItems((prev) => [...prev, ...r.items]);
 			setCursor(r.nextCursor);
 		});
-	}, [cursor, variantId, branchId]);
+	};
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-border bg-card">

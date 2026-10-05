@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type { ZodError } from "zod";
 import {
 	errorToastMessage,
@@ -21,19 +21,16 @@ import { notify } from "@/lib/notify";
  */
 export function useFormErrors<T = Record<string, string>>() {
 	const [errors, setErrors] = useState<FieldErrorMap<T>>({});
-	const reportValidationError = useCallback(
-		(
-			error: ZodError,
-			transform?: (fieldErrors: FieldErrorMap<T>) => FieldErrorMap<T>
-		) => {
-			const base = zodIssuesToFieldErrors<T>(error);
-			const fieldErrors = transform ? transform(base) : base;
-			setErrors(fieldErrors);
-			notify.error(errorToastMessage(fieldErrors));
-			focusFirstError();
-		},
-		[]
-	);
-	const clearErrors = useCallback(() => setErrors({}), []);
+	const reportValidationError = (
+		error: ZodError,
+		transform?: (fieldErrors: FieldErrorMap<T>) => FieldErrorMap<T>
+	) => {
+		const base = zodIssuesToFieldErrors<T>(error);
+		const fieldErrors = transform ? transform(base) : base;
+		setErrors(fieldErrors);
+		notify.error(errorToastMessage(fieldErrors));
+		focusFirstError();
+	};
+	const clearErrors = () => setErrors({});
 	return { errors, setErrors, reportValidationError, clearErrors };
 }

@@ -11,7 +11,6 @@ import {
 } from "@emach/ui/components/select";
 import { Toggle } from "@emach/ui/components/toggle";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
 
 import { FiltersBar } from "@/components/filters-bar";
 import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
@@ -51,20 +50,17 @@ export function CustomerFilters() {
 		(searchParams.get("sort") as (typeof SORT_OPTIONS)[number]) ??
 		"createdDesc";
 
-	const setMultiParam = useCallback(
-		(key: string, values: string[]) => {
-			const next = new URLSearchParams(searchParams.toString());
-			if (values.length > 0) {
-				next.set(key, values.join(","));
-			} else {
-				next.delete(key);
-			}
-			router.replace(
-				values.length || next.toString() ? `${BASE}?${next.toString()}` : BASE
-			);
-		},
-		[router, searchParams]
-	);
+	const setMultiParam = (key: string, values: string[]) => {
+		const next = new URLSearchParams(searchParams.toString());
+		if (values.length > 0) {
+			next.set(key, values.join(","));
+		} else {
+			next.delete(key);
+		}
+		router.replace(
+			values.length || next.toString() ? `${BASE}?${next.toString()}` : BASE
+		);
+	};
 
 	return (
 		<FiltersBar hasActive={hasActive} onClear={clearAll}>

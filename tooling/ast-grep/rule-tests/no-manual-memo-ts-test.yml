@@ -1,0 +1,11 @@
+id: no-manual-memo-ts
+valid:
+  - 'const x = compute(a);'
+  - 'const f = () => setOpen(true);'
+  - 'const useMemoized = 1;'
+  - 'const y = memo.useMemoish(a);'
+invalid:
+  - 'const x = useMemo(() => compute(a), [a]);'
+  - 'const f = useCallback(() => setOpen(true), []);'
+  - 'const x = React.useMemo(() => 1, []);'
+  - 'const g = React.useCallback(() => 1, []);'

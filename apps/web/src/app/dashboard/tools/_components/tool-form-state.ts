@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import type { ToolFormValues } from "./tool-schema";
 
 export type ToolFormState = Omit<
@@ -73,12 +73,12 @@ export function useToolFormState(defaultValues: Partial<ToolFormState>) {
 		Partial<Record<keyof ToolFormValues, string>>
 	>({});
 
-	const patch = useCallback<ToolPatch>((next) => {
+	const patch: ToolPatch = (next) => {
 		setValues((prev) => ({
 			...prev,
 			...(typeof next === "function" ? next(prev) : next),
 		}));
-	}, []);
+	};
 
 	return { values, setValues, patch, errors, setErrors };
 }

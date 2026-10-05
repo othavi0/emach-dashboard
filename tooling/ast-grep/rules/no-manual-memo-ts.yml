@@ -1,0 +1,17 @@
+id: no-manual-memo-ts
+language: typescript
+severity: error
+message: >-
+  useMemo/useCallback manual. O React Compiler está ativo (next.config.ts: reactCompiler):
+  escreva o valor ou a função direto. Exceção: // ast-grep-ignore: no-manual-memo-ts com o motivo
+  na linha de cima.
+ignores:
+  - packages/ui/**
+rule:
+  kind: call_expression
+  has:
+    field: function
+    any:
+      - { kind: identifier, regex: '^use(Memo|Callback)$' }
+      - kind: member_expression
+        has: { field: property, regex: '^use(Memo|Callback)$' }

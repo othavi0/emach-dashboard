@@ -1,7 +1,6 @@
 "use client";
 
 import type { AttributeDefinition } from "@emach/db/schema/attributes";
-import { useMemo } from "react";
 
 import { FieldError } from "@/components/field-error";
 import { AttributeAssignmentsEditor } from "../attribute-assignments-editor";
@@ -17,26 +16,18 @@ import type { ToolFieldGroupProps } from "./types";
 export function SpecFields({ values, onPatch, errors }: ToolFieldGroupProps) {
 	const { allDefinitions, definitionsByCategory } = useToolFormContext();
 
-	const suggestedDefinitions = useMemo(
-		() => definitionsByCategory[values.primaryCategoryId] ?? [],
-		[definitionsByCategory, values.primaryCategoryId]
-	);
+	const suggestedDefinitions =
+		definitionsByCategory[values.primaryCategoryId] ?? [];
 
-	const definitionsBySlug = useMemo(
-		() => new Map(allDefinitions.map((d) => [d.slug, d])),
-		[allDefinitions]
-	);
+	const definitionsBySlug = new Map(allDefinitions.map((d) => [d.slug, d]));
 
-	const assignedDefinitions = useMemo(() => {
-		const out: AttributeDefinition[] = [];
-		for (const slug of values.attributeAssignments) {
-			const def = definitionsBySlug.get(slug);
-			if (def) {
-				out.push(def);
-			}
+	const assignedDefinitions: AttributeDefinition[] = [];
+	for (const slug of values.attributeAssignments) {
+		const def = definitionsBySlug.get(slug);
+		if (def) {
+			assignedDefinitions.push(def);
 		}
-		return out;
-	}, [values.attributeAssignments, definitionsBySlug]);
+	}
 
 	const filledSpecs = countFilledSpecs(
 		values.attributeValues,
