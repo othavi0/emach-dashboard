@@ -34,7 +34,7 @@ jobs:
         uses: astral-sh/setup-uv@v10.2.0
 
       - name: Lint Python (ruff)
-        run: uvx ruff check .
+        run: uvx ruff@0.16.10 check .
 
       # turbo em envMode loose repassa o env abaixo a todos os pacotes.
       - name: Tests

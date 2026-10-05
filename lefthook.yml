@@ -2,8 +2,9 @@
 # Docs: https://lefthook.dev/configuration/
 #
 # O hook `pre-commit` espelha o PostToolUse do harness Claude Code
-# (.claude/settings.json: `bun fix` no arquivo editado), tornando o auto-format consistente
-# para commits humanos e outros clientes git.
+# (.claude/hooks/post-edit-lint.sh: `bun fix` e, em .ts/.tsx, `ast-grep scan` no
+# arquivo editado) para commits humanos e outros clientes git. O PostToolUse
+# deixa passar import, variável e parâmetro sem uso entre Edits; aqui eles barram.
 #
 # ATENÇÃO: não remover o PostToolUse do harness — lefthook e harness são
 # complementares (harness roda em Write/Edit; lefthook roda no git commit).
@@ -22,10 +23,15 @@ pre-commit:
       glob: "*.{js,jsx,mjs,cjs,ts,tsx,json,jsonc,css}"
       run: bun run fix {staged_files}
       stage_fixed: true
+    # Regras de tooling/ast-grep (useMemo/useCallback, @ts-expect-error) que o biome não tem.
+    - name: ast-grep
+      glob: "*.{ts,tsx}"
+      run: bunx ast-grep scan --report-style short {staged_files}
     # bunx ultracite não cobre .py; os scripts Python escrevem no banco único.
+    # Versão igual ao required-version do ruff.toml e ao CI.
     - name: py-lint
       glob: "*.py"
-      run: uvx ruff check {staged_files}
+      run: uvx ruff@0.16.10 check {staged_files}
     # Caminho citado em doc que não existe mais (deriva de doc).
     - name: doc-paths
       glob: "*.md"
