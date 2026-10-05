@@ -24,6 +24,9 @@ jobs:
       - name: Lint (ultracite)
         run: bun check
 
+      - name: Caminhos citados nos docs
+        run: bun run check:docs
+
       - name: Typecheck
         run: bun check-types
 

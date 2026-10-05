@@ -26,3 +26,7 @@ pre-commit:
     - name: py-lint
       glob: "*.py"
       run: uvx ruff check {staged_files}
+    # Caminho citado em doc que não existe mais (deriva de doc).
+    - name: doc-paths
+      glob: "*.md"
+      run: bun run check:docs
