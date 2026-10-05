@@ -13,12 +13,19 @@ script pode rodar de novo sem refazer nada.
 
     uv run --env-file apps/web/.env scripts/remove-tool-image-bg.py --out /tmp/bg
     uv run --env-file apps/web/.env scripts/remove-tool-image-bg.py --out /tmp/bg --apply
+
+O BiRefNet pede uns 18 GB. Fora de um scope com teto, o script se reexecuta via
+scripts/run-capped.sh com MEM_HIGH=16G e MEM_MAX=20G (o env sobrescreve).
+`--print-cgroup` mostra o cgroup e sai, sem banco nem modelo.
 """
 
 import argparse
 import csv
 import io
 import os
+import shutil
+import subprocess
+import sys
 import urllib.request
 import uuid
 from pathlib import Path
@@ -104,11 +111,44 @@ def upload(base: str, key: str, name: str, body: bytes) -> str:
     return f"{base}/storage/v1/object/public/{BUCKET}/{name}"
 
 
+MIN_CAP_BYTES = 16 * 1024**3
+
+
+def cgroup_memory_max() -> tuple[str, str]:
+    cgroup = Path("/proc/self/cgroup").read_text().strip().split("::", 1)[1]
+    return cgroup, Path(f"/sys/fs/cgroup{cgroup}/memory.max").read_text().strip()
+
+
+def ensure_capped() -> None:
+    if os.environ.get("RUN_CAPPED"):
+        limit = cgroup_memory_max()[1]
+        if limit != "max" and int(limit) < MIN_CAP_BYTES:
+            sys.exit(f"teto de memória herdado ({int(limit) // 1024**3}G) é menor que os 16G que o BiRefNet pede; rode fora do run-capped ou com MEM_HIGH=16G MEM_MAX=20G")
+        return
+    if shutil.which("systemd-run") is None:
+        return
+    probe = subprocess.run(["systemd-run", "--user", "--scope", "--quiet", "true"], capture_output=True, check=False)
+    if probe.returncode != 0:
+        return
+    os.environ.setdefault("MEM_HIGH", "16G")
+    os.environ.setdefault("MEM_MAX", "20G")
+    run_capped = str(Path(__file__).resolve().parent / "run-capped.sh")
+    os.execv(run_capped, [run_capped, sys.executable, *sys.argv])
+
+
 def main() -> None:
+    ensure_capped()
     p = argparse.ArgumentParser()
-    p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--out", type=Path)
     p.add_argument("--apply", action="store_true")
+    p.add_argument("--print-cgroup", action="store_true")
     args = p.parse_args()
+    if args.print_cgroup:
+        cgroup, limit = cgroup_memory_max()
+        print(cgroup, "memory.max =", limit)
+        return
+    if args.out is None:
+        p.error("--out é obrigatório")
     args.out.mkdir(parents=True, exist_ok=True)
     base = os.environ["NEXT_PUBLIC_SUPABASE_URL"].rstrip("/")
     key = os.environ["SUPABASE_SERVICE_ROLE_KEY"] if args.apply else ""
