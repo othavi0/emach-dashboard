@@ -19,6 +19,7 @@ import {
 	orderNote,
 	orderPicking,
 	orderStatusHistory,
+	type RefundReason,
 	type RefundStatus,
 	refundRequest,
 } from "@emach/db/schema/orders";
@@ -145,7 +146,7 @@ export interface OrderRefundItem {
 	amount: number;
 	asaasRefundRef: string | null;
 	id: string;
-	reasonCategory: string;
+	reasonCategory: RefundReason;
 	reasonText: string | null;
 	rejectionReason: string | null;
 	requestedAt: Date;

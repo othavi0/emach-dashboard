@@ -7,7 +7,10 @@ import {
 } from "@emach/ui/components/card";
 import { formatDate } from "@/lib/format/datetime";
 import type { OrderRefundItem } from "../../../data";
-import { REFUND_STATUS_LABELS } from "../../../status-meta";
+import {
+	REFUND_REASON_LABELS,
+	REFUND_STATUS_LABELS,
+} from "../../../status-meta";
 import { formatCurrency } from "../../_lib/format-address";
 import { RefundActions } from "../refund-actions";
 
@@ -28,7 +31,9 @@ export function RefundTab({ refunds }: RefundTabProps) {
 						key={refund.id}
 					>
 						<div className="flex items-start justify-between gap-2">
-							<p className="font-medium text-sm">{refund.reasonCategory}</p>
+							<p className="font-medium text-sm">
+								{REFUND_REASON_LABELS[refund.reasonCategory]}
+							</p>
 							<Badge variant="secondary">
 								{REFUND_STATUS_LABELS[refund.status]}
 							</Badge>

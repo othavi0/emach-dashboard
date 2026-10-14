@@ -32,6 +32,7 @@ import type {
 import {
 	ORDER_STATUS_LABELS,
 	ORDER_STATUS_META,
+	REFUND_REASON_LABELS,
 	REFUND_STATUS_LABELS,
 } from "../../status-meta";
 import { AttachmentUploadForm } from "./attachment-upload-form";
@@ -201,7 +202,7 @@ function normalizeEvents(items: OrderEventItem[]): FeedItem[] {
 function normalizeRefunds(items: OrderRefundItem[]): FeedItem[] {
 	return items.map((r): FeedItem => {
 		const statusLabel = REFUND_STATUS_LABELS[r.status].toLowerCase();
-		const subtitle = `${r.reasonCategory} · ${formatCurrency(r.amount)} · ${statusLabel}`;
+		const subtitle = `${REFUND_REASON_LABELS[r.reasonCategory]} · ${formatCurrency(r.amount)} · ${statusLabel}`;
 
 		return {
 			category: "financeiro",

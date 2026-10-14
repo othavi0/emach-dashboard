@@ -2,6 +2,7 @@ export type { OrderStatus } from "@emach/db/schema/orders";
 
 import type {
 	OrderStatus as DbOrderStatus,
+	RefundReason,
 	RefundStatus,
 } from "@emach/db/schema/orders";
 import type { StatusIconKey, Tone } from "@/components/status-visual";
@@ -201,3 +202,13 @@ export const REFUND_STATUS_LABELS = {
 	refunded: "Reembolsado",
 	rejected: "Rejeitado",
 } as const satisfies Record<RefundStatus, string>;
+
+// Mesmo texto que o cliente escolhe no ecommerce (REFUND_REASON_LABEL em
+// emach-ecommerce/apps/web/src/lib/refunds/status.ts).
+export const REFUND_REASON_LABELS = {
+	defeito: "Produto com defeito",
+	item_errado: "Item errado / diferente do pedido",
+	avaria_transporte: "Avaria no transporte",
+	arrependimento: "Arrependimento (7 dias)",
+	outro: "Outro motivo",
+} as const satisfies Record<RefundReason, string>;

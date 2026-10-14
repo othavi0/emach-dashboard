@@ -5,6 +5,7 @@ import {
 	DEFAULT_ORDER_TAB,
 	LATE_SUB_TABS,
 	ORDER_FLOW_TABS,
+	REFUND_REASON_LABELS,
 	REFUND_STATUS_LABELS,
 } from "../status-meta";
 
@@ -97,5 +98,17 @@ describe("REFUND_STATUS_LABELS", () => {
 		["rejected", "Rejeitado"],
 	] as const)("mostra %s como %s", (status, label) => {
 		expect(REFUND_STATUS_LABELS[status]).toBe(label);
+	});
+});
+
+describe("REFUND_REASON_LABELS", () => {
+	it.each([
+		["defeito", "Produto com defeito"],
+		["item_errado", "Item errado / diferente do pedido"],
+		["avaria_transporte", "Avaria no transporte"],
+		["arrependimento", "Arrependimento (7 dias)"],
+		["outro", "Outro motivo"],
+	] as const)("mostra %s como %s", (reason, label) => {
+		expect(REFUND_REASON_LABELS[reason]).toBe(label);
 	});
 });
