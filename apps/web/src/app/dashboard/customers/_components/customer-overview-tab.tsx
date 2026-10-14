@@ -23,12 +23,13 @@ import {
 import { SwitchTabButton } from "@/components/entity/switch-tab-button";
 import { formatDocument } from "@/lib/cpf-cnpj";
 import { formatDate, formatDateTime } from "@/lib/format/datetime";
+import { ORDER_STATUS_LABELS } from "../../orders/status-meta";
 import {
 	CLIENT_STATUS_CONFIG,
 	CLIENT_TYPE_CONFIG,
 	COUNT,
 	CURRENCY,
-	ORDER_STATUS_LABELS,
+	lastOrderHint,
 } from "../_lib/customer-display";
 import type { CustomerDetail, CustomerKpis, CustomerOrderRow } from "../data";
 
@@ -53,18 +54,6 @@ function Field({
 			<dd className="text-sm">{children}</dd>
 		</div>
 	);
-}
-
-function lastOrderHint(kpis: CustomerKpis): string | undefined {
-	if (!kpis.lastOrderAt) {
-		return "Sem pedidos";
-	}
-
-	if (kpis.lastOrderStatus) {
-		return ORDER_STATUS_LABELS[kpis.lastOrderStatus] ?? kpis.lastOrderStatus;
-	}
-
-	return;
 }
 
 export function CustomerOverviewTab({ customer, kpis, recentOrders }: Props) {
@@ -190,7 +179,7 @@ export function CustomerOverviewTab({ customer, kpis, recentOrders }: Props) {
 										</TableCell>
 										<TableCell>
 											<Badge variant="secondary">
-												{ORDER_STATUS_LABELS[order.status] ?? order.status}
+												{ORDER_STATUS_LABELS[order.status]}
 											</Badge>
 										</TableCell>
 										<TableCell className="text-right tabular-nums">

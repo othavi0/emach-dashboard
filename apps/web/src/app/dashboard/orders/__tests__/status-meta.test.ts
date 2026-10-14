@@ -5,6 +5,7 @@ import {
 	DEFAULT_ORDER_TAB,
 	LATE_SUB_TABS,
 	ORDER_FLOW_TABS,
+	REFUND_STATUS_LABELS,
 } from "../status-meta";
 
 describe("ORDER_FLOW_TABS (spec 2026-07-11; overlay 'late' spec 2026-07-13)", () => {
@@ -84,5 +85,17 @@ describe("canonicalOrderTabKey", () => {
 
 	it("preserva undefined (sem ?tab na URL)", () => {
 		expect(canonicalOrderTabKey(undefined)).toBeUndefined();
+	});
+});
+
+describe("REFUND_STATUS_LABELS", () => {
+	it.each([
+		["requested", "solicitado"],
+		["under_review", "em análise"],
+		["approved", "aprovado"],
+		["refunded", "reembolsado"],
+		["rejected", "rejeitado"],
+	] as const)("mostra %s como %s", (status, label) => {
+		expect(REFUND_STATUS_LABELS[status]).toBe(label);
 	});
 });

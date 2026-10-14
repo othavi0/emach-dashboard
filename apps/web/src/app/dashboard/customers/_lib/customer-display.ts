@@ -1,5 +1,6 @@
 import type { ClientStatus, ClientType } from "@emach/db/schema/client";
 import type { OrderStatus } from "@emach/db/schema/orders";
+import { ORDER_STATUS_LABELS } from "../../orders/status-meta";
 
 const WHITESPACE_RE = /\s+/;
 
@@ -30,17 +31,20 @@ export const CLIENT_TYPE_CONFIG: Record<
 	b2b: { label: "Pessoa Jurídica (B2B)", variant: "warning" },
 };
 
-// Partial de propósito: payment_failed e returned caem no fallback do caller
-// (o próprio status), comportamento herdado. Completar o mapa muda o texto visível.
-export const ORDER_STATUS_LABELS: Partial<Record<OrderStatus, string>> = {
-	pending_payment: "Aguardando pagamento",
-	paid: "Pago",
-	preparing: "Preparando",
-	shipped: "Enviado",
-	delivered: "Entregue",
-	canceled: "Cancelado",
-	refunded: "Reembolsado",
-};
+export function lastOrderHint(kpis: {
+	lastOrderAt: Date | null;
+	lastOrderStatus: OrderStatus | null;
+}): string | undefined {
+	if (!kpis.lastOrderAt) {
+		return "Sem pedidos";
+	}
+
+	if (kpis.lastOrderStatus) {
+		return ORDER_STATUS_LABELS[kpis.lastOrderStatus];
+	}
+
+	return;
+}
 
 export const CURRENCY = new Intl.NumberFormat("pt-BR", {
 	currency: "BRL",
