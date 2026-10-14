@@ -1,8 +1,11 @@
 name: Mirror to deploy repo
 
 # Espelha a main deste repo (canônico) para emach-ferramentas/emach-dashboard,
-# que está conectado à Vercel e tem GitHub Actions desabilitado (só deploya).
-# Sem isso, todo deploy exige um push manual cross-account.
+# que está conectado à Vercel. Sem isso, todo deploy exige um push manual
+# cross-account.
+#
+# O espelho recebe este arquivo junto com o resto e tem GitHub Actions ligado.
+# Lá o secret não existe, então o job só roda neste repo e sai `skipped` lá.
 #
 # Requer o secret MIRROR_TOKEN: o MESMO PAT fine-grained da conta
 # emach-ferramentas usado pelo mirror do ecommerce, com escopo ampliado para
@@ -20,6 +23,7 @@ on:
 
 jobs:
   mirror:
+    if: github.repository == 'othavi0/emach-dashboard'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

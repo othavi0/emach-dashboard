@@ -13,6 +13,8 @@ on:
 
 jobs:
   sync:
+    # O espelho de deploy recebe este arquivo e não tem o ECOMMERCE_SYNC_TOKEN.
+    if: github.repository == 'othavi0/emach-dashboard'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout dashboard
