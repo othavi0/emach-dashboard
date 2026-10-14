@@ -37,6 +37,7 @@ export async function fetchBranchActivityPage(
 	await requireCapabilityWithContext("branches.read", {
 		targetBranchIds: [filters.branchId],
 	});
+
 	return await fetchBranchActivityPageImpl(filters, cursor);
 }
 
@@ -64,6 +65,7 @@ export async function listBranches(opts?: {
 	activeOnly?: boolean;
 }): Promise<BranchListItem[]> {
 	await requireCapability("branches.read");
+
 	if (opts?.activeOnly) {
 		return await db
 			.select()
@@ -71,6 +73,7 @@ export async function listBranches(opts?: {
 			.where(eq(branch.status, "active"))
 			.orderBy(asc(branch.name));
 	}
+
 	return await db.select().from(branch).orderBy(asc(branch.name));
 }
 
@@ -86,6 +89,7 @@ export async function listResponsibleCandidates(
 	branchId: string
 ): Promise<ResponsibleCandidate[]> {
 	await requireCapability("branches.manage");
+
 	return await db
 		.select({
 			id: user.id,
@@ -117,9 +121,11 @@ export async function fetchBranchesPage({
 	await requireCapability("branches.read");
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const conditions: ReturnType<typeof sql>[] = [];
+
 	if (filters.search) {
 		conditions.push(sql`${branch.name} ILIKE ${`%${filters.search}%`}`);
 	}
+
 	if (decoded) {
 		if (filters.sort === "newest" && decoded.sort === "newest") {
 			conditions.push(
@@ -134,6 +140,7 @@ export async function fetchBranchesPage({
 
 	const whereExpr =
 		conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
+
 	const orderExprs =
 		filters.sort === "name"
 			? [asc(branch.name), asc(branch.id)]
@@ -145,6 +152,7 @@ export async function fetchBranchesPage({
 		.where(whereExpr)
 		.orderBy(...orderExprs)
 		.limit(BATCH_SIZE + 1);
+
 	return paginate(
 		rows,
 		(r) => r,
@@ -163,6 +171,7 @@ export async function fetchBranchesPage({
 export async function getBranch(id: string): Promise<BranchListItem | null> {
 	await requireCapability("branches.read");
 	const rows = await db.select().from(branch).where(eq(branch.id, id)).limit(1);
+
 	return rows[0] ?? null;
 }
 
@@ -178,11 +187,13 @@ export async function fetchBranchOrdersPage({
 	});
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const conditions = [sql`${order.branchId} = ${branchId}`];
+
 	if (decoded && decoded.sort === "newest") {
 		conditions.push(
 			sql`(${order.createdAt}, ${order.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		);
 	}
+
 	const rawRows = await db
 		.select({
 			id: order.id,
@@ -195,6 +206,7 @@ export async function fetchBranchOrdersPage({
 		.where(sql.join(conditions, sql` AND `))
 		.orderBy(desc(order.createdAt), desc(order.id))
 		.limit(BATCH_SIZE + 1);
+
 	return paginate(
 		rawRows,
 		(row) => ({
@@ -216,6 +228,7 @@ export async function createBranch(
 	const session = await requireCapability("branches.manage");
 
 	const parsed = branchSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
@@ -237,6 +250,7 @@ export async function createBranch(
 		metadata: { name: payload.name },
 	});
 	revalidatePath(BRANCHES_PATH);
+
 	return { ok: true, data: { id } };
 }
 
@@ -247,6 +261,7 @@ export async function updateBranch(
 	const session = await requireCapability("branches.manage");
 
 	const parsed = branchSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
@@ -264,6 +279,7 @@ export async function updateBranch(
 				)
 			)
 			.limit(1);
+
 		if (!linked) {
 			return {
 				ok: false,
@@ -287,6 +303,7 @@ export async function updateBranch(
 	});
 	revalidatePath(BRANCHES_PATH);
 	revalidatePath(`${BRANCHES_PATH}/${id}/edit`);
+
 	return { ok: true, data: { id } };
 }
 
@@ -299,18 +316,22 @@ export async function fetchBranchesTablePage({
 }): Promise<InfiniteResult<BranchTableRow>> {
 	await requireCapability("branches.read");
 	const page = await fetchBranchesPage({ filters, cursor });
+
 	if (page.items.length === 0) {
 		return { items: [], nextCursor: null };
 	}
+
 	const ids = page.items.map((b) => b.id);
 	const { getBranchTableAggregates } = await import("./data");
 	const aggregates = await getBranchTableAggregates(ids);
+
 	const items: BranchTableRow[] = page.items.map((b) => {
 		const agg = aggregates.get(b.id) ?? {
 			teamCount: 0,
 			activeSkus: 0,
 			lowStock: 0,
 		};
+
 		return {
 			id: b.id,
 			name: b.name,
@@ -326,6 +347,7 @@ export async function fetchBranchesTablePage({
 			lowStock: agg.lowStock,
 		};
 	});
+
 	return { items, nextCursor: page.nextCursor };
 }
 
@@ -335,6 +357,7 @@ export async function searchEligibleUsers(
 ): Promise<{ id: string; name: string; email: string }[]> {
 	await requireCapability("users.update_branches");
 	const { getEligibleUsersForBranch } = await import("./data");
+
 	return getEligibleUsersForBranch(branchId, search);
 }
 
@@ -343,6 +366,7 @@ export async function linkUserToBranchAction(input: {
 	userId: string;
 }): Promise<ActionResult> {
 	const { linkUserToBranch } = await import("../users/actions");
+
 	return linkUserToBranch(input);
 }
 
@@ -351,5 +375,6 @@ export async function unlinkUserFromBranchAction(input: {
 	userId: string;
 }): Promise<ActionResult> {
 	const { unlinkUserFromBranch } = await import("../users/actions");
+
 	return unlinkUserFromBranch(input);
 }

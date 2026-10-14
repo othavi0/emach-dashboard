@@ -123,6 +123,7 @@ function ReviewStateDetail({ row }: { row: OrderReviewRow }) {
 			</div>
 		);
 	}
+
 	if (row.reviewState === "no_review_open" && row.daysRemaining !== null) {
 		return (
 			<span className="text-muted-foreground text-sm">
@@ -131,6 +132,7 @@ function ReviewStateDetail({ row }: { row: OrderReviewRow }) {
 			</span>
 		);
 	}
+
 	if (row.reviewState === "no_review_expired") {
 		return (
 			<span className="text-muted-foreground text-sm">
@@ -138,6 +140,7 @@ function ReviewStateDetail({ row }: { row: OrderReviewRow }) {
 			</span>
 		);
 	}
+
 	return (
 		<span className="text-muted-foreground text-sm">
 			Aguardando confirmação de pagamento para abrir a janela.

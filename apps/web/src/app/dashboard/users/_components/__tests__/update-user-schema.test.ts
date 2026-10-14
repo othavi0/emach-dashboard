@@ -7,6 +7,7 @@ describe("updateUserSchema", () => {
 			userId: "abc",
 			emailVerified: true,
 		});
+
 		expect(r.success).toBe(true);
 	});
 
@@ -20,6 +21,7 @@ describe("updateUserSchema", () => {
 			userId: "abc",
 			emailVerified: "sim",
 		});
+
 		expect(r.success).toBe(false);
 	});
 });

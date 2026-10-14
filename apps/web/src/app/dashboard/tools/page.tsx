@@ -63,14 +63,17 @@ async function ToolsPageContent({ searchParams }: PageProps) {
 		"tools.read",
 		"/dashboard/sem-acesso?recurso=Ferramentas"
 	);
+
 	const canMutate = await can(session, "tools.create");
 	const params = await searchParams;
 	const search = params.search ?? params.q;
 	const sortParam = params.sort as ToolSort | undefined;
+
 	const sort: ToolSort =
 		sortParam && VALID_SORTS.includes(sortParam) ? sortParam : "newest";
 
 	let mode: ToolsListMode | undefined;
+
 	if (params.mode === "repor") {
 		mode = "repor";
 	} else if (params.mode === "catalog") {
@@ -105,6 +108,7 @@ async function ToolsPageContent({ searchParams }: PageProps) {
 			params.mode ||
 			params.branchId
 	);
+
 	const isEmpty = first.items.length === 0;
 
 	return (

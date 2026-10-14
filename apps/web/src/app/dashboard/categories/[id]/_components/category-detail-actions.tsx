@@ -50,6 +50,7 @@ export function CategoryDetailActions({
 	function handleToggle() {
 		startToggle(async () => {
 			const result = await toggleCategoryActive(categoryId, !isActive);
+
 			if (result.ok) {
 				notify.success(isActive ? "Categoria desativada" : "Categoria ativada");
 				router.refresh();
@@ -62,6 +63,7 @@ export function CategoryDetailActions({
 	function handleDelete() {
 		startDelete(async () => {
 			const result = await deleteCategory(categoryId);
+
 			if (result.ok) {
 				notify.success("Categoria removida");
 				setConfirmOpen(false);

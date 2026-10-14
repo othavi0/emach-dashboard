@@ -51,22 +51,27 @@ export function EditorCanvas({
 	function handlePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
 		const drag = dragRef.current;
 		const container = containerRef.current;
+
 		if (!(drag && container) || drag.pointerId !== e.pointerId) {
 			return;
 		}
+
 		const deltaClientX = e.clientX - drag.lastClientX;
 		const deltaClientY = e.clientY - drag.lastClientY;
+
 		if (
 			!drag.moved &&
 			Math.hypot(deltaClientX, deltaClientY) < DRAG_THRESHOLD_PX
 		) {
 			return;
 		}
+
 		if (!drag.moved) {
 			drag.moved = true;
 			setDragging(true);
 			dispatch({ type: "select", target: drag.key });
 		}
+
 		const rect = container.getBoundingClientRect();
 		const deltaX = (deltaClientX / rect.width) * 100;
 		const deltaY = (deltaClientY / rect.height) * 100;
@@ -77,12 +82,15 @@ export function EditorCanvas({
 
 	function endDrag(e: ReactPointerEvent<HTMLDivElement>) {
 		const drag = dragRef.current;
+
 		if (!drag || drag.pointerId !== e.pointerId) {
 			return;
 		}
+
 		if (!drag.moved) {
 			dispatch({ type: "select", target: drag.key });
 		}
+
 		// Contrato explícito do brief: liberar a captura do ponteiro no fim do
 		// gesto (setPointerCapture some sozinho no pointerup nativo, mas
 		// releasePointerCapture explícito documenta a intenção e cobre o

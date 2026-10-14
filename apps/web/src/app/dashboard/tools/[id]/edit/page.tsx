@@ -52,6 +52,7 @@ function toFormValues(
 
 	const parsedVariants: ToolVariantInput[] = variants.map((v) => {
 		const priceNum = v.priceAmount == null ? 0 : Number(v.priceAmount);
+
 		return {
 			id: v.id,
 			sku: v.sku ?? "",
@@ -70,6 +71,7 @@ function toFormValues(
 			: parsedVariants;
 
 	const attrValuesMap: Record<string, AttributeValueInput> = {};
+
 	for (const av of attributeValues) {
 		attrValuesMap[av.slug] = {
 			valueText: av.valueText,
@@ -120,6 +122,7 @@ async function EditToolPageContent({ params }: PageProps) {
 	const { id } = await params;
 
 	const [row] = await db.select().from(tool).where(eq(tool.id, id)).limit(1);
+
 	if (!row) {
 		notFound();
 	}

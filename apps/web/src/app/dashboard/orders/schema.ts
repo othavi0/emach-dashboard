@@ -34,6 +34,7 @@ export const ordersListFiltersSchema = z
 	});
 
 export type OrdersListFiltersInput = z.input<typeof ordersListFiltersSchema>;
+
 export type OrdersListFiltersParsed = z.infer<typeof ordersListFiltersSchema>;
 
 export const ALL_ORDER_STATUSES = orderStatusEnum.enumValues;
@@ -61,9 +62,11 @@ export function capForStatus(toStatus: OrderStatus): OrderStatusCapability {
 	if (toStatus === "canceled") {
 		return "orders.cancel";
 	}
+
 	if (toStatus === "refunded") {
 		return "orders.refund";
 	}
+
 	return "orders.update_status";
 }
 
@@ -96,6 +99,7 @@ export const updateOrderStatusSchema = z
 			"refunded",
 			"returned",
 		];
+
 		if (
 			requiresReason.includes(data.toStatus) &&
 			(!data.reason || data.reason.trim().length === 0)
@@ -106,6 +110,7 @@ export const updateOrderStatusSchema = z
 				path: ["reason"],
 			});
 		}
+
 		if (data.forceShip && !data.forceReason) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,

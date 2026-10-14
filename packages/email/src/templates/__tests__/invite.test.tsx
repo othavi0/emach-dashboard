@@ -10,6 +10,7 @@ describe("InviteEmail", () => {
 				inviterName="Maria"
 			/>
 		);
+
 		expect(html).toContain("https://x/convite?token=abc");
 		expect(html).toContain("Maria");
 		expect(html).toContain("Criar acesso");

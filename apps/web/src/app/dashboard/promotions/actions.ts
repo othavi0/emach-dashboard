@@ -35,6 +35,7 @@ import {
 // ---------------------------------------------------------------------------
 
 const PROMOTIONS_PATH = "/dashboard/promotions";
+
 const UUID_RE =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -54,6 +55,7 @@ export async function countToolsWithActivePromotionAction(
 	excludeId?: string
 ): Promise<number> {
 	await requireCapability("promotions.read");
+
 	return await countToolsWithActivePromotion(toolIds, excludeId);
 }
 
@@ -72,6 +74,7 @@ export async function createPromotion(
 
 	// C2 fix: use createPromotionSchema (includes startsAt past-date guard)
 	const parsed = createPromotionSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -88,6 +91,7 @@ export async function createPromotion(
 	try {
 		await db.transaction(async (tx) => {
 			await assertTitleUnique(tx, data.type, data.title);
+
 			if (data.type === "promocode" && data.code) {
 				await assertCodeUnique(tx, data.code);
 			}
@@ -95,6 +99,7 @@ export async function createPromotion(
 			const couponFields = buildCouponFields(data);
 
 			const isFeatured = data.type === "promotion" && data.featured === true;
+
 			if (isFeatured) {
 				await assertFeaturedSlotFree(tx);
 				await tx
@@ -134,10 +139,12 @@ export async function createPromotion(
 		if (error instanceof Error && error.message.startsWith("CONFLICT:")) {
 			return { ok: false, error: error.message.slice(9) };
 		}
+
 		return { ok: false, error: dbErrorMessage(error) };
 	}
 
 	revalidatePath(PROMOTIONS_PATH);
+
 	return { ok: true, data: { id: newId } };
 }
 
@@ -160,6 +167,7 @@ export async function updatePromotion(
 	}
 
 	const parsed = promotionSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -175,6 +183,7 @@ export async function updatePromotion(
 	try {
 		await db.transaction(async (tx) => {
 			await assertTitleUnique(tx, data.type, data.title, id);
+
 			if (data.type === "promocode" && data.code) {
 				await assertCodeUnique(tx, data.code, id);
 			}
@@ -182,6 +191,7 @@ export async function updatePromotion(
 			const couponFields = buildCouponFields(data);
 
 			const isFeatured = data.type === "promotion" && data.featured === true;
+
 			if (isFeatured) {
 				await assertFeaturedSlotFree(tx, id);
 				await tx
@@ -225,10 +235,12 @@ export async function updatePromotion(
 		if (error instanceof Error && error.message.startsWith("CONFLICT:")) {
 			return { ok: false, error: error.message.slice(9) };
 		}
+
 		return { ok: false, error: dbErrorMessage(error) };
 	}
 
 	revalidatePath(PROMOTIONS_PATH);
+
 	return { ok: true, data: { id } };
 }
 
@@ -256,6 +268,7 @@ export async function deletePromotion(
 	}
 
 	revalidatePath(PROMOTIONS_PATH);
+
 	return { ok: true, data: undefined };
 }
 
@@ -289,7 +302,9 @@ export async function togglePromotionActive(
 			if (current.length === 0 || !current[0]) {
 				conflict("Promoção não encontrada");
 			}
+
 			const row = current[0];
+
 			if (!row) {
 				conflict("Promoção não encontrada");
 			}
@@ -303,12 +318,15 @@ export async function togglePromotionActive(
 
 			return nextActive;
 		});
+
 		revalidatePath(PROMOTIONS_PATH);
+
 		return { ok: true, data: { active: next } };
 	} catch (error) {
 		if (error instanceof Error && error.message.startsWith("CONFLICT:")) {
 			return { ok: false, error: error.message.slice(9) };
 		}
+
 		return { ok: false, error: dbErrorMessage(error) };
 	}
 }
@@ -340,10 +358,13 @@ export async function duplicatePromotion(
 				.from(promotion)
 				.where(eq(promotion.id, id))
 				.limit(1);
+
 			if (src.length === 0 || !src[0]) {
 				conflict("Promoção não encontrada");
 			}
+
 			const p = src[0];
+
 			if (!p) {
 				conflict("Promoção não encontrada");
 			}
@@ -351,6 +372,7 @@ export async function duplicatePromotion(
 			const baseTitle = `${p.title} (cópia)`;
 			let candidate = baseTitle;
 			let n = 2;
+
 			while (true) {
 				const exists = await tx
 					.select({ id: promotion.id })
@@ -359,11 +381,14 @@ export async function duplicatePromotion(
 						and(eq(promotion.type, p.type), eq(promotion.title, candidate))
 					)
 					.limit(1);
+
 				if (exists.length === 0) {
 					break;
 				}
+
 				candidate = `${baseTitle} ${n}`;
 				n += 1;
+
 				if (n > 50) {
 					conflict("Não foi possível gerar título único para a cópia");
 				}
@@ -407,9 +432,11 @@ export async function duplicatePromotion(
 		if (error instanceof Error && error.message.startsWith("CONFLICT:")) {
 			return { ok: false, error: error.message.slice(9) };
 		}
+
 		return { ok: false, error: dbErrorMessage(error) };
 	}
 
 	revalidatePath(PROMOTIONS_PATH);
+
 	return { ok: true, data: { id: newId } };
 }

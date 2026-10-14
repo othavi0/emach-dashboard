@@ -23,12 +23,15 @@ const BRL = new Intl.NumberFormat("pt-BR", {
 
 function mapsHref(detail: BranchDetail): string | null {
 	const addr = formatBranchAddress(detail);
+
 	if (!addr) {
 		return null;
 	}
+
 	const query = encodeURIComponent(
 		`${addr} ${formatCep(detail.cep) ?? ""}`.trim()
 	);
+
 	return `https://www.google.com/maps/search/?api=1&query=${query}`;
 }
 

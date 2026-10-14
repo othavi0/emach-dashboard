@@ -9,6 +9,7 @@ import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
 
 export type BranchActivityKind = "stock" | "order" | "user";
+
 export type BranchActivityPeriod = "today" | "7d" | "30d" | "90d" | "all";
 
 export interface BranchActivityFilters {
@@ -68,10 +69,13 @@ function computeCutoff(period: BranchActivityPeriod): Date | null {
 	if (period === "all") {
 		return null;
 	}
+
 	const now = new Date();
+
 	if (period === "today") {
 		return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	}
+
 	return new Date(now.getTime() - PERIOD_DAYS[period] * 86_400_000);
 }
 
@@ -88,6 +92,7 @@ function keysetClause(
 
 function whereFrom(parts: ReturnType<typeof sql>[]) {
 	const real = parts.filter((p) => p !== undefined);
+
 	return real.length ? sql`WHERE ${sql.join(real, sql` AND `)}` : sql``;
 }
 
@@ -101,15 +106,19 @@ interface BlockCtx {
 
 function buildStockBlock(ctx: BlockCtx) {
 	const parts = [sql`sm.branch_id = ${ctx.branchId}`];
+
 	if (ctx.toolId) {
 		parts.push(sql`tv.tool_id = ${ctx.toolId}`);
 	}
+
 	if (ctx.cutoffSql) {
 		parts.push(sql`sm.created_at >= ${ctx.cutoffSql}::timestamptz`);
 	}
+
 	if (ctx.decoded) {
 		parts.push(keysetClause("sm.created_at", "'stock-' || sm.id", ctx.decoded));
 	}
+
 	return sql`(
 		SELECT 'stock-' || sm.id AS id, 'stock'::text AS kind, sm.created_at,
 			sm.delta AS delta, sm.reason::text AS reason, tv.sku AS sku, t.name AS tool_name,
@@ -133,14 +142,17 @@ function buildStockBlock(ctx: BlockCtx) {
 
 function buildOrderBlock(ctx: BlockCtx) {
 	const parts = [sql`o.branch_id = ${ctx.branchId}`];
+
 	if (ctx.cutoffSql) {
 		parts.push(sql`osh.created_at >= ${ctx.cutoffSql}::timestamptz`);
 	}
+
 	if (ctx.decoded) {
 		parts.push(
 			keysetClause("osh.created_at", "'order-' || osh.id", ctx.decoded)
 		);
 	}
+
 	return sql`(
 		SELECT 'order-' || osh.id AS id, 'order'::text AS kind, osh.created_at,
 			NULL::int AS delta, NULL::text AS reason, NULL::text AS sku, NULL::text AS tool_name,
@@ -169,14 +181,17 @@ function buildTeamBlock(ctx: BlockCtx) {
 				AND ual.metadata->>'branchId' = ${ctx.branchId})
 		)`,
 	];
+
 	if (ctx.cutoffSql) {
 		parts.push(sql`ual.created_at >= ${ctx.cutoffSql}::timestamptz`);
 	}
+
 	if (ctx.decoded) {
 		parts.push(
 			keysetClause("ual.created_at", "'user-' || ual.id", ctx.decoded)
 		);
 	}
+
 	return sql`(
 		SELECT 'user-' || ual.id AS id, 'user'::text AS kind, ual.created_at,
 			NULL::int AS delta, NULL::text AS reason, NULL::text AS sku, NULL::text AS tool_name,
@@ -209,6 +224,7 @@ export async function fetchBranchActivityPage(
 	const decoded = cursor ? decodeCursorAs(cursor, "activity") : null;
 	const cutoff = computeCutoff(filters.period);
 	const cutoffSql = cutoff ? cutoff.toISOString() : null;
+
 	const ctx: BlockCtx = {
 		branchId: filters.branchId,
 		toolId: filters.toolId,
@@ -218,12 +234,15 @@ export async function fetchBranchActivityPage(
 	};
 
 	const blocks: ReturnType<typeof sql>[] = [];
+
 	if (filters.kinds.includes("stock")) {
 		blocks.push(buildStockBlock(ctx));
 	}
+
 	if (filters.kinds.includes("order")) {
 		blocks.push(buildOrderBlock(ctx));
 	}
+
 	if (filters.kinds.includes("user")) {
 		blocks.push(buildTeamBlock(ctx));
 	}
@@ -232,6 +251,7 @@ export async function fetchBranchActivityPage(
 	// ORDER BY ...` é rejeitado pelo Postgres ("multiple ORDER BY clauses"). Envolver
 	// em `SELECT * FROM (...) AS feed` torna o ORDER BY externo válido para 1 ou N blocos.
 	const unioned = sql.join(blocks, sql` UNION ALL `);
+
 	const result = await db.execute<BranchActivityDbRow>(sql`
 		SELECT * FROM (
 			${unioned}
@@ -275,6 +295,7 @@ export async function fetchBranchActivityTools(
 	branchId: string
 ): Promise<Array<{ id: string; name: string }>> {
 	await requireCapability("stock.read");
+
 	const result = await db.execute<{ id: string; name: string }>(sql`
 		SELECT DISTINCT t.id AS id, t.name AS name
 		FROM stock_movement sm
@@ -283,5 +304,6 @@ export async function fetchBranchActivityTools(
 		WHERE sm.branch_id = ${branchId}
 		ORDER BY t.name ASC
 	`);
+
 	return result.rows.map((r) => ({ id: r.id, name: r.name }));
 }

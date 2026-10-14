@@ -45,6 +45,7 @@ export function EstoqueTab({
 		if (!selected || fetchedOnce.current) {
 			return;
 		}
+
 		let active = true;
 		fetchActiveSuppliersAction()
 			.then((data) => {
@@ -58,6 +59,7 @@ export function EstoqueTab({
 					setSuppliers([]);
 				}
 			});
+
 		return () => {
 			active = false;
 		};
@@ -70,6 +72,7 @@ export function EstoqueTab({
 		variants,
 		canAdjustStock ? branches : []
 	);
+
 	const visibleGroups = groups.filter(
 		(g) => g.branches.length > 0 || g.ghostBranches.length > 0
 	);
@@ -88,9 +91,11 @@ export function EstoqueTab({
 	// sem stock_level — o vínculo real nasce no insert lazy do applyMovement.
 	function selectGhost(variantId: string, ghostBranch: ToolDetailBranch) {
 		const v = variantById.get(variantId);
+
 		if (!v) {
 			return;
 		}
+
 		setSelected({
 			branchCity: ghostBranch.city,
 			branchId: ghostBranch.id,

@@ -13,6 +13,7 @@ describe("LabeledField", () => {
 				{(field) => <input {...field} />}
 			</LabeledField>
 		);
+
 		expect(html).toContain("Nome");
 		expect(html).toContain(" *");
 		expect(html).toContain('for="f"');
@@ -25,6 +26,7 @@ describe("LabeledField", () => {
 				{(field) => <input {...field} />}
 			</LabeledField>
 		);
+
 		expect(html).not.toContain(" *");
 	});
 
@@ -34,6 +36,7 @@ describe("LabeledField", () => {
 				{(field) => <input {...field} />}
 			</LabeledField>
 		);
+
 		expect(html).toContain('aria-invalid="true"');
 	});
 
@@ -43,6 +46,7 @@ describe("LabeledField", () => {
 				{(field) => <input {...field} />}
 			</LabeledField>
 		);
+
 		expect(html).not.toContain("aria-invalid");
 	});
 
@@ -52,6 +56,7 @@ describe("LabeledField", () => {
 				{(field) => <input {...field} />}
 			</LabeledField>
 		);
+
 		expect(html).toContain('data-error="true"');
 		expect(html).toContain("Obrigatório");
 	});
@@ -62,6 +67,7 @@ describe("LabeledField", () => {
 				{(field) => <input {...field} />}
 			</LabeledField>
 		);
+
 		expect(html).toContain("ajuda-aqui");
 		expect(html).toContain("flex items-center gap-1.5");
 	});
@@ -72,6 +78,7 @@ describe("LabeledField", () => {
 				{(field) => <textarea {...field} />}
 			</LabeledField>
 		);
+
 		expect(html).toContain("Markdown suportado");
 	});
 });

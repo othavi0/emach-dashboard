@@ -20,6 +20,7 @@ describe("promotionSchema — destaque exige 2 produtos", () => {
 	it("bloqueia featured + ferramentas específicas + 1 produto", () => {
 		const r = promotionSchema.safeParse({ ...featuredBase, toolIds: ["t1"] });
 		expect(r.success).toBe(false);
+
 		if (!r.success) {
 			const issue = r.error.issues.find((i) => i.path[0] === "toolIds");
 			expect(issue?.message).toContain("ao menos 2 produtos");
@@ -36,6 +37,7 @@ describe("promotionSchema — destaque exige 2 produtos", () => {
 			appliesToAll: true,
 			toolIds: [],
 		});
+
 		expect(r.success).toBe(true);
 	});
 
@@ -45,6 +47,7 @@ describe("promotionSchema — destaque exige 2 produtos", () => {
 			featured: false,
 			toolIds: ["t1"],
 		});
+
 		expect(r.success).toBe(true);
 	});
 });
@@ -76,6 +79,7 @@ describe("promotionSchema", () => {
 			code: null,
 			discountValue: 150,
 		});
+
 		expect(r.success).toBe(false);
 	});
 	it("aceita fixed com valor > 100 (R$)", () => {
@@ -86,6 +90,7 @@ describe("promotionSchema", () => {
 			discountType: "fixed",
 			discountValue: 150,
 		});
+
 		expect(r.success).toBe(true);
 	});
 	it("exige >=1 ferramenta quando appliesToAll=false", () => {
@@ -95,6 +100,7 @@ describe("promotionSchema", () => {
 			code: null,
 			toolIds: [],
 		});
+
 		expect(r.success).toBe(false);
 	});
 	it("ignora ferramentas quando appliesToAll=true", () => {
@@ -105,6 +111,7 @@ describe("promotionSchema", () => {
 			appliesToAll: true,
 			toolIds: [],
 		});
+
 		expect(r.success).toBe(true);
 	});
 	it("promocode exige code e aceita maxRedemptions/minOrderAmount", () => {
@@ -115,6 +122,7 @@ describe("promotionSchema", () => {
 			maxRedemptions: 100,
 			minOrderAmount: 200,
 		});
+
 		expect(r.success).toBe(true);
 	});
 	it("promotion não aceita maxRedemptions", () => {
@@ -124,6 +132,7 @@ describe("promotionSchema", () => {
 			code: null,
 			maxRedemptions: 100,
 		});
+
 		expect(r.success).toBe(false);
 	});
 	it("promotion aceita maxRedemptions/minOrderAmount null (resíduo ao alternar de cupom)", () => {
@@ -134,6 +143,7 @@ describe("promotionSchema", () => {
 			maxRedemptions: null,
 			minOrderAmount: null,
 		});
+
 		expect(r.success).toBe(true);
 	});
 });
@@ -156,11 +166,13 @@ const validBase = {
 describe("promotion-schema — datas e código", () => {
 	it("aceita promoção de 1 dia (início = fim no mesmo dia)", () => {
 		const day = new Date("2026-08-10T12:00:00Z");
+
 		const r = promotionSchema.safeParse({
 			...validBase,
 			startsAt: day,
 			endsAt: day,
 		});
+
 		expect(r.success).toBe(true);
 	});
 
@@ -170,6 +182,7 @@ describe("promotion-schema — datas e código", () => {
 			startsAt: new Date("2026-08-10T12:00:00Z"),
 			endsAt: new Date("2026-08-09T12:00:00Z"),
 		});
+
 		expect(r.success).toBe(false);
 	});
 
@@ -178,21 +191,25 @@ describe("promotion-schema — datas e código", () => {
 			...validBase,
 			startsAt: startOfDaySaoPaulo(new Date()),
 		});
+
 		expect(r.success).toBe(true);
 	});
 
 	it("create: rejeita início ontem", () => {
 		const yesterday = new Date(Date.now() - 36 * 60 * 60 * 1000);
+
 		const r = createPromotionSchema.safeParse({
 			...validBase,
 			startsAt: yesterday,
 		});
+
 		expect(r.success).toBe(false);
 	});
 
 	it("rejeita desconto zero com mensagem clara", () => {
 		const r = promotionSchema.safeParse({ ...validBase, discountValue: 0 });
 		expect(r.success).toBe(false);
+
 		if (!r.success) {
 			// biome-ignore lint/performance/useTopLevelRegex: regex inline em teste unitário, não em hot path
 			expect(r.error.issues[0]?.message).toMatch(/maior que zero/i);
@@ -205,7 +222,9 @@ describe("promotion-schema — datas e código", () => {
 			type: "promocode",
 			code: "  verao2025 ",
 		});
+
 		expect(r.success).toBe(true);
+
 		if (r.success && r.data.type === "promocode") {
 			expect(r.data.code).toBe("VERAO2025");
 		}

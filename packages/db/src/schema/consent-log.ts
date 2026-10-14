@@ -16,6 +16,7 @@ export const consentKindEnum = pgEnum("consent_kind", [
 	"marketing_email",
 	"cookies",
 ]);
+
 export type ConsentKind = (typeof consentKindEnum.enumValues)[number];
 
 export const consentLog = pgTable(
@@ -52,4 +53,5 @@ export const consentLogRelations = relations(consentLog, ({ one }) => ({
 }));
 
 export type ConsentLog = typeof consentLog.$inferSelect;
+
 export type NewConsentLog = typeof consentLog.$inferInsert;

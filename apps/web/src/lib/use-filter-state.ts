@@ -7,6 +7,7 @@ const DEFAULT_DEBOUNCE_MS = 300;
 
 function buildUrl(basePath: string, params: URLSearchParams): string {
 	const qs = params.toString();
+
 	return qs ? `${basePath}?${qs}` : basePath;
 }
 
@@ -31,29 +32,37 @@ export function useFilterState({
 
 	const setParam = (key: string, value: string | null) => {
 		const next = new URLSearchParams(searchParams.toString());
+
 		if (value && value.length > 0) {
 			next.set(key, value);
 		} else {
 			next.delete(key);
 		}
+
 		router.replace(buildUrl(basePath, next));
 	};
 
 	const clearAll = () => {
 		if (!trackedKeys || trackedKeys.length === 0) {
 			router.replace(basePath);
+
 			return;
 		}
+
 		const next = new URLSearchParams(searchParams.toString());
+
 		for (const key of trackedKeys) {
 			next.delete(key);
 		}
+
 		router.replace(buildUrl(basePath, next));
 	};
 
 	const keys = trackedKeys ?? Array.from(searchParams.keys());
+
 	const hasActive = keys.some((key) => {
 		const v = searchParams.get(key);
+
 		return v !== null && v !== "";
 	});
 
@@ -79,6 +88,7 @@ export function useDebouncedParam({
 	// Re-sincroniza o input quando a URL muda por fora (back/forward, limpar
 	// filtros) — durante o render, sem o re-render extra do effect.
 	const [lastUrlValue, setLastUrlValue] = useState(urlValue);
+
 	if (lastUrlValue !== urlValue) {
 		setLastUrlValue(urlValue);
 		setLocal(urlValue);
@@ -88,15 +98,19 @@ export function useDebouncedParam({
 		if (local === urlValue) {
 			return;
 		}
+
 		const handle = setTimeout(() => {
 			const next = new URLSearchParams(searchParams.toString());
+
 			if (local) {
 				next.set(key, local);
 			} else {
 				next.delete(key);
 			}
+
 			router.replace(buildUrl(basePath, next));
 		}, debounceMs);
+
 		return () => clearTimeout(handle);
 	}, [basePath, debounceMs, key, local, router, searchParams, urlValue]);
 

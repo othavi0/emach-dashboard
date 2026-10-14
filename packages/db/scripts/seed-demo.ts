@@ -20,6 +20,7 @@ async function main() {
 	// isto sem querer APAGA catálogo/clientes/pedidos reais. Exige opt-in explícito.
 	const forced =
 		process.argv.includes("--force") || process.env.SEED_FORCE === "1";
+
 	if (!forced) {
 		const host = new URL(env.DATABASE_URL).host;
 		console.error(
@@ -38,6 +39,7 @@ async function main() {
 	// Lê os staff existentes (o seed nunca cria/trunca user).
 	const staff = await db.execute<{ id: string }>(sql`SELECT id FROM "user"`);
 	const staffUserIds = staff.rows.map((r) => r.id);
+
 	if (staffUserIds.length === 0) {
 		throw new Error(
 			"Nenhum usuário staff na tabela `user`. Crie um (ou faça login) antes de rodar o seed."

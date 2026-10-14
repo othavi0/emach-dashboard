@@ -46,6 +46,7 @@ describe("groupAttributesByCategory", () => {
 				sortOrder: 0,
 			}),
 		]);
+
 		expect(result.map((g) => g.categoryName)).toEqual([
 			"Elétricas",
 			"Furadeiras",

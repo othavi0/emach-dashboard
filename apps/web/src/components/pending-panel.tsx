@@ -68,6 +68,7 @@ const BADGE_COLORS: Record<PendingRole, string> = {
 
 function PendingTabContent({ tab }: { tab: PendingTab }) {
 	const scrollRef = useRef<HTMLDivElement>(null);
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: tab.initial,
 		initialCursor: tab.initialCursor,
@@ -91,6 +92,7 @@ function PendingTabContent({ tab }: { tab: PendingTab }) {
 			<ul className="flex flex-col">
 				{items.map((row) => {
 					const StatusIcon = row.iconKey ? STATUS_ICONS[row.iconKey] : null;
+
 					return (
 						<li key={row.id}>
 							<Link

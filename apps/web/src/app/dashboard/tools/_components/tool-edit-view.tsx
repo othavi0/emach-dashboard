@@ -16,15 +16,18 @@ export function ToolEditView({
 	defaultValues?: Partial<ToolFormState>;
 }) {
 	const router = useRouter();
+
 	const { values, patch, errors, setErrors } = useToolFormState(
 		defaultValues ?? {}
 	);
+
 	const { submit, isPending } = useToolSubmit({
 		mode: "edit",
 		values,
 		setErrors,
 		initialStatus: defaultValues?.status ?? "draft",
 	});
+
 	const activeId = useActiveSection();
 
 	return (
@@ -35,6 +38,7 @@ export function ToolEditView({
 			>
 				{TOOL_STEPS.map((s) => {
 					const isActive = s.id === activeId;
+
 					return (
 						<a
 							aria-current={isActive ? "location" : undefined}
@@ -58,6 +62,7 @@ export function ToolEditView({
 			<div className="flex flex-col gap-6">
 				{TOOL_STEPS.map((s) => {
 					const Fields = TOOL_SECTION_COMPONENTS[s.id];
+
 					return (
 						<section
 							className="flex scroll-mt-6 flex-col gap-2 rounded-md border border-border bg-card p-6"
@@ -109,9 +114,11 @@ export function ToolEditView({
 // global afetaria o dashboard inteiro.
 function scrollToSection(id: string) {
 	const target = document.getElementById(`sec-${id}`);
+
 	if (!target) {
 		return;
 	}
+
 	const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 	target.scrollIntoView({
 		behavior: reduce ? "auto" : "smooth",
@@ -148,6 +155,7 @@ function useActiveSection(): string {
 		for (const el of sections) {
 			observer.observe(el);
 		}
+
 		return () => observer.disconnect();
 	}, []);
 

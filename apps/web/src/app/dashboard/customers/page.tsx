@@ -45,6 +45,7 @@ async function CustomersPageContent({ searchParams }: PageProps) {
 
 	const raw = await searchParams;
 	const parsed = customersListFiltersSchema.safeParse(raw);
+
 	const parsedFilters = parsed.success
 		? parsed.data
 		: customersListFiltersSchema.parse({});
@@ -57,6 +58,7 @@ async function CustomersPageContent({ searchParams }: PageProps) {
 			parsedFilters.openOrderInactive ||
 			parsedFilters.unverifiedNew
 	);
+
 	const filters =
 		parsedFilters.status || hasQuickFilter
 			? parsedFilters

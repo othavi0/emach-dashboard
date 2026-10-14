@@ -30,6 +30,7 @@ export default function CategoriesPage() {
 
 async function CategoriesPageContent() {
 	const session = await requireCapabilityOrRedirect("categories.read");
+
 	const [canMutate, canDelete] = await Promise.all([
 		can(session, "categories.manage"),
 		can(session, "categories.delete"),

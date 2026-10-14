@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { execute } = vi.hoisted(() => ({ execute: vi.fn() }));
+
 vi.mock("@emach/db", () => ({ db: { execute } }));
 
 vi.mock("@/lib/permissions", () => ({
@@ -17,12 +18,14 @@ vi.mock("@/lib/session", () => ({
 import { fetchPendingOrders } from "../pending-data";
 
 const HOUR_MS = 3_600_000;
+
 const isoHoursAgo = (h: number) =>
 	new Date(Date.now() - h * HOUR_MS).toISOString();
 
 // Linha crua no formato que db.execute devolve (snake_case, timestamp string).
 function row(overrides: Record<string, unknown> = {}) {
 	const recent = isoHoursAgo(1);
+
 	return {
 		id: "o1",
 		number: "1001",

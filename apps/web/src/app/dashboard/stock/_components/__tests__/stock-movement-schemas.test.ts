@@ -13,6 +13,7 @@ describe("stockEntrySchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -24,6 +25,7 @@ describe("stockEntrySchema", () => {
 			branchId: "b1",
 			note: "NF #1234",
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -34,6 +36,7 @@ describe("stockEntrySchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -44,13 +47,17 @@ describe("stockEntrySchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(false);
+
 		if (!result.success) {
 			const paths = result.error.issues.map((i) => i.path[0]);
 			expect(paths).toContain("quantity");
+
 			const msg = result.error.issues.find(
 				(i) => i.path[0] === "quantity"
 			)?.message;
+
 			expect(msg).toBe("Quantidade deve ser maior que zero");
 		}
 	});
@@ -62,6 +69,7 @@ describe("stockEntrySchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(false);
 	});
 
@@ -72,7 +80,9 @@ describe("stockEntrySchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(false);
+
 		if (!result.success) {
 			const issue = result.error.issues.find((i) => i.path[0] === "supplierId");
 			expect(issue?.message).toBe("Fornecedor obrigatório na entrada");
@@ -86,7 +96,9 @@ describe("stockEntrySchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(false);
+
 		if (!result.success) {
 			const paths = result.error.issues.map((i) => i.path[0]);
 			expect(paths).toContain("quantity");
@@ -101,7 +113,9 @@ describe("stockEntrySchema", () => {
 			branchId: "b1",
 			note: "a".repeat(501),
 		});
+
 		expect(result.success).toBe(false);
+
 		if (!result.success) {
 			const issue = result.error.issues.find((i) => i.path[0] === "note");
 			expect(issue?.message).toBe("Observação não pode exceder 500 caracteres");
@@ -117,6 +131,7 @@ describe("stockWriteOffSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -127,7 +142,9 @@ describe("stockWriteOffSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(false);
+
 		if (!result.success) {
 			const paths = result.error.issues.map((i) => i.path[0]);
 			expect(paths).toContain("quantity");
@@ -141,7 +158,9 @@ describe("stockWriteOffSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(true);
+
 		if (result.success) {
 			expect("supplierId" in result.data).toBe(false);
 		}
@@ -155,7 +174,9 @@ describe("stockWriteOffSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(false);
+
 		if (!result.success) {
 			const issue = result.error.issues.find((i) => i.path[0] === "note");
 			expect(issue?.message).toBe(
@@ -171,7 +192,9 @@ describe("stockWriteOffSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(false);
+
 		if (!result.success) {
 			const issue = result.error.issues.find((i) => i.path[0] === "note");
 			expect(issue?.message).toBe(
@@ -188,6 +211,7 @@ describe("stockWriteOffSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -199,6 +223,7 @@ describe("stockWriteOffSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(true);
 	});
 });
@@ -210,6 +235,7 @@ describe("stockRecountSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -219,6 +245,7 @@ describe("stockRecountSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -228,7 +255,9 @@ describe("stockRecountSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(false);
+
 		if (!result.success) {
 			const issue = result.error.issues.find((i) => i.path[0] === "newQty");
 			expect(issue?.message).toBe("Quantidade não pode ser negativa");
@@ -241,7 +270,9 @@ describe("stockRecountSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(false);
+
 		if (!result.success) {
 			const paths = result.error.issues.map((i) => i.path[0]);
 			expect(paths).toContain("newQty");
@@ -254,6 +285,7 @@ describe("stockRecountSchema", () => {
 			variantId: "v1",
 			branchId: "b1",
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -264,6 +296,7 @@ describe("stockRecountSchema", () => {
 			branchId: "b1",
 			note: "Recontagem física de 17/06",
 		});
+
 		expect(result.success).toBe(true);
 	});
 });

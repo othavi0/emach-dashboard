@@ -97,6 +97,7 @@ function mockInsertOk() {
 	const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 	const values = vi.fn(() => ({ onConflictDoUpdate }));
 	mockDbInsert.mockImplementation(() => ({ values }));
+
 	return { values };
 }
 
@@ -127,6 +128,7 @@ describe("GET /api/cron/stock-alerts", () => {
 			const res = await GET(
 				new Request("http://localhost/api/cron/stock-alerts")
 			);
+
 			expect(res.status).toBe(401);
 			expect(await res.json()).toEqual({ error: "Unauthorized" });
 			expect(mockDbExecute).not.toHaveBeenCalled();
@@ -213,9 +215,11 @@ describe("GET /api/cron/stock-alerts", () => {
 			expect(await res.json()).toEqual(
 				expect.objectContaining({ emailsSent: 1, itemsAlerted: 1 })
 			);
+
 			const call = mockSendStockAlertEmail.mock.calls[0]?.[0] as {
 				items: Array<{ sku: string }>;
 			};
+
 			expect(call.items).toHaveLength(1);
 			expect(call.items[0]?.sku).toBe("FUR-500W-002");
 			expect(mockDbInsert).toHaveBeenCalledTimes(1);

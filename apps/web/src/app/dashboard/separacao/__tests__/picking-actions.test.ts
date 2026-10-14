@@ -29,6 +29,7 @@ vi.mock("@/lib/permissions", () => {
 	mockRequireCapabilityWithContext.mockResolvedValue({
 		user: { id: "usr_1", name: "Picker" },
 	});
+
 	return {
 		requireCapability: mockRequireCapability,
 		requireCapabilityWithContext: mockRequireCapabilityWithContext,
@@ -117,15 +118,18 @@ function makeMockTx(selectResults: unknown[][]) {
 			catch: () => chain,
 			finally: (fn: () => void) => {
 				fn();
+
 				return chain;
 			},
 		};
+
 		chain.from = vi.fn(() => chain);
 		chain.leftJoin = vi.fn(() => chain);
 		chain.where = vi.fn(() => chain);
 		chain.for = vi.fn(() => chain);
 		chain.limit = vi.fn(() => Promise.resolve(result));
 		chain.orderBy = vi.fn(() => chain);
+
 		return chain;
 	};
 
@@ -133,6 +137,7 @@ function makeMockTx(selectResults: unknown[][]) {
 		const chain: Record<string, unknown> = {};
 		chain.set = vi.fn(() => chain);
 		chain.where = vi.fn(() => Promise.resolve({ rowCount: 1 }));
+
 		return chain;
 	};
 
@@ -141,6 +146,7 @@ function makeMockTx(selectResults: unknown[][]) {
 	return {
 		select: vi.fn((_shape: unknown) => {
 			const result = selectResults[selectCallIdx++] ?? [];
+
 			return makeSelectChain(result);
 		}),
 		update: vi.fn((_table: unknown) => makeUpdateChain()),
@@ -212,12 +218,15 @@ describe("startPicking", () => {
 						},
 					],
 				]);
+
 				mockTx._insertValues.mockImplementation(
 					(vals: Record<string, unknown>) => {
 						captured.push(vals);
+
 						return Promise.resolve(undefined);
 					}
 				);
+
 				return cb(mockTx);
 			}
 		);
@@ -225,9 +234,11 @@ describe("startPicking", () => {
 		const result = await startPicking(ORDER_ID);
 
 		expect(result.ok).toBe(true);
+
 		if (result.ok) {
 			expect(result.data.pickingId).toBeDefined();
 		}
+
 		// Should have inserts: orderPicking + orderPickingItem(s) + orderStatusHistory
 		expect(captured.length).toBeGreaterThanOrEqual(2);
 	});
@@ -299,6 +310,7 @@ describe("scanItem", () => {
 
 		const result = await scanItem(PICKING_ID, "CODIGO_INVALIDO");
 		expect(result.ok).toBe(true);
+
 		if (result.ok) {
 			expect(result.data.kind).toBe("not_in_order");
 		}
@@ -341,6 +353,7 @@ describe("scanItem", () => {
 
 		const result = await scanItem(PICKING_ID, "BARCODE123");
 		expect(result.ok).toBe(true);
+
 		if (result.ok) {
 			expect(result.data.kind).toBe("already_complete");
 		}
@@ -379,21 +392,26 @@ describe("scanItem", () => {
 					],
 					[], // toolVariant lookup
 				]);
+
 				mockTx._insertValues.mockImplementation(
 					(vals: Record<string, unknown>) => {
 						captured.push(vals);
+
 						return Promise.resolve(undefined);
 					}
 				);
+
 				return cb(mockTx);
 			}
 		);
 
 		const result = await scanItem(PICKING_ID, "BARCODE123");
 		expect(result.ok).toBe(true);
+
 		if (result.ok) {
 			expect(result.data.kind).toBe("accepted");
 		}
+
 		// Should insert a scan record
 		expect(captured.length).toBeGreaterThanOrEqual(1);
 	});
@@ -496,6 +514,7 @@ describe("completePicking", () => {
 
 		const result = await completePicking(PICKING_ID);
 		expect(result).toMatchObject({ ok: true });
+
 		if (result.ok) {
 			expect(result.data.finalStatus).toBe("completed");
 		}
@@ -532,6 +551,7 @@ describe("completePicking", () => {
 
 		const result = await completePicking(PICKING_ID);
 		expect(result).toMatchObject({ ok: true });
+
 		if (result.ok) {
 			expect(result.data.finalStatus).toBe("exception");
 		}
@@ -575,6 +595,7 @@ describe("reportMissing", () => {
 			PICKING_ITEM_ID,
 			"Item não encontrado no estoque"
 		);
+
 		expect(result).toMatchObject({ ok: true });
 	});
 
@@ -609,11 +630,14 @@ describe("confirmItemManually", () => {
 				tx = makeMockTx(selectResults);
 				tx._insertValues.mockImplementation((vals: Record<string, unknown>) => {
 					captured.push(vals);
+
 					return Promise.resolve(undefined);
 				});
+
 				return await cb(tx);
 			}
 		);
+
 		return { getTx: () => tx, captured };
 	}
 
@@ -624,6 +648,7 @@ describe("confirmItemManually", () => {
 		pickerUserId: "usr_1",
 		pickerName: "Picker",
 	};
+
 	const PREPARING_LOCK = { status: "preparing", branchId: BRANCH_ID };
 
 	function itemRow(overrides: Record<string, unknown> = {}) {
@@ -648,10 +673,13 @@ describe("confirmItemManually", () => {
 		const result = await confirmItemManually(PICKING_ITEM_ID, 2, VALID_REASON);
 
 		expect(result).toMatchObject({ ok: true });
+
 		if (result.ok) {
 			expect(result.data).toEqual({ qtyPicked: 3, qtyExpected: 3 });
 		}
+
 		expect(captured).toHaveLength(2);
+
 		for (const scan of captured) {
 			expect(scan).toMatchObject({
 				pickingItemId: PICKING_ITEM_ID,
@@ -660,9 +688,11 @@ describe("confirmItemManually", () => {
 				manualReason: VALID_REASON,
 			});
 		}
+
 		const updateChain = getTx()?.update.mock.results[0]?.value as
 			| { set: ReturnType<typeof vi.fn> }
 			| undefined;
+
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ qtyPicked: 3, notFound: false })
 		);
@@ -716,9 +746,11 @@ describe("confirmItemManually", () => {
 
 		const result = await confirmItemManually(PICKING_ITEM_ID, 3, VALID_REASON);
 		expect(result).toMatchObject({ ok: true });
+
 		const updateChain = getTx()?.update.mock.results[0]?.value as
 			| { set: ReturnType<typeof vi.fn> }
 			| undefined;
+
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ qtyPicked: 3, notFound: false })
 		);
@@ -748,9 +780,11 @@ describe("confirmItemManually", () => {
 		expect((result as { ok: false; error: string }).error).toContain(
 			"encerrada"
 		);
+
 		const updateChain = getTx()?.update.mock.results[0]?.value as
 			| { set: ReturnType<typeof vi.fn> }
 			| undefined;
+
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
 		);
@@ -813,6 +847,7 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 		pickerUserId: "usr_1",
 		pickerName: "Picker",
 	};
+
 	const CANCELED_LOCK = { status: "canceled", branchId: BRANCH_ID };
 
 	beforeEach(() => {
@@ -825,9 +860,11 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 		mockTransaction.mockImplementation(
 			async (cb: (t: ReturnType<typeof makeMockTx>) => unknown) => {
 				tx = makeMockTx(selectResults);
+
 				return await cb(tx);
 			}
 		);
+
 		return () => tx;
 	}
 
@@ -838,9 +875,11 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 		expect((result as { ok: false; error: string }).error).toContain(
 			"encerrada"
 		);
+
 		const updateChain = getTx()?.update.mock.results[0]?.value as
 			| { set: ReturnType<typeof vi.fn> }
 			| undefined;
+
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
 		);
@@ -853,9 +892,11 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 		expect((result as { ok: false; error: string }).error).toContain(
 			"encerrada"
 		);
+
 		const updateChain = getTx()?.update.mock.results[0]?.value as
 			| { set: ReturnType<typeof vi.fn> }
 			| undefined;
+
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
 		);
@@ -867,17 +908,21 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 			[OWNED_PICKING],
 			[CANCELED_LOCK],
 		]);
+
 		const result = await reportMissing(
 			PICKING_ITEM_ID,
 			"não achei na prateleira"
 		);
+
 		expect(result).toMatchObject({ ok: false });
 		expect((result as { ok: false; error: string }).error).toContain(
 			"encerrada"
 		);
+
 		const updateChain = getTx()?.update.mock.results[0]?.value as
 			| { set: ReturnType<typeof vi.fn> }
 			| undefined;
+
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
 		);
@@ -929,7 +974,9 @@ describe("bulkStartPicking", () => {
 					[{ number: "EM-2026-0001" }], // order.number (label)
 					[], // existingSession pré-check — nenhuma
 				]);
+
 				tx._insertValues.mockRejectedValueOnce(pgError);
+
 				return cb(tx);
 			}
 		);
@@ -937,6 +984,7 @@ describe("bulkStartPicking", () => {
 		const result = await bulkStartPicking({ orderIds: [ORDER_ID] });
 
 		expect(result).toMatchObject({ ok: true });
+
 		if (result.ok) {
 			expect(result.data.moved).toBe(0);
 			expect(result.data.movedIds).toEqual([]);
@@ -970,8 +1018,10 @@ describe("bulkStartPicking", () => {
 				]);
 				tx._insertValues.mockImplementation((vals: Record<string, unknown>) => {
 					captured.push(vals);
+
 					return Promise.resolve(undefined);
 				});
+
 				return cb(tx);
 			}
 		);
@@ -979,6 +1029,7 @@ describe("bulkStartPicking", () => {
 		const result = await bulkStartPicking({ orderIds: [ORDER_ID] });
 
 		expect(result).toMatchObject({ ok: true });
+
 		if (result.ok) {
 			expect(result.data.moved).toBe(1);
 			expect(result.data.movedIds).toEqual([ORDER_ID]);
@@ -988,6 +1039,7 @@ describe("bulkStartPicking", () => {
 		const updateChain = tx?.update.mock.results[0]?.value as
 			| { set: ReturnType<typeof vi.fn> }
 			| undefined;
+
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ status: "preparing" })
 		);
@@ -1033,11 +1085,13 @@ describe("bulkStartPicking", () => {
 		});
 
 		expect(result).toMatchObject({ ok: true });
+
 		if (result.ok) {
 			expect(result.data.moved).toBe(2);
 			expect(result.data.movedIds).toEqual([ORDER_ID, ORDER_ID_2]);
 			expect(result.data.skipped).toEqual([]);
 		}
+
 		expect(mockTransaction).toHaveBeenCalledTimes(2);
 	});
 
@@ -1069,6 +1123,7 @@ describe("bulkStartPicking", () => {
 		});
 
 		expect(result).toMatchObject({ ok: true });
+
 		if (result.ok) {
 			expect(result.data.moved).toBe(1);
 			expect(result.data.movedIds).toEqual([ORDER_ID_2]);

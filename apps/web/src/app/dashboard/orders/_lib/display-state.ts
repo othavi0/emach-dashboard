@@ -15,5 +15,6 @@ export function orderBadgeSource(
 	if (tabKey === "late") {
 		return "status";
 	}
+
 	return status === "preparing" && fulfillmentState ? "fulfillment" : "status";
 }

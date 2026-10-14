@@ -15,9 +15,11 @@ export type ResolveResult =
 /** `?ids=` (lote/seleção) é o único modo suportado pela rota. */
 export function resolvePickingListParams(sp: URLSearchParams): ResolveResult {
 	const idsRaw = sp.get("ids");
+
 	if (!idsRaw) {
 		return { error: "Informe ids", ok: false };
 	}
+
 	const ids = Array.from(
 		new Set(
 			idsRaw
@@ -26,11 +28,14 @@ export function resolvePickingListParams(sp: URLSearchParams): ResolveResult {
 				.filter(Boolean)
 		)
 	);
+
 	if (ids.length === 0 || ids.length > MAX_IDS) {
 		return { error: `ids deve ter entre 1 e ${MAX_IDS} itens`, ok: false };
 	}
+
 	if (!ids.every((id) => idSchema.safeParse(id).success)) {
 		return { error: "ids contém valor inválido", ok: false };
 	}
+
 	return { ok: true, params: { ids } };
 }

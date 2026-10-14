@@ -55,13 +55,16 @@ export function StockEntryForm({
 		};
 
 		const parsed = stockEntrySchema.safeParse(input);
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
 
 		start(async () => {
 			const result = await recordStockEntry(parsed.data);
+
 			if (result.ok) {
 				notify.success("Entrada registrada");
 				onSuccess();

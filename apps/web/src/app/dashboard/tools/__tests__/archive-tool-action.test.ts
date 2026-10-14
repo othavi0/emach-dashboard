@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { mockDbUpdate, mockLogActivity, mockSet, mockWhere } = vi.hoisted(() => {
 	const mockWhere = vi.fn().mockResolvedValue(undefined);
 	const mockSet = vi.fn(() => ({ where: mockWhere }));
+
 	return {
 		mockDbUpdate: vi.fn(() => ({ set: mockSet })),
 		mockLogActivity: vi.fn().mockResolvedValue(undefined),

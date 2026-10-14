@@ -33,6 +33,7 @@ export function AttributeSheet({
 	onClose,
 }: AttributeSheetProps) {
 	const open = mode !== null;
+
 	return (
 		<Sheet
 			onOpenChange={(next) => {

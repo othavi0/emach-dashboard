@@ -137,6 +137,7 @@ export function CustomerAuditTable({
 							{items.map((entry) => {
 								const variant = ACTION_VARIANTS[entry.action] ?? "secondary";
 								const label = ACTION_LABELS[entry.action] ?? entry.action;
+
 								const hasDiff =
 									entry.beforeJson !== null || entry.afterJson !== null;
 

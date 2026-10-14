@@ -12,9 +12,11 @@ import { AppSidebar } from "./app-sidebar";
 export async function DashboardChrome() {
 	const session = await requireCurrentSession();
 	const status = getUserStatus(session);
+
 	if (status === "pending") {
 		redirect("/pending");
 	}
+
 	if (status === "suspended") {
 		redirect("/suspended");
 	}

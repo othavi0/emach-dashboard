@@ -86,6 +86,7 @@ type _UncoveredField = Exclude<
 	keyof ToolFormValues,
 	(typeof STEP_FIELDS)[ToolStepId][number]
 >;
+
 const _stepFieldsAreExhaustive: _UncoveredField extends never
 	? true
 	: ["faltam campos em STEP_FIELDS:", _UncoveredField] = true;
@@ -97,6 +98,7 @@ export function stepHasErrors(
 	stepId: ToolStepId
 ): boolean {
 	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
+
 	return issues.some(
 		(issue) => issue.path.length > 0 && fields.has(String(issue.path[0]))
 	);
@@ -110,12 +112,15 @@ export function getStepFieldErrors(
 	const issues = collectToolIssues(values, { enforceActivation });
 	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
 	const out: Partial<Record<keyof ToolFormValues, string>> = {};
+
 	for (const issue of issues) {
 		const key = issue.path[0] as keyof ToolFormValues | undefined;
+
 		if (key && fields.has(String(key)) && out[key] === undefined) {
 			out[key] = issue.message;
 		}
 	}
+
 	return out;
 }
 
@@ -124,14 +129,17 @@ export function firstStepWithError(
 	enforceActivation: boolean
 ): ToolStepId | null {
 	const issues = collectToolIssues(values, { enforceActivation });
+
 	if (issues.length === 0) {
 		return null;
 	}
+
 	for (const step of TOOL_STEPS) {
 		if (stepHasErrors(issues, step.id)) {
 			return step.id;
 		}
 	}
+
 	return null;
 }
 
@@ -141,24 +149,30 @@ export function getStepErrorCount(
 ): number {
 	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
 	const seen = new Set<string>();
+
 	for (const issue of issues) {
 		if (issue.path.length > 0 && fields.has(String(issue.path[0]))) {
 			seen.add(String(issue.path[0]));
 		}
 	}
+
 	return seen.size;
 }
 
 export function stepsWithContent(values: ToolFormState): Set<ToolStepId> {
 	const result = new Set<ToolStepId>();
+
 	for (const step of TOOL_STEPS) {
 		const fields = STEP_FIELDS[step.id] as (keyof ToolFormState)[];
+
 		const differs = fields.some(
 			(f) => JSON.stringify(values[f]) !== JSON.stringify(EMPTY_TOOL_VALUES[f])
 		);
+
 		if (differs) {
 			result.add(step.id);
 		}
 	}
+
 	return result;
 }

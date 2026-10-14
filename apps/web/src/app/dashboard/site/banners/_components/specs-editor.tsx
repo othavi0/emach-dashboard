@@ -15,6 +15,7 @@ export function SpecsEditor({
 	onChange: (next: string[]) => void;
 }) {
 	const items = value ?? [];
+
 	return (
 		<div className="flex flex-col gap-2">
 			{items.map((item, i) => (

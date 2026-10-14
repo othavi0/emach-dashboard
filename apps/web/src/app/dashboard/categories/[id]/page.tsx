@@ -48,6 +48,7 @@ export default function CategoryDetailPage({
 
 async function CategoryDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCapabilityOrRedirect("categories.read");
+
 	const [canDelete, canManage] = await Promise.all([
 		can(session, "categories.delete"),
 		can(session, "categories.manage"),

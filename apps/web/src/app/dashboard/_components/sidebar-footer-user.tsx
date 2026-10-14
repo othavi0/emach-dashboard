@@ -53,8 +53,10 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 	// Fecha o menu quando a sidebar expande — ajuste durante o render (padrão
 	// "adjusting state when a prop changes"), sem effect.
 	const [lastState, setLastState] = useState(state);
+
 	if (lastState !== state) {
 		setLastState(state);
+
 		if (state === "expanded") {
 			setMenuOpen(false);
 		}
@@ -64,7 +66,9 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 		if (isSigningOut) {
 			return;
 		}
+
 		setIsSigningOut(true);
+
 		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			await authClient.signOut({

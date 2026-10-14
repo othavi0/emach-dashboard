@@ -9,6 +9,7 @@ function RunningTruck() {
 	useEffect(() => {
 		ref.current?.startAnimation();
 	}, []);
+
 	return <TruckIcon ref={ref} size={20} />;
 }
 
@@ -33,9 +34,11 @@ export function NavigationTruck() {
 	useEffect(() => {
 		const sync = () =>
 			setBar(document.querySelector<HTMLElement>(".bprogress .bar"));
+
 		const observer = new MutationObserver(sync);
 		observer.observe(document.body, { childList: true });
 		sync();
+
 		return () => observer.disconnect();
 	}, []);
 

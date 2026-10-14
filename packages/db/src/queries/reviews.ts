@@ -53,9 +53,11 @@ export async function canCreateReview(
 	if (!ord) {
 		return { ok: false, reason: "order_not_found" };
 	}
+
 	if (ord.clientId !== clientId) {
 		return { ok: false, reason: "order_not_owned_by_client" };
 	}
+
 	if (!ord.paidAt) {
 		return { ok: false, reason: "not_paid" };
 	}
@@ -66,7 +68,9 @@ export async function canCreateReview(
 				+ make_interval(days => ${REVIEW_WINDOW_DAYS}))
 			AS expired
 	`);
+
 	const expired = windowRows.rows[0]?.expired === true;
+
 	if (expired) {
 		return { ok: false, reason: "window_expired" };
 	}
@@ -131,6 +135,7 @@ export async function getReviews(
 ): Promise<{ reviews: ReviewWithReviewer[]; total: number }> {
 	const limit = input.limit ?? 10;
 	const offset = (Math.max(1, input.page) - 1) * limit;
+
 	const order2 =
 		input.sort === "rating-desc"
 			? sql`r.rating DESC, r.created_at DESC`
@@ -161,6 +166,7 @@ export async function getReviews(
 	const reviews: ReviewWithReviewer[] = listRes.rows.map((row) => {
 		const { client_name, ...rest } = row;
 		const rev = coerceDates(rest as Review, REVIEW_DATE_KEYS);
+
 		return {
 			...rev,
 			clientName: formatReviewerName(client_name),
@@ -219,6 +225,8 @@ function toNullableNumber(value: unknown): number | null {
 	if (value === null || value === undefined) {
 		return null;
 	}
+
 	const n = typeof value === "number" ? value : Number(value);
+
 	return Number.isFinite(n) ? n : null;
 }

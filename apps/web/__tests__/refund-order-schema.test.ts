@@ -15,6 +15,7 @@ describe("refundOrderSchema", () => {
 			reason: "Cliente desistiu da compra após pagamento",
 			creditStock: false,
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -25,6 +26,7 @@ describe("refundOrderSchema", () => {
 			creditStock: true,
 			returnItems: [{ orderItemId: VALID_ITEM_ID, branchId: VALID_BRANCH_ID }],
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -34,6 +36,7 @@ describe("refundOrderSchema", () => {
 			reason: "",
 			creditStock: false,
 		});
+
 		expect(result.success).toBe(false);
 	});
 
@@ -44,6 +47,7 @@ describe("refundOrderSchema", () => {
 			creditStock: true,
 			returnItems: [],
 		});
+
 		expect(result.success).toBe(false);
 	});
 
@@ -54,6 +58,7 @@ describe("refundOrderSchema", () => {
 			creditStock: true,
 			returnItems: [{ orderItemId: VALID_ITEM_ID, branchId: "" }],
 		});
+
 		expect(result.success).toBe(false);
 	});
 });
@@ -64,6 +69,7 @@ describe("cancelOrderSchema", () => {
 			orderId: VALID_ORDER_ID,
 			reason: "Cliente desistiu antes de pagar",
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -72,6 +78,7 @@ describe("cancelOrderSchema", () => {
 			orderId: VALID_ORDER_ID,
 			reason: "",
 		});
+
 		expect(result.success).toBe(false);
 	});
 });

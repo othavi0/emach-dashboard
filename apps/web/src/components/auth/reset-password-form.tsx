@@ -26,6 +26,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
 		if (password !== confirm) {
 			setErrorMessage("As senhas não coincidem.");
+
 			return;
 		}
 

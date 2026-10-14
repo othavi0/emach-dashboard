@@ -268,6 +268,7 @@ function parseNumber(value: string | number | null): number | null {
 	if (value === null) {
 		return null;
 	}
+
 	return typeof value === "number" ? value : Number(value);
 }
 
@@ -278,6 +279,7 @@ function formatActorLabel(entry: {
 	if (entry.actorType === "system") {
 		return "Sistema";
 	}
+
 	return entry.actorUserName ?? "Usuário";
 }
 
@@ -294,16 +296,20 @@ export function getOrderTabCountsKey(status: OrderStatus): string {
 export const listOrderBranches = cache(async (): Promise<BranchOption[]> => {
 	const session = await requireCurrentSession();
 	const scope = await getUserBranchScope(session);
+
 	const query = db
 		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
 		.from(branch)
 		.orderBy(asc(branch.name));
+
 	if (scope.kind === "all") {
 		return query;
 	}
+
 	if (scope.branchIds.length === 0) {
 		return [];
 	}
+
 	return db
 		.select({ cepRanges: branch.cepRanges, id: branch.id, name: branch.name })
 		.from(branch)
@@ -354,6 +360,7 @@ export async function fetchOrdersPage({
 		scope,
 		tabDef: tab,
 	});
+
 	if (decoded) {
 		conditions.push(
 			decoded.sort === "paidAtAsc"
@@ -365,6 +372,7 @@ export async function fetchOrdersPage({
 	const whereClause = conditions.length
 		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
 		: sql``;
+
 	const orderBy =
 		sort === "paidAtAsc"
 			? sql`ORDER BY COALESCE(o.paid_at, o.created_at) ASC, o.id ASC`
@@ -485,10 +493,13 @@ export async function getRecentOrderActivity(
 	limit = 15
 ): Promise<OrderActivityRow[]> {
 	const scope = await getUserBranchScope(await requireCurrentSession());
+
 	if (isBlindScope(scope)) {
 		return [];
 	}
+
 	const branchCond = orderBranchCondition(scope);
+
 	const result = await db.execute<{
 		created_at: Date;
 		id: string;
@@ -508,6 +519,7 @@ export async function getRecentOrderActivity(
 		ORDER BY osh.created_at DESC
 		LIMIT ${limit}
 	`);
+
 	return result.rows.map((r) => ({
 		id: r.id,
 		orderId: r.order_id,
@@ -531,6 +543,7 @@ export const ORDERS_COUNTS_TAG = "orders-counts";
 const computeOrdersTabCounts = unstable_cache(
 	async (scope: BranchScope): Promise<OrderTabCounts> => {
 		const branchFilter = orderBranchConditionNoAlias(scope);
+
 		const result = await db.execute<{
 			count: number;
 			is_late: boolean;
@@ -565,9 +578,11 @@ const computeOrdersTabCounts = unstable_cache(
 
 export async function getOrdersTabCounts(): Promise<Record<string, number>> {
 	const scope = await getUserBranchScope(await requireCurrentSession());
+
 	if (isBlindScope(scope)) {
 		return emptyTabCounts();
 	}
+
 	return computeOrdersTabCounts(scope);
 }
 
@@ -576,7 +591,9 @@ export async function getLateOrdersCount(scope: BranchScope): Promise<number> {
 	if (isBlindScope(scope)) {
 		return 0;
 	}
+
 	const counts = await computeOrdersTabCounts(scope);
+
 	return counts.late;
 }
 
@@ -587,18 +604,23 @@ export async function listOrderCarrierOptions(): Promise<{
 }> {
 	const session = await requireCurrentSession();
 	const scope = await getUserBranchScope(session);
+
 	if (isBlindScope(scope)) {
 		return { methods: [], hasUnassigned: false };
 	}
+
 	const branchCondition = orderBranchCondition(scope);
+
 	const rows = await db.execute<{ shipping_method: string | null }>(sql`
 		SELECT DISTINCT o.shipping_method FROM "order" o
 		${branchCondition ? sql`WHERE ${branchCondition}` : sql``}
 		ORDER BY 1
 	`);
+
 	const methods = rows.rows
 		.map((r) => r.shipping_method)
 		.filter((m): m is string => m !== null);
+
 	return {
 		methods,
 		hasUnassigned: rows.rows.some((r) => r.shipping_method === null),
@@ -611,6 +633,7 @@ export async function listOrderToolOptions(): Promise<
 	{ id: string; name: string }[]
 > {
 	await requireCurrentSession();
+
 	return db
 		.select({ id: tool.id, name: tool.name })
 		.from(tool)
@@ -628,12 +651,16 @@ export async function fetchOrdersProductSummary({
 	if (!filters.toolId) {
 		return null;
 	}
+
 	const session = await requireCurrentSession();
 	const scope = await getUserBranchScope(session);
+
 	if (isBlindScope(scope)) {
 		return { orders: 0, units: 0 };
 	}
+
 	const tab = resolveTab(filters.tab);
+
 	const conditions = buildOrdersListConditions({
 		filters: {
 			branchId: filters.branchId,
@@ -647,9 +674,11 @@ export async function fetchOrdersProductSummary({
 		scope,
 		tabDef: tab,
 	});
+
 	const whereClause = conditions.length
 		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
 		: sql``;
+
 	const rows = await db.execute<{ orders: number; units: number }>(sql`
 		SELECT COUNT(DISTINCT o.id)::int AS orders,
 			COALESCE(SUM(oi.quantity), 0)::int AS units
@@ -658,17 +687,20 @@ export async function fetchOrdersProductSummary({
 		JOIN order_item oi ON oi.order_id = o.id AND oi.tool_id = ${filters.toolId}
 		${whereClause}
 	`);
+
 	return rows.rows[0] ?? { orders: 0, units: 0 };
 }
 
 // Nome do produto filtrado por productId — usado no chip do resumo acima da lista.
 export async function getToolName(id: string): Promise<string | null> {
 	await requireCurrentSession();
+
 	const rows = await db
 		.select({ name: tool.name })
 		.from(tool)
 		.where(eq(tool.id, id))
 		.limit(1);
+
 	return rows[0]?.name ?? null;
 }
 
@@ -767,6 +799,7 @@ export async function getOrderReviewsOverview(
 
 export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 	const scope = await getUserBranchScope(await requireCurrentSession());
+
 	const [
 		base,
 		items,
@@ -969,9 +1002,11 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 	]);
 
 	const row = base.rows[0];
+
 	if (!row) {
 		return null;
 	}
+
 	// Branch-scoping: pedido fora do escopo do staff é invisível (404), inclusive triagem p/ user.
 	if (!orderInScope(scope, row.branch_id)) {
 		return null;
@@ -980,6 +1015,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 	// Sub-estado de fulfillment: fonte é a sessão de picking MAIS RECENTE do
 	// pedido (não `order.status`, que fica intocado — contrato ecommerce).
 	const latest = await getLatestPicking(id);
+
 	const fulfillment: OrderFulfillment | null = latest
 		? {
 				pickingId: latest.pickingId,

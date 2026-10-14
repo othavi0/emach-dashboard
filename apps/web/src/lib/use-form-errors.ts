@@ -21,6 +21,7 @@ import { notify } from "@/lib/notify";
  */
 export function useFormErrors<T = Record<string, string>>() {
 	const [errors, setErrors] = useState<FieldErrorMap<T>>({});
+
 	const reportValidationError = (
 		error: ZodError,
 		transform?: (fieldErrors: FieldErrorMap<T>) => FieldErrorMap<T>
@@ -31,6 +32,8 @@ export function useFormErrors<T = Record<string, string>>() {
 		notify.error(errorToastMessage(fieldErrors));
 		focusFirstError();
 	};
+
 	const clearErrors = () => setErrors({});
+
 	return { errors, setErrors, reportValidationError, clearErrors };
 }

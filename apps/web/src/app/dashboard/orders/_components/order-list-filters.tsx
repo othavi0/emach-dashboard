@@ -49,6 +49,7 @@ interface OrderListFiltersProps {
 }
 
 const BASE = "/dashboard/orders";
+
 // "tab" fora do TRACKED de propósito: o botão "Limpar" da barra de busca age só
 // sobre busca/data/filial/transportadora/produto e mantém a tab atual; o reset
 // de status é o chip "Todos".
@@ -60,6 +61,7 @@ const TRACKED = [
 	"carrier",
 	"productId",
 ] as const;
+
 const BRANCH_ALL = "__all__";
 const CARRIER_ALL = "__all__";
 
@@ -69,33 +71,43 @@ function buildTabHref(
 	lateStatus?: LateSubTabKey
 ): string {
 	const params = new URLSearchParams();
+
 	// Sempre explicitar o tab: a ausência de ?tab agora resolve para o default
 	// ("Pago"), então "Todos" e os demais precisam do parâmetro na URL.
 	if (tabKey) {
 		params.set("tab", tabKey);
 	}
+
 	if (tabKey === "late" && lateStatus && lateStatus !== "all") {
 		params.set("lateStatus", lateStatus);
 	}
+
 	if (filters.q) {
 		params.set("q", filters.q);
 	}
+
 	if (filters.from) {
 		params.set("from", filters.from);
 	}
+
 	if (filters.to) {
 		params.set("to", filters.to);
 	}
+
 	if (filters.branchId) {
 		params.set("branchId", filters.branchId);
 	}
+
 	if (filters.carrier) {
 		params.set("carrier", filters.carrier);
 	}
+
 	if (filters.toolId) {
 		params.set("productId", filters.toolId);
 	}
+
 	const qs = params.toString();
+
 	return qs ? `${BASE}?${qs}` : BASE;
 }
 
@@ -107,15 +119,19 @@ function tabCount(
 	if (tabKey === "all") {
 		return counts.all_count ?? 0;
 	}
+
 	if (tabKey === "late") {
 		return counts.late ?? 0;
 	}
+
 	if (tabKey === "picked") {
 		return counts.picked ?? 0;
 	}
+
 	if (!statuses) {
 		return 0;
 	}
+
 	return statuses.reduce((sum, status) => sum + (counts[status] ?? 0), 0);
 }
 
@@ -132,6 +148,7 @@ export function OrderFiltersPanel({
 		basePath: BASE,
 		trackedKeys: TRACKED,
 	});
+
 	const [q, setQ] = useDebouncedParam({ basePath: BASE, key: "q" });
 	const [from, setFrom] = useDebouncedParam({ basePath: BASE, key: "from" });
 	const [to, setTo] = useDebouncedParam({ basePath: BASE, key: "to" });
@@ -146,6 +163,7 @@ export function OrderFiltersPanel({
 		const count = tabCount(counts, tab.key, tab.statuses);
 		const isActive = currentTab === tab.key;
 		const href = buildTabHref(filters, tab.key);
+
 		return (
 			<TabsTrigger
 				key={tab.key}
@@ -187,10 +205,12 @@ export function OrderFiltersPanel({
 							sub.key === "all"
 								? !filters.lateStatus
 								: filters.lateStatus === sub.key;
+
 						const count =
 							sub.key === "all"
 								? (counts.late ?? 0)
 								: (counts[`late_${sub.key}`] ?? 0);
+
 						return (
 							<Link
 								className={cn(
@@ -280,9 +300,11 @@ export function OrderFiltersPanel({
 									if (v === BRANCH_ALL) {
 										return "Todas as filiais";
 									}
+
 									if (v === BRANCH_NONE) {
 										return "Na triagem";
 									}
+
 									return (
 										branches.find((b) => b.id === v)?.name ?? "Todas as filiais"
 									);
@@ -326,9 +348,11 @@ export function OrderFiltersPanel({
 									if (v === CARRIER_ALL) {
 										return "Todas as transportadoras";
 									}
+
 									if (v === CARRIER_NONE) {
 										return "A combinar";
 									}
+
 									return v;
 								}}
 							</SelectValue>

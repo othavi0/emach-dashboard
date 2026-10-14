@@ -21,6 +21,7 @@ export function SwitchTabButton({
 	tab,
 }: SwitchTabButtonProps) {
 	const setActiveTab = useSetActiveTab();
+
 	return (
 		<button
 			className={className}

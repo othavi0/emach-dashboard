@@ -25,21 +25,27 @@ export function StaggerGrid({
 		// sessionStorage pode lançar SecurityError (iframe sandbox, modo privado):
 		// nesse caso não anima e os KPIs seguem visíveis (degradação segura).
 		let alreadyEntered = true;
+
 		try {
 			alreadyEntered = sessionStorage.getItem(SESSION_KEY) !== null;
+
 			if (!alreadyEntered) {
 				sessionStorage.setItem(SESSION_KEY, "1");
 			}
 		} catch {
 			return;
 		}
+
 		if (alreadyEntered || reduce) {
 			return;
 		}
+
 		const items = scope.current?.querySelectorAll("[data-stagger-item]");
+
 		if (!items || items.length === 0) {
 			return;
 		}
+
 		// Anima só `y` (slide). Sem keyframe de opacity: o effect roda após o
 		// paint, então um `opacity: [0, 1]` faria os KPIs piscarem invisíveis por
 		// 1 frame. O slide já entrega o reveal sem nunca escondê-los.

@@ -20,7 +20,9 @@ export async function getUserOverrides(
 		})
 		.from(userCapabilityOverride)
 		.where(eq(userCapabilityOverride.userId, userId));
+
 	const map = new Map<Capability, OverrideState>();
+
 	for (const r of rows) {
 		// Ignora linhas com cap fora do registry ou effect inesperado (fail-closed:
 		// dado legado/inválido não vira um override fantasma na UI).
@@ -28,5 +30,6 @@ export async function getUserOverrides(
 			map.set(r.capability, r.effect as OverrideState);
 		}
 	}
+
 	return map;
 }

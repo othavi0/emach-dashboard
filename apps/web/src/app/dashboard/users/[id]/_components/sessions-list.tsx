@@ -37,6 +37,7 @@ export function SessionsList({
 	const revoke = (sessionId: string) => {
 		startTransition(async () => {
 			const res = await revokeUserSession({ sessionId });
+
 			if (res.ok) {
 				notify.success("Sessão revogada");
 				reloadTab();

@@ -19,9 +19,11 @@ interface Props {
  */
 export function SupplierDetailActions({ canManage, detail }: Props) {
 	const tab = useActiveTab();
+
 	if (!(canManage && tab === "overview")) {
 		return null;
 	}
+
 	return (
 		<div className="flex items-center gap-2">
 			<Link

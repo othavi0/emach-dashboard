@@ -48,6 +48,7 @@ export function TeamLinkPanel({ branchId }: Props) {
 	useEffect(() => {
 		const timer = setTimeout(async () => {
 			setSearching(true);
+
 			// Sem finally: React Compiler baila em try com finalizer.
 			try {
 				const data = await searchEligibleUsers(branchId, query);
@@ -58,16 +59,19 @@ export function TeamLinkPanel({ branchId }: Props) {
 				setSearching(false);
 			}
 		}, 250);
+
 		return () => clearTimeout(timer);
 	}, [query, branchId]);
 
 	async function handleSelect(user: UserOption) {
 		setLinking(true);
+
 		try {
 			const result = await linkUserToBranchAction({
 				userId: user.id,
 				branchId,
 			});
+
 			if (result.ok) {
 				notify.success(`${user.name} vinculado à filial.`);
 				setOpen(false);
@@ -78,6 +82,7 @@ export function TeamLinkPanel({ branchId }: Props) {
 			} else {
 				notify.error(result.error);
 			}
+
 			setLinking(false);
 		} catch (err) {
 			setLinking(false);

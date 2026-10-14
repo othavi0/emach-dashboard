@@ -126,6 +126,7 @@ export const getToolDetail = cache(
 		// o estoque de todas as filiais pra quem não tem vínculo).
 		let stockScopeCondition: SQL | undefined;
 		let branchScopeCondition: SQL | undefined;
+
 		if (scope.kind === "scoped") {
 			stockScopeCondition =
 				scope.branchIds.length > 0

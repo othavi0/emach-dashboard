@@ -52,6 +52,7 @@ export function EntityKpisRow({ items, iconSize = "sm" }: Props) {
 			{items.map((item) => {
 				const tone = item.tone ?? "default";
 				const Icon = item.icon;
+
 				const inner = (
 					<Card className="h-full">
 						<CardHeader className="flex flex-row items-center justify-between gap-2 pb-1">
@@ -80,7 +81,9 @@ export function EntityKpisRow({ items, iconSize = "sm" }: Props) {
 						</CardContent>
 					</Card>
 				);
+
 				let content: ReactNode = inner;
+
 				if (item.switchTab) {
 					content = (
 						<SwitchTabButton
@@ -100,6 +103,7 @@ export function EntityKpisRow({ items, iconSize = "sm" }: Props) {
 						</Link>
 					);
 				}
+
 				return (
 					<div className="h-full" key={item.label}>
 						{content}

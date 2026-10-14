@@ -26,6 +26,7 @@ import { CepRangesEditor } from "./cep-ranges-editor";
 import { ResponsibleUserSelect } from "./responsible-user-select";
 
 type Patch = (next: Partial<BranchFormValues>) => void;
+
 type BusinessHoursKey = keyof BranchFormValues["businessHours"];
 
 const BUSINESS_HOURS_ROWS: Array<{ key: BusinessHoursKey; label: string }> = [
@@ -287,6 +288,7 @@ export function BranchFormFields({
 					const period = values.businessHours[row.key];
 					const canBreak = BREAK_ROWS.has(row.key);
 					const hasBreak = Boolean(period.breakStart || period.breakEnd);
+
 					return (
 						<div
 							className="flex flex-col gap-2 border-border border-b py-2.5 last:border-b-0"

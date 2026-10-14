@@ -27,6 +27,7 @@ export function useBulkSelection<T>({
 		if (resetKey === lastResetKey.current) {
 			return;
 		}
+
 		lastResetKey.current = resetKey;
 		setSelected(new Set());
 	}, [resetKey]);
@@ -43,11 +44,13 @@ export function useBulkSelection<T>({
 	function toggle(id: string) {
 		setSelected((prev) => {
 			const next = new Set(prev);
+
 			if (next.has(id)) {
 				next.delete(id);
 			} else {
 				next.add(id);
 			}
+
 			return next;
 		});
 	}

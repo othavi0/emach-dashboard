@@ -30,12 +30,15 @@ function resolveOptions(
 	if (!options) {
 		return [];
 	}
+
 	if ("options" in options) {
 		return options.options;
 	}
+
 	if ("swatches" in options) {
 		return options.swatches.map((s) => ({ value: s.value, label: s.label }));
 	}
+
 	return [];
 }
 
@@ -57,6 +60,7 @@ export function DynamicSpecsEditor({
 		<div className="grid gap-4 md:grid-cols-2">
 			{definitions.map((def) => {
 				const v = values[def.slug] ?? {};
+
 				const labelWithUnit = def.unit
 					? `${def.label} (${def.unit})`
 					: def.label;
@@ -123,6 +127,7 @@ export function DynamicSpecsEditor({
 					case "select":
 					case "color": {
 						const opts = resolveOptions(def.options);
+
 						return (
 							<div className="flex flex-col gap-2" key={def.id}>
 								<Label htmlFor={`attr-${def.slug}`}>
@@ -153,6 +158,7 @@ export function DynamicSpecsEditor({
 							</div>
 						);
 					}
+
 					case "numeric_range":
 						return (
 							<div className="flex flex-col gap-2" key={def.id}>

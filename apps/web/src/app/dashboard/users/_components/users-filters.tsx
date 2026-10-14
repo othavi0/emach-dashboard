@@ -37,6 +37,7 @@ export function UsersFilters({ branches }: UsersFiltersProps) {
 		basePath: BASE,
 		trackedKeys: TRACKED,
 	});
+
 	const [search, setSearch] = useDebouncedParam({
 		basePath: BASE,
 		key: "search",

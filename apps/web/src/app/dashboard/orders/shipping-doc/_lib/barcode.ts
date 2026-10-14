@@ -11,9 +11,11 @@ export async function cepBarcodeDataUri(
 	cep: string | null
 ): Promise<string | null> {
 	const digits = (cep ?? "").replace(/\D/g, "");
+
 	if (!CEP_DIGITS.test(digits)) {
 		return null;
 	}
+
 	const png = await bwipjs.toBuffer({
 		bcid: "code128",
 		text: digits,
@@ -21,5 +23,6 @@ export async function cepBarcodeDataUri(
 		height: 8,
 		includetext: false,
 	});
+
 	return `data:image/png;base64,${png.toString("base64")}`;
 }

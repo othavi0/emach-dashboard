@@ -44,16 +44,22 @@ export function TrackingCard({
 
 	function handleSave() {
 		const code = draft.trim();
+
 		if (!code) {
 			notify.error("Informe um código de rastreio");
+
 			return;
 		}
+
 		startTransition(async () => {
 			const result = await updateTrackingCode({ orderId, trackingCode: code });
+
 			if (!result.ok) {
 				notify.error(result.error);
+
 				return;
 			}
+
 			notify.success("Rastreio atualizado");
 			setEditing(false);
 			router.refresh();

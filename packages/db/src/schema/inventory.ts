@@ -182,10 +182,17 @@ export const stockAlertSentRelations = relations(stockAlertSent, ({ one }) => ({
 }));
 
 export type Branch = typeof branch.$inferSelect;
+
 export type NewBranch = typeof branch.$inferInsert;
+
 export type StockLevel = typeof stockLevel.$inferSelect;
+
 export type NewStockLevel = typeof stockLevel.$inferInsert;
+
 export type UserBranch = typeof userBranch.$inferSelect;
+
 export type NewUserBranch = typeof userBranch.$inferInsert;
+
 export type StockAlertSent = typeof stockAlertSent.$inferSelect;
+
 export type NewStockAlertSent = typeof stockAlertSent.$inferInsert;

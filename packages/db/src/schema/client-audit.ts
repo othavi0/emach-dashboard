@@ -23,6 +23,7 @@ export const clientAuditActionEnum = pgEnum("client_audit_action", [
 	"password_reset_link_generated",
 	"exported",
 ]);
+
 export type ClientAuditAction =
 	(typeof clientAuditActionEnum.enumValues)[number];
 
@@ -76,4 +77,5 @@ export const clientAuditLogRelations = relations(clientAuditLog, ({ one }) => ({
 }));
 
 export type ClientAuditLog = typeof clientAuditLog.$inferSelect;
+
 export type NewClientAuditLog = typeof clientAuditLog.$inferInsert;

@@ -51,6 +51,7 @@ function SubmitLabel({
 			</>
 		);
 	}
+
 	return <>{mode === "create" ? "Criar categoria" : "Salvar alterações"}</>;
 }
 
@@ -61,10 +62,12 @@ function remapSlugToName(
 	fieldErrors: FieldErrorMap<CategoryInput>
 ): FieldErrorMap<CategoryInput> {
 	const { slug, ...rest } = fieldErrors;
+
 	if (slug && !rest.name) {
 		rest.name =
 			"O nome não gera um identificador válido — use letras ou números.";
 	}
+
 	return rest;
 }
 
@@ -78,19 +81,24 @@ export function CategoryForm({
 	const [isPending, startTransition] = useTransition();
 	const [name, setName] = useState(defaultValues.name ?? "");
 	const [slug, setSlug] = useState(defaultValues.slug ?? "");
+
 	const [parentId, setParentId] = useState<string>(
 		defaultValues.parentId ?? NO_PARENT
 	);
+
 	const [description, setDescription] = useState(
 		defaultValues.description ?? ""
 	);
+
 	const [isActive, setIsActive] = useState(defaultValues.isActive ?? true);
+
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<CategoryInput>();
 
 	const nameBySlug = buildNameBySlug(categories);
 
 	const ownPath = defaultValues.path ?? "";
+
 	const parentOptions =
 		mode === "edit" && defaultValues.id
 			? categories.filter(
@@ -108,13 +116,16 @@ export function CategoryForm({
 	const parentSegments = selectedParent
 		? breadcrumbFromPath(selectedParent.path, nameBySlug)
 		: [];
+
 	const placement = [
 		...(selectedParent ? parentSegments : ["Raiz"]),
 		name.trim() || "…",
 	].join(" › ");
+
 	// Rótulo do trigger: breadcrumb do pai; cai pro nome se o path tiver slug
 	// órfão (ex: drift de dados) — nunca renderiza string vazia.
 	let parentLabel: string | null = null;
+
 	if (selectedParent) {
 		parentLabel =
 			parentSegments.length > 0
@@ -136,12 +147,14 @@ export function CategoryForm({
 
 		if (!parsed.success) {
 			reportValidationError(parsed.error, remapSlugToName);
+
 			return;
 		}
 
 		startTransition(async () => {
 			if (mode === "create") {
 				const result = await createCategory(parsed.data);
+
 				if (result.ok) {
 					notify.success("Categoria criada");
 					router.push(`/dashboard/categories/${result.data.id}/edit`);
@@ -151,6 +164,7 @@ export function CategoryForm({
 				}
 			} else {
 				const result = await updateCategory(categoryId ?? "", parsed.data);
+
 				if (result.ok) {
 					notify.success("Categoria atualizada");
 					router.push("/dashboard/categories");
@@ -182,6 +196,7 @@ export function CategoryForm({
 							onChange={(event) => {
 								const next = event.target.value;
 								setName(next);
+
 								if (mode === "create") {
 									setSlug(slugifyLabel(next));
 								}

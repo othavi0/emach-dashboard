@@ -8,13 +8,16 @@ vi.mock("@emach/db", () => ({
 	db: { select: mockSelect },
 	createDb: vi.fn(() => ({})),
 }));
+
 vi.mock("@/lib/permissions", () => ({
 	requireCapability: vi.fn(),
 	requireCapabilityWithContext: vi.fn(),
 	can: vi.fn(),
 }));
+
 vi.mock("@/lib/branch-scope", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("@/lib/branch-scope")>();
+
 	return {
 		...actual,
 		getUserBranchScope: vi.fn(),
@@ -43,6 +46,7 @@ function makeSelectChain(result: unknown[] = []) {
 		// biome-ignore lint/suspicious/noThenProperty: thenable mock — permite await sem terminal explícito
 		then: (resolve: (v: unknown) => void) => resolve(result),
 	};
+
 	for (const m of [
 		"from",
 		"innerJoin",
@@ -52,7 +56,9 @@ function makeSelectChain(result: unknown[] = []) {
 	] as const) {
 		chain[m] = vi.fn(() => chain);
 	}
+
 	chain.limit = vi.fn(() => Promise.resolve(result));
+
 	return chain;
 }
 

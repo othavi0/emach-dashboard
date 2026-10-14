@@ -36,6 +36,7 @@ export function roleHasCapability(
 	if (!(role && role in ROLE_CAPS)) {
 		return false;
 	}
+
 	return ROLE_CAPS[role as UserRole].has(cap);
 }
 
@@ -54,12 +55,14 @@ export const getUserCapabilities = cache(
 	async (session: DashboardSession): Promise<ReadonlySet<Capability>> => {
 		const role = (session.user.role ?? "user") as UserRole;
 		const caps = roleDefaultCapabilities(role);
+
 		// super_admin é irrestrito por construção: overrides não se aplicam (grant
 		// é redundante, revoke seria vetor de lock-out — issue #184 / ADR-0017).
 		// Early-return também poupa a query de overrides por request.
 		if (role === "super_admin") {
 			return caps;
 		}
+
 		const overrides = await db
 			.select({
 				capability: userCapabilityOverride.capability,
@@ -67,16 +70,19 @@ export const getUserCapabilities = cache(
 			})
 			.from(userCapabilityOverride)
 			.where(eq(userCapabilityOverride.userId, session.user.id));
+
 		for (const o of overrides) {
 			if (!isCapability(o.capability)) {
 				continue; // cap removida do registry → ignora (fail-closed)
 			}
+
 			if (o.effect === "grant") {
 				caps.add(o.capability);
 			} else {
 				caps.delete(o.capability);
 			}
 		}
+
 		return caps;
 	}
 );
@@ -132,7 +138,9 @@ async function assertNotLastActiveSuperAdmin(
 				ne(userTable.id, targetUserId)
 			)
 		);
+
 	const others = row?.value ?? 0;
+
 	if (others < 1) {
 		throw new Error("Necessário ao menos 1 super_admin ativo");
 	}
@@ -143,9 +151,11 @@ export async function requireCapability(
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
 	ensureActive(session);
+
 	if (!(await getUserCapabilities(session)).has(cap)) {
 		throw new Error(`Forbidden: capability "${cap}" requerida`);
 	}
+
 	return session;
 }
 
@@ -154,14 +164,17 @@ export async function requireCapabilityOrRedirect(
 	redirectTo = "/dashboard"
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
+
 	// Consistência com requireCapability/requireCapabilityWithContext (que chamam
 	// ensureActive) — defesa-em-profundidade além do gate de status no layout.
 	if (session.user.status !== "active") {
 		redirect(redirectTo);
 	}
+
 	if (!(await getUserCapabilities(session)).has(cap)) {
 		redirect(redirectTo);
 	}
+
 	return session;
 }
 
@@ -170,15 +183,19 @@ export async function requireUserDetailAccessOrRedirect(
 	redirectTo = "/dashboard"
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
+
 	if (session.user.status !== "active") {
 		redirect(redirectTo);
 	}
+
 	if (session.user.id === targetUserId) {
 		return session;
 	}
+
 	if (!(await getUserCapabilities(session)).has("users.manage")) {
 		redirect(redirectTo);
 	}
+
 	return session;
 }
 
@@ -196,18 +213,23 @@ async function assertManageableTarget(
 	if (targetUserId === session.user.id) {
 		return;
 	}
+
 	const actorRole = (session.user.role ?? "user") as UserRole;
+
 	if (actorRole === "super_admin") {
 		return;
 	}
+
 	const [target] = await db
 		.select({ role: userTable.role })
 		.from(userTable)
 		.where(eq(userTable.id, targetUserId))
 		.limit(1);
+
 	if (!target) {
 		throw new Error("Usuário alvo não encontrado");
 	}
+
 	if (ROLE_WEIGHT[target.role as UserRole] >= ROLE_WEIGHT[actorRole]) {
 		throw new Error(
 			"Não é possível gerenciar usuário com role igual ou superior"
@@ -223,7 +245,9 @@ async function assertBranchScope(
 	if (session.user.role === "super_admin") {
 		return;
 	}
+
 	const scope = await getUserBranchScope(session);
+
 	for (const targetId of targetBranchIds) {
 		if (!inScope(scope, targetId)) {
 			throw new Error(`Filial fora do seu escopo: ${targetId}`);
@@ -237,6 +261,7 @@ export async function requireCapabilityWithContext(
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
 	ensureActive(session);
+
 	if (!(await getUserCapabilities(session)).has(cap)) {
 		throw new Error(`Forbidden: capability "${cap}" requerida`);
 	}

@@ -21,6 +21,7 @@ export function BranchesFilters() {
 		basePath: BASE,
 		trackedKeys: TRACKED,
 	});
+
 	const [search, setSearch] = useDebouncedParam({
 		basePath: BASE,
 		key: "search",

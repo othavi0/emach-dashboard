@@ -33,6 +33,7 @@ export function scanInputOutcomeFromKind(
 	if (kind === "not_in_order") {
 		return "keep";
 	}
+
 	return "clear";
 }
 
@@ -49,8 +50,10 @@ export function ScanInput({ disabled, onScan }: ScanInputProps) {
 				ref.current?.focus();
 				ref.current?.select();
 			});
+
 			return;
 		}
+
 		setValue("");
 		requestAnimationFrame(() => ref.current?.focus());
 	}
@@ -59,13 +62,17 @@ export function ScanInput({ disabled, onScan }: ScanInputProps) {
 		if (drainingRef.current) {
 			return;
 		}
+
 		drainingRef.current = true;
+
 		try {
 			while (pendingRef.current.length > 0) {
 				const code = pendingRef.current.shift();
+
 				if (code === undefined) {
 					break;
 				}
+
 				const outcome = await Promise.resolve(onScan(code));
 				applyOutcome(code, outcome);
 			}
@@ -76,17 +83,21 @@ export function ScanInput({ disabled, onScan }: ScanInputProps) {
 
 	function submit(raw: string) {
 		const code = normalizeScanCode(raw);
+
 		if (!code) {
 			return;
 		}
+
 		// Mostra o código enquanto o server processa (paste com preventDefault
 		// não grava no state sozinho).
 		setValue(code);
 		pendingRef.current.push(code);
+
 		// Fire-and-forget serial drain (biome noVoid — named call).
 		async function run() {
 			await drain();
 		}
+
 		run();
 	}
 
@@ -94,6 +105,7 @@ export function ScanInput({ disabled, onScan }: ScanInputProps) {
 		if (e.key !== "Enter") {
 			return;
 		}
+
 		submit(value);
 	}
 

@@ -64,6 +64,7 @@ function primaryActionLabel(nextStatus: OrderStatus): string {
 	if (nextStatus === "preparing") {
 		return "Enviar para separação";
 	}
+
 	return `Marcar como ${ORDER_STATUS_LABELS[nextStatus]}`;
 }
 
@@ -71,10 +72,13 @@ type Refresh = () => void;
 
 async function runMarkShippingReviewed(orderId: string, refresh: Refresh) {
 	const result = await markShippingReviewed({ orderId });
+
 	if (!result.ok) {
 		notify.error(result.error);
+
 		return;
 	}
+
 	notify.success("Frete marcado como revisado");
 	refresh();
 }
@@ -86,10 +90,13 @@ async function runAddNote(
 	refresh: Refresh
 ) {
 	const result = await addOrderNote({ orderId, body });
+
 	if (!result.ok) {
 		notify.error(result.error);
+
 		return;
 	}
+
 	setNoteBody("");
 	notify.success("Nota adicionada");
 	refresh();
@@ -106,8 +113,10 @@ async function runPrimaryStatusUpdate(
 ) {
 	const transitionTracking =
 		nextStatus === "shipped" ? trackingCode || undefined : undefined;
+
 	const transitionBranch =
 		nextStatus === "preparing" ? branchId || undefined : undefined;
+
 	const result = await updateOrderStatus({
 		orderId,
 		toStatus: nextStatus,
@@ -115,10 +124,13 @@ async function runPrimaryStatusUpdate(
 		trackingCode: transitionTracking,
 		branchId: transitionBranch,
 	});
+
 	if (!result.ok) {
 		notify.error(result.error);
+
 		return;
 	}
+
 	setStatusReason("");
 	notify.success(`Pedido movido para ${ORDER_STATUS_LABELS[nextStatus]}`);
 	refresh();
@@ -152,10 +164,13 @@ function computeShipGate({
 }): ShipGateResult {
 	const shipBlocked =
 		nextStatus === "shipped" && fulfillment?.state !== "picked";
+
 	if (!(shipBlocked && order.status === "preparing")) {
 		return { forceShipSlot: null, label: null, shipBlocked };
 	}
+
 	const state = fulfillment?.state ?? "awaiting_picking";
+
 	return {
 		forceShipSlot: isSuperAdmin ? (
 			<ForceShipDialog orderId={order.id} trackingCode={trackingCode.trim()} />
@@ -173,6 +188,7 @@ function computeProgressFulfillmentLabel(
 	if (order.status !== "preparing" || !fulfillment) {
 		return null;
 	}
+
 	return FULFILLMENT_STATE_META[fulfillment.state].label;
 }
 
@@ -188,6 +204,7 @@ function trackingCardSlot(
 	if (!showTrackingCard(order.status)) {
 		return null;
 	}
+
 	return (
 		<TrackingCard
 			canUpdateStatus={canUpdateStatus}
@@ -362,28 +379,35 @@ export function OrderActionColumn({
 	order,
 }: OrderActionColumnProps) {
 	const router = useRouter();
+
 	const [branchId, setBranchId] = useState(() => {
 		if (order.branchId) {
 			return order.branchId;
 		}
+
 		// Pre-fill com sugestão por CEP apenas em paid (próxima ação = preparing)
 		if (order.status === "paid") {
 			const suggested = matchBranchByCep(
 				order.shippingAddress.zipCode ?? "",
 				branches.map((b) => ({ id: b.id, cepRanges: b.cepRanges ?? null }))
 			);
+
 			return suggested ?? "";
 		}
+
 		return "";
 	});
+
 	const [trackingCode, setTrackingCode] = useState(
 		order.shippingTrackingCode ?? ""
 	);
+
 	const [noteBody, setNoteBody] = useState("");
 	const [statusReason, setStatusReason] = useState("");
 	const [isPending, startTransition] = useTransition();
 	const nextStatus = PRIMARY_TRANSITION[order.status];
 	const isTerminal = order.status === "canceled" || order.status === "refunded";
+
 	const shipGate = computeShipGate({
 		fulfillment,
 		isSuperAdmin,
@@ -391,16 +415,20 @@ export function OrderActionColumn({
 		order,
 		trackingCode,
 	});
+
 	const canDoPrimaryTransition =
 		(nextStatus === "canceled" ? canCancel : canUpdateStatus) &&
 		!shipGate.shipBlocked;
+
 	const showCancelException =
 		canCancel &&
 		(order.status === "pending_payment" || order.status === "payment_failed");
+
 	// returned cobre devolução do cliente (delivered) e falha de entrega (shipped).
 	const showReturnException =
 		canUpdateStatus &&
 		(order.status === "delivered" || order.status === "shipped");
+
 	const showRefundException =
 		canRefund &&
 		(order.status === "paid" ||
@@ -415,8 +443,10 @@ export function OrderActionColumn({
 	function handleAddNote() {
 		if (!noteBody.trim()) {
 			notify.error("Escreva uma nota");
+
 			return;
 		}
+
 		startTransition(() =>
 			runAddNote(order.id, noteBody.trim(), setNoteBody, router.refresh)
 		);
@@ -426,6 +456,7 @@ export function OrderActionColumn({
 		if (!nextStatus) {
 			return;
 		}
+
 		startTransition(() =>
 			runPrimaryStatusUpdate(
 				order.id,

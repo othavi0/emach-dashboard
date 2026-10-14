@@ -23,12 +23,14 @@ export const toolImageSchema = z.object({
 });
 
 const optionalString = z.string().optional().or(z.literal(""));
+
 const optionalInt = z
 	.number()
 	.int()
 	.nonnegative("Deve ser maior ou igual a zero")
 	.optional()
 	.or(z.nan().transform(() => undefined));
+
 // Peso e dimensões viram obrigatórios só na publicação (publishRequirementIssues):
 // rascunho salva sem eles; a loja só consome tools ativas, que passam pelo gate.
 const optionalPositiveNumber = z
@@ -51,6 +53,7 @@ export const toolVariantSchema = z.object({
 	isDefault: z.boolean().default(false),
 	sortOrder: z.number().int().min(0),
 });
+
 export type ToolVariantInput = z.infer<typeof toolVariantSchema>;
 
 export const updateVariantSchema = z.object({
@@ -69,6 +72,7 @@ export const attributeValueInputSchema = z.object({
 	valueNumericMax: z.number().nullable().optional(),
 	valueBool: z.boolean().nullable().optional(),
 });
+
 export type AttributeValueInput = z.infer<typeof attributeValueInputSchema>;
 
 /**
@@ -80,13 +84,16 @@ function isPristineVariant(row: unknown): boolean {
 	if (typeof row !== "object" || row === null) {
 		return false;
 	}
+
 	const v = row as Partial<ToolVariantInput>;
 	const sku = typeof v.sku === "string" ? v.sku.trim() : "";
 	const barcode = typeof v.barcode === "string" ? v.barcode.trim() : "";
+
 	const price =
 		typeof v.priceAmount === "number" && !Number.isNaN(v.priceAmount)
 			? v.priceAmount
 			: 0;
+
 	return sku === "" && barcode === "" && !v.voltage && price === 0 && !v.id;
 }
 
@@ -95,8 +102,10 @@ function checkVariantDuplicates(
 	ctx: z.RefinementCtx
 ) {
 	const skus = new Set<string>();
+
 	for (let i = 0; i < variants.length; i++) {
 		const sku = variants[i]?.sku;
+
 		if (sku && skus.has(sku)) {
 			ctx.addIssue({
 				code: "custom",
@@ -104,13 +113,17 @@ function checkVariantDuplicates(
 				message: "SKU duplicado entre variantes",
 			});
 		}
+
 		if (sku) {
 			skus.add(sku);
 		}
 	}
+
 	const barcodes = new Set<string>();
+
 	for (let i = 0; i < variants.length; i++) {
 		const code = variants[i]?.barcode;
+
 		if (code && barcodes.has(code)) {
 			ctx.addIssue({
 				code: "custom",
@@ -118,6 +131,7 @@ function checkVariantDuplicates(
 				message: "Código de barras duplicado entre variantes",
 			});
 		}
+
 		if (code) {
 			barcodes.add(code);
 		}
@@ -180,6 +194,7 @@ export const toolFormSchema = z
 				message: "Vídeo e poster devem ser definidos juntos",
 			});
 		}
+
 		// Estrutural só quando há principal: exigir principal em si é regra de
 		// publicação (publishRequirementIssues), não de rascunho.
 		if (
@@ -192,7 +207,9 @@ export const toolFormSchema = z
 				message: "A categoria principal deve estar selecionada",
 			});
 		}
+
 		const defaults = data.variants.filter((v) => v.isDefault);
+
 		if (data.variants.length > 0 && defaults.length !== 1) {
 			ctx.addIssue({
 				code: "custom",
@@ -200,8 +217,10 @@ export const toolFormSchema = z
 				message: "Marque exatamente uma variante como padrão",
 			});
 		}
+
 		checkVariantDuplicates(data.variants, ctx);
 		const assignmentSet = new Set(data.attributeAssignments);
+
 		for (const slug of Object.keys(data.attributeValues)) {
 			if (!assignmentSet.has(slug)) {
 				ctx.addIssue({
@@ -215,7 +234,9 @@ export const toolFormSchema = z
 	});
 
 export type ToolFormValues = z.infer<typeof toolFormSchema>;
+
 export type ToolImageValue = z.infer<typeof toolImageSchema>;
+
 export type ToolStatusValue = (typeof TOOL_STATUS_OPTIONS)[number];
 
 /**
@@ -245,12 +266,14 @@ export function activationRequirementIssues(
 	data: ToolFormValues
 ): ActivationIssue[] {
 	const issues: ActivationIssue[] = [];
+
 	if (data.images.length < MIN_IMAGES_ACTIVE) {
 		issues.push({
 			path: ["images"],
 			message: `Ativar exige mínimo de ${MIN_IMAGES_ACTIVE} imagens`,
 		});
 	}
+
 	// NCM saiu da régua em 2026-07-28 (emenda ao ADR-0027): a emissão de NF-e
 	// ainda não existe e o gate só forçava dado inventado. Religar quando a
 	// emissão fiscal for real.
@@ -263,6 +286,7 @@ export function activationRequirementIssues(
 			message: `Ativar exige ao menos ${MIN_SPECS_ACTIVE} especificações preenchidas. Se a categoria tiver poucos atributos, anexe atributos extras do catálogo.`,
 		});
 	}
+
 	return issues;
 }
 
@@ -277,27 +301,32 @@ export function publishRequirementIssues(
 	data: ToolFormValues
 ): ActivationIssue[] {
 	const issues: ActivationIssue[] = [];
+
 	const missingShipping = (
 		["weightKg", "lengthCm", "widthCm", "heightCm"] as const
 	).filter((f) => data[f] === undefined);
+
 	for (const field of missingShipping) {
 		issues.push({
 			path: [field],
 			message: "Obrigatório para ativar — a loja usa para cotar frete",
 		});
 	}
+
 	if (data.categoryIds.length < 1) {
 		issues.push({
 			path: ["categoryIds"],
 			message: "Ativar exige ao menos uma categoria",
 		});
 	}
+
 	if (data.primaryCategoryId === "") {
 		issues.push({
 			path: ["primaryCategoryId"],
 			message: "Ativar exige uma categoria principal",
 		});
 	}
+
 	if (data.variants.length < 1) {
 		issues.push({
 			path: ["variants"],
@@ -305,13 +334,16 @@ export function publishRequirementIssues(
 		});
 	} else {
 		const missingBarcode = data.variants.some((v) => !v.barcode?.trim());
+
 		if (missingBarcode) {
 			issues.push({
 				path: ["variants"],
 				message: "Ativar exige código de barras em todas as variantes",
 			});
 		}
+
 		const missingPrice = data.variants.some((v) => v.priceAmount === undefined);
+
 		if (missingPrice) {
 			issues.push({
 				path: ["variants"],
@@ -319,6 +351,7 @@ export function publishRequirementIssues(
 			});
 		}
 	}
+
 	return issues;
 }
 
@@ -338,19 +371,24 @@ export function collectToolIssues(
 	opts: { enforceActivation: boolean }
 ): ToolIssue[] {
 	const parsed = toolFormSchema.safeParse(values);
+
 	if (!parsed.success) {
 		return parsed.error.issues.map((i) => ({
 			path: [...i.path],
 			message: i.message,
 		}));
 	}
+
 	const issues: ToolIssue[] = [];
+
 	if (parsed.data.status === "active") {
 		issues.push(...publishRequirementIssues(parsed.data));
 	}
+
 	if (opts.enforceActivation) {
 		issues.push(...activationRequirementIssues(parsed.data));
 	}
+
 	return issues.map((i) => ({ path: [...i.path], message: i.message }));
 }
 
@@ -358,18 +396,22 @@ function isSpecFilled(v: AttributeValueInput): boolean {
 	if (typeof v.valueText === "string" && v.valueText.trim() !== "") {
 		return true;
 	}
+
 	if (typeof v.valueNumeric === "number" && !Number.isNaN(v.valueNumeric)) {
 		return true;
 	}
+
 	if (
 		typeof v.valueNumericMax === "number" &&
 		!Number.isNaN(v.valueNumericMax)
 	) {
 		return true;
 	}
+
 	if (typeof v.valueBool === "boolean") {
 		return true;
 	}
+
 	return false;
 }
 
@@ -383,12 +425,15 @@ export function countFilledSpecs(
 	assignments: string[]
 ): number {
 	let count = 0;
+
 	for (const slug of assignments) {
 		const v = attributeValues[slug];
+
 		if (v && isSpecFilled(v)) {
 			count++;
 		}
 	}
+
 	return count;
 }
 

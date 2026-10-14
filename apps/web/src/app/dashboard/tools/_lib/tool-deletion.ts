@@ -17,6 +17,7 @@ export function canDeleteToolByStatus(
 	if (caps.hasDelete) {
 		return true;
 	}
+
 	return status === "draft" && caps.hasUpdate;
 }
 
@@ -41,20 +42,24 @@ export function resolveToolDeletion({
 }: ToolDeletionInput): ToolDeletionDecision {
 	if (orderCount > 0) {
 		const plural = orderCount > 1 ? "pedidos" : "pedido";
+
 		return {
 			allowed: false,
 			reason: `Esta ferramenta tem ${orderCount} ${plural} e não pode ser excluída — o histórico do pedido depende dela.`,
 			suggestArchive: true,
 		};
 	}
+
 	if (reviewCount > 0) {
 		const plural = reviewCount > 1 ? "avaliações" : "avaliação";
+
 		return {
 			allowed: false,
 			reason: `Esta ferramenta tem ${reviewCount} ${plural} de cliente e não pode ser excluída.`,
 			suggestArchive: true,
 		};
 	}
+
 	if (stockQty > 0) {
 		return {
 			allowed: false,
@@ -62,5 +67,6 @@ export function resolveToolDeletion({
 			suggestArchive: true,
 		};
 	}
+
 	return { allowed: true };
 }

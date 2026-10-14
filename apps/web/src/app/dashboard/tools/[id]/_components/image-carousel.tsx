@@ -20,12 +20,15 @@ export function ImageCarousel({ images }: { images: ToolDetailImage[] }) {
 
 	function scrollByPage(dir: 1 | -1) {
 		const track = trackRef.current;
+
 		if (!track) {
 			return;
 		}
+
 		const reduce = window.matchMedia(
 			"(prefers-reduced-motion: reduce)"
 		).matches;
+
 		track.scrollBy({
 			left: dir * track.clientWidth * 0.8,
 			behavior: reduce ? "auto" : "smooth",

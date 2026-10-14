@@ -32,6 +32,7 @@ async function ShippingPageContent({ searchParams }: PageProps) {
 		getOrCreateShippingSettings(),
 		listOriginBranchOptions(),
 	]);
+
 	const originLabel =
 		originOptions.find((o) => o.id === settings.shippingOriginBranchId)?.name ??
 		null;

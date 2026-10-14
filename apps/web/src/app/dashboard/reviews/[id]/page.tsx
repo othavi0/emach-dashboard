@@ -24,6 +24,7 @@ async function ReviewDetailPageContent({ params }: ReviewDetailPageProps) {
 		"reviews.read",
 		"/dashboard/sem-acesso?recurso=Avaliações"
 	);
+
 	const { id } = await params;
 	const review = await getReviewDetail(id);
 

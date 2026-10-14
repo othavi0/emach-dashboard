@@ -4,9 +4,11 @@ const WHITESPACE_RE = /\s+/;
 
 export function getInitials(name: string): string {
 	const parts = name.trim().split(WHITESPACE_RE);
+
 	if (parts.length === 1) {
 		return (parts[0]?.slice(0, 2) ?? "").toUpperCase();
 	}
+
 	return `${parts[0]?.[0] ?? ""}${parts.at(-1)?.[0] ?? ""}`.toUpperCase();
 }
 
@@ -41,4 +43,5 @@ export const CURRENCY = new Intl.NumberFormat("pt-BR", {
 	currency: "BRL",
 	style: "currency",
 });
+
 export const COUNT = new Intl.NumberFormat("pt-BR");

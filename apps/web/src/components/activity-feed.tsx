@@ -59,6 +59,7 @@ function formatWhen(date: Date): string {
 	if (isSameDay(new Date(), date)) {
 		return formatTime(date);
 	}
+
 	return formatDateShort(date);
 }
 
@@ -70,6 +71,7 @@ export function ActivityFeed({
 	emptyMessage = "Sem atividade recente.",
 }: ActivityFeedProps) {
 	const scrollRef = useRef<HTMLDivElement>(null);
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initialEvents,
 		initialCursor,
@@ -98,14 +100,18 @@ export function ActivityFeed({
 						<ul className="flex flex-col">
 							{items.map((event) => {
 								const meta = KIND_META[event.kind];
+
 								const Icon = event.iconKey
 									? STATUS_ICONS[event.iconKey]
 									: meta.icon;
+
 								const iconColor = event.tone
 									? TONE_TEXT[event.tone]
 									: meta.color;
+
 								const rowClassName =
 									"-mx-2 flex w-full min-w-0 items-start gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted";
+
 								const inner = (
 									<>
 										<span className="w-12 shrink-0 pt-0.5 text-right font-mono text-muted-foreground text-xs tabular-nums">
@@ -137,6 +143,7 @@ export function ActivityFeed({
 										</div>
 									</>
 								);
+
 								return (
 									<li key={event.id}>
 										{event.href ? (

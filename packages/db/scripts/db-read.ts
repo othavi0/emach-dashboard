@@ -10,6 +10,7 @@ const DEFAULT_TIMEOUT_S = 15;
 const USAGE = '[db-read] uso: db-read.ts "<sql>" [--limit N] [--timeout S]';
 
 const FLAGS = ["--limit", "--timeout"] as const;
+
 type Flag = (typeof FLAGS)[number];
 
 export interface ReadArgs {
@@ -24,19 +25,23 @@ function isFlag(value: string): value is Flag {
 
 function positiveInt(flag: Flag, raw: string | undefined): number {
 	const value = Number(raw);
+
 	if (raw === undefined || !Number.isInteger(value) || value < 1) {
 		throw new Error(
 			`[db-read] ${flag} exige inteiro >= 1, veio "${raw ?? ""}"`
 		);
 	}
+
 	return value;
 }
 
 export function parseArgs(argv: string[]): ReadArgs {
 	const values: Partial<Record<Flag, number>> = {};
 	const positional: string[] = [];
+
 	for (let i = 0; i < argv.length; i++) {
 		const arg = argv[i] ?? "";
+
 		if (isFlag(arg)) {
 			values[arg] = positiveInt(arg, argv[i + 1]);
 			i++;
@@ -46,10 +51,13 @@ export function parseArgs(argv: string[]): ReadArgs {
 			positional.push(arg);
 		}
 	}
+
 	const [statement] = positional;
+
 	if (!statement?.trim() || positional.length > 1) {
 		throw new Error(USAGE);
 	}
+
 	return {
 		statement,
 		limit: values["--limit"] ?? DEFAULT_LIMIT,
@@ -62,6 +70,7 @@ export async function readOnly(
 	{ limit, statement, timeoutSeconds }: ReadArgs
 ): Promise<{ rows: unknown[]; truncated: boolean }> {
 	await client.query("BEGIN READ ONLY");
+
 	try {
 		await client.query("SELECT set_config('statement_timeout', $1, true)", [
 			`${timeoutSeconds * 1000}`,
@@ -74,6 +83,7 @@ export async function readOnly(
 			text: `DECLARE db_read NO SCROLL CURSOR FOR ${statement}`,
 		});
 		const { rows } = await client.query(`FETCH ${limit + 1} FROM db_read`);
+
 		return { rows: rows.slice(0, limit), truncated: rows.length > limit };
 	} finally {
 		await client.query("ROLLBACK");
@@ -85,6 +95,7 @@ async function main(): Promise<void> {
 	const { env } = await import("@emach/env/server");
 	const client = new Client({ connectionString: env.DATABASE_URL });
 	await client.connect();
+
 	try {
 		const { rows, truncated } = await readOnly(client, args);
 		console.log(

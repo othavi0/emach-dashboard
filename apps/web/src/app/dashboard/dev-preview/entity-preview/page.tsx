@@ -44,6 +44,7 @@ const SAMPLE_AUDIT = [
 
 export default function EntityPreview() {
 	const [open, setOpen] = useState(false);
+
 	return (
 		<div className="space-y-8">
 			<PageHeader

@@ -16,10 +16,13 @@ export function computePeriodCutoff(period: PeriodPreset): Date | null {
 	if (period === "all") {
 		return null;
 	}
+
 	const now = new Date();
+
 	if (period === "today") {
 		return startOfDaySaoPaulo(now);
 	}
+
 	return new Date(now.getTime() - PERIOD_DAYS[period] * 86_400_000);
 }
 
@@ -28,7 +31,9 @@ export function movementKeysetCondition(cursor: string | null) {
 	if (!cursor) {
 		return;
 	}
+
 	const c = decodeCursorAs(cursor, "activity");
+
 	return or(
 		lt(stockMovement.createdAt, new Date(c.createdAt)),
 		and(
@@ -46,6 +51,7 @@ export function encodeMovementCursor(
 	if (!(hasMore && last)) {
 		return null;
 	}
+
 	return encodeCursor({
 		v: 1,
 		sort: "activity",

@@ -32,6 +32,7 @@ function reasonIcon(reason: string | null) {
 
 function LedgerRowItem({ row }: { row: LedgerRow }) {
 	const { Icon, color, bg } = reasonIcon(row.reason);
+
 	const reasonLabel =
 		(row.reason
 			? STOCK_MOVEMENT_REASON_LABELS[
@@ -40,6 +41,7 @@ function LedgerRowItem({ row }: { row: LedgerRow }) {
 			: undefined) ??
 		row.reason ??
 		"—";
+
 	const deltaPositive = row.delta >= 0;
 
 	return (
@@ -148,6 +150,7 @@ export function LedgerInfinite({
 	filters,
 }: LedgerInfiniteProps) {
 	const resetKey = JSON.stringify(filters);
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,

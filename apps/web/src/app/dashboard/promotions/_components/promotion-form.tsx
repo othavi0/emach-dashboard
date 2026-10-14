@@ -66,9 +66,11 @@ function SubmitLabel({
 			</>
 		);
 	}
+
 	if (mode === "edit") {
 		return <>Salvar alterações</>;
 	}
+
 	return <>{type === "promocode" ? "Criar cupom" : "Criar promoção"}</>;
 }
 
@@ -84,12 +86,14 @@ export function PromotionForm({
 }: PromotionFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
+
 	const [values, setValues] = useState<PromotionFormValues>(
 		initialValues ?? CREATE_DEFAULTS
 	);
 
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<PromotionFormValues>();
+
 	const [serverError, setServerError] = useState<string | null>(null);
 	const [submitted, setSubmitted] = useState(false);
 
@@ -106,12 +110,14 @@ export function PromotionForm({
 
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
 
 		startTransition(async () => {
 			if (mode === "create") {
 				const result = await createPromotion(parsed.data);
+
 				if (result.ok) {
 					notify.success("Promoção criada com sucesso");
 					setSubmitted(true);
@@ -124,9 +130,12 @@ export function PromotionForm({
 			} else {
 				if (!promotionId) {
 					setServerError("ID da promoção não fornecido");
+
 					return;
 				}
+
 				const result = await updatePromotion(promotionId, parsed.data);
+
 				if (result.ok) {
 					notify.success("Promoção atualizada com sucesso");
 					setSubmitted(true);

@@ -58,12 +58,15 @@ interface BranchAlert {
  */
 function shouldAlert(row: StockAlertDbRow, now: number): boolean {
 	const lastSentAt = toDate(row.last_sent_at);
+
 	if (!lastSentAt) {
 		return true;
 	}
+
 	if (now - lastSentAt.getTime() > COOLDOWN_MS) {
 		return true;
 	}
+
 	return row.alert_level === "critical" && row.last_alert_level === "reorder";
 }
 
@@ -73,14 +76,17 @@ function buildBranchAlerts(
 	now: number
 ): Map<string, BranchAlert> {
 	const byBranch = new Map<string, BranchAlert>();
+
 	for (const row of rows) {
 		if (!shouldAlert(row, now)) {
 			continue;
 		}
+
 		const entry = byBranch.get(row.branch_id) ?? {
 			branchName: row.branch_name,
 			items: [],
 		};
+
 		entry.items.push({
 			alertLevel: row.alert_level,
 			deficit: Number(row.deficit),
@@ -92,6 +98,7 @@ function buildBranchAlerts(
 		});
 		byBranch.set(row.branch_id, entry);
 	}
+
 	return byBranch;
 }
 
@@ -102,9 +109,11 @@ async function resolveRecipients(
 	getSuperAdminEmails: () => Promise<string[]>
 ): Promise<string[]> {
 	const direct = recipientsByBranch.get(branchId) ?? [];
+
 	if (direct.length > 0) {
 		return direct;
 	}
+
 	return await getSuperAdminEmails();
 }
 
@@ -144,12 +153,14 @@ async function dispatchBranchAlert(
 		recipientsByBranch,
 		getSuperAdminEmails
 	);
+
 	if (to.length === 0) {
 		logger.error("stockAlertsCron", {
 			branchId,
 			branchName,
 			reason: "no_recipients",
 		});
+
 		return "no_recipients";
 	}
 
@@ -160,11 +171,13 @@ async function dispatchBranchAlert(
 		items,
 	});
 	await recordAlertsSent(branchId, items);
+
 	return "sent";
 }
 
 export async function GET(request: Request) {
 	const authHeader = request.headers.get("authorization");
+
 	if (authHeader !== `Bearer ${env.CRON_SECRET}`) {
 		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 	}
@@ -216,6 +229,7 @@ export async function GET(request: Request) {
 		}
 
 		const branchIds = [...byBranch.keys()];
+
 		const recipientsResult = await db.execute<RecipientDbRow>(sql`
 			SELECT ub.branch_id, u.email
 			FROM user_branch ub
@@ -227,7 +241,9 @@ export async function GET(request: Request) {
 					sql`, `
 				)})
 		`);
+
 		const recipientsByBranch = new Map<string, string[]>();
+
 		for (const row of recipientsResult.rows) {
 			const emails = recipientsByBranch.get(row.branch_id) ?? [];
 			emails.push(row.email);
@@ -236,14 +252,17 @@ export async function GET(request: Request) {
 
 		// Fallback resolvido no máximo uma vez por execução.
 		let superAdminEmails: string[] | null = null;
+
 		const getSuperAdminEmails = async (): Promise<string[]> => {
 			if (superAdminEmails === null) {
 				const superAdminsResult = await db.execute<SuperAdminDbRow>(sql`
 					SELECT email FROM "user"
 					WHERE role = 'super_admin' AND status = 'active'
 				`);
+
 				superAdminEmails = superAdminsResult.rows.map((r) => r.email);
 			}
+
 			return superAdminEmails;
 		};
 
@@ -256,10 +275,12 @@ export async function GET(request: Request) {
 					recipientsByBranch,
 					getSuperAdminEmails
 				);
+
 				if (outcome === "no_recipients") {
 					branchesSkipped++;
 					continue;
 				}
+
 				emailsSent++;
 				itemsAlerted += items.length;
 			} catch (perBranchErr) {
@@ -276,6 +297,7 @@ export async function GET(request: Request) {
 		});
 	} catch (err) {
 		logger.error("stockAlertsCron", err);
+
 		return NextResponse.json(
 			{ ok: false, error: "Internal error" },
 			{ status: 500 }

@@ -29,26 +29,32 @@ export async function getOrCreateShippingSettings(): Promise<StoreSettings> {
 		.from(storeSettings)
 		.where(eq(storeSettings.id, SINGLETON_ID))
 		.limit(1);
+
 	if (existing[0]) {
 		return existing[0];
 	}
+
 	const [created] = await db
 		.insert(storeSettings)
 		.values({ id: SINGLETON_ID })
 		.onConflictDoNothing()
 		.returning();
+
 	if (created) {
 		return created;
 	}
+
 	// Corrida: outra request criou entre o select e o insert.
 	const [row] = await db
 		.select()
 		.from(storeSettings)
 		.where(eq(storeSettings.id, SINGLETON_ID))
 		.limit(1);
+
 	if (!row) {
 		throw new Error("Falha ao inicializar store_settings");
 	}
+
 	return row;
 }
 
@@ -58,9 +64,11 @@ export async function updateSocialSettings(
 	const session = await requireCapability("site.update_settings");
 
 	const parsed = socialSettingsSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
+
 	const d = parsed.data;
 
 	// Sem URL → força oculto (defesa-em-profundidade; o form já desabilita o switch).
@@ -87,6 +95,7 @@ export async function updateSocialSettings(
 			});
 	} catch (error) {
 		logger.error("updateSocialSettings falhou", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 
@@ -106,5 +115,6 @@ export async function updateSocialSettings(
 		metadata: { visible: visibleNetworks },
 	});
 	revalidatePath(SETTINGS_PATH);
+
 	return { ok: true, data: { id: SINGLETON_ID } };
 }

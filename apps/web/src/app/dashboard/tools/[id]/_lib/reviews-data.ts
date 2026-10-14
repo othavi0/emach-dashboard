@@ -79,8 +79,10 @@ export async function getToolReviewsSummary(
 
 	const aggRow = aggResult.rows[0];
 	const breakdown = { ...EMPTY_BREAKDOWN };
+
 	for (const [k, v] of Object.entries(aggRow?.breakdown ?? {})) {
 		const n = Number(k);
+
 		if (n >= 1 && n <= 5) {
 			breakdown[n as 1 | 2 | 3 | 4 | 5] = Number(v);
 		}

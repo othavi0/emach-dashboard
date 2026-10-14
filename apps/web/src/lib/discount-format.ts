@@ -16,9 +16,11 @@ export function sanitizePercent(display: string): string {
 
 export function parsePercent(display: string): number {
 	const n = parseLocaleNumber(display, PCT_MAX_FRACTION);
+
 	if (n === undefined) {
 		return 0;
 	}
+
 	return Math.min(PCT_MAX, Math.max(0, n));
 }
 
@@ -26,14 +28,17 @@ export function formatPercent(value: number): string {
 	if (!value) {
 		return "";
 	}
+
 	return String(value).replace(".", ",");
 }
 
 export function parseMoney(display: string): number {
 	const digits = display.replace(/\D/g, "");
+
 	if (!digits) {
 		return 0;
 	}
+
 	return Number(digits) / 100;
 }
 
@@ -41,5 +46,6 @@ export function formatMoney(value: number): string {
 	if (!value) {
 		return "";
 	}
+
 	return MONEY_FMT.format(value);
 }

@@ -24,10 +24,13 @@ export function PromotionHeaderActions({
 	function handleToggle() {
 		startTransition(async () => {
 			const res = await togglePromotionActive(promotion.id);
+
 			if (!res.ok) {
 				notify.error(res.error);
+
 				return;
 			}
+
 			notify.success(res.data.active ? "Promoção ativada" : "Promoção pausada");
 			router.refresh();
 		});
@@ -36,10 +39,13 @@ export function PromotionHeaderActions({
 	function handleDuplicate() {
 		startTransition(async () => {
 			const res = await duplicatePromotion(promotion.id);
+
 			if (!res.ok) {
 				notify.error(res.error);
+
 				return;
 			}
+
 			notify.success("Promoção duplicada");
 			router.push(`/dashboard/promotions/${res.data.id}/edit`);
 		});

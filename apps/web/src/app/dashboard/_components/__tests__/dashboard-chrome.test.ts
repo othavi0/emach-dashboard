@@ -1,27 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockRequireCurrentSession = vi.hoisted(() => vi.fn());
+
 const mockRedirect = vi.hoisted(() =>
 	vi.fn((path: string) => {
 		throw new Error(`REDIRECT:${path}`);
 	})
 );
+
 const mockCan = vi.hoisted(() => vi.fn());
 const mockGetUserCapabilities = vi.hoisted(() => vi.fn());
 const mockFetchDashboardCounts = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({ redirect: mockRedirect }));
+
 vi.mock("@/lib/session", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("@/lib/session")>();
+
 	return { ...actual, requireCurrentSession: mockRequireCurrentSession };
 });
+
 vi.mock("@/lib/permissions", () => ({
 	can: mockCan,
 	getUserCapabilities: mockGetUserCapabilities,
 }));
+
 vi.mock("../../pending-data", () => ({
 	fetchDashboardCounts: mockFetchDashboardCounts,
 }));
+
 vi.mock("../app-sidebar", () => ({ AppSidebar: () => null }));
 
 import { DashboardChrome } from "../dashboard-chrome";

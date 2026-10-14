@@ -21,12 +21,15 @@ function formatNumericRange(
 	if (hasLo && hasHi) {
 		return `${formatSpecNumber(lo)} – ${formatSpecNumber(hi)}${unit}`;
 	}
+
 	if (hasLo) {
 		return `mín. ${formatSpecNumber(lo)}${unit}`;
 	}
+
 	if (hasHi) {
 		return `máx. ${formatSpecNumber(hi)}${unit}`;
 	}
+
 	return "—";
 }
 
@@ -35,6 +38,7 @@ export function AttributeValue({ attr }: { attr: ToolDetailAttribute }) {
 		const swatch = attr.options.swatches.find(
 			(s) => s.value === attr.valueText
 		);
+
 		if (swatch) {
 			return (
 				<span className="inline-flex items-center gap-1.5">
@@ -47,11 +51,13 @@ export function AttributeValue({ attr }: { attr: ToolDetailAttribute }) {
 				</span>
 			);
 		}
+
 		return <>{attr.valueText ?? "—"}</>;
 	}
 
 	if (attr.inputType === "select" && attr.options?.kind === "select") {
 		const option = attr.options.options.find((o) => o.value === attr.valueText);
+
 		return <>{option?.label ?? attr.valueText ?? "—"}</>;
 	}
 
@@ -59,6 +65,7 @@ export function AttributeValue({ attr }: { attr: ToolDetailAttribute }) {
 		if (attr.valueBool === null) {
 			return <>—</>;
 		}
+
 		return <>{attr.valueBool ? "Sim" : "Não"}</>;
 	}
 

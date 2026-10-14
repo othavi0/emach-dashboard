@@ -185,6 +185,7 @@ export function ProfileTab({
 								{recentActivity.map((item) => {
 									const Icon =
 										ACTION_ICONS[item.action] ?? FALLBACK_ACTION_ICON;
+
 									return (
 										<TableRow key={item.id}>
 											<TableCell>

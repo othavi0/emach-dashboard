@@ -52,13 +52,16 @@ export const cepRangeSchema = z
 
 function cepRangesOverlap(ranges: { from: string; to: string }[]): boolean {
 	const sorted = [...ranges].sort((a, b) => a.from.localeCompare(b.from));
+
 	for (let i = 1; i < sorted.length; i++) {
 		const prev = sorted[i - 1];
 		const cur = sorted[i];
+
 		if (prev && cur && cur.from <= prev.to) {
 			return true;
 		}
 	}
+
 	return false;
 }
 
@@ -126,8 +129,10 @@ const businessHoursPeriodSchema = z
 		if (value.breakStart && value.breakEnd && value.opensAt && value.closesAt) {
 			const startOk =
 				value.opensAt < value.breakStart && value.breakStart < value.breakEnd;
+
 			const endOk =
 				value.breakStart < value.breakEnd && value.breakEnd < value.closesAt;
+
 			if (!startOk) {
 				ctx.addIssue({
 					code: "custom",

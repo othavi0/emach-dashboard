@@ -42,9 +42,11 @@ function formatMetadataValue(value: unknown): string {
 	if (value === null || value === undefined) {
 		return "—";
 	}
+
 	if (typeof value === "object") {
 		return JSON.stringify(value);
 	}
+
 	return String(value);
 }
 
@@ -62,11 +64,13 @@ export function ActivityTimeline({
 	const toggle = (id: string) => {
 		setOpenIds((prev) => {
 			const next = new Set(prev);
+
 			if (next.has(id)) {
 				next.delete(id);
 			} else {
 				next.add(id);
 			}
+
 			return next;
 		});
 	};
@@ -94,10 +98,12 @@ export function ActivityTimeline({
 					<TableBody>
 						{entries.map((entry) => {
 							const Icon = ACTION_ICONS[entry.action] ?? FALLBACK_ACTION_ICON;
+
 							const hasMetadata =
 								entry.metadata !== null &&
 								entry.metadata !== undefined &&
 								Object.keys(entry.metadata).length > 0;
+
 							const isOpen = openIds.has(entry.id);
 
 							return (

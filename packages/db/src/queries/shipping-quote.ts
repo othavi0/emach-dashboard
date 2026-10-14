@@ -42,11 +42,13 @@ function sortedDesc(a: number, b: number, c: number): [number, number, number] {
 
 function fitsByDims(item: QuoteItem, box: QuoteBox): boolean {
 	const i = sortedDesc(item.lengthCm, item.widthCm, item.heightCm);
+
 	const b = sortedDesc(
 		box.internalLengthCm,
 		box.internalWidthCm,
 		box.internalHeightCm
 	);
+
 	return i[0] <= b[0] && i[1] <= b[1] && i[2] <= b[2];
 }
 
@@ -56,6 +58,7 @@ function unitVolume(u: QuoteItem): number {
 
 function footprint(u: QuoteItem): number {
 	const s = sortedDesc(u.lengthCm, u.widthCm, u.heightCm);
+
 	return s[0] * s[1];
 }
 
@@ -78,21 +81,26 @@ function dispatchWeight(u: QuoteItem): number {
 function fitsSet(units: QuoteItem[], box: QuoteBox): boolean {
 	let weight = box.tareWeightKg;
 	let occupied = 0;
+
 	for (const u of units) {
 		if (!fitsByDims(u, box)) {
 			return false;
 		}
+
 		weight += dispatchWeight(u);
 		occupied += occupiedVolume(u, box);
 	}
+
 	return weight <= box.maxWeightKg && occupied <= boxVolume(box) * FILL_FACTOR;
 }
 
 function emitPackage(units: QuoteItem[], box: QuoteBox): ShippingPackage {
 	let weight = box.tareWeightKg;
+
 	for (const u of units) {
 		weight += dispatchWeight(u);
 	}
+
 	return {
 		lengthCm: box.internalLengthCm,
 		widthCm: box.internalWidthCm,
@@ -123,6 +131,7 @@ export function packItems(
 
 	// Expande qty em unidades.
 	const units: QuoteItem[] = [];
+
 	for (const it of items) {
 		for (let i = 0; i < it.qty; i++) {
 			units.push({ ...it, qty: 1 });
@@ -144,6 +153,7 @@ export function packItems(
 	const rest = units
 		.filter((x) => !x.shipsInOwnBox)
 		.sort((a, b) => unitVolume(b) - unitVolume(a));
+
 	if (rest.length === 0) {
 		return packages;
 	}
@@ -155,8 +165,10 @@ export function packItems(
 	// menor tamanho possível. Quando tudo cabe junto, converge pra 1 bin
 	// (subconjunto de conjunto viável é viável na mesma caixa).
 	const bins: PackBin[] = [];
+
 	for (const u of rest) {
 		const alone = smallestFittingBox([u], boxesAsc);
+
 		if (!alone) {
 			// Não cabe em NENHUMA caixa ativa → "a combinar".
 			packages.push({
@@ -168,9 +180,12 @@ export function packItems(
 			});
 			continue;
 		}
+
 		let placed = false;
+
 		for (const bin of bins) {
 			const candidate = smallestFittingBox([...bin.units, u], boxesAsc);
+
 			if (candidate) {
 				bin.units.push(u);
 				bin.box = candidate;
@@ -178,10 +193,12 @@ export function packItems(
 				break;
 			}
 		}
+
 		if (!placed) {
 			bins.push({ box: alone, units: [u] });
 		}
 	}
+
 	for (const bin of bins) {
 		packages.push(emitPackage(bin.units, bin.box));
 	}

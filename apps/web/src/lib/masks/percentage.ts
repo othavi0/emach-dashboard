@@ -11,9 +11,11 @@ function sanitizePct(display: string): string {
 
 function parsePct(display: string): number | undefined {
 	const n = parseLocaleNumber(display, PCT_MAX_FRACTION);
+
 	if (n === undefined) {
 		return;
 	}
+
 	return Math.min(PCT_MAX, Math.max(0, n));
 }
 
@@ -21,6 +23,7 @@ function formatPct(raw: number | undefined): string {
 	if (raw === undefined || Number.isNaN(raw)) {
 		return "";
 	}
+
 	return `${String(raw).replace(".", ",")}%`;
 }
 

@@ -23,24 +23,31 @@ export function NumberTicker({
 		const reduce = window.matchMedia(
 			"(prefers-reduced-motion: reduce)"
 		).matches;
+
 		if (reduce) {
 			// Agendado via rAF: setState síncrono no corpo do effect força um
 			// segundo render antes do paint (lint set-state-in-effect).
 			const skip = requestAnimationFrame(() => setDisplay(value));
+
 			return () => cancelAnimationFrame(skip);
 		}
+
 		const start = performance.now();
 		const duration = 600;
 		let raf = 0;
+
 		const tick = (now: number) => {
 			const t = Math.min(1, (now - start) / duration);
 			const eased = 1 - (1 - t) ** 3; // easeOutCubic
 			setDisplay(value * eased);
+
 			if (t < 1) {
 				raf = requestAnimationFrame(tick);
 			}
 		};
+
 		raf = requestAnimationFrame(tick);
+
 		return () => cancelAnimationFrame(raf);
 	}, [value]);
 

@@ -58,6 +58,7 @@ describe("paginateLabels", () => {
 			makeOrder("b", 3),
 			makeOrder("c", 1),
 		]);
+
 		expect(sheets).toHaveLength(2);
 		expect(sheets[0]).toMatchObject({ kind: "pair" });
 		expect(sheets[1]).toMatchObject({ kind: "pair", bottom: null });
@@ -69,11 +70,14 @@ describe("paginateLabels", () => {
 			makeOrder("big", 9),
 			makeOrder("c", 1),
 		]);
+
 		expect(sheets.map((s) => s.kind)).toEqual(["full", "pair"]);
 		const pair = sheets[1];
+
 		if (pair?.kind !== "pair") {
 			throw new Error("esperava pair");
 		}
+
 		expect(pair.top.id).toBe("a");
 		expect(pair.bottom?.id).toBe("c");
 	});
@@ -104,6 +108,7 @@ describe("labelRecipientLines", () => {
 			street: null,
 			zipCode: null,
 		});
+
 		expect(lines.street).toBeNull();
 		expect(lines.locality).toBe("PR");
 		expect(lines.cep).toBeNull();
@@ -140,6 +145,7 @@ describe("itemsSummary", () => {
 			{ id: "a", name: "A", quantity: 2, sku: null, voltage: null },
 			{ id: "b", name: "B", quantity: 3, sku: null, voltage: null },
 		];
+
 		expect(itemsSummary(items)).toBe("2 itens · 5 un.");
 	});
 	it("singular", () => {

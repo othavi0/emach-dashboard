@@ -17,15 +17,19 @@ export function matchPickItem(
 	const bySnapshot = items.find(
 		(it) => it.barcode !== null && it.barcode === code
 	);
+
 	if (bySnapshot) {
 		return { item: bySnapshot };
 	}
+
 	if (variantIdFromBarcode) {
 		const byVariant = items.find((it) => it.variantId === variantIdFromBarcode);
+
 		if (byVariant) {
 			return { item: byVariant };
 		}
 	}
+
 	return { error: "not_in_order" };
 }
 
@@ -80,12 +84,15 @@ export function deriveFulfillmentState(
 	if (latestStatus === "in_progress") {
 		return "picking_in_progress";
 	}
+
 	if (latestStatus === "exception") {
 		return "picking_exception";
 	}
+
 	if (latestStatus === "completed") {
 		return "picked";
 	}
+
 	// null (nenhuma sessão) ou canceled → volta pra fila de separação
 	return "awaiting_picking";
 }
@@ -100,6 +107,7 @@ export function isPickingStale(args: {
 }): boolean {
 	const reference = args.lastScannedAt ?? args.startedAt;
 	const now = args.now ?? new Date();
+
 	return now.getTime() - reference.getTime() > STALE_PICKING_MS;
 }
 
@@ -129,9 +137,11 @@ export function bulkStartPickingSkipReason(locked: {
 	if (locked.status !== "paid" && locked.status !== "preparing") {
 		return "status_diferente";
 	}
+
 	if (!locked.branchId) {
 		return "sem_filial";
 	}
+
 	return null;
 }
 
@@ -158,12 +168,15 @@ export function exceptionResumeDenial(
 	if (!latest || latest.status !== "exception") {
 		return null;
 	}
+
 	if (latest.pickerUserId === null || latest.pickerUserId === actor.id) {
 		return null;
 	}
+
 	if (actor.role === "admin" || actor.role === "super_admin") {
 		return null;
 	}
+
 	return `Apenas ${latest.pickerName} ou um admin pode retomar esta exceção`;
 }
 
@@ -177,6 +190,7 @@ export function splitQueueByOwnership<T extends { pickerUserId?: string }>(
 ): { mine: T[]; others: T[] } {
 	const mine: T[] = [];
 	const others: T[] = [];
+
 	for (const item of items) {
 		if (isSelfPicker(item.pickerUserId, sessionUserId)) {
 			mine.push(item);
@@ -184,6 +198,7 @@ export function splitQueueByOwnership<T extends { pickerUserId?: string }>(
 			others.push(item);
 		}
 	}
+
 	return { mine, others };
 }
 
@@ -204,17 +219,21 @@ export function queueCardCta(
 	if (tab === "a_separar") {
 		return { kind: "primary", label: "Separar" };
 	}
+
 	if (tab === "em_separacao") {
 		if (isSelf) {
 			return { kind: "warning", label: "Retomar separação" };
 		}
+
 		return canManageOthers
 			? { kind: "outline", label: "Assumir separação" }
 			: { kind: "outline-muted", label: "Ver andamento" };
 	}
+
 	// excecoes
 	if (isSelf || canManageOthers) {
 		return { kind: "outline", label: "Resolver" };
 	}
+
 	return null;
 }

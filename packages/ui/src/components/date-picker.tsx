@@ -53,9 +53,11 @@ function DatePicker({
 		if (min && d < startOfDay(min)) {
 			return true;
 		}
+
 		if (max && d > endOfDay(max)) {
 			return true;
 		}
+
 		return false;
 	};
 
@@ -105,12 +107,14 @@ function DatePicker({
 function startOfDay(d: Date) {
 	const x = new Date(d);
 	x.setHours(0, 0, 0, 0);
+
 	return x;
 }
 
 function endOfDay(d: Date) {
 	const x = new Date(d);
 	x.setHours(23, 59, 59, 999);
+
 	return x;
 }
 

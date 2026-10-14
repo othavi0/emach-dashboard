@@ -17,6 +17,7 @@ interface Props {
 
 export function UsersCardGrid({ initialItems, initialCursor, filters }: Props) {
 	const resetKey = JSON.stringify(filters);
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems,
 		initialCursor,

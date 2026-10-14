@@ -10,9 +10,11 @@ const schema = z.object({
 describe("zodIssuesToFieldErrors", () => {
 	it("mapeia o primeiro erro por chave top-level (path[0])", () => {
 		const r = schema.safeParse({ name: "", email: "x" });
+
 		if (r.success) {
 			throw new Error("esperava falha");
 		}
+
 		const errors = zodIssuesToFieldErrors(r.error);
 		expect(errors.name).toBe("Nome obrigatório");
 		expect(errors.email).toBe("E-mail inválido");
@@ -25,6 +27,7 @@ describe("zodIssuesToFieldErrors", () => {
 				{ path: ["name"], message: "segundo" },
 			],
 		} as unknown as z.ZodError;
+
 		expect(zodIssuesToFieldErrors(err).name).toBe("primeiro");
 	});
 
@@ -37,6 +40,7 @@ describe("zodIssuesToFieldErrors", () => {
 				},
 			],
 		} as unknown as z.ZodError;
+
 		expect(zodIssuesToFieldErrors(err).businessHours).toBe("Horário inválido");
 	});
 
@@ -44,6 +48,7 @@ describe("zodIssuesToFieldErrors", () => {
 		const err = {
 			issues: [{ path: [], message: "Erro geral do formulário" }],
 		} as unknown as z.ZodError;
+
 		expect(zodIssuesToFieldErrors(err)._form).toBe("Erro geral do formulário");
 	});
 
@@ -51,6 +56,7 @@ describe("zodIssuesToFieldErrors", () => {
 		const err = {
 			issues: [{ path: [Symbol("x")], message: "via symbol" }],
 		} as unknown as z.ZodError;
+
 		expect(() => zodIssuesToFieldErrors(err)).not.toThrow();
 		expect(zodIssuesToFieldErrors(err)._form).toBe("via symbol");
 	});

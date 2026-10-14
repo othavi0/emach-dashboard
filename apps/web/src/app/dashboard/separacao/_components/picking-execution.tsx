@@ -63,6 +63,7 @@ interface LocalItem {
 }
 
 type FeedbackKind = "accepted" | "already_complete" | "not_in_order" | null;
+
 type ItemState = "cur" | "done" | "exc" | "pending";
 
 // Mesmo mínimo do DestructiveActionDialog — a action valida no servidor.
@@ -72,6 +73,7 @@ const MIN_MANUAL_REASON_LENGTH = 10;
 
 function toLocalItem(item: OrderPickingItem): LocalItem {
 	const snap = (item.variantSnapshot ?? {}) as VariantSnapshot;
+
 	return {
 		id: item.id,
 		variantId: item.variantId ?? null,
@@ -88,12 +90,15 @@ function getItemState(item: LocalItem, focusedId: string | null): ItemState {
 	if (item.notFound) {
 		return "exc";
 	}
+
 	if (item.qtyPicked === item.qtyExpected) {
 		return "done";
 	}
+
 	if (item.id === focusedId) {
 		return "cur";
 	}
+
 	return "pending";
 }
 
@@ -112,9 +117,11 @@ export function pickingItemSecondaryLine(item: {
 	if (item.notFound) {
 		return "Falta reportada · em exceção";
 	}
+
 	if (item.voltage) {
 		return item.voltage;
 	}
+
 	return null;
 }
 
@@ -122,12 +129,15 @@ function getFocusCountColor(f: FeedbackKind): string {
 	if (f === "accepted") {
 		return "text-success";
 	}
+
 	if (f === "already_complete") {
 		return "text-warning";
 	}
+
 	if (f === "not_in_order") {
 		return "text-destructive";
 	}
+
 	return "text-foreground";
 }
 
@@ -135,12 +145,15 @@ function getFocusBarColor(f: FeedbackKind): string {
 	if (f === "accepted") {
 		return "bg-success";
 	}
+
 	if (f === "already_complete") {
 		return "bg-warning";
 	}
+
 	if (f === "not_in_order") {
 		return "bg-destructive";
 	}
+
 	return "bg-primary";
 }
 
@@ -157,7 +170,9 @@ function FeedbackStrip({ feedback }: { feedback: FeedbackKind }) {
 	if (!feedback) {
 		return null;
 	}
+
 	const meta = FEEDBACK_STRIP_META[feedback];
+
 	return (
 		<div
 			className={`flex items-center gap-2 px-5 py-2.5 font-semibold text-[13px] ${meta.cls}`}
@@ -180,12 +195,15 @@ function getCheckerClass(state: ItemState): string {
 	if (state === "done") {
 		return "border-success bg-success text-success-foreground";
 	}
+
 	if (state === "cur") {
 		return "border-primary text-primary";
 	}
+
 	if (state === "exc") {
 		return "border-destructive text-destructive";
 	}
+
 	return "border-border";
 }
 
@@ -193,9 +211,11 @@ function getQtyClass(state: ItemState): string {
 	if (state === "done") {
 		return "text-success";
 	}
+
 	if (state === "exc") {
 		return "text-destructive";
 	}
+
 	return "text-muted-foreground";
 }
 
@@ -218,6 +238,7 @@ function FocusCard({
 }: FocusCardProps) {
 	const countColor = getFocusCountColor(feedback);
 	const barColor = getFocusBarColor(feedback);
+
 	const progress = Math.round(
 		(item.qtyPicked / Math.max(item.qtyExpected, 1)) * 100
 	);
@@ -409,9 +430,11 @@ function ChecklistItemRow({ item, focusedId }: ChecklistItemRowProps) {
 				<p className="truncate font-medium text-[13px]">{item.name}</p>
 				{(() => {
 					const secondary = pickingItemSecondaryLine(item);
+
 					if (!secondary) {
 						return null;
 					}
+
 					return (
 						<p
 							className={`text-[11px] ${
@@ -441,9 +464,11 @@ function usePickingState(
 	const init = initialItems.map(toLocalItem);
 
 	const [localItems, setLocalItems] = useState<LocalItem[]>(init);
+
 	const [focusedId, setFocusedId] = useState<string | null>(() =>
 		firstIncompleteId(init)
 	);
+
 	const [feedback, setFeedback] = useState<FeedbackKind>(null);
 	const [isScanning, setIsScanning] = useState(false);
 	const [isCompleting, startCompleting] = useTransition();
@@ -456,6 +481,7 @@ function usePickingState(
 	const [isConfirmingManual, startConfirmingManual] = useTransition();
 	const [isCancelOpen, setIsCancelOpen] = useState(false);
 	const [isCanceling, startCanceling] = useTransition();
+
 	// `completePicking` chama revalidatePath na própria rota — o Server Action
 	// dispara um refresh automático do Server Component (page.tsx) assim que
 	// resolve. Sem este init a partir de `picking.status`, aquele refresh
@@ -477,16 +503,21 @@ function usePickingState(
 	 */
 	async function handleScan(code: string): Promise<"clear" | "keep"> {
 		setIsScanning(true);
+
 		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const result = await scanItem(picking.id, code);
+
 			if (!result.ok) {
 				notify.error(result.error);
 				setFeedback(null);
 				setIsScanning(false);
+
 				return "keep";
 			}
+
 			const scan = result.data;
+
 			if (scan.kind === "accepted") {
 				setLocalItems((prev) =>
 					prev.map((it) =>
@@ -500,8 +531,10 @@ function usePickingState(
 			} else {
 				setFeedback(scan.kind);
 			}
+
 			clearFeedback();
 			setIsScanning(false);
+
 			return scanInputOutcomeFromKind(scan.kind);
 		} catch (err) {
 			setIsScanning(false);
@@ -512,15 +545,20 @@ function usePickingState(
 	function handleComplete() {
 		startCompleting(async () => {
 			const result = await completePicking(picking.id);
+
 			if (!result.ok) {
 				notify.error(result.error);
+
 				return;
 			}
+
 			if (result.data.finalStatus === "exception") {
 				// Exceção: volta à fila (tab exceções mostra o pedido)
 				router.push("/dashboard/separacao?tab=excecoes");
+
 				return;
 			}
+
 			setCompletedOk(true);
 		});
 	}
@@ -528,6 +566,7 @@ function usePickingState(
 	function handleCancel() {
 		startCanceling(async () => {
 			const result = await cancelPicking(picking.id);
+
 			if (result.ok) {
 				router.push("/dashboard/separacao");
 			} else {
@@ -553,12 +592,14 @@ function usePickingState(
 		if (!manualItemId) {
 			return;
 		}
+
 		const itemId = manualItemId;
 		const qty = manualQty;
 		const reason = manualReason;
 
 		startConfirmingManual(async () => {
 			const result = await confirmItemManually(itemId, qty, reason);
+
 			if (result.ok) {
 				setLocalItems((prev) =>
 					prev.map((it) =>
@@ -574,6 +615,7 @@ function usePickingState(
 			} else {
 				notify.error(result.error);
 			}
+
 			setManualItemId(null);
 		});
 	}
@@ -582,21 +624,25 @@ function usePickingState(
 		if (!reportingItemId) {
 			return;
 		}
+
 		const itemId = reportingItemId;
 		const reason = reportReason;
 		const snapshot = localItems;
 
 		startReporting(async () => {
 			const result = await reportMissing(itemId, reason);
+
 			if (result.ok) {
 				const updated = snapshot.map((it) =>
 					it.id === itemId ? { ...it, notFound: true } : it
 				);
+
 				setLocalItems(updated);
 				setFocusedId((prev) => {
 					if (prev !== itemId) {
 						return prev;
 					}
+
 					return (
 						updated.find((it) => !it.notFound && it.qtyPicked < it.qtyExpected)
 							?.id ?? null
@@ -605,6 +651,7 @@ function usePickingState(
 			} else {
 				notify.error(result.error);
 			}
+
 			setReportingItemId(null);
 		});
 	}
@@ -698,28 +745,37 @@ export function PickingExecution({
 			/>
 		);
 	}
+
 	const focusedItem = localItems.find((it) => it.id === focusedId) ?? null;
+
 	const reportingItem =
 		localItems.find((it) => it.id === reportingItemId) ?? null;
+
 	const manualItem = localItems.find((it) => it.id === manualItemId) ?? null;
+
 	const doneCount = localItems.filter(
 		(it) => it.qtyPicked === it.qtyExpected && !it.notFound
 	).length;
+
 	const progressPct =
 		summary.totalUnits > 0
 			? Math.round((summary.pickedUnits / summary.totalUnits) * 100)
 			: 0;
+
 	const scanDisabled =
 		isScanning || isCompleting || isReporting || isConfirmingManual;
+
 	const exceptionColor = summary.exceptions > 0 ? "text-destructive" : "";
 	const canFinalize = canFinalizePicking(localItems);
 	const hasExceptions = summary.exceptions > 0;
 	let finalizeLabel = "Concluir separação";
+
 	if (isCompleting) {
 		finalizeLabel = "Finalizando…";
 	} else if (hasExceptions) {
 		finalizeLabel = "Finalizar com pendência";
 	}
+
 	const gateText =
 		"Bipe os itens restantes ou reporte-os como ausentes para finalizar";
 

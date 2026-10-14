@@ -6,6 +6,7 @@ import { type NumberFormat, NumberTicker } from "./number-ticker";
 
 function DeltaBadge({ delta }: { delta: number }) {
 	const up = delta >= 0;
+
 	return (
 		<span
 			className={cn(

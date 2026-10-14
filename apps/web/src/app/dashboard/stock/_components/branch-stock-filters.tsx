@@ -59,10 +59,12 @@ export function BranchStockFilters({
 		basePath,
 		trackedKeys: TRACKED,
 	});
+
 	const [search, setSearch] = useDebouncedParam({
 		basePath,
 		key: "search",
 	});
+
 	const currentStatus = (searchParams.get("status") ?? "all") as StatusValue;
 	const currentSort = searchParams.get("sort") ?? "urgency";
 	const currentCategory = searchParams.get("categoryId") ?? ALL;
@@ -153,6 +155,7 @@ export function BranchStockFilters({
 									if (v === ALL) {
 										return "Todas";
 									}
+
 									return categories.find((c) => c.id === v)?.name ?? "Todas";
 								}}
 							</SelectValue>

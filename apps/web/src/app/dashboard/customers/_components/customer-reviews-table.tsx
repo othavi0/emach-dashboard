@@ -105,6 +105,7 @@ export function CustomerReviewsTable({
 				status: "approved",
 				expectedStatus,
 			});
+
 			if (result.ok) {
 				notify.success("Avaliação aprovada");
 				reloadTab();
@@ -121,6 +122,7 @@ export function CustomerReviewsTable({
 		if (!pendingAction) {
 			return;
 		}
+
 		const moderationNote = note.trim();
 		startTransition(async () => {
 			const result = await moderateReview({
@@ -129,6 +131,7 @@ export function CustomerReviewsTable({
 				moderationNote,
 				expectedStatus: pendingAction.expectedStatus,
 			});
+
 			if (result.ok) {
 				notify.success(
 					pendingAction.status === "spam"
@@ -172,8 +175,10 @@ export function CustomerReviewsTable({
 							{items.map((review) => {
 								const statusVariant =
 									REVIEW_STATUS_VARIANTS[review.status] ?? "secondary";
+
 								const statusLabel =
 									REVIEW_STATUS_LABELS[review.status] ?? review.status;
+
 								const isReviewPending = review.status === "pending";
 
 								return (

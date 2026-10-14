@@ -34,6 +34,7 @@ describe("ageMetaForTab", () => {
 
 	it("Em separação há na fila preparing/picked e na tab mista late p/ pedido em separação", () => {
 		const preparingBase = { ...base, status: "preparing" as const };
+
 		for (const tab of ["preparing", "picked", "late"]) {
 			expect(ageMetaForTab(tab, preparingBase).label).toBe("Em separação há");
 		}

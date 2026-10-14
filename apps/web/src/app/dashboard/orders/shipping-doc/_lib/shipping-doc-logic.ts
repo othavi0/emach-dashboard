@@ -59,9 +59,11 @@ function streetLine(
 	complement: string | null
 ): string | null {
 	const base = street && number ? `${street}, ${number}` : street;
+
 	if (!base) {
 		return complement ?? null;
 	}
+
 	return complement ? `${base} — ${complement}` : base;
 }
 
@@ -73,6 +75,7 @@ function cityStateLine(
 	if (city && state) {
 		return `${city}/${state}`;
 	}
+
 	return city ?? state ?? null;
 }
 
@@ -84,6 +87,7 @@ function cityStateLine(
 export function paginateLabels(orders: ShippingDocOrder[]): LabelSheet[] {
 	const sheets: LabelSheet[] = [];
 	const halves: ShippingDocOrder[] = [];
+
 	for (const order of orders) {
 		if (order.items.length > MAX_ITEMS_PER_HALF) {
 			sheets.push({ kind: "full", order });
@@ -91,13 +95,17 @@ export function paginateLabels(orders: ShippingDocOrder[]): LabelSheet[] {
 			halves.push(order);
 		}
 	}
+
 	for (let i = 0; i < halves.length; i += 2) {
 		const top = halves[i];
+
 		if (!top) {
 			break;
 		}
+
 		sheets.push({ kind: "pair", top, bottom: halves[i + 1] ?? null });
 	}
+
 	return sheets;
 }
 
@@ -107,6 +115,7 @@ export function labelRecipientLines(r: ShippingDocRecipient): {
 	street: string | null;
 } {
 	const cep = formatCep(r.zipCode);
+
 	return {
 		cep: cep || null,
 		locality:
@@ -120,6 +129,7 @@ export function labelRecipientLines(r: ShippingDocRecipient): {
 /** Endereço da filial em linha única — remetente compacto da etiqueta. */
 export function senderInline(s: ShippingDocSender): string | null {
 	const cep = formatCep(s.cep);
+
 	const line = [
 		streetLine(s.street, s.streetNumber, s.complement),
 		s.neighborhood,
@@ -128,11 +138,13 @@ export function senderInline(s: ShippingDocSender): string | null {
 	]
 		.filter(Boolean)
 		.join(" · ");
+
 	return line || null;
 }
 
 export function itemsSummary(items: ShippingDocItem[]): string {
 	const units = items.reduce((sum, i) => sum + i.quantity, 0);
 	const itemWord = items.length === 1 ? "item" : "itens";
+
 	return `${items.length} ${itemWord} · ${units} un.`;
 }

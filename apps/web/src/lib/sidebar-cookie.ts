@@ -7,12 +7,15 @@ export function parseSidebarCookie(cookieHeader: string | undefined): boolean {
 	if (!cookieHeader) {
 		return true;
 	}
+
 	const match = cookieHeader
 		.split(";")
 		.map((c) => c.trim())
 		.find((c) => c.startsWith(`${SIDEBAR_COOKIE_NAME}=`));
+
 	if (!match) {
 		return true;
 	}
+
 	return match.split("=")[1] !== "false";
 }

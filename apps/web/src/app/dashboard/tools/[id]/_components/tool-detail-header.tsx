@@ -30,10 +30,12 @@ export function ToolDetailHeader({ detail, actions }: ToolDetailHeaderProps) {
 	const { tool, images, stockSummary } = detail;
 	const defaultVariant = detail.variants.find((v) => v.isDefault);
 	const cover = images[0];
+
 	const hasAlert =
 		stockSummary.criticalCount > 0 || stockSummary.reorderCount > 0;
 
 	const subtitleParts: string[] = [];
+
 	if (defaultVariant) {
 		subtitleParts.push(`SKU ${defaultVariant.sku}`);
 	}

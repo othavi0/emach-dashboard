@@ -39,6 +39,7 @@ function defToFormValues(
 	def: AttributeDefinition
 ): Partial<AttributeFormValues> {
 	const opts = def.options as AttributeOptions | null;
+
 	return {
 		slug: def.slug,
 		label: def.label,

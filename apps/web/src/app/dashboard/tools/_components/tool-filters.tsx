@@ -31,6 +31,7 @@ interface ToolFiltersProps {
 const ALL = "__all__";
 const ALL_WITH_ARCHIVED = "active,draft,discontinued";
 const BASE = "/dashboard/tools";
+
 const TRACKED = [
 	"search",
 	"q",
@@ -51,10 +52,12 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 		basePath: BASE,
 		trackedKeys: TRACKED,
 	});
+
 	const [search, setSearch] = useDebouncedParam({
 		basePath: BASE,
 		key: "search",
 	});
+
 	const currentCategoryId = searchParams.get("categoryId") ?? ALL;
 	const currentVisibility = searchParams.get("visible") ?? ALL;
 	const currentStatus = searchParams.get("status") ?? ALL;
@@ -181,9 +184,11 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 								if (v === ALL) {
 									return "Ativas e rascunhos";
 								}
+
 								if (v === ALL_WITH_ARCHIVED) {
 									return "Todas (com arquivadas)";
 								}
+
 								return (
 									TOOL_STATUS_LABELS[
 										v as (typeof TOOL_STATUS_OPTIONS)[number]
@@ -222,9 +227,11 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 								if (v === "true") {
 									return "Visível";
 								}
+
 								if (v === "false") {
 									return "Oculto";
 								}
+
 								return "Todos";
 							}}
 						</SelectValue>

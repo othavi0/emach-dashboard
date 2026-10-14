@@ -39,8 +39,10 @@ export function StockWriteOffForm({
 	variantId,
 }: StockWriteOffFormProps) {
 	const [qty, setQty] = useState<number | undefined>(undefined);
+
 	const [writeOffReason, setWriteOffReason] =
 		useState<StockWriteOffReason>("perda");
+
 	const [note, setNote] = useState("");
 
 	const { errors, reportValidationError, clearErrors } =
@@ -61,13 +63,16 @@ export function StockWriteOffForm({
 		};
 
 		const parsed = stockWriteOffSchema.safeParse(input);
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
 
 		start(async () => {
 			const result = await recordStockWriteOff(parsed.data);
+
 			if (result.ok) {
 				notify.success("Baixa registrada");
 				onSuccess();

@@ -52,6 +52,7 @@ export function DiscountInput({
 	// (display preso da máscara antiga). Valor numérico é preservado. Ajuste
 	// durante o render, só quando o tipo muda (não quando o valor digitado muda).
 	const [lastType, setLastType] = useState(discountType);
+
 	if (lastType !== discountType) {
 		setLastType(discountType);
 		setDisplay(formatFor(discountType, discountValue));

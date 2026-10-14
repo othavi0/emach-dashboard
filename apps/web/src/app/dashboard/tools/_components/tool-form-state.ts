@@ -69,6 +69,7 @@ export function useToolFormState(defaultValues: Partial<ToolFormState>) {
 		attributeValues: defaultValues.attributeValues ?? {},
 		attributeAssignments: defaultValues.attributeAssignments ?? [],
 	}));
+
 	const [errors, setErrors] = useState<
 		Partial<Record<keyof ToolFormValues, string>>
 	>({});

@@ -22,6 +22,7 @@ function formatAmount(raw: number | undefined): string {
 	if (raw === undefined || Number.isNaN(raw)) {
 		return "";
 	}
+
 	return AMOUNT_FMT.format(raw);
 }
 

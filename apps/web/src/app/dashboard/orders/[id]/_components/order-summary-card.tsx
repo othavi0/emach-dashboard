@@ -43,6 +43,7 @@ function computeSlaDays(order: OrderDetail): {
 } {
 	const tsKey = STATUS_SLA_TIMESTAMP[order.status];
 	const label = STATUS_SLA_LABEL[order.status] ?? "No estado há";
+
 	if (!tsKey) {
 		return { days: null, label };
 	}
@@ -51,6 +52,7 @@ function computeSlaDays(order: OrderDetail): {
 	const ref = ts ?? order.createdAt;
 	const diffMs = Date.now() - ref.getTime();
 	const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
 	return { days, label };
 }
 

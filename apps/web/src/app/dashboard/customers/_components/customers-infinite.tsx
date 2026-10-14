@@ -30,12 +30,14 @@ export function CustomersInfinite({
 	filters,
 }: CustomersInfiniteProps) {
 	const resetKey = JSON.stringify(filters);
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
 		fetchPage: (cursor) => fetchCustomersPage({ filters, cursor }),
 		resetKey,
 	});
+
 	const sel = useBulkSelection({
 		items,
 		getId: (c) => c.id,

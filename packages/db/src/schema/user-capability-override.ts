@@ -39,5 +39,6 @@ export const userCapabilityOverrideRelations = relations(
 );
 
 export type UserCapabilityOverride = typeof userCapabilityOverride.$inferSelect;
+
 export type NewUserCapabilityOverride =
 	typeof userCapabilityOverride.$inferInsert;

@@ -34,6 +34,7 @@ export async function fetchPickingListOrders(
 	if (isBlindScope(scope)) {
 		return [];
 	}
+
 	const branchCond = orderBranchCondition(scope);
 	const branchFragment = branchCond ? sql`AND ${branchCond}` : sql``;
 
@@ -41,6 +42,7 @@ export async function fetchPickingListOrders(
 		params.ids.map((id) => sql`${id}`),
 		sql`, `
 	);
+
 	const idsFragment = sql`o.id IN (${ph}) AND o.status IN ('paid', 'preparing')`;
 
 	const result = await db.execute<Row>(sql`

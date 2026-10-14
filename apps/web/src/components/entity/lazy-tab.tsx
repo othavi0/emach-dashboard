@@ -47,6 +47,7 @@ export function useLazyTab<T>(
 		key: reloadKey,
 		status: "loading",
 	});
+
 	const loadRef = useRef(load);
 	useEffect(() => {
 		loadRef.current = load;
@@ -75,6 +76,7 @@ export function useLazyTab<T>(
 					setState((s) => ({ ...s, status: "error" }));
 				}
 			});
+
 		return () => {
 			active = false;
 		};
@@ -120,6 +122,7 @@ export function LazyTabView<T>({
 			</Alert>
 		);
 	}
+
 	if (status === "loading" || data === null) {
 		return (
 			skeleton ?? (
@@ -130,6 +133,7 @@ export function LazyTabView<T>({
 			)
 		);
 	}
+
 	return <>{children(data)}</>;
 }
 
@@ -145,6 +149,7 @@ export function LazyTab<T>({
 	children: (data: T) => ReactNode;
 }): ReactNode {
 	const { status, data, retry } = useLazyTab(load, reloadKey);
+
 	return (
 		<LazyTabReloadContext.Provider value={retry}>
 			<LazyTabView

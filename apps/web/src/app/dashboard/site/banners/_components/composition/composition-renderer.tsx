@@ -31,12 +31,15 @@ function resolveBackgroundUrl(banner: RendererBanner, viewport: Viewport) {
 	if (viewport === "desktop") {
 		return banner.backgroundImageUrl;
 	}
+
 	if (banner.backgroundMobileMode === "none") {
 		return null;
 	}
+
 	if (banner.backgroundMobileMode === "custom") {
 		return banner.backgroundImageMobileUrl ?? banner.backgroundImageUrl;
 	}
+
 	return banner.backgroundImageUrl;
 }
 
@@ -44,6 +47,7 @@ function resolveProductUrl(banner: RendererBanner, viewport: Viewport) {
 	if (viewport === "mobile") {
 		return banner.productImageMobileUrl ?? banner.productImageUrl;
 	}
+
 	return banner.productImageUrl;
 }
 
@@ -102,6 +106,7 @@ function positionedBoxClassName(key: ElementKey, viewport: Viewport): string {
 	if (key === "product") {
 		return viewport === "mobile" ? "h-[32%] w-[70%]" : "h-[60%] w-[38%]";
 	}
+
 	return "w-max";
 }
 
@@ -115,9 +120,11 @@ function renderPositioned(
 	box: BoxProps
 ): ReactNode {
 	const content = renderElement(key, banner, productUrl);
+
 	if (content === null) {
 		return null;
 	}
+
 	return (
 		<ElementBox
 			box={box}
@@ -145,13 +152,16 @@ export function CompositionRenderer({
 	onElementPointerDown?: (key: ElementKey, e: PointerEvent) => void;
 }) {
 	const bgUrl = resolveBackgroundUrl(banner, viewport);
+
 	const bgCfg =
 		viewport === "mobile"
 			? (composition.mobile.background ?? composition.desktop.background)
 			: composition.desktop.background;
+
 	const productUrl = resolveProductUrl(banner, viewport);
 	const hasText = Boolean(banner.title || banner.subtitle);
 	const box: BoxProps = { onElementPointerDown, selected, viewport };
+
 	// Mobile particiona os elements do desktop em pilha segura / posicionados
 	// absoluto / escondidos (Task 12); desktop sempre posiciona por placement.
 	const partition =
@@ -201,9 +211,11 @@ export function CompositionRenderer({
 			{viewport === "desktop" &&
 				SAFE_STACK_ORDER.map((key) => {
 					const placement = composition.desktop.elements[key];
+
 					if (!placement) {
 						return null;
 					}
+
 					return renderPositioned(key, placement, banner, productUrl, box);
 				})}
 			{partition && (

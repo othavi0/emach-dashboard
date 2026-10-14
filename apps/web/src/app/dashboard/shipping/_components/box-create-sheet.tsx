@@ -23,15 +23,19 @@ export function BoxCreateSheet() {
 	const open = params.get("newBox") === "1";
 
 	const [values, setValues] = useState<BoxFormState>(defaultValues);
+
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<BoxFormValues>();
+
 	const [submitting, startTransition] = useTransition();
 
 	// Reset síncrono durante o render (padrão "adjusting state when a prop
 	// changes") — sem o re-render extra do reset via effect.
 	const [wasOpen, setWasOpen] = useState(open);
+
 	if (wasOpen !== open) {
 		setWasOpen(open);
+
 		if (open) {
 			setValues(defaultValues);
 			clearErrors();
@@ -48,12 +52,16 @@ export function BoxCreateSheet() {
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		const parsed = boxSchema.safeParse(values);
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
+
 		startTransition(async () => {
 			const res = await createBox(parsed.data);
+
 			if (res.ok) {
 				notify.success("Caixa criada");
 				close();

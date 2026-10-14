@@ -30,10 +30,12 @@ describe("fixtures cleanup", () => {
 	it("escopa todo DELETE e todo bloqueio pelo marcador da execução", () => {
 		const { orderPrefix, text } = runMarks(run);
 		const { blockers, steps } = cleanupPlan({ kind: "run", run });
+
 		const wheres = [
 			...steps.map((s) => ({ name: getTableName(s.table), where: s.where })),
 			...blockers.map((b) => ({ name: label(b.fk.table, b.fk.name), ...b })),
 		];
+
 		for (const { name, where } of wheres) {
 			const { sql, params } = dialect.sqlToQuery(where);
 			expect(sql, name).not.toMatch(LOOSE_OR_TRUE);
@@ -46,8 +48,10 @@ describe("fixtures cleanup", () => {
 		const { steps } = cleanupPlan({ kind: "all" });
 		const params = steps.flatMap((s) => dialect.sqlToQuery(s.where).params);
 		const prefixes = params.filter((p): p is string => typeof p === "string");
+
 		const covered = (value: string) =>
 			prefixes.some((p) => value.startsWith(p));
+
 		expect(covered("EM-TEST-FX-1A2B3C4D")).toBe(true);
 		expect(covered(fixtureOrderNumber(run, crypto.randomUUID()))).toBe(true);
 		expect(covered("[EM-TEST-FX] Banner de fixture")).toBe(true);
@@ -58,6 +62,7 @@ describe("fixtures cleanup", () => {
 
 	it("o plano cobre toda FK do schema que aponta para tabela apagada", async () => {
 		const schema = await import("../schema/index");
+
 		for (const scope of SCOPES) {
 			const { blockers, steps } = cleanupPlan(scope);
 			const planned = steps.map((s) => getTableName(s.table));
@@ -68,35 +73,45 @@ describe("fixtures cleanup", () => {
 				if (!is(table, PgTable)) {
 					continue;
 				}
+
 				const config = getTableConfig(table);
+
 				for (const fk of config.foreignKeys) {
 					const ref = fk.reference();
 					const parent = getTableName(ref.foreignTable);
 					const parentAt = planned.indexOf(parent);
+
 					if (parentAt === -1) {
 						continue;
 					}
+
 					const childAt = planned.indexOf(config.name);
+
 					if (childAt !== -1 && childAt < parentAt) {
 						continue;
 					}
+
 					const fkLabel = `${config.name}.${ref.columns.map((c) => c.name).join(",")}`;
 					const onDelete = fk.onDelete ?? "no action";
+
 					if (onDelete === "cascade") {
 						continue;
 					}
+
 					if (
 						(onDelete === "restrict" || onDelete === "no action") &&
 						!blocked.includes(fkLabel)
 					) {
 						violations.push(`${fkLabel} -> ${parent} ${onDelete}`);
 					}
+
 					if (
 						onDelete === "set null" &&
 						!SET_NULL_ALLOWLIST.includes(fkLabel)
 					) {
 						violations.push(`${fkLabel} -> ${parent} set null`);
 					}
+
 					if (onDelete === "set default") {
 						violations.push(`${fkLabel} -> ${parent} set default`);
 					}
@@ -104,6 +119,7 @@ describe("fixtures cleanup", () => {
 			}
 
 			expect(violations, scope.kind).toEqual([]);
+
 			for (const allowed of SET_NULL_ALLOWLIST) {
 				expect(blocked, allowed).toContain(allowed);
 			}
@@ -123,6 +139,7 @@ describe("fixtures cleanup", () => {
 
 	it("run aceita só 6 hex", () => {
 		expect(parseRunId(newRunId())).toMatch(SIX_HEX);
+
 		for (const bad of [undefined, "", "1A2B3", "1A2B3C4", "ZZZZZZ", "1A2B3-"]) {
 			expect(() => parseRunId(bad), String(bad)).toThrow(RUN_INVALID);
 		}

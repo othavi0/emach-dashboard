@@ -10,11 +10,13 @@ export function toInt(value: number | undefined): number | null {
 	if (typeof value !== "number" || Number.isNaN(value)) {
 		return null;
 	}
+
 	return Math.trunc(value);
 }
 
 export function nullableText(value: string | undefined): string | null {
 	const trimmed = value?.trim();
+
 	return trimmed ? trimmed : null;
 }
 
@@ -68,8 +70,10 @@ export function attributeValueRow(
 	if (!input) {
 		return null;
 	}
+
 	const num = (n: number | null | undefined) =>
 		typeof n === "number" && !Number.isNaN(n) ? n.toString() : null;
+
 	switch (def.inputType) {
 		case "text":
 			return input.valueText?.trim()
@@ -141,8 +145,10 @@ export function resolveToolStatusFilter(raw?: string): ToolStatusFilter {
 		.split(",")
 		.map((s) => s.trim())
 		.filter(Boolean);
+
 	if (statuses.length === 0) {
 		return { kind: "exclude-archived" };
 	}
+
 	return { kind: "in", statuses };
 }

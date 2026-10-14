@@ -59,14 +59,17 @@ function lastOrderHint(kpis: CustomerKpis): string | undefined {
 	if (!kpis.lastOrderAt) {
 		return "Sem pedidos";
 	}
+
 	if (kpis.lastOrderStatus) {
 		return ORDER_STATUS_LABELS[kpis.lastOrderStatus] ?? kpis.lastOrderStatus;
 	}
+
 	return;
 }
 
 export function CustomerOverviewTab({ customer, kpis, recentOrders }: Props) {
 	const status = CLIENT_STATUS_CONFIG[customer.status];
+
 	const type = customer.clientType
 		? CLIENT_TYPE_CONFIG[customer.clientType]
 		: null;

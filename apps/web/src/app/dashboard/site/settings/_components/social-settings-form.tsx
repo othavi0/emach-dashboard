@@ -48,8 +48,10 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 			if (prev[`${key}Url`] === undefined) {
 				return prev;
 			}
+
 			const next = { ...prev };
 			delete next[`${key}Url`];
+
 			return next;
 		});
 	}
@@ -62,24 +64,29 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 		event.preventDefault();
 
 		const raw: Record<string, unknown> = {};
+
 		for (const n of SOCIAL_NETWORKS) {
 			raw[`${n.key}Url`] = state[n.key].url;
 			raw[`${n.key}Visible`] = state[n.key].visible;
 		}
 
 		const parsed = socialSettingsSchema.safeParse(raw);
+
 		if (!parsed.success) {
 			const fieldErrors = zodIssuesToFieldErrors(parsed.error);
 			setErrors(fieldErrors);
 			notify.error(errorToastMessage(fieldErrors));
 			focusFirstError();
+
 			return;
 		}
+
 		setErrors({});
 
 		const values: SocialSettingsFormValues = parsed.data;
 		startTransition(async () => {
 			const result = await updateSocialSettings(values);
+
 			if (result.ok) {
 				notify.success("Redes sociais salvas");
 			} else {
@@ -106,6 +113,7 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 						const canPublish = isPublishableUrl(value.url);
 						const invalidUrl = Boolean(value.url.trim()) && !canPublish;
 						const schemaError = errors[`${n.key}Url`];
+
 						return (
 							<div className="flex flex-col gap-2" key={n.key}>
 								<div className="flex items-center justify-between gap-3">

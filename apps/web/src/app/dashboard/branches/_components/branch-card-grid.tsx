@@ -24,6 +24,7 @@ export function BranchCardGrid({
 	initialCursor,
 }: BranchCardGridProps) {
 	const resetKey = JSON.stringify(filters);
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,

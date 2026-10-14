@@ -10,6 +10,7 @@ export function registerPdfFonts(): void {
 	if (registered) {
 		return;
 	}
+
 	registered = true;
 	Font.register({
 		family: "Barlow",

@@ -17,9 +17,11 @@ export const metadata: Metadata = {
 
 async function ForgotRedirectGate() {
 	const session = await getCurrentSession();
+
 	if (session?.user) {
 		redirect("/dashboard");
 	}
+
 	return null;
 }
 

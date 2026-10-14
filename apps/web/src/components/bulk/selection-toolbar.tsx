@@ -30,6 +30,7 @@ export function SelectionToolbar({
 			</Button>
 		);
 	}
+
 	return (
 		<div className="flex items-center gap-2">
 			<Button onClick={onToggleAll} size="sm" variant="secondary">

@@ -26,6 +26,7 @@ export function MoneyInput({
 	// re-sincroniza se o valor mudar por fora (ex.: reset do form) — durante o
 	// render (padrão "adjusting state when a prop changes"), sem effect.
 	const [lastValue, setLastValue] = useState(value);
+
 	if (lastValue !== value) {
 		setLastValue(value);
 		setDisplay(formatMoney(value ?? 0));

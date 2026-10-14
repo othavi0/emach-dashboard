@@ -12,14 +12,18 @@ import { requireCurrentSession } from "@/lib/session";
  */
 export async function requireUserDetailAccess(targetUserId: string) {
 	const session = await requireCurrentSession();
+
 	if (session.user.status !== "active") {
 		throw new Error("Conta não ativa");
 	}
+
 	if (session.user.id === targetUserId) {
 		return session;
 	}
+
 	if (!(await getUserCapabilities(session)).has("users.manage")) {
 		throw new Error("Acesso negado");
 	}
+
 	return session;
 }

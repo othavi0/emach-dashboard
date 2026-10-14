@@ -33,8 +33,10 @@ export function groupStockByVariant(
 	allBranches: ToolDetailBranch[]
 ): VariantStockGroup[] {
 	const byVariant = new Map<string, ToolStockRow[]>();
+
 	for (const row of stockRows) {
 		const list = byVariant.get(row.variantId);
+
 		if (list) {
 			list.push(row);
 		} else {
@@ -45,15 +47,18 @@ export function groupStockByVariant(
 	const sorted = [...variants].sort((a, b) => {
 		const da = a.isDefault ? 0 : 1;
 		const db = b.isDefault ? 0 : 1;
+
 		if (da !== db) {
 			return da - db;
 		}
+
 		return a.sortOrder - b.sortOrder;
 	});
 
 	return sorted.map((v) => {
 		const branches = byVariant.get(v.id) ?? [];
 		const linked = new Set(branches.map((r) => r.branchId));
+
 		return {
 			branches,
 			ghostBranches: allBranches.filter((b) => !linked.has(b.id)),

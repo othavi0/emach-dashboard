@@ -89,6 +89,7 @@ export function ActivityFilters({
 			<div className="flex flex-wrap gap-1.5">
 				{REASON_OPTIONS.map((r) => {
 					const active = reasons.includes(r.value);
+
 					return (
 						<button
 							className={cn(

@@ -24,6 +24,7 @@ function attr(over: Partial<ToolDetailAttribute>): ToolDetailAttribute {
 		valueNumericMax: null,
 		valueBool: null,
 	};
+
 	return { ...base, ...over };
 }
 // Nota: se ToolDetailAttribute tiver campos além destes, completar o base —
@@ -36,6 +37,7 @@ describe("partitionRows", () => {
 			{ key: "b", label: "B", value: null },
 			{ key: "c", label: "C", value: "3" },
 		]);
+
 		expect(result.rows.map((r) => r.key)).toEqual(["a", "c"]);
 		expect(result.emptyLabels).toEqual(["B"]);
 		expect(result.total).toBe(3);
@@ -83,6 +85,7 @@ describe("fiscalCandidates", () => {
 			ncm: "84672900",
 			cest: null,
 		});
+
 		expect(rows.every((r) => r.mono)).toBe(true);
 		expect(rows.find((r) => r.key === "cest")?.value).toBeNull();
 	});

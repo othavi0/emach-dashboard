@@ -15,16 +15,21 @@ export const metadata: Metadata = {
 
 async function PendingRedirectGate() {
 	const session = await getCurrentSession();
+
 	if (!session?.user) {
 		redirect("/login");
 	}
+
 	const status = getUserStatus(session);
+
 	if (status === "active") {
 		redirect("/dashboard");
 	}
+
 	if (status === "suspended") {
 		redirect("/suspended");
 	}
+
 	return null;
 }
 

@@ -49,20 +49,26 @@ export function useToolSubmit({
 			values.status,
 			initialStatus
 		);
+
 		const parsed = parseToolForm(values, { enforceActivation });
 		setErrors(parsed.fieldErrors);
+
 		if (!(parsed.ok && parsed.data)) {
 			notify.error(errorToastMessage(parsed.fieldErrors));
+
 			if (onValidationFail) {
 				onValidationFail(Object.keys(parsed.fieldErrors));
 			} else {
 				focusFirstError();
 			}
+
 			return;
 		}
+
 		const data = parsed.data;
 		startTransition(async () => {
 			const res = await persistTool(mode, data, toolId);
+
 			if (res.ok) {
 				notify.success(SUCCESS_MESSAGE[mode]);
 				onSuccess?.();

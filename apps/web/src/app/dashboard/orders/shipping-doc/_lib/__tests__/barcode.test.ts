@@ -8,10 +8,12 @@ describe("cepBarcodeDataUri", () => {
 	it("gera PNG data URI para CEP válido (com ou sem máscara)", async () => {
 		const uri = await cepBarcodeDataUri("80050-450");
 		expect(uri).toMatch(DATA_URI_PREFIX);
+
 		const decoded = Buffer.from(
 			(uri as string).replace("data:image/png;base64,", ""),
 			"base64"
 		);
+
 		expect(decoded.subarray(0, 4).equals(PNG_MAGIC)).toBe(true);
 	});
 

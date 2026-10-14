@@ -90,6 +90,7 @@ export const bulkModerateReviewsSchema = z
 export type BulkModerateReviewsInput = z.infer<
 	typeof bulkModerateReviewsSchema
 >;
+
 export type BulkModerateStatus = BulkModerateReviewsInput["status"];
 
 /**

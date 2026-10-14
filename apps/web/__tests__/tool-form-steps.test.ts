@@ -80,6 +80,7 @@ describe("getStepFieldErrors", () => {
 			"identity",
 			false
 		);
+
 		expect(errors.categoryIds ?? errors.primaryCategoryId).toBeTruthy();
 	});
 
@@ -99,6 +100,7 @@ describe("getStepFieldErrors", () => {
 			"logistics",
 			false
 		);
+
 		expect(errors.weightKg).toBeTruthy();
 	});
 
@@ -132,6 +134,7 @@ describe("firstStepWithError", () => {
 				},
 			],
 		};
+
 		expect(firstStepWithError(values, false)).toBeNull();
 	});
 });

@@ -51,6 +51,7 @@ export const supplierSchema = supplierObject.superRefine((data, ctx) => {
 	// documento não pode passar despercebido.
 	const hasCnpj = Boolean(data.cnpj?.trim());
 	const hasNotes = Boolean(data.notes?.trim());
+
 	if (!(hasCnpj || hasNotes)) {
 		ctx.addIssue({
 			code: "custom",

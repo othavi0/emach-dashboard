@@ -45,6 +45,7 @@ function NfeStatusBadge({ status }: { status: string }) {
 	const key = status.toLowerCase();
 	const variant = NFE_STATUS_VARIANT[key] ?? "secondary";
 	const label = NFE_STATUS_LABELS[key] ?? status;
+
 	return <Badge variant={variant}>{label}</Badge>;
 }
 

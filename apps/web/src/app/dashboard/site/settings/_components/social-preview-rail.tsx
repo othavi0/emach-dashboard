@@ -40,6 +40,7 @@ export function SocialPreviewRail({ state }: SocialPreviewRailProps) {
 				{SOCIAL_NETWORKS.map((n) => {
 					const s = state[n.key];
 					let status: string;
+
 					if (!s.url.trim()) {
 						status = "Não cadastrado";
 					} else if (s.visible) {
@@ -47,6 +48,7 @@ export function SocialPreviewRail({ state }: SocialPreviewRailProps) {
 					} else {
 						status = "Oculto";
 					}
+
 					return (
 						<div
 							className="-mx-4 flex items-center justify-between gap-2 border-border border-b px-4 py-2.5 last:border-b-0"

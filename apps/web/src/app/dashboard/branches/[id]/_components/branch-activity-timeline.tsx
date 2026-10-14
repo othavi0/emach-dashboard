@@ -20,12 +20,15 @@ function dayLabel(date: Date, now: Date): string {
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	const yesterday = new Date(today);
 	yesterday.setDate(today.getDate() - 1);
+
 	if (date >= today) {
 		return "Hoje";
 	}
+
 	if (date >= yesterday) {
 		return "Ontem";
 	}
+
 	return date.getFullYear() === now.getFullYear()
 		? formatDayMonthShort(date)
 		: formatDayMonthShortYear(date);
@@ -37,14 +40,18 @@ function groupByDay(
 	const now = new Date();
 	const groups = new Map<string, BranchActivityRow[]>();
 	const order: string[] = [];
+
 	for (const r of rows) {
 		const label = dayLabel(new Date(r.at), now);
+
 		if (!groups.has(label)) {
 			groups.set(label, []);
 			order.push(label);
 		}
+
 		groups.get(label)?.push(r);
 	}
+
 	return order.map((label) => ({ label, items: groups.get(label) ?? [] }));
 }
 
@@ -58,6 +65,7 @@ interface RowVisual {
 function stockVisual(r: BranchActivityRow): RowVisual {
 	const delta = r.delta ?? 0;
 	const deltaClass = delta >= 0 ? "text-success" : "text-destructive";
+
 	const reasonLabel =
 		(r.reason
 			? STOCK_MOVEMENT_REASON_LABELS[
@@ -66,6 +74,7 @@ function stockVisual(r: BranchActivityRow): RowVisual {
 			: undefined) ??
 		r.reason ??
 		"—";
+
 	return {
 		Icon: BoxIcon,
 		iconClass: "bg-info/15 text-info",
@@ -95,8 +104,10 @@ function orderVisual(r: BranchActivityRow): RowVisual {
 	const meta = r.toStatus
 		? ORDER_STATUS_META[r.toStatus as OrderStatus]
 		: undefined;
+
 	const Icon = meta ? STATUS_ICONS[meta.iconKey] : BoxIcon;
 	const toneClass = meta ? TONE_TEXT[meta.tone] : "text-muted-foreground";
+
 	return {
 		Icon,
 		iconClass: "bg-warning/15 text-warning",
@@ -114,6 +125,7 @@ function orderVisual(r: BranchActivityRow): RowVisual {
 
 function teamVisual(r: BranchActivityRow): RowVisual {
 	let text: string;
+
 	if (r.action === "user.branch_linked") {
 		text = `${r.memberName ?? "Membro"} vinculado à equipe`;
 	} else if (r.action === "user.branch_unlinked") {
@@ -121,6 +133,7 @@ function teamVisual(r: BranchActivityRow): RowVisual {
 	} else {
 		text = TEAM_ACTION_LABEL[r.action ?? ""] ?? r.action ?? "—";
 	}
+
 	return {
 		Icon: UserCogIcon,
 		iconClass: "bg-muted text-muted-foreground",
@@ -132,9 +145,11 @@ function visualFor(r: BranchActivityRow): RowVisual {
 	if (r.kind === "stock") {
 		return stockVisual(r);
 	}
+
 	if (r.kind === "order") {
 		return orderVisual(r);
 	}
+
 	return teamVisual(r);
 }
 
@@ -156,6 +171,7 @@ export function BranchActivityTimeline({ rows }: Props) {
 						{g.items.map((r) => {
 							const v = visualFor(r);
 							const { Icon } = v;
+
 							return (
 								<li
 									className="flex items-start gap-3 px-4 py-3 text-sm"

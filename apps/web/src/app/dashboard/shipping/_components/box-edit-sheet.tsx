@@ -59,8 +59,10 @@ export function BoxEditSheet({ boxes }: Props) {
 	const [values, setValues] = useState<BoxFormState>(() =>
 		open && box ? toFormValues(box) : defaultValues
 	);
+
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<BoxFormValues>();
+
 	const [submitting, startTransition] = useTransition();
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const [deleting, startDeleteTransition] = useTransition();
@@ -68,8 +70,10 @@ export function BoxEditSheet({ boxes }: Props) {
 	// Reset síncrono durante o render (padrão "adjusting state when a prop
 	// changes") — sem o re-render extra do reset via effect.
 	const [lastReset, setLastReset] = useState({ box, open });
+
 	if (lastReset.open !== open || lastReset.box !== box) {
 		setLastReset({ box, open });
+
 		if (open && box) {
 			setValues(toFormValues(box));
 			clearErrors();
@@ -86,16 +90,22 @@ export function BoxEditSheet({ boxes }: Props) {
 
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
+
 		if (!editId) {
 			return;
 		}
+
 		const parsed = boxSchema.safeParse(values);
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
+
 		startTransition(async () => {
 			const res = await updateBox(editId, parsed.data);
+
 			if (res.ok) {
 				notify.success("Caixa atualizada");
 				close();
@@ -110,8 +120,10 @@ export function BoxEditSheet({ boxes }: Props) {
 		if (!editId) {
 			return;
 		}
+
 		startDeleteTransition(async () => {
 			const res = await deleteBox(editId);
+
 			if (res.ok) {
 				notify.success("Caixa excluída");
 				setConfirmDelete(false);

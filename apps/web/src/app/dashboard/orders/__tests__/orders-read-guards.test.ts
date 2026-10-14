@@ -18,8 +18,11 @@ vi.mock("next/cache", () => ({
 	revalidatePath: vi.fn(),
 	revalidateTag: vi.fn(),
 }));
+
 vi.mock("@emach/db", () => ({ db: {}, createDb: vi.fn(() => ({})) }));
+
 vi.mock("@/lib/logger", () => ({ logger: { error: vi.fn() } }));
+
 vi.mock("@/lib/session", () => ({
 	requireCurrentSession: vi.fn(),
 	ROLE_WEIGHT: { super_admin: 3, admin: 2, user: 1 },

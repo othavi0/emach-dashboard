@@ -22,6 +22,7 @@ export function ToolStockBranchCard({
 	});
 
 	let quantityColor = "text-foreground";
+
 	if (status === "critical" || cell.quantity === 0) {
 		quantityColor = "text-destructive";
 	} else if (status === "reorder") {

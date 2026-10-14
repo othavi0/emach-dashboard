@@ -41,6 +41,7 @@ export function AttributeAssignmentsEditor({
 		isAssigned: assignedSet.has(def.slug),
 		source: "suggested",
 	}));
+
 	for (const def of allDefinitions) {
 		if (assignedSet.has(def.slug) && !suggestedSlugs.has(def.slug)) {
 			rows.push({ def, isAssigned: true, source: "extra" });
@@ -65,6 +66,7 @@ export function AttributeAssignmentsEditor({
 		if (!slug) {
 			return;
 		}
+
 		if (!assignedSet.has(slug)) {
 			onChange([...value, slug]);
 		}

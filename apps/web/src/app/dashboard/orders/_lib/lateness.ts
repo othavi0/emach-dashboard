@@ -24,16 +24,21 @@ export function latenessOf(args: {
 	if (!FULFILLMENT_STATUSES.has(args.status)) {
 		return "none";
 	}
+
 	const base =
 		args.status === "preparing"
 			? (args.preparingAt ?? args.paidAt ?? args.createdAt)
 			: (args.paidAt ?? args.createdAt);
+
 	const ageHours = (args.now.getTime() - base.getTime()) / 3_600_000;
+
 	if (ageHours >= LATE_TAB_HOURS) {
 		return "late";
 	}
+
 	if (ageHours >= LATE_AMBER_HOURS) {
 		return "amber";
 	}
+
 	return "none";
 }

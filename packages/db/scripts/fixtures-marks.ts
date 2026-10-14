@@ -27,11 +27,13 @@ export function newRunId(): RunId {
 
 export function parseRunId(raw: string | undefined): RunId {
 	const value = raw?.toUpperCase();
+
 	if (!(value && RUN_ID.test(value))) {
 		throw new Error(
 			`[fixtures] run inválido: "${raw ?? ""}" (esperado 6 hex, ex: 1A2B3C).`
 		);
 	}
+
 	return value as RunId;
 }
 
@@ -77,15 +79,19 @@ export function cleanupPlan(scope: CleanupScope): CleanupPlan {
 		scope.kind === "all"
 			? { orderPrefix: ANY_ORDER_PREFIX, text: ANY_TEXT_PREFIX }
 			: runMarks(scope.run);
+
 	const qb = new QueryBuilder();
+
 	const orderIds = qb
 		.select({ id: order.id })
 		.from(order)
 		.where(startsWith(order.number, marks.orderPrefix));
+
 	const itemIds = qb
 		.select({ id: orderItem.id })
 		.from(orderItem)
 		.where(inArray(orderItem.orderId, orderIds));
+
 	const pickingIds = qb
 		.select({ id: orderPicking.id })
 		.from(orderPicking)

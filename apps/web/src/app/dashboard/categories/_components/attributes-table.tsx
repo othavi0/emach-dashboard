@@ -56,6 +56,7 @@ export function OwnAttributesTable({
 			</div>
 		);
 	}
+
 	return (
 		<Table>
 			<TableHeader>

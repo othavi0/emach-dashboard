@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+
 vi.mock("@/lib/activity", () => ({ logUserActivity: vi.fn() }));
+
 vi.mock("@/lib/logger", () => ({ logger: { error: vi.fn() } }));
+
 vi.mock("@/lib/permissions", () => ({
 	requireCapabilityWithContext: vi.fn(),
 	getUserCapabilities: vi.fn(),
 }));
+
 vi.mock("@emach/db", () => ({
 	db: { select: vi.fn(), insert: vi.fn(), delete: vi.fn() },
 }));
@@ -29,10 +33,12 @@ function mockTargetRole(role: string | null) {
 	const from = vi.fn(() => ({ where }));
 	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
 }
+
 function mockTargetBranches(ids: string[]) {
 	const where = vi.fn(() =>
 		Promise.resolve(ids.map((branchId) => ({ branchId })))
 	);
+
 	const from = vi.fn(() => ({ where }));
 	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
 }
@@ -54,11 +60,13 @@ describe("setSectionCapabilities", () => {
 		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 		const values = vi.fn(() => ({ onConflictDoUpdate }));
 		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
+
 		const r = await setSectionCapabilities({
 			targetUserId: "u1",
 			capabilities: ["tools.create", "tools.delete"],
 			state: "revoke",
 		});
+
 		expect(r.ok).toBe(true);
 		expect(values).toHaveBeenCalledTimes(2);
 		expect(logUserActivity).toHaveBeenCalledTimes(1);
@@ -74,11 +82,13 @@ describe("setSectionCapabilities", () => {
 		mockTargetBranches(["b1"]);
 		const where = vi.fn(() => Promise.resolve());
 		(db.delete as ReturnType<typeof vi.fn>).mockReturnValue({ where });
+
 		const r = await setSectionCapabilities({
 			targetUserId: "u1",
 			capabilities: ["tools.create", "tools.delete"],
 			state: "inherit",
 		});
+
 		expect(r.ok).toBe(true);
 		expect(db.delete).toHaveBeenCalledTimes(2);
 		expect(db.insert).not.toHaveBeenCalled();
@@ -91,11 +101,13 @@ describe("setSectionCapabilities", () => {
 
 	it("alvo super_admin: revoke em massa é rejeitado (issue #184)", async () => {
 		mockTargetRole("super_admin");
+
 		const r = await setSectionCapabilities({
 			targetUserId: "sa",
 			capabilities: ["tools.create"],
 			state: "revoke",
 		});
+
 		expect(r.ok).toBe(false);
 		expect(db.insert).not.toHaveBeenCalled();
 	});
@@ -106,11 +118,13 @@ describe("setSectionCapabilities", () => {
 		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 		const values = vi.fn(() => ({ onConflictDoUpdate }));
 		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
+
 		const r = await setSectionCapabilities({
 			targetUserId: "u1",
 			capabilities: ["tools.create", "categories.delete"], // ator não tem categories.delete
 			state: "grant",
 		});
+
 		expect(r.ok).toBe(true);
 		expect(values).toHaveBeenCalledTimes(1); // só tools.create
 	});
@@ -121,11 +135,13 @@ describe("setSectionCapabilities", () => {
 		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 		const values = vi.fn(() => ({ onConflictDoUpdate }));
 		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
+
 		const r = await setSectionCapabilities({
 			targetUserId: "u1",
 			capabilities: ["tools.create", "foo.bar"],
 			state: "revoke",
 		});
+
 		expect(r.ok).toBe(true);
 		expect(values).toHaveBeenCalledTimes(1);
 	});

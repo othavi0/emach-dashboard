@@ -15,11 +15,14 @@ export function stockStatus({
 	if (minQty > 0 && quantity <= minQty) {
 		return "critical";
 	}
+
 	if (reorderPoint > 0 && quantity > minQty && quantity <= reorderPoint) {
 		return "reorder";
 	}
+
 	if (minQty === 0 && reorderPoint === 0) {
 		return "none";
 	}
+
 	return "ok";
 }

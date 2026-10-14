@@ -64,6 +64,7 @@ export function StockReturnDialog({
 			])
 		)
 	);
+
 	const [isPending, startTransition] = useTransition();
 
 	const showItemPicker = toStatus === "returned";
@@ -71,6 +72,7 @@ export function StockReturnDialog({
 	// Reason is mandatory for both flows. For "returned" additionally every
 	// checked item must have a branchId selected.
 	const hasReason = reason.trim().length > 0;
+
 	const canSubmit = showItemPicker
 		? hasReason &&
 			Object.values(selected).every(
@@ -121,6 +123,7 @@ export function StockReturnDialog({
 
 				if (!result.ok) {
 					notify.error(result.error);
+
 					return;
 				}
 
@@ -159,6 +162,7 @@ export function StockReturnDialog({
 							const state = selected[item.id];
 							const checkboxId = `return-item-${item.id}`;
 							const branchSelectId = `return-branch-${item.id}`;
+
 							return (
 								<div
 									className="grid gap-3 rounded-md border border-border p-3 sm:grid-cols-[minmax(0,1fr)_10rem]"

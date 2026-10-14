@@ -54,4 +54,5 @@ export const shippingBox = pgTable(
 );
 
 export type ShippingBox = typeof shippingBox.$inferSelect;
+
 export type NewShippingBox = typeof shippingBox.$inferInsert;

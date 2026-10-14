@@ -10,16 +10,19 @@ import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 
 const STALE_INTERVAL = sql`interval '72 hours'`;
+
 const REASON =
 	"Cancelado automaticamente por inatividade (>72h sem pagamento confirmado)";
 
 export async function GET(request: Request) {
 	const authHeader = request.headers.get("authorization");
+
 	if (authHeader !== `Bearer ${env.CRON_SECRET}`) {
 		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 	}
 
 	let canceled = 0;
+
 	try {
 		const staleOrders = await db
 			.select({ id: orderTable.id })
@@ -69,6 +72,7 @@ export async function GET(request: Request) {
 		return NextResponse.json({ ok: true, canceled });
 	} catch (err) {
 		logger.error("cancelStaleOrdersCron", err);
+
 		return NextResponse.json(
 			{ ok: false, error: "Internal error" },
 			{ status: 500 }

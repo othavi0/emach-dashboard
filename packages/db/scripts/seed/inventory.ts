@@ -23,12 +23,15 @@ import { randInt } from "./random";
  */
 export async function seedInventory(tx: Tx, ctx: SeedContext): Promise<void> {
 	const actorId = ctx.staffUserIds[0];
+
 	if (!actorId) {
 		throw new Error(
 			"staffUserIds vazio — impossível setar actorId nos movimentos."
 		);
 	}
+
 	const supplierIds = ctx.supplierIds;
+
 	if (supplierIds.length === 0) {
 		throw new Error(
 			"supplierIds vazio — impossível setar supplierId nas entradas (ADR-0015)."
@@ -36,12 +39,14 @@ export async function seedInventory(tx: Tx, ctx: SeedContext): Promise<void> {
 	}
 
 	let toolIdx = 0;
+
 	for (const variantIds of Object.values(ctx.variantIdsByTool)) {
 		for (const variantId of variantIds) {
 			for (const [branchIdx, branchId] of ctx.branchIds.entries()) {
 				const qtyAbertura = randInt(80, 250);
 				const minQty = randInt(5, 15);
 				const reorderPoint = randInt(minQty, 40);
+
 				// Fornecedor por (tool, filial): varia por filial → uma tool em N
 				// filiais nasce com N fornecedores (N:N derivado, ADR-0015).
 				const supplierId =
@@ -74,6 +79,7 @@ export async function seedInventory(tx: Tx, ctx: SeedContext): Promise<void> {
 				});
 			}
 		}
+
 		toolIdx++;
 	}
 }

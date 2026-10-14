@@ -5,6 +5,7 @@ const STAR_COUNT = STAR_POSITIONS.length;
 
 export function StarRating({ rating }: { rating: number }) {
 	const clamped = Math.max(0, Math.min(STAR_COUNT, Math.round(rating)));
+
 	return (
 		<span
 			aria-label={`${clamped} de ${STAR_COUNT} estrelas`}

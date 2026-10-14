@@ -47,31 +47,40 @@ function buildTabHref(
 	filters: ReviewsFiltersProps["filters"]
 ): string {
 	const params = new URLSearchParams();
+
 	if (tabKey !== "pending") {
 		params.set("tab", tabKey);
 	}
+
 	if (filters.rating) {
 		params.set("rating", String(filters.rating));
 	}
+
 	if (filters.q) {
 		params.set("q", filters.q);
 	}
+
 	if (filters.from) {
 		params.set("from", filters.from);
 	}
+
 	if (filters.to) {
 		params.set("to", filters.to);
 	}
+
 	const qs = params.toString();
+
 	return qs ? `${BASE}?${qs}` : BASE;
 }
 
 export function ReviewsFilters({ counts, filters }: ReviewsFiltersProps) {
 	const currentTab = filters.tab || "pending";
+
 	const { searchParams, setParam, clearAll, hasActive } = useFilterState({
 		basePath: BASE,
 		trackedKeys: TRACKED,
 	});
+
 	const [q, setQ] = useDebouncedParam({ basePath: BASE, key: "q" });
 	const [from, setFrom] = useDebouncedParam({ basePath: BASE, key: "from" });
 	const [to, setTo] = useDebouncedParam({ basePath: BASE, key: "to" });
@@ -83,6 +92,7 @@ export function ReviewsFilters({ counts, filters }: ReviewsFiltersProps) {
 				<TabsList scrollable>
 					{REVIEW_TABS.map((tab) => {
 						const count = counts[tab.key] ?? 0;
+
 						return (
 							<TabsTrigger
 								key={tab.key}

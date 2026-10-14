@@ -33,6 +33,7 @@ export async function fetchReviewsPage({
 }): Promise<InfiniteResult<ReviewListItem>> {
 	await requireCapability("reviews.read");
 	const tab = REVIEW_TABS.find((t) => t.key === filters.tab) ?? REVIEW_TABS[0];
+
 	return listReviews({
 		status: tab.status,
 		rating: filters.rating,
@@ -47,6 +48,7 @@ export async function moderateReview(
 	input: ModerateReviewInput
 ): Promise<ActionResult> {
 	const parsed = moderateReviewSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -96,6 +98,7 @@ export async function moderateReview(
 	} catch (error) {
 		const pg = getPgError(error);
 		logger.error("moderateReview", { err: error, code: pg?.code });
+
 		return { ok: false, error: "Erro ao moderar avaliação" };
 	}
 }
@@ -110,6 +113,7 @@ export async function bulkModerateReviews(
 	input: BulkModerateReviewsInput
 ): Promise<ActionResult<BulkModerateResult>> {
 	const parsed = bulkModerateReviewsSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -159,6 +163,7 @@ export async function bulkModerateReviews(
 	} catch (error) {
 		const pg = getPgError(error);
 		logger.error("bulkModerateReviews", { err: error, code: pg?.code });
+
 		return { ok: false, error: "Erro ao moderar avaliações" };
 	}
 }

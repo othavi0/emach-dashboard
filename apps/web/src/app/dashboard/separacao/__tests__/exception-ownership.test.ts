@@ -42,6 +42,7 @@ describe("exceptionResumeDenial (posse de exceção, spec 2026-07-17)", () => {
 			id: "usr_other",
 			role: "user",
 		});
+
 		expect(denial).toMatch(JOAO_NAME_PATTERN);
 		expect(denial).toMatch(ADMIN_MENTION_PATTERN);
 	});

@@ -69,9 +69,11 @@ export function BranchStockEditSheet({
 
 	// Limites
 	const [minQty, setMinQty] = useState<number | undefined>(undefined);
+
 	const [reorderPoint, setReorderPoint] = useState<number | undefined>(
 		undefined
 	);
+
 	const [isUpdatingLimits, startLimitsTransition] = useTransition();
 
 	const [reservedQty, setReservedQty] = useState<number | null>(null);
@@ -84,13 +86,16 @@ export function BranchStockEditSheet({
 		branchId,
 		variantId: row?.variantId,
 	});
+
 	if (lastKey.variantId !== row?.variantId || lastKey.branchId !== branchId) {
 		setLastKey({ branchId, variantId: row?.variantId });
+
 		if (row) {
 			setMode("entrada");
 			setMinQty(row.minQty);
 			setReorderPoint(row.reorderPoint);
 		}
+
 		setReservedQty(null);
 	}
 
@@ -99,11 +104,13 @@ export function BranchStockEditSheet({
 		if (!row) {
 			return;
 		}
+
 		startAdjustTransition(async () => {
 			const reserved = await getReservedQtyByVariantBranchAction(
 				row.variantId,
 				branchId
 			);
+
 			setReservedQty(reserved);
 		});
 	}, [row?.variantId, branchId]);
@@ -112,6 +119,7 @@ export function BranchStockEditSheet({
 		if (!row || minQty === undefined || reorderPoint === undefined) {
 			return;
 		}
+
 		startLimitsTransition(async () => {
 			const result = await updateStockThresholds({
 				variantId: row.variantId,
@@ -119,6 +127,7 @@ export function BranchStockEditSheet({
 				minQty,
 				reorderPoint,
 			});
+
 			if (result.ok) {
 				notify.success("Limites atualizados");
 				router.refresh();
@@ -137,16 +146,20 @@ export function BranchStockEditSheet({
 		minQty: row.minQty,
 		reorderPoint: row.reorderPoint,
 	});
+
 	const statusLabel = STATUS_LABEL[status];
 
 	let quantityColor = "text-foreground";
+
 	if (row.quantity === 0 || status === "critical") {
 		quantityColor = "text-destructive";
 	} else if (status === "reorder") {
 		quantityColor = "text-warning";
 	}
+
 	const available =
 		reservedQty === null ? null : Math.max(0, row.quantity - reservedQty);
+
 	const limitsDirty =
 		minQty !== row.minQty || reorderPoint !== row.reorderPoint;
 

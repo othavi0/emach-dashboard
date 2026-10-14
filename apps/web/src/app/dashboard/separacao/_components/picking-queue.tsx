@@ -75,7 +75,9 @@ function buildBulkPickToast(
 			message: `${moved} pedido${pluralSuffix(moved)} em separação`,
 		};
 	}
+
 	const detail = skipped.map((s) => `${s.number} (${s.reason})`).join(", ");
+
 	return {
 		kind: "warning",
 		message: `${moved} em separação · ${skipped.length} pulado${pluralSuffix(skipped.length)}: ${detail}`,
@@ -98,18 +100,22 @@ interface PickingQueueProps {
  */
 function aSepararBreakdown(counts: PickingQueueCounts): string | null {
 	const parts: string[] = [];
+
 	if (counts.a_separar_paid > 0) {
 		parts.push(
 			`${counts.a_separar_paid} pago${counts.a_separar_paid === 1 ? "" : "s"}`
 		);
 	}
+
 	if (counts.a_separar_preparing > 0) {
 		parts.push(`${counts.a_separar_preparing} em separação`);
 	}
+
 	// Um recorte só não é "soma" — não há ambiguidade a desfazer.
 	if (parts.length < 2) {
 		return null;
 	}
+
 	return `${counts.a_separar} a separar = ${parts.join(" + ")}`;
 }
 
@@ -128,6 +134,7 @@ export function PickingQueue({
 	const [refreshTick, setRefreshTick] = useState(0);
 	const resetKey = `${activeTab}:${refreshTick}`;
 	const [pickPending, startPick] = useTransition();
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
@@ -135,11 +142,13 @@ export function PickingQueue({
 			fetchPickingQueuePageAction({ cursor, tab: activeTab }),
 		resetKey,
 	});
+
 	const sel = useBulkSelection({
 		items,
 		getId: (row) => row.orderId,
 		resetKey,
 	});
+
 	// Exceções não imprimem (spec): sem modo seleção nessa tab.
 	const selectable = activeTab !== "excecoes";
 
@@ -159,14 +168,18 @@ export function PickingQueue({
 			const result = await bulkStartPicking({ orderIds: ids });
 			setRefreshTick((t) => t + 1);
 			router.refresh();
+
 			if (!result.ok) {
 				notify.error(result.error);
+
 				return;
 			}
+
 			const { kind, message } = buildBulkPickToast(
 				result.data.moved,
 				result.data.skipped
 			);
+
 			if (result.data.movedIds.length > 0) {
 				const pdfUrl = `/dashboard/orders/picking-list?ids=${result.data.movedIds.join(",")}`;
 				// Abre o PDF do lote; se o popup blocker engolir, o botão do toast cobre.
@@ -180,6 +193,7 @@ export function PickingQueue({
 			} else {
 				notify[kind](message);
 			}
+
 			sel.exit();
 		});
 	};
@@ -247,6 +261,7 @@ export function PickingQueue({
 						</p>
 					);
 				}
+
 				const renderGrid = (rows: PickingQueueRow[]) => (
 					<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 						{rows.map((row) => (
@@ -266,14 +281,17 @@ export function PickingQueue({
 						))}
 					</div>
 				);
+
 				if (activeTab === "a_separar") {
 					return <div aria-live="polite">{renderGrid(items)}</div>;
 				}
+
 				// Tabs com dono: seções Minhas × Outros (mockup A). Seção vazia
 				// não renderiza; o agrupamento fatia as páginas já carregadas
 				// (fila ativa é pequena — aceito na spec).
 				const labels = SECTION_LABELS[activeTab];
 				const { mine, others } = splitQueueByOwnership(items, sessionUserId);
+
 				return (
 					<div aria-live="polite">
 						{mine.length > 0 && (

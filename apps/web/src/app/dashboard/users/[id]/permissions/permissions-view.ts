@@ -15,10 +15,12 @@ export interface ActionRow {
 	editable: boolean;
 	state: OverrideState;
 }
+
 export interface ResourceView {
 	resource: string;
 	rows: ActionRow[];
 }
+
 export interface SectionView {
 	resources: ResourceView[];
 	section: NavSection;
@@ -32,10 +34,12 @@ const DESTRUCTIVE = new Set([
 	"Suspender",
 	"Alterar role",
 ]);
+
 function actionWeight(action: string): number {
 	if (action === "Ver") {
 		return 0;
 	}
+
 	return DESTRUCTIVE.has(action) ? 2 : 1;
 }
 
@@ -49,6 +53,7 @@ export function buildPermissionTree(args: {
 	const bySection = new Map<NavSection, Map<string, ActionRow[]>>();
 	const catalogOrder = new Map<string, number>();
 	let idx = 0;
+
 	for (const [cap, meta] of Object.entries(CAPABILITIES) as [
 		Capability,
 		(typeof CAPABILITIES)[Capability],
@@ -69,11 +74,14 @@ export function buildPermissionTree(args: {
 	}
 
 	const tree: SectionView[] = [];
+
 	for (const section of SECTION_ORDER) {
 		const resources = bySection.get(section);
+
 		if (!resources) {
 			continue;
 		}
+
 		const resourceViews: ResourceView[] = [...resources.entries()]
 			.sort(
 				(a, b) => (catalogOrder.get(a[0]) ?? 0) - (catalogOrder.get(b[0]) ?? 0)
@@ -84,8 +92,10 @@ export function buildPermissionTree(args: {
 					(a, b) => actionWeight(a.action) - actionWeight(b.action)
 				),
 			}));
+
 		tree.push({ section, resources: resourceViews });
 	}
+
 	return tree;
 }
 
@@ -96,9 +106,12 @@ export function sectionMasterState(
 		.flatMap((r) => r.rows)
 		.filter((row) => row.editable)
 		.map((row) => row.state);
+
 	const first = states[0];
+
 	if (!first) {
 		return null;
 	}
+
 	return states.every((s) => s === first) ? first : "mixed";
 }

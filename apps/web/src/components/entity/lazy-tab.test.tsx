@@ -8,6 +8,7 @@ const noop = () => undefined;
 function ReloadCaller() {
 	const reloadTab = useLazyTabReload();
 	reloadTab();
+
 	return <span>ok</span>;
 }
 
@@ -25,6 +26,7 @@ describe("LazyTabView", () => {
 				{(d: string) => <span>{d}</span>}
 			</LazyTabView>
 		);
+
 		expect(html).toContain("animate-pulse");
 	});
 
@@ -34,6 +36,7 @@ describe("LazyTabView", () => {
 				{(d: string) => <span>{d}</span>}
 			</LazyTabView>
 		);
+
 		expect(html).toContain("Tentar novamente");
 	});
 
@@ -43,6 +46,7 @@ describe("LazyTabView", () => {
 				{(d: string) => <span>{d}</span>}
 			</LazyTabView>
 		);
+
 		expect(html).toContain("<span>OK</span>");
 	});
 });

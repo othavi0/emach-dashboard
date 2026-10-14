@@ -4,9 +4,11 @@ export function toDate(value: Date | string | null | undefined): Date | null {
 	if (value === null || value === undefined) {
 		return null;
 	}
+
 	if (value instanceof Date) {
 		return value;
 	}
+
 	return new Date(value);
 }
 
@@ -26,9 +28,11 @@ export function coerceDates<T extends object>(
 ): T {
 	for (const k of keys) {
 		const v = obj[k];
+
 		if (v !== null && v !== undefined && !(v instanceof Date)) {
 			(obj as Record<keyof T, unknown>)[k] = new Date(v as string);
 		}
 	}
+
 	return obj;
 }

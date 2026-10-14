@@ -21,6 +21,7 @@ export const reviewStatusEnum = pgEnum("review_status", [
 	"rejected",
 	"spam",
 ]);
+
 export type ReviewStatus = (typeof reviewStatusEnum.enumValues)[number];
 
 export const review = pgTable(
@@ -81,4 +82,5 @@ export const reviewRelations = relations(review, ({ one }) => ({
 }));
 
 export type Review = typeof review.$inferSelect;
+
 export type NewReview = typeof review.$inferInsert;

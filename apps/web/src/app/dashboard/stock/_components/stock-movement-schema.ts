@@ -8,6 +8,7 @@ export const STOCK_MOVEMENT_REASONS = [
 	"perda",
 	"outro",
 ] as const;
+
 export type StockMovementReason = (typeof STOCK_MOVEMENT_REASONS)[number];
 
 /** Labels completos (Title case) para exibição em listas e drawers. */
@@ -51,10 +52,12 @@ export const stockEntrySchema = z.object({
 		.max(500, "Observação não pode exceder 500 caracteres")
 		.optional(),
 });
+
 export type StockEntryInput = z.infer<typeof stockEntrySchema>;
 
 // Baixa (−N): subtrai estoque; motivo perda|outro; sem fornecedor.
 export const stockWriteOffReasons = ["perda", "outro"] as const;
+
 export type StockWriteOffReason = (typeof stockWriteOffReasons)[number];
 
 export const stockWriteOffSchema = z
@@ -79,6 +82,7 @@ export const stockWriteOffSchema = z
 			message: "Observação obrigatória quando motivo é 'Outro'",
 		}
 	);
+
 export type StockWriteOffInput = z.infer<typeof stockWriteOffSchema>;
 
 // Ajuste de inventário: quantidade-alvo (recontagem física).
@@ -94,4 +98,5 @@ export const stockRecountSchema = z.object({
 		.max(500, "Observação não pode exceder 500 caracteres")
 		.optional(),
 });
+
 export type StockRecountInput = z.infer<typeof stockRecountSchema>;

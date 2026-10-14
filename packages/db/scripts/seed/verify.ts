@@ -188,9 +188,11 @@ export async function verifySeed(tx: Tx): Promise<void> {
 	for (const c of CHECKS) {
 		const res = await tx.execute<{ n: string }>(sql.raw(c.query));
 		const n = Number(res.rows[0]?.n ?? 0);
+
 		if (n > 0) {
 			throw new Error(`Invariante violado [${c.name}]: ${n} linha(s)`);
 		}
 	}
+
 	console.log(`[verify] ${CHECKS.length} invariantes OK`);
 }

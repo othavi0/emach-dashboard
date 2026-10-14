@@ -27,25 +27,31 @@ export function ResetPasswordDialog({
 	disabled,
 }: ResetPasswordDialogProps) {
 	const [open, setOpen] = useState(false);
+
 	const [result, setResult] = useState<{
 		expiresAt: Date;
 		url: string;
 	} | null>(null);
+
 	const [copied, setCopied] = useState(false);
 	const [isPending, startTransition] = useTransition();
 
 	function handleOpen(isOpen: boolean) {
 		setOpen(isOpen);
+
 		// Reset no evento de fechar (todo fechamento passa pelo onOpenChange) —
 		// dispensa o effect de sincronização.
 		if (!isOpen) {
 			setResult(null);
 			setCopied(false);
+
 			return;
 		}
+
 		if (!result) {
 			startTransition(async () => {
 				const res = await generatePasswordResetLink({ clientId });
+
 				if (res.ok) {
 					setResult({
 						url: res.data.url,
@@ -63,6 +69,7 @@ export function ResetPasswordDialog({
 		if (!result?.url) {
 			return;
 		}
+
 		navigator.clipboard.writeText(result.url).then(() => {
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);

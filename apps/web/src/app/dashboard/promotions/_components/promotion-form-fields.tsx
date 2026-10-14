@@ -48,6 +48,7 @@ interface ToolOption {
 }
 
 type Patch = (next: Partial<PromotionFormValues>) => void;
+
 type PromotionType = "promotion" | "promocode";
 
 export interface PromotionFormFieldsProps {
@@ -138,6 +139,7 @@ function ToolCombobox({
 							<CommandGroup>
 								{availableTools.map((tool) => {
 									const isSelected = selectedIds.includes(tool.id);
+
 									return (
 										<CommandItem
 											data-checked={isSelected}
@@ -199,6 +201,7 @@ function TypeSelector({
 			{TYPE_OPTIONS.map((opt) => {
 				const selected = value === opt.value;
 				const Icon = opt.icon;
+
 				return (
 					<Label
 						className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
@@ -316,6 +319,7 @@ export function PromotionFormFields({
 	// appliesToAll/lista vazia é derivado no render; o effect só busca.
 	const [fetchedConflicts, setFetchedConflicts] = useState(0);
 	const [, startTransition] = useTransition();
+
 	const conflictCount =
 		values.appliesToAll || values.toolIds.length === 0 ? 0 : fetchedConflicts;
 
@@ -323,6 +327,7 @@ export function PromotionFormFields({
 		if (values.appliesToAll || values.toolIds.length === 0) {
 			return;
 		}
+
 		let cancelled = false;
 		startTransition(() => {
 			countToolsWithActivePromotionAction(
@@ -334,6 +339,7 @@ export function PromotionFormFields({
 				}
 			});
 		});
+
 		return () => {
 			cancelled = true;
 		};
@@ -593,6 +599,7 @@ export function PromotionFormFields({
 						className="flex gap-4"
 						onValueChange={(v) => {
 							const all = v === "true";
+
 							if (all) {
 								onPatch({ appliesToAll: true, toolIds: [] });
 							} else {

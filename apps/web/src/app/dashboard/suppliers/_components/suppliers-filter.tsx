@@ -21,6 +21,7 @@ export function SuppliersFilters() {
 		basePath: BASE,
 		trackedKeys: TRACKED,
 	});
+
 	const [search, setSearch] = useDebouncedParam({
 		basePath: BASE,
 		key: "search",

@@ -124,8 +124,10 @@ function setDesktopElement(
 ) {
 	if (placement === undefined) {
 		Reflect.deleteProperty(elements, key);
+
 		return;
 	}
+
 	Reflect.set(elements, key, placement);
 }
 
@@ -143,8 +145,10 @@ function setMobileElement(
 ) {
 	if (override === undefined) {
 		Reflect.deleteProperty(elements, key);
+
 		return;
 	}
+
 	Reflect.set(elements, key, override);
 }
 
@@ -153,6 +157,7 @@ function clearElementContent(content: BannerFormValues, key: ElementKey) {
 		ELEMENT_CONTENT_FIELDS,
 		key
 	) as (keyof BannerFormValues)[];
+
 	for (const field of fields) {
 		Reflect.set(content, field, null);
 	}
@@ -168,6 +173,7 @@ function clampPlacement(
 		placement.offsetX,
 		placement.offsetY
 	);
+
 	return { ...placement, offsetX, offsetY };
 }
 
@@ -180,15 +186,19 @@ function dragDesktop(
 	deltaY: number
 ): boolean {
 	const current = getDesktopElement(elements, key);
+
 	if (!current) {
 		return false;
 	}
+
 	const moved: ElementPlacement = {
 		...current,
 		offsetX: Math.round(current.offsetX + deltaX),
 		offsetY: Math.round(current.offsetY + deltaY),
 	};
+
 	setDesktopElement(elements, key, clampPlacement(moved, "desktop"));
+
 	return true;
 }
 
@@ -199,22 +209,27 @@ function dragMobile(
 	deltaY: number
 ): boolean {
 	const current = getMobileElement(elements, key);
+
 	if (current && "hidden" in current) {
 		// Elemento oculto no mobile: arrastar não faz sentido, no-op.
 		return false;
 	}
+
 	const base: ElementPlacement = current ?? {
 		anchor: "mc",
 		offsetX: 0,
 		offsetY: 0,
 		scale: 100,
 	};
+
 	const moved: ElementPlacement = {
 		...base,
 		offsetX: Math.round(base.offsetX + deltaX),
 		offsetY: Math.round(base.offsetY + deltaY),
 	};
+
 	setMobileElement(elements, key, clampPlacement(moved, "mobile"));
+
 	return true;
 }
 
@@ -223,6 +238,7 @@ function dragAction(
 	action: Extract<EditorAction, { type: "drag" }>
 ): EditorState {
 	const composition = structuredClone(state.composition);
+
 	const changed =
 		state.viewport === "desktop"
 			? dragDesktop(
@@ -237,9 +253,11 @@ function dragAction(
 					action.deltaX,
 					action.deltaY
 				);
+
 	if (!changed) {
 		return state;
 	}
+
 	return { ...state, composition, dirty: true };
 }
 
@@ -248,21 +266,27 @@ function toggleElementAction(
 	action: Extract<EditorAction, { type: "toggleElement" }>
 ): EditorState {
 	const composition = structuredClone(state.composition);
+
 	if (action.enabled) {
 		const defaultPlacement = getDesktopElement(
 			DEFAULT_COMPOSITION.desktop.elements,
 			action.key
 		);
+
 		const placement = defaultPlacement
 			? structuredClone(defaultPlacement)
 			: { ...FALLBACK_PLACEMENT };
+
 		setDesktopElement(composition.desktop.elements, action.key, placement);
+
 		return { ...state, composition, dirty: true };
 	}
+
 	setDesktopElement(composition.desktop.elements, action.key, undefined);
 	setMobileElement(composition.mobile.elements, action.key, undefined);
 	const content = structuredClone(state.content);
 	clearElementContent(content, action.key);
+
 	return { ...state, composition, content, dirty: true };
 }
 
@@ -271,16 +295,20 @@ function applyTemplateAction(
 	action: Extract<EditorAction, { type: "applyTemplate" }>
 ): EditorState {
 	const template = BANNER_TEMPLATES.find((t) => t.key === action.templateKey);
+
 	if (!template) {
 		return state;
 	}
+
 	const templateSlots = new Set<ElementKey>(template.slots);
 	const content = structuredClone(state.content);
+
 	for (const key of ELEMENT_KEYS) {
 		if (!templateSlots.has(key)) {
 			clearElementContent(content, key);
 		}
 	}
+
 	return {
 		...state,
 		composition: structuredClone(template.composition),
@@ -295,11 +323,13 @@ function setPlacementAction(
 ): EditorState {
 	const composition = structuredClone(state.composition);
 	const placement = clampPlacement(action.placement, state.viewport);
+
 	if (state.viewport === "desktop") {
 		setDesktopElement(composition.desktop.elements, action.key, placement);
 	} else {
 		setMobileElement(composition.mobile.elements, action.key, placement);
 	}
+
 	return { ...state, composition, dirty: true };
 }
 
@@ -308,11 +338,13 @@ function setBackgroundAction(
 	action: Extract<EditorAction, { type: "setBackground" }>
 ): EditorState {
 	const composition = structuredClone(state.composition);
+
 	if (state.viewport === "desktop") {
 		composition.desktop.background = action.config;
 	} else {
 		composition.mobile.background = action.config;
 	}
+
 	return { ...state, composition, dirty: true };
 }
 
@@ -332,9 +364,12 @@ function setMobileOverrideAction(
 	action: Extract<EditorAction, { type: "setMobileOverride" }>
 ): EditorState {
 	const composition = structuredClone(state.composition);
+
 	const override =
 		action.override === null ? undefined : structuredClone(action.override);
+
 	setMobileElement(composition.mobile.elements, action.key, override);
+
 	return { ...state, composition, dirty: true };
 }
 
@@ -407,6 +442,7 @@ function compositionFromBanner(banner: Banner): BannerComposition {
 	if (banner.composition !== null) {
 		return compositionSchema.parse(banner.composition);
 	}
+
 	return legacyToComposition({
 		layout: banner.layout,
 		productScale: banner.productScale,
@@ -425,6 +461,7 @@ export function initialEditorState(banner: Banner | null): EditorState {
 			dirty: false,
 		};
 	}
+
 	return {
 		content: contentFromBanner(banner),
 		composition: compositionFromBanner(banner),

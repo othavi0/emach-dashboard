@@ -13,11 +13,14 @@ export const BANNER_LAYOUTS = [
 	"hero_center",
 	"text_right",
 ] as const;
+
 export const BANNER_CTA_VARIANTS = ["red", "dark", "white", "ghost"] as const;
 export const BANNER_BG_MOBILE_MODES = ["inherit", "custom", "none"] as const;
 
 export type BannerLayout = (typeof BANNER_LAYOUTS)[number];
+
 export type BannerCtaVariant = (typeof BANNER_CTA_VARIANTS)[number];
+
 export type BannerBgMobileMode = (typeof BANNER_BG_MOBILE_MODES)[number];
 
 const CTA_HREF_RE = /^(\/|https:\/\/)/;
@@ -61,6 +64,7 @@ export const bannerFormSchema = z
 					"O banner precisa de imagem de fundo ou ao menos título/badge.",
 			});
 		}
+
 		if (v.backgroundImageUrl && !v.altText) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
@@ -68,6 +72,7 @@ export const bannerFormSchema = z
 				message: "Texto alternativo é obrigatório quando há imagem de fundo.",
 			});
 		}
+
 		if (
 			v.backgroundImageUrl &&
 			v.backgroundMobileMode === "custom" &&
@@ -80,8 +85,10 @@ export const bannerFormSchema = z
 					"Envie uma imagem mobile (9:16) ou troque o modo do fundo no mobile.",
 			});
 		}
+
 		const hasLabel = Boolean(v.ctaLabel);
 		const hasHref = Boolean(v.ctaHref);
+
 		if (hasLabel !== hasHref) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
@@ -90,6 +97,7 @@ export const bannerFormSchema = z
 					"Preencha rótulo e link do botão juntos (ou deixe ambos vazios).",
 			});
 		}
+
 		if (hasHref && v.ctaHref && !CTA_HREF_RE.test(v.ctaHref)) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
@@ -97,6 +105,7 @@ export const bannerFormSchema = z
 				message: "Use uma rota interna (/...) ou URL https://",
 			});
 		}
+
 		if (v.countdownTarget && v.countdownTarget.getTime() <= Date.now()) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,

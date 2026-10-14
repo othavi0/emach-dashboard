@@ -101,6 +101,7 @@ function makeMockTx(selectResults: unknown[][]) {
 		chain.where = vi.fn(() => chain);
 		chain.for = vi.fn(() => chain);
 		chain.limit = vi.fn(() => Promise.resolve(result));
+
 		return chain;
 	};
 
@@ -108,6 +109,7 @@ function makeMockTx(selectResults: unknown[][]) {
 		const chain: Record<string, unknown> = {};
 		chain.set = vi.fn(() => chain);
 		chain.where = vi.fn(() => Promise.resolve({ rowCount: 1 }));
+
 		return chain;
 	};
 
@@ -118,6 +120,7 @@ function makeMockTx(selectResults: unknown[][]) {
 	return {
 		select: vi.fn((_shape: unknown) => {
 			const result = selectResults[selectCallIdx++] ?? [];
+
 			return makeSelectChain(result);
 		}),
 		update: vi.fn((_table: unknown) => makeUpdateChain()),
@@ -127,10 +130,13 @@ function makeMockTx(selectResults: unknown[][]) {
 
 /** Regex that matches the picking gate error message. */
 const SEPARA_RE = /separa/i;
+
 /** Regex that matches the picking exception gate error message. */
 const EXCECAO_RE = /exceç/i;
+
 /** Regex that matches the forceReason validation error message. */
 const MOTIVO_RE = /motivo/i;
+
 /** Regex that matches the in-progress forceShip block message. */
 const ANDAMENTO_RE = /andamento/i;
 
@@ -175,11 +181,13 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			user: { id: USER_ID, role: "super_admin" },
 		});
 		mockGetLatestPicking.mockResolvedValue(null);
+
 		const result = await updateOrderStatus({
 			orderId: ORDER_ID,
 			toStatus: "shipped",
 			trackingCode: "BR123456789BR",
 		});
+
 		expect(result.ok).toBe(false);
 		expect((result as { ok: false; error: string }).error).toMatch(SEPARA_RE);
 	});
@@ -189,11 +197,13 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			user: { id: USER_ID, role: "admin" },
 		});
 		mockGetLatestPicking.mockResolvedValue(latestWith("canceled"));
+
 		const result = await updateOrderStatus({
 			orderId: ORDER_ID,
 			toStatus: "shipped",
 			trackingCode: "BR123456789BR",
 		});
+
 		expect(result.ok).toBe(false);
 	});
 
@@ -202,11 +212,13 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			user: { id: USER_ID, role: "user" },
 		});
 		mockGetLatestPicking.mockResolvedValue(latestWith("completed"));
+
 		const result = await updateOrderStatus({
 			orderId: ORDER_ID,
 			toStatus: "shipped",
 			trackingCode: "BR123456789BR",
 		});
+
 		expect(result.ok).toBe(true);
 	});
 
@@ -215,11 +227,13 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			user: { id: USER_ID, role: "admin" },
 		});
 		mockGetLatestPicking.mockResolvedValue(latestWith("exception"));
+
 		const result = await updateOrderStatus({
 			orderId: ORDER_ID,
 			toStatus: "shipped",
 			trackingCode: "BR123456789BR",
 		});
+
 		expect(result.ok).toBe(false);
 		expect((result as { ok: false; error: string }).error).toMatch(EXCECAO_RE);
 	});
@@ -229,6 +243,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			user: { id: USER_ID, role: "admin" },
 		});
 		mockGetLatestPicking.mockResolvedValue(null);
+
 		const result = await updateOrderStatus({
 			orderId: ORDER_ID,
 			toStatus: "shipped",
@@ -236,6 +251,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			forceShip: true,
 			forceReason: "cliente no balcão aguardando",
 		});
+
 		expect(result.ok).toBe(false);
 	});
 
@@ -246,6 +262,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			trackingCode: "BR123456789BR",
 			forceShip: true,
 		});
+
 		expect(result.ok).toBe(false);
 		expect((result as { ok: false; error: string }).error).toMatch(MOTIVO_RE);
 	});
@@ -255,6 +272,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			user: { id: USER_ID, role: "super_admin" },
 		});
 		mockGetLatestPicking.mockResolvedValue(latestWith("canceled"));
+
 		const result = await updateOrderStatus({
 			orderId: ORDER_ID,
 			toStatus: "shipped",
@@ -262,6 +280,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			forceShip: true,
 			forceReason: "cliente no balcão aguardando",
 		});
+
 		expect(result.ok).toBe(true);
 	});
 
@@ -270,6 +289,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			user: { id: USER_ID, role: "super_admin" },
 		});
 		mockGetLatestPicking.mockResolvedValue(latestWith("exception"));
+
 		const result = await updateOrderStatus({
 			orderId: ORDER_ID,
 			toStatus: "shipped",
@@ -277,6 +297,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			forceShip: true,
 			forceReason: "cliente no balcão aguardando",
 		});
+
 		expect(result.ok).toBe(true);
 	});
 
@@ -285,6 +306,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			user: { id: USER_ID, role: "super_admin" },
 		});
 		mockGetLatestPicking.mockResolvedValue(latestWith("in_progress"));
+
 		const result = await updateOrderStatus({
 			orderId: ORDER_ID,
 			toStatus: "shipped",
@@ -292,6 +314,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 			forceShip: true,
 			forceReason: "cliente no balcão aguardando",
 		});
+
 		expect(result.ok).toBe(false);
 		expect((result as { ok: false; error: string }).error).toMatch(
 			ANDAMENTO_RE

@@ -66,6 +66,7 @@ describe("packItems", () => {
 			shipsInOwnBox: true,
 			qty: 1,
 		};
+
 		const pkgs = packItems([tele], BOXES);
 		expect(pkgs).toHaveLength(1);
 		expect(pkgs[0]?.lengthCm).toBe(180);
@@ -84,6 +85,7 @@ describe("packItems", () => {
 			shipsInOwnBox: false,
 			qty: 1,
 		};
+
 		const pkgs = packItems([enorme], BOXES);
 		expect(pkgs).toHaveLength(1);
 		expect(pkgs[0]?.outOfCatalog).toBe(true);
@@ -100,6 +102,7 @@ describe("packItems", () => {
 			maxWeightKg: 10,
 			tareWeightKg: 0.5,
 		};
+
 		const cubo: QuoteBox = {
 			id: "cubo",
 			internalLengthCm: 60,
@@ -108,6 +111,7 @@ describe("packItems", () => {
 			maxWeightKg: 30,
 			tareWeightKg: 1,
 		};
+
 		const vara: QuoteItem = {
 			lengthCm: 170,
 			widthCm: 10,
@@ -118,6 +122,7 @@ describe("packItems", () => {
 			shipsInOwnBox: false,
 			qty: 1,
 		};
+
 		const cubao: QuoteItem = {
 			lengthCm: 50,
 			widthCm: 50,
@@ -128,6 +133,7 @@ describe("packItems", () => {
 			shipsInOwnBox: false,
 			qty: 1,
 		};
+
 		const pkgs = packItems([vara, cubao], [tubo, cubo]);
 		expect(pkgs).toHaveLength(2);
 		expect(pkgs.every((p) => !p.outOfCatalog)).toBe(true);
@@ -147,6 +153,7 @@ describe("packItems", () => {
 			shipsInOwnBox: false,
 			qty: 1,
 		};
+
 		// pesado + furadeira não fecham em caixa única (88.8kg > 80 da box-xl).
 		const pkgs = packItems([pesado, { ...FURADEIRA, qty: 1 }], BOXES);
 		expect(pkgs).toHaveLength(2);
@@ -188,6 +195,7 @@ describe("packItems", () => {
 			shipsInOwnBox: false,
 			qty: 1,
 		};
+
 		expect(packItems([alto], BOXES)[0]?.lengthCm).toBe(70); // box-l
 	});
 });

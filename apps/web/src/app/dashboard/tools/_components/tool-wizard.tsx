@@ -35,9 +35,11 @@ function renderStepMarker(
 			</span>
 		);
 	}
+
 	if (showDone) {
 		return <Check aria-hidden className="size-3.5 text-success" />;
 	}
+
 	return <span>{index + 1}</span>;
 }
 
@@ -49,6 +51,7 @@ export function ToolWizard({
 	const { values, patch, errors, setErrors, setValues } = useToolFormState(
 		defaultValues ?? {}
 	);
+
 	const [active, setActive] = useState(0);
 	const [visited, setVisited] = useState<Set<ToolStepId>>(() => new Set());
 
@@ -66,9 +69,11 @@ export function ToolWizard({
 	function errorsForVisited(visitedSet: Set<ToolStepId>) {
 		const enforceActivation = shouldEnforceActivation(values.status, "draft");
 		const merged: typeof errors = {};
+
 		for (const id of visitedSet) {
 			Object.assign(merged, getStepFieldErrors(values, id, enforceActivation));
 		}
+
 		return merged;
 	}
 
@@ -87,11 +92,14 @@ export function ToolWizard({
 				errorKeys.includes(f)
 			)
 		);
+
 		if (idx >= 0) {
 			setActive(idx);
 		}
+
 		focusFirstError();
 	};
+
 	const { submit, isPending } = useToolSubmit({
 		mode: "create",
 		values,
@@ -130,6 +138,7 @@ export function ToolWizard({
 					const errCount = getStepErrorCount(issues, s.id);
 					const showError = isVisited && !isActive && errCount > 0;
 					const showDone = isVisited && !isActive && errCount === 0;
+
 					return (
 						<li key={s.id}>
 							<button

@@ -31,7 +31,9 @@ function itemsPreview(order: CustomerOrderRow): string {
 	if (!order.firstItemName) {
 		return "";
 	}
+
 	const extra = order.itemsCount > 1 ? ` +${order.itemsCount - 1}` : "";
+
 	return `${order.firstItemName}${extra}`;
 }
 
@@ -47,6 +49,7 @@ export function CustomerOrdersInfinite({
 	initialCursor,
 }: CustomerOrdersInfiniteProps) {
 	const router = useRouter();
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems,
 		initialCursor,
@@ -80,6 +83,7 @@ export function CustomerOrdersInfinite({
 					{items.map((order) => {
 						const href = `/dashboard/orders/${order.id}`;
 						const preview = itemsPreview(order);
+
 						return (
 							<TableRow
 								className="cursor-pointer transition-colors hover:bg-primary/[0.06]"

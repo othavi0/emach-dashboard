@@ -36,6 +36,7 @@ export async function fetchToolActivityInitAction(toolId: string): Promise<{
 	// Mesmo guard de fetchToolActivityPageAction (stock/actions.ts) no caminho sem branchId.
 	await requireCapability("stock.read");
 	const id = toolIdSchema.parse(toolId);
+
 	const [first, branches]: [
 		InfiniteResult<ToolActivityRow>,
 		ActiveBranchOption[],
@@ -46,6 +47,7 @@ export async function fetchToolActivityInitAction(toolId: string): Promise<{
 		),
 		getScopedActiveBranches(),
 	]);
+
 	return { items: first.items, nextCursor: first.nextCursor, branches };
 }
 
@@ -54,6 +56,7 @@ export async function fetchToolReviewsAction(
 ): Promise<ToolReviewSummary> {
 	await requireCapability("reviews.read");
 	const id = toolIdSchema.parse(toolId);
+
 	return await getToolReviewsSummary(id);
 }
 
@@ -61,5 +64,6 @@ export async function fetchActiveSuppliersAction(): Promise<
 	ActiveSupplierOption[]
 > {
 	await requireCapability("stock.read");
+
 	return await getActiveSuppliers();
 }

@@ -36,7 +36,9 @@ async function StockMovementsPageContent({ searchParams }: PageProps) {
 	const sp = await searchParams;
 
 	const validPeriods = ["today", "7d", "30d", "90d", "all"] as const;
+
 	type Period = (typeof validPeriods)[number];
+
 	// Default 7d (não "all"): janela recente é o caso comum e barateia o scan.
 	const period: Period =
 		sp.period && (validPeriods as readonly string[]).includes(sp.period)

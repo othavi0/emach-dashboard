@@ -23,6 +23,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 			options={{ showSpinner: false }}
 			targetPreprocessor={(target) => {
 				const current = new URL(window.location.href);
+
 				// Return current URL so isSameURL suppresses the bar on search-only changes.
 				return isSameURLWithoutSearch(target, current) ? current : target;
 			}}

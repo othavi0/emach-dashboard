@@ -76,6 +76,7 @@ describe("buildCategoryTree", () => {
 				attributeCount: 0,
 			},
 		];
+
 		expect(buildCategoryTree(orphan).map((n) => n.id)).toEqual(["x"]);
 	});
 });
@@ -86,6 +87,7 @@ describe("breadcrumbFromPath", () => {
 			["a", "Ferramentas"],
 			["a1", "Furadeiras"],
 		]);
+
 		expect(breadcrumbFromPath("/a/a1", names)).toEqual([
 			"Ferramentas",
 			"Furadeiras",
@@ -146,6 +148,7 @@ describe("buildCategoryTree → rollupCount", () => {
 				attributeCount: 0,
 			},
 		];
+
 		const tree = buildCategoryTree(deep);
 		const r = tree.find((n) => n.id === "r");
 		expect(r?.rollupCount).toBe(7); // 1 + 2 + 4
@@ -159,6 +162,7 @@ describe("buildNameBySlug", () => {
 			{ slug: "a", name: "Ferramentas" },
 			{ slug: "a1", name: "Furadeiras" },
 		]);
+
 		expect(map.get("a")).toBe("Ferramentas");
 		expect(map.get("a1")).toBe("Furadeiras");
 		expect(map.size).toBe(2);

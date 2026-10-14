@@ -51,6 +51,7 @@ export function PermissionsTab({
 				capability: cap,
 				state,
 			});
+
 			if (res.ok) {
 				notify.success("Permissão atualizada");
 			} else {
@@ -64,15 +65,18 @@ export function PermissionsTab({
 			.flatMap((r) => r.rows)
 			.filter((row) => row.editable)
 			.map((row) => row.cap);
+
 		if (caps.length === 0) {
 			return;
 		}
+
 		startTransition(async () => {
 			const res = await setSectionCapabilities({
 				targetUserId,
 				capabilities: caps,
 				state,
 			});
+
 			if (res.ok) {
 				notify.success("Seção atualizada");
 			} else {
@@ -85,6 +89,7 @@ export function PermissionsTab({
 		<div className="flex w-0 min-w-full flex-col gap-4">
 			{tree.map((section) => {
 				const masterState = sectionMasterState(section);
+
 				return (
 					<section
 						className="rounded-lg border border-border"
@@ -170,6 +175,7 @@ function CapabilityTriState({
 		{ key: "grant", label: "Permitir" },
 		{ key: "revoke", label: "Bloquear" },
 	];
+
 	return (
 		<ToggleGroup
 			aria-label={`Permissão de ${label}`}
@@ -177,6 +183,7 @@ function CapabilityTriState({
 			disabled={disabled}
 			onValueChange={(v) => {
 				const next = v[0] as OverrideState | undefined;
+
 				if (next) {
 					onChange(next);
 				}

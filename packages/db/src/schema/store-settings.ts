@@ -74,4 +74,5 @@ export const storeSettings = pgTable(
 );
 
 export type StoreSettings = typeof storeSettings.$inferSelect;
+
 export type NewStoreSettings = typeof storeSettings.$inferInsert;

@@ -25,8 +25,10 @@ export function BranchDetailActions({
 	if (tab === "team" && canManageTeam) {
 		return <TeamLinkPanel branchId={branchId} />;
 	}
+
 	if (tab === "overview" && canManageBranch) {
 		return <EditBranchButton />;
 	}
+
 	return null;
 }

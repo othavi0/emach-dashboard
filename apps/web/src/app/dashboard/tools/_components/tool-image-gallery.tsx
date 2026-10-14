@@ -61,6 +61,7 @@ function SortableImageRow({
 	onRemove,
 }: SortableImageRowProps) {
 	const sortableId = image.id ?? image.url;
+
 	const {
 		attributes,
 		listeners,
@@ -69,6 +70,7 @@ function SortableImageRow({
 		transition,
 		isDragging,
 	} = useSortable({ id: sortableId });
+
 	const isPrimary = index === 0;
 
 	return (
@@ -164,10 +166,12 @@ export function ToolImageGallery({
 
 		if (slotsLeft <= 0) {
 			notify.error(`Máximo de ${max} imagens atingido`);
+
 			return;
 		}
 
 		const selected = fileArray.slice(0, slotsLeft);
+
 		if (fileArray.length > slotsLeft) {
 			notify.info(
 				`Apenas ${slotsLeft} de ${fileArray.length} arquivos serão enviados (limite ${max})`
@@ -176,16 +180,20 @@ export function ToolImageGallery({
 
 		const total = selected.length;
 		setStatusLabel(total > 0 ? `Preparando 0 de ${total}…` : "Processando…");
+
 		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const uploaded: ToolImage[] = [];
 			let index = 0;
+
 			for (const file of selected) {
 				index += 1;
+
 				if (!ALLOWED_TYPES.has(file.type)) {
 					notify.error(`${file.name}: formato inválido (JPG/PNG/WEBP)`);
 					continue;
 				}
+
 				if (file.size > MAX_RAW_INPUT_BYTES) {
 					notify.error(`${file.name}: arquivo bruto excede 15MB`);
 					continue;
@@ -193,6 +201,7 @@ export function ToolImageGallery({
 
 				setStatusLabel(`Comprimindo ${index} de ${total}…`);
 				let compressed: File;
+
 				try {
 					compressed = await compressImageForUpload(file);
 				} catch {
@@ -206,6 +215,7 @@ export function ToolImageGallery({
 				}
 
 				setStatusLabel(`Enviando ${index} de ${total}…`);
+
 				try {
 					const formData = new FormData();
 					formData.append("file", compressed);
@@ -214,6 +224,7 @@ export function ToolImageGallery({
 				} catch (err) {
 					const message =
 						err instanceof Error ? err.message : "erro desconhecido";
+
 					notify.error(`${file.name}: ${message}`);
 				}
 			}
@@ -227,6 +238,7 @@ export function ToolImageGallery({
 						: `${uploaded.length} imagens enviadas`
 				);
 			}
+
 			setStatusLabel(null);
 		} catch (err) {
 			setStatusLabel(null);
@@ -236,9 +248,11 @@ export function ToolImageGallery({
 
 	function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
 		const files = event.target.files;
+
 		if (!files || files.length === 0) {
 			return;
 		}
+
 		uploadFiles(files).catch(() => undefined);
 		event.target.value = "";
 	}
@@ -247,6 +261,7 @@ export function ToolImageGallery({
 		event.preventDefault();
 		setIsDragging(false);
 		const files = event.dataTransfer.files;
+
 		if (files.length > 0) {
 			uploadFiles(files).catch(() => undefined);
 		}
@@ -254,15 +269,19 @@ export function ToolImageGallery({
 
 	function handleDragEnd(event: DragEndEvent) {
 		const { active, over } = event;
+
 		if (!over || active.id === over.id) {
 			return;
 		}
+
 		const ids = sorted.map((img) => img.id ?? img.url);
 		const from = ids.indexOf(String(active.id));
 		const to = ids.indexOf(String(over.id));
+
 		if (from === -1 || to === -1) {
 			return;
 		}
+
 		onChange(reindex(arrayMove(sorted, from, to)));
 	}
 
@@ -270,22 +289,28 @@ export function ToolImageGallery({
 		if (index === 0) {
 			return;
 		}
+
 		const next = [...sorted];
 		const [item] = next.splice(index, 1);
+
 		if (item === undefined) {
 			return;
 		}
+
 		next.unshift(item);
 		onChange(reindex(next));
 	}
 
 	async function removeAt(index: number) {
 		const target = sorted[index];
+
 		if (!target) {
 			return;
 		}
+
 		const next = sorted.filter((_, i) => i !== index);
 		onChange(reindex(next));
+
 		try {
 			await deleteToolImage(target.url);
 		} catch {

@@ -6,11 +6,14 @@ import { getActivePromotions } from "../promotions";
 // Cada elemento de responses é o array de rows para aquela chamada.
 function makeDb(responses: unknown[][]): AnyDb {
 	let call = 0;
+
 	const execute = vi.fn().mockImplementation(() => {
 		const rows = responses[call] ?? [];
 		call++;
+
 		return Promise.resolve({ rows });
 	});
+
 	return { execute } as unknown as AnyDb;
 }
 
@@ -64,11 +67,13 @@ describe("getActivePromotions", () => {
 
 	it("applies_to_all → nenhuma query promotion_tool", async () => {
 		const promo = makePromo("p1", true);
+
 		const db = makeDb([
 			[promo], // promo SELECT
 			// sem promotion_tool batch (applies_to_all=true)
 			[], // tool SELECT — retorna vazio
 		]);
+
 		const result = await getActivePromotions(db, 4);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.tools).toEqual([]);
@@ -79,6 +84,7 @@ describe("getActivePromotions", () => {
 	it("2 targeted promos → exatamente 1 batch de promotion_tool", async () => {
 		const p1 = makePromo("p1", false);
 		const p2 = makePromo("p2", false);
+
 		const db = makeDb([
 			[p1, p2], // promo SELECT
 			[
@@ -88,6 +94,7 @@ describe("getActivePromotions", () => {
 			[], // tool SELECT p1
 			[], // tool SELECT p2
 		]);
+
 		const result = await getActivePromotions(db, 4);
 		expect(result).toHaveLength(2);
 		// 1 promo SELECT + 1 promotion_tool batch + 2 tool SELECTs = 4
@@ -96,11 +103,13 @@ describe("getActivePromotions", () => {
 
 	it("targeted sem linhas em promotion_tool → tools: [] sem tool SELECT", async () => {
 		const promo = makePromo("p1", false);
+
 		const db = makeDb([
 			[promo], // promo SELECT
 			[], // promotion_tool batch: sem linhas → promo inerte
 			// sem tool SELECT (early return)
 		]);
+
 		const result = await getActivePromotions(db, 4);
 		expect(result).toHaveLength(1);
 		expect(result[0]?.tools).toEqual([]);

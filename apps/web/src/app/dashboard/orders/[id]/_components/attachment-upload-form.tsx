@@ -31,8 +31,10 @@ export function AttachmentUploadForm({
 
 	function handleSubmit() {
 		const file = fileRef.current?.files?.[0];
+
 		if (!file) {
 			setErrors(["Selecione um arquivo para enviar."]);
+
 			return;
 		}
 
@@ -40,26 +42,33 @@ export function AttachmentUploadForm({
 		const formData = new FormData();
 		formData.set("orderId", orderId);
 		formData.set("file", file);
+
 		if (label.trim()) {
 			formData.set("label", label.trim());
 		}
+
 		if (description.trim()) {
 			formData.set("description", description.trim());
 		}
 
 		startTransition(async () => {
 			const result = await addOrderAttachment(formData);
+
 			if (!result.ok) {
 				setErrors([result.error]);
+
 				return;
 			}
+
 			notify.success("Anexo enviado");
 			setLabel("");
 			setDescription("");
 			setFileName(null);
+
 			if (fileRef.current) {
 				fileRef.current.value = "";
 			}
+
 			onSuccess?.();
 		});
 	}

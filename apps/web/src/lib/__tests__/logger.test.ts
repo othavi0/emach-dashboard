@@ -31,6 +31,7 @@ describe("logger", () => {
 				ts: string;
 				payload: { message: string; name: string; stack?: string };
 			};
+
 			expect(parsed.level).toBe("error");
 			expect(parsed.scope).toBe("myScope");
 			expect(parsed.payload.message).toBe("boom");
@@ -43,9 +44,11 @@ describe("logger", () => {
 			logger.error("scope", { orderId: "x", err: "msg" });
 
 			const arg = spy.mock.calls[0]?.[0] as string;
+
 			const parsed = JSON.parse(arg) as {
 				payload: { orderId: string; err: string };
 			};
+
 			expect(parsed.payload.orderId).toBe("x");
 		});
 
@@ -55,10 +58,12 @@ describe("logger", () => {
 
 			expect(spy).toHaveBeenCalledTimes(1);
 			const arg = spy.mock.calls[0]?.[0] as string;
+
 			const parsed = JSON.parse(arg) as {
 				level: string;
 				payload: { count: number };
 			};
+
 			expect(parsed.level).toBe("info");
 			expect(parsed.payload.count).toBe(5);
 		});

@@ -33,9 +33,11 @@ export function NavBadge({
 	if (badgeKey === "picking") {
 		const awaiting = counts.picking;
 		const exceptions = counts.pickingExceptions;
+
 		if (awaiting <= 0 && exceptions <= 0) {
 			return null;
 		}
+
 		return (
 			<SidebarMenuBadge className="right-1 min-w-0 gap-1 bg-transparent px-0">
 				{exceptions > 0 && (
@@ -56,12 +58,15 @@ export function NavBadge({
 	}
 
 	const value = counts[FIELD_BY_BADGE[badgeKey]];
+
 	if (value <= 0) {
 		return null;
 	}
+
 	const tone =
 		badgeKey === "stock"
 			? "bg-warning/20 text-warning"
 			: "bg-secondary text-secondary-foreground peer-data-active/menu-button:text-secondary-foreground";
+
 	return <SidebarMenuBadge className={tone}>{value}</SidebarMenuBadge>;
 }

@@ -26,6 +26,7 @@ describe("matchPickItem", () => {
 			item({ id: "a", barcode: "111" }),
 			item({ id: "b", barcode: "222" }),
 		];
+
 		expect(matchPickItem(items, "222", null)).toEqual({ item: items[1] });
 	});
 	it("fallback pelo variantId quando snapshot é nulo", () => {

@@ -46,6 +46,7 @@ export function BranchPickerDialog({
 	// Reset da seleção quando o dialog abre/fecha — padrão in-render (React
 	// Compiler ativo; evita useEffect de reset). Canônico: user-edit-sheet.
 	const [lastOpen, setLastOpen] = useState(open);
+
 	if (open !== lastOpen) {
 		setLastOpen(open);
 		setBranchId("");

@@ -24,6 +24,7 @@ export async function getBoxes(): Promise<ShippingBoxRow[]> {
 		.select()
 		.from(shippingBox)
 		.orderBy(asc(shippingBox.sortOrder), asc(shippingBox.name));
+
 	return rows.map((b) => ({
 		id: b.id,
 		name: b.name,
@@ -83,6 +84,7 @@ export async function getToolsWithoutBox(): Promise<ToolWithoutBox[]> {
 			r.widthCm !== null &&
 			r.heightCm !== null
 	);
+
 	return withDims
 		.filter(
 			(r) =>

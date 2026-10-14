@@ -10,6 +10,7 @@ export function FieldError({ children }: FieldErrorProps) {
 	if (!children) {
 		return null;
 	}
+
 	return (
 		<p className="text-destructive text-xs" data-error="true">
 			{children}

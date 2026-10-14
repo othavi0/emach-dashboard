@@ -40,6 +40,7 @@ export function RevokeAllSessionsDialog({
 	function handleRevokeAll() {
 		startTransition(async () => {
 			const result = await revokeAllClientSessions({ clientId });
+
 			if (result.ok) {
 				notify.success(
 					`${result.data.count} sessão(ões) revogada(s) com sucesso`

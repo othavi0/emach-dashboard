@@ -24,6 +24,7 @@ describe("EntityClientTabs", () => {
 				tabs={tabs}
 			/>
 		);
+
 		expect(html).toContain("HEADER");
 		expect(html).toContain("Aba A");
 		expect(html).toContain("Aba B");
@@ -38,6 +39,7 @@ describe("EntityClientTabs", () => {
 				tabs={tabs}
 			/>
 		);
+
 		expect(html).toContain("conteudo-a");
 		expect(html).not.toContain("conteudo-b");
 	});

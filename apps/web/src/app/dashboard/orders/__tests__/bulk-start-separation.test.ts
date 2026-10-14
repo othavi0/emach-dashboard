@@ -98,6 +98,7 @@ function makeSelectChain(result: unknown[]) {
 	chain.where = vi.fn(() => chain);
 	chain.for = vi.fn(() => chain);
 	chain.limit = vi.fn(() => Promise.resolve(result));
+
 	return chain;
 }
 
@@ -115,15 +116,18 @@ function makeMockTx(selectResults: unknown[][]) {
 		const chain: Record<string, unknown> = {};
 		chain.set = vi.fn((vals: Record<string, unknown>) => {
 			updateSets.push(vals);
+
 			return chain;
 		});
 		chain.where = vi.fn(() => Promise.resolve({ rowCount: 1 }));
+
 		return chain;
 	};
 
 	const makeInsertChain = () => ({
 		values: vi.fn((vals: Record<string, unknown>) => {
 			insertedRows.push(vals);
+
 			return Promise.resolve(undefined);
 		}),
 	});
@@ -131,6 +135,7 @@ function makeMockTx(selectResults: unknown[][]) {
 	return {
 		select: vi.fn(() => {
 			const result = selectResults[selectCallIdx++] ?? [];
+
 			return makeSelectChain(result);
 		}),
 		update: vi.fn(() => makeUpdateChain()),
@@ -146,9 +151,11 @@ function queueTransactions(txs: ReturnType<typeof makeMockTx>[]) {
 	mockTransaction.mockImplementation(
 		(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) => {
 			const tx = txs[callIdx++];
+
 			if (!tx) {
 				throw new Error("queueTransactions: fila de tx mockada esgotada");
 			}
+
 			return cb(tx);
 		}
 	);
@@ -169,6 +176,7 @@ describe("bulkStartSeparationSchema", () => {
 			orderIds: [ORDER_A],
 			branchId: BRANCH_ID,
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -177,6 +185,7 @@ describe("bulkStartSeparationSchema", () => {
 			orderIds: [ORDER_A],
 			branchId: "não-é-uuid",
 		});
+
 		expect(result.success).toBe(false);
 	});
 });
@@ -197,6 +206,7 @@ describe("bulkStartSeparation", () => {
 			[{ status: "paid", branchId: null }],
 			[{ number: "EM-2026-0001" }],
 		]);
+
 		queueTransactions([tx]);
 
 		const result = await bulkStartSeparation({ orderIds: [ORDER_A] });
@@ -219,6 +229,7 @@ describe("bulkStartSeparation", () => {
 			[{ status: "paid", branchId: null }],
 			[{ number: "EM-2026-0002" }],
 		]);
+
 		queueTransactions([tx]);
 
 		const result = await bulkStartSeparation({
@@ -248,6 +259,7 @@ describe("bulkStartSeparation", () => {
 		const branchEvent = tx._insertedRows.find(
 			(row) => row.eventType === "branch_assigned"
 		);
+
 		expect(branchEvent).toMatchObject({
 			orderId: ORDER_A,
 			eventType: "branch_assigned",
@@ -262,6 +274,7 @@ describe("bulkStartSeparation", () => {
 			[{ status: "paid", branchId: OWN_BRANCH_ID }],
 			[{ number: "EM-2026-0003" }],
 		]);
+
 		queueTransactions([tx]);
 
 		const result = await bulkStartSeparation({
@@ -281,6 +294,7 @@ describe("bulkStartSeparation", () => {
 		const branchEvent = tx._insertedRows.find(
 			(row) => row.eventType === "branch_assigned"
 		);
+
 		expect(branchEvent).toBeUndefined();
 	});
 
@@ -318,10 +332,12 @@ describe("bulkStartSeparation", () => {
 			[{ status: "paid", branchId: null }],
 			[{ number: "EM-2026-0004" }],
 		]);
+
 		const txB = makeMockTx([
 			[{ status: "preparing", branchId: OWN_BRANCH_ID }],
 			[{ number: "EM-2026-0005" }],
 		]);
+
 		queueTransactions([txA, txB]);
 
 		const result = await bulkStartSeparation({

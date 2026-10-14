@@ -56,12 +56,16 @@ export const requireRole = async (
 	role: UserRole
 ): Promise<DashboardSession> => {
 	const session = await requireCurrentSession();
+
 	if (session.user.status !== "active") {
 		throw new Error("Conta não ativa");
 	}
+
 	const actual = (session.user.role ?? "user") as UserRole;
+
 	if (ROLE_WEIGHT[actual] < ROLE_WEIGHT[role]) {
 		throw new Error(`Forbidden: role "${role}" requerida`);
 	}
+
 	return session;
 };

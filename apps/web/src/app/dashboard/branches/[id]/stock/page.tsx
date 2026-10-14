@@ -31,10 +31,12 @@ async function BranchStockRedirectContent({
 
 	const qs = new URLSearchParams();
 	qs.set("tab", "stock");
+
 	for (const [key, value] of Object.entries(sp)) {
 		if (value === undefined) {
 			continue;
 		}
+
 		if (Array.isArray(value)) {
 			for (const v of value) {
 				qs.append(key, v);

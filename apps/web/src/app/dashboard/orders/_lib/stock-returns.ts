@@ -55,6 +55,7 @@ export async function applyStockReturns(
 					eq(stockMovement.reason, "devolucao_retorno")
 				)
 			);
+
 		if (alreadyCredited) {
 			continue;
 		}

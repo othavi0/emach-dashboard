@@ -100,6 +100,7 @@ export async function seedMarketing(tx: Tx, ctx: SeedContext): Promise<void> {
 
 	// p4 — 1 tool (índice 0)
 	const firstTool = tools[0];
+
 	if (firstTool !== undefined) {
 		links.push({ promotionId: p4Id, toolId: firstTool });
 	}

@@ -15,6 +15,7 @@ describe("suspendUserSchema", () => {
 			userId: "u1",
 			reason: "Motivo suficientemente longo",
 		});
+
 		expect(r.success).toBe(true);
 	});
 	it("rejeita sem reason", () => {
@@ -33,6 +34,7 @@ describe("deleteUserSchema", () => {
 			userId: "u1",
 			reason: "Funcionário desligado em 26/05",
 		});
+
 		expect(r.success).toBe(true);
 	});
 });

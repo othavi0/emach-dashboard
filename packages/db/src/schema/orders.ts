@@ -35,6 +35,7 @@ export const orderStatusEnum = pgEnum("order_status", [
 	"payment_failed",
 	"returned",
 ]);
+
 export type OrderStatus = (typeof orderStatusEnum.enumValues)[number];
 
 export const refundReasonEnum = pgEnum("refund_reason", [
@@ -44,6 +45,7 @@ export const refundReasonEnum = pgEnum("refund_reason", [
 	"arrependimento",
 	"outro",
 ]);
+
 export type RefundReason = (typeof refundReasonEnum.enumValues)[number];
 
 export const refundStatusEnum = pgEnum("refund_status", [
@@ -53,6 +55,7 @@ export const refundStatusEnum = pgEnum("refund_status", [
 	"refunded",
 	"rejected",
 ]);
+
 export type RefundStatus = (typeof refundStatusEnum.enumValues)[number];
 
 // Tipos de evento operacional auditável que não são transição de status.
@@ -65,6 +68,7 @@ export const orderEventTypeEnum = pgEnum("order_event_type", [
 	// Append-only: Postgres ALTER TYPE só ADD VALUE no fim.
 	"ship_forced",
 ]);
+
 export type OrderEventType = (typeof orderEventTypeEnum.enumValues)[number];
 
 export const orderPickingStatusEnum = pgEnum("order_picking_status", [
@@ -73,6 +77,7 @@ export const orderPickingStatusEnum = pgEnum("order_picking_status", [
 	"exception",
 	"canceled",
 ]);
+
 export type OrderPickingStatus =
 	(typeof orderPickingStatusEnum.enumValues)[number];
 
@@ -662,22 +667,41 @@ export const orderPickingScanRelations = relations(
 // --- Types ---
 
 export type Order = typeof order.$inferSelect;
+
 export type NewOrder = typeof order.$inferInsert;
+
 export type OrderItem = typeof orderItem.$inferSelect;
+
 export type NewOrderItem = typeof orderItem.$inferInsert;
+
 export type OrderStatusHistory = typeof orderStatusHistory.$inferSelect;
+
 export type NewOrderStatusHistory = typeof orderStatusHistory.$inferInsert;
+
 export type OrderNote = typeof orderNote.$inferSelect;
+
 export type NewOrderNote = typeof orderNote.$inferInsert;
+
 export type OrderAttachment = typeof orderAttachment.$inferSelect;
+
 export type NewOrderAttachment = typeof orderAttachment.$inferInsert;
+
 export type RefundRequest = typeof refundRequest.$inferSelect;
+
 export type NewRefundRequest = typeof refundRequest.$inferInsert;
+
 export type OrderEvent = typeof orderEvent.$inferSelect;
+
 export type NewOrderEvent = typeof orderEvent.$inferInsert;
+
 export type OrderPicking = typeof orderPicking.$inferSelect;
+
 export type NewOrderPicking = typeof orderPicking.$inferInsert;
+
 export type OrderPickingItem = typeof orderPickingItem.$inferSelect;
+
 export type NewOrderPickingItem = typeof orderPickingItem.$inferInsert;
+
 export type OrderPickingScan = typeof orderPickingScan.$inferSelect;
+
 export type NewOrderPickingScan = typeof orderPickingScan.$inferInsert;

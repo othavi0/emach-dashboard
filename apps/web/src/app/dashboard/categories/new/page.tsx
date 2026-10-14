@@ -23,6 +23,7 @@ async function NewCategoryPageContent({ searchParams }: NewCategoryPageProps) {
 	await requireCapabilityOrRedirect("categories.manage");
 	const { parent } = await searchParams;
 	const categories = await listCategories();
+
 	const validParent =
 		parent && categories.some((c) => c.id === parent) ? parent : null;
 

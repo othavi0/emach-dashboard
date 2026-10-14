@@ -8,8 +8,10 @@ function roundTrip(markdown: string): string {
 		content: markdown,
 		extensions: buildDescriptionExtensions(),
 	});
+
 	const out = editor.storage.markdown.getMarkdown();
 	editor.destroy();
+
 	return out;
 }
 

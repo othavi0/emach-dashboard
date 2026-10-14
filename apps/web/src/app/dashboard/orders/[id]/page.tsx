@@ -55,14 +55,17 @@ async function OrderDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCapability("orders.read");
 	const { id } = await params;
 	const sp = await searchParams;
+
 	const [branches, order, reviewsOverview] = await Promise.all([
 		listOrderBranches(),
 		getOrderDetail(id),
 		getOrderReviewsOverview(id),
 	]);
+
 	if (!order) {
 		notFound();
 	}
+
 	const [canAddNote, canCancel, canRefund, canUpdateStatus, canPick] =
 		await Promise.all([
 			can(session, "orders.add_note"),
@@ -71,8 +74,10 @@ async function OrderDetailPageContent({ params, searchParams }: PageProps) {
 			can(session, "orders.update_status"),
 			can(session, "orders.pick"),
 		]);
+
 	const canManageSession =
 		session.user.role === "admin" || session.user.role === "super_admin";
+
 	const isSuperAdmin = session.user.role === "super_admin";
 
 	const tabs: EntityClientTab[] = [

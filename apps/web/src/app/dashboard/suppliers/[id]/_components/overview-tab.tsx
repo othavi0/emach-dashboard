@@ -16,6 +16,7 @@ function formatCnpj(c: string): string {
 	if (c.length !== 14) {
 		return c;
 	}
+
 	return `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12, 14)}`;
 }
 

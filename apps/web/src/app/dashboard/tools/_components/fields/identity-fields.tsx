@@ -41,6 +41,7 @@ export function IdentityFields({
 
 	const effectiveAttrCount = (catId: string): number =>
 		definitionsByCategory[catId]?.length ?? 0;
+
 	const primaryIncomplete =
 		values.primaryCategoryId !== "" &&
 		!isCategoryComplete(effectiveAttrCount(values.primaryCategoryId));
@@ -56,6 +57,7 @@ export function IdentityFields({
 		) {
 			return current;
 		}
+
 		return (
 			ids.find((id) => isCategoryComplete(effectiveAttrCount(id))) ??
 			ids[0] ??
@@ -73,6 +75,7 @@ export function IdentityFields({
 			const next = checked
 				? [...prev.categoryIds, catId]
 				: prev.categoryIds.filter((c) => c !== catId);
+
 			return {
 				categoryIds: next,
 				primaryCategoryId: pickPrimary(next, prev.primaryCategoryId),
@@ -132,6 +135,7 @@ export function IdentityFields({
 						const checked = values.categoryIds.includes(cat.id);
 						const isPrimary = values.primaryCategoryId === cat.id;
 						const incomplete = !isCategoryComplete(effectiveAttrCount(cat.id));
+
 						return (
 							<div
 								className="flex items-center justify-between gap-2"

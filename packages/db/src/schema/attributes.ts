@@ -25,6 +25,7 @@ export const attributeInputTypeEnum = pgEnum("attribute_input_type", [
 	"numeric_range",
 	"color",
 ]);
+
 export type AttributeInputType =
 	(typeof attributeInputTypeEnum.enumValues)[number];
 
@@ -32,11 +33,13 @@ interface SelectOption {
 	label: string;
 	value: string;
 }
+
 interface ColorSwatch {
 	hex: string;
 	label: string;
 	value: string;
 }
+
 export type AttributeOptions =
 	| { kind: "select"; options: SelectOption[] }
 	| { kind: "color"; swatches: ColorSwatch[] };
@@ -179,10 +182,15 @@ export const toolAttributeAssignmentRelations = relations(
 );
 
 export type AttributeDefinition = typeof attributeDefinition.$inferSelect;
+
 export type NewAttributeDefinition = typeof attributeDefinition.$inferInsert;
+
 export type ToolAttributeValue = typeof toolAttributeValue.$inferSelect;
+
 export type NewToolAttributeValue = typeof toolAttributeValue.$inferInsert;
+
 export type ToolAttributeAssignment =
 	typeof toolAttributeAssignment.$inferSelect;
+
 export type NewToolAttributeAssignment =
 	typeof toolAttributeAssignment.$inferInsert;

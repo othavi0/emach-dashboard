@@ -40,6 +40,7 @@ function confirmButtonLabel(
 	if (confirming === "takeover") {
 		return isPending ? "Assumindo…" : "Confirmar takeover";
 	}
+
 	return isPending ? "Cancelando…" : "Confirmar cancelamento";
 }
 
@@ -55,6 +56,7 @@ function PostShipSummary({
 			</p>
 		);
 	}
+
 	return (
 		<p className="text-muted-foreground text-sm">
 			Separado por {fulfillment.pickerName}
@@ -292,6 +294,7 @@ export function PickingStatusCard({
 	const state: FulfillmentState = fulfillment?.state ?? "awaiting_picking";
 	const meta = FULFILLMENT_STATE_META[state];
 	const isPostShip = orderStatus !== "paid" && orderStatus !== "preparing";
+
 	const stale =
 		state === "picking_in_progress" &&
 		fulfillment != null &&
@@ -299,6 +302,7 @@ export function PickingStatusCard({
 			lastScannedAt: fulfillment.lastScannedAt,
 			startedAt: fulfillment.startedAt,
 		});
+
 	const progressPct =
 		fulfillment && fulfillment.totalUnits > 0
 			? Math.round((fulfillment.pickedUnits / fulfillment.totalUnits) * 100)
@@ -308,16 +312,19 @@ export function PickingStatusCard({
 		if (!fulfillment) {
 			return;
 		}
+
 		startTransition(async () => {
 			const result = await cancelPicking(
 				fulfillment.pickingId,
 				"Cancelada pelo painel do pedido"
 			);
+
 			if (result.ok) {
 				notify.success("Separação cancelada");
 			} else {
 				notify.error(result.error);
 			}
+
 			setConfirming(null);
 			router.refresh();
 		});
@@ -327,8 +334,10 @@ export function PickingStatusCard({
 		if (!fulfillment) {
 			return;
 		}
+
 		startTransition(async () => {
 			const result = await takeoverPicking(fulfillment.pickingId);
+
 			if (result.ok) {
 				notify.success("Separação assumida");
 				setConfirming(null);

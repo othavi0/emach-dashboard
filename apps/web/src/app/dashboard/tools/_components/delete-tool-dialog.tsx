@@ -33,7 +33,9 @@ function buildStockNote(facts: ToolDeletionFacts): string | null {
 	if (facts.stockQty <= 0) {
 		return null;
 	}
+
 	const unit = facts.stockBranchCount > 1 ? "filiais" : "filial";
+
 	return `Ainda há ${facts.stockQty} un em ${facts.stockBranchCount} ${unit} — o estoque não será alterado.`;
 }
 
@@ -54,12 +56,15 @@ function ArchiveOnlyDialog({
 	function handleArchive() {
 		startTransition(async () => {
 			const result = await archiveTool(toolId);
+
 			if (result.ok) {
 				notify.success("Ferramenta arquivada");
 				setOpen(false);
 				router.refresh();
+
 				return;
 			}
+
 			notify.error(result.error);
 		});
 	}
@@ -127,13 +132,16 @@ function ToolDeletionDialog({
 	function handleDelete() {
 		startTransition(async () => {
 			const result = await deleteTool(toolId);
+
 			if (result.ok) {
 				notify.success("Ferramenta removida");
 				setOpen(false);
 				router.push("/dashboard/tools");
 				router.refresh();
+
 				return;
 			}
+
 			notify.error(result.error);
 		});
 	}
@@ -141,12 +149,15 @@ function ToolDeletionDialog({
 	function handleArchive() {
 		startTransition(async () => {
 			const result = await archiveTool(toolId);
+
 			if (result.ok) {
 				notify.success("Ferramenta arquivada");
 				setOpen(false);
 				router.refresh();
+
 				return;
 			}
+
 			notify.error(result.error);
 		});
 	}
@@ -249,6 +260,7 @@ export function DeleteToolDialog({
 			<ArchiveOnlyDialog facts={facts} toolId={toolId} toolName={toolName} />
 		);
 	}
+
 	return (
 		<ToolDeletionDialog
 			facts={facts}

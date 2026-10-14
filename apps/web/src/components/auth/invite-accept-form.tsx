@@ -32,11 +32,13 @@ export function InviteAcceptForm({
 
 		if (password !== confirm) {
 			setErrorMessage("As senhas não coincidem.");
+
 			return;
 		}
 
 		setIsSubmitting(true);
 		const result = await acceptInvite({ token, name, password });
+
 		if (result.ok) {
 			router.replace("/dashboard");
 			router.refresh();

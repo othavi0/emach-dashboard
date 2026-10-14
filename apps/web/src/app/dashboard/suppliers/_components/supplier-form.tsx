@@ -43,6 +43,7 @@ export function SupplierForm({
 }: SupplierFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
+
 	const [values, setValues] = useState<SupplierFormValues>({
 		name: defaultValues.name ?? "",
 		contactEmail: defaultValues.contactEmail ?? "",
@@ -51,6 +52,7 @@ export function SupplierForm({
 		cnpj: defaultValues.cnpj ?? "",
 		notes: defaultValues.notes ?? "",
 	});
+
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<SupplierFormValues>();
 
@@ -62,6 +64,7 @@ export function SupplierForm({
 
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
 
@@ -70,6 +73,7 @@ export function SupplierForm({
 				mode === "create"
 					? createSupplier(parsed.data)
 					: updateSupplier(supplierId ?? "", parsed.data);
+
 			const result = await action;
 
 			if (result.ok) {

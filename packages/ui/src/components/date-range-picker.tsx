@@ -49,9 +49,11 @@ function label(from?: Date, to?: Date) {
 	if (from && to) {
 		return `${format(from, "dd/MM/yy", { locale: ptBR })} – ${format(to, "dd/MM/yy", { locale: ptBR })}`;
 	}
+
 	if (from) {
 		return `A partir de ${format(from, "dd/MM/yy", { locale: ptBR })}`;
 	}
+
 	return null;
 }
 

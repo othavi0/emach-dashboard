@@ -65,6 +65,7 @@ async function CustomerDetailPageContent({ params, searchParams }: PageProps) {
 		]);
 
 	const customer = await getCustomerDetail(id);
+
 	if (!customer) {
 		notFound();
 	}

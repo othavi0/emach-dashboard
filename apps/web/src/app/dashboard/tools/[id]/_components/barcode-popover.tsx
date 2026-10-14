@@ -23,6 +23,7 @@ export function BarcodePopover({
 	if (!barcode) {
 		return <span className="text-muted-foreground text-xs">—</span>;
 	}
+
 	return (
 		<Popover>
 			{trigger === "text" ? (

@@ -30,6 +30,7 @@ describe("detectSpecDivergences", () => {
 			attr("kg", 1.8, "peso"),
 			attr("W", 650, "potencia"),
 		]);
+
 		expect(d.fixed.has("weightKg")).toBe(true);
 		expect(d.attributeSlugs.has("peso")).toBe(true);
 		expect(d.fixed.has("powerWatts")).toBe(false);
@@ -40,6 +41,7 @@ describe("detectSpecDivergences", () => {
 		const d = detectSpecDivergences({ weightKg: "1.700", powerWatts: null }, [
 			attr("Nm", 30, "torque"),
 		]);
+
 		expect(d.fixed.size).toBe(0);
 		expect(d.attributeSlugs.size).toBe(0);
 	});

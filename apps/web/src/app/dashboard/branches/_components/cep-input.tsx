@@ -44,23 +44,28 @@ export function CepInput({
 	"aria-invalid": ariaInvalid,
 }: Props) {
 	const [isFetching, setIsFetching] = useState(false);
+
 	// Inicia com o CEP já preenchido para não re-resolver (e mostrar toast) ao abrir
 	// o form de edição. O auto-resolve só dispara quando o usuário muda o CEP.
 	const lastFetchedRef = useRef<string | null>(
 		value && value.length === 8 ? value : null
 	);
+
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
 		if (!value || value.length !== 8) {
 			return;
 		}
+
 		if (lastFetchedRef.current === value) {
 			return;
 		}
+
 		if (timerRef.current) {
 			clearTimeout(timerRef.current);
 		}
+
 		const cep = value;
 		timerRef.current = setTimeout(() => {
 			lastFetchedRef.current = cep;
@@ -73,10 +78,13 @@ export function CepInput({
 				.then((r) => r.json() as Promise<ViaCepResponse>)
 				.then((data) => {
 					clearTimeout(timeout);
+
 					if (data.erro) {
 						notify.error("CEP não encontrado");
+
 						return;
 					}
+
 					onResolve({
 						street: data.logradouro ?? "",
 						neighborhood: data.bairro ?? "",

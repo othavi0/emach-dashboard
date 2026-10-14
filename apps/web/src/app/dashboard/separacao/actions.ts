@@ -53,6 +53,7 @@ function revalidatePickingPaths(orderId: string): void {
 }
 
 type PickingRow = typeof orderPicking.$inferSelect;
+
 interface SessionUser {
 	id: string;
 	name?: string | null;
@@ -96,6 +97,7 @@ async function autoCancelIfOrderLeftPreparing(
 	if (orderStatus === "preparing") {
 		return false;
 	}
+
 	await tx
 		.update(orderPicking)
 		.set({
@@ -106,6 +108,7 @@ async function autoCancelIfOrderLeftPreparing(
 			cancelReason: `Pedido saiu de preparação (${orderStatus}) durante a separação`,
 		})
 		.where(eq(orderPicking.id, pickingId));
+
 	return true;
 }
 
@@ -173,6 +176,7 @@ async function getLatestSessionForGuard(
 		.where(eq(orderPicking.orderId, orderId))
 		.orderBy(desc(orderPicking.startedAt), desc(orderPicking.id))
 		.limit(1);
+
 	return latest ?? null;
 }
 
@@ -250,6 +254,7 @@ export async function startPicking(
 
 			const latest = await getLatestSessionForGuard(tx, orderId);
 			const denial = exceptionResumeDenial(latest, locked.session.user);
+
 			if (denial) {
 				throw new Error(denial);
 			}
@@ -264,11 +269,13 @@ export async function startPicking(
 		});
 
 		revalidatePickingPaths(orderId);
+
 		return { ok: true, data: { pickingId } };
 	} catch (error) {
 		logger.error("startPicking", error);
 
 		const pgErr = getPgError(error);
+
 		if (
 			pgErr?.code === "23505" &&
 			pgErr.constraint === "order_picking_one_active"
@@ -317,6 +324,7 @@ export async function bulkStartPicking(input: {
 	orderIds: string[];
 }): Promise<ActionResult<BulkStartPickingResult>> {
 	const parsed = bulkStartPickingSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -339,6 +347,7 @@ export async function bulkStartPicking(input: {
 		try {
 			for (const orderId of orderIds) {
 				const fallbackLabel = orderId.slice(0, 8);
+
 				try {
 					await db.transaction(async (tx: Tx) => {
 						const locked = await lockOrderAndAuthorize(
@@ -346,8 +355,10 @@ export async function bulkStartPicking(input: {
 							"orders.pick",
 							orderId
 						);
+
 						if (!locked) {
 							skipped.push({ number: fallbackLabel, reason: "não encontrado" });
+
 							return;
 						}
 
@@ -356,14 +367,17 @@ export async function bulkStartPicking(input: {
 							.from(order)
 							.where(eq(order.id, orderId))
 							.limit(1);
+
 						const label = row?.number ?? fallbackLabel;
 
 						const reason = bulkStartPickingSkipReason(locked);
+
 						if (reason) {
 							skipped.push({
 								number: label,
 								reason: BULK_PICKING_SKIP_LABEL[reason],
 							});
+
 							return;
 						}
 
@@ -375,8 +389,10 @@ export async function bulkStartPicking(input: {
 								number: label,
 								reason: BULK_PICKING_SKIP_LABEL.sem_filial,
 							});
+
 							return;
 						}
+
 						const branchId = locked.branchId;
 
 						const [existingSession] = await tx
@@ -389,17 +405,21 @@ export async function bulkStartPicking(input: {
 								)
 							)
 							.limit(1);
+
 						if (existingSession) {
 							skipped.push({ number: label, reason: "já em separação" });
+
 							return;
 						}
 
 						const latest = await getLatestSessionForGuard(tx, orderId);
+
 						if (exceptionResumeDenial(latest, locked.session.user)) {
 							skipped.push({
 								number: label,
 								reason: BULK_PICKING_EXCEPTION_OWNER_LABEL,
 							});
+
 							return;
 						}
 
@@ -416,6 +436,7 @@ export async function bulkStartPicking(input: {
 					});
 				} catch (error) {
 					const pgErr = getPgError(error);
+
 					if (
 						pgErr?.code === "23505" &&
 						pgErr.constraint === "order_picking_one_active"
@@ -423,11 +444,14 @@ export async function bulkStartPicking(input: {
 						skipped.push({ number: fallbackLabel, reason: "já em separação" });
 						continue;
 					}
+
 					const skipReason = bulkSkipReasonFromError(error);
+
 					if (skipReason) {
 						skipped.push({ number: fallbackLabel, reason: skipReason });
 						continue;
 					}
+
 					throw error;
 				}
 			}
@@ -496,6 +520,7 @@ export async function scanItem(
 
 			if (await autoCancelIfOrderLeftPreparing(tx, picking.id, locked.status)) {
 				orderLeft = true;
+
 				return;
 			}
 
@@ -522,6 +547,7 @@ export async function scanItem(
 					barcode?: string | null;
 					voltage?: string | null;
 				};
+
 				return {
 					id: pi.id,
 					variantId: pi.variantId,
@@ -542,6 +568,7 @@ export async function scanItem(
 
 			// Item já completo (e sem pendência) → nada a bipar.
 			const alreadyFull = matched.qtyPicked >= matched.qtyExpected;
+
 			if (!matched.notFound && alreadyFull) {
 				return { kind: "already_complete" } satisfies ScanResult;
 			}
@@ -585,6 +612,7 @@ export async function scanItem(
 			if (orderId) {
 				revalidatePickingPaths(orderId);
 			}
+
 			return { ok: false, error: ORDER_LEFT_PREPARING_ERROR };
 		}
 
@@ -657,6 +685,7 @@ export async function reportMissing(
 
 			if (await autoCancelIfOrderLeftPreparing(tx, picking.id, locked.status)) {
 				orderLeft = true;
+
 				return;
 			}
 
@@ -722,12 +751,14 @@ export async function confirmItemManually(
 ): Promise<ActionResult<{ qtyPicked: number; qtyExpected: number }>> {
 	try {
 		const trimmedReason = reason.trim();
+
 		if (trimmedReason.length < MIN_MANUAL_REASON_LENGTH) {
 			return {
 				ok: false,
 				error: `Informe um motivo com pelo menos ${MIN_MANUAL_REASON_LENGTH} caracteres`,
 			};
 		}
+
 		if (!Number.isInteger(qty) || qty < 1) {
 			return { ok: false, error: "Quantidade inválida" };
 		}
@@ -774,13 +805,16 @@ export async function confirmItemManually(
 
 			if (await autoCancelIfOrderLeftPreparing(tx, picking.id, locked.status)) {
 				orderLeft = true;
+
 				return;
 			}
 
 			const remaining = item.qtyExpected - item.qtyPicked;
+
 			if (remaining <= 0) {
 				throw new Error("Item já está completo — nada a confirmar");
 			}
+
 			if (qty > remaining) {
 				throw new Error(
 					`Quantidade acima do restante (falta${remaining === 1 ? "" : "m"} ${remaining})`
@@ -801,6 +835,7 @@ export async function confirmItemManually(
 				.where(eq(orderPickingItem.id, pickingItemId));
 
 			const { session } = locked;
+
 			for (let i = 0; i < qty; i++) {
 				await tx.insert(orderPickingScan).values({
 					id: crypto.randomUUID(),
@@ -892,6 +927,7 @@ export async function completePicking(
 
 			if (await autoCancelIfOrderLeftPreparing(tx, picking.id, locked.status)) {
 				orderLeft = true;
+
 				return;
 			}
 
@@ -994,6 +1030,7 @@ export async function cancelPicking(
 
 			assertInProgress(picking);
 			const { session } = locked;
+
 			if (
 				picking.pickerUserId !== session.user.id &&
 				!canManageOthersSession(session.user)
@@ -1044,6 +1081,7 @@ export async function takeoverPicking(
 ): Promise<ActionResult<{ pickingId: string }>> {
 	try {
 		let orderId: string | undefined;
+
 		const newPickingId = await db.transaction(async (tx: Tx) => {
 			const [picking] = await tx
 				.select()
@@ -1140,6 +1178,7 @@ export async function fetchPickingQueuePageAction(args: {
 }) {
 	const session = await requireCapability("orders.pick");
 	const scope = await getUserBranchScope(session);
+
 	return fetchPickingQueuePage({ ...args, scope });
 }
 
@@ -1147,8 +1186,10 @@ export async function getPickingForOrderAction(orderId: string) {
 	const session = await requireCapability("orders.pick");
 	const scope = await getUserBranchScope(session);
 	const orderRow = await getOrderBranchId(orderId);
+
 	if (!(orderRow && orderInScope(scope, orderRow.branchId))) {
 		return null;
 	}
+
 	return getPickingForOrder(orderId);
 }

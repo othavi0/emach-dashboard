@@ -18,6 +18,7 @@ export function BarcodeEan13({
 	if (!isValidEan13(code)) {
 		return null;
 	}
+
 	return (
 		<svg
 			aria-label={`Código de barras ${code}`}

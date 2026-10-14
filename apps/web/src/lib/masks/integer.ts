@@ -6,10 +6,13 @@ function sanitizeInteger(display: string): string {
 
 function parseIntegerDisplay(display: string): number | undefined {
 	const cleaned = sanitizeInteger(display);
+
 	if (!cleaned) {
 		return;
 	}
+
 	const n = Number(cleaned);
+
 	return Number.isNaN(n) ? undefined : n;
 }
 
@@ -17,6 +20,7 @@ function formatInteger(raw: number | undefined): string {
 	if (raw === undefined || Number.isNaN(raw)) {
 		return "";
 	}
+
 	return String(Math.trunc(Math.abs(raw)));
 }
 

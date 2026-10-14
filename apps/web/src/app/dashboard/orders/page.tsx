@@ -32,10 +32,12 @@ function buildClearProductHref(
 	raw: Record<string, string | string[] | undefined>
 ): string {
 	const params = new URLSearchParams();
+
 	for (const [key, value] of Object.entries(raw)) {
 		if (key === "productId" || value === undefined) {
 			continue;
 		}
+
 		if (Array.isArray(value)) {
 			for (const v of value) {
 				params.append(key, v);
@@ -44,7 +46,9 @@ function buildClearProductHref(
 			params.set(key, value);
 		}
 	}
+
 	const qs = params.toString();
+
 	return `/dashboard/orders${qs ? `?${qs}` : ""}`;
 }
 

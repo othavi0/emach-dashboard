@@ -32,6 +32,7 @@ describe("updateOrderStatusSchema — trackingCode no envio (spec D3)", () => {
 			orderId: ORDER_ID,
 			toStatus: "shipped",
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -41,6 +42,7 @@ describe("updateOrderStatusSchema — trackingCode no envio (spec D3)", () => {
 			toStatus: "shipped",
 			trackingCode: "BR123456789BR",
 		});
+
 		expect(result.success).toBe(true);
 	});
 
@@ -49,6 +51,7 @@ describe("updateOrderStatusSchema — trackingCode no envio (spec D3)", () => {
 			orderId: ORDER_ID,
 			toStatus: "canceled",
 		});
+
 		expect(result.success).toBe(false);
 	});
 });

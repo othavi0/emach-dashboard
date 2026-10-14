@@ -46,9 +46,11 @@ export interface UploadPrivateResult {
 
 function extractFile(formData: FormData): File {
 	const file = formData.get("file");
+
 	if (!(file instanceof File)) {
 		throw new Error("Arquivo ausente");
 	}
+
 	return file;
 }
 
@@ -60,6 +62,7 @@ function validateFile(
 	if (!allowedTypes.has(file.type)) {
 		throw new Error(`Formato inválido (${[...allowedTypes].join(", ")})`);
 	}
+
 	if (file.size > maxSizeBytes) {
 		const limitMb = (maxSizeBytes / (1024 * 1024)).toFixed(0);
 		throw new Error(`Arquivo excede ${limitMb}MB`);
@@ -69,6 +72,7 @@ function validateFile(
 function buildObjectPath(file: File, prefix?: string): string {
 	const extension = file.name.split(".").pop() ?? "bin";
 	const slug = `${crypto.randomUUID()}.${extension}`;
+
 	return prefix ? `${prefix}/${slug}` : slug;
 }
 
@@ -195,8 +199,10 @@ export function extractPublicUrlPath(
 ): string | null {
 	const marker = `/${bucket}/`;
 	const idx = publicUrl.indexOf(marker);
+
 	if (idx === -1) {
 		return null;
 	}
+
 	return publicUrl.slice(idx + marker.length);
 }

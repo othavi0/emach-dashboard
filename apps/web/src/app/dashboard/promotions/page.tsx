@@ -70,7 +70,9 @@ function parseDiscount(raw?: string): number | undefined {
 	if (!raw) {
 		return;
 	}
+
 	const n = Number(raw);
+
 	return Number.isFinite(n) && n >= 0 && n <= 100 ? n : undefined;
 }
 
@@ -79,9 +81,11 @@ function buildStatusHref(
 	status: PromotionStatus
 ): string {
 	const params = new URLSearchParams();
+
 	if (status !== "active") {
 		params.set("status", status);
 	}
+
 	for (const key of [
 		"search",
 		"type",
@@ -94,7 +98,9 @@ function buildStatusHref(
 			params.set(key, sp[key] as string);
 		}
 	}
+
 	const qs = params.toString();
+
 	return qs ? `/dashboard/promotions?${qs}` : "/dashboard/promotions";
 }
 
@@ -107,21 +113,26 @@ async function PromotionsPageContent({ searchParams }: PageProps) {
 		"promotions.read",
 		"/dashboard/sem-acesso?recurso=Promoções"
 	);
+
 	const canMutate = await can(session, "promotions.manage");
 
 	const params = await searchParams;
 	const search = params.search ?? "";
 	const typeParam = params.type;
+
 	const typeFilter =
 		typeParam === "promotion" || typeParam === "promocode" ? typeParam : "all";
+
 	const statusFilter = (
 		VALID_STATUS.has(params.status as PromotionStatus)
 			? params.status
 			: "active"
 	) as PromotionStatus;
+
 	const sort = (
 		VALID_SORT.has(params.sort as PromotionSort) ? params.sort : "createdDesc"
 	) as PromotionSort;
+
 	const discountMin = parseDiscount(params.discountMin);
 	const discountMax = parseDiscount(params.discountMax);
 	const toolId = params.toolId;

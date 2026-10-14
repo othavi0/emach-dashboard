@@ -59,6 +59,7 @@ export function DeleteBannerDialog({
 							e.preventDefault();
 							startTransition(async () => {
 								const r = await deleteBanner(bannerId);
+
 								if (r.ok) {
 									notify.success("Banner excluído");
 									setOpen(false);

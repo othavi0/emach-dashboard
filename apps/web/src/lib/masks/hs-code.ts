@@ -10,6 +10,7 @@ export const hsCodeMask: Mask<string> = {
 	format: (raw) => raw ?? "",
 	parse: (display) => {
 		const cleaned = sanitizeHs(display);
+
 		return cleaned ? cleaned : undefined;
 	},
 	sanitize: sanitizeHs,

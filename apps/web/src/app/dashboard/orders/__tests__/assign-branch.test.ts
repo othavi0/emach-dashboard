@@ -92,6 +92,7 @@ function makeMockTx(selectResults: unknown[][]) {
 		chain.where = vi.fn(() => chain);
 		chain.for = vi.fn(() => chain);
 		chain.limit = vi.fn(() => Promise.resolve(result));
+
 		return chain;
 	};
 
@@ -100,6 +101,7 @@ function makeMockTx(selectResults: unknown[][]) {
 		const chain: Record<string, unknown> = {};
 		chain.set = vi.fn(() => chain);
 		chain.where = vi.fn(() => Promise.resolve({ rowCount: 1 }));
+
 		return chain;
 	};
 
@@ -111,6 +113,7 @@ function makeMockTx(selectResults: unknown[][]) {
 	return {
 		select: vi.fn((_shape: unknown) => {
 			const result = selectResults[selectCallIdx++] ?? [];
+
 			return makeSelectChain(result);
 		}),
 		update: vi.fn((_table: unknown) => makeUpdateChain()),
@@ -205,13 +208,16 @@ describe("assignBranch", () => {
 					[{ status: "pending_payment", branchId: SOURCE_BRANCH_ID }],
 					[{ name: "Filial Destino" }],
 				]);
+
 				// Capture insert values for assertion
 				mockTx._insertValues.mockImplementation(
 					(vals: Record<string, unknown>) => {
 						captured.push(vals);
+
 						return Promise.resolve(undefined);
 					}
 				);
+
 				return cb(mockTx);
 			}
 		);

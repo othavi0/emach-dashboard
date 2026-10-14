@@ -43,6 +43,7 @@ describe("NAV_GROUPS — esquema por fluxo", () => {
 	it("Movimentações em Vendas; Filiais em Configuração", () => {
 		const groupOf = (label: string) =>
 			NAV_GROUPS.find((g) => g.items.some((i) => i.label === label))?.label;
+
 		expect(groupOf("Movimentações")).toBe("Vendas");
 		expect(groupOf("Filiais")).toBe("Configuração");
 	});
@@ -56,6 +57,7 @@ describe("NAV_GROUPS — esquema por fluxo", () => {
 		const filiais = NAV_GROUPS.flatMap((g) => g.items).find(
 			(i) => i.label === "Filiais"
 		);
+
 		expect(filiais?.capability).toBe("branches.read");
 	});
 });

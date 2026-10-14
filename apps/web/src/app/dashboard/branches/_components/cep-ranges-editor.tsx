@@ -36,6 +36,7 @@ const MAX_RANGES = 20;
 function normalize(rows: CepRangeValue[]): CepRangeValue[] {
 	return rows.map((r) => {
 		const hasLabel = Boolean(r.label && r.label.trim() !== "");
+
 		return hasLabel
 			? { from: r.from, to: r.to, label: r.label }
 			: { from: r.from, to: r.to };
@@ -58,6 +59,7 @@ export function CepRangesEditor({
 		if (value.length >= MAX_RANGES) {
 			return;
 		}
+
 		onChange([...value, { from: "", to: "" }]);
 	}
 
@@ -73,15 +75,19 @@ export function CepRangesEditor({
 
 	function addUf(uf: string | null) {
 		const preset = UF_CEP_PRESETS.find((p) => p.uf === uf);
+
 		if (!preset) {
 			return;
 		}
+
 		const additions = preset.ranges
 			.slice(0, MAX_RANGES - value.length)
 			.map((r) => ({ from: r.from, to: r.to, label: preset.name }));
+
 		if (additions.length === 0) {
 			return;
 		}
+
 		onChange([...value, ...additions]);
 	}
 

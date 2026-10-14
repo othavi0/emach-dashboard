@@ -52,10 +52,12 @@ function lineKey(item: PickingListItem): string {
 /** Coleta consolidada: itens iguais somados, uma passada no estoque (spec, decisão 4). */
 export function consolidateItems(orders: PickingListOrder[]): CollectLine[] {
 	const byKey = new Map<string, CollectLine & { orderIds: Set<string> }>();
+
 	for (const o of orders) {
 		for (const item of o.items) {
 			const key = lineKey(item);
 			const existing = byKey.get(key);
+
 			if (existing) {
 				existing.totalQty += item.quantity;
 				existing.orderIds.add(o.id);
@@ -73,6 +75,7 @@ export function consolidateItems(orders: PickingListOrder[]): CollectLine[] {
 			}
 		}
 	}
+
 	return Array.from(byKey.values())
 		.map(({ orderIds, ...line }) => ({ ...line, orderCount: orderIds.size }))
 		.sort(
@@ -83,15 +86,18 @@ export function consolidateItems(orders: PickingListOrder[]): CollectLine[] {
 /** Conferência agrupada por transportadora; sem transportadora vai pro fim (spec §edge cases). */
 export function groupByCarrier(orders: PickingListOrder[]): CarrierGroup[] {
 	const byCarrier = new Map<string | null, PickingListOrder[]>();
+
 	for (const o of orders) {
 		const key = o.shippingMethod;
 		const group = byCarrier.get(key);
+
 		if (group) {
 			group.push(o);
 		} else {
 			byCarrier.set(key, [o]);
 		}
 	}
+
 	const groups: CarrierGroup[] = Array.from(byCarrier.entries()).map(
 		([carrier, groupOrders]) => ({
 			carrier,
@@ -101,13 +107,16 @@ export function groupByCarrier(orders: PickingListOrder[]): CarrierGroup[] {
 			),
 		})
 	);
+
 	return groups.sort((a, b) => {
 		if (a.carrier === null) {
 			return 1;
 		}
+
 		if (b.carrier === null) {
 			return -1;
 		}
+
 		return a.label.localeCompare(b.label, "pt-BR");
 	});
 }
@@ -121,13 +130,16 @@ export function pickingListStats(orders: PickingListOrder[]): PickingListStats {
 	const skus = new Set<string>();
 	const carriers = new Set<string | null>();
 	let units = 0;
+
 	for (const o of orders) {
 		carriers.add(o.shippingMethod);
+
 		for (const item of o.items) {
 			units += item.quantity;
 			skus.add(lineKey(item));
 		}
 	}
+
 	return {
 		carriers: carriers.size,
 		orders: orders.length,
@@ -141,5 +153,6 @@ export function batchLabel(now: Date): string {
 	// formatDayTime devolve "dd/MM, HH:mm" (fuso America/Sao_Paulo) — extrai só
 	// os dígitos pra não depender do separador exato (vírgula/espaço/etc).
 	const digits = formatDayTime(now).replace(/\D/g, "");
+
 	return `L-${digits.slice(0, 4)}-${digits.slice(4, 8)}`;
 }

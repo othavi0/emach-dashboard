@@ -21,6 +21,7 @@ export function PromotionsGrid({
 	initialCursor,
 }: PromotionsGridProps) {
 	const resetKey = JSON.stringify(filters);
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,

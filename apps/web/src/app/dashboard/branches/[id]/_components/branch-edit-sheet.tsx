@@ -45,15 +45,19 @@ export function BranchEditSheet({ branch }: Props) {
 	const [values, setValues] = useState<BranchFormValues>(() =>
 		toFormValues(branch)
 	);
+
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<BranchFormValues>();
+
 	const [submitting, startTransition] = useTransition();
 
 	// Reset síncrono durante o render (padrão "adjusting state when a prop
 	// changes") — sem o re-render extra do reset via effect.
 	const [lastReset, setLastReset] = useState({ branch, open });
+
 	if (lastReset.open !== open || lastReset.branch !== branch) {
 		setLastReset({ branch, open });
+
 		if (open) {
 			setValues(toFormValues(branch));
 			clearErrors();
@@ -70,12 +74,16 @@ export function BranchEditSheet({ branch }: Props) {
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		const parsed = branchSchema.safeParse(values);
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
+
 		startTransition(async () => {
 			const res = await updateBranch(branch.id, parsed.data);
+
 			if (res.ok) {
 				notify.success("Filial atualizada");
 				close();

@@ -31,6 +31,7 @@ describe("normalizeVariantValues", () => {
 			isDefault: true,
 			sortOrder: 0,
 		});
+
 		expect(out.barcode).toBe("7891234567890");
 	});
 });

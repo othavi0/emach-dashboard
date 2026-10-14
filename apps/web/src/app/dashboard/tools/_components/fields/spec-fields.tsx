@@ -22,8 +22,10 @@ export function SpecFields({ values, onPatch, errors }: ToolFieldGroupProps) {
 	const definitionsBySlug = new Map(allDefinitions.map((d) => [d.slug, d]));
 
 	const assignedDefinitions: AttributeDefinition[] = [];
+
 	for (const slug of values.attributeAssignments) {
 		const def = definitionsBySlug.get(slug);
+
 		if (def) {
 			assignedDefinitions.push(def);
 		}
@@ -37,11 +39,13 @@ export function SpecFields({ values, onPatch, errors }: ToolFieldGroupProps) {
 	function updateAssignments(next: string[]) {
 		const nextSet = new Set(next);
 		const trimmed: Record<string, AttributeValueInput> = {};
+
 		for (const [k, v] of Object.entries(values.attributeValues)) {
 			if (nextSet.has(k)) {
 				trimmed[k] = v;
 			}
 		}
+
 		onPatch({ attributeAssignments: next, attributeValues: trimmed });
 	}
 

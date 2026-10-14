@@ -22,7 +22,9 @@ export function paginate<TRaw, TItem>(
 	const pageRows = hasMore ? rawRows.slice(0, BATCH_SIZE) : rawRows;
 	const items = pageRows.map(mapRow);
 	const lastRaw = pageRows.at(-1);
+
 	const nextCursor =
 		hasMore && lastRaw ? encodeCursor(makeCursor(lastRaw)) : null;
+
 	return { items, nextCursor };
 }

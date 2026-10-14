@@ -12,6 +12,7 @@ describe("resolveVariantDeletion", () => {
 			siblings: [sib("a", 0), sib("b", 1)],
 			stockQty: 0,
 		});
+
 		expect(r.allowed).toBe(false);
 	});
 
@@ -23,7 +24,9 @@ describe("resolveVariantDeletion", () => {
 			siblings: [sib("a", 0), sib("b", 1)],
 			stockQty: 12,
 		});
+
 		expect(r.allowed).toBe(false);
+
 		if (!r.allowed) {
 			expect(r.error).toContain("12 un em estoque");
 		}
@@ -37,7 +40,9 @@ describe("resolveVariantDeletion", () => {
 			siblings: [sib("a", 0), sib("b", 1)],
 			stockQty: 5,
 		});
+
 		expect(r.allowed).toBe(false);
+
 		if (!r.allowed) {
 			expect(r.error).toContain("pedidos");
 		}
@@ -51,6 +56,7 @@ describe("resolveVariantDeletion", () => {
 			siblings: [sib("a", 0)],
 			stockQty: 0,
 		});
+
 		expect(r.allowed).toBe(false);
 	});
 
@@ -62,6 +68,7 @@ describe("resolveVariantDeletion", () => {
 			siblings: [sib("a", 0), sib("b", 1)],
 			stockQty: 0,
 		});
+
 		expect(r).toEqual({ allowed: true, reassignDefaultTo: null });
 	});
 
@@ -73,6 +80,7 @@ describe("resolveVariantDeletion", () => {
 			siblings: [sib("c", 2), sib("a", 0), sib("b", 1)],
 			stockQty: 0,
 		});
+
 		expect(r).toEqual({ allowed: true, reassignDefaultTo: "b" });
 	});
 });

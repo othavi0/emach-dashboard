@@ -13,6 +13,7 @@ export const SORT_OPTIONS = [
 	"lastOrderDesc",
 	"nameAsc",
 ] as const;
+
 export type CustomerSort = (typeof SORT_OPTIONS)[number];
 
 export const customersListFiltersSchema = z
@@ -52,6 +53,7 @@ export const customersListFiltersSchema = z
 				path: ["createdTo"],
 			});
 		}
+
 		if (d.lastOrderFrom && d.lastOrderTo && d.lastOrderTo < d.lastOrderFrom) {
 			ctx.addIssue({
 				code: "custom",
@@ -59,6 +61,7 @@ export const customersListFiltersSchema = z
 				path: ["lastOrderTo"],
 			});
 		}
+
 		if (
 			d.ltvMin !== undefined &&
 			d.ltvMax !== undefined &&
@@ -71,6 +74,7 @@ export const customersListFiltersSchema = z
 			});
 		}
 	});
+
 export type CustomersListFilters = z.infer<typeof customersListFiltersSchema>;
 
 export const updateCustomerProfileSchema = z.object({
@@ -82,6 +86,7 @@ export const updateCustomerProfileSchema = z.object({
 	status: z.enum(clientStatusEnum.enumValues),
 	clientType: z.enum(clientTypeEnum.enumValues).nullable().optional(),
 });
+
 export type UpdateCustomerProfileInput = z.infer<
 	typeof updateCustomerProfileSchema
 >;
@@ -91,6 +96,7 @@ export const updateCustomerStatusSchema = z.object({
 	status: z.enum(clientStatusEnum.enumValues),
 	reason: z.string().trim().max(500).optional(),
 });
+
 export type UpdateCustomerStatusInput = z.infer<
 	typeof updateCustomerStatusSchema
 >;
@@ -109,9 +115,11 @@ export const revokeClientSessionSchema = z.object({
 	clientId: z.string().min(1),
 	sessionId: z.string().min(1),
 });
+
 export const revokeAllClientSessionsSchema = z.object({
 	clientId: z.string().min(1),
 });
+
 export const generatePasswordResetSchema = z.object({
 	clientId: z.string().min(1),
 });

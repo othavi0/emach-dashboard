@@ -55,6 +55,7 @@ export const attributeFormSchema = z
 				message: "Adicione ao menos uma opção",
 			});
 		}
+
 		if (data.inputType === "color" && data.swatches.length < 1) {
 			ctx.addIssue({
 				code: "custom",
@@ -72,9 +73,11 @@ export function buildOptionsField(
 	if (values.inputType === "select") {
 		return { kind: "select", options: values.options };
 	}
+
 	if (values.inputType === "color") {
 		return { kind: "color", swatches: values.swatches };
 	}
+
 	return null;
 }
 
@@ -84,9 +87,11 @@ export function validateSlugFormat(slug: string): string | null {
 	if (slug.trim() === "") {
 		return "Slug obrigatório";
 	}
+
 	if (!SLUG_REGEX.test(slug)) {
 		return "Use apenas letras minúsculas, números e hífens (sem espaços ou acentos)";
 	}
+
 	return null;
 }
 

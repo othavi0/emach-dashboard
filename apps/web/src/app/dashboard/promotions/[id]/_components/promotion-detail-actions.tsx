@@ -19,6 +19,7 @@ interface Props {
  */
 export function PromotionDetailActions({ canDelete, detail }: Props) {
 	const tab = useActiveTab();
+
 	if (tab === "tools") {
 		return (
 			<Link
@@ -30,5 +31,6 @@ export function PromotionDetailActions({ canDelete, detail }: Props) {
 			</Link>
 		);
 	}
+
 	return <PromotionHeaderActions canDelete={canDelete} promotion={detail} />;
 }

@@ -25,11 +25,13 @@ export async function buildEffectiveAttributeCounts(): Promise<
 
 	const parentById = new Map(categories.map((c) => [c.id, c.parentId]));
 	const ownCount = new Map<string, number>();
+
 	for (const d of defs) {
 		ownCount.set(d.categoryId, (ownCount.get(d.categoryId) ?? 0) + 1);
 	}
 
 	const result = new Map<string, number>();
+
 	for (const c of categories) {
 		let total = 0;
 		// `seen` é defesa contra um parentId cíclico vindo de escrita SQL direta
@@ -37,13 +39,16 @@ export async function buildEffectiveAttributeCounts(): Promise<
 		// while oscilaria pra sempre.
 		const seen = new Set<string>();
 		let cursor: string | null = c.id;
+
 		while (cursor && !seen.has(cursor)) {
 			seen.add(cursor);
 			total += ownCount.get(cursor) ?? 0;
 			cursor = parentById.get(cursor) ?? null;
 		}
+
 		result.set(c.id, total);
 	}
+
 	return result;
 }
 
@@ -61,9 +66,11 @@ export async function getEffectiveAttributeCount(
 		.from(category)
 		.where(eq(category.id, categoryId))
 		.limit(1);
+
 	if (!self) {
 		return 0;
 	}
+
 	const [row] = await db
 		.select({ n: sql<number>`count(*)::int` })
 		.from(attributeDefinition)
@@ -74,5 +81,6 @@ export async function getEffectiveAttributeCount(
 				sql`${self.path} like ${category.path} || '/%'`
 			)
 		);
+
 	return Number(row?.n ?? 0);
 }

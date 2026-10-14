@@ -8,7 +8,9 @@ describe("shippingSettingsSchema", () => {
 			insurancePolicy: "none",
 			insuranceCapAmount: 3000,
 		});
+
 		expect(r.success).toBe(true);
+
 		if (r.success) {
 			expect(r.data.originBranchId).toBeUndefined();
 		}
@@ -19,6 +21,7 @@ describe("shippingSettingsSchema", () => {
 			insurancePolicy: "full",
 			insuranceCapAmount: 3000,
 		});
+
 		expect(r.success).toBe(false);
 	});
 
@@ -27,6 +30,7 @@ describe("shippingSettingsSchema", () => {
 			insurancePolicy: "cart_value",
 			insuranceCapAmount: -1,
 		});
+
 		expect(r.success).toBe(false);
 	});
 
@@ -36,6 +40,7 @@ describe("shippingSettingsSchema", () => {
 			insurancePolicy: "cart_value",
 			insuranceCapAmount: 100_001,
 		});
+
 		expect(r.success).toBe(false);
 	});
 });

@@ -45,6 +45,7 @@ export function useInfiniteList<T>({
 		if (resetKey === lastResetKey.current) {
 			return;
 		}
+
 		lastResetKey.current = resetKey;
 		const mySeq = ++refetchSeq.current;
 		setItems([]);
@@ -56,9 +57,11 @@ export function useInfiniteList<T>({
 			// Sem finally: React Compiler baila em try com finalizer.
 			try {
 				const next = await fetchPageEvent(null);
+
 				if (mySeq !== refetchSeq.current) {
 					return;
 				}
+
 				setItems(next.items);
 				cursorRef.current = next.nextCursor;
 				setCursor(next.nextCursor);
@@ -80,6 +83,7 @@ export function useInfiniteList<T>({
 		if (!cursorRef.current || inflightRef.current) {
 			return;
 		}
+
 		const currentCursor = cursorRef.current;
 		inflightRef.current = true;
 		startTransition(async () => {

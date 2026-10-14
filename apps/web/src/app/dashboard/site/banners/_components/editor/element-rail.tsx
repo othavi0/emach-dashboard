@@ -31,12 +31,15 @@ const MOBILE_STATUS_LABEL: Record<MobileStatus, string> = {
 
 function mobileStatus(state: EditorState, key: ElementKey): MobileStatus {
 	const entry = Reflect.get(state.composition.mobile.elements, key);
+
 	if (entry === undefined) {
 		return "herdado";
 	}
+
 	if (typeof entry === "object" && entry !== null && "hidden" in entry) {
 		return "oculto";
 	}
+
 	return "override";
 }
 
@@ -55,6 +58,7 @@ function ElementRow({
 }) {
 	const enabled = isDesktopEnabled(state, elementKey);
 	const selected = state.selected === elementKey;
+
 	const status =
 		state.viewport === "mobile" ? mobileStatus(state, elementKey) : null;
 
@@ -118,6 +122,7 @@ export function ElementRail({
 	dispatch: (a: EditorAction) => void;
 }) {
 	const backgroundSelected = state.selected === "background";
+
 	return (
 		<div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-2">
 			<p className="px-2 pt-1 pb-2 font-semibold text-muted-foreground text-xs uppercase tracking-wider">

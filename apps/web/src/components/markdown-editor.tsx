@@ -46,7 +46,9 @@ export function MarkdownEditor({
 		if (!editor) {
 			return;
 		}
+
 		const current = editor.storage.markdown.getMarkdown();
+
 		if (value !== current) {
 			editor.commands.setContent(value, { emitUpdate: false });
 		}

@@ -69,6 +69,7 @@ export async function getOrderBranchId(orderId: string): Promise<{
 		.leftJoin(branch, eq(branch.id, order.branchId))
 		.where(eq(order.id, orderId))
 		.limit(1);
+
 	return row ?? null;
 }
 
@@ -165,9 +166,11 @@ export async function getLatestPicking(
 	`);
 
 	const row = result.rows[0];
+
 	if (!row) {
 		return null;
 	}
+
 	return {
 		pickingId: row.picking_id,
 		status: row.status,
@@ -207,6 +210,7 @@ export async function fetchPickingQueuePage(args: {
 
 	// Keyset cursor by (paidAt ASC, id ASC)
 	let cursorFragment = sql``;
+
 	if (cursor) {
 		const c = decodeCursorAs(cursor, "paidAtAsc");
 		cursorFragment = sql` AND (o.paid_at, o.id) > (${c.paidAt}::timestamptz, ${c.id})`;
@@ -471,6 +475,7 @@ export async function fetchPickingQueueCounts(
 	const row = result.rows[0];
 	const aSepararPaid = row?.a_separar_paid ?? 0;
 	const aSepararPreparing = row?.a_separar_preparing ?? 0;
+
 	return {
 		// Fonte única: total derivado da soma dos recortes (nunca deriva do UI).
 		a_separar: aSepararPaid + aSepararPreparing,
@@ -563,6 +568,7 @@ export async function fetchPickingProductivitySummary(
 	`);
 
 	const row = result.rows[0];
+
 	return {
 		completedToday: Number(row?.completed_today ?? 0),
 		completedWeek: Number(row?.completed_week ?? 0),

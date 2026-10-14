@@ -18,6 +18,7 @@ import { LATE_TAB_HOURS } from "./lateness";
 // única consumida por fetchOrdersPage, resumo de produto e export CSV.
 export function resolveTab(tab?: string) {
 	const key = canonicalOrderTabKey(tab);
+
 	return ORDER_TABS.find((item) => item.key === key) ?? ALL_ORDERS_TAB;
 }
 
@@ -25,7 +26,9 @@ export function normalizeDateParam(value?: string): string | undefined {
 	if (!value) {
 		return;
 	}
+
 	const trimmed = value.trim();
+
 	return trimmed ? trimmed : undefined;
 }
 
@@ -54,6 +57,7 @@ export interface OrdersWhereFilters {
 const fulfillmentAge = sql`CASE WHEN o.status = 'preparing'
 	THEN COALESCE(o.preparing_at, o.paid_at, o.created_at)
 	ELSE COALESCE(o.paid_at, o.created_at) END`;
+
 const lateCutoff = sql`now() - make_interval(hours => ${LATE_TAB_HOURS})`;
 
 // Última sessão de picking do pedido (mesma semântica do LATERAL lp de
@@ -82,8 +86,10 @@ export function effectiveTabStatuses(
 ): readonly OrderStatus[] | null {
 	if (tabDef.lateness === "only" && lateStatus) {
 		const status = LATE_SUB_TAB_STATUS[lateStatus];
+
 		return tabDef.statuses?.filter((s) => s === status) ?? null;
 	}
+
 	return tabDef.statuses;
 }
 
@@ -97,12 +103,15 @@ export function effectiveTabPicking(
 	if (tabDef.picking) {
 		return tabDef.picking;
 	}
+
 	if (tabDef.lateness !== "only" || !lateStatus) {
 		return;
 	}
+
 	if (lateStatus === "picked") {
 		return "picked";
 	}
+
 	return lateStatus === "preparing" ? "not_picked" : undefined;
 }
 
@@ -117,56 +126,72 @@ export function buildOrdersListConditions({
 }): SQL[] {
 	const conditions: SQL[] = [];
 	const branchCondition = orderBranchCondition(scope);
+
 	if (branchCondition) {
 		conditions.push(branchCondition);
 	}
+
 	const statuses = effectiveTabStatuses(tabDef, filters.lateStatus);
+
 	if (statuses && statuses.length > 0) {
 		const placeholders = sql.join(
 			statuses.map((s) => sql`${s}`),
 			sql`, `
 		);
+
 		conditions.push(sql`o.status IN (${placeholders})`);
 	}
+
 	if (tabDef.lateness === "only") {
 		conditions.push(sql`${fulfillmentAge} <= ${lateCutoff}`);
 	}
+
 	const picking = effectiveTabPicking(tabDef, filters.lateStatus);
+
 	if (picking === "picked") {
 		conditions.push(sql`${latestPickingStatus} = 'completed'`);
 	}
+
 	if (picking === "not_picked") {
 		conditions.push(sql`${latestPickingStatus} IS DISTINCT FROM 'completed'`);
 	}
+
 	const query = filters.q?.trim();
+
 	if (query) {
 		conditions.push(
 			sql`(o.number ILIKE ${`%${query}%`} OR c.name ILIKE ${`%${query}%`})`
 		);
 	}
+
 	if (filters.branchId === BRANCH_NONE) {
 		conditions.push(sql`o.branch_id IS NULL`);
 	} else if (filters.branchId) {
 		conditions.push(sql`o.branch_id = ${filters.branchId}`);
 	}
+
 	if (filters.carrier === CARRIER_NONE) {
 		conditions.push(sql`o.shipping_method IS NULL`);
 	} else if (filters.carrier) {
 		conditions.push(sql`o.shipping_method = ${filters.carrier}`);
 	}
+
 	if (filters.toolId) {
 		conditions.push(
 			sql`EXISTS (SELECT 1 FROM order_item oi_f WHERE oi_f.order_id = o.id AND oi_f.tool_id = ${filters.toolId})`
 		);
 	}
+
 	if (filters.from) {
 		conditions.push(sql`o.created_at >= ${filters.from}::date`);
 	}
+
 	if (filters.to) {
 		conditions.push(
 			sql`o.created_at < (${filters.to}::date + INTERVAL '1 day')`
 		);
 	}
+
 	return conditions;
 }
 
@@ -233,15 +258,19 @@ export function foldTabCounts(
 	}[]
 ): OrderTabCounts {
 	const counts = emptyTabCounts();
+
 	for (const row of rows) {
 		counts.all_count += row.count;
+
 		// Overlay ortogonal: soma antes de qualquer `continue` de etapa, pois um
 		// pedido na triagem também conta no bucket da própria etapa (`paid`).
 		if (row.is_unassigned) {
 			counts.unassigned += row.count;
 		}
+
 		if (row.is_late && (row.status === "paid" || row.status === "preparing")) {
 			counts.late += row.count;
+
 			if (row.status === "paid") {
 				counts.late_paid += row.count;
 			} else if (row.is_picked) {
@@ -250,12 +279,14 @@ export function foldTabCounts(
 				counts.late_preparing += row.count;
 			}
 		}
+
 		// Etapa: `picked` é o recorte de preparing já separado — nunca soma
 		// também em `preparing` (as duas abas são exclusivas entre si).
 		if (row.status === "preparing" && row.is_picked) {
 			counts.picked += row.count;
 			continue;
 		}
+
 		// `canceled`/`refunded` somam na mesma tab; os demais mapeiam 1:1. O
 		// switch estreita row.status para o literal, então a indexação é type-safe.
 		switch (row.status) {
@@ -276,5 +307,6 @@ export function foldTabCounts(
 				break;
 		}
 	}
+
 	return counts;
 }

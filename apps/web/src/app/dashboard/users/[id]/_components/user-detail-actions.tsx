@@ -30,12 +30,15 @@ export function UserDetailActions({
 		if (!canManageBranches) {
 			return null;
 		}
+
 		return (
 			<UserBranchLinkPanel linkedBranchIds={linkedBranchIds} userId={userId} />
 		);
 	}
+
 	if (tab === "profile") {
 		return <EditUserButton label={editLabel} />;
 	}
+
 	return null;
 }

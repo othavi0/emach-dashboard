@@ -28,10 +28,13 @@ export function InfiniteSentinel({
 		if (!hasMore || pending || error) {
 			return;
 		}
+
 		const el = ref.current;
+
 		if (!el) {
 			return;
 		}
+
 		const observer = new IntersectionObserver(
 			(entries) => {
 				if (entries[0]?.isIntersecting) {
@@ -40,7 +43,9 @@ export function InfiniteSentinel({
 			},
 			{ root: root?.current ?? null, rootMargin: "200px" }
 		);
+
 		observer.observe(el);
+
 		return () => observer.disconnect();
 	}, [hasMore, pending, error, onLoadMore, root]);
 

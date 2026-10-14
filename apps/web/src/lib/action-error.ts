@@ -13,14 +13,17 @@ export function actionErrorMessage(error: unknown): string {
 	if (getPgError(error)) {
 		return "Não foi possível concluir a operação. Tente novamente.";
 	}
+
 	// ZodError passa no instanceof Error, mas seu .message é genérico/JSON — preserva
 	// o feedback field-level (issues[0].message) antes do fallback de Error comum.
 	if (error instanceof ZodError) {
 		return error.issues[0]?.message ?? "Entrada inválida";
 	}
+
 	if (error instanceof Error) {
 		return error.message;
 	}
+
 	return "Erro desconhecido";
 }
 

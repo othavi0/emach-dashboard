@@ -7,5 +7,6 @@ export async function fetchSupplierHistoryAction(
 	supplierId: string
 ): Promise<SupplierAuditRow[]> {
 	await requireCapability("suppliers.read");
+
 	return await getSupplierAuditLog(supplierId);
 }

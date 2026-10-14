@@ -25,6 +25,7 @@ export async function fetchBranchTeamAction(
 	await requireCapabilityWithContext("users.manage", {
 		targetBranchIds: [branchId],
 	});
+
 	return await getBranchTeam(branchId);
 }
 
@@ -36,6 +37,7 @@ export async function fetchBranchActivityToolsAction(
 	await requireCapabilityWithContext("branches.read", {
 		targetBranchIds: [branchId],
 	});
+
 	return await fetchBranchActivityTools(branchId);
 }
 
@@ -71,6 +73,7 @@ export async function fetchBranchStockTabAction(input: {
 	const session = await requireCapabilityWithContext("stock.adjust", {
 		targetBranchIds: [input.branchId],
 	});
+
 	const canMutate = await can(session, "stock.adjust");
 
 	const [categories, suppliers] = await Promise.all([

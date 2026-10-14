@@ -10,6 +10,7 @@ const META = {
 export function StatusBadge({ status }: { status: keyof typeof META }) {
 	const m = META[status];
 	const Icon = m.icon;
+
 	return (
 		<Badge variant={m.variant}>
 			<Icon aria-hidden className="mr-1 size-3" />

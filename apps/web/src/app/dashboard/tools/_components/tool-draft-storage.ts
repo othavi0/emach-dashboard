@@ -20,14 +20,18 @@ export function parseDraft(
 	if (!raw) {
 		return null;
 	}
+
 	try {
 		const parsed = JSON.parse(raw) as Partial<StoredDraft>;
+
 		if (typeof parsed?.savedAt !== "number" || !parsed.data) {
 			return null;
 		}
+
 		if (now - parsed.savedAt > DRAFT_TTL_MS) {
 			return null;
 		}
+
 		return parsed.data;
 	} catch {
 		// rascunho corrompido → ignora (decisão consciente: parse defensivo)

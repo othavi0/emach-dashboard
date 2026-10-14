@@ -418,6 +418,7 @@ export function sectionForCapability(cap: Capability): NavSection {
 
 export function roleDefaultCapabilities(role: UserRole): Set<Capability> {
 	const result = new Set<Capability>();
+
 	for (const [key, meta] of Object.entries(CAPABILITIES) as [
 		Capability,
 		CapabilityMeta,
@@ -426,5 +427,6 @@ export function roleDefaultCapabilities(role: UserRole): Set<Capability> {
 			result.add(key);
 		}
 	}
+
 	return result;
 }

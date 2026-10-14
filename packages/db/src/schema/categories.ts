@@ -85,6 +85,9 @@ export const toolCategoryRelations = relations(toolCategory, ({ one }) => ({
 }));
 
 export type Category = typeof category.$inferSelect;
+
 export type NewCategory = typeof category.$inferInsert;
+
 export type ToolCategory = typeof toolCategory.$inferSelect;
+
 export type NewToolCategory = typeof toolCategory.$inferInsert;

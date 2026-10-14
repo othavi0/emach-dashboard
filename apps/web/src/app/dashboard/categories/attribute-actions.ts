@@ -33,10 +33,13 @@ export async function createCategoryAttribute(
 ): Promise<ActionResult<{ id: string }>> {
 	const session = await requireCapability("attributes.create");
 	const parsed = attributeFormSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
+
 	const id = crypto.randomUUID();
+
 	try {
 		await db
 			.insert(attributeDefinition)
@@ -44,6 +47,7 @@ export async function createCategoryAttribute(
 	} catch (error) {
 		return { ok: false, error: actionErrorMessage(error) };
 	}
+
 	await logUserActivity({
 		actorUserId: session.user.id,
 		action: "attribute.created",
@@ -52,6 +56,7 @@ export async function createCategoryAttribute(
 		metadata: { label: parsed.data.label, slug: parsed.data.slug, categoryId },
 	});
 	revalidatePath(`/dashboard/categories/${categoryId}/edit`);
+
 	return { ok: true, data: { id } };
 }
 
@@ -62,9 +67,11 @@ export async function updateCategoryAttribute(
 ): Promise<ActionResult<{ id: string }>> {
 	const session = await requireCapability("attributes.update");
 	const parsed = attributeFormSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
+
 	try {
 		await db
 			.update(attributeDefinition)
@@ -73,6 +80,7 @@ export async function updateCategoryAttribute(
 	} catch (error) {
 		return { ok: false, error: actionErrorMessage(error) };
 	}
+
 	await logUserActivity({
 		actorUserId: session.user.id,
 		action: "attribute.updated",
@@ -81,6 +89,7 @@ export async function updateCategoryAttribute(
 		metadata: { label: parsed.data.label, categoryId },
 	});
 	revalidatePath(`/dashboard/categories/${categoryId}/edit`);
+
 	return { ok: true, data: { id } };
 }
 
@@ -89,12 +98,14 @@ export async function deleteCategoryAttribute(
 	categoryId: string
 ): Promise<ActionResult> {
 	const session = await requireCapability("attributes.delete");
+
 	try {
 		// Cascade na FK de toolAttributeValue lida com valores existentes.
 		await db.delete(attributeDefinition).where(eq(attributeDefinition.id, id));
 	} catch (error) {
 		return { ok: false, error: actionErrorMessage(error) };
 	}
+
 	await logUserActivity({
 		actorUserId: session.user.id,
 		action: "attribute.deleted",
@@ -103,5 +114,6 @@ export async function deleteCategoryAttribute(
 		metadata: { categoryId },
 	});
 	revalidatePath(`/dashboard/categories/${categoryId}/edit`);
+
 	return { ok: true, data: undefined };
 }

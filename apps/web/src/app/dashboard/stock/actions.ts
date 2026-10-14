@@ -47,7 +47,9 @@ import {
 } from "./tool-activity-data";
 
 export type { PeriodPreset } from "./_lib/movements-shared";
+
 export type { StockMovementRow } from "./movements-data";
+
 export type {
 	ToolActivityFilters,
 	ToolActivityRow,
@@ -104,10 +106,12 @@ async function applyMovement(
 			.for("update");
 
 		const previousQty = lockedRows[0]?.quantity ?? 0;
+
 		const newQty =
 			args.op.mode === "target"
 				? args.op.newQty
 				: previousQty + args.op.deltaQty;
+
 		const delta = newQty - previousQty;
 
 		if (newQty < 0) {
@@ -156,16 +160,19 @@ async function revalidateStockPaths(
 		.from(toolVariant)
 		.where(eq(toolVariant.id, variantId))
 		.limit(1);
+
 	const toolId = variantRow?.toolId;
 	revalidatePath("/dashboard/stock");
 	revalidatePath("/dashboard/stock/movements");
 	revalidatePath(`/dashboard/branches/${branchId}`);
 	revalidatePath(`/dashboard/branches/${branchId}/stock`);
+
 	if (toolId) {
 		// A rota /stock é só redirect pra ?tab=estoque — revalidar o detalhe,
 		// que é quem carrega stockRows (aba Estoque eager).
 		revalidatePath(`/dashboard/tools/${toolId}`);
 	}
+
 	revalidatePath("/dashboard", "layout");
 }
 
@@ -175,16 +182,20 @@ export async function recordStockEntry(
 	input: StockEntryInput
 ): Promise<ActionResult<AdjustStockSuccess>> {
 	const parsed = stockEntrySchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
 			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
 		};
 	}
+
 	const { variantId, branchId, quantity, supplierId, note } = parsed.data;
+
 	const session = await requireCapabilityWithContext("stock.adjust", {
 		targetBranchIds: [branchId],
 	});
+
 	try {
 		const result = await applyMovement({
 			variantId,
@@ -195,11 +206,13 @@ export async function recordStockEntry(
 			supplierId,
 			actorId: session.user.id,
 		});
+
 		await revalidateStockPaths(variantId, branchId);
 		// A relação fornecedor↔tool e os KPIs do fornecedor são derivados das
 		// entradas: revalidar a aba Estoque + listagem após registrar uma.
 		revalidatePath("/dashboard/suppliers");
 		revalidatePath(`/dashboard/suppliers/${supplierId}`);
+
 		return { ok: true, data: result };
 	} catch (error) {
 		return { ok: false, error: actionErrorMessage(error) };
@@ -210,16 +223,20 @@ export async function recordStockWriteOff(
 	input: StockWriteOffInput
 ): Promise<ActionResult<AdjustStockSuccess>> {
 	const parsed = stockWriteOffSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
 			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
 		};
 	}
+
 	const { variantId, branchId, quantity, reason, note } = parsed.data;
+
 	const session = await requireCapabilityWithContext("stock.adjust", {
 		targetBranchIds: [branchId],
 	});
+
 	try {
 		const result = await applyMovement({
 			variantId,
@@ -230,7 +247,9 @@ export async function recordStockWriteOff(
 			supplierId: null,
 			actorId: session.user.id,
 		});
+
 		await revalidateStockPaths(variantId, branchId);
+
 		return { ok: true, data: result };
 	} catch (error) {
 		return { ok: false, error: actionErrorMessage(error) };
@@ -241,16 +260,20 @@ export async function adjustStock(
 	input: StockRecountInput
 ): Promise<ActionResult<AdjustStockSuccess>> {
 	const parsed = stockRecountSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
 			error: parsed.error.issues[0]?.message ?? "Entrada inválida",
 		};
 	}
+
 	const { variantId, branchId, newQty, note } = parsed.data;
+
 	const session = await requireCapabilityWithContext("stock.adjust", {
 		targetBranchIds: [branchId],
 	});
+
 	try {
 		const result = await applyMovement({
 			variantId,
@@ -261,7 +284,9 @@ export async function adjustStock(
 			supplierId: null,
 			actorId: session.user.id,
 		});
+
 		await revalidateStockPaths(variantId, branchId);
+
 		return { ok: true, data: result };
 	} catch (error) {
 		return { ok: false, error: actionErrorMessage(error) };
@@ -272,8 +297,10 @@ export async function updateStockThresholds(
 	input: StockThresholdInput
 ): Promise<ActionResult> {
 	const parsed = stockThresholdSchema.safeParse(input);
+
 	if (!parsed.success) {
 		const firstIssue = parsed.error.issues[0];
+
 		return {
 			ok: false,
 			error: firstIssue?.message ?? "Entrada inválida",
@@ -318,14 +345,17 @@ export async function updateStockThresholds(
 			.from(toolVariant)
 			.where(eq(toolVariant.id, variantId))
 			.limit(1);
+
 		const toolId = variantRow?.toolId;
 
 		revalidatePath("/dashboard/stock");
 		revalidatePath(`/dashboard/branches/${branchId}`);
 		revalidatePath(`/dashboard/branches/${branchId}/stock`);
+
 		if (toolId) {
 			revalidatePath(`/dashboard/tools/${toolId}/stock`);
 		}
+
 		revalidatePath("/dashboard", "layout");
 
 		return { ok: true, data: undefined };
@@ -347,6 +377,7 @@ export async function fetchVariantBranchMovementsPageAction(
 	await requireCapabilityWithContext("stock.read", {
 		targetBranchIds: [branchId],
 	});
+
 	return await _fetchVariantBranchMovementsPage(variantId, branchId, cursor);
 }
 
@@ -357,6 +388,7 @@ export async function getReservedQtyByVariantBranchAction(
 	await requireCapabilityWithContext("stock.read", {
 		targetBranchIds: [branchId],
 	});
+
 	return await _getReservedQtyByVariantBranch(variantId, branchId);
 }
 
@@ -371,6 +403,7 @@ export async function fetchToolActivityPageAction(
 	} else {
 		await requireCapability("stock.read");
 	}
+
 	return await _fetchToolActivityPage(filters, cursor);
 }
 
@@ -382,6 +415,7 @@ export async function lookupVariantByBarcodeAction(
 		targetBranchIds: [branchId],
 	});
 	const row = await _lookupVariantByBarcode(branchId, barcode.trim());
+
 	return { ok: true, data: row };
 }
 
@@ -392,5 +426,6 @@ export async function fetchBranchStockPageAction(args: {
 	// A camada data (fetchBranchStockPage) já valida branch-scope (fail-closed,
 	// retorna vazio fora do escopo); aqui só falta a capability no boundary.
 	await requireCapability("stock.read");
+
 	return await _fetchBranchStockPage(args);
 }

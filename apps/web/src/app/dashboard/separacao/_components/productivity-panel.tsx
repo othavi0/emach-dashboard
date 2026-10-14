@@ -33,6 +33,7 @@ function formatCount(n: number): string {
 
 function formatUnits(n: number): string {
 	const label = n === 1 ? "unidade separada" : "unidades separadas";
+
 	return `${formatCount(n)} ${label}`;
 }
 

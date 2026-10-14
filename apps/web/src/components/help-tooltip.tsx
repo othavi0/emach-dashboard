@@ -13,12 +13,14 @@ interface ShortProps {
 	text: string;
 	title?: never;
 }
+
 interface RichProps {
 	body: string;
 	example?: string;
 	text?: never;
 	title: string;
 }
+
 type HelpTooltipProps = (ShortProps | RichProps) & { label?: string };
 
 const TRIGGER_CLASS =
@@ -45,6 +47,7 @@ export function HelpTooltip(props: HelpTooltipProps) {
 	}
 
 	const { title, body, example } = props as RichProps;
+
 	return (
 		<HoverCard>
 			<HoverCardTrigger

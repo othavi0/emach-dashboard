@@ -39,6 +39,7 @@ describe("bannerFormSchema", () => {
 			ctaLabel: null,
 			ctaHref: null,
 		});
+
 		expect(r.success).toBe(true);
 	});
 
@@ -52,6 +53,7 @@ describe("bannerFormSchema", () => {
 			ctaLabel: null,
 			ctaHref: null,
 		});
+
 		expect(r.success).toBe(false);
 	});
 
@@ -133,6 +135,7 @@ describe("bannerFormSchema", () => {
 			...base,
 			specs: ["1", "2", "3", "4", "5", "6"],
 		});
+
 		expect(r.success).toBe(true);
 	});
 
@@ -141,6 +144,7 @@ describe("bannerFormSchema", () => {
 			...base,
 			specs: ["1", "2", "3", "4", "5", "6", "7"],
 		});
+
 		expect(r.success).toBe(false);
 	});
 
@@ -149,6 +153,7 @@ describe("bannerFormSchema", () => {
 			...base,
 			specs: ["a".repeat(25)],
 		});
+
 		expect(r.success).toBe(false);
 	});
 
@@ -163,6 +168,7 @@ describe("bannerFormSchema", () => {
 			backgroundMobileMode: "custom",
 			backgroundImageMobileUrl: null,
 		});
+
 		expect(r.success).toBe(false);
 	});
 
@@ -173,6 +179,7 @@ describe("bannerFormSchema", () => {
 			backgroundImageMobileUrl:
 				"https://x.supabase.co/storage/v1/object/public/banner-images/m.jpg",
 		});
+
 		expect(r.success).toBe(true);
 	});
 
@@ -187,6 +194,7 @@ describe("bannerFormSchema", () => {
 			backgroundMobileMode: "custom",
 			backgroundImageMobileUrl: null,
 		});
+
 		expect(r.success).toBe(true);
 	});
 

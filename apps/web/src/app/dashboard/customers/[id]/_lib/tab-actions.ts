@@ -24,6 +24,7 @@ export async function fetchCustomerAddressesTabAction(
 ): Promise<CustomerAddressRow[]> {
 	// Mesma capability que hoje gate o acesso à página de detalhe do cliente.
 	await requireCapability("customers.read");
+
 	return await getCustomerAddresses(clientId);
 }
 
@@ -31,6 +32,7 @@ export async function fetchCustomerReviewsTabAction(
 	clientId: string
 ): Promise<CustomerReviewRow[]> {
 	await requireCapability("customers.read");
+
 	return await getCustomerReviews(clientId);
 }
 
@@ -38,6 +40,7 @@ export async function fetchCustomerConsentTabAction(
 	clientId: string
 ): Promise<CustomerConsentByKind> {
 	await requireCapability("customers.read");
+
 	return await getCustomerConsent(clientId);
 }
 
@@ -45,6 +48,7 @@ export async function fetchCustomerSessionsTabAction(
 	clientId: string
 ): Promise<CustomerSessionRow[]> {
 	await requireCapability("customers.read");
+
 	return await getCustomerSessions(clientId);
 }
 
@@ -55,8 +59,10 @@ export async function fetchCustomerAuditTabAction(
 	await requireCapability("customers.read");
 	// Mesma validação que hoje o page.tsx aplicava no searchParam ?auditAction.
 	const parsed = auditFilterSchema.safeParse({ action });
+
 	const validAction: ClientAuditAction | undefined = parsed.success
 		? parsed.data.action
 		: undefined;
+
 	return await getCustomerAudit(clientId, { action: validAction });
 }

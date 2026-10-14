@@ -38,6 +38,7 @@ export function RevokeSessionDialog({
 	function handleRevoke() {
 		startTransition(async () => {
 			const result = await revokeClientSession({ clientId, sessionId });
+
 			if (result.ok) {
 				notify.success("Sessão revogada com sucesso");
 				reloadTab();

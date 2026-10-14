@@ -12,6 +12,7 @@ const SQL_FILES = ["triggers.sql", "rls.sql"];
 async function main() {
 	const client = new Client({ connectionString: env.DATABASE_URL });
 	await client.connect();
+
 	try {
 		for (const file of SQL_FILES) {
 			const sql = readFileSync(resolve(scriptDir, "../src/sql", file), "utf8");

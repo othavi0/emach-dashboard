@@ -33,12 +33,14 @@ export function CustomerStatusTabs({ counts }: CustomerStatusTabsProps) {
 	// Espelha o default do server (page.tsx): sem ?status e sem quick-filter de
 	// triagem, a tab "Ativos" é a ativa.
 	const hasQuickFilter = QUICK_FILTER_KEYS.some((key) => searchParams.get(key));
+
 	const current =
 		searchParams.get("status") ?? (hasQuickFilter ? "" : "active");
 
 	const hrefFor = (key: string) => {
 		const next = new URLSearchParams(searchParams.toString());
 		next.set("status", key);
+
 		return `${BASE}?${next.toString()}`;
 	};
 
@@ -48,7 +50,9 @@ export function CustomerStatusTabs({ counts }: CustomerStatusTabsProps) {
 				{TABS.map((tab) => {
 					const count =
 						tab.key === "active" ? counts.active : counts.inactiveBlocked;
+
 					const isActive = current === tab.key;
+
 					return (
 						<TabsTrigger
 							key={tab.key}

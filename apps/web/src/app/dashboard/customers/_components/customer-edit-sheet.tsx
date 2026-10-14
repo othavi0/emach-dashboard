@@ -59,15 +59,19 @@ export function CustomerEditSheet({ customer }: Props) {
 	const [values, setValues] = useState<FormValues>(() =>
 		toFormValues(customer)
 	);
+
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<UpdateCustomerProfileInput>();
+
 	const [submitting, startTransition] = useTransition();
 
 	// Reset síncrono durante o render (padrão "adjusting state when a prop
 	// changes") — sem o re-render extra do reset via effect.
 	const [lastReset, setLastReset] = useState({ customer, open });
+
 	if (lastReset.open !== open || lastReset.customer !== customer) {
 		setLastReset({ customer, open });
+
 		if (open) {
 			setValues(toFormValues(customer));
 			clearErrors();
@@ -83,6 +87,7 @@ export function CustomerEditSheet({ customer }: Props) {
 
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
+
 		const parsed = updateCustomerProfileSchema.safeParse({
 			clientId: customer.id,
 			name: values.name.trim(),
@@ -92,12 +97,16 @@ export function CustomerEditSheet({ customer }: Props) {
 			status: values.status,
 			clientType: (values.clientType as "b2c" | "b2b") || null,
 		});
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
+
 		startTransition(async () => {
 			const res = await updateCustomerProfile(parsed.data);
+
 			if (res.ok) {
 				notify.success("Cliente atualizado");
 				close();

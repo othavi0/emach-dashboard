@@ -47,6 +47,7 @@ export async function getUserKpis(): Promise<UserKpis> {
 			suspended: sql<number>`count(*) filter (where ${userTable.status} = 'suspended')::int`,
 		})
 		.from(userTable);
+
 	return {
 		active: counts?.active ?? 0,
 		pending: counts?.pending ?? 0,
@@ -85,37 +86,46 @@ export async function fetchUsersPage(
 	filters: UserListFilters
 ): Promise<InfiniteResult<UserListRow>> {
 	const limit = filters.limit ?? BATCH_SIZE;
+
 	const decoded = filters.cursor
 		? decodeCursorAs(filters.cursor, "newest")
 		: null;
 
 	const whereParts: SQL[] = [];
+
 	if (filters.status) {
 		whereParts.push(eq(userTable.status, filters.status));
 	}
+
 	if (filters.role) {
 		whereParts.push(eq(userTable.role, filters.role));
 	}
+
 	if (filters.search) {
 		const searchClause = or(
 			ilike(userTable.name, `%${filters.search}%`),
 			ilike(userTable.email, `%${filters.search}%`)
 		);
+
 		if (searchClause) {
 			whereParts.push(searchClause);
 		}
 	}
+
 	if (filters.branchId) {
 		whereParts.push(
 			sql`${userTable.id} IN (SELECT ${userBranch.userId} FROM ${userBranch} WHERE ${userBranch.branchId} = ${filters.branchId})`
 		);
 	}
+
 	if (filters.scope?.kind === "scoped") {
 		const { branchIds } = filters.scope;
+
 		if (branchIds.length === 0) {
 			// Escopo cego: admin sem filial não vê nenhum usuário
 			return { items: [], nextCursor: null };
 		}
+
 		// Só usuários de role='user' que compartilham ≥1 filial com o ator
 		whereParts.push(
 			eq(userTable.role, "user"),
@@ -132,6 +142,7 @@ export async function fetchUsersPage(
 			)
 		);
 	}
+
 	if (decoded) {
 		whereParts.push(
 			sql`(${userTable.createdAt}, ${userTable.id}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
@@ -168,6 +179,7 @@ export async function fetchUsersPage(
 	const hasMore = rows.length > limit;
 	const items = (hasMore ? rows.slice(0, limit) : rows) as UserListRow[];
 	const last = items.at(-1);
+
 	const nextCursor =
 		hasMore && last
 			? encodeCursor({
@@ -214,6 +226,7 @@ export async function getUserDetail(id: string): Promise<UserDetail | null> {
 		.leftJoin(branch, eq(branch.id, userBranch.branchId))
 		.where(eq(userTable.id, id))
 		.groupBy(userTable.id);
+
 	if (!row) {
 		return null;
 	}
@@ -266,6 +279,7 @@ export async function getUserDetailKpis(
 			.from(userTable)
 			.where(eq(userTable.id, userId)),
 	]);
+
 	return {
 		activeSessions: sessions?.n ?? 0,
 		createdAt: u?.createdAt ?? new Date(0),
@@ -324,6 +338,7 @@ export async function getUserLinkedBranchesWithStats(
 
 	return linkedBranches.map((b) => {
 		const s = stats.get(b.id);
+
 		return {
 			...b,
 			teamCount: s?.teamCount ?? 0,
@@ -375,6 +390,7 @@ export async function getUserActivity(
 	limit = 25
 ): Promise<InfiniteResult<UserActivityRow>> {
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
+
 	const rows = await db
 		.select()
 		.from(userActivityLog)
@@ -392,6 +408,7 @@ export async function getUserActivity(
 	const hasMore = rows.length > limit;
 	const items = hasMore ? rows.slice(0, limit) : rows;
 	const last = items.at(-1);
+
 	const nextCursor =
 		hasMore && last
 			? encodeCursor({
@@ -424,6 +441,7 @@ export async function getUserAffectedActivity(
 	limit = 25
 ): Promise<InfiniteResult<UserActivityRow & { actorName: string | null }>> {
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
+
 	const rows = await db
 		.select({
 			id: userActivityLog.id,
@@ -451,6 +469,7 @@ export async function getUserAffectedActivity(
 	const hasMore = rows.length > limit;
 	const items = hasMore ? rows.slice(0, limit) : rows;
 	const last = items.at(-1);
+
 	const nextCursor =
 		hasMore && last
 			? encodeCursor({
@@ -502,8 +521,10 @@ export async function getInviteByToken(
 	if (!row || row.status !== "pending") {
 		return null;
 	}
+
 	if (!row.expiresAt || row.expiresAt.getTime() < Date.now()) {
 		return null;
 	}
+
 	return { userId: row.userId, email: row.email };
 }

@@ -25,6 +25,7 @@ const OPERATIONAL_USER: readonly Capability[] = [
 	"orders.add_note",
 	"orders.pick",
 ];
+
 const LEGACY_SUPER_EXCLUSIVE: readonly Capability[] = [
 	"branches.manage",
 	"users.delete",
@@ -61,9 +62,11 @@ describe("registry de capabilities", () => {
 
 	it("admin default == tudo menos os exclusivos de super_admin", () => {
 		const adminCaps = roleDefaultCapabilities("admin");
+
 		for (const c of LEGACY_SUPER_EXCLUSIVE) {
 			expect(adminCaps.has(c), `admin não deve ter ${c}`).toBe(false);
 		}
+
 		for (const key of Object.keys(CAPABILITIES) as Capability[]) {
 			if (!LEGACY_SUPER_EXCLUSIVE.includes(key)) {
 				expect(adminCaps.has(key), `admin deve ter ${key}`).toBe(true);
@@ -76,6 +79,7 @@ describe("registry de capabilities", () => {
 		// migraram SAU→SA. admin permanece com todas — regressão explícita da feature
 		// do role user (o loop acima cobre isso só implicitamente).
 		const adminCaps = roleDefaultCapabilities("admin");
+
 		for (const c of [
 			"suppliers.manage",
 			"customers.read",

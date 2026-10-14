@@ -7,6 +7,7 @@ describe("featuredConflictMessage", () => {
 		const msg = featuredConflictMessage({
 			endsAt: new Date("2026-08-20T12:00:00Z"),
 		});
+
 		// biome-ignore lint/performance/useTopLevelRegex: regex inline em teste unitário, não em hot path
 		expect(msg).toMatch(/20\/08\/2026/);
 		// biome-ignore lint/performance/useTopLevelRegex: regex inline em teste unitário, não em hot path

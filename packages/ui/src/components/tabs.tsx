@@ -56,6 +56,7 @@ function TabsList({
 			/>
 		);
 	}
+
 	return (
 		<ScrollableTabsList className={className} variant={variant} {...props} />
 	);
@@ -71,9 +72,11 @@ function ScrollableTabsList({
 
 	const update = useCallback(() => {
 		const el = listRef.current;
+
 		if (!el) {
 			return;
 		}
+
 		const overflow = el.scrollWidth - el.clientWidth > 1;
 		const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
 		setHasOverflow(overflow && !atEnd);
@@ -82,12 +85,15 @@ function ScrollableTabsList({
 	useEffect(() => {
 		update();
 		const el = listRef.current;
+
 		if (!el) {
 			return;
 		}
+
 		const ro = new ResizeObserver(update);
 		ro.observe(el);
 		el.addEventListener("scroll", update, { passive: true });
+
 		return () => {
 			ro.disconnect();
 			el.removeEventListener("scroll", update);

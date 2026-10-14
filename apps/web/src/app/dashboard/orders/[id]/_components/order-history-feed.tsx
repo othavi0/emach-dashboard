@@ -37,12 +37,15 @@ function formatBytes(bytes: number | null): string {
 	if (bytes === null) {
 		return "";
 	}
+
 	if (bytes < 1024) {
 		return `${bytes} B`;
 	}
+
 	if (bytes < 1024 * 1024) {
 		return `${(bytes / 1024).toFixed(1)} KB`;
 	}
+
 	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
@@ -80,6 +83,7 @@ interface FeedItem {
 function normalizeHistory(items: OrderHistoryItem[]): FeedItem[] {
 	return items.map((h) => {
 		const meta = ORDER_STATUS_META[h.toStatus];
+
 		return {
 			category: "status" as FeedCategory,
 			createdAt: h.createdAt,
@@ -98,6 +102,7 @@ function normalizeNotes(items: OrderNoteItem[]): FeedItem[] {
 		const statusLabel = n.statusAtCreation
 			? ORDER_STATUS_LABELS[n.statusAtCreation]
 			: null;
+
 		return {
 			category: "notes" as FeedCategory,
 			createdAt: n.createdAt,
@@ -117,6 +122,7 @@ function normalizeAttachments(items: OrderAttachmentItem[]): FeedItem[] {
 	return items.map((a) => {
 		const sizeLabel = formatBytes(a.fileSize);
 		const subtitleParts = [a.uploaderName, sizeLabel].filter(Boolean);
+
 		return {
 			attachment: { attachmentId: a.id, label: a.label ?? a.fileName },
 			category: "documents" as FeedCategory,
@@ -141,6 +147,7 @@ function normalizeEvents(items: OrderEventItem[]): FeedItem[] {
 
 		if (e.eventType === "tracking_set") {
 			const code = m?.trackingCode ?? "";
+
 			return {
 				category: "documents" as FeedCategory,
 				createdAt: e.createdAt,
@@ -166,6 +173,7 @@ function normalizeEvents(items: OrderEventItem[]): FeedItem[] {
 
 		// branch_assigned (and any other future types)
 		const branchLabel = m?.branchName ?? m?.branchId ?? "";
+
 		return {
 			category: "status" as FeedCategory,
 			createdAt: e.createdAt,
@@ -188,6 +196,7 @@ function normalizeRefunds(items: OrderRefundItem[]): FeedItem[] {
 	return items.map((r) => {
 		const statusLabel = REFUND_STATUS_LABELS[r.status] ?? r.status;
 		const subtitle = `${r.reasonCategory} · ${formatCurrency(r.amount)} · ${statusLabel}`;
+
 		return {
 			category: "financeiro" as FeedCategory,
 			createdAt: r.requestedAt,
@@ -203,6 +212,7 @@ function normalizeRefunds(items: OrderRefundItem[]): FeedItem[] {
 
 function normalizePickings(items: OrderPickingTimelineRow[]): FeedItem[] {
 	const feedItems: FeedItem[] = [];
+
 	for (const p of items) {
 		feedItems.push({
 			category: "status" as FeedCategory,
@@ -213,6 +223,7 @@ function normalizePickings(items: OrderPickingTimelineRow[]): FeedItem[] {
 			title: "Separação iniciada",
 			tone: "info" as Tone,
 		});
+
 		if (p.status === "completed" && p.completedAt) {
 			feedItems.push({
 				category: "status" as FeedCategory,
@@ -224,6 +235,7 @@ function normalizePickings(items: OrderPickingTimelineRow[]): FeedItem[] {
 				tone: "success" as Tone,
 			});
 		}
+
 		if (p.status === "exception") {
 			feedItems.push({
 				category: "status" as FeedCategory,
@@ -236,6 +248,7 @@ function normalizePickings(items: OrderPickingTimelineRow[]): FeedItem[] {
 				tone: "destructive" as Tone,
 			});
 		}
+
 		if (p.status === "canceled") {
 			feedItems.push({
 				category: "status" as FeedCategory,
@@ -248,6 +261,7 @@ function normalizePickings(items: OrderPickingTimelineRow[]): FeedItem[] {
 			});
 		}
 	}
+
 	return feedItems;
 }
 
@@ -282,6 +296,7 @@ function CategoryIcon({ item }: { item: FeedItem }) {
 			/>
 		);
 	}
+
 	if (item.category === "documents" && item.iconKey === "package") {
 		return (
 			<FileIcon
@@ -290,7 +305,9 @@ function CategoryIcon({ item }: { item: FeedItem }) {
 			/>
 		);
 	}
+
 	const Icon = STATUS_ICONS[item.iconKey];
+
 	return (
 		<Icon aria-hidden="true" className={`size-3.5 ${TONE_TEXT[item.tone]}`} />
 	);
@@ -319,6 +336,7 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 	function handleTogglePin(noteId: string, pinned: boolean) {
 		startTransition(async () => {
 			const result = await togglePinNote({ noteId, pinned });
+
 			if (result.ok) {
 				router.refresh();
 			} else {
@@ -329,14 +347,17 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 
 	async function handleOpenAttachment(attachmentId: string) {
 		setSigningId(attachmentId);
+
 		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const res = await signOrderAttachment(attachmentId);
+
 			if (res.ok) {
 				window.open(res.data.url, "_blank", "noopener,noreferrer");
 			} else {
 				notify.error(res.error);
 			}
+
 			setSigningId(null);
 		} catch (err) {
 			setSigningId(null);
@@ -408,6 +429,7 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 			<div className="flex flex-wrap gap-2">
 				{FILTER_CHIPS.map((chip) => {
 					const isActive = activeFilter === chip.key;
+
 					return (
 						<button
 							className={
@@ -497,6 +519,7 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 											disabled={signingId === item.attachment.attachmentId}
 											onClick={() => {
 												const { attachmentId } = item.attachment ?? {};
+
 												if (attachmentId) {
 													handleOpenAttachment(attachmentId);
 												}

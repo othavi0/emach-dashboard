@@ -13,6 +13,7 @@ export async function KpiRow({
 	period: DashboardPeriod;
 }) {
 	const s = await fetchDashboardSummary(branchId, period);
+
 	return (
 		<StaggerGrid className={cn("grid grid-cols-2 gap-3", kpiGridClass(4))}>
 			<StaggerItem key="revenue">

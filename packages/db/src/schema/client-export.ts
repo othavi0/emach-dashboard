@@ -45,4 +45,5 @@ export const clientExportLogRelations = relations(
 );
 
 export type ClientExportLog = typeof clientExportLog.$inferSelect;
+
 export type NewClientExportLog = typeof clientExportLog.$inferInsert;

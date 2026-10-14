@@ -86,9 +86,11 @@ describe("matriz de capability (3 níveis)", () => {
 const sessionActive = {
 	user: { id: "actor-1", status: "active", role: "user" },
 } as never;
+
 const sessionSuspended = {
 	user: { id: "actor-1", status: "suspended", role: "user" },
 } as never;
+
 const sessionSuperAdmin = {
 	user: { id: "actor-1", status: "active", role: "super_admin" },
 } as never;
@@ -116,6 +118,7 @@ function mockBranchRows(branchIds: string[]) {
 	const where = vi.fn(() =>
 		Promise.resolve(branchIds.map((branchId) => ({ branchId })))
 	);
+
 	const from = vi.fn(() => ({ where }));
 	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
 }
@@ -141,6 +144,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		const s = {
 			user: { id: "guard-cap-1", status: "active", role: "user" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		mockOverrides([]);
 		// role "user" NÃO tem orders.refund — deve barrar pela capability,
@@ -154,6 +158,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		const s = {
 			user: { id: "guard-self-1", status: "active", role: "super_admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		await expect(
@@ -167,6 +172,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		const s = {
 			user: { id: "guard-self-perm", status: "active", role: "super_admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		await expect(
@@ -180,6 +186,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		const s = {
 			user: { id: "guard-self-2", status: "active", role: "super_admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		await expect(
@@ -193,6 +200,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		const s = {
 			user: { id: "guard-self-reset", status: "active", role: "super_admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		await expect(
 			requireCapabilityWithContext("users.reset_password", {
@@ -205,6 +213,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		const s = {
 			user: { id: "guard-self-revoke", status: "active", role: "super_admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		await expect(
 			requireCapabilityWithContext("users.revoke_sessions", {
@@ -217,6 +226,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		const s = {
 			user: { id: "guard-lsa-1", status: "active", role: "super_admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		mockTargetLookup({ role: "super_admin", status: "active" });
@@ -230,6 +240,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		const s = {
 			user: { id: "guard-lsa-2", status: "active", role: "super_admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		mockTargetLookup({ role: "super_admin", status: "active" });
@@ -243,6 +254,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		const s = {
 			user: { id: "guard-hier-1", status: "active", role: "admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		mockOverrides([]);
 		mockTargetLookup({ role: "admin", status: "active" });
@@ -257,6 +269,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		const s = {
 			user: { id: "guard-hier-2", status: "active", role: "admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		mockOverrides([]);
 		mockTargetLookup({ role: "user", status: "active" });
@@ -271,6 +284,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 		const s = {
 			user: { id: "guard-lsa-3", status: "active", role: "super_admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		mockTargetLookup({ role: "admin", status: "active" });
@@ -303,6 +317,7 @@ describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)"
 		const s = {
 			user: { id: "ovr-1", role: "admin", status: "active" },
 		} as never;
+
 		mockOverrides([]);
 		const caps = await getUserCapabilities(s);
 		expect(caps.has("tools.create")).toBe(true);
@@ -313,6 +328,7 @@ describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)"
 		const s = {
 			user: { id: "ovr-2", role: "admin", status: "active" },
 		} as never;
+
 		mockOverrides([{ capability: "tools.delete", effect: "grant" }]);
 		const caps = await getUserCapabilities(s);
 		expect(caps.has("tools.delete")).toBe(true);
@@ -322,6 +338,7 @@ describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)"
 		const s = {
 			user: { id: "ovr-3", role: "admin", status: "active" },
 		} as never;
+
 		mockOverrides([{ capability: "tools.create", effect: "revoke" }]);
 		const caps = await getUserCapabilities(s);
 		expect(caps.has("tools.create")).toBe(false);
@@ -331,6 +348,7 @@ describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)"
 		const s = {
 			user: { id: "ovr-4", role: "admin", status: "active" },
 		} as never;
+
 		mockOverrides([{ capability: "legado.removido", effect: "grant" }]);
 		const caps = await getUserCapabilities(s);
 		expect(caps.has("legado.removido" as never)).toBe(false);
@@ -340,6 +358,7 @@ describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)"
 		const s = {
 			user: { id: "ovr-sa-1", role: "super_admin", status: "active" },
 		} as never;
+
 		mockOverrides([{ capability: "permissions.manage", effect: "revoke" }]);
 		const caps = await getUserCapabilities(s);
 		expect(caps.has("permissions.manage")).toBe(true);
@@ -361,6 +380,7 @@ describe("requireCapabilityWithContext — branch-scoping (assertBranchScope)", 
 		const s = {
 			user: { id: "bs-admin-1", status: "active", role: "admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		// 1º db.select: overrides (admin não tem early-return em getUserCapabilities).
 		mockOverrides([]);
@@ -377,6 +397,7 @@ describe("requireCapabilityWithContext — branch-scoping (assertBranchScope)", 
 		const s = {
 			user: { id: "bs-admin-2", status: "active", role: "admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		mockOverrides([]);
 		mockBranchRows(["b-sp"]);
@@ -391,6 +412,7 @@ describe("requireCapabilityWithContext — branch-scoping (assertBranchScope)", 
 		const s = {
 			user: { id: "bs-sa-1", status: "active", role: "super_admin" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities E em assertBranchScope.
 		// db.select NÃO deve ser chamado.
@@ -408,6 +430,7 @@ describe("requireCapabilityWithContext — branch-scoping (assertBranchScope)", 
 		const s = {
 			user: { id: "bs-user-blind-1", status: "active", role: "user" },
 		} as never;
+
 		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
 		mockOverrides([]);
 		// Sem vínculo: DB retorna 0 rows.

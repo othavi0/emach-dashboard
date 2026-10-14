@@ -32,6 +32,7 @@ describe("toolFormSchema — defaults de embalagem", () => {
 	it("ausentes → 0 / true / false", () => {
 		const r = toolFormSchema.safeParse(BASE);
 		expect(r.success).toBe(true);
+
 		if (r.success) {
 			expect(r.data.packagingWeightKg).toBe(0);
 			expect(r.data.stackable).toBe(true);
@@ -44,7 +45,9 @@ describe("toolFormSchema — defaults de embalagem", () => {
 			...BASE,
 			packagingWeightKg: Number.NaN,
 		});
+
 		expect(r.success).toBe(true);
+
 		if (r.success) {
 			expect(r.data.packagingWeightKg).toBe(0);
 		}
@@ -62,7 +65,9 @@ describe("toolFormSchema — defaults de embalagem", () => {
 			stackable: false,
 			shipsInOwnBox: true,
 		});
+
 		expect(r.success).toBe(true);
+
 		if (r.success) {
 			expect(r.data.packagingWeightKg).toBe(1.5);
 			expect(r.data.stackable).toBe(false);

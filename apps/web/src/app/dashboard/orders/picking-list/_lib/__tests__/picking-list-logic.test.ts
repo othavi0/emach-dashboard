@@ -48,6 +48,7 @@ describe("consolidateItems", () => {
 			order({ items: [{ ...LIXADEIRA, quantity: 1 }] }),
 			order({ items: [{ ...LIXADEIRA, quantity: 2 }, BALDE] }),
 		];
+
 		const lines = consolidateItems(orders);
 		expect(lines).toHaveLength(2);
 		expect(lines[0]).toMatchObject({
@@ -60,10 +61,12 @@ describe("consolidateItems", () => {
 
 	it("cai pra sku e depois name quando variantId é null", () => {
 		const semVariante = { ...BALDE, variantId: null };
+
 		const orders = [
 			order({ items: [semVariante] }),
 			order({ items: [{ ...semVariante, quantity: 3 }] }),
 		];
+
 		const lines = consolidateItems(orders);
 		expect(lines).toHaveLength(1);
 		expect(lines[0]?.totalQty).toBe(4);
@@ -83,6 +86,7 @@ describe("groupByCarrier", () => {
 			order({ number: "#1", shippingMethod: "Jadlog .Package" }),
 			order({ number: "#2", shippingMethod: "Correios · SEDEX" }),
 		];
+
 		const groups = groupByCarrier(orders);
 		expect(groups.map((g) => g.label)).toEqual([
 			"Correios · SEDEX",
@@ -97,6 +101,7 @@ describe("groupByCarrier", () => {
 			order({ number: "#EM-2026-0009" }),
 			order({ number: "#EM-2026-0002" }),
 		];
+
 		const [group] = groupByCarrier(orders);
 		expect(group?.orders.map((o) => o.number)).toEqual([
 			"#EM-2026-0002",
@@ -123,6 +128,7 @@ describe("pickingListStats", () => {
 				shippingMethod: "Jadlog .Package",
 			}),
 		];
+
 		expect(pickingListStats(orders)).toEqual({
 			carriers: 2,
 			orders: 2,

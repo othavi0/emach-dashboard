@@ -20,9 +20,11 @@ export async function GET(req: Request) {
 		// orders.read desde 2026-07) precisa imprimir a lista.
 		const session = await requireCapability("orders.pick");
 		const resolved = resolvePickingListParams(new URL(req.url).searchParams);
+
 		if (!resolved.ok) {
 			return new Response(resolved.error, { status: 400 });
 		}
+
 		const scope = await getUserBranchScope(session);
 		const orders = await fetchPickingListOrders(resolved.params, scope);
 
@@ -48,10 +50,12 @@ export async function GET(req: Request) {
 		const buffer = await renderToBuffer(
 			doc as Parameters<typeof renderToBuffer>[0]
 		);
+
 		logger.info("picking_list.pdf", {
 			userId: session.user.id,
 			orders: orders.length,
 		});
+
 		return new Response(new Uint8Array(buffer), {
 			headers: {
 				"Cache-Control": "no-store",
@@ -63,7 +67,9 @@ export async function GET(req: Request) {
 		if (isCapabilityError(error)) {
 			return new Response("Sem permissão", { status: 403 });
 		}
+
 		logger.error("picking_list.pdf", error);
+
 		return new Response("Erro ao gerar a lista de separação", { status: 500 });
 	}
 }

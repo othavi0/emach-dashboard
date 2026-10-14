@@ -16,6 +16,7 @@ interface Props {
 
 export function CustomerIdentity({ customer, actions }: Props) {
 	const status = CLIENT_STATUS_CONFIG[customer.status];
+
 	const type = customer.clientType
 		? CLIENT_TYPE_CONFIG[customer.clientType]
 		: null;

@@ -52,6 +52,7 @@ export async function fetchShippingDocOrders(
 	if (isBlindScope(scope)) {
 		return [];
 	}
+
 	const branchCond = orderBranchCondition(scope);
 	const branchFragment = branchCond ? sql`AND ${branchCond}` : sql``;
 
@@ -59,11 +60,13 @@ export async function fetchShippingDocOrders(
 	// preparing com a última sessão de picking (lp) = 'completed'.
 	const pickedCond = sql`o.status = 'preparing' AND lp.status = 'completed'`;
 	let modeFragment: SQL;
+
 	if (params.mode === "ids") {
 		const ph = sql.join(
 			params.ids.map((id) => sql`${id}`),
 			sql`, `
 		);
+
 		modeFragment = sql`o.id IN (${ph}) AND ${pickedCond}`;
 	} else {
 		modeFragment = pickedCond;

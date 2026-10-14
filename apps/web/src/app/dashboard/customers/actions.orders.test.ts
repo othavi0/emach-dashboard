@@ -6,6 +6,7 @@ const { requireCapability, listCustomerOrders } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/permissions", () => ({ requireCapability }));
+
 vi.mock("./data", () => ({ listCustomerOrders }));
 
 import { fetchCustomerOrdersPage } from "./actions";

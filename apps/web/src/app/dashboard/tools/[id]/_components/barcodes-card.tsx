@@ -10,6 +10,7 @@ export function BarcodesCard({ variants }: { variants: ToolDetailVariant[] }) {
 		(v): v is (typeof variants)[number] & { barcode: string } =>
 			v.barcode !== null
 	);
+
 	if (withBarcode.length === 0) {
 		return (
 			<SectionCard title="Códigos de barras">
@@ -19,6 +20,7 @@ export function BarcodesCard({ variants }: { variants: ToolDetailVariant[] }) {
 			</SectionCard>
 		);
 	}
+
 	return (
 		<SectionCard title="Códigos de barras">
 			<ul className="flex flex-col">

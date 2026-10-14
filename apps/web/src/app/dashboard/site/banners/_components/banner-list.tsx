@@ -28,6 +28,7 @@ export function BannerList({ banners }: { banners: Banner[] }) {
 	const active = order
 		.filter((b) => b.isActive)
 		.sort((a, b) => a.sortOrder - b.sortOrder);
+
 	const drafts = order.filter((b) => !b.isActive);
 
 	const sensors = useSensors(
@@ -37,6 +38,7 @@ export function BannerList({ banners }: { banners: Banner[] }) {
 	function handleToggle(id: string, next: boolean) {
 		startTransition(async () => {
 			const r = await toggleBannerActive(id, next);
+
 			if (r.ok) {
 				setOrder((prev) =>
 					prev.map((b) => (b.id === id ? { ...b, isActive: next } : b))
@@ -55,29 +57,37 @@ export function BannerList({ banners }: { banners: Banner[] }) {
 
 	function handleDragEnd(event: DragEndEvent) {
 		const { active: a, over } = event;
+
 		if (!over || a.id === over.id) {
 			return;
 		}
+
 		const ids = active.map((b) => b.id);
 		const from = ids.indexOf(String(a.id));
 		const to = ids.indexOf(String(over.id));
+
 		if (from === -1 || to === -1) {
 			return;
 		}
+
 		const reordered = [...ids];
 		const [moved] = reordered.splice(from, 1);
+
 		if (moved === undefined) {
 			return;
 		}
+
 		reordered.splice(to, 0, moved);
 		setOrder((prev) =>
 			prev.map((b) => {
 				const idx = reordered.indexOf(b.id);
+
 				return idx === -1 ? b : { ...b, sortOrder: idx };
 			})
 		);
 		startTransition(async () => {
 			const r = await reorderBanners(reordered);
+
 			if (r.ok) {
 				notify.success("Ordem atualizada");
 				router.refresh();

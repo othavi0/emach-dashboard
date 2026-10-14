@@ -8,7 +8,9 @@ describe("inviteUserSchema", () => {
 			role: "admin",
 			branchIds: ["b1"],
 		});
+
 		expect(r.success).toBe(true);
+
 		// normaliza email pra minúsculo
 		if (r.success) {
 			expect(r.data.email).toBe("novo@emach.com.br");
@@ -50,6 +52,7 @@ describe("acceptInviteSchema", () => {
 			name: "Fulano",
 			password: "12345678",
 		});
+
 		expect(r.success).toBe(true);
 	});
 

@@ -21,6 +21,7 @@ export interface BranchStockRow {
 }
 
 export type BranchStockSort = "urgency" | "name" | "stockLow" | "stockHigh";
+
 export type BranchStockStatus = "all" | "critical" | "reorder" | "ok";
 
 export interface BranchStockFiltersInput {
@@ -51,15 +52,19 @@ function buildBranchCursorPredicate(
 	if (!decoded) {
 		return null;
 	}
+
 	if (sort === "name" && decoded.sort === "name") {
 		return sql`(t.name, tv.id) > (${decoded.name}, ${decoded.id})`;
 	}
+
 	if (sort === "stockLow" && decoded.sort === "stockLow") {
 		return sql`(COALESCE(sl.quantity, 0), tv.id) > (${decoded.totalStock}, ${decoded.id})`;
 	}
+
 	if (sort === "stockHigh" && decoded.sort === "stockHigh") {
 		return sql`(COALESCE(sl.quantity, 0), tv.id) < (${decoded.totalStock}, ${decoded.id})`;
 	}
+
 	// "urgency": sem cursor persistido
 	return null;
 }
@@ -68,12 +73,15 @@ function buildBranchOrderClause(sort: BranchStockSort) {
 	if (sort === "name") {
 		return sql`ORDER BY t.name ASC, tv.id ASC`;
 	}
+
 	if (sort === "stockLow") {
 		return sql`ORDER BY COALESCE(sl.quantity, 0) ASC, tv.id ASC`;
 	}
+
 	if (sort === "stockHigh") {
 		return sql`ORDER BY COALESCE(sl.quantity, 0) DESC, tv.id DESC`;
 	}
+
 	// "urgency" (default): crítico → repor → ok; dentro de cada grupo, quantidade ASC
 	return sql`ORDER BY
 		CASE
@@ -91,6 +99,7 @@ function buildBranchStatusPredicate(status: BranchStockStatus | undefined) {
 	if (status === "critical") {
 		return sql`(COALESCE(sl.quantity, 0) <= COALESCE(sl.min_qty, 0) AND COALESCE(sl.min_qty, 0) > 0)`;
 	}
+
 	if (status === "reorder") {
 		return sql`(
 			COALESCE(sl.quantity, 0) > COALESCE(sl.min_qty, 0)
@@ -98,12 +107,14 @@ function buildBranchStatusPredicate(status: BranchStockStatus | undefined) {
 			AND COALESCE(sl.reorder_point, 0) > 0
 		)`;
 	}
+
 	if (status === "ok") {
 		return sql`(
 			COALESCE(sl.quantity, 0) > COALESCE(sl.reorder_point, 0)
 			OR (COALESCE(sl.min_qty, 0) = 0 AND COALESCE(sl.reorder_point, 0) = 0)
 		)`;
 	}
+
 	return null;
 }
 
@@ -134,10 +145,13 @@ export async function lookupVariantByBarcode(
 		WHERE tv.barcode = ${barcode}
 		LIMIT 1
 	`);
+
 	const row = result.rows[0];
+
 	if (!row) {
 		return null;
 	}
+
 	return {
 		barcode: row.barcode,
 		toolId: row.tool_id,
@@ -160,9 +174,11 @@ export async function fetchBranchStockPage({
 	cursor: string | null;
 }): Promise<InfiniteResult<BranchStockRow>> {
 	const scope = await getUserBranchScope(await requireCurrentSession());
+
 	if (!inScope(scope, filters.branchId)) {
 		return { items: [], nextCursor: null };
 	}
+
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const trimmedSearch = filters.search?.trim();
 
@@ -185,11 +201,13 @@ export async function fetchBranchStockPage({
 	}
 
 	const statusPred = buildBranchStatusPredicate(filters.status);
+
 	if (statusPred) {
 		whereParts.push(statusPred);
 	}
 
 	const cursorPred = buildBranchCursorPredicate(decoded, filters.sort);
+
 	if (cursorPred) {
 		whereParts.push(cursorPred);
 	}
@@ -229,6 +247,7 @@ export async function fetchBranchStockPage({
 	// Os demais sorts usam paginate() normalmente.
 	if (filters.sort === "urgency") {
 		const pageRows = result.rows.slice(0, BATCH_SIZE);
+
 		const items: BranchStockRow[] = pageRows.map((row) => ({
 			barcode: row.barcode,
 			toolId: row.tool_id,
@@ -241,6 +260,7 @@ export async function fetchBranchStockPage({
 			minQty: Number(row.min_qty ?? 0),
 			reorderPoint: Number(row.reorder_point ?? 0),
 		}));
+
 		return { items, nextCursor: null };
 	}
 
@@ -267,6 +287,7 @@ export async function fetchBranchStockPage({
 					id: last.variant_id,
 				};
 			}
+
 			if (filters.sort === "stockLow") {
 				return {
 					v: 1,
@@ -275,6 +296,7 @@ export async function fetchBranchStockPage({
 					id: last.variant_id,
 				};
 			}
+
 			// stockHigh
 			return {
 				v: 1,

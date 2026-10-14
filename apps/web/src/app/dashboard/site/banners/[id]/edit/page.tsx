@@ -25,9 +25,11 @@ async function EditBannerPageContent({
 	await requireCapabilityOrRedirect("site.update_banners");
 	const { id } = await params;
 	const banner = await fetchBanner(id);
+
 	if (!banner) {
 		notFound();
 	}
+
 	return (
 		<>
 			<PageHeader

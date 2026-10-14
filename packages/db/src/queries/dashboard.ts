@@ -33,6 +33,7 @@ export type OrderFunnelStatus = (typeof ORDER_STATUS_FUNNEL)[number];
 // Drift guard (type-level): se um status novo do enum não entrar no funil,
 // `Exclude` deixa de ser `never` e este alias quebra a compilação.
 type AssertNever<T extends never> = T;
+
 export type OrderFunnelCoversEnum = AssertNever<
 	Exclude<(typeof orderStatusEnum.enumValues)[number], OrderFunnelStatus>
 >;
@@ -42,8 +43,10 @@ export function sortByFunnel<T extends { status: string }>(rows: T[]): T[] {
 		const i = ORDER_STATUS_FUNNEL.indexOf(
 			s as (typeof ORDER_STATUS_FUNNEL)[number]
 		);
+
 		return i === -1 ? Number.MAX_SAFE_INTEGER : i;
 	};
+
 	return [...rows].sort((a, b) => pos(a.status) - pos(b.status));
 }
 
@@ -61,6 +64,7 @@ export function movingAverage(values: number[], window: number): number[] {
 	return values.map((_, i) => {
 		const start = Math.max(0, i - window + 1);
 		const slice = values.slice(start, i + 1);
+
 		return slice.reduce((a, b) => a + b, 0) / slice.length;
 	});
 }
@@ -144,9 +148,11 @@ export async function getDashboardKpis(
 	branchId: string | null
 ): Promise<DashboardKpis> {
 	const branchFilter = branchId ? sql`AND o.branch_id = ${branchId}` : sql``;
+
 	const stockBranchFilter = branchId
 		? sql`AND sl.branch_id = ${branchId}`
 		: sql``;
+
 	const res = await db.execute<{
 		revenue_today: string;
 		active_orders: number;
@@ -174,10 +180,13 @@ export async function getDashboardKpis(
 			(SELECT COUNT(*)::int FROM promotion WHERE active = true
 				AND ends_at IS NOT NULL AND ends_at BETWEEN now() AND now() + INTERVAL '7 days') AS promotions_expiring_7d
 	`);
+
 	const r = res.rows[0];
+
 	if (!r) {
 		throw new Error("getDashboardKpis: 0 linhas");
 	}
+
 	return {
 		revenueToday: Number(r.revenue_today),
 		activeOrders: r.active_orders,
@@ -204,6 +213,7 @@ export async function getDailyRevenue(
 ): Promise<RevenuePoint[]> {
 	const { days, bucket, maWindow } = periodToConfig(period);
 	const branchFilter = branchId ? sql`AND o.branch_id = ${branchId}` : sql``;
+
 	const res = await db.execute<{ day: string; revenue: string }>(sql`
 		SELECT date_trunc(${bucket}, o.created_at)::date AS day,
 			COALESCE(SUM(o.total_amount), 0) AS revenue
@@ -212,8 +222,10 @@ export async function getDailyRevenue(
 			AND o.created_at >= now() - make_interval(days => ${days}) ${branchFilter}
 		GROUP BY 1 ORDER BY 1 ASC
 	`);
+
 	const revenues = res.rows.map((r) => Number(r.revenue));
 	const ma = movingAverage(revenues, maWindow);
+
 	return res.rows.map((r, i) => ({
 		day: localDate(r.day),
 		revenue: revenues[i] as number,
@@ -232,11 +244,13 @@ export async function getOrderFunnel(
 ): Promise<FunnelRow[]> {
 	const { days } = periodToConfig(period);
 	const branchFilter = branchId ? sql`AND o.branch_id = ${branchId}` : sql``;
+
 	const res = await db.execute<{ status: string; count: number }>(sql`
 		SELECT o.status, COUNT(*)::int AS count FROM "order" o
 		WHERE o.created_at >= now() - make_interval(days => ${days}) ${branchFilter}
 		GROUP BY o.status
 	`);
+
 	return sortByFunnel(res.rows);
 }
 
@@ -250,6 +264,7 @@ export async function getRatingDistribution(db: AnyDb): Promise<RatingRow[]> {
 		WHERE status = 'approved' AND created_at >= now() - INTERVAL '30 days'
 		GROUP BY rating ORDER BY rating ASC
 	`);
+
 	return res.rows;
 }
 
@@ -262,6 +277,7 @@ export async function getReorderTable(
 	branchId: string | null
 ): Promise<ReorderRow[]> {
 	const branchFilter = branchId ? sql`AND sl.branch_id = ${branchId}` : sql``;
+
 	const res = await db.execute<{
 		branch_name: string;
 		tool_name: string;
@@ -282,6 +298,7 @@ export async function getReorderTable(
 			AND b.status = 'active' ${branchFilter}
 		ORDER BY deficit DESC LIMIT 50
 	`);
+
 	return res.rows.map((r) => ({
 		branchName: r.branch_name,
 		toolName: r.tool_name,
@@ -303,6 +320,7 @@ export async function getToolStatusBreakdown(
 		SELECT status, COUNT(*)::int AS count FROM tool
 		GROUP BY status ORDER BY count DESC
 	`);
+
 	return res.rows.map((r) => ({ key: r.status, count: r.count }));
 }
 
@@ -318,6 +336,7 @@ export async function getNewClients(db: AnyDb): Promise<NewClientPoint[]> {
 		WHERE created_at >= now() - INTERVAL '90 days'
 		GROUP BY 1 ORDER BY 1 ASC
 	`);
+
 	return res.rows.map((r) => ({ week: localDate(r.week), count: r.count }));
 }
 
@@ -337,6 +356,7 @@ export async function getPromotionStatusBreakdown(
 			COUNT(*)::int AS count
 		FROM promotion GROUP BY 1
 	`);
+
 	return res.rows;
 }
 
@@ -351,6 +371,7 @@ export async function getStockFlow(
 ): Promise<StockFlowPoint[]> {
 	const { days, bucket } = periodToConfig(period);
 	const branchFilter = branchId ? sql`AND sm.branch_id = ${branchId}` : sql``;
+
 	const res = await db.execute<{
 		week: string;
 		entradas: number;
@@ -363,6 +384,7 @@ export async function getStockFlow(
 		WHERE sm.created_at >= now() - make_interval(days => ${days}) ${branchFilter}
 		GROUP BY 1 ORDER BY 1 ASC
 	`);
+
 	return res.rows.map((r) => ({
 		week: localDate(r.week),
 		entradas: r.entradas,
@@ -378,6 +400,7 @@ export async function getBranchOptions(db: AnyDb): Promise<BranchOption[]> {
 	const res = await db.execute<{ id: string; name: string }>(sql`
 		SELECT id, name FROM branch WHERE status = 'active' ORDER BY name ASC
 	`);
+
 	return res.rows;
 }
 
@@ -393,11 +416,14 @@ export async function getDashboardSummary(
 ): Promise<DashboardSummary> {
 	const { days } = periodToConfig(period);
 	const branchFilter = branchId ? sql`AND o.branch_id = ${branchId}` : sql``;
+
 	const stockBranchFilter = branchId
 		? sql`AND sl.branch_id = ${branchId}`
 		: sql``;
+
 	const rev = sqlStatusList(REVENUE_ORDER_STATUSES);
 	const active = sqlStatusList(ACTIVE_ORDER_STATUSES);
+
 	const res = await db.execute<{
 		revenue_cur: string;
 		orders_cur: number;
@@ -426,14 +452,18 @@ export async function getDashboardSummary(
 			(SELECT COUNT(*)::int FROM stock_level sl
 				WHERE sl.quantity = 0 ${stockBranchFilter}) AS stock_outages
 	`);
+
 	const r = res.rows[0];
+
 	if (!r) {
 		throw new Error("getDashboardSummary: 0 linhas");
 	}
+
 	const revenueCur = Number(r.revenue_cur);
 	const revenuePrev = Number(r.revenue_prev);
 	const ticketCur = r.orders_cur > 0 ? revenueCur / r.orders_cur : 0;
 	const ticketPrev = r.orders_prev > 0 ? revenuePrev / r.orders_prev : 0;
+
 	return {
 		revenue: revenueCur,
 		revenueDelta: computeDeltaPct(revenueCur, revenuePrev),

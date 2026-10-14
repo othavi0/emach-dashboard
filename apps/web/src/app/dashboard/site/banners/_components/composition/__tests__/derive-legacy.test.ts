@@ -20,6 +20,7 @@ const ALL_ON = {
 describe("legacyToComposition — trios por layout", () => {
 	const trio = (layout: BannerLayout) => {
 		const c = legacyToComposition({ layout, ...ALL_ON });
+
 		return [
 			c.desktop.elements.title?.anchor,
 			c.desktop.elements.product?.anchor,
@@ -57,6 +58,7 @@ describe("legacyToComposition — trios por layout", () => {
 			hasBadge: false,
 			hasSpecs: false,
 		});
+
 		expect(c.desktop.elements.title).toBeUndefined();
 		expect(c.desktop.elements.badge).toBeUndefined();
 		expect(c.desktop.elements.specs).toBeUndefined();

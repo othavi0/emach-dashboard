@@ -29,13 +29,18 @@ export function ImageUploadTile({
 	async function handleFile(file: File) {
 		if (!ALLOWED.has(file.type)) {
 			notify.error("Formato inválido (JPG/PNG/WEBP)");
+
 			return;
 		}
+
 		if (file.size > maxBytes) {
 			notify.error(`Imagem excede ${Math.round(maxBytes / 1024)}KB`);
+
 			return;
 		}
+
 		setBusy(true);
+
 		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const fd = new FormData();
@@ -54,6 +59,7 @@ export function ImageUploadTile({
 	async function handleRemove() {
 		const current = value;
 		onChange(null);
+
 		if (current) {
 			await deleteBannerImage(current).catch(() => undefined);
 		}
@@ -104,9 +110,11 @@ export function ImageUploadTile({
 				className="hidden"
 				onChange={(e) => {
 					const f = e.target.files?.[0];
+
 					if (f) {
 						handleFile(f).catch(() => undefined);
 					}
+
 					e.target.value = "";
 				}}
 				ref={inputRef}

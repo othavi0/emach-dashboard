@@ -43,9 +43,11 @@ export function DeletePromotionDialog({
 	function handleConfirm() {
 		startTransition(async () => {
 			const result = await deletePromotion(promotionId);
+
 			if (result.ok) {
 				notify.success("Promoção removida");
 				setOpen(false);
+
 				if (redirectTo) {
 					router.push(redirectTo);
 				} else {

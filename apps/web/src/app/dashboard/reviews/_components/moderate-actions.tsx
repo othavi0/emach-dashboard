@@ -25,9 +25,11 @@ function isNoteRequired(status: ReviewStatus) {
 export function ModerateActions({ review }: { review: ReviewDetail }) {
 	const router = useRouter();
 	const reloadTab = useLazyTabReload();
+
 	const [moderationNote, setModerationNote] = useState(
 		review.moderationNote ?? ""
 	);
+
 	const [isPending, startTransition] = useTransition();
 
 	function handleModeration(
@@ -35,6 +37,7 @@ export function ModerateActions({ review }: { review: ReviewDetail }) {
 	) {
 		if (isNoteRequired(status) && !moderationNote.trim()) {
 			notify.error("Informe uma nota ao rejeitar ou marcar como spam");
+
 			return;
 		}
 
@@ -56,6 +59,7 @@ export function ModerateActions({ review }: { review: ReviewDetail }) {
 					// detalhe já renderiza `moderatedByName • moderatedAt` e a nota.
 					reloadTab();
 					router.refresh();
+
 					return;
 				}
 

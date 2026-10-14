@@ -9,22 +9,28 @@ const MAX_MINUTE = 59;
  */
 export function sanitizeTime24h(display: string): string {
 	const digits = display.replace(/\D/g, "").slice(0, 4);
+
 	if (digits.length === 0) {
 		return "";
 	}
+
 	const hPart = digits.slice(0, 2);
 	const mPart = digits.slice(2);
+
 	const hh =
 		hPart.length === 2
 			? String(Math.min(MAX_HOUR, Number(hPart))).padStart(2, "0")
 			: hPart;
+
 	if (digits.length <= 2) {
 		return hh;
 	}
+
 	const mm =
 		mPart.length === 2
 			? String(Math.min(MAX_MINUTE, Number(mPart))).padStart(2, "0")
 			: mPart;
+
 	return `${hh}:${mm}`;
 }
 

@@ -67,23 +67,28 @@ export async function fetchLedgerPage(
 	if (filters.toolId) {
 		conditions.push(eq(toolVariant.toolId, filters.toolId));
 	}
+
 	if (filters.branchId) {
 		// LEITURA: validar que a filial pedida está no escopo (senão um user de A
 		// leria o ledger de B via ?branchId=<id-de-B>).
 		if (!inScope(scope, filters.branchId)) {
 			return { items: [], nextCursor: null };
 		}
+
 		conditions.push(eq(stockMovement.branchId, filters.branchId));
 	} else if (scope.kind === "scoped") {
 		// Sem filtro explícito: restringir ao escopo do usuário.
 		conditions.push(inArray(stockMovement.branchId, scope.branchIds));
 	}
+
 	if (filters.supplierId) {
 		conditions.push(eq(stockMovement.supplierId, filters.supplierId));
 	}
+
 	if (filters.actorId) {
 		conditions.push(eq(stockMovement.actorId, filters.actorId));
 	}
+
 	if (filters.reasons && filters.reasons.length > 0) {
 		conditions.push(
 			inArray(
@@ -94,11 +99,13 @@ export async function fetchLedgerPage(
 	}
 
 	const cutoff = computePeriodCutoff(filters.period);
+
 	if (cutoff) {
 		conditions.push(gte(stockMovement.createdAt, cutoff));
 	}
 
 	const cursorClause = movementKeysetCondition(cursor);
+
 	if (cursorClause) {
 		conditions.push(cursorClause);
 	}
@@ -175,7 +182,9 @@ export async function getStockMovements(
 	if (scope.kind === "scoped" && scope.branchIds.length === 0) {
 		return [];
 	}
+
 	const conditions = [eq(toolVariant.toolId, toolId)];
+
 	if (scope.kind === "scoped") {
 		conditions.push(inArray(stockMovement.branchId, scope.branchIds));
 	}
@@ -219,6 +228,7 @@ export async function getStockMovementsByVariantBranch(
 	await requireCapabilityWithContext("stock.read", {
 		targetBranchIds: [branchId],
 	});
+
 	return await db
 		.select({
 			id: stockMovement.id,
@@ -268,6 +278,7 @@ export async function fetchVariantBranchMovementsPage(
 	];
 
 	const cursorClause = movementKeysetCondition(cursor);
+
 	if (cursorClause) {
 		conditions.push(cursorClause);
 	}
@@ -311,6 +322,7 @@ export async function getReservedQtyByVariantBranch(
 	await requireCapabilityWithContext("stock.read", {
 		targetBranchIds: [branchId],
 	});
+
 	const [row] = await db
 		.select({
 			reserved: sql<number>`coalesce(sum(${orderItem.quantity}), 0)::int`,
@@ -324,5 +336,6 @@ export async function getReservedQtyByVariantBranch(
 				inArray(order.status, ["paid", "preparing"])
 			)
 		);
+
 	return row?.reserved ?? 0;
 }

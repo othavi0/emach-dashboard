@@ -13,6 +13,7 @@ export default function NewBannerPage() {
 
 async function NewBannerPageContent() {
 	await requireCapability("site.update_banners");
+
 	return (
 		<>
 			<PageHeader

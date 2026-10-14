@@ -60,6 +60,7 @@ function setupUpdate(rows: Array<{ id: string }>) {
 	mockDbUpdate.mockReturnValue({
 		set: (payload: unknown) => {
 			setSpy(payload);
+
 			return {
 				where: () => ({
 					returning: () => Promise.resolve(rows),
@@ -116,9 +117,11 @@ describe("moderateReview", () => {
 		mockDbUpdate.mockReturnValue({
 			set: (payload: unknown) => {
 				setSpy(payload);
+
 				return {
 					where: (whereArg: unknown) => {
 						capturedWhere = whereArg;
+
 						return { returning: () => Promise.resolve([{ id: ID_A }]) };
 					},
 				};

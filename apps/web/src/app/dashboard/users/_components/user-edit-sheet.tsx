@@ -43,8 +43,10 @@ export function UserEditSheet({ user, actorRole }: Props) {
 	// Reset síncrono durante o render (padrão "adjusting state when a prop
 	// changes") — sem o re-render extra do reset via effect.
 	const [lastReset, setLastReset] = useState({ open, user });
+
 	if (lastReset.open !== open || lastReset.user !== user) {
 		setLastReset({ open, user });
+
 		if (open) {
 			setName(user.name);
 			setRole(user.role);
@@ -62,18 +64,23 @@ export function UserEditSheet({ user, actorRole }: Props) {
 
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
+
 		const parsed = updateUserSchema.safeParse({
 			userId: user.id,
 			name,
 			role,
 			emailVerified,
 		});
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
+
 		startTransition(async () => {
 			const res = await updateUser(parsed.data);
+
 			if (res.ok) {
 				notify.success("Usuário atualizado");
 				close();

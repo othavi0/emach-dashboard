@@ -5,6 +5,7 @@ import { BANNER_TEMPLATES } from "../templates";
 describe("BANNER_TEMPLATES", () => {
 	test("são 4 e todas as compositions validam", () => {
 		expect(BANNER_TEMPLATES.length).toBe(4);
+
 		for (const t of BANNER_TEMPLATES) {
 			expect(compositionSchema.safeParse(t.composition).success).toBe(true);
 		}

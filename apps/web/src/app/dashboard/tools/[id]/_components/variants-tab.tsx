@@ -215,8 +215,10 @@ function EditableRow({
 	function handleSave() {
 		if (state.priceAmount === undefined && initial.priceAmount !== undefined) {
 			notify.error("Informe o preço");
+
 			return;
 		}
+
 		startTransition(async () => {
 			const result = await updateToolVariant({
 				variantId: variant.id,
@@ -231,6 +233,7 @@ function EditableRow({
 						? undefined
 						: state.priceAmount,
 			});
+
 			if (result.ok) {
 				notify.success("Variante atualizada");
 				setSavedTick(true);
@@ -245,11 +248,13 @@ function EditableRow({
 		if (variant.isDefault) {
 			return;
 		}
+
 		startDefaultTransition(async () => {
 			const result = await setDefaultToolVariant({
 				toolId,
 				variantId: variant.id,
 			});
+
 			if (result.ok) {
 				notify.success("Variante padrão atualizada");
 			} else {
@@ -264,6 +269,7 @@ function EditableRow({
 				variantId: variant.id,
 				visible,
 			});
+
 			if (result.ok) {
 				if (result.data.warning === "default_hidden") {
 					notify.warning(
@@ -281,6 +287,7 @@ function EditableRow({
 	}
 
 	let saveControl: React.ReactNode = null;
+
 	if (dirty) {
 		saveControl = (
 			<Button disabled={pending} onClick={handleSave} size="sm">
@@ -296,6 +303,7 @@ function EditableRow({
 	}
 
 	let deleteControl: React.ReactNode = null;
+
 	if (canDelete) {
 		// Mesma ordem do helper resolveVariantDeletion (pedidos > estoque > única).
 		if (hasOrders) {
@@ -489,6 +497,7 @@ function VariantsReadOnly({
 		style: "currency",
 		currency: "BRL",
 	});
+
 	const fmt = (v: string | null) =>
 		v === null ? "—" : PRICE.format(Number(v));
 

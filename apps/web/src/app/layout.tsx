@@ -31,6 +31,7 @@ const fontMono = IBM_Plex_Mono({
 });
 
 const siteUrl = new URL("https://dashboard.emachferramentas.com.br");
+
 const siteDescription =
 	"Dashboard administrativo da Emach Ferramentas para gestão de ferramentas, pedidos, estoque, clientes e conteúdo do e-commerce.";
 

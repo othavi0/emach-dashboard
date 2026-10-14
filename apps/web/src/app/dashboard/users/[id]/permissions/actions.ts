@@ -32,9 +32,11 @@ export async function setUserCapability(
 	raw: z.infer<typeof inputSchema>
 ): Promise<ActionResult> {
 	const parsed = inputSchema.safeParse(raw);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
+
 	const { targetUserId, capability, state } = parsed.data;
 
 	if (!isCapability(capability)) {
@@ -50,6 +52,7 @@ export async function setUserCapability(
 			.from(userTable)
 			.where(eq(userTable.id, targetUserId))
 			.limit(1);
+
 		if (targetUser?.role === "super_admin" && state !== "inherit") {
 			return {
 				ok: false,
@@ -62,6 +65,7 @@ export async function setUserCapability(
 			.select({ branchId: userBranch.branchId })
 			.from(userBranch)
 			.where(eq(userBranch.userId, targetUserId));
+
 		const targetBranchIds = targetBranches.map((b) => b.branchId);
 
 		// Capability check (permissions.manage) + ensureActive + hierarquia
@@ -91,6 +95,7 @@ export async function setUserCapability(
 		// (admin não conseguiria limpar override perigoso sem um super_admin). Ver ADR-0017.
 		if (state === "grant") {
 			const actorCaps = await getUserCapabilities(actorSession);
+
 			if (!actorCaps.has(capability)) {
 				return {
 					ok: false,
@@ -110,6 +115,7 @@ export async function setUserCapability(
 				)
 			)
 			.limit(1);
+
 		const before = existing?.effect ?? "inherit";
 
 		if (state === "inherit") {
@@ -152,9 +158,11 @@ export async function setUserCapability(
 		});
 
 		revalidatePath(`/dashboard/users/${targetUserId}`);
+
 		return { ok: true, data: undefined };
 	} catch (err) {
 		logger.error("setUserCapability", err);
+
 		return { ok: false, error: "Não foi possível alterar a permissão" };
 	}
 }
@@ -169,11 +177,14 @@ export async function setSectionCapabilities(
 	raw: z.infer<typeof sectionInputSchema>
 ): Promise<ActionResult> {
 	const parsed = sectionInputSchema.safeParse(raw);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
+
 	const { targetUserId, state } = parsed.data;
 	const caps = parsed.data.capabilities.filter(isCapability);
+
 	if (caps.length === 0) {
 		return { ok: false, error: "Nenhuma permissão válida" };
 	}
@@ -185,7 +196,9 @@ export async function setSectionCapabilities(
 			.from(userTable)
 			.where(eq(userTable.id, targetUserId))
 			.limit(1);
+
 		const targetUser = targetUserRows[0];
+
 		if (targetUser?.role === "super_admin" && state !== "inherit") {
 			return {
 				ok: false,
@@ -197,6 +210,7 @@ export async function setSectionCapabilities(
 			.select({ branchId: userBranch.branchId })
 			.from(userBranch)
 			.where(eq(userBranch.userId, targetUserId));
+
 		const targetBranchIds = targetBranches.map((b) => b.branchId);
 
 		const actorSession = await requireCapabilityWithContext(
@@ -216,10 +230,12 @@ export async function setSectionCapabilities(
 
 		// Anti-escalada: grant só concede o que o ator possui (espelha setUserCapability).
 		let effective = caps;
+
 		if (state === "grant") {
 			const actorCaps = await getUserCapabilities(actorSession);
 			effective = caps.filter((c) => actorCaps.has(c));
 		}
+
 		if (effective.length === 0) {
 			return { ok: false, error: "Nenhuma permissão aplicável" };
 		}
@@ -266,9 +282,11 @@ export async function setSectionCapabilities(
 		});
 
 		revalidatePath(`/dashboard/users/${targetUserId}`);
+
 		return { ok: true, data: undefined };
 	} catch (err) {
 		logger.error("setSectionCapabilities", err);
+
 		return { ok: false, error: "Não foi possível alterar as permissões" };
 	}
 }

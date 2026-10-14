@@ -27,11 +27,13 @@ export interface StockAlertEmailProps {
 
 const CRITICAL_COLOR = "#dc2626";
 const cellStyle = { padding: "6px 8px" };
+
 const headStyle = {
 	...cellStyle,
 	borderBottom: "1px solid #e5e7eb",
 	textAlign: "left" as const,
 };
+
 const rowStyle = { borderBottom: "1px solid #f3f4f6" };
 
 export function StockAlertEmail({

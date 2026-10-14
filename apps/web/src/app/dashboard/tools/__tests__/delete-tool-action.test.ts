@@ -92,9 +92,11 @@ describe("deleteTool", () => {
 		const result = await deleteTool("tool-1");
 
 		expect(result.ok).toBe(false);
+
 		if (!result.ok) {
 			expect(result.error).toContain("4 pedidos");
 		}
+
 		expect(mockDbDelete).not.toHaveBeenCalled();
 	});
 
@@ -109,9 +111,11 @@ describe("deleteTool", () => {
 		const result = await deleteTool("tool-1");
 
 		expect(result.ok).toBe(false);
+
 		if (!result.ok) {
 			expect(result.error).toContain("avaliação");
 		}
+
 		expect(mockDbDelete).not.toHaveBeenCalled();
 	});
 
@@ -126,9 +130,11 @@ describe("deleteTool", () => {
 		const result = await deleteTool("tool-1");
 
 		expect(result.ok).toBe(false);
+
 		if (!result.ok) {
 			expect(result.error).toContain("90 un");
 		}
+
 		expect(mockDbDelete).not.toHaveBeenCalled();
 	});
 
@@ -158,9 +164,11 @@ describe("deleteTool", () => {
 		const result = await deleteTool("tool-1");
 
 		expect(result.ok).toBe(false);
+
 		if (!result.ok) {
 			expect(result.error).toContain("rascunho");
 		}
+
 		expect(mockDbDelete).not.toHaveBeenCalled();
 	});
 

@@ -170,6 +170,7 @@ export function can(role: string | null | undefined, cap: Capability): boolean {
 	if (!(role && role in ROLE_CAPS)) {
 		return false;
 	}
+
 	return ROLE_CAPS[role as UserRole].includes(cap);
 }
 
@@ -178,9 +179,11 @@ export async function requireCapability(
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
 	const role = session.user.role as UserRole | undefined;
+
 	if (!can(role, cap)) {
 		throw new Error(`Forbidden: capability "${cap}" requerida`);
 	}
+
 	return session;
 }
 
@@ -189,9 +192,11 @@ export async function requireCapabilityOrRedirect(
 	redirectTo = "/dashboard"
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
+
 	if (!can(session.user.role, cap)) {
 		redirect(redirectTo);
 	}
+
 	return session;
 }
 
@@ -200,15 +205,19 @@ export async function requireUserDetailAccessOrRedirect(
 	redirectTo = "/dashboard"
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
+
 	if (session.user.status !== "active") {
 		redirect(redirectTo);
 	}
+
 	if (session.user.id === targetUserId) {
 		return session;
 	}
+
 	if (!can(session.user.role, "users.manage")) {
 		redirect(redirectTo);
 	}
+
 	return session;
 }
 
@@ -241,6 +250,7 @@ export async function requireCapabilityWithContext(
 ): Promise<DashboardSession> {
 	const session = await requireCurrentSession();
 	const role = (session.user.role ?? "user") as UserRole;
+
 	if (!can(role, cap)) {
 		throw new Error(`Forbidden: capability "${cap}" requerida`);
 	}
@@ -275,7 +285,9 @@ export async function requireCapabilityWithContext(
 			.select({ branchId: userBranch.branchId })
 			.from(userBranch)
 			.where(eq(userBranch.userId, session.user.id));
+
 		const ownSet = new Set(ownBranches.map((b) => b.branchId));
+
 		for (const targetId of ctx.targetBranchIds) {
 			if (!ownSet.has(targetId)) {
 				throw new Error(`Filial fora do seu escopo: ${targetId}`);

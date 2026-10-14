@@ -39,9 +39,11 @@ export async function getSupplierDetail(
 		.from(supplier)
 		.where(eq(supplier.id, id))
 		.limit(1);
+
 	if (!base) {
 		return null;
 	}
+
 	// Derivação: tools fornecidas = tools com ≥1 entrada_compra deste fornecedor (ADR-0015).
 	// Usa db.execute raw porque count + FILTER no query builder funciona, mas
 	// precisamos do WHERE com subquery e o shape retornado vem snake_case do driver.
@@ -57,7 +59,9 @@ export async function getSupplierDetail(
 		FROM tool t
 		WHERE t.id IN (${supplierToolIds(id)})
 	`);
+
 	const counts = rows.rows[0];
+
 	return {
 		id: base.id,
 		name: base.name,
@@ -113,6 +117,7 @@ export async function getSupplierDetailKpis(
 
 	const counts = countRows.rows[0];
 	const cats = catRows.rows[0];
+
 	return {
 		activeTools: Number(counts?.active ?? 0),
 		inactiveTools: Number(counts?.inactive ?? 0),
@@ -215,6 +220,7 @@ export async function getSupplierStockTools({
 
 	const items: SupplierStockToolRow[] = pageRows.map((r) => {
 		const m = meta.get(r.id);
+
 		return {
 			id: r.id,
 			name: r.name,
@@ -230,6 +236,7 @@ export async function getSupplierStockTools({
 	});
 
 	const lastRaw = pageRows.at(-1);
+
 	const nextCursor =
 		hasMore && lastRaw
 			? encodeCursor({
@@ -272,6 +279,7 @@ export async function getSupplierAuditLog(
 		.where(eq(supplierAuditLog.supplierId, supplierId))
 		.orderBy(desc(supplierAuditLog.createdAt))
 		.limit(limit);
+
 	return rows as SupplierAuditRow[];
 }
 
@@ -299,6 +307,7 @@ export async function getSupplierTableAggregates(
 		supplierIds.map((sid) => sql`${sid}`),
 		sql`, `
 	);
+
 	const result = await db.execute<{
 		supplierId: string;
 		total: string;
@@ -317,9 +326,11 @@ export async function getSupplierTableAggregates(
 	`);
 
 	const map = new Map<string, { toolsTotal: number; toolsActive: number }>();
+
 	for (const id of supplierIds) {
 		map.set(id, { toolsTotal: 0, toolsActive: 0 });
 	}
+
 	for (const r of result.rows) {
 		if (r.supplierId) {
 			map.set(r.supplierId, {
@@ -328,6 +339,7 @@ export async function getSupplierTableAggregates(
 			});
 		}
 	}
+
 	return map;
 }
 
@@ -347,13 +359,16 @@ export async function getToolCardMeta(
 	toolIds: string[]
 ): Promise<Map<string, ToolCardMeta>> {
 	const map = new Map<string, ToolCardMeta>();
+
 	if (toolIds.length === 0) {
 		return map;
 	}
+
 	const idList = sql.join(
 		toolIds.map((id) => sql`${id}`),
 		sql`, `
 	);
+
 	const result = await db.execute<{
 		id: string;
 		defaultSku: string | null;
@@ -367,6 +382,7 @@ export async function getToolCardMeta(
 		FROM tool t
 		WHERE t.id IN (${idList})
 	`);
+
 	for (const r of result.rows) {
 		map.set(r.id, {
 			defaultSku: r.defaultSku,
@@ -374,5 +390,6 @@ export async function getToolCardMeta(
 			category: r.category,
 		});
 	}
+
 	return map;
 }

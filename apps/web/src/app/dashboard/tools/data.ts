@@ -28,6 +28,7 @@ import {
 } from "./_lib/tool-query-helpers";
 
 export type ToolSort = "newest" | "name";
+
 export type ToolsListMode = "catalog" | "repor" | "esgotado";
 
 export interface ToolsFiltersInput {
@@ -71,9 +72,11 @@ export async function primaryCategoryIncompleteError(
 	primaryCategoryId: string
 ): Promise<string | null> {
 	const effective = await getEffectiveAttributeCount(primaryCategoryId);
+
 	if (isCategoryComplete(effective)) {
 		return null;
 	}
+
 	return `A categoria principal está incompleta (${effective}/${MIN_CATEGORY_ATTRIBUTES} atributos efetivos). Adicione atributos à categoria antes de cadastrar ou ativar ferramentas nela.`;
 }
 
@@ -88,6 +91,7 @@ export async function currentPrimaryCategoryId(
 			and(eq(toolCategory.toolId, toolId), eq(toolCategory.isPrimary, true))
 		)
 		.limit(1);
+
 	return row?.categoryId ?? null;
 }
 
@@ -97,10 +101,12 @@ export async function fetchDefinitionsBySlug(
 	if (slugs.length === 0) {
 		return new Map();
 	}
+
 	const rows = await db
 		.select()
 		.from(attributeDefinition)
 		.where(inArray(attributeDefinition.slug, slugs));
+
 	return new Map(rows.map((d) => [d.slug, d]));
 }
 
@@ -110,6 +116,7 @@ export function buildToolsWhereClause(
 	decoded: ReturnType<typeof decodeCursor> | null
 ) {
 	const whereParts: ReturnType<typeof sql>[] = [];
+
 	if (filters.search) {
 		const searchPattern = `%${filters.search}%`;
 		whereParts.push(sql`(
@@ -117,29 +124,36 @@ export function buildToolsWhereClause(
 			OR EXISTS (SELECT 1 FROM tool_variant tv WHERE tv.tool_id = t.id AND tv.barcode ILIKE ${searchPattern})
 		)`);
 	}
+
 	if (filters.categoryId) {
 		whereParts.push(
 			sql`EXISTS (SELECT 1 FROM tool_category tc WHERE tc.tool_id = t.id AND tc.category_id = ${filters.categoryId})`
 		);
 	}
+
 	if (filters.visible === "true") {
 		whereParts.push(sql`t.visible_on_site = true`);
 	} else if (filters.visible === "false") {
 		whereParts.push(sql`t.visible_on_site = false`);
 	}
+
 	const statusFilter = resolveToolStatusFilter(filters.status);
+
 	if (statusFilter.kind === "in") {
 		const placeholders = sql.join(
 			statusFilter.statuses.map((s) => sql`${s}`),
 			sql`, `
 		);
+
 		whereParts.push(sql`t.status IN (${placeholders})`);
 	} else {
 		whereParts.push(sql`t.status <> ${ARCHIVED_TOOL_STATUS}`);
 	}
+
 	if (filters.ncm) {
 		whereParts.push(sql`t.ncm ILIKE ${`${filters.ncm}%`}`);
 	}
+
 	if (filters.mode === "repor") {
 		if (filters.branchId) {
 			whereParts.push(sql`
@@ -164,6 +178,7 @@ export function buildToolsWhereClause(
 			`);
 		}
 	}
+
 	if (filters.mode === "esgotado") {
 		// Coerente com o badge "Esgotado": só tools vendáveis (active) sem estoque.
 		whereParts.push(sql`t.status = 'active'`);
@@ -175,6 +190,7 @@ export function buildToolsWhereClause(
 			)
 		`);
 	}
+
 	if (decoded) {
 		if (filters.sort === "newest" && decoded.sort === "newest") {
 			whereParts.push(
@@ -186,6 +202,7 @@ export function buildToolsWhereClause(
 			throw new Error("Cursor não condiz com sort");
 		}
 	}
+
 	return whereParts.length
 		? sql`WHERE ${sql.join(whereParts, sql` AND `)}`
 		: sql``;
@@ -198,6 +215,7 @@ export function buildToolsNextCursor(
 	if (sort === "name") {
 		return encodeCursor({ v: 1, sort: "name", name: last.__name, id: last.id });
 	}
+
 	return encodeCursor({
 		v: 1,
 		sort: "newest",
@@ -218,6 +236,7 @@ export async function fetchToolsPage({
 
 	const decoded = cursor ? decodeCursor(cursor) : null;
 	const whereClause = buildToolsWhereClause(filters, decoded);
+
 	const orderClause =
 		filters.sort === "name"
 			? sql`ORDER BY t.name ASC, t.id ASC`

@@ -12,9 +12,11 @@ import { db } from "../src/index";
 import type { Tx } from "./seed/context";
 
 const HOURS = 3_600_000;
+
 // Idades desde o pagamento: 2h e 26h (normais), 50h (âmbar), 74h e 120h (Atrasados).
 const PAID_AGES_HOURS = [2, 26, 50, 74, 120] as const;
 const SHIPPING_METHODS = ["SEDEX", "PAC", null, "SEDEX", "PAC"] as const;
+
 // Sem desconto neste seed — constante única referenciada por `order.discountAmount`
 // e pela fórmula de `totalAmount`, pra invariante subtotal-desconto+frete não
 // quebrar silenciosamente se alguém parametrizar desconto no futuro.
@@ -24,6 +26,7 @@ interface ClientRow {
 	id: string;
 	name: string;
 }
+
 interface VariantRow {
 	cest: string | null;
 	manufacturer_name: string | null;
@@ -63,7 +66,9 @@ async function insertTestOrderLine(
 				AND quantity >= ${line.quantity}
 			RETURNING quantity`
 	);
+
 	const newQty = debited.rows[0]?.quantity;
+
 	if (newQty === undefined) {
 		throw new Error(
 			`[seed-test-orders] estoque insuficiente ou stock_level ausente: variant=${line.v.variant_id} branch=${branchId}`
@@ -124,11 +129,14 @@ async function insertTestOrder(
 	const createdAt = new Date(paidAt.getTime() - 3 * HOURS);
 	// 1 a 4 itens por pedido, girando pelo pool de variantes.
 	const lineCount = (index % 4) + 1;
+
 	const lines = Array.from({ length: lineCount }, (_, j) => {
 		const v = variantPool[(index * 2 + j) % variantPool.length];
+
 		if (!v) {
 			throw new Error("[seed-test-orders] variant index fora do range.");
 		}
+
 		return { v, quantity: (j % 3) + 1 };
 	});
 
@@ -138,7 +146,9 @@ async function insertTestOrder(
 			0
 		)
 		.toFixed(2);
+
 	const shippingAmount = SHIPPING_METHODS[index] ? "39.90" : "0";
+
 	const totalAmount = (
 		Number.parseFloat(subtotal) -
 		Number.parseFloat(DISCOUNT_AMOUNT) +
@@ -206,6 +216,7 @@ async function insertTestOrder(
 async function main() {
 	const forced =
 		process.argv.includes("--force") || process.env.SEED_FORCE === "1";
+
 	if (!forced) {
 		const host = new URL(env.DATABASE_URL).host;
 		console.error(
@@ -224,7 +235,9 @@ async function main() {
 		const branches = await tx.execute<{ id: string }>(
 			sql`SELECT id FROM branch WHERE status = 'active' ORDER BY created_at LIMIT 1`
 		);
+
 		const branchId = branches.rows[0]?.id;
+
 		if (!branchId) {
 			throw new Error("[seed-test-orders] nenhuma branch ativa.");
 		}
@@ -236,6 +249,7 @@ async function main() {
 		const clients = await tx.execute<{ id: string; name: string }>(
 			sql`SELECT id, name FROM client WHERE status = 'active' ORDER BY created_at LIMIT 5`
 		);
+
 		if (clients.rows.length === 0) {
 			throw new Error("[seed-test-orders] nenhum client ativo.");
 		}
@@ -263,6 +277,7 @@ async function main() {
 			ORDER BY t.name
 			LIMIT 12
 		`);
+
 		if (variants.rows.length < 4) {
 			throw new Error(
 				"[seed-test-orders] menos de 4 variantes ativas com estoque ≥5 na branch."
@@ -273,9 +288,11 @@ async function main() {
 
 		for (const [index, ageHours] of PAID_AGES_HOURS.entries()) {
 			const client = clients.rows[index % clients.rows.length];
+
 			if (!client) {
 				throw new Error("[seed-test-orders] client index fora do range.");
 			}
+
 			const number = await insertTestOrder(tx, {
 				ageHours,
 				branchId,
@@ -283,6 +300,7 @@ async function main() {
 				index,
 				variantPool: variants.rows,
 			});
+
 			createdNumbers.push(number);
 		}
 

@@ -68,6 +68,7 @@ export function ActivityTabClient({
 	}
 
 	let body: React.ReactNode;
+
 	if (items.length === 0 && pending) {
 		body = (
 			<div className="flex items-center justify-center rounded-md border border-border py-12">
@@ -81,11 +82,13 @@ export function ActivityTabClient({
 		);
 	} else if (items.length === 0) {
 		let emptyMessage = "Sem atividade registrada nesta filial.";
+
 		if (kinds.length === 0) {
 			emptyMessage = "Selecione ao menos um tipo de evento.";
 		} else if (isFiltered) {
 			emptyMessage = "Sem atividade pra esses filtros.";
 		}
+
 		body = (
 			<div className="flex flex-col items-center gap-2 rounded-md border border-border py-12 text-center">
 				<p className="text-muted-foreground text-sm">{emptyMessage}</p>

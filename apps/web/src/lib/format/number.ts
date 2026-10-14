@@ -17,10 +17,13 @@ export function formatMeasure(
 	if (value === null || value === undefined || value === "") {
 		return null;
 	}
+
 	const n = typeof value === "number" ? value : Number(value);
+
 	if (Number.isNaN(n)) {
 		return null;
 	}
+
 	return n.toLocaleString("pt-BR", {
 		maximumFractionDigits: maxFractionDigits,
 	});
@@ -37,12 +40,16 @@ export function formatWeight(
 	if (value === null || value === undefined || value === "") {
 		return null;
 	}
+
 	const n = typeof value === "number" ? value : Number(value);
+
 	if (Number.isNaN(n)) {
 		return null;
 	}
+
 	if (n > 0 && n < 1) {
 		return `${formatMeasure(Math.round(n * 1000), 0)} g`;
 	}
+
 	return `${formatMeasure(n)} kg`;
 }

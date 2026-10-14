@@ -34,9 +34,11 @@ describe("buildPermissionTree", () => {
 
 	it("ordena ações: Ver primeiro, destrutivas por último", () => {
 		const tree = buildPermissionTree(empty);
+
 		const ferramentas = tree
 			.find((s) => s.section === "Catálogo")
 			?.resources.find((r) => r.resource === "Ferramentas");
+
 		const acts = ferramentas?.rows.map((r) => r.action) ?? [];
 		expect(acts[0]).toBe("Ver");
 		expect(acts.at(-1)).toBe("Deletar");
@@ -48,10 +50,12 @@ describe("buildPermissionTree", () => {
 			roleDefaults: new Set<Capability>(["tools.read"]),
 			manageable: new Set<Capability>(["tools.read"]),
 		});
+
 		const rows =
 			tree
 				.find((s) => s.section === "Catálogo")
 				?.resources.find((r) => r.resource === "Ferramentas")?.rows ?? [];
+
 		const ver = rows.find((r) => r.cap === "tools.read");
 		const criar = rows.find((r) => r.cap === "tools.create");
 		expect(ver).toMatchObject({
@@ -89,9 +93,11 @@ describe("sectionMasterState", () => {
 	it("sem linhas editáveis → null", () => {
 		const s = mk(["grant"]);
 		const firstRow = s.resources[0]?.rows[0];
+
 		if (firstRow) {
 			firstRow.editable = false;
 		}
+
 		expect(sectionMasterState(s)).toBeNull();
 	});
 });

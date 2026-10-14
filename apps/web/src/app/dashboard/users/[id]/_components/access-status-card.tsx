@@ -26,6 +26,7 @@ export function AccessStatusCard({ canManageStatus, user }: Props) {
 	const [dialogOpen, setDialogOpen] = useState<"suspend" | "reactivate" | null>(
 		null
 	);
+
 	const [submitting, startTransition] = useTransition();
 
 	const closeDialog = () => setDialogOpen(null);
@@ -33,6 +34,7 @@ export function AccessStatusCard({ canManageStatus, user }: Props) {
 	const onSuspend = (reason: string) => {
 		startTransition(async () => {
 			const res = await suspendUser({ userId: user.id, reason });
+
 			if (res.ok) {
 				notify.success("Usuário suspenso");
 				closeDialog();
@@ -45,6 +47,7 @@ export function AccessStatusCard({ canManageStatus, user }: Props) {
 	const onReactivate = (_reason: string) => {
 		startTransition(async () => {
 			const res = await reactivateUser({ userId: user.id });
+
 			if (res.ok) {
 				notify.success("Usuário reativado");
 				closeDialog();
@@ -55,6 +58,7 @@ export function AccessStatusCard({ canManageStatus, user }: Props) {
 	};
 
 	let accessDescription = "Aguardando aprovação do convite.";
+
 	if (user.status === "active") {
 		accessDescription =
 			"Conta ativa — o usuário consegue entrar normalmente. Suspender bloqueia o login sem excluir o cadastro.";

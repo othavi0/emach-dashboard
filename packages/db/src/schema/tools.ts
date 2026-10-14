@@ -21,6 +21,7 @@ export const voltageEnum = pgEnum("voltage", [
 	"Bivolt",
 	"380V",
 ]);
+
 export type Voltage = (typeof voltageEnum.enumValues)[number];
 
 export const supplier = pgTable(
@@ -206,10 +207,17 @@ export const toolImageRelations = relations(toolImage, ({ one }) => ({
 }));
 
 export type Supplier = typeof supplier.$inferSelect;
+
 export type NewSupplier = typeof supplier.$inferInsert;
+
 export type Tool = typeof tool.$inferSelect;
+
 export type NewTool = typeof tool.$inferInsert;
+
 export type ToolVariant = typeof toolVariant.$inferSelect;
+
 export type NewToolVariant = typeof toolVariant.$inferInsert;
+
 export type ToolImage = typeof toolImage.$inferSelect;
+
 export type NewToolImage = typeof toolImage.$inferInsert;

@@ -154,6 +154,7 @@ interface AddressRow {
 /** CEP só-dígitos → 00000-000 (o snapshot é campo de exibição, não de cálculo). */
 function formatCep(raw: string): string {
 	const digits = raw.replace(/\D/g, "");
+
 	return digits.length === 8 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : raw;
 }
 
@@ -177,9 +178,11 @@ async function ensureStock(
 				ON CONFLICT (variant_id, branch_id) DO NOTHING
 				RETURNING variant_id`
 		);
+
 		if (inserted.rows.length === 0) {
 			continue;
 		}
+
 		created += 1;
 		await tx.insert(stockMovement).values({
 			id: crypto.randomUUID(),
@@ -224,7 +227,9 @@ async function insertOrderLine(
 				AND quantity >= ${line.quantity}
 			RETURNING quantity`
 	);
+
 	const newQty = debited.rows[0]?.quantity;
+
 	if (newQty === undefined) {
 		throw new Error(
 			`[seed-ready-to-ship] estoque insuficiente ou stock_level ausente: variant=${line.v.variant_id} branch=${branchId}`
@@ -295,6 +300,7 @@ async function insertCompletedPicking(
 	const { branchId, itemIds, lines, orderId, picker, startedAt } = params;
 	const pickingId = crypto.randomUUID();
 	const totalUnits = lines.reduce((sum, l) => sum + l.quantity, 0);
+
 	// ~90s por unidade bipada — duração plausível de uma separação real.
 	const completedAt = new Date(
 		startedAt.getTime() + totalUnits * 1.5 * MINUTES
@@ -315,9 +321,11 @@ async function insertCompletedPicking(
 
 	for (const [index, line] of lines.entries()) {
 		const orderItemId = itemIds[index];
+
 		if (!orderItemId) {
 			throw new Error("[seed-ready-to-ship] order_item ausente para a linha.");
 		}
+
 		const pickingItemId = crypto.randomUUID();
 
 		await tx.insert(orderPickingItem).values({
@@ -339,6 +347,7 @@ async function insertCompletedPicking(
 		});
 
 		let lastScannedAt = startedAt;
+
 		for (let unit = 0; unit < line.quantity; unit += 1) {
 			scanCursor += 1.5 * MINUTES;
 			lastScannedAt = new Date(scanCursor);
@@ -383,9 +392,11 @@ async function insertReadyToShipOrder(
 
 	const lines: ResolvedLine[] = spec.lines.map((l) => {
 		const v = variantsBySku.get(l.sku);
+
 		if (!v) {
 			throw new Error(`[seed-ready-to-ship] SKU não encontrado: ${l.sku}`);
 		}
+
 		return { v, quantity: l.quantity };
 	});
 
@@ -400,6 +411,7 @@ async function insertReadyToShipOrder(
 			0
 		)
 		.toFixed(2);
+
 	const totalAmount = (
 		Number.parseFloat(subtotal) -
 		Number.parseFloat(DISCOUNT_AMOUNT) +
@@ -440,6 +452,7 @@ async function insertReadyToShipOrder(
 	});
 
 	const itemIds: string[] = [];
+
 	for (const line of lines) {
 		itemIds.push(await insertOrderLine(tx, { branchId, line, orderId }));
 	}
@@ -511,7 +524,9 @@ async function loadBase(tx: Tx): Promise<{
 	const branches = await tx.execute<{ id: string }>(
 		sql`SELECT id FROM ${branch} WHERE status = 'active' ORDER BY created_at LIMIT 1`
 	);
+
 	const branchId = branches.rows[0]?.id;
+
 	if (!branchId) {
 		throw new Error("[seed-ready-to-ship] nenhuma branch ativa.");
 	}
@@ -536,7 +551,9 @@ async function loadBase(tx: Tx): Promise<{
 		ORDER BY c.created_at DESC
 		LIMIT 1
 	`);
+
 	const clientRow = clients.rows[0];
+
 	if (!clientRow) {
 		throw new Error(
 			"[seed-ready-to-ship] nenhum client ativo com endereço padrão."
@@ -552,6 +569,7 @@ async function loadBase(tx: Tx): Promise<{
 		WHERE u.status = 'active' AND u.name <> ''
 		ORDER BY CASE u.role WHEN 'user' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, u.name
 	`);
+
 	if (pickers.rows.length === 0) {
 		throw new Error(
 			"[seed-ready-to-ship] nenhum usuário ativo vinculado à filial."
@@ -605,6 +623,7 @@ async function loadBase(tx: Tx): Promise<{
 async function main() {
 	const forced =
 		process.argv.includes("--force") || process.env.SEED_FORCE === "1";
+
 	if (!forced) {
 		const host = new URL(env.DATABASE_URL).host;
 		console.error(
@@ -623,6 +642,7 @@ async function main() {
 		const existing = await tx.execute<{ number: string }>(
 			sql`SELECT number FROM "order" WHERE number LIKE ${`${SEED_ORDER_PREFIX}%`}`
 		);
+
 		if (existing.rows.length > 0) {
 			throw new Error(
 				`[seed-ready-to-ship] já existem ${existing.rows.length} pedidos ${SEED_ORDER_PREFIX}NN. Rode o unseed antes de recriar.`
@@ -633,10 +653,13 @@ async function main() {
 			await loadBase(tx);
 
 		const variantsBySku = new Map(variants.map((v) => [v.sku, v]));
+
 		const requiredSkus = new Set(
 			ORDER_SPECS.flatMap((s) => s.lines.map((l) => l.sku))
 		);
+
 		const missing = [...requiredSkus].filter((s) => !variantsBySku.has(s));
+
 		if (missing.length > 0) {
 			throw new Error(
 				`[seed-ready-to-ship] SKUs ausentes no catálogo ativo: ${missing.join(", ")}`
@@ -645,22 +668,28 @@ async function main() {
 
 		const usedVariants = [...requiredSkus].map((s) => {
 			const v = variantsBySku.get(s);
+
 			if (!v) {
 				throw new Error(`[seed-ready-to-ship] SKU não resolvido: ${s}`);
 			}
+
 			return v;
 		});
+
 		const stockCreated = await ensureStock(tx, {
 			branchId,
 			variants: usedVariants,
 		});
 
 		const createdNumbers: string[] = [];
+
 		for (const [index, spec] of ORDER_SPECS.entries()) {
 			const picker = pickers[index % pickers.length];
+
 			if (!picker) {
 				throw new Error("[seed-ready-to-ship] picker index fora do range.");
 			}
+
 			createdNumbers.push(
 				await insertReadyToShipOrder(tx, {
 					address,

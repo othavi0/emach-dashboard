@@ -34,13 +34,17 @@ interface ToolCardProps {
 
 function formatMeta(tool: ToolCardData): string {
 	const parts: string[] = [];
+
 	if (tool.sku) {
 		parts.push(`SKU ${tool.sku}`);
 	}
+
 	const voltages = tool.variantSummaries.filter((v) => v.trim().length > 0);
+
 	if (voltages.length > 0) {
 		parts.push(voltages.join("/"));
 	}
+
 	return parts.join(" · ") || "—";
 }
 

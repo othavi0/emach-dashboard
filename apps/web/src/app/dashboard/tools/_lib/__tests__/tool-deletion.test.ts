@@ -18,6 +18,7 @@ describe("resolveToolDeletion", () => {
 	it("bloqueia por pedidos e sugere arquivar", () => {
 		const r = resolveToolDeletion(facts({ orderCount: 4 }));
 		expect(r.allowed).toBe(false);
+
 		if (!r.allowed) {
 			expect(r.reason).toContain("4 pedidos");
 			expect(r.suggestArchive).toBe(true);
@@ -27,6 +28,7 @@ describe("resolveToolDeletion", () => {
 	it("usa singular com um pedido só", () => {
 		const r = resolveToolDeletion(facts({ orderCount: 1 }));
 		expect(r.allowed).toBe(false);
+
 		if (!r.allowed) {
 			expect(r.reason).toContain("1 pedido ");
 		}
@@ -35,6 +37,7 @@ describe("resolveToolDeletion", () => {
 	it("bloqueia por avaliações", () => {
 		const r = resolveToolDeletion(facts({ reviewCount: 2 }));
 		expect(r.allowed).toBe(false);
+
 		if (!r.allowed) {
 			expect(r.reason).toContain("2 avaliações");
 		}
@@ -43,6 +46,7 @@ describe("resolveToolDeletion", () => {
 	it("bloqueia por estoque", () => {
 		const r = resolveToolDeletion(facts({ stockQty: 90 }));
 		expect(r.allowed).toBe(false);
+
 		if (!r.allowed) {
 			expect(r.reason).toContain("90 un");
 		}
@@ -52,7 +56,9 @@ describe("resolveToolDeletion", () => {
 		const r = resolveToolDeletion(
 			facts({ orderCount: 4, reviewCount: 2, stockQty: 90 })
 		);
+
 		expect(r.allowed).toBe(false);
+
 		if (!r.allowed) {
 			expect(r.reason).toContain("pedido");
 		}
@@ -61,6 +67,7 @@ describe("resolveToolDeletion", () => {
 	it("avaliações têm precedência sobre estoque", () => {
 		const r = resolveToolDeletion(facts({ reviewCount: 1, stockQty: 90 }));
 		expect(r.allowed).toBe(false);
+
 		if (!r.allowed) {
 			expect(r.reason).toContain("avaliação");
 		}

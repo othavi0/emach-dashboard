@@ -45,9 +45,11 @@ export function SafeStack({
 			{keys.map((key) => {
 				if (key === "product") {
 					const content = renderElement(key, banner, productUrl);
+
 					if (content === null) {
 						return null;
 					}
+
 					return (
 						<div
 							className={itemClassName(
@@ -63,15 +65,18 @@ export function SafeStack({
 						</div>
 					);
 				}
+
 				if (key === "cta") {
 					const content = renderElement(key, banner, productUrl, {
 						display: "flex",
 						justifyContent: "center",
 						width: "100%",
 					});
+
 					if (content === null) {
 						return null;
 					}
+
 					return (
 						<div
 							className={itemClassName(key, "w-full")}
@@ -84,10 +89,13 @@ export function SafeStack({
 						</div>
 					);
 				}
+
 				const content = renderElement(key, banner, productUrl);
+
 				if (content === null) {
 					return null;
 				}
+
 				return (
 					<div
 						className={itemClassName(key)}

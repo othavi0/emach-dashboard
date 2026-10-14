@@ -64,6 +64,7 @@ export async function inviteUser(
 	input: InviteUserInput
 ): Promise<ActionResult> {
 	const parsed = inviteUserSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -76,6 +77,7 @@ export async function inviteUser(
 	});
 
 	const actorRole = session.user.role as "super_admin" | "admin" | "user";
+
 	if (!allowedApprovalRoles(actorRole).includes(parsed.data.role)) {
 		return { ok: false, error: "Você não pode atribuir esse cargo" };
 	}
@@ -108,6 +110,7 @@ export async function inviteUser(
 
 	try {
 		let userId: string;
+
 		if (existing) {
 			// Caminho de reenvio — safe: usuário já existia como pending
 			userId = existing.id;
@@ -118,6 +121,7 @@ export async function inviteUser(
 
 			// Revincula filiais (caminho de reenvio — fora de transação, já era assim)
 			await db.delete(userBranch).where(eq(userBranch.userId, userId));
+
 			if (branchIds.length > 0) {
 				await db
 					.insert(userBranch)
@@ -127,11 +131,13 @@ export async function inviteUser(
 			// Caminho de usuário NOVO
 			// internalAdapter usa conexão própria do Better Auth — não entra em db.transaction
 			const ctx = await authDashboard.$context;
+
 			const created = await ctx.internalAdapter.createUser({
 				email,
 				name: "",
 				emailVerified: true,
 			});
+
 			newUserId = created.id;
 			userId = created.id;
 
@@ -142,6 +148,7 @@ export async function inviteUser(
 					.set({ role, inviteToken: token, inviteTokenExpiresAt: expiresAt })
 					.where(eq(userTable.id, userId));
 				await tx.delete(userBranch).where(eq(userBranch.userId, userId));
+
 				if (branchIds.length > 0) {
 					await tx
 						.insert(userBranch)
@@ -166,6 +173,7 @@ export async function inviteUser(
 		});
 	} catch (error) {
 		logger.error("inviteUser falhou", error);
+
 		// Compensação: se o user foi criado nesta chamada, removê-lo para evitar ghost state.
 		// FK user_branch.user_id ON DELETE CASCADE garante remoção automática dos vínculos.
 		// Caminho de reenvio (existing) não compensa — o user preexistia.
@@ -176,15 +184,18 @@ export async function inviteUser(
 				logger.error("inviteUser compensação falhou", cleanupErr);
 			}
 		}
+
 		return { ok: false, error: "Não foi possível enviar o convite" };
 	}
 
 	revalidatePath(USERS_PATH);
+
 	return { ok: true, data: undefined };
 }
 
 export async function resendInvite(input: unknown): Promise<ActionResult> {
 	const parsed = inviteIdSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
@@ -229,15 +240,18 @@ export async function resendInvite(input: unknown): Promise<ActionResult> {
 		});
 	} catch (error) {
 		logger.error("resendInvite falhou", error);
+
 		return { ok: false, error: "Não foi possível reenviar o convite" };
 	}
 
 	revalidatePath(USERS_PATH);
+
 	return { ok: true, data: undefined };
 }
 
 export async function revokeInvite(input: unknown): Promise<ActionResult> {
 	const parsed = inviteIdSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
@@ -267,15 +281,18 @@ export async function revokeInvite(input: unknown): Promise<ActionResult> {
 		});
 	} catch (error) {
 		logger.error("revokeInvite falhou", error);
+
 		return { ok: false, error: "Não foi possível revogar o convite" };
 	}
 
 	revalidatePath(USERS_PATH);
+
 	return { ok: true, data: undefined };
 }
 
 export async function acceptInvite(input: unknown): Promise<ActionResult> {
 	const parsed = acceptInviteSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -285,6 +302,7 @@ export async function acceptInvite(input: unknown): Promise<ActionResult> {
 
 	const { getInviteByToken } = await import("./data");
 	const invite = await getInviteByToken(parsed.data.token);
+
 	if (!invite) {
 		return { ok: false, error: "Convite inválido ou expirado" };
 	}
@@ -321,10 +339,12 @@ export async function acceptInvite(input: unknown): Promise<ActionResult> {
 		});
 	} catch (error) {
 		logger.error("acceptInvite falhou", error);
+
 		return { ok: false, error: "Não foi possível concluir o cadastro" };
 	}
 
 	revalidatePath(USERS_PATH);
+
 	return { ok: true, data: undefined };
 }
 
@@ -332,6 +352,7 @@ export async function updateUser(
 	input: UpdateUserInput
 ): Promise<ActionResult> {
 	const parsed = updateUserSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
@@ -348,6 +369,7 @@ export async function updateUser(
 			.select({ role: userTable.role })
 			.from(userTable)
 			.where(eq(userTable.id, parsed.data.userId));
+
 		if (!current) {
 			return { ok: false, error: "Usuário não encontrado" };
 		}
@@ -367,21 +389,26 @@ export async function updateUser(
 				role?: UpdateUserInput["role"];
 				emailVerified?: boolean;
 			} = {};
+
 			if (parsed.data.name) {
 				update.name = parsed.data.name;
 			}
+
 			if (parsed.data.role) {
 				update.role = parsed.data.role;
 			}
+
 			if (parsed.data.emailVerified !== undefined) {
 				update.emailVerified = parsed.data.emailVerified;
 			}
+
 			if (Object.keys(update).length > 0) {
 				await tx
 					.update(userTable)
 					.set(update)
 					.where(eq(userTable.id, parsed.data.userId));
 			}
+
 			if (roleChanged) {
 				await tx
 					.delete(sessionTable)
@@ -390,18 +417,23 @@ export async function updateUser(
 		});
 	} catch (error) {
 		logger.error("updateUser falhou", error);
+
 		const message =
 			error instanceof Error ? error.message : "Não foi possível atualizar";
+
 		return { ok: false, error: message };
 	}
 
 	const changes: Record<string, unknown> = {};
+
 	if (parsed.data.name !== undefined) {
 		changes.name = parsed.data.name;
 	}
+
 	if (parsed.data.role !== undefined) {
 		changes.role = parsed.data.role;
 	}
+
 	if (parsed.data.emailVerified !== undefined) {
 		changes.emailVerified = parsed.data.emailVerified;
 	}
@@ -414,37 +446,47 @@ export async function updateUser(
 		metadata: { changes },
 	});
 	revalidatePath(USERS_PATH);
+
 	return { ok: true, data: undefined };
 }
 
 export async function updateOwnProfile(input: unknown): Promise<ActionResult> {
 	const session = await requireCurrentSession();
+
 	if (session.user.status !== "active") {
 		return { ok: false, error: "Conta não ativa" };
 	}
+
 	const parsed = updateOwnProfileSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
+
 	const update: { name?: string; image?: string | null } = {};
+
 	if (parsed.data.name !== undefined) {
 		update.name = parsed.data.name;
 	}
+
 	if (parsed.data.image !== undefined) {
 		update.image = parsed.data.image;
 	}
+
 	if (Object.keys(update).length === 0) {
 		return { ok: true, data: undefined };
 	}
 
 	// Lê o avatar atual ANTES do update para limpar o antigo do bucket depois.
 	let previousImage: string | null = null;
+
 	if (update.image !== undefined) {
 		const [current] = await db
 			.select({ image: userTable.image })
 			.from(userTable)
 			.where(eq(userTable.id, session.user.id))
 			.limit(1);
+
 		previousImage = current?.image ?? null;
 	}
 
@@ -455,6 +497,7 @@ export async function updateOwnProfile(input: unknown): Promise<ActionResult> {
 			.where(eq(userTable.id, session.user.id));
 	} catch (error) {
 		logger.error("updateOwnProfile falhou", error);
+
 		return { ok: false, error: "Não foi possível atualizar" };
 	}
 
@@ -465,6 +508,7 @@ export async function updateOwnProfile(input: unknown): Promise<ActionResult> {
 		previousImage !== update.image
 	) {
 		const path = extractPublicUrlPath(previousImage, USER_AVATARS_BUCKET);
+
 		if (path) {
 			try {
 				await removeStorageObject(USER_AVATARS_BUCKET, path);
@@ -482,6 +526,7 @@ export async function updateOwnProfile(input: unknown): Promise<ActionResult> {
 		metadata: { changes: update },
 	});
 	revalidatePath(`${USERS_PATH}/${session.user.id}`);
+
 	return { ok: true, data: undefined };
 }
 
@@ -489,9 +534,11 @@ export async function uploadOwnAvatar(
 	formData: FormData
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
 	const session = await requireCurrentSession();
+
 	if (session.user.status !== "active") {
 		return { ok: false, error: "Conta não ativa" };
 	}
+
 	try {
 		const { url } = await uploadToPublicBucket({
 			bucket: USER_AVATARS_BUCKET,
@@ -500,15 +547,18 @@ export async function uploadOwnAvatar(
 			maxSizeBytes: AVATAR_MAX_BYTES,
 			allowedTypes: AVATAR_TYPES,
 		});
+
 		return { ok: true, url };
 	} catch (error) {
 		logger.error("uploadOwnAvatar falhou", error);
+
 		return { ok: false, error: "Não foi possível enviar a imagem" };
 	}
 }
 
 export async function suspendUser(input: unknown): Promise<ActionResult> {
 	const parsed = suspendUserSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -517,12 +567,14 @@ export async function suspendUser(input: unknown): Promise<ActionResult> {
 	}
 
 	let session: DashboardSession;
+
 	try {
 		session = await requireCapabilityWithContext("users.suspend", {
 			targetUserId: parsed.data.userId,
 		});
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Acesso negado";
+
 		return { ok: false, error: message };
 	}
 
@@ -538,6 +590,7 @@ export async function suspendUser(input: unknown): Promise<ActionResult> {
 		});
 	} catch (error) {
 		logger.error("suspendUser falhou", error);
+
 		return { ok: false, error: "Não foi possível suspender" };
 	}
 
@@ -550,6 +603,7 @@ export async function suspendUser(input: unknown): Promise<ActionResult> {
 	});
 	revalidatePath(USERS_PATH);
 	revalidatePath(`${USERS_PATH}/${parsed.data.userId}`);
+
 	return { ok: true, data: undefined };
 }
 
@@ -557,6 +611,7 @@ export async function reactivateUser(input: {
 	userId: string;
 }): Promise<ActionResult> {
 	const parsed = userIdSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
@@ -572,6 +627,7 @@ export async function reactivateUser(input: {
 			.where(eq(userTable.id, parsed.data.userId));
 	} catch (error) {
 		logger.error("reactivateUser falhou", error);
+
 		return { ok: false, error: "Não foi possível reativar" };
 	}
 
@@ -583,6 +639,7 @@ export async function reactivateUser(input: {
 	});
 	revalidatePath(USERS_PATH);
 	revalidatePath(`${USERS_PATH}/${parsed.data.userId}`);
+
 	return { ok: true, data: undefined };
 }
 
@@ -591,6 +648,7 @@ export async function triggerPasswordReset(
 ): Promise<ActionResult> {
 	const session = await requireCurrentSession();
 	const parsed = triggerPasswordResetSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
@@ -602,6 +660,7 @@ export async function triggerPasswordReset(
 	const target = await db.query.user.findFirst({
 		where: eq(userTable.id, parsed.data.userId),
 	});
+
 	if (!target) {
 		return { ok: false, error: "Usuário não encontrado" };
 	}
@@ -621,6 +680,7 @@ export async function triggerPasswordReset(
 		});
 	} catch (error) {
 		logger.error("triggerPasswordReset falhou", error);
+
 		return { ok: false, error: "Falha ao enviar e-mail de reset" };
 	}
 
@@ -629,6 +689,7 @@ export async function triggerPasswordReset(
 
 export async function deleteUser(input: unknown): Promise<ActionResult> {
 	const parsed = deleteUserSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -637,12 +698,14 @@ export async function deleteUser(input: unknown): Promise<ActionResult> {
 	}
 
 	let session: DashboardSession;
+
 	try {
 		session = await requireCapabilityWithContext("users.delete", {
 			targetUserId: parsed.data.userId,
 		});
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Acesso negado";
+
 		return { ok: false, error: message };
 	}
 
@@ -686,6 +749,7 @@ export async function deleteUser(input: unknown): Promise<ActionResult> {
 		});
 	} catch (error) {
 		logger.error("deleteUser falhou", error);
+
 		return { ok: false, error: "Não foi possível deletar" };
 	}
 
@@ -701,6 +765,7 @@ export async function deleteUser(input: unknown): Promise<ActionResult> {
 		},
 	});
 	revalidatePath(USERS_PATH);
+
 	return { ok: true, data: undefined };
 }
 
@@ -711,6 +776,7 @@ export async function revokeUserSession(input: unknown): Promise<ActionResult> {
 	await requireCapabilityWithContext("users.revoke_sessions", {});
 	const actor = await requireCurrentSession();
 	const parsed = revokeSessionSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
@@ -718,9 +784,11 @@ export async function revokeUserSession(input: unknown): Promise<ActionResult> {
 	const target = await db.query.session.findFirst({
 		where: eq(sessionTable.id, parsed.data.sessionId),
 	});
+
 	if (!target) {
 		return { ok: false, error: "Sessão não encontrada" };
 	}
+
 	if (target.userId === actor.user.id) {
 		return {
 			ok: false,
@@ -739,6 +807,7 @@ export async function revokeUserSession(input: unknown): Promise<ActionResult> {
 		metadata: { sessionId: target.id },
 	});
 	revalidatePath(`/dashboard/users/${target.userId}`);
+
 	return { ok: true, data: undefined };
 }
 
@@ -747,15 +816,18 @@ export async function forceLogoutAllSessions(
 ): Promise<ActionResult<{ count: number }>> {
 	const actor = await requireCurrentSession();
 	const parsed = userIdSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
+
 	try {
 		await requireCapabilityWithContext("users.revoke_sessions", {
 			targetUserId: parsed.data.userId,
 		});
 	} catch (e) {
 		const message = e instanceof Error ? e.message : "Acesso negado";
+
 		return { ok: false, error: message };
 	}
 
@@ -772,11 +844,13 @@ export async function forceLogoutAllSessions(
 		metadata: { count: deleted.length },
 	});
 	revalidatePath(`/dashboard/users/${parsed.data.userId}`);
+
 	return { ok: true, data: { count: deleted.length } };
 }
 
 export async function linkUserToBranch(input: unknown): Promise<ActionResult> {
 	const parsed = branchLinkSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
@@ -802,6 +876,7 @@ export async function linkUserToBranch(input: unknown): Promise<ActionResult> {
 		metadata: { branchId: parsed.data.branchId },
 	});
 	revalidatePath(`/dashboard/users/${parsed.data.userId}`);
+
 	return { ok: true, data: undefined };
 }
 
@@ -815,6 +890,7 @@ export async function fetchMoreUsersAction(
 	const { getUserBranchScope } = await import("@/lib/branch-scope");
 	const scope = await getUserBranchScope(session);
 	const { fetchUsersPage } = await import("./data");
+
 	return fetchUsersPage({ ...filters, cursor, scope });
 }
 
@@ -826,6 +902,7 @@ export async function fetchUserActivityByUserPage(
 > {
 	await requireUserDetailAccess(userId);
 	const { getUserActivity } = await import("./data");
+
 	return getUserActivity(userId, cursor);
 }
 
@@ -839,6 +916,7 @@ export async function fetchUserActivityAffectingPage(
 > {
 	await requireUserDetailAccess(userId);
 	const { getUserAffectedActivity } = await import("./data");
+
 	return getUserAffectedActivity(userId, cursor);
 }
 
@@ -846,6 +924,7 @@ export async function unlinkUserFromBranch(
 	input: unknown
 ): Promise<ActionResult> {
 	const parsed = branchLinkSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "validação" };
 	}
@@ -904,6 +983,7 @@ export async function unlinkUserFromBranch(
 	if (deleted === "last_branch") {
 		return { ok: false, error: "Usuário precisa de ao menos 1 filial" };
 	}
+
 	if (deleted === "not_found") {
 		return { ok: false, error: "Usuário não encontrado" };
 	}
@@ -916,5 +996,6 @@ export async function unlinkUserFromBranch(
 		metadata: { branchId: parsed.data.branchId },
 	});
 	revalidatePath(`/dashboard/users/${parsed.data.userId}`);
+
 	return { ok: true, data: undefined };
 }

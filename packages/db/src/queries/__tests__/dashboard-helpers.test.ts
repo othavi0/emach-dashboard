@@ -11,6 +11,7 @@ describe("dashboard helpers", () => {
 			{ status: "pending_payment", count: 9 },
 			{ status: "paid", count: 5 },
 		];
+
 		expect(sortByFunnel(input).map((r) => r.status)).toEqual([
 			"pending_payment",
 			"paid",

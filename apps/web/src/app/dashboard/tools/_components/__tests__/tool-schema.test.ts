@@ -50,6 +50,7 @@ describe("countFilledSpecs", () => {
 			c: bool(false),
 			d: txt(""), // vazio → não conta
 		};
+
 		const assignments = ["a", "b", "c", "d"];
 		expect(countFilledSpecs(values, assignments)).toBe(3);
 	});
@@ -59,6 +60,7 @@ describe("countFilledSpecs", () => {
 			a: txt("x"),
 			orphan: txt("y"),
 		};
+
 		expect(countFilledSpecs(values, ["a"])).toBe(1);
 	});
 
@@ -146,6 +148,7 @@ describe("activationRequirementIssues", () => {
 				},
 			})
 		);
+
 		expect(
 			activationRequirementIssues(data).some(
 				(i) => i.path[0] === "attributeValues"
@@ -164,6 +167,7 @@ describe("activationRequirementIssues", () => {
 		const data = toolFormSchema.parse(
 			baseTool({ images: [{ url: "https://x/1.jpg", sortOrder: 0 }] })
 		);
+
 		expect(
 			activationRequirementIssues(data).some((i) => i.path[0] === "images")
 		).toBe(true);
@@ -176,6 +180,7 @@ describe("collectToolIssues", () => {
 			attributeAssignments: ["a", "b"],
 			attributeValues: { a: { valueText: "x" }, b: { valueText: "y" } },
 		});
+
 		expect(collectToolIssues(values, { enforceActivation: false })).toEqual([]);
 	});
 
@@ -184,6 +189,7 @@ describe("collectToolIssues", () => {
 			attributeAssignments: ["a", "b"],
 			attributeValues: { a: { valueText: "x" }, b: { valueText: "y" } },
 		});
+
 		const issues = collectToolIssues(values, { enforceActivation: true });
 		expect(issues.some((i) => i.path[0] === "attributeValues")).toBe(true);
 	});
@@ -194,6 +200,7 @@ describe("collectToolIssues", () => {
 				{ sku: "S1", priceAmount: 100, isDefault: true, sortOrder: 0 },
 			],
 		});
+
 		const issues = collectToolIssues(values, { enforceActivation: false });
 		expect(issues.some((i) => i.path[0] === "variants")).toBe(true);
 	});
@@ -238,7 +245,9 @@ describe("toolFormSchema — rascunho leve (só nome obrigatório)", () => {
 				],
 			})
 		);
+
 		expect(r.success).toBe(true);
+
 		if (r.success) {
 			expect(r.data.variants).toEqual([]);
 		}
@@ -258,6 +267,7 @@ describe("toolFormSchema — rascunho leve (só nome obrigatório)", () => {
 				],
 			})
 		);
+
 		expect(r.success).toBe(false);
 	});
 
@@ -267,6 +277,7 @@ describe("toolFormSchema — rascunho leve (só nome obrigatório)", () => {
 				variants: [{ sku: "SKU-1", isDefault: true, sortOrder: 0 }],
 			})
 		);
+
 		expect(r.success).toBe(true);
 	});
 
@@ -274,6 +285,7 @@ describe("toolFormSchema — rascunho leve (só nome obrigatório)", () => {
 		const r = toolFormSchema.safeParse(
 			draftMinimal({ categoryIds: ["cat-1"], primaryCategoryId: "cat-2" })
 		);
+
 		expect(r.success).toBe(false);
 	});
 
@@ -295,6 +307,7 @@ describe("publishRequirementIssues — exigências de tool active", () => {
 		const data = toolFormSchema.parse(
 			baseTool({ weightKg: undefined, heightCm: undefined })
 		);
+
 		const paths = publishRequirementIssues(data).map((i) => i.path[0]);
 		expect(paths).toContain("weightKg");
 		expect(paths).toContain("heightCm");
@@ -305,6 +318,7 @@ describe("publishRequirementIssues — exigências de tool active", () => {
 		const data = toolFormSchema.parse(
 			baseTool({ categoryIds: [], primaryCategoryId: "" })
 		);
+
 		const paths = publishRequirementIssues(data).map((i) => i.path[0]);
 		expect(paths).toContain("categoryIds");
 		expect(paths).toContain("primaryCategoryId");
@@ -325,6 +339,7 @@ describe("publishRequirementIssues — exigências de tool active", () => {
 				],
 			})
 		);
+
 		expect(
 			publishRequirementIssues(data).some((i) => i.path[0] === "variants")
 		).toBe(true);
@@ -342,6 +357,7 @@ describe("toolFormSchema — campos de vídeo", () => {
 		const r = toolFormSchema.safeParse(
 			baseTool({ videoUrl: null, videoPosterUrl: null })
 		);
+
 		expect(r.success).toBe(true);
 	});
 
@@ -352,6 +368,7 @@ describe("toolFormSchema — campos de vídeo", () => {
 				videoPosterUrl: "https://x/p.webp",
 			})
 		);
+
 		expect(r.success).toBe(true);
 	});
 
@@ -359,7 +376,9 @@ describe("toolFormSchema — campos de vídeo", () => {
 		const r = toolFormSchema.safeParse(
 			baseTool({ videoUrl: "https://x/v.mp4", videoPosterUrl: null })
 		);
+
 		expect(r.success).toBe(false);
+
 		if (!r.success) {
 			expect(r.error.issues.some((i) => String(i.path[0]) === "videoUrl")).toBe(
 				true
@@ -390,7 +409,9 @@ describe("toolFormSchema — barcode duplicado entre variantes", () => {
 				],
 			})
 		);
+
 		expect(r.success).toBe(false);
+
 		if (!r.success) {
 			expect(
 				r.error.issues.some(
@@ -408,6 +429,7 @@ describe("toolFormSchema — barcode duplicado entre variantes", () => {
 				],
 			})
 		);
+
 		expect(r.success).toBe(true);
 	});
 
@@ -432,7 +454,9 @@ describe("toolFormSchema — barcode duplicado entre variantes", () => {
 				],
 			})
 		);
+
 		expect(r.success).toBe(false);
+
 		if (!r.success) {
 			expect(
 				r.error.issues.some(

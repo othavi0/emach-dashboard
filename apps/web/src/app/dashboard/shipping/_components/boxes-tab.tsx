@@ -13,6 +13,7 @@ import { BoxEditSheet } from "./box-edit-sheet";
 export async function BoxesTab() {
 	const session = await requireCapability("shipping.read");
 	const canManage = await can(session, "shipping.manage");
+
 	const [boxes, toolsWithoutBox] = await Promise.all([
 		getBoxes(),
 		getToolsWithoutBox(),

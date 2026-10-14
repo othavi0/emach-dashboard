@@ -48,4 +48,5 @@ export const cartEventRelations = relations(cartEvent, ({ one }) => ({
 }));
 
 export type CartEvent = typeof cartEvent.$inferSelect;
+
 export type NewCartEvent = typeof cartEvent.$inferInsert;

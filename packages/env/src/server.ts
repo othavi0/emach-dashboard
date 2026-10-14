@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import { z } from "zod";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
+
 const dotenvPaths = [
 	resolve(process.cwd(), ".env"),
 	resolve(process.cwd(), "apps/web/.env"),

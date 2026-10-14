@@ -17,8 +17,10 @@ export function validateVideoFile(
 			error: "Formato inválido. Use MP4 ou WebM (converta vídeos .mov).",
 		};
 	}
+
 	if (file.size > MAX_VIDEO_BYTES) {
 		return { ok: false, error: "Vídeo excede 50MB." };
 	}
+
 	return { ok: true };
 }

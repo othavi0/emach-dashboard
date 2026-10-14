@@ -15,8 +15,10 @@ const FALLBACK = "Não foi possível entrar agora. Tente novamente em instantes.
 
 export function authErrorMessage(error: AuthErrorLike): string {
 	const code = error?.code;
+
 	if (code && AUTH_ERROR_PT[code]) {
 		return AUTH_ERROR_PT[code];
 	}
+
 	return FALLBACK;
 }

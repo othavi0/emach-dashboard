@@ -35,12 +35,14 @@ export function UserBranchLinkPanel({ userId, linkedBranchIds }: Props) {
 	// Loading síncrono durante o render (padrão "adjusting state when a prop
 	// changes"); o effect abaixo fica só com o fetch das opções.
 	const [lastKey, setLastKey] = useState({ linkedBranchIds, open, userId });
+
 	if (
 		lastKey.open !== open ||
 		lastKey.userId !== userId ||
 		lastKey.linkedBranchIds !== linkedBranchIds
 	) {
 		setLastKey({ linkedBranchIds, open, userId });
+
 		if (open) {
 			setLoading(true);
 		}
@@ -50,6 +52,7 @@ export function UserBranchLinkPanel({ userId, linkedBranchIds }: Props) {
 		if (!open) {
 			return;
 		}
+
 		let active = true;
 		fetchAvailableBranchesForUserAction(userId)
 			.then((all) => {
@@ -67,6 +70,7 @@ export function UserBranchLinkPanel({ userId, linkedBranchIds }: Props) {
 					setLoading(false);
 				}
 			});
+
 		return () => {
 			active = false;
 		};
@@ -75,6 +79,7 @@ export function UserBranchLinkPanel({ userId, linkedBranchIds }: Props) {
 	function handleSelect(option: { id: string; name: string }) {
 		startTransition(async () => {
 			const res = await linkUserToBranch({ userId, branchId: option.id });
+
 			if (res.ok) {
 				notify.success("Filial vinculada");
 				setOpen(false);

@@ -31,8 +31,10 @@ export function useToolDraft({
 		if (hydrated.current) {
 			return;
 		}
+
 		hydrated.current = true;
 		const draft = parseDraft(localStorage.getItem(DRAFT_KEY), Date.now());
+
 		if (draft) {
 			// Merge defensivo: garante defaults de EMPTY_TOOL_VALUES para campos
 			// ausentes (ex: draft gravado numa versão anterior do schema). O MESMO
@@ -53,6 +55,7 @@ export function useToolDraft({
 		if (!(hydrated.current && shouldPersist(values))) {
 			return;
 		}
+
 		const t = setTimeout(() => {
 			try {
 				localStorage.setItem(DRAFT_KEY, serializeDraft(values, Date.now()));
@@ -60,7 +63,9 @@ export function useToolDraft({
 				// localStorage indisponível (iframe sandboxed, modo privado bloqueado)
 			}
 		}, 500);
+
 		timerRef.current = t;
+
 		return () => {
 			clearTimeout(t);
 			timerRef.current = null;
@@ -77,17 +82,20 @@ export function useToolDraft({
 
 	function discard() {
 		cancelPendingTimer();
+
 		try {
 			localStorage.removeItem(DRAFT_KEY);
 		} catch {
 			// storage bloqueado — ignorar; estado React ainda reseta
 		}
+
 		setValues(EMPTY_TOOL_VALUES);
 		setRecovered(false);
 	}
 
 	function clear() {
 		cancelPendingTimer();
+
 		try {
 			localStorage.removeItem(DRAFT_KEY);
 		} catch {

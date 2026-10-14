@@ -34,9 +34,11 @@ export async function fetchPendingStock(
 ): Promise<InfiniteResult<PendingRow>> {
 	await requireCapability("stock.read");
 	const decoded = cursor ? decodeCursorAs(cursor, "pendingStock") : null;
+
 	const keyset = decoded
 		? sql`AND (sl.quantity, sl.variant_id || ':' || sl.branch_id) > (${decoded.quantity}, ${decoded.id})`
 		: sql``;
+
 	const result = await db.execute<{
 		branch_id: string;
 		branch_name: string;
@@ -56,6 +58,7 @@ export async function fetchPendingStock(
 		ORDER BY sl.quantity ASC, sl.variant_id || ':' || sl.branch_id ASC
 		LIMIT ${BATCH_SIZE + 1}
 	`);
+
 	return paginate(
 		result.rows,
 		(r): PendingRow => ({
@@ -82,9 +85,11 @@ export async function fetchPendingOrders(
 ): Promise<InfiniteResult<PendingRow>> {
 	await requireCapability("orders.read");
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
+
 	const keyset = decoded
 		? sql`AND (o.created_at, o.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		: sql``;
+
 	// LATERAL: status da última sessão de picking por pedido (mesmo ORDER BY
 	// canônico de data.ts/separacao) — usado para sinalizar exceção de separação.
 	// paid_at/preparing_at alimentam a régua de aging (latenessOf, relógio por etapa).
@@ -112,25 +117,33 @@ export async function fetchPendingOrders(
 		ORDER BY o.created_at DESC, o.id DESC
 		LIMIT ${BATCH_SIZE + 1}
 	`);
+
 	const badgeFor = (status: string): NonNullable<PendingRow["badge"]> => {
 		if (status === "paid") {
 			return { label: "Pago", role: "warning" };
 		}
+
 		if (status === "preparing") {
 			return { label: "Preparando", role: "info" };
 		}
+
 		return { label: "Enviado", role: "info" };
 	};
+
 	const agingFor = (lateness: Lateness): PendingRow["aging"] => {
 		if (lateness === "late") {
 			return { level: "late", label: "Atrasado" };
 		}
+
 		if (lateness === "amber") {
 			return { level: "warn", label: "48h+" };
 		}
+
 		return;
 	};
+
 	const now = new Date();
+
 	return paginate(
 		result.rows,
 		(r): PendingRow => {
@@ -143,6 +156,7 @@ export async function fetchPendingOrders(
 					status: r.status as OrderStatus,
 				})
 			);
+
 			// Exceção de separação: última sessão em `exception` num pedido preparando.
 			// Sai da fila fechada de /separacao pra ficar visível na overview.
 			if (r.status === "preparing" && r.picking_status === "exception") {
@@ -156,6 +170,7 @@ export async function fetchPendingOrders(
 					aging,
 				};
 			}
+
 			return {
 				id: r.id,
 				href: `/dashboard/orders/${r.id}`,
@@ -178,9 +193,11 @@ export async function fetchPendingReviews(
 ): Promise<InfiniteResult<PendingRow>> {
 	await requireCapability("reviews.read");
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
+
 	const keyset = decoded
 		? sql`AND (r.created_at, r.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		: sql``;
+
 	const result = await db.execute<{
 		created_at: string;
 		id: string;
@@ -195,6 +212,7 @@ export async function fetchPendingReviews(
 		ORDER BY r.created_at DESC, r.id DESC
 		LIMIT ${BATCH_SIZE + 1}
 	`);
+
 	return paginate(
 		result.rows,
 		(r): PendingRow => ({
@@ -218,10 +236,12 @@ export async function fetchExpiringPromotions(
 ): Promise<InfiniteResult<PendingRow>> {
 	await requireCapability("promotions.read");
 	const decoded = cursor ? decodeCursorAs(cursor, "expiringPromo") : null;
+
 	// ordena por ends_at ASC (mais urgente primeiro) — keyset crescente
 	const keyset = decoded
 		? sql`AND (p.ends_at, p.id) > (${decoded.endsAt}::timestamptz, ${decoded.id})`
 		: sql``;
+
 	const result = await db.execute<{
 		ends_at: string;
 		hours_left: string;
@@ -238,10 +258,12 @@ export async function fetchExpiringPromotions(
 		ORDER BY p.ends_at ASC, p.id ASC
 		LIMIT ${BATCH_SIZE + 1}
 	`);
+
 	return paginate(
 		result.rows,
 		(r): PendingRow => {
 			const hours = Number(r.hours_left);
+
 			return {
 				id: r.id,
 				href: `/dashboard/promotions/${r.id}`,
@@ -269,6 +291,7 @@ export async function fetchDashboardActivity(
 	cursor: string | null
 ): Promise<InfiniteResult<ActivityEvent>> {
 	const session = await requireCurrentSession();
+
 	// Filtra sub-queries pelo capability da sessão — espelha fetchDashboardCounts.
 	// Usuário sem a capability não vê o segmento (retorna 0 linhas para ele).
 	const [canStock, canOrders, canReviews] = await Promise.all([
@@ -283,6 +306,7 @@ export async function fetchDashboardActivity(
 	}
 
 	const decoded = cursor ? decodeCursorAs(cursor, "newest") : null;
+
 	const keyset = (col: string, idExpr: string) =>
 		decoded
 			? sql`WHERE (${sql.raw(col)}, ${sql.raw(idExpr)}) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
@@ -334,6 +358,7 @@ export async function fetchDashboardActivity(
 	}
 
 	const unionQuery = sql.join(subqueries, sql` UNION ALL `);
+
 	// Envolver o UNION numa derived table: com 1 bloco só (usuário com apenas uma
 	// das capabilities) o ORDER BY externo colidiria com o ORDER BY interno
 	// ("multiple ORDER BY clauses not allowed"). Ver packages/db/CLAUDE.md.
@@ -350,6 +375,7 @@ export async function fetchDashboardActivity(
 		ORDER BY created_at DESC, id DESC
 		LIMIT ${BATCH_SIZE + 1}
 	`);
+
 	return paginate(
 		result.rows,
 		(r): ActivityEvent => {
@@ -357,12 +383,14 @@ export async function fetchDashboardActivity(
 			// mapas canônicos no boundary — sem duplicar rótulos em SQL.
 			let primary = r.primary;
 			let secondary = r.secondary ?? undefined;
+
 			if (r.kind === "order" && r.aux) {
 				const label = ORDER_STATUS_LABELS[r.aux as OrderStatus] ?? r.aux;
 				primary = `${r.primary} → ${label}`;
 			} else if (r.kind === "review" && r.aux) {
 				secondary = REVIEW_STATUS_LABELS[r.aux as ReviewStatus] ?? r.aux;
 			}
+
 			return {
 				id: r.id,
 				kind: r.kind,
@@ -386,6 +414,7 @@ export async function fetchDashboardActivity(
 export const fetchDashboardCounts = cache(
 	async (): Promise<DashboardCounts> => {
 		const session = await requireCurrentSession();
+
 		// Counts de domínios restritos só são computados/expostos com a capability:
 		// protege o endpoint (server action) e o badge da sidebar (layout), não só a
 		// renderização da UI. Sem acesso → `0` (a subquery nem roda).
@@ -396,20 +425,24 @@ export const fetchDashboardCounts = cache(
 				can(session, "users.approve"),
 				can(session, "orders.pick"),
 			]);
+
 		const reviewsExpr = canReviews
 			? sql`(SELECT COUNT(*)::int FROM review WHERE status = 'pending')`
 			: sql`0`;
+
 		const promotionsExpr = canPromotions
 			? sql`(SELECT COUNT(*)::int FROM promotion
 				WHERE active = true AND ends_at IS NOT NULL
 				AND ends_at BETWEEN now() AND now() + INTERVAL '7 days')`
 			: sql`0`;
+
 		// Contagem de usuários pendentes (badge da sidebar) é fundida nesta mesma
 		// query — antes era um round-trip separado no layout. Gated por
 		// users.approve (mesmo cap que controla a visibilidade do grupo Administração).
 		const pendingUsersExpr = canApproveUsers
 			? sql`(SELECT COUNT(*)::int FROM "user" WHERE status = 'pending')`
 			: sql`0`;
+
 		// Pedidos aguardando separação (mesma condição da tab "A separar"). Global
 		// (não branch-scoped), igual aos demais badges desta query — gated por
 		// orders.pick. Espelha o WHERE de fetchPickingQueueCounts em separacao/data.ts.
@@ -422,6 +455,7 @@ export const fetchDashboardCounts = cache(
 							AND op.status IN ('in_progress', 'exception', 'completed')
 					))`
 			: sql`0`;
+
 		// Exceções de separação (badge próprio warning na sidebar). Global e gated por
 		// orders.pick, igual ao picking. Espelha o WHERE de `excecoes` em
 		// fetchPickingQueueCounts (separacao/data.ts) sem o filtro de filial.
@@ -434,6 +468,7 @@ export const fetchDashboardCounts = cache(
 				) op ON op.status = 'exception'
 				WHERE o.status = 'preparing')`
 			: sql`0`;
+
 		const result = await db.execute<{
 			orders: number;
 			pending_users: number;
@@ -453,10 +488,13 @@ export const fetchDashboardCounts = cache(
 			${pickingExpr} AS picking,
 			${pickingExceptionsExpr} AS picking_exceptions
 	`);
+
 		const row = result.rows[0];
+
 		if (!row) {
 			throw new Error("fetchDashboardCounts: query retornou 0 linhas");
 		}
+
 		return {
 			orders: row.orders,
 			pendingUsers: row.pending_users,

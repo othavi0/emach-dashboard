@@ -33,6 +33,7 @@ export default function ToolDetailPage({ params, searchParams }: PageProps) {
 async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCurrentSession();
 	const [{ id }, { tab, variant }] = await Promise.all([params, searchParams]);
+
 	const [canMutate, canDeleteCap, canAdjustStock, detail] = await Promise.all([
 		can(session, "tools.update"),
 		can(session, "tools.delete"),
@@ -52,6 +53,7 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 	});
 
 	const defaultValue = "visao-geral";
+
 	// ?variant= define a tab inicial (Variantes) só quando nenhuma ?tab= explícita foi dada.
 	const KNOWN_TABS = new Set([
 		"visao-geral",
@@ -60,6 +62,7 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 		"atividade",
 		"avaliacoes",
 	]);
+
 	const candidateTab = tab ?? (variant ? "variantes" : defaultValue);
 	const initialTab = KNOWN_TABS.has(candidateTab) ? candidateTab : defaultValue;
 

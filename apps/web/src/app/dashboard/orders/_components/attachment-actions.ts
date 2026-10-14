@@ -19,6 +19,7 @@ import { lockOrderAndAuthorize } from "../actions";
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB (Next server action body limit)
+
 const ALLOWED_TYPES = new Set([
 	"application/pdf",
 	"image/jpeg",
@@ -78,6 +79,7 @@ export async function addOrderAttachment(
 
 	// Upload first — keep the DB lock duration minimal
 	let uploadResult: Awaited<ReturnType<typeof uploadToPrivateBucket>>;
+
 	try {
 		uploadResult = await uploadToPrivateBucket({
 			bucket: ORDER_DOCUMENTS_BUCKET,
@@ -88,6 +90,7 @@ export async function addOrderAttachment(
 		});
 	} catch (error) {
 		logger.error("addOrderAttachment: upload falhou", error);
+
 		return {
 			ok: false,
 			error: error instanceof Error ? error.message : "Falha no upload",
@@ -123,6 +126,7 @@ export async function addOrderAttachment(
 		});
 
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
+
 		return { ok: true, data: { id } };
 	} catch (error) {
 		// Cleanup orphan object — failure here is best-effort (log only)
@@ -140,6 +144,7 @@ export async function addOrderAttachment(
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar este pedido." };
 		}
+
 		return {
 			ok: false,
 			error: error instanceof Error ? error.message : "Erro interno",
@@ -196,6 +201,7 @@ export async function deleteOrderAttachment(
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar este pedido." };
 		}
+
 		return {
 			ok: false,
 			error: error instanceof Error ? error.message : "Erro interno",
@@ -213,6 +219,7 @@ export async function deleteOrderAttachment(
 	}
 
 	revalidatePath(`${ORDERS_PATH}/${orderId}`);
+
 	return { ok: true, data: undefined };
 }
 
@@ -247,21 +254,26 @@ export async function signOrderAttachment(
 		// Throws if the order is not found or the caller lacks permission.
 		await db.transaction(async (tx) => {
 			const auth = await lockOrderAndAuthorize(tx, "orders.read", orderId);
+
 			if (!auth) {
 				throw new Error("Pedido não encontrado");
 			}
 		});
 
 		const url = await createSignedUrl(ORDER_DOCUMENTS_BUCKET, fileUrl);
+
 		if (!url) {
 			return { ok: false, error: "Não foi possível gerar o link do anexo" };
 		}
+
 		return { ok: true, data: { url } };
 	} catch (error) {
 		logger.error("signOrderAttachment: falhou", error);
+
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para acessar este anexo." };
 		}
+
 		return {
 			ok: false,
 			error: error instanceof Error ? error.message : "Erro interno",

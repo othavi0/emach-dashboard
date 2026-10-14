@@ -45,10 +45,12 @@ describe("groupStockByVariant", () => {
 			cell({ variantId: "v127", variantSku: "S-127", branchId: "b1" }),
 			cell({ variantId: "v127", variantSku: "S-127", branchId: "b2" }),
 		];
+
 		const variants = [
 			variant({ id: "v220", isDefault: false, sku: "S-220", sortOrder: 1 }),
 			variant({ id: "v127", isDefault: true, sku: "S-127", sortOrder: 0 }),
 		];
+
 		const groups = groupStockByVariant(rows, variants, []);
 		expect(groups.map((g) => g.variantId)).toEqual(["v127", "v220"]);
 		expect(groups[0]?.variantSku).toBe("S-127");
@@ -58,10 +60,12 @@ describe("groupStockByVariant", () => {
 
 	it("inclui variante sem célula, com todas as filiais como fantasma", () => {
 		const rows = [cell({ variantId: "v1", branchId: "b1" })];
+
 		const variants = [
 			variant({ id: "v1", isDefault: true, sortOrder: 0 }),
 			variant({ id: "v2", isDefault: false, sortOrder: 1 }),
 		];
+
 		const groups = groupStockByVariant(rows, variants, BRANCHES);
 		expect(groups.map((g) => g.variantId)).toEqual(["v1", "v2"]);
 		expect(groups[1]?.branches).toHaveLength(0);

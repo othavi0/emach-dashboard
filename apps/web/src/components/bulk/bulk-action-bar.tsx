@@ -22,6 +22,7 @@ interface BulkActionBarProps {
  */
 export function BulkActionBar({ actions, selectedIds }: BulkActionBarProps) {
 	const count = selectedIds.length;
+
 	return (
 		<div className="sticky bottom-4 z-40 mt-4 flex items-center gap-4 rounded-xl border border-primary/60 bg-card px-4 py-3 shadow-lg">
 			<span className="font-semibold text-foreground text-sm tabular-nums">

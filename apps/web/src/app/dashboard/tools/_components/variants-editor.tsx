@@ -37,34 +37,44 @@ const EMPTY_VARIANT: ToolVariantInput = {
 function computeDuplicateSkus(variants: ToolVariantInput[]): Set<string> {
 	const seen = new Map<string, number>();
 	const dups = new Set<string>();
+
 	for (const v of variants) {
 		const key = v.sku.trim().toLowerCase();
+
 		if (!key) {
 			continue;
 		}
+
 		const count = (seen.get(key) ?? 0) + 1;
 		seen.set(key, count);
+
 		if (count > 1) {
 			dups.add(key);
 		}
 	}
+
 	return dups;
 }
 
 function computeDuplicateBarcodes(variants: ToolVariantInput[]): Set<string> {
 	const seen = new Map<string, number>();
 	const dups = new Set<string>();
+
 	for (const v of variants) {
 		const key = (v.barcode ?? "").trim().toLowerCase();
+
 		if (!key) {
 			continue;
 		}
+
 		const count = (seen.get(key) ?? 0) + 1;
 		seen.set(key, count);
+
 		if (count > 1) {
 			dups.add(key);
 		}
 	}
+
 	return dups;
 }
 
@@ -91,6 +101,7 @@ export function VariantsEditor({
 			sortOrder: value.length,
 			isDefault: value.length === 0,
 		};
+
 		onChange([...value, next]);
 	}
 
@@ -98,10 +109,13 @@ export function VariantsEditor({
 		const next = value
 			.filter((_, i) => i !== index)
 			.map((v, i) => ({ ...v, sortOrder: i }));
+
 		const first = next[0];
+
 		if (first && !next.some((v) => v.isDefault)) {
 			first.isDefault = true;
 		}
+
 		onChange(next);
 	}
 
@@ -117,8 +131,10 @@ export function VariantsEditor({
 				const skuKey = variant.sku.trim().toLowerCase();
 				const isSkuDuplicate = skuKey !== "" && duplicateSkus.has(skuKey);
 				const barcodeKey = (variant.barcode ?? "").trim().toLowerCase();
+
 				const isBarcodeDuplicate =
 					barcodeKey !== "" && duplicateBarcodes.has(barcodeKey);
+
 				return (
 					<div
 						className="grid gap-3 rounded-md border border-border bg-card p-4 md:grid-cols-[2fr_2fr_1fr_1fr_auto]"

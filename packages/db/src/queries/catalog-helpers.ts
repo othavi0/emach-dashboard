@@ -9,12 +9,14 @@ export const TOOL_DATE_KEYS = ["createdAt", "updatedAt"] as const;
 export const VARIANT_DATE_KEYS = ["createdAt", "updatedAt"] as const;
 export const IMAGE_DATE_KEYS = ["createdAt"] as const;
 export const CATEGORY_DATE_KEYS = ["createdAt", "updatedAt"] as const;
+
 export const PROMOTION_DATE_KEYS = [
 	"startsAt",
 	"endsAt",
 	"createdAt",
 	"updatedAt",
 ] as const;
+
 export const REVIEW_DATE_KEYS = [
 	"moderatedAt",
 	"createdAt",
@@ -42,7 +44,9 @@ export function toNullableNumber(value: unknown): number | null {
 	if (value === null || value === undefined) {
 		return null;
 	}
+
 	const n = typeof value === "number" ? value : Number(value);
+
 	return Number.isFinite(n) ? n : null;
 }
 
@@ -147,15 +151,20 @@ export function rowToToolListItem(row: ToolListRow): ToolListItem {
 
 export function formatReviewerName(fullName: string): string {
 	const trimmed = fullName.trim();
+
 	if (trimmed === "") {
 		return "Anônimo";
 	}
+
 	const parts = trimmed.split(REVIEWER_NAME_SPLIT_RE);
+
 	if (parts.length === 1) {
 		return parts[0] ?? trimmed;
 	}
+
 	const first = parts[0] ?? "";
 	const last = parts.at(-1) ?? "";
 	const initial = last.charAt(0).toUpperCase();
+
 	return initial === "" ? first : `${first} ${initial}.`;
 }

@@ -13,9 +13,11 @@ export const clientStatusEnum = pgEnum("client_status", [
 	"inactive",
 	"blocked",
 ]);
+
 export type ClientStatus = (typeof clientStatusEnum.enumValues)[number];
 
 export const clientTypeEnum = pgEnum("client_type", ["b2c", "b2b"]);
+
 export type ClientType = (typeof clientTypeEnum.enumValues)[number];
 
 export const client = pgTable(
@@ -174,12 +176,21 @@ export const clientAddressRelations = relations(clientAddress, ({ one }) => ({
 }));
 
 export type Client = typeof client.$inferSelect;
+
 export type NewClient = typeof client.$inferInsert;
+
 export type ClientSession = typeof clientSession.$inferSelect;
+
 export type NewClientSession = typeof clientSession.$inferInsert;
+
 export type ClientAccount = typeof clientAccount.$inferSelect;
+
 export type NewClientAccount = typeof clientAccount.$inferInsert;
+
 export type ClientVerification = typeof clientVerification.$inferSelect;
+
 export type NewClientVerification = typeof clientVerification.$inferInsert;
+
 export type ClientAddress = typeof clientAddress.$inferSelect;
+
 export type NewClientAddress = typeof clientAddress.$inferInsert;

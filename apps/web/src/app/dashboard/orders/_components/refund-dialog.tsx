@@ -47,6 +47,7 @@ export function RefundDialog({
 	const [open, setOpen] = useState(false);
 	const [reason, setReason] = useState("");
 	const [creditStock, setCreditStock] = useState(currentStatus !== "shipped");
+
 	const [selected, setSelected] = useState<
 		Record<string, { branchId: string; checked: boolean }>
 	>(() =>
@@ -60,13 +61,16 @@ export function RefundDialog({
 			])
 		)
 	);
+
 	const [isPending, startTransition] = useTransition();
 
 	const hasReason = reason.trim().length > 0;
 	const checkedItems = items.filter((it) => selected[it.id]?.checked);
+
 	const allBranchesPicked = checkedItems.every((it) =>
 		Boolean(selected[it.id]?.branchId)
 	);
+
 	const canSubmit = creditStock
 		? hasReason && checkedItems.length > 0 && allBranchesPicked
 		: hasReason;
@@ -108,10 +112,13 @@ export function RefundDialog({
 				creditStock,
 				returnItems,
 			});
+
 			if (!result.ok) {
 				notify.error(result.error);
+
 				return;
 			}
+
 			notify.success("Pedido reembolsado");
 			setOpen(false);
 			router.refresh();
@@ -168,6 +175,7 @@ export function RefundDialog({
 								const state = selected[item.id];
 								const checkboxId = `refund-item-${item.id}`;
 								const branchSelectId = `refund-branch-${item.id}`;
+
 								return (
 									<div
 										className="grid gap-3 rounded-md border border-border p-3 sm:grid-cols-[minmax(0,1fr)_10rem]"

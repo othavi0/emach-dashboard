@@ -168,5 +168,6 @@ export function isNavItemActive(
 	if (href === DASHBOARD_HREF || exact) {
 		return pathname === href;
 	}
+
 	return pathname === href || pathname.startsWith(`${href}/`);
 }

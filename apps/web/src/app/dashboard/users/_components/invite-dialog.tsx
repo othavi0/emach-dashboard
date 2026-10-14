@@ -46,6 +46,7 @@ export function InviteDialog({ actorRole, branches }: Props) {
 	function handleSubmit() {
 		startTransition(async () => {
 			const result = await inviteUser({ email, role, branchIds });
+
 			if (result.ok) {
 				notify.success("Convite enviado");
 				reset();
@@ -61,6 +62,7 @@ export function InviteDialog({ actorRole, branches }: Props) {
 		<Dialog
 			onOpenChange={(next) => {
 				setOpen(next);
+
 				if (!next) {
 					reset();
 				}

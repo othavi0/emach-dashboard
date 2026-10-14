@@ -51,6 +51,7 @@ const SidebarContext = createContext<SidebarContextProps | null>(null);
 
 function useSidebar() {
 	const context = useContext(SidebarContext);
+
 	if (!context) {
 		throw new Error("useSidebar must be used within a SidebarProvider.");
 	}
@@ -87,14 +88,17 @@ function SidebarProvider({
 			.split(";")
 			.map((c) => c.trim())
 			.find((c) => c.startsWith("sidebar_state="));
+
 		if (match) {
 			_setOpen(match.split("=")[1] !== "false");
 		}
 	}, []);
 	const open = openProp ?? _open;
+
 	const setOpen = useCallback(
 		(value: boolean | ((value: boolean) => boolean)) => {
 			const openState = typeof value === "function" ? value(open) : value;
+
 			if (setOpenProp) {
 				setOpenProp(openState);
 			} else {
@@ -128,6 +132,7 @@ function SidebarProvider({
 		};
 
 		window.addEventListener("keydown", handleKeyDown);
+
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [toggleSidebar]);
 
@@ -532,6 +537,7 @@ function SidebarMenuButton({
 		tooltip?: string | React.ComponentProps<typeof TooltipContent>;
 	} & VariantProps<typeof sidebarMenuButtonVariants>) {
 	const { isMobile, state } = useSidebar();
+
 	const comp = useRender({
 		defaultTagName: "button",
 		props: mergeProps<"button">(

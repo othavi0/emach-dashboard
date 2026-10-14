@@ -21,12 +21,15 @@ async function countActive(excludeId?: string): Promise<number> {
 	const where = excludeId
 		? and(eq(banner.isActive, true), ne(banner.id, excludeId))
 		: eq(banner.isActive, true);
+
 	const [row] = await db.select({ n: count() }).from(banner).where(where);
+
 	return row?.n ?? 0;
 }
 
 export async function fetchBanners() {
 	await requireCapability("site.update_banners");
+
 	return db
 		.select()
 		.from(banner)
@@ -35,11 +38,13 @@ export async function fetchBanners() {
 
 export async function fetchBanner(id: string) {
 	await requireCapability("site.update_banners");
+
 	const [row] = await db
 		.select()
 		.from(banner)
 		.where(eq(banner.id, id))
 		.limit(1);
+
 	return row ?? null;
 }
 
@@ -48,9 +53,11 @@ export async function createBanner(
 ): Promise<ActionResult<{ id: string }>> {
 	const session = await requireCapability("site.update_banners");
 	const parsed = bannerFormSchema.safeParse(values);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos. Revise os campos." };
 	}
+
 	const v = parsed.data;
 	const persisted = v;
 
@@ -61,9 +68,11 @@ export async function createBanner(
 				error: `Máximo de ${MAX_ACTIVE_BANNERS} banners ativos. Despublique um antes de publicar este.`,
 			};
 		}
+
 		const [maxRow] = await db
 			.select({ max: sql<number>`coalesce(max(${banner.sortOrder}), -1)` })
 			.from(banner);
+
 		const id = crypto.randomUUID();
 		await db.insert(banner).values({
 			id,
@@ -96,9 +105,11 @@ export async function createBanner(
 		});
 		revalidatePath(BANNERS_PATH);
 		revalidateTag("site-banners", "max");
+
 		return { ok: true, data: { id } };
 	} catch (error) {
 		logger.error("createBanner", { err: error });
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
@@ -109,9 +120,11 @@ export async function updateBanner(
 ): Promise<ActionResult> {
 	const session = await requireCapability("site.update_banners");
 	const parsed = bannerFormSchema.safeParse(values);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos. Revise os campos." };
 	}
+
 	const v = parsed.data;
 	const persisted = v;
 
@@ -122,6 +135,7 @@ export async function updateBanner(
 				error: `Máximo de ${MAX_ACTIVE_BANNERS} banners ativos. Despublique um antes de publicar este.`,
 			};
 		}
+
 		await db
 			.update(banner)
 			.set({
@@ -155,9 +169,11 @@ export async function updateBanner(
 		});
 		revalidatePath(BANNERS_PATH);
 		revalidateTag("site-banners", "max");
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateBanner", { err: error });
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
@@ -167,6 +183,7 @@ export async function toggleBannerActive(
 	active: boolean
 ): Promise<ActionResult> {
 	const session = await requireCapability("site.update_banners");
+
 	try {
 		if (active && (await countActive(id)) >= MAX_ACTIVE_BANNERS) {
 			return {
@@ -174,6 +191,7 @@ export async function toggleBannerActive(
 				error: `Máximo de ${MAX_ACTIVE_BANNERS} banners ativos.`,
 			};
 		}
+
 		await db.update(banner).set({ isActive: active }).where(eq(banner.id, id));
 		await logUserActivity({
 			actorUserId: session.user.id,
@@ -183,9 +201,11 @@ export async function toggleBannerActive(
 		});
 		revalidatePath(BANNERS_PATH);
 		revalidateTag("site-banners", "max");
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("toggleBannerActive", { err: error });
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
@@ -194,6 +214,7 @@ export async function reorderBanners(
 	orderedIds: string[]
 ): Promise<ActionResult> {
 	await requireCapability("site.update_banners");
+
 	try {
 		await db.transaction(async (tx) => {
 			for (const [index, id] of orderedIds.entries()) {
@@ -205,24 +226,30 @@ export async function reorderBanners(
 		});
 		revalidatePath(BANNERS_PATH);
 		revalidateTag("site-banners", "max");
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("reorderBanners", { err: error });
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
 
 export async function deleteBanner(id: string): Promise<ActionResult> {
 	const session = await requireCapability("site.update_banners");
+
 	try {
 		const [row] = await db
 			.select()
 			.from(banner)
 			.where(eq(banner.id, id))
 			.limit(1);
+
 		await db.delete(banner).where(eq(banner.id, id));
+
 		if (row) {
 			const { deleteBannerImage } = await import("./_components/image-actions");
+
 			for (const url of [
 				row.backgroundImageUrl,
 				row.backgroundImageMobileUrl,
@@ -234,6 +261,7 @@ export async function deleteBanner(id: string): Promise<ActionResult> {
 				}
 			}
 		}
+
 		await logUserActivity({
 			actorUserId: session.user.id,
 			action: "banner.deleted",
@@ -242,9 +270,11 @@ export async function deleteBanner(id: string): Promise<ActionResult> {
 		});
 		revalidatePath(BANNERS_PATH);
 		revalidateTag("site-banners", "max");
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("deleteBanner", { err: error });
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 }

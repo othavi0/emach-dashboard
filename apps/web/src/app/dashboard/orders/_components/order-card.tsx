@@ -37,6 +37,7 @@ export function OrderCard({
 		createdAt: item.createdAt,
 		now: new Date(),
 	});
+
 	const age = ageMetaForTab(tabKey, item);
 	const hiddenItems = item.itemsCount - item.items.length;
 

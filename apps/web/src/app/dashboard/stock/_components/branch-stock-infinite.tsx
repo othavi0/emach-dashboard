@@ -42,6 +42,7 @@ export function BranchStockInfinite({
 	const scannerRef = useRef<HTMLInputElement>(null);
 
 	const resetKey = JSON.stringify(filters);
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
@@ -55,17 +56,21 @@ export function BranchStockInfinite({
 		if (e.key !== "Enter") {
 			return;
 		}
+
 		const value = scannerValue.trim();
+
 		if (!value) {
 			return;
 		}
 
 		// 1. Procurar no cache local primeiro
 		const cached = items.find((item) => item.barcode === value);
+
 		if (cached) {
 			setSelectedRow(cached);
 			setScannerValue("");
 			scannerRef.current?.focus();
+
 			return;
 		}
 
@@ -73,15 +78,19 @@ export function BranchStockInfinite({
 		if (scanning) {
 			return;
 		}
+
 		setScanning(true);
+
 		const resetScanner = () => {
 			setScanning(false);
 			setScannerValue("");
 			scannerRef.current?.focus();
 		};
+
 		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const result = await lookupVariantByBarcodeAction(value, branchId);
+
 			if (result.ok) {
 				if (result.data) {
 					setSelectedRow(result.data);
@@ -91,6 +100,7 @@ export function BranchStockInfinite({
 			} else {
 				notify.error("Erro ao buscar código — tente novamente");
 			}
+
 			resetScanner();
 		} catch (err) {
 			resetScanner();

@@ -36,6 +36,7 @@ export function DeleteVariantDialog({
 	function handleConfirm() {
 		startTransition(async () => {
 			const result = await deleteToolVariant({ variantId });
+
 			if (result.ok) {
 				const reassigned = result.data.reassignedDefaultSku;
 				notify.success(

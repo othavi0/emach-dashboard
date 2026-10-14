@@ -59,7 +59,9 @@ function mapToolMutationError(error: unknown): { ok: false; error: string } {
 	if (error instanceof VariantMutationBlockedError) {
 		return { ok: false, error: error.message };
 	}
+
 	const pg = getPgError(error);
+
 	if (pg?.code === "23505") {
 		if (pg.constraint === "tool_variant_barcode_key") {
 			return {
@@ -67,8 +69,10 @@ function mapToolMutationError(error: unknown): { ok: false; error: string } {
 				error: "Código de barras já cadastrado em outra variante",
 			};
 		}
+
 		return { ok: false, error: "SKU já existe para outra variante" };
 	}
+
 	// Backstop do FK restrict (order_item.variant_id) caso algum caminho de
 	// deleção escape dos guards explícitos.
 	if (pg?.code === "23503") {
@@ -78,6 +82,7 @@ function mapToolMutationError(error: unknown): { ok: false; error: string } {
 				"Uma variante removida tem vínculos (pedidos) e não pode ser excluída.",
 		};
 	}
+
 	return { ok: false, error: actionErrorMessage(error) };
 }
 
@@ -86,6 +91,7 @@ export async function fetchToolsPageAction(args: {
 	cursor: string | null;
 }): Promise<InfiniteResult<ToolCardData>> {
 	await requireCapability("tools.read");
+
 	return fetchToolsPage(args);
 }
 
@@ -96,25 +102,31 @@ export async function createTool(
 ): Promise<ActionResult<{ id: string }>> {
 	const session = await requireCapability("tools.create");
 	const parsed = toolFormSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
+
 	if (parsed.data.status === "active") {
 		const [issue] = [
 			...publishRequirementIssues(parsed.data),
 			...activationRequirementIssues(parsed.data),
 		];
+
 		if (issue) {
 			return { ok: false, error: issue.message };
 		}
 	}
+
 	// Sem categoria principal (rascunho) não há o que validar de completude.
 	const categoryError = parsed.data.primaryCategoryId
 		? await primaryCategoryIncompleteError(parsed.data.primaryCategoryId)
 		: null;
+
 	if (categoryError) {
 		return { ok: false, error: categoryError };
 	}
+
 	const id = crypto.randomUUID();
 	const payload = normalizeToolPayload(parsed.data);
 	const slug = slugify(parsed.data.name);
@@ -163,40 +175,52 @@ export async function createTool(
 
 			const assignmentRows: (typeof toolAttributeAssignment.$inferInsert)[] =
 				[];
+
 			let order = 0;
+
 			for (const assignedSlug of parsed.data.attributeAssignments) {
 				const def = definitionsBySlug.get(assignedSlug);
+
 				if (!def) {
 					continue;
 				}
+
 				assignmentRows.push({
 					toolId: id,
 					attributeId: def.id,
 					sortOrder: order++,
 				});
 			}
+
 			if (assignmentRows.length > 0) {
 				await tx.insert(toolAttributeAssignment).values(assignmentRows);
 			}
 
 			const assignedSlugs = new Set(parsed.data.attributeAssignments);
 			const valueRows: (typeof toolAttributeValue.$inferInsert)[] = [];
+
 			for (const [valueSlug, value] of Object.entries(
 				parsed.data.attributeValues
 			)) {
 				if (!assignedSlugs.has(valueSlug)) {
 					continue;
 				}
+
 				const def = definitionsBySlug.get(valueSlug);
+
 				if (!def) {
 					continue;
 				}
+
 				const row = attributeValueRow(def, value);
+
 				if (!row) {
 					continue;
 				}
+
 				valueRows.push({ toolId: id, attributeId: def.id, ...row });
 			}
+
 			if (valueRows.length > 0) {
 				await tx.insert(toolAttributeValue).values(valueRows);
 			}
@@ -213,6 +237,7 @@ export async function createTool(
 		metadata: { name: parsed.data.name, slug },
 	});
 	revalidatePath(TOOLS_PATH);
+
 	return { ok: true, data: { id } };
 }
 
@@ -222,33 +247,41 @@ export async function updateTool(
 ): Promise<ActionResult<{ id: string }>> {
 	const session = await requireCapability("tools.update");
 	const parsed = toolFormSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
+
 	const [prev] = await db
 		.select({ status: tool.status })
 		.from(tool)
 		.where(eq(tool.id, id))
 		.limit(1);
+
 	if (parsed.data.status === "active") {
 		// Requisitos de publicação valem em TODO save com status active (impedem
 		// remover peso/preço de tool ativa); a régua de imagens/specs continua
 		// transição-only (#290).
 		const [publishIssue] = publishRequirementIssues(parsed.data);
+
 		if (publishIssue) {
 			return { ok: false, error: publishIssue.message };
 		}
+
 		if (prev?.status !== "active") {
 			const [issue] = activationRequirementIssues(parsed.data);
+
 			if (issue) {
 				return { ok: false, error: issue.message };
 			}
 		}
 	}
+
 	// Gate só barra quando a primária MUDA para uma incompleta — não punir edição
 	// de tool cuja primária já existente degradou (deleção de atributo posterior),
 	// senão a ferramenta vira ineditável até alguém consertar a categoria.
 	const previousPrimary = await currentPrimaryCategoryId(id);
+
 	if (
 		parsed.data.primaryCategoryId !== "" &&
 		parsed.data.primaryCategoryId !== previousPrimary
@@ -256,10 +289,12 @@ export async function updateTool(
 		const categoryError = await primaryCategoryIncompleteError(
 			parsed.data.primaryCategoryId
 		);
+
 		if (categoryError) {
 			return { ok: false, error: categoryError };
 		}
 	}
+
 	const payload = normalizeToolPayload(parsed.data);
 
 	const definitionsBySlug = await fetchDefinitionsBySlug(
@@ -285,12 +320,15 @@ export async function updateTool(
 				.select({ id: toolVariant.id })
 				.from(toolVariant)
 				.where(eq(toolVariant.toolId, id));
+
 			const incomingVariantIds = new Set(
 				parsed.data.variants.map((v) => v.id).filter(Boolean) as string[]
 			);
+
 			const variantsToDelete = existingVariants
 				.map((r) => r.id)
 				.filter((vid) => !incomingVariantIds.has(vid));
+
 			if (variantsToDelete.length > 0) {
 				// Espelha resolveVariantDeletion: variante com pedidos ou estoque não
 				// pode ser removida pelo sync do form (o cascade de stock_level
@@ -301,11 +339,13 @@ export async function updateTool(
 					.innerJoin(toolVariant, eq(toolVariant.id, orderItem.variantId))
 					.where(inArray(orderItem.variantId, variantsToDelete))
 					.limit(1);
+
 				if (orderedBlock) {
 					throw new VariantMutationBlockedError(
 						`A variante ${orderedBlock.sku} tem pedidos e não pode ser removida. Oculte-a do site.`
 					);
 				}
+
 				// FOR UPDATE trava as linhas de estoque existentes entre o check e o
 				// delete (mesmo rigor do deleteToolVariant; insert concorrente de
 				// stock_level novo permanece como janela residual aceita).
@@ -321,11 +361,13 @@ export async function updateTool(
 					)
 					.limit(1)
 					.for("update");
+
 				if (stockedBlock) {
 					throw new VariantMutationBlockedError(
 						`A variante ${stockedBlock.sku} tem estoque em filial. Zere o estoque antes de removê-la.`
 					);
 				}
+
 				await tx
 					.delete(toolVariant)
 					.where(
@@ -341,14 +383,17 @@ export async function updateTool(
 				.select({ id: toolVariant.id })
 				.from(toolVariant)
 				.where(eq(toolVariant.toolId, id));
+
 			for (const [i, variantRow] of stillThere.entries()) {
 				await tx
 					.update(toolVariant)
 					.set({ sortOrder: -(i + 1), isDefault: false })
 					.where(eq(toolVariant.id, variantRow.id));
 			}
+
 			for (const v of parsed.data.variants) {
 				const norm = normalizeVariantValues(v);
+
 				if (v.id) {
 					// toolId no WHERE barra overwrite cross-tool via id forjado (#338);
 					// zero linhas afetadas = payload inválido → rollback (senão o tool
@@ -358,6 +403,7 @@ export async function updateTool(
 						.set(norm)
 						.where(and(eq(toolVariant.id, v.id), eq(toolVariant.toolId, id)))
 						.returning({ id: toolVariant.id });
+
 					if (updated.length === 0) {
 						throw new VariantMutationBlockedError(
 							"Variante não pertence a esta ferramenta"
@@ -377,10 +423,13 @@ export async function updateTool(
 				.select({ id: toolImage.id, url: toolImage.url })
 				.from(toolImage)
 				.where(eq(toolImage.toolId, id));
+
 			const incomingImageIds = new Set(
 				parsed.data.images.map((img) => img.id).filter(Boolean) as string[]
 			);
+
 			toDelete = existingImages.filter((row) => !incomingImageIds.has(row.id));
+
 			if (toDelete.length > 0) {
 				await tx.delete(toolImage).where(
 					and(
@@ -392,16 +441,19 @@ export async function updateTool(
 					)
 				);
 			}
+
 			const remaining = await tx
 				.select({ id: toolImage.id })
 				.from(toolImage)
 				.where(eq(toolImage.toolId, id));
+
 			for (const [i, imageRow] of remaining.entries()) {
 				await tx
 					.update(toolImage)
 					.set({ sortOrder: -(i + 1) })
 					.where(eq(toolImage.id, imageRow.id));
 			}
+
 			for (const [i, img] of parsed.data.images.entries()) {
 				if (img.id) {
 					await tx
@@ -420,6 +472,7 @@ export async function updateTool(
 
 			// --- Categorias ---
 			await tx.delete(toolCategory).where(eq(toolCategory.toolId, id));
+
 			if (parsed.data.categoryIds.length > 0) {
 				await tx.insert(toolCategory).values(
 					parsed.data.categoryIds.map((catId) => ({
@@ -440,40 +493,52 @@ export async function updateTool(
 
 			const assignmentRows: (typeof toolAttributeAssignment.$inferInsert)[] =
 				[];
+
 			let order = 0;
+
 			for (const assignedSlug of parsed.data.attributeAssignments) {
 				const def = definitionsBySlug.get(assignedSlug);
+
 				if (!def) {
 					continue;
 				}
+
 				assignmentRows.push({
 					toolId: id,
 					attributeId: def.id,
 					sortOrder: order++,
 				});
 			}
+
 			if (assignmentRows.length > 0) {
 				await tx.insert(toolAttributeAssignment).values(assignmentRows);
 			}
 
 			const assignedSlugs = new Set(parsed.data.attributeAssignments);
 			const valueRows: (typeof toolAttributeValue.$inferInsert)[] = [];
+
 			for (const [valueSlug, value] of Object.entries(
 				parsed.data.attributeValues
 			)) {
 				if (!assignedSlugs.has(valueSlug)) {
 					continue;
 				}
+
 				const def = definitionsBySlug.get(valueSlug);
+
 				if (!def) {
 					continue;
 				}
+
 				const row = attributeValueRow(def, value);
+
 				if (!row) {
 					continue;
 				}
+
 				valueRows.push({ toolId: id, attributeId: def.id, ...row });
 			}
+
 			if (valueRows.length > 0) {
 				await tx.insert(toolAttributeValue).values(valueRows);
 			}
@@ -489,6 +554,7 @@ export async function updateTool(
 	// Limpa objeto de vídeo/poster antigo quando foi removido ou substituído
 	if (prevVideo?.url && prevVideo.url !== parsed.data.videoUrl) {
 		await deleteToolVideoObject(prevVideo.url).catch(() => undefined);
+
 		if (prevVideo.poster) {
 			await deleteToolImage(prevVideo.poster).catch(() => undefined);
 		}
@@ -503,6 +569,7 @@ export async function updateTool(
 	});
 	revalidatePath(TOOLS_PATH);
 	revalidatePath(`${TOOLS_PATH}/${id}`);
+
 	return { ok: true, data: { id } };
 }
 
@@ -517,13 +584,16 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 		.from(tool)
 		.where(eq(tool.id, id))
 		.limit(1);
+
 	if (!toolRow) {
 		return { ok: false, error: "Ferramenta não encontrada." };
 	}
+
 	const allowed = canDeleteToolByStatus(toolRow.status, {
 		hasDelete: await can(session, "tools.delete"),
 		hasUpdate: true, // requireCapability("tools.update") acima já garantiu
 	});
+
 	if (!allowed) {
 		return {
 			ok: false,
@@ -543,6 +613,7 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 		.where(eq(tool.id, id));
 
 	const decision = resolveToolDeletion(await fetchToolDeletionFacts(id));
+
 	if (!decision.allowed) {
 		return { ok: false, error: decision.reason };
 	}
@@ -560,6 +631,7 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 	// Limpa objeto de vídeo/poster do storage após exclusão da ferramenta
 	if (videoRow?.url) {
 		await deleteToolVideoObject(videoRow.url).catch(() => undefined);
+
 		if (videoRow.poster) {
 			await deleteToolImage(videoRow.poster).catch(() => undefined);
 		}
@@ -574,6 +646,7 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 	});
 	revalidatePath(TOOLS_PATH);
 	revalidatePath(`${TOOLS_PATH}/${id}`);
+
 	return { ok: true, data: undefined };
 }
 
@@ -600,6 +673,7 @@ export async function archiveTool(id: string): Promise<ActionResult> {
 			.where(eq(tool.id, id));
 	} catch (error) {
 		logger.error("archiveTool falhou", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 
@@ -611,6 +685,7 @@ export async function archiveTool(id: string): Promise<ActionResult> {
 	});
 	revalidatePath(TOOLS_PATH);
 	revalidatePath(`${TOOLS_PATH}/${id}`);
+
 	return { ok: true, data: undefined };
 }
 
@@ -618,6 +693,7 @@ export async function updateToolVariant(
 	input: UpdateVariantInput
 ): Promise<ActionResult> {
 	const parsed = updateVariantSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -629,6 +705,7 @@ export async function updateToolVariant(
 
 	try {
 		const { variantId, ...fields } = parsed.data;
+
 		// busca toolId pra revalidate
 		const [v] = await db
 			.select({ toolId: toolVariant.toolId })
@@ -640,15 +717,19 @@ export async function updateToolVariant(
 		}
 
 		const updateFields: Record<string, unknown> = {};
+
 		if (fields.sku !== undefined) {
 			updateFields.sku = fields.sku.trim();
 		}
+
 		if (fields.barcode !== undefined) {
 			updateFields.barcode = fields.barcode.trim();
 		}
+
 		if (fields.voltage !== undefined) {
 			updateFields.voltage = fields.voltage;
 		}
+
 		if (fields.priceAmount !== undefined) {
 			updateFields.priceAmount = fields.priceAmount.toFixed(2);
 		}
@@ -673,6 +754,7 @@ export async function updateToolVariant(
 		// unique_violation do Postgres (SQLSTATE 23505, em e.cause via getPgError).
 		// Diferencia constraint de barcode vs SKU; fallback genérico para outros casos.
 		const pg = getPgError(error);
+
 		if (pg?.code === "23505") {
 			if (pg.constraint === "tool_variant_barcode_key") {
 				return {
@@ -680,8 +762,10 @@ export async function updateToolVariant(
 					error: "Código de barras já cadastrado em outra variante",
 				};
 			}
+
 			return { ok: false, error: "SKU já existe para outra variante" };
 		}
+
 		return { ok: false, error: "Não foi possível atualizar a variante" };
 	}
 }
@@ -696,6 +780,7 @@ export async function setDefaultToolVariant(input: {
 	variantId: string;
 }): Promise<ActionResult> {
 	const parsed = setDefaultVariantSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
@@ -709,6 +794,7 @@ export async function setDefaultToolVariant(input: {
 				.update(toolVariant)
 				.set({ isDefault: false, updatedAt: new Date() })
 				.where(eq(toolVariant.toolId, toolId));
+
 			// toolId no WHERE + checagem de linha afetada: variantId de outra
 			// ferramenta abortava com a ferramenta alvo zerada de default (#337).
 			const updated = await tx
@@ -718,6 +804,7 @@ export async function setDefaultToolVariant(input: {
 					and(eq(toolVariant.id, variantId), eq(toolVariant.toolId, toolId))
 				)
 				.returning({ id: toolVariant.id });
+
 			if (updated.length === 0) {
 				throw new VariantMutationBlockedError(
 					"Variante não encontrada para esta ferramenta"
@@ -733,7 +820,9 @@ export async function setDefaultToolVariant(input: {
 		if (error instanceof VariantMutationBlockedError) {
 			return { ok: false, error: error.message };
 		}
+
 		logger.error("setDefaultToolVariant falhou", error);
+
 		return { ok: false, error: "Não foi possível marcar como padrão" };
 	}
 }
@@ -748,6 +837,7 @@ export async function setVariantVisibility(input: {
 	visible: boolean;
 }): Promise<ActionResult<{ warning?: "default_hidden" }>> {
 	const parsed = setVariantVisibilitySchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
@@ -756,6 +846,7 @@ export async function setVariantVisibility(input: {
 
 	try {
 		const { variantId, visible } = parsed.data;
+
 		const [v] = await db
 			.select({
 				toolId: toolVariant.toolId,
@@ -763,6 +854,7 @@ export async function setVariantVisibility(input: {
 			})
 			.from(toolVariant)
 			.where(eq(toolVariant.id, variantId));
+
 		if (!v) {
 			return { ok: false, error: "Variante não encontrada" };
 		}
@@ -777,9 +869,11 @@ export async function setVariantVisibility(input: {
 
 		const warning =
 			!visible && v.isDefault ? ("default_hidden" as const) : undefined;
+
 		return { ok: true, data: { warning } };
 	} catch (error) {
 		logger.error("setVariantVisibility falhou", error);
+
 		return { ok: false, error: "Não foi possível atualizar a visibilidade" };
 	}
 }
@@ -790,6 +884,7 @@ export async function deleteToolVariant(input: {
 	variantId: string;
 }): Promise<ActionResult<{ reassignedDefaultSku?: string }>> {
 	const parsed = deleteVariantSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
@@ -810,6 +905,7 @@ export async function deleteToolVariant(input: {
 				.from(toolVariant)
 				.where(eq(toolVariant.id, variantId))
 				.for("update");
+
 			if (!v) {
 				return { error: "Variante não encontrada", ok: false as const };
 			}
@@ -828,6 +924,7 @@ export async function deleteToolVariant(input: {
 				.from(stockLevel)
 				.where(eq(stockLevel.variantId, variantId))
 				.for("update");
+
 			const stockQty = stockedRows.reduce((sum, r) => sum + r.quantity, 0);
 
 			const siblings = await tx
@@ -848,6 +945,7 @@ export async function deleteToolVariant(input: {
 				siblings,
 				stockQty,
 			});
+
 			if (!decision.allowed) {
 				return { error: decision.error, ok: false as const };
 			}
@@ -855,6 +953,7 @@ export async function deleteToolVariant(input: {
 			await tx.delete(toolVariant).where(eq(toolVariant.id, variantId));
 
 			let reassignedDefaultSku: string | undefined;
+
 			if (decision.reassignDefaultTo) {
 				await tx
 					.update(toolVariant)
@@ -874,12 +973,14 @@ export async function deleteToolVariant(input: {
 
 		revalidatePath(`/dashboard/tools/${outcome.toolId}`);
 		revalidatePath(TOOLS_PATH);
+
 		return {
 			ok: true,
 			data: { reassignedDefaultSku: outcome.reassignedDefaultSku },
 		};
 	} catch (error) {
 		logger.error("deleteToolVariant falhou", error);
+
 		return { ok: false, error: "Não foi possível excluir a variante" };
 	}
 }

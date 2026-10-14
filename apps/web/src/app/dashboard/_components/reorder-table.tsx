@@ -18,6 +18,7 @@ export function ReorderTable({ rows }: { rows: ReorderRow[] }) {
 			</p>
 		);
 	}
+
 	return (
 		<Table>
 			<TableHeader>

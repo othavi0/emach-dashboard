@@ -25,6 +25,7 @@ import type { ReviewStats } from "./reviews";
 import { getReviewStats } from "./reviews";
 
 export type { ToolListItem } from "./catalog-helpers";
+
 // biome-ignore lint/performance/noBarrelFile: re-export de constante de contexto de ferramentas
 export { STOREFRONT_TOOL_STATUSES } from "./catalog-helpers";
 
@@ -291,9 +292,11 @@ export async function getToolBySlug(
 	`);
 
 	const toolRow = toolRows.rows[0];
+
 	if (!toolRow) {
 		return null;
 	}
+
 	coerceDates(toolRow, TOOL_DATE_KEYS);
 	const toolId = toolRow.id;
 
@@ -434,6 +437,7 @@ export async function getToolBySlug(
 	const variants = variantsResult.rows.map((v) =>
 		coerceDates(v, VARIANT_DATE_KEYS)
 	);
+
 	const images = imagesResult.rows.map((i) => coerceDates(i, IMAGE_DATE_KEYS));
 
 	const attributes = attributesResult.rows.map((row) => ({
@@ -469,7 +473,9 @@ export async function getToolBySlug(
 		name: row.name,
 		isPrimary: row.is_primary,
 	}));
+
 	const primaryRow = categoriesResult.rows.find((r) => r.is_primary === true);
+
 	const primaryCategory = primaryRow
 		? {
 				id: primaryRow.id,
@@ -480,6 +486,7 @@ export async function getToolBySlug(
 		: null;
 
 	const stockByVariant: Record<string, boolean> = {};
+
 	for (const row of stockResult.rows) {
 		stockByVariant[row.variant_id] = toBoolean(row.in_stock);
 	}
@@ -508,6 +515,7 @@ export async function getRecentTools(
 	limit: number
 ): Promise<ToolListItem[]> {
 	const { tools } = await getTools(db, { sort: "newest", limit, offset: 0 });
+
 	return tools;
 }
 
@@ -521,9 +529,11 @@ export async function searchTools(
 	limit: number = DEFAULT_SEARCH_LIMIT
 ): Promise<ToolSearchResult[]> {
 	const trimmed = q.trim();
+
 	if (trimmed.length < 2) {
 		return [];
 	}
+
 	const term = `%${trimmed}%`;
 
 	const result = await db.execute<{
@@ -577,6 +587,7 @@ export async function getAllToolSlugs(db: AnyDb): Promise<string[]> {
 		  AND t.visible_on_site = true
 		  AND slug IS NOT NULL
 	`);
+
 	return result.rows
 		.map((r) => r.slug)
 		.filter((s): s is string => s !== null && s !== "");

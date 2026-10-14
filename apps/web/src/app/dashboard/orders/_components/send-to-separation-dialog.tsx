@@ -43,12 +43,15 @@ function buildDescription(
 	withoutBranchCount: number
 ): string {
 	const withBranchCount = orderCount - withoutBranchCount;
+
 	if (withoutBranchCount === 0) {
 		return `Todos os ${orderCount} pedido${pluralSuffix(orderCount)} selecionado${pluralSuffix(orderCount)} já ${orderCount === 1 ? "tem" : "têm"} filial.`;
 	}
+
 	if (withBranchCount === 0) {
 		return `Nenhum dos ${orderCount} pedido${pluralSuffix(orderCount)} selecionado${pluralSuffix(orderCount)} tem filial. Escolha a filial que vai separar.`;
 	}
+
 	return `${withBranchCount} já ${withBranchCount === 1 ? "tem" : "têm"} filial (mantida); ${withoutBranchCount} sem filial ${withoutBranchCount === 1 ? "vai" : "vão"} para a escolhida.`;
 }
 
@@ -68,10 +71,12 @@ export function SendToSeparationDialog({
 	const [branchId, setBranchId] = useState(
 		branches.length === 1 ? (branches[0]?.id ?? "") : ""
 	);
+
 	// Reset (e re-pré-seleção) da escolha quando o dialog abre/fecha — padrão
 	// in-render (React Compiler ativo; evita useEffect de reset). Canônico:
 	// user-edit-sheet / BranchPickerDialog.
 	const [lastOpen, setLastOpen] = useState(open);
+
 	if (open !== lastOpen) {
 		setLastOpen(open);
 		setBranchId(branches.length === 1 ? (branches[0]?.id ?? "") : "");
@@ -81,6 +86,7 @@ export function SendToSeparationDialog({
 	// Teto por lote (backstop no server via zod); aqui bloqueia proativamente pra
 	// não deixar o usuário confirmar uma seleção que o server recusaria inteira.
 	const overLimit = orderCount > BULK_SEPARATION_LIMIT;
+
 	const canConfirm =
 		!(pending || overLimit) && (!needsBranch || Boolean(branchId));
 

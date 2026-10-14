@@ -17,6 +17,7 @@ import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
 import { SORT_OPTIONS } from "../schema";
 
 const BASE = "/dashboard/customers";
+
 // "status" fora do TRACKED de propósito (padrão de orders): o "Limpar" da barra
 // age sobre busca/tipo/sort e mantém a tab de status ativa. Sem ?status a tab
 // default é "Ativos" (ver page.tsx).
@@ -39,24 +40,29 @@ const SORT_LABELS: Record<(typeof SORT_OPTIONS)[number], string> = {
 export function CustomerFilters() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
+
 	const { setParam, clearAll, hasActive } = useFilterState({
 		basePath: BASE,
 		trackedKeys: TRACKED,
 	});
+
 	const [q, setQ] = useDebouncedParam({ basePath: BASE, key: "q" });
 
 	const currentType = searchParams.get("clientType") ?? "";
+
 	const currentSort =
 		(searchParams.get("sort") as (typeof SORT_OPTIONS)[number]) ??
 		"createdDesc";
 
 	const setMultiParam = (key: string, values: string[]) => {
 		const next = new URLSearchParams(searchParams.toString());
+
 		if (values.length > 0) {
 			next.set(key, values.join(","));
 		} else {
 			next.delete(key);
 		}
+
 		router.replace(
 			values.length || next.toString() ? `${BASE}?${next.toString()}` : BASE
 		);
@@ -83,7 +89,9 @@ export function CustomerFilters() {
 						const selected = (
 							currentType ? currentType.split(",").filter(Boolean) : []
 						).includes(t);
+
 						const labels: Record<string, string> = { b2c: "B2C", b2b: "B2B" };
+
 						return (
 							<Toggle
 								aria-label={t === "b2c" ? "Pessoa Física" : "Pessoa Jurídica"}
@@ -92,6 +100,7 @@ export function CustomerFilters() {
 									const current = currentType
 										? currentType.split(",").filter(Boolean)
 										: [];
+
 									setMultiParam(
 										"clientType",
 										pressed ? [...current, t] : current.filter((v) => v !== t)

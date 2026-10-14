@@ -42,9 +42,11 @@ export function DeleteCategoryDialog({
 	function handleConfirm() {
 		startTransition(async () => {
 			const result = await deleteCategory(categoryId);
+
 			if (result.ok) {
 				notify.success("Categoria removida");
 				setOpen(false);
+
 				if (redirectTo) {
 					router.push(redirectTo);
 				} else {

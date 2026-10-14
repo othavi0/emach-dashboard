@@ -51,13 +51,16 @@ export function StockRecountForm({
 		};
 
 		const parsed = stockRecountSchema.safeParse(input);
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
 
 		start(async () => {
 			const result = await adjustStock(parsed.data);
+
 			if (result.ok) {
 				notify.success("Estoque ajustado");
 				onSuccess();

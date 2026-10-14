@@ -17,6 +17,7 @@ import {
 import { buildTabHref, resolveTabFromSearch } from "./tab-url";
 
 const TabActiveContext = createContext<string>("");
+
 const TabSetActiveContext = createContext<(tab: string) => void>(() => {
 	// no-op fora do provider (ex: render isolado em teste)
 });
@@ -62,6 +63,7 @@ export function EntityClientTabs({
 	const pathname = usePathname();
 	const params = useSearchParams();
 	const [active, setActive] = useState(initialTab);
+
 	const [activated, setActivated] = useState<Set<string>>(
 		() => new Set([initialTab])
 	);
@@ -71,8 +73,10 @@ export function EntityClientTabs({
 			if (prev.has(next)) {
 				return prev;
 			}
+
 			const updated = new Set(prev);
 			updated.add(next);
+
 			return updated;
 		});
 	};
@@ -80,6 +84,7 @@ export function EntityClientTabs({
 	const handleChange = (next: string) => {
 		setActive(next);
 		activate(next);
+
 		const href = buildTabHref(
 			pathname,
 			new URLSearchParams(params),
@@ -88,6 +93,7 @@ export function EntityClientTabs({
 			paramName,
 			clearParams
 		);
+
 		window.history.replaceState(null, "", href);
 	};
 
@@ -99,14 +105,17 @@ export function EntityClientTabs({
 				defaultValue,
 				paramName
 			);
+
 			setActive(tab);
 			activate(tab);
 		};
+
 		// Sincroniza no mount além do popstate: após back/forward o Next pode
 		// remontar com props RSC de outra entry (initialTab stale) e o popstate
 		// dispara antes deste listener existir — a URL real é a fonte de verdade.
 		syncFromUrl();
 		window.addEventListener("popstate", syncFromUrl);
+
 		return () => window.removeEventListener("popstate", syncFromUrl);
 	}, [defaultValue, paramName, tabs]);
 

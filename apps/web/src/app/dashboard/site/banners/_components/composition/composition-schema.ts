@@ -11,6 +11,7 @@ export const ANCHORS = [
 	"bc",
 	"br",
 ] as const;
+
 export type Anchor9 = (typeof ANCHORS)[number];
 
 export const ELEMENT_KEYS = [
@@ -22,7 +23,9 @@ export const ELEMENT_KEYS = [
 	"product",
 	"cta",
 ] as const;
+
 export type ElementKey = (typeof ELEMENT_KEYS)[number];
+
 export const TEXT_KEYS = [
 	"badge",
 	"title",
@@ -107,11 +110,15 @@ export const compositionSchema = z.object({
 });
 
 export type BannerComposition = z.infer<typeof compositionSchema>;
+
 export type ElementPlacement = z.infer<typeof textPlacement>;
+
 export type BackgroundConfig = z.infer<typeof backgroundSchema>;
+
 export type MobileOverride = NonNullable<
 	z.infer<typeof mobileElements>[ElementKey]
 >;
+
 export type Viewport = "desktop" | "mobile";
 
 // Pilha segura mobile — ordem fixa (spec §Pilha segura).
@@ -137,11 +144,14 @@ export function partitionMobileElements(c: BannerComposition): {
 	const stacked: ElementKey[] = [];
 	const positioned: [ElementKey, ElementPlacement][] = [];
 	const hiddenKeys: ElementKey[] = [];
+
 	for (const key of SAFE_STACK_ORDER) {
 		if (c.desktop.elements[key] === undefined) {
 			continue;
 		}
+
 		const override = c.mobile.elements[key];
+
 		if (override === undefined) {
 			stacked.push(key);
 		} else if ("hidden" in override) {
@@ -150,6 +160,7 @@ export function partitionMobileElements(c: BannerComposition): {
 			positioned.push([key, override]);
 		}
 	}
+
 	return { stacked, positioned, hidden: hiddenKeys };
 }
 
@@ -166,9 +177,11 @@ function rowByValign(valign: string, bottomRow: number) {
 	if (valign === "t") {
 		return 5;
 	}
+
 	if (valign === "m") {
 		return 50;
 	}
+
 	return bottomRow;
 }
 
@@ -177,6 +190,7 @@ export function anchorBasePosition(anchor: Anchor9, viewport: Viewport) {
 	const col = COL_BY_HALIGN[anchor.charAt(1)] ?? 50;
 	const bottomRow = viewport === "desktop" ? 88 : 84;
 	const row = rowByValign(anchor.charAt(0), bottomRow);
+
 	return { x: col, y: row };
 }
 
@@ -190,6 +204,7 @@ export function clampOffsets(
 	const maxY = 100 - SAFE_AREA.bottom[viewport];
 	const cx = Math.min(Math.max(offsetX, SAFE_AREA.x - x), 98 - x);
 	const cy = Math.min(Math.max(offsetY, SAFE_AREA.top - y), maxY - y);
+
 	return {
 		offsetX: Math.min(Math.max(cx, -20), 20),
 		offsetY: Math.min(Math.max(cy, -20), 20),

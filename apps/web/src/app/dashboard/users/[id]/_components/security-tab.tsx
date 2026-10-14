@@ -59,6 +59,7 @@ export function SecurityTab({
 	const sendReset = () =>
 		startTransition(async () => {
 			const res = await triggerPasswordReset({ userId: user.id });
+
 			if (res.ok) {
 				notify.success("E-mail de reset enviado");
 			} else {
@@ -69,6 +70,7 @@ export function SecurityTab({
 	const forceLogout = () =>
 		startTransition(async () => {
 			const res = await forceLogoutAllSessions({ userId: user.id });
+
 			if (res.ok) {
 				notify.success("Todas as sessões foram revogadas");
 			} else {
@@ -79,6 +81,7 @@ export function SecurityTab({
 	const onDelete = (reason: string) => {
 		startDeleteTransition(async () => {
 			const res = await deleteUser({ userId: user.id, reason });
+
 			if (res.ok) {
 				notify.success("Usuário excluído");
 				router.push("/dashboard/users");

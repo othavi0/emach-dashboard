@@ -86,6 +86,7 @@ describe("isValidCpf", () => {
 			VALID_CPF_NORMALIZED.slice(0, 9) +
 			String((Number(VALID_CPF_NORMALIZED[9]) + 1) % 10) +
 			VALID_CPF_NORMALIZED[10];
+
 		expect(isValidCpf(corrupted)).toBe(false);
 	});
 
@@ -94,6 +95,7 @@ describe("isValidCpf", () => {
 		const corrupted =
 			VALID_CPF_NORMALIZED.slice(0, 10) +
 			String((Number(VALID_CPF_NORMALIZED[10]) + 1) % 10);
+
 		expect(isValidCpf(corrupted)).toBe(false);
 	});
 
@@ -143,6 +145,7 @@ describe("isValidCnpj", () => {
 			VALID_CNPJ_NORMALIZED.slice(0, 12) +
 			String((Number(VALID_CNPJ_NORMALIZED[12]) + 1) % 10) +
 			VALID_CNPJ_NORMALIZED[13];
+
 		expect(isValidCnpj(corrupted)).toBe(false);
 	});
 
@@ -151,6 +154,7 @@ describe("isValidCnpj", () => {
 		const corrupted =
 			VALID_CNPJ_NORMALIZED.slice(0, 13) +
 			String((Number(VALID_CNPJ_NORMALIZED[13]) + 1) % 10);
+
 		expect(isValidCnpj(corrupted)).toBe(false);
 	});
 

@@ -59,10 +59,13 @@ export function BulkModerateDialog({
 
 	function handleConfirm() {
 		const trimmed = note.trim();
+
 		if (noteRequired && !trimmed) {
 			setNoteError("Informe a nota ao rejeitar ou marcar como spam");
+
 			return;
 		}
+
 		setNoteError(undefined);
 
 		startTransition(async () => {
@@ -76,10 +79,12 @@ export function BulkModerateDialog({
 			if (!result.ok) {
 				// Dialog segue aberto: o usuário pode corrigir e tentar de novo.
 				notify.error(result.error);
+
 				return;
 			}
 
 			const { moderatedIds, stale, succeeded } = result.data;
+
 			if (stale > 0) {
 				notify.warning(
 					`${succeeded} ${plural(succeeded)} moderada(s); ${stale} já havia(m) sido moderada(s) ou removida(s)`
@@ -87,6 +92,7 @@ export function BulkModerateDialog({
 			} else {
 				notify.success(`${succeeded} ${plural(succeeded)} moderada(s)`);
 			}
+
 			onSuccess(moderatedIds);
 		});
 	}

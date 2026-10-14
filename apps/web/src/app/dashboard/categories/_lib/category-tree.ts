@@ -19,13 +19,16 @@ export interface CategoryTreeNode extends FlatCategory {
 /** Monta a árvore a partir da lista achatada, ordenando irmãos por sortOrder e nome. */
 export function buildCategoryTree(flat: FlatCategory[]): CategoryTreeNode[] {
 	const byId = new Map<string, CategoryTreeNode>();
+
 	for (const c of flat) {
 		byId.set(c.id, { ...c, children: [], rollupCount: 0 });
 	}
 
 	const roots: CategoryTreeNode[] = [];
+
 	for (const node of byId.values()) {
 		const parent = node.parentId ? byId.get(node.parentId) : undefined;
+
 		if (parent) {
 			parent.children.push(node);
 		} else {
@@ -37,20 +40,26 @@ export function buildCategoryTree(flat: FlatCategory[]): CategoryTreeNode[] {
 		nodes.sort(
 			(a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)
 		);
+
 		for (const n of nodes) {
 			sortSiblings(n.children);
 		}
 	};
+
 	sortSiblings(roots);
 
 	const computeRollup = (node: CategoryTreeNode): number => {
 		let total = node.productCount;
+
 		for (const child of node.children) {
 			total += computeRollup(child);
 		}
+
 		node.rollupCount = total;
+
 		return total;
 	};
+
 	for (const root of roots) {
 		computeRollup(root);
 	}

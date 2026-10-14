@@ -20,6 +20,7 @@ export const supplierAuditActionEnum = pgEnum("supplier_audit_action", [
 	"archived",
 	"restored",
 ]);
+
 export type SupplierAuditAction =
 	(typeof supplierAuditActionEnum.enumValues)[number];
 
@@ -76,4 +77,5 @@ export const supplierAuditLogRelations = relations(
 );
 
 export type SupplierAuditLog = typeof supplierAuditLog.$inferSelect;
+
 export type NewSupplierAuditLog = typeof supplierAuditLog.$inferInsert;

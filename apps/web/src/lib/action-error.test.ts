@@ -16,6 +16,7 @@ describe("actionErrorMessage", () => {
 				constraint: "fk_example",
 			},
 		};
+
 		const msg = actionErrorMessage(drizzleError);
 		expect(msg).toBe("Não foi possível concluir a operação. Tente novamente.");
 		// Garante que SQL não vaza
@@ -28,6 +29,7 @@ describe("actionErrorMessage", () => {
 			code: "23505",
 			message: "duplicate key value violates unique constraint",
 		};
+
 		expect(actionErrorMessage(pgError)).toBe(
 			"Não foi possível concluir a operação. Tente novamente."
 		);
@@ -59,6 +61,7 @@ describe("actionErrorMessage", () => {
 				constraint: "branch_name_key",
 			},
 		};
+
 		const msg = actionErrorMessage(drizzleInsertError);
 		expect(msg).toBe("Não foi possível concluir a operação. Tente novamente.");
 		expect(msg).not.toContain("Failed query");
@@ -79,6 +82,7 @@ describe("actionErrorMessage", () => {
 				constraint: "fk_shipping_origin",
 			},
 		};
+
 		const msg = actionErrorMessage(drizzleUpdateError);
 		expect(msg).toBe("Não foi possível concluir a operação. Tente novamente.");
 		expect(msg).not.toContain("Failed query");
@@ -90,6 +94,7 @@ describe("actionErrorMessage", () => {
 		const schema = z.object({ cpf: z.string().min(11, "CPF inválido") });
 		const result = schema.safeParse({ cpf: "123" });
 		expect(result.success).toBe(false);
+
 		if (!result.success) {
 			expect(actionErrorMessage(result.error)).toBe("CPF inválido");
 		}

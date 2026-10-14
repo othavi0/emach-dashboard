@@ -13,30 +13,39 @@ export function ExportCsvLink({ filters }: ExportCsvLinkProps) {
 	if (filters.q) {
 		params.set("q", filters.q);
 	}
+
 	if (filters.status) {
 		params.set("status", filters.status);
 	}
+
 	if (filters.clientType?.length) {
 		params.set("clientType", filters.clientType.join(","));
 	}
+
 	if (filters.createdFrom) {
 		params.set("createdFrom", filters.createdFrom);
 	}
+
 	if (filters.createdTo) {
 		params.set("createdTo", filters.createdTo);
 	}
+
 	if (filters.lastOrderFrom) {
 		params.set("lastOrderFrom", filters.lastOrderFrom);
 	}
+
 	if (filters.lastOrderTo) {
 		params.set("lastOrderTo", filters.lastOrderTo);
 	}
+
 	if (filters.ltvMin !== undefined) {
 		params.set("ltvMin", String(filters.ltvMin));
 	}
+
 	if (filters.ltvMax !== undefined) {
 		params.set("ltvMax", String(filters.ltvMax));
 	}
+
 	if (filters.sort && filters.sort !== "createdDesc") {
 		params.set("sort", filters.sort);
 	}

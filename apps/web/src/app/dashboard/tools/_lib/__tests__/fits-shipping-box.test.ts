@@ -53,6 +53,7 @@ describe("fitsAnyActiveBox", () => {
 			packagingWeightKg: 0,
 			stackable: true,
 		};
+
 		expect(fitsAnyActiveBox(comprido, BOXES)).toBe(true);
 	});
 
@@ -65,6 +66,7 @@ describe("fitsAnyActiveBox", () => {
 			packagingWeightKg: 0,
 			stackable: true,
 		};
+
 		expect(fitsAnyActiveBox(gigante, BOXES)).toBe(false);
 	});
 
@@ -79,6 +81,7 @@ describe("fitsAnyActiveBox", () => {
 			packagingWeightKg: 1,
 			stackable: true,
 		};
+
 		expect(fitsAnyActiveBox(denso, BOXES)).toBe(false);
 	});
 
@@ -91,6 +94,7 @@ describe("fitsAnyActiveBox", () => {
 			packagingWeightKg: 0.5,
 			stackable: true,
 		};
+
 		expect(fitsAnyActiveBox(noLimite, BOXES)).toBe(false);
 		expect(fitsAnyActiveBox({ ...noLimite, packagingWeightKg: 0 }, BOXES)).toBe(
 			true
@@ -108,6 +112,7 @@ describe("fitsAnyActiveBox", () => {
 			packagingWeightKg: 0,
 			stackable: false,
 		};
+
 		expect(
 			fitsAnyActiveBox(chapado, [BOXES[1] as (typeof BOXES)[number]])
 		).toBe(false);

@@ -30,6 +30,7 @@ export async function uploadToolImage(
 		targetType: "tool",
 		metadata: { url },
 	});
+
 	return { url };
 }
 
@@ -37,6 +38,7 @@ export async function deleteToolImage(url: string): Promise<void> {
 	const session = await requireCapability("tools.delete");
 
 	const path = extractPublicUrlPath(url, TOOL_IMAGES_BUCKET);
+
 	if (!path) {
 		return;
 	}

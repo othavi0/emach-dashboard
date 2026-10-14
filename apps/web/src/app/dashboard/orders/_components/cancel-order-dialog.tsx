@@ -29,20 +29,26 @@ export function CancelOrderDialog({ orderId }: CancelOrderDialogProps) {
 
 	function handleConfirm() {
 		const trimmed = reason.trim();
+
 		if (!trimmed) {
 			notify.error("Informe o motivo do cancelamento");
+
 			return;
 		}
+
 		startTransition(async () => {
 			const result = await updateOrderStatus({
 				orderId,
 				toStatus: "canceled",
 				reason: trimmed,
 			});
+
 			if (!result.ok) {
 				notify.error(result.error);
+
 				return;
 			}
+
 			notify.success("Pedido cancelado");
 			setOpen(false);
 			router.refresh();

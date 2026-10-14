@@ -129,6 +129,9 @@ export const promotionToolRelations = relations(promotionTool, ({ one }) => ({
 }));
 
 export type Promotion = typeof promotion.$inferSelect;
+
 export type NewPromotion = typeof promotion.$inferInsert;
+
 export type PromotionTool = typeof promotionTool.$inferSelect;
+
 export type NewPromotionTool = typeof promotionTool.$inferInsert;

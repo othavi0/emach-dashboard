@@ -23,6 +23,7 @@ function render(conditions: ReturnType<typeof buildOrdersListConditions>) {
 }
 
 const ALL_SCOPE: BranchScope = { kind: "all" };
+
 const SCOPED_SCOPE: BranchScope = {
 	kind: "scoped",
 	branchIds: ["branch-1", "branch-2"],
@@ -30,18 +31,25 @@ const SCOPED_SCOPE: BranchScope = {
 };
 
 const PAID_TAB = ORDER_FLOW_TABS.find((t) => t.key === "paid");
+
 if (!PAID_TAB) {
 	throw new Error("tab 'paid' não encontrada em ORDER_FLOW_TABS");
 }
+
 const LATE_TAB = ORDER_FLOW_TABS.find((t) => t.key === "late");
+
 if (!LATE_TAB) {
 	throw new Error("tab 'late' não encontrada em ORDER_FLOW_TABS");
 }
+
 const PREPARING_TAB = ORDER_FLOW_TABS.find((t) => t.key === "preparing");
+
 if (!PREPARING_TAB) {
 	throw new Error("tab 'preparing' não encontrada em ORDER_FLOW_TABS");
 }
+
 const PICKED_TAB = ORDER_FLOW_TABS.find((t) => t.key === "picked");
+
 if (!PICKED_TAB) {
 	throw new Error("tab 'picked' não encontrada em ORDER_FLOW_TABS");
 }
@@ -70,6 +78,7 @@ describe("buildOrdersListConditions", () => {
 			scope: ALL_SCOPE,
 			tabDef: PAID_TAB,
 		});
+
 		const { sql: rendered } = render(conditions);
 		expect(rendered).not.toContain("branch_id");
 	});
@@ -80,6 +89,7 @@ describe("buildOrdersListConditions", () => {
 			scope: SCOPED_SCOPE,
 			tabDef: PAID_TAB,
 		});
+
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("o.branch_id IN");
 		expect(rendered).toContain("o.status IN");
@@ -96,6 +106,7 @@ describe("buildOrdersListConditions", () => {
 			scope: ALL_SCOPE,
 			tabDef: LATE_TAB,
 		});
+
 		const { sql: rendered } = render(conditions);
 		expect(rendered).toContain("CASE WHEN o.status = 'preparing'");
 		expect(rendered).toContain(
@@ -109,6 +120,7 @@ describe("buildOrdersListConditions", () => {
 			scope: ALL_SCOPE,
 			tabDef: LATE_TAB,
 		});
+
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("o.status IN");
 		// Relógio por etapa (spec 2026-07-11) — a pill estreita o status, não a régua.
@@ -125,6 +137,7 @@ describe("buildOrdersListConditions", () => {
 			scope: ALL_SCOPE,
 			tabDef: ALL_ORDERS_TAB,
 		});
+
 		const { sql: rendered } = render(conditions);
 		expect(rendered).not.toContain("o.status IN");
 	});
@@ -135,6 +148,7 @@ describe("buildOrdersListConditions", () => {
 			scope: ALL_SCOPE,
 			tabDef: ALL_ORDERS_TAB,
 		});
+
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("o.number ILIKE");
 		expect(rendered).toContain("c.name ILIKE");
@@ -147,6 +161,7 @@ describe("buildOrdersListConditions", () => {
 			scope: ALL_SCOPE,
 			tabDef: ALL_ORDERS_TAB,
 		});
+
 		const { sql: rendered } = render(conditions);
 		expect(rendered).toContain("o.shipping_method IS NULL");
 	});
@@ -157,6 +172,7 @@ describe("buildOrdersListConditions", () => {
 			scope: ALL_SCOPE,
 			tabDef: ALL_ORDERS_TAB,
 		});
+
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("o.shipping_method =");
 		expect(params).toContain("correios");
@@ -168,6 +184,7 @@ describe("buildOrdersListConditions", () => {
 			scope: ALL_SCOPE,
 			tabDef: ALL_ORDERS_TAB,
 		});
+
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("EXISTS (SELECT 1 FROM order_item oi_f");
 		expect(params).toContain("tool-1");
@@ -179,6 +196,7 @@ describe("buildOrdersListConditions", () => {
 			scope: ALL_SCOPE,
 			tabDef: ALL_ORDERS_TAB,
 		});
+
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("o.created_at >=");
 		expect(rendered).toContain("o.created_at <");
@@ -194,6 +212,7 @@ describe("buildOrdersListConditions", () => {
 			scope: ALL_SCOPE,
 			tabDef: ALL_ORDERS_TAB,
 		});
+
 		const { sql: rendered, params } = render(conditions);
 		expect(rendered).toContain("o.branch_id =");
 		expect(params).toContain("branch-9");
@@ -208,6 +227,7 @@ describe("foldTabCounts (etapa × overlay de atraso)", () => {
 			{ count: 1, is_late: true, is_picked: false, status: "preparing" },
 			{ count: 4, is_late: false, is_picked: false, status: "shipped" },
 		]);
+
 		expect(counts.paid).toBe(5);
 		expect(counts.preparing).toBe(1);
 		expect(counts.late).toBe(3);
@@ -221,6 +241,7 @@ describe("foldTabCounts (etapa × overlay de atraso)", () => {
 			{ count: 6, is_late: false, is_picked: false, status: "preparing" },
 			{ count: 2, is_late: false, is_picked: true, status: "preparing" },
 		]);
+
 		expect(counts.preparing).toBe(6);
 		expect(counts.picked).toBe(2);
 		expect(counts.all_count).toBe(8);
@@ -231,6 +252,7 @@ describe("foldTabCounts (etapa × overlay de atraso)", () => {
 			{ count: 1, is_late: true, is_picked: false, status: "preparing" },
 			{ count: 4, is_late: true, is_picked: true, status: "preparing" },
 		]);
+
 		// Etapa: cada um no seu bucket, incluindo os atrasados.
 		expect(counts.preparing).toBe(1);
 		expect(counts.picked).toBe(4);
@@ -249,6 +271,7 @@ describe("foldTabCounts (etapa × overlay de atraso)", () => {
 		const counts = foldTabCounts([
 			{ count: 7, is_late: true, is_picked: false, status: "paid" },
 		]);
+
 		expect(counts.all_count).toBe(7);
 		expect(counts.paid).toBe(7);
 		expect(counts.late).toBe(7);
@@ -311,6 +334,7 @@ describe("buildOrdersListConditions × picking", () => {
 				tabDef: PICKED_TAB,
 			})
 		);
+
 		expect(rendered).toContain("FROM order_picking op");
 		expect(rendered).toContain("= 'completed'");
 	});
@@ -323,6 +347,7 @@ describe("buildOrdersListConditions × picking", () => {
 				tabDef: PREPARING_TAB,
 			})
 		);
+
 		expect(rendered).toContain("IS DISTINCT FROM 'completed'");
 	});
 
@@ -334,6 +359,7 @@ describe("buildOrdersListConditions × picking", () => {
 				tabDef: LATE_TAB,
 			})
 		);
+
 		expect(rendered).toContain("<= now() - make_interval(hours =>");
 		expect(rendered).toContain("= 'completed'");
 		expect(rendered).not.toContain("IS DISTINCT FROM");

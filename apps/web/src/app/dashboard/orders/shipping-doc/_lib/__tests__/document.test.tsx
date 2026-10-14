@@ -64,25 +64,30 @@ describe("ShippingDocDocument", () => {
 	it("renderiza PDF válido com 3 pedidos pequenos (2 folhas) e barcode", async () => {
 		registerPdfFonts();
 		const orders = [order("01", 2), order("02", 4), order("03", 1)];
+
 		const buf = await renderToBuffer(
 			<ShippingDocDocument
 				cepBarcodes={{ "01": TINY_PNG, "02": TINY_PNG, "03": TINY_PNG }}
 				orders={orders}
 			/>
 		);
+
 		expect(buf.subarray(0, 5).toString()).toBe("%PDF-");
 		expect(buf.length).toBeGreaterThan(2000);
+
 		// Regressão: 3 pedidos pequenos pareiam em 2 folhas — nenhuma delas pode
 		// transbordar pra uma página fantasma de continuação (fix round 1, F2).
 		const pageCount = (
 			buf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []
 		).length;
+
 		expect(pageCount).toBe(2);
 	});
 
 	it("pedido grande (9 itens) e campos ausentes renderizam sem quebrar", async () => {
 		registerPdfFonts();
 		const big = order("04", 9);
+
 		const bare: ShippingDocOrder = {
 			...order("05", 1),
 			recipient: EMPTY_RECIPIENT,
@@ -98,9 +103,11 @@ describe("ShippingDocDocument", () => {
 				streetNumber: null,
 			},
 		};
+
 		const buf = await renderToBuffer(
 			<ShippingDocDocument cepBarcodes={{}} orders={[big, bare]} />
 		);
+
 		expect(buf.subarray(0, 5).toString()).toBe("%PDF-");
 	});
 

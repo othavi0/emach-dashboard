@@ -10,12 +10,15 @@ const DAY_MS = 86_400_000;
 // distintos); ~20% ficam com 0 — zero também é estado a exibir.
 export async function seedCartEvents(tx: Tx, ctx: SeedContext): Promise<void> {
 	const rows: (typeof cartEvent.$inferInsert)[] = [];
+
 	for (const toolId of ctx.toolIds) {
 		if (rng() < 0.2) {
 			continue;
 		}
+
 		const variants = ctx.variantIdsByTool[toolId] ?? [];
 		const volume = randInt(3, 45);
+
 		for (let i = 0; i < volume; i++) {
 			rows.push({
 				id: crypto.randomUUID(),
@@ -31,6 +34,7 @@ export async function seedCartEvents(tx: Tx, ctx: SeedContext): Promise<void> {
 			});
 		}
 	}
+
 	if (rows.length > 0) {
 		await tx.insert(cartEvent).values(rows);
 	}

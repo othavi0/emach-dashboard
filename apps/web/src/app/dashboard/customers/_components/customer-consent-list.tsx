@@ -40,6 +40,7 @@ export function CustomerConsentList({
 					<div className="grid gap-4 md:grid-cols-2">
 						{KIND_ORDER.map((kind) => {
 							const entries = consentByKind[kind] ?? [];
+
 							return (
 								<div className="rounded-lg border border-border p-4" key={kind}>
 									<h3 className="mb-2 font-medium text-sm">

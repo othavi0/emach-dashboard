@@ -42,6 +42,7 @@ function Countdown({ target }: { target: Date }) {
 	const d = Math.floor(ms / 86_400_000);
 	const h = Math.floor((ms % 86_400_000) / 3_600_000);
 	const m = Math.floor((ms % 3_600_000) / 60_000);
+
 	return (
 		<span className="font-bold text-sm text-white tabular-nums">
 			{d}d {h}h {m}m
@@ -53,6 +54,7 @@ function renderBadgeContent(banner: RendererBanner): ReactNode {
 	if (!banner.badgeText) {
 		return null;
 	}
+
 	return (
 		<span className="inline-block rounded-sm bg-white px-2 py-0.5 font-[family-name:var(--font-barlow-condensed)] font-bold text-[#181818] text-[10px]">
 			{banner.badgeText}
@@ -64,6 +66,7 @@ function renderTitleContent(banner: RendererBanner): ReactNode {
 	if (!banner.title) {
 		return null;
 	}
+
 	return (
 		<div className="flex flex-col gap-1">
 			<p className="font-[family-name:var(--font-barlow-condensed)] font-bold text-white text-xl uppercase leading-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
@@ -78,14 +81,17 @@ function renderSubtitleContent(banner: RendererBanner): ReactNode {
 	if (!banner.subtitle) {
 		return null;
 	}
+
 	return <p className="text-[11px] text-white/85">{banner.subtitle}</p>;
 }
 
 function renderSpecsContent(banner: RendererBanner): ReactNode {
 	const specs = banner.specs ?? [];
+
 	if (specs.length === 0) {
 		return null;
 	}
+
 	return (
 		<ul className="flex flex-wrap gap-1">
 			{specs.map((spec, i) => (
@@ -105,6 +111,7 @@ function renderCountdownContent(banner: RendererBanner): ReactNode {
 	if (!banner.countdownTarget) {
 		return null;
 	}
+
 	return <Countdown target={banner.countdownTarget} />;
 }
 
@@ -112,6 +119,7 @@ function renderProductContent(productUrl: string | null): ReactNode {
 	if (!productUrl) {
 		return null;
 	}
+
 	return (
 		<div className="relative size-full">
 			<Image
@@ -132,6 +140,7 @@ function renderCtaContent(
 	if (!(banner.ctaLabel && banner.ctaHref)) {
 		return null;
 	}
+
 	return (
 		<span
 			className={cn(

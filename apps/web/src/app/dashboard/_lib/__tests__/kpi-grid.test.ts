@@ -6,6 +6,7 @@ const ALL_FALSE: KpiCaps = {
 	canReadPromotions: false,
 	canReadReviews: false,
 };
+
 const ALL_TRUE: KpiCaps = {
 	canReadCustomers: true,
 	canReadPromotions: true,

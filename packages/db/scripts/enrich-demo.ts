@@ -32,6 +32,7 @@ import { db } from "../src/index";
 
 const DRY_RUN =
 	process.argv.includes("--dry-run") || process.env.DRY_RUN === "1";
+
 const FORCED =
 	process.argv.includes("--force") || process.env.SEED_FORCE === "1";
 
@@ -44,18 +45,23 @@ class RollbackSignal extends Error {}
 // registro real das marcas — evita impersonar a pessoa jurídica.
 function cnpjFromRoot(root8: string): string {
 	const base = `${root8}0001`;
+
 	const calc = (nums: number[]): number => {
 		const weights =
 			nums.length === 12
 				? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
 				: [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
 		const sum = nums.reduce((acc, n, i) => acc + n * (weights[i] ?? 0), 0);
 		const r = sum % 11;
+
 		return r < 2 ? 0 : 11 - r;
 	};
+
 	const d = base.split("").map(Number);
 	const dv1 = calc(d);
 	const dv2 = calc([...d, dv1]);
+
 	return `${base}${dv1}${dv2}`; // 14 dígitos, só números
 }
 
@@ -320,6 +326,7 @@ const STATUS_PATH: Record<string, string[]> = {
 	shipped: ["pending_payment", "paid", "preparing", "shipped"],
 	delivered: ["pending_payment", "paid", "preparing", "shipped", "delivered"],
 };
+
 const PAID_PLUS = new Set(["paid", "preparing", "shipped", "delivered"]);
 
 async function main() {
@@ -338,6 +345,7 @@ async function main() {
 	}
 
 	const changes: string[] = [];
+
 	try {
 		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: script de seed linear (passos 1-9 em sequência); dividir em funções prejudica a leitura
 		await db.transaction(async (tx) => {
@@ -345,10 +353,13 @@ async function main() {
 			const branches = await tx
 				.select({ id: branch.id, name: branch.name })
 				.from(branch);
+
 			const branchByName = new Map(branches.map((b) => [b.name, b.id]));
+
 			const suppliers = await tx
 				.select({ id: supplier.id, name: supplier.name })
 				.from(supplier);
+
 			const tools = await tx
 				.select({
 					id: tool.id,
@@ -364,7 +375,9 @@ async function main() {
 					cest: tool.cest,
 				})
 				.from(tool);
+
 			const toolById = new Map(tools.map((t) => [t.id, t]));
+
 			const variants = await tx
 				.select({
 					id: toolVariant.id,
@@ -374,7 +387,9 @@ async function main() {
 					voltage: toolVariant.voltage,
 				})
 				.from(toolVariant);
+
 			const variantBySku = new Map(variants.map((v) => [v.sku, v]));
+
 			const users = await tx
 				.select({
 					id: user.id,
@@ -383,9 +398,12 @@ async function main() {
 					status: user.status,
 				})
 				.from(user);
+
 			const userByEmail = new Map(users.map((u) => [u.email, u]));
+
 			const staffActorId =
 				userByEmail.get(STAFF_ACTOR_EMAIL)?.id ?? users[0]?.id;
+
 			if (!staffActorId) {
 				throw new Error("Nenhum staff em `user`.");
 			}
@@ -393,10 +411,13 @@ async function main() {
 			// ── 1. Branches (UPDATE onde cep IS NULL) ───────────────────────────────
 			for (const [name, e] of Object.entries(BRANCH_ENRICH)) {
 				const id = branchByName.get(name);
+
 				if (!id) {
 					continue;
 				}
+
 				const respId = userByEmail.get(e.responsibleEmail)?.id ?? null;
+
 				const res = await tx
 					.update(branch)
 					.set({
@@ -413,6 +434,7 @@ async function main() {
 						responsibleUserId: respId,
 					})
 					.where(and(eq(branch.id, id), isNull(branch.cep)));
+
 				if (res.rowCount) {
 					changes.push(`branch "${name}" enriquecida`);
 				}
@@ -421,9 +443,11 @@ async function main() {
 			// ── 2. Suppliers (UPDATE onde cnpj IS NULL) ─────────────────────────────
 			for (const s of suppliers) {
 				const e = SUPPLIER_ENRICH[s.name];
+
 				if (!e) {
 					continue;
 				}
+
 				const res = await tx
 					.update(supplier)
 					.set({
@@ -433,6 +457,7 @@ async function main() {
 						website: e.website,
 					})
 					.where(and(eq(supplier.id, s.id), isNull(supplier.cnpj)));
+
 				if (res.rowCount) {
 					changes.push(`supplier "${s.name}" enriquecido`);
 				}
@@ -441,9 +466,11 @@ async function main() {
 			// ── 3. Tools (UPDATE onde ncm IS NULL) ──────────────────────────────────
 			for (const t of tools) {
 				const e = t.slug ? TOOL_ENRICH[t.slug] : undefined;
+
 				if (!e) {
 					continue;
 				}
+
 				const res = await tx
 					.update(tool)
 					.set({
@@ -452,10 +479,12 @@ async function main() {
 						manufacturerName: e.manufacturer,
 					})
 					.where(and(eq(tool.id, t.id), isNull(tool.ncm)));
+
 				if (res.rowCount) {
 					changes.push(`tool "${t.name}" → NCM ${e.ncm} / ${e.manufacturer}`);
 					// atualiza cache local p/ snapshot dos novos order_items
 					const cached = toolById.get(t.id);
+
 					if (cached) {
 						cached.ncm = e.ncm;
 						cached.manufacturerName = e.manufacturer;
@@ -465,6 +494,7 @@ async function main() {
 
 			// ── 4. Role 'admin' branch-scoped real ──────────────────────────────────
 			const adminUser = userByEmail.get(ADMIN_EMAIL);
+
 			if (adminUser && adminUser.role === "super_admin") {
 				await tx
 					.update(user)
@@ -472,7 +502,9 @@ async function main() {
 					.where(eq(user.id, adminUser.id));
 				changes.push(`user ${ADMIN_EMAIL} → role 'admin'`);
 			}
+
 			const ribeiraoId = branchByName.get("Filial — Ribeirão Preto");
+
 			if (adminUser && ribeiraoId) {
 				const res = await tx
 					.delete(userBranch)
@@ -482,6 +514,7 @@ async function main() {
 							eq(userBranch.branchId, ribeiraoId)
 						)
 					);
+
 				if (res.rowCount) {
 					changes.push(
 						`${ADMIN_EMAIL} desvinculada de Ribeirão (scope Matriz+Campinas)`
@@ -494,44 +527,56 @@ async function main() {
 			// existe NENHUM pedido fora da Matriz. Impede que re-rodar --force
 			// empilhe cópias (o `number` vem de MAX+1, então seria append infinito).
 			const matrizId = branchByName.get("Matriz — São Paulo");
+
 			const geoOrders = (
 				await tx.execute(
 					sql`SELECT count(*)::int AS n FROM "order" WHERE branch_id IS DISTINCT FROM ${matrizId ?? null}`
 				)
 			).rows[0] as { n: number };
+
 			const skipNewOrders = geoOrders.n > 0;
+
 			if (skipNewOrders) {
 				changes.push(
 					`novos pedidos PULADOS (já há ${geoOrders.n} pedido(s) fora da Matriz — idempotência)`
 				);
 			}
+
 			const existingNumbers = await tx.select({ n: order.number }).from(order);
 			let maxSeq = 0;
+
 			for (const { n } of existingNumbers) {
 				const m = ORDER_NUMBER_RE.exec(n);
+
 				if (m) {
 					maxSeq = Math.max(maxSeq, Number(m[1]));
 				}
 			}
+
 			const alreadyNums = new Set(existingNumbers.map((o) => o.n));
 			let nfeSeq = 100;
 
 			for (const spec of skipNewOrders ? [] : NEW_ORDERS) {
 				maxSeq += 1;
 				const number = `EM-2026-${String(maxSeq).padStart(4, "0")}`;
+
 				if (alreadyNums.has(number)) {
 					continue; // idempotência defensiva
 				}
+
 				const branchId = branchByName.get(spec.branchName);
+
 				const clientRow = (
 					await tx
 						.select({ id: client.id, name: client.name })
 						.from(client)
 						.where(eq(client.email, spec.clientEmail))
 				)[0];
+
 				if (!(branchId && clientRow)) {
 					continue;
 				}
+
 				const addr = (
 					await tx
 						.select()
@@ -547,20 +592,26 @@ async function main() {
 				// itens + subtotal
 				const items = spec.items.map((it) => {
 					const v = variantBySku.get(it.sku);
+
 					if (!v) {
 						throw new Error(`variante ${it.sku} não encontrada`);
 					}
+
 					// priceAmount é anulável (rascunho); pedido demo exige variante vendável.
 					if (v.price === null) {
 						throw new Error(`variante ${it.sku} sem preço — não vendável`);
 					}
+
 					const t = toolById.get(v.toolId);
 					const lineTotal = Number(v.price) * it.qty;
+
 					return { v, t, qty: it.qty, unitPrice: v.price, lineTotal };
 				});
+
 				const subtotal = items.reduce((a, it) => a + it.lineTotal, 0);
 				let discount = 0;
 				let couponId: string | null = null;
+
 				if (spec.coupon) {
 					const promo = (
 						await tx
@@ -568,6 +619,7 @@ async function main() {
 							.from(promotion)
 							.where(eq(promotion.code, spec.coupon))
 					)[0];
+
 					if (promo) {
 						couponId = promo.id;
 						discount =
@@ -575,11 +627,13 @@ async function main() {
 							100;
 					}
 				}
+
 				const total = subtotal - discount + Number(SHIPPING);
 
 				const createdAt = new Date("2026-06-28T13:00:00-03:00");
 				const isPaid = PAID_PLUS.has(spec.status);
 				const orderId = crypto.randomUUID();
+
 				const shippingAddress = addr
 					? {
 							recipient: addr.recipient,
@@ -640,6 +694,7 @@ async function main() {
 
 				// order_items (snapshot real)
 				const itemIds: string[] = [];
+
 				for (const it of items) {
 					const itemId = crypto.randomUUID();
 					itemIds.push(itemId);
@@ -664,6 +719,7 @@ async function main() {
 						widthCm: it.t?.widthCm ?? null,
 						heightCm: it.t?.heightCm ?? null,
 					});
+
 					// débito de estoque só em paid+ (ADR-0007)
 					if (isPaid) {
 						const sl = (
@@ -677,6 +733,7 @@ async function main() {
 									)
 								)
 						)[0];
+
 						const prev = sl?.quantity ?? 0;
 						const next = prev - it.qty;
 						await tx
@@ -717,6 +774,7 @@ async function main() {
 					reason: "criado",
 					createdAt,
 				});
+
 				for (let i = 0; i < path.length - 1; i++) {
 					await tx.insert(orderStatusHistory).values({
 						id: crypto.randomUUID(),
@@ -741,6 +799,7 @@ async function main() {
 						createdAt: new Date(createdAt.getTime() + 3 * 3600e3),
 					});
 				}
+
 				// order_event: tracking_set (system) p/ shipped/delivered
 				if (spec.tracking) {
 					await tx.insert(orderEvent).values({
@@ -756,6 +815,7 @@ async function main() {
 						createdAt: new Date(createdAt.getTime() + 48 * 3600e3),
 					});
 				}
+
 				// NF-e p/ novos delivered
 				if (spec.nfe) {
 					nfeSeq += 1;
@@ -784,6 +844,7 @@ async function main() {
 				})
 				.from(order)
 				.where(sql`${order.status} IN ('refunded','returned')`);
+
 			for (const o of refundableOrders) {
 				const exists = (
 					await tx
@@ -791,9 +852,11 @@ async function main() {
 						.from(refundRequest)
 						.where(eq(refundRequest.orderId, o.id))
 				)[0];
+
 				if (exists) {
 					continue;
 				}
+
 				const isRefunded = o.status === "refunded";
 				await tx.insert(refundRequest).values({
 					id: crypto.randomUUID(),
@@ -828,6 +891,7 @@ async function main() {
 				})
 				.from(order)
 				.where(sql`${order.shippingTrackingCode} IS NOT NULL`);
+
 			for (const o of shippedOrders) {
 				const exists = (
 					await tx
@@ -840,9 +904,11 @@ async function main() {
 							)
 						)
 				)[0];
+
 				if (exists) {
 					continue;
 				}
+
 				await tx.insert(orderEvent).values({
 					id: crypto.randomUUID(),
 					orderId: o.id,
@@ -866,6 +932,7 @@ async function main() {
 					.where(sql`${order.status} = 'preparing'`)
 					.limit(1)
 			)[0];
+
 			if (reviewTarget) {
 				const exists = (
 					await tx
@@ -878,6 +945,7 @@ async function main() {
 							)
 						)
 				)[0];
+
 				if (!exists) {
 					await tx.insert(orderEvent).values({
 						id: crypto.randomUUID(),
@@ -901,6 +969,7 @@ async function main() {
 				.where(
 					sql`${order.status} IN ('delivered','refunded','returned') AND ${order.nfeNumber} IS NULL`
 				);
+
 			for (const o of fulfilled) {
 				nfeSeq += 1;
 				// 1 refunded como 'cancelled' (grafia do trigger) p/ exercitar order_note automático
@@ -925,6 +994,7 @@ async function main() {
 				WITH mv AS (SELECT variant_id, branch_id, sum(delta) d FROM stock_movement WHERE variant_id IS NOT NULL AND branch_id IS NOT NULL GROUP BY 1,2)
 				SELECT count(*)::int AS bad FROM stock_level s LEFT JOIN mv ON mv.variant_id=s.variant_id AND mv.branch_id=s.branch_id WHERE COALESCE(mv.d,0) <> s.quantity`)
 			).rows[0] as { bad: number };
+
 			if (ledger.bad > 0) {
 				throw new Error(
 					`VERIFY ledger falhou: ${ledger.bad} pares divergentes`
@@ -936,6 +1006,7 @@ async function main() {
 					sql`SELECT count(*)::int AS bad FROM "order" WHERE total_amount <> subtotal_amount - discount_amount + shipping_amount`
 				)
 			).rows[0] as { bad: number };
+
 			if (badMoney.bad > 0) {
 				throw new Error(`VERIFY money falhou: ${badMoney.bad} pedidos`);
 			}
@@ -945,6 +1016,7 @@ async function main() {
 					sql`SELECT count(*)::int AS bad FROM "user" u WHERE u.role IN ('admin','user') AND u.status='active' AND u.id NOT IN (SELECT user_id FROM user_branch)`
 				)
 			).rows[0] as { bad: number };
+
 			if (failClosed.bad > 0) {
 				throw new Error(
 					`VERIFY fail-closed falhou: ${failClosed.bad} usuários sem filial`
@@ -956,6 +1028,7 @@ async function main() {
 					sql`SELECT count(*)::int AS n FROM "user" WHERE role='super_admin' AND status='active'`
 				)
 			).rows[0] as { n: number };
+
 			if (superAdmins.n < 1) {
 				throw new Error("VERIFY: nenhum super_admin ativo restante");
 			}
@@ -964,6 +1037,7 @@ async function main() {
 				`[enrich-demo] VERIFY OK — ledger ${ledger.bad} / money ${badMoney.bad} / fail-closed ${failClosed.bad} / super_admins ativos ${superAdmins.n}`
 			);
 			console.log(`[enrich-demo] ${changes.length} mudanças:`);
+
 			for (const c of changes) {
 				console.log(`  - ${c}`);
 			}
@@ -980,6 +1054,7 @@ async function main() {
 			);
 			process.exit(0);
 		}
+
 		console.error("[enrich-demo] FAIL", err);
 		process.exit(1);
 	}

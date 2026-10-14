@@ -31,15 +31,19 @@ export function SupplierEditSheet({ supplier }: Props) {
 		cnpj: supplier.cnpj ?? "",
 		notes: supplier.notes ?? "",
 	});
+
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<SupplierFormValues>();
+
 	const [submitting, startTransition] = useTransition();
 
 	// Reset síncrono durante o render (padrão "adjusting state when a prop
 	// changes") — sem o re-render extra do reset via effect.
 	const [lastReset, setLastReset] = useState({ open, supplier });
+
 	if (lastReset.open !== open || lastReset.supplier !== supplier) {
 		setLastReset({ open, supplier });
+
 		if (open) {
 			setValues({
 				name: supplier.name,
@@ -63,12 +67,16 @@ export function SupplierEditSheet({ supplier }: Props) {
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		const parsed = supplierSchema.safeParse(values);
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
+
 		startTransition(async () => {
 			const res = await updateSupplier(supplier.id, parsed.data);
+
 			if (res.ok) {
 				notify.success("Fornecedor atualizado");
 				close();

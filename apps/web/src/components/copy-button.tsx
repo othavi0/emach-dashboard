@@ -15,6 +15,7 @@ export function CopyButton({ value, label }: CopyButtonProps) {
 	async function handleCopy(event: React.MouseEvent<HTMLButtonElement>) {
 		event.stopPropagation();
 		event.preventDefault();
+
 		try {
 			await navigator.clipboard.writeText(value);
 			setCopied(true);

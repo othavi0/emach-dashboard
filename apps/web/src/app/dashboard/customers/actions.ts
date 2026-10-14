@@ -52,9 +52,11 @@ export async function fetchCustomersPage(input: {
 }): Promise<InfiniteResult<CustomerListItem>> {
 	await requireCapability("customers.read");
 	const parsed = customersListFiltersSchema.safeParse(input.filters);
+
 	const filters: CustomersListFilters = parsed.success
 		? parsed.data
 		: customersListFiltersSchema.parse({});
+
 	return listCustomers({ filters, cursor: input.cursor });
 }
 
@@ -63,6 +65,7 @@ export async function fetchCustomerOrdersPage(input: {
 	cursor: string | null;
 }): Promise<InfiniteResult<CustomerOrderRow>> {
 	await requireCapability("customers.read");
+
 	return listCustomerOrders({ clientId: input.clientId, cursor: input.cursor });
 }
 
@@ -76,9 +79,11 @@ export async function updateCustomerProfile(
 	input: unknown
 ): Promise<ActionResult> {
 	const parsed = updateCustomerProfileSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
+
 	const data = parsed.data;
 	const session = await requireCapability("customers.update_status");
 
@@ -89,6 +94,7 @@ export async function updateCustomerProfile(
 				.select()
 				.from(client)
 				.where(eq(client.id, data.clientId));
+
 			if (!current) {
 				throw new Error("Cliente não encontrado");
 			}
@@ -100,16 +106,21 @@ export async function updateCustomerProfile(
 				diff.name = { before: current.name, after: data.name };
 				updates.name = data.name;
 			}
+
 			if (current.email !== data.email) {
 				diff.email = { before: current.email, after: data.email };
 				updates.email = data.email;
 			}
+
 			const newPhone = data.phone ?? null;
+
 			if (current.phone !== newPhone) {
 				diff.phone = { before: current.phone, after: newPhone };
 				updates.phone = newPhone;
 			}
+
 			const newNotes = data.internalNotes ?? null;
+
 			if (current.internalNotes !== newNotes) {
 				diff.internalNotes = {
 					before: current.internalNotes
@@ -119,11 +130,14 @@ export async function updateCustomerProfile(
 				};
 				updates.internalNotes = newNotes;
 			}
+
 			if (current.status !== data.status) {
 				diff.status = { before: current.status, after: data.status };
 				updates.status = data.status;
 			}
+
 			const newType = data.clientType ?? null;
+
 			if (current.clientType !== newType) {
 				diff.clientType = { before: current.clientType, after: newType };
 				updates.clientType = newType;
@@ -162,10 +176,12 @@ export async function updateCustomerProfile(
 		});
 
 		revalidateAll(data.clientId);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateCustomerProfile", error);
 		const msg = error instanceof Error ? error.message : "Erro interno";
+
 		return { ok: false, error: msg };
 	}
 }
@@ -178,9 +194,11 @@ export async function updateCustomerStatus(
 	input: unknown
 ): Promise<ActionResult> {
 	const parsed = updateCustomerStatusSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
+
 	const data = parsed.data;
 	const session = await requireCapability("customers.update_status");
 
@@ -190,9 +208,11 @@ export async function updateCustomerStatus(
 				.select({ status: client.status })
 				.from(client)
 				.where(eq(client.id, data.clientId));
+
 			if (!current) {
 				throw new Error("Cliente não encontrado");
 			}
+
 			if (current.status === data.status) {
 				return;
 			}
@@ -221,10 +241,12 @@ export async function updateCustomerStatus(
 		});
 
 		revalidateAll(data.clientId);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateCustomerStatus", error);
 		const msg = error instanceof Error ? error.message : "Erro interno";
+
 		return { ok: false, error: msg };
 	}
 }
@@ -237,9 +259,11 @@ export async function updateCustomerType(
 	input: unknown
 ): Promise<ActionResult> {
 	const parsed = updateCustomerTypeSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
+
 	const data = parsed.data;
 	const session = await requireCapability("customers.update_status");
 
@@ -249,9 +273,11 @@ export async function updateCustomerType(
 				.select({ clientType: client.clientType })
 				.from(client)
 				.where(eq(client.id, data.clientId));
+
 			if (!current) {
 				throw new Error("Cliente não encontrado");
 			}
+
 			if (current.clientType === data.clientType) {
 				return;
 			}
@@ -274,10 +300,12 @@ export async function updateCustomerType(
 		});
 
 		revalidateAll(data.clientId);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateCustomerType", error);
 		const msg = error instanceof Error ? error.message : "Erro interno";
+
 		return { ok: false, error: msg };
 	}
 }
@@ -290,9 +318,11 @@ export async function updateCustomerNotes(
 	input: unknown
 ): Promise<ActionResult> {
 	const parsed = updateCustomerNotesSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
+
 	const data = parsed.data;
 	const session = await requireCapability("customers.update_status");
 
@@ -302,6 +332,7 @@ export async function updateCustomerNotes(
 				.select({ internalNotes: client.internalNotes })
 				.from(client)
 				.where(eq(client.id, data.clientId));
+
 			if (!current) {
 				throw new Error("Cliente não encontrado");
 			}
@@ -328,10 +359,12 @@ export async function updateCustomerNotes(
 		});
 
 		revalidateAll(data.clientId);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateCustomerNotes", error);
 		const msg = error instanceof Error ? error.message : "Erro interno";
+
 		return { ok: false, error: msg };
 	}
 }
@@ -344,9 +377,11 @@ export async function revokeClientSession(
 	input: unknown
 ): Promise<ActionResult> {
 	const parsed = revokeClientSessionSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
+
 	const data = parsed.data;
 	const session = await requireCapability("customers.manage_sessions");
 
@@ -379,10 +414,12 @@ export async function revokeClientSession(
 		});
 
 		revalidateAll(data.clientId);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("revokeClientSession", error);
 		const msg = error instanceof Error ? error.message : "Erro interno";
+
 		return { ok: false, error: msg };
 	}
 }
@@ -391,9 +428,11 @@ export async function revokeAllClientSessions(
 	input: unknown
 ): Promise<ActionResult<{ count: number }>> {
 	const parsed = revokeAllClientSessionsSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
+
 	const data = parsed.data;
 	const session = await requireCapability("customers.manage_sessions");
 
@@ -419,10 +458,12 @@ export async function revokeAllClientSessions(
 		});
 
 		revalidateAll(data.clientId);
+
 		return { ok: true, data: { count: result } };
 	} catch (error) {
 		logger.error("revokeAllClientSessions", error);
 		const msg = error instanceof Error ? error.message : "Erro interno";
+
 		return { ok: false, error: msg };
 	}
 }
@@ -437,9 +478,11 @@ export async function generatePasswordResetLink(
 	input: unknown
 ): Promise<ActionResult<{ expiresAt: Date; url: string }>> {
 	const parsed = generatePasswordResetSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Dados inválidos" };
 	}
+
 	const data = parsed.data;
 	const session = await requireCapability("customers.reset_password");
 
@@ -449,6 +492,7 @@ export async function generatePasswordResetLink(
 				.select({ email: client.email })
 				.from(client)
 				.where(eq(client.id, data.clientId));
+
 			if (!c) {
 				throw new Error("Cliente não encontrado");
 			}
@@ -475,6 +519,7 @@ export async function generatePasswordResetLink(
 			});
 
 			const base = env.ECOMMERCE_ORIGIN ?? DEFAULT_RESET_BASE;
+
 			return {
 				url: `${base}/reset-password?token=${encodeURIComponent(token)}`,
 				expiresAt,
@@ -482,10 +527,12 @@ export async function generatePasswordResetLink(
 		});
 
 		revalidateAll(data.clientId);
+
 		return { ok: true, data: result };
 	} catch (error) {
 		logger.error("generatePasswordResetLink", error);
 		const msg = error instanceof Error ? error.message : "Erro interno";
+
 		return { ok: false, error: msg };
 	}
 }

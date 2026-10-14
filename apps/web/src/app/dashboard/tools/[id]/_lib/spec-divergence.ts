@@ -26,10 +26,13 @@ export function detectSpecDivergences(
 
 	for (const pair of PAIRS) {
 		const fixedRaw = pair.key === "weightKg" ? tool.weightKg : tool.powerWatts;
+
 		if (fixedRaw === null) {
 			continue;
 		}
+
 		const fixedValue = Number(fixedRaw);
+
 		for (const a of attributes) {
 			if (
 				a.unit === pair.unit &&

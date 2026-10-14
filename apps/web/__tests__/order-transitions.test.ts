@@ -34,6 +34,7 @@ describe("VALID_TRANSITIONS", () => {
 
 	it("toda transição alvo é um estado válido", () => {
 		const valid = new Set<string>(orderStatusEnum.enumValues);
+
 		for (const targets of Object.values(VALID_TRANSITIONS)) {
 			for (const target of targets) {
 				expect(valid.has(target)).toBe(true);
@@ -55,12 +56,14 @@ describe("VALID_TRANSITIONS", () => {
 			if (from === "preparing") {
 				continue; // único que pode ir para shipped
 			}
+
 			expect(targets).not.toContain("shipped");
 		}
 	});
 
 	it("pending_payment não pode ir para preparing, shipped, delivered ou returned", () => {
 		const disallowed = ["preparing", "shipped", "delivered", "returned"];
+
 		for (const status of disallowed) {
 			expect(VALID_TRANSITIONS.pending_payment).not.toContain(status);
 		}
@@ -103,6 +106,7 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 		"refunded",
 		"returned",
 	] as const;
+
 	const STATUSES_NOT_REQUIRING_REASON = [
 		"pending_payment",
 		"payment_failed",
@@ -119,11 +123,14 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				orderId: VALID_ORDER_ID,
 				toStatus,
 			});
+
 			expect(result.success).toBe(false);
+
 			if (!result.success) {
 				const reasonIssue = result.error.issues.find(
 					(i) => i.path[0] === "reason"
 				);
+
 				expect(reasonIssue).toBeDefined();
 			}
 		});
@@ -136,11 +143,14 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				toStatus,
 				reason: "",
 			});
+
 			expect(result.success).toBe(false);
+
 			if (!result.success) {
 				const reasonIssue = result.error.issues.find(
 					(i) => i.path[0] === "reason"
 				);
+
 				expect(reasonIssue).toBeDefined();
 			}
 		});
@@ -153,11 +163,14 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				toStatus,
 				reason: "   ",
 			});
+
 			expect(result.success).toBe(false);
+
 			if (!result.success) {
 				const reasonIssue = result.error.issues.find(
 					(i) => i.path[0] === "reason"
 				);
+
 				expect(reasonIssue).toBeDefined();
 			}
 		});
@@ -170,6 +183,7 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				toStatus: "canceled",
 				reason: "Cliente desistiu da compra",
 			});
+
 			expect(result.success).toBe(true);
 		});
 
@@ -179,6 +193,7 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				toStatus: "refunded",
 				reason: "Produto com defeito confirmado",
 			});
+
 			expect(result.success).toBe(true);
 		});
 
@@ -188,6 +203,7 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				toStatus: "returned",
 				reason: "Falha na entrega — destinatário ausente",
 			});
+
 			expect(result.success).toBe(true);
 		});
 	});
@@ -200,6 +216,7 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				orderId: VALID_ORDER_ID,
 				toStatus,
 			});
+
 			// Estes status não exigem reason nem trackingCode — o parse deve passar.
 			expect(result.success).toBe(true);
 		});
@@ -209,6 +226,7 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				orderId: VALID_ORDER_ID,
 				toStatus: "paid",
 			});
+
 			expect(result.success).toBe(true);
 		});
 	});
@@ -219,6 +237,7 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				orderId: VALID_ORDER_ID,
 				toStatus: "shipped",
 			});
+
 			expect(result.success).toBe(true);
 		});
 
@@ -228,6 +247,7 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				toStatus: "shipped",
 				trackingCode: "BR123456789BR",
 			});
+
 			expect(result.success).toBe(true);
 		});
 
@@ -237,11 +257,14 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				toStatus: "shipped",
 				trackingCode: "BR123456789BR",
 			});
+
 			expect(result.success).toBe(true);
+
 			if (!result.success) {
 				const reasonIssue = result.error.issues.find(
 					(i) => i.path[0] === "reason"
 				);
+
 				expect(reasonIssue).toBeUndefined();
 			}
 		});
@@ -254,6 +277,7 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				toStatus: "canceled",
 				reason: "a".repeat(500),
 			});
+
 			expect(result.success).toBe(true);
 		});
 
@@ -263,6 +287,7 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 				toStatus: "canceled",
 				reason: "a".repeat(501),
 			});
+
 			expect(result.success).toBe(false);
 		});
 
@@ -275,6 +300,7 @@ describe("updateOrderStatusSchema — regra: reason obrigatório", () => {
 					{ orderItemId: VALID_ORDER_ITEM_ID, branchId: VALID_BRANCH_ID },
 				],
 			});
+
 			expect(result.success).toBe(true);
 		});
 	});

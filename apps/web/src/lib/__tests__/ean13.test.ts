@@ -46,16 +46,20 @@ describe("ean13Bars", () => {
 		const modules = ean13Modules(code);
 		const bars = ean13Bars(code);
 		const rebuilt = Array.from({ length: 95 }, () => "0");
+
 		for (const bar of bars) {
 			for (let i = bar.x; i < bar.x + bar.w; i++) {
 				rebuilt[i] = "1";
 			}
 		}
+
 		expect(rebuilt.join("")).toBe(modules);
 		// runs não se tocam (senão seriam um run só)
 		const sorted = [...bars].sort((a, b) => a.x - b.x);
+
 		for (let i = 1; i < sorted.length; i++) {
 			const prev = sorted[i - 1];
+
 			if (prev) {
 				expect(sorted[i]?.x).toBeGreaterThan(prev.x + prev.w);
 			}

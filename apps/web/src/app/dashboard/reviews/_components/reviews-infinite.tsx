@@ -39,6 +39,7 @@ export function ReviewsInfinite({
 }: ReviewsInfiniteProps) {
 	const router = useRouter();
 	const resetKey = JSON.stringify(filters);
+
 	const { items, hasMore, loadMore, pending, error, removeItem } =
 		useInfiniteList({
 			initialItems: initial,
@@ -46,6 +47,7 @@ export function ReviewsInfinite({
 			fetchPage: (cursor) => fetchReviewsPage({ filters, cursor }),
 			resetKey,
 		});
+
 	const sel = useBulkSelection({ items, getId: (item) => item.id, resetKey });
 	const [bulkStatus, setBulkStatus] = useState<BulkModerateStatus | null>(null);
 
@@ -61,6 +63,7 @@ export function ReviewsInfinite({
 		if (bulkStatus !== filters.tab) {
 			removeItem((item) => moderatedIds.includes(item.id));
 		}
+
 		setBulkStatus(null);
 		sel.exit();
 		// Atualiza as contagens das abas e o <Empty> quando a aba esvazia.

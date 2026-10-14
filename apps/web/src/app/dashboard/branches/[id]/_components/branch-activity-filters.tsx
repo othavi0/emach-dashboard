@@ -78,6 +78,7 @@ export function BranchActivityFilters({
 				{KIND_OPTIONS.map((k) => {
 					const active = kinds.includes(k.value);
 					const Icon = active ? CheckIcon : k.icon;
+
 					return (
 						<button
 							className={cn(

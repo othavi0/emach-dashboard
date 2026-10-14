@@ -69,6 +69,7 @@ async function fetchPromoTools(
 		ORDER BY t.created_at DESC
 		LIMIT ${TOOLS_PER_PROMO}
 	`);
+
 	return toolsRes.rows.map(rowToToolListItem);
 }
 
@@ -103,6 +104,7 @@ export async function getActivePromotions(
 	`);
 
 	const promos = promosRes.rows;
+
 	for (const promo of promos) {
 		coerceDates(promo, PROMOTION_DATE_KEYS);
 	}
@@ -115,6 +117,7 @@ export async function getActivePromotions(
 
 	// Map<promotionId, toolId[]> — empty array means "no linked tools" (promo is inert).
 	const toolIdMap = new Map<string, string[]>();
+
 	if (targetedPromoIds.length > 0) {
 		const ptRes = await db.execute<{
 			promotion_id: string;
@@ -124,8 +127,10 @@ export async function getActivePromotions(
 			FROM promotion_tool
 			WHERE promotion_id = ANY(${arrayLiteral(targetedPromoIds, "text[]")})
 		`);
+
 		for (const row of ptRes.rows) {
 			const existing = toolIdMap.get(row.promotion_id);
+
 			if (existing) {
 				existing.push(row.tool_id);
 			} else {
@@ -139,15 +144,19 @@ export async function getActivePromotions(
 	const result = await Promise.all(
 		promos.map(async (promo): Promise<PromotionWithTools> => {
 			let toolScope = sql`true`;
+
 			if (!promo.appliesToAll) {
 				const toolIds = toolIdMap.get(promo.id) ?? [];
+
 				if (toolIds.length === 0) {
 					return { ...promo, tools: [] };
 				}
+
 				toolScope = sql`t.id = ANY(${arrayLiteral(toolIds, "text[]")})`;
 			}
 
 			const tools = await fetchPromoTools(db, promo, toolScope);
+
 			return { ...promo, tools };
 		})
 	);
@@ -186,24 +195,31 @@ export async function getFeaturedPromotion(
 	`);
 
 	const promo = promosRes.rows[0];
+
 	if (!promo) {
 		return null;
 	}
+
 	coerceDates(promo, PROMOTION_DATE_KEYS);
 
 	let toolScope = sql`true`;
+
 	if (!promo.appliesToAll) {
 		const toolIdsRes = await db.execute<{ tool_id: string }>(sql`
 			SELECT tool_id FROM promotion_tool WHERE promotion_id = ${promo.id}
 		`);
+
 		const toolIds = toolIdsRes.rows.map((r) => r.tool_id);
+
 		if (toolIds.length === 0) {
 			return null;
 		}
+
 		toolScope = sql`t.id = ANY(${arrayLiteral(toolIds, "text[]")})`;
 	}
 
 	const tools = await fetchPromoTools(db, promo, toolScope);
+
 	if (tools.length === 0) {
 		return null;
 	}

@@ -60,6 +60,7 @@ export function ToolSpecs({
 
 	const attributeSections = attributeGroups.map((group) => {
 		const filled = group.attributes.filter(isAttributeFilled);
+
 		return {
 			group,
 			filled,

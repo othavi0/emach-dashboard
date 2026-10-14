@@ -18,6 +18,7 @@ import { getInitials } from "@/lib/format/name";
 import type { CustomerListItem } from "../data";
 
 const NUMBER_FORMATTER = new Intl.NumberFormat("pt-BR");
+
 const RELATIVE_FORMATTER = new Intl.RelativeTimeFormat("pt-BR", {
 	numeric: "auto",
 	style: "short",
@@ -28,8 +29,10 @@ function formatRelativeDate(value: Date) {
 	const diffDays = Math.round(diffMs / 86_400_000);
 
 	let relative: string;
+
 	if (Math.abs(diffDays) < 1) {
 		const diffHours = Math.round(diffMs / 3_600_000);
+
 		if (Math.abs(diffHours) < 1) {
 			const diffMinutes = Math.round(diffMs / 60_000);
 			relative = RELATIVE_FORMATTER.format(diffMinutes, "minute");
@@ -39,6 +42,7 @@ function formatRelativeDate(value: Date) {
 	} else {
 		relative = RELATIVE_FORMATTER.format(diffDays, "day");
 	}
+
 	return relative.charAt(0).toUpperCase() + relative.slice(1);
 }
 
@@ -67,6 +71,7 @@ export function CustomerRow({ customer }: CustomerRowProps) {
 	const router = useRouter();
 	const detailHref = `/dashboard/customers/${customer.id}`;
 	const statusConfig = CLIENT_STATUS_CONFIG[customer.status];
+
 	const typeConfig = customer.clientType
 		? CLIENT_TYPE_CONFIG[customer.clientType]
 		: null;

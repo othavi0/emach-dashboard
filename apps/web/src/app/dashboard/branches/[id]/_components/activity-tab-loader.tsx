@@ -29,6 +29,7 @@ export function ActivityTabLoader({ branchId }: { branchId: string }) {
 	// Deep-link da drawer: ?type=stock&toolId=… pré-filtra o feed.
 	const initialKinds: BranchActivityKind[] =
 		type && VALID_KINDS.has(type) ? [type as BranchActivityKind] : ALL_KINDS;
+
 	const initialPeriod: BranchActivityPeriod =
 		period && VALID_PERIODS.has(period)
 			? (period as BranchActivityPeriod)

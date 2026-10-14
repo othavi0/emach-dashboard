@@ -88,4 +88,5 @@ export const banner = pgTable(
 );
 
 export type Banner = typeof banner.$inferSelect;
+
 export type NewBanner = typeof banner.$inferInsert;

@@ -7,6 +7,7 @@ describe("updateVariantSchema.priceAmount", () => {
 			variantId: "v1",
 			priceAmount: 12.5,
 		});
+
 		expect(r.success).toBe(true);
 	});
 
@@ -15,6 +16,7 @@ describe("updateVariantSchema.priceAmount", () => {
 			variantId: "v1",
 			priceAmount: -1,
 		});
+
 		expect(r.success).toBe(false);
 	});
 
@@ -23,6 +25,7 @@ describe("updateVariantSchema.priceAmount", () => {
 			variantId: "v1",
 			priceAmount: "12,50",
 		});
+
 		expect(r.success).toBe(false);
 	});
 

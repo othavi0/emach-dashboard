@@ -25,9 +25,11 @@ describe("branchSchema businessHours", () => {
 		});
 
 		expect(parsed.success).toBe(true);
+
 		if (!parsed.success) {
 			return;
 		}
+
 		expect(parsed.data.businessHours).toEqual(defaultBusinessHours);
 	});
 

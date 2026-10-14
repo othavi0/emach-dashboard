@@ -28,7 +28,9 @@ export async function getEligibleUsersForBranch(
 		.select({ uid: userBranch.userId })
 		.from(userBranch)
 		.where(eq(userBranch.branchId, branchId));
+
 	const pattern = `%${search}%`;
+
 	return await db
 		.select({
 			id: userTable.id,
@@ -91,6 +93,7 @@ export async function getBranchDetail(
 		.leftJoin(userTable, eq(userTable.id, branch.responsibleUserId))
 		.where(eq(branch.id, id))
 		.limit(1);
+
 	return (row as BranchDetail) ?? null;
 }
 
@@ -131,6 +134,7 @@ export async function getBranchDetailKpis(
 				sql`${order.branchId} = ${branchId} and ${order.createdAt} >= now() - interval '30 days'`
 			),
 	]);
+
 	return {
 		skuCount: skus?.n ?? 0,
 		stockValue: value?.v ?? 0,
@@ -224,6 +228,7 @@ export async function getBranchTableAggregates(
 	if (branchIds.length === 0) {
 		return new Map();
 	}
+
 	const teamRows = await db
 		.select({
 			branchId: userBranch.branchId,
@@ -232,6 +237,7 @@ export async function getBranchTableAggregates(
 		.from(userBranch)
 		.where(inArray(userBranch.branchId, branchIds))
 		.groupBy(userBranch.branchId);
+
 	const stockRows = await db
 		.select({
 			branchId: stockLevel.branchId,
@@ -241,26 +247,33 @@ export async function getBranchTableAggregates(
 		.from(stockLevel)
 		.where(inArray(stockLevel.branchId, branchIds))
 		.groupBy(stockLevel.branchId);
+
 	const map = new Map<
 		string,
 		{ teamCount: number; activeSkus: number; lowStock: number }
 	>();
+
 	for (const id of branchIds) {
 		map.set(id, { teamCount: 0, activeSkus: 0, lowStock: 0 });
 	}
+
 	for (const r of teamRows) {
 		const v = map.get(r.branchId);
+
 		if (v) {
 			v.teamCount = r.n;
 		}
 	}
+
 	for (const r of stockRows) {
 		const v = map.get(r.branchId);
+
 		if (v) {
 			v.activeSkus = r.active;
 			v.lowStock = r.low;
 		}
 	}
+
 	return map;
 }
 
@@ -285,13 +298,18 @@ export function getActiveBranches(): Promise<ActiveBranchOption[]> {
 export async function getScopedActiveBranches(): Promise<ActiveBranchOption[]> {
 	const all = await getActiveBranches();
 	const session = await getCurrentSession();
+
 	if (!session) {
 		return [];
 	}
+
 	const scope = await getUserBranchScope(session);
+
 	if (scope.kind === "all") {
 		return all;
 	}
+
 	const allowed = new Set(scope.branchIds);
+
 	return all.filter((b) => allowed.has(b.id));
 }

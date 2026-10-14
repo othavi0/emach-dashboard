@@ -13,16 +13,21 @@ export const metadata: Metadata = {
 
 async function LoginRedirectGate() {
 	const session = await getCurrentSession();
+
 	if (session?.user) {
 		const status = getUserStatus(session);
+
 		if (status === "pending") {
 			redirect("/pending");
 		}
+
 		if (status === "suspended") {
 			redirect("/suspended");
 		}
+
 		redirect("/dashboard");
 	}
+
 	return null;
 }
 

@@ -17,6 +17,7 @@ export async function uploadBannerImage(
 	const session = await requireCapability("site.update_banners");
 
 	const raw = formData.get("maxBytes");
+
 	const maxSizeBytes =
 		typeof raw === "string" && Number.isFinite(Number(raw))
 			? Number(raw)
@@ -35,6 +36,7 @@ export async function uploadBannerImage(
 		targetType: "banner",
 		metadata: { url },
 	});
+
 	return { url };
 }
 
@@ -42,6 +44,7 @@ export async function deleteBannerImage(url: string): Promise<void> {
 	const session = await requireCapability("site.update_banners");
 
 	const path = extractPublicUrlPath(url, BANNER_IMAGES_BUCKET);
+
 	if (!path) {
 		return;
 	}

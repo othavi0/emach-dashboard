@@ -9,18 +9,23 @@ export function formatSessionDuration(seconds: number | null): string {
 	if (seconds === null || Number.isNaN(seconds)) {
 		return "—";
 	}
+
 	if (seconds < MINUTE) {
 		return "<1min";
 	}
+
 	if (seconds < HOUR) {
 		return `${Math.round(seconds / MINUTE)}min`;
 	}
+
 	let hours = Math.floor(seconds / HOUR);
 	let minutes = Math.round((seconds % HOUR) / MINUTE);
+
 	if (minutes === MINUTE) {
 		hours += 1;
 		minutes = 0;
 	}
+
 	return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}min`;
 }
 
@@ -32,7 +37,9 @@ export function formatExceptionRate(exceptions: number, total: number): string {
 	if (total === 0 || exceptions === 0) {
 		return "0%";
 	}
+
 	const pct = (exceptions / total) * 100;
+
 	return `${pct.toLocaleString("pt-BR", {
 		maximumFractionDigits: 1,
 		minimumFractionDigits: 1,
@@ -53,5 +60,6 @@ export function exceptionTone(
 	if (total === 0 || exceptions === 0) {
 		return "muted";
 	}
+
 	return exceptions / total >= 0.05 ? "warning" : "success";
 }

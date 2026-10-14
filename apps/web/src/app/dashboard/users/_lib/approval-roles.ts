@@ -10,10 +10,13 @@ export function allowedApprovalRoles(actorRole: UserRole): UserRole[] {
 	if (actorRole === "super_admin") {
 		return [...HIERARCHY];
 	}
+
 	const start = HIERARCHY.indexOf(actorRole);
+
 	// "user" (último da hierarquia) não pode aprovar ninguém
 	if (start === -1 || start >= HIERARCHY.length - 1) {
 		return [];
 	}
+
 	return HIERARCHY.slice(start);
 }

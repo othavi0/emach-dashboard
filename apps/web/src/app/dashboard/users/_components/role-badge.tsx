@@ -17,10 +17,13 @@ const META: Record<
 
 export function RoleBadge({ role }: { role: string }) {
 	const m = META[role] ?? META.user;
+
 	if (!m) {
 		return null;
 	}
+
 	const Icon = m.icon;
+
 	return (
 		<Badge variant={m.variant}>
 			<Icon aria-hidden className="mr-1 size-3" />

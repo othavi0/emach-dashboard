@@ -41,12 +41,15 @@ function buildProfilePayload(args: {
 	parsedImage: string | null | undefined;
 }): { name?: string; image?: string | null } {
 	const payload: { name?: string; image?: string | null } = {};
+
 	if (args.name !== args.initialName) {
 		payload.name = args.parsedName;
 	}
+
 	if (args.image !== args.initialImage) {
 		payload.image = args.parsedImage;
 	}
+
 	return payload;
 }
 
@@ -69,8 +72,10 @@ export function UserSelfEditSheet({
 	const [email, setEmail] = useState(initialEmail);
 	const [uploading, setUploading] = useState(false);
 	const fileInput = useRef<HTMLInputElement>(null);
+
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<z.infer<typeof selfEditSchema>>();
+
 	const [submitting, startTransition] = useTransition();
 
 	// Reset síncrono durante o render (padrão "adjusting state when a prop
@@ -81,6 +86,7 @@ export function UserSelfEditSheet({
 		initialName,
 		open,
 	});
+
 	if (
 		lastReset.open !== open ||
 		lastReset.initialName !== initialName ||
@@ -88,6 +94,7 @@ export function UserSelfEditSheet({
 		lastReset.initialEmail !== initialEmail
 	) {
 		setLastReset({ initialEmail, initialImage, initialName, open });
+
 		if (open) {
 			setName(initialName);
 			setImage(initialImage);
@@ -105,24 +112,30 @@ export function UserSelfEditSheet({
 
 	const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
+
 		if (!file) {
 			return;
 		}
+
 		setUploading(true);
+
 		const resetInput = () => {
 			setUploading(false);
 			e.target.value = "";
 		};
+
 		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const fd = new FormData();
 			fd.set("file", file);
 			const res = await uploadOwnAvatar(fd);
+
 			if (res.ok) {
 				setImage(res.url);
 			} else {
 				notify.error(res.error);
 			}
+
 			resetInput();
 		} catch {
 			notify.error("Não foi possível enviar a imagem");
@@ -133,21 +146,28 @@ export function UserSelfEditSheet({
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		const parsed = selfEditSchema.safeParse({ name, image, email });
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
+
 		const profileChanged = name !== initialName || image !== initialImage;
 		const emailChanged = parsed.data.email !== initialEmail;
+
 		if (!(profileChanged || emailChanged)) {
 			close();
+
 			return;
 		}
+
 		startTransition(async () => {
 			// Ordem: perfil (nome/foto, mutação direta) primeiro, depois e-mail
 			// (dispara o fluxo double opt-in do Better Auth). Só fecha o sheet se
 			// tudo que foi tentado deu certo — em erro, mantém aberto para retry.
 			let ok = true;
+
 			if (profileChanged) {
 				const payload = buildProfilePayload({
 					name,
@@ -157,7 +177,9 @@ export function UserSelfEditSheet({
 					initialImage,
 					parsedImage: parsed.data.image,
 				});
+
 				const res = await updateOwnProfile(payload);
+
 				if (res.ok) {
 					notify.success("Dados atualizados");
 				} else {
@@ -165,11 +187,13 @@ export function UserSelfEditSheet({
 					notify.error(res.error);
 				}
 			}
+
 			if (emailChanged) {
 				const emailRes = await authClient.changeEmail({
 					newEmail: parsed.data.email,
 					callbackURL: "/dashboard",
 				});
+
 				if (emailRes.error) {
 					ok = false;
 					notify.error("Não foi possível iniciar a troca de e-mail");
@@ -179,6 +203,7 @@ export function UserSelfEditSheet({
 					);
 				}
 			}
+
 			if (ok) {
 				close();
 				router.refresh();

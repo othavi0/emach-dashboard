@@ -16,6 +16,7 @@ import type { PromotionSort, PromotionStatus } from "./promotion-types";
 
 export function dbErrorMessage(error: unknown): string {
 	logger.error("promotions", error);
+
 	return "Erro ao processar operação. Tente novamente.";
 }
 
@@ -23,6 +24,7 @@ export function safeRequireRole(error: unknown): ActionResult<never> {
 	if (isCapabilityError(error)) {
 		return { ok: false, error: "Acesso negado" };
 	}
+
 	throw error;
 }
 
@@ -47,6 +49,7 @@ export async function assertTitleUnique(
 	excludeId?: string
 ) {
 	const filters = [eq(promotion.type, type), eq(promotion.title, title)];
+
 	if (excludeId) {
 		filters.push(ne(promotion.id, excludeId));
 	}
@@ -56,6 +59,7 @@ export async function assertTitleUnique(
 		.from(promotion)
 		.where(and(...filters))
 		.limit(1);
+
 	if (row.length > 0) {
 		conflict("Já existe promoção/código com este título");
 	}
@@ -67,6 +71,7 @@ export async function assertCodeUnique(
 	excludeId?: string
 ) {
 	const filters = [eq(promotion.code, code)];
+
 	if (excludeId) {
 		filters.push(ne(promotion.id, excludeId));
 	}
@@ -76,6 +81,7 @@ export async function assertCodeUnique(
 		.from(promotion)
 		.where(and(...filters))
 		.limit(1);
+
 	if (row.length > 0) {
 		conflict("Código já está em uso");
 	}
@@ -98,6 +104,7 @@ export function buildCouponFields(data: PromotionFormValues): {
 				data.minOrderAmount == null ? null : String(data.minOrderAmount),
 		};
 	}
+
 	return { maxRedemptions: null, minOrderAmount: null };
 }
 
@@ -112,9 +119,11 @@ export function buildCouponFields(data: PromotionFormValues): {
  */
 export async function assertFeaturedSlotFree(tx: Tx, excludeId?: string) {
 	const filters = [eq(promotion.featured, true)];
+
 	if (excludeId) {
 		filters.push(ne(promotion.id, excludeId));
 	}
+
 	const rows = await tx
 		.select({
 			active: promotion.active,
@@ -126,10 +135,13 @@ export async function assertFeaturedSlotFree(tx: Tx, excludeId?: string) {
 		.limit(1);
 
 	const existing = rows[0];
+
 	if (!existing) {
 		return;
 	}
+
 	const status = computeStatus(existing);
+
 	if (status === "active" || status === "scheduled") {
 		conflict(featuredConflictMessage(existing));
 	}

@@ -22,6 +22,7 @@ const STATUS_ICONS: Record<ReviewStatus, typeof ClockIcon> = {
 
 export function ReviewStatusBadge({ status }: { status: ReviewStatus }) {
 	const Icon = STATUS_ICONS[status];
+
 	return (
 		<Badge variant={STATUS_VARIANTS[status]}>
 			<Icon aria-hidden="true" />

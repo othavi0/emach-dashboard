@@ -45,8 +45,10 @@ export function fulfillmentBadgeLabel(
 		state === "picking_exception"
 			? "Exceção"
 			: FULFILLMENT_STATE_META[state].label;
+
 	if (state === "awaiting_picking" || !pickerName) {
 		return short;
 	}
+
 	return `${short} · ${pickerName}`;
 }

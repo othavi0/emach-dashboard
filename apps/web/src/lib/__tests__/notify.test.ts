@@ -4,6 +4,7 @@ const { error, success } = vi.hoisted(() => ({
 	error: vi.fn(),
 	success: vi.fn(),
 }));
+
 vi.mock("sonner", () => ({ toast: { error, success } }));
 
 import { notify } from "../notify";

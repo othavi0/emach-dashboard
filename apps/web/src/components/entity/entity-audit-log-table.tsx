@@ -46,7 +46,9 @@ function ExpandIcon({
 	if (!expandable) {
 		return null;
 	}
+
 	const Icon = isOpen ? ChevronDownIcon : ChevronRightIcon;
+
 	return <Icon className="size-4 text-muted-foreground" />;
 }
 
@@ -157,11 +159,13 @@ export function EntityAuditLogTable({
 	const toggle = (id: string) => {
 		setExpanded((prev) => {
 			const next = new Set(prev);
+
 			if (next.has(id)) {
 				next.delete(id);
 			} else {
 				next.add(id);
 			}
+
 			return next;
 		});
 	};
@@ -182,6 +186,7 @@ export function EntityAuditLogTable({
 					const isOpen = expanded.has(entry.id);
 					const expandable = hasDiff(entry);
 					const actionLabel = actionLabels[entry.action] ?? entry.action;
+
 					return (
 						<Fragment key={entry.id}>
 							<AuditRow

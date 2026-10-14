@@ -32,6 +32,7 @@ export async function buildDefinitionsByCategory(): Promise<
 
 	const parentById = new Map(categories.map((c) => [c.id, c.parentId]));
 	const defsByCategoryId = new Map<string, AttributeDefinition[]>();
+
 	for (const d of definitions) {
 		const list = defsByCategoryId.get(d.categoryId) ?? [];
 		list.push(d);
@@ -39,19 +40,23 @@ export async function buildDefinitionsByCategory(): Promise<
 	}
 
 	const result: Record<string, AttributeDefinition[]> = {};
+
 	for (const c of categories) {
 		const chain: string[] = [c.id];
 		// `seenChain` evita loop infinito num parentId cíclico (escrita SQL direta
 		// que burle o trigger prevent_category_cycle).
 		const seenChain = new Set<string>([c.id]);
 		let cur = c.parentId;
+
 		while (cur && !seenChain.has(cur)) {
 			seenChain.add(cur);
 			chain.push(cur);
 			cur = parentById.get(cur) ?? null;
 		}
+
 		const seen = new Set<string>();
 		const list: AttributeDefinition[] = [];
+
 		for (const ancestorId of chain) {
 			for (const d of defsByCategoryId.get(ancestorId) ?? []) {
 				if (!seen.has(d.id)) {
@@ -60,10 +65,12 @@ export async function buildDefinitionsByCategory(): Promise<
 				}
 			}
 		}
+
 		list.sort(
 			(a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label)
 		);
 		result[c.id] = list;
 	}
+
 	return result;
 }

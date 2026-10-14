@@ -64,6 +64,7 @@ async function loadBase(tx: Tx, opts: CreateOptions): Promise<Base> {
 		)
 		.orderBy(asc(branch.createdAt), asc(branch.id))
 		.limit(1);
+
 	if (!branchRow) {
 		throw new Error(
 			opts.branchId
@@ -78,6 +79,7 @@ async function loadBase(tx: Tx, opts: CreateOptions): Promise<Base> {
 		.where(eq(client.status, "active"))
 		.orderBy(asc(client.createdAt), asc(client.id))
 		.limit(1);
+
 	if (!clientRow) {
 		throw new Error("[fixtures] nenhum client ativo.");
 	}
@@ -98,6 +100,7 @@ async function loadBase(tx: Tx, opts: CreateOptions): Promise<Base> {
 		.where(isNotNull(toolVariant.priceAmount))
 		.orderBy(asc(tool.name), asc(toolVariant.sortOrder), asc(toolVariant.id))
 		.limit(1);
+
 	if (!variant?.priceAmount) {
 		throw new Error("[fixtures] nenhuma variante ativa com preço.");
 	}
@@ -115,6 +118,7 @@ const STATUS_PATH = [
 	"shipped",
 	"delivered",
 ] as const satisfies readonly OrderStatus[];
+
 type FixtureOrderStatus = (typeof STATUS_PATH)[number];
 
 const REACHED_AT_COLUMN = {
@@ -143,6 +147,7 @@ async function insertFixtureOrder(
 	const reachedAt: Partial<
 		Record<(typeof REACHED_AT_COLUMN)[FixtureOrderStatus], Date>
 	> = {};
+
 	for (const [i, s] of steps.entries()) {
 		reachedAt[REACHED_AT_COLUMN[s]] = stepAt(i);
 	}
@@ -197,7 +202,9 @@ async function insertFixtureOrder(
 			createdAt,
 		},
 	];
+
 	let from: OrderStatus = "pending_payment";
+
 	for (const [i, to] of steps.entries()) {
 		history.push({
 			id: crypto.randomUUID(),
@@ -209,6 +216,7 @@ async function insertFixtureOrder(
 		});
 		from = to;
 	}
+
 	await tx.insert(orderStatusHistory).values(history);
 
 	return { itemId, orderId, orderNumber };
@@ -223,6 +231,7 @@ const SURFACES: Record<
 	order: async (tx, opts) => {
 		const base = await loadBase(tx, opts);
 		const o = await insertFixtureOrder(tx, base, opts, "paid");
+
 		return {
 			surface: "order",
 			ids: {
@@ -259,6 +268,7 @@ const SURFACES: Record<
 			qtyPicked: 0,
 			notFound: true,
 		});
+
 		return {
 			surface: "picking-exception",
 			ids: {
@@ -284,6 +294,7 @@ const SURFACES: Record<
 			altText: opts.marks.text,
 			isActive: HIDDEN_FROM_STOREFRONT,
 		});
+
 		return {
 			surface: "banner",
 			ids: { banner: id },
@@ -304,6 +315,7 @@ const SURFACES: Record<
 			title: `${opts.marks.text} Avaliação de fixture`,
 			body: `${opts.marks.text} texto da avaliação de fixture`,
 		});
+
 		return {
 			surface: "review",
 			ids: { review: id, order: o.orderId, client: base.clientId },
@@ -322,25 +334,32 @@ const USAGE = `[fixtures] uso: ${CLI} create <${Object.keys(SURFACES).join("|")}
 
 function flagValue(args: string[], flag: string): string | undefined {
 	const at = args.indexOf(flag);
+
 	if (at === -1) {
 		return;
 	}
+
 	const value = args[at + 1];
+
 	if (!value || value.startsWith("--")) {
 		throw new Error(`[fixtures] ${flag} exige um valor. ${USAGE}`);
 	}
+
 	return value;
 }
 
 async function create(args: string[]): Promise<void> {
 	const [surface] = args;
+
 	if (!isSurface(surface)) {
 		throw new Error(
 			`[fixtures] superfície inválida: "${surface ?? ""}". ${USAGE}`
 		);
 	}
+
 	const runRaw = flagValue(args, "--run");
 	const run = runRaw === undefined ? newRunId() : parseRunId(runRaw);
+
 	const opts: CreateOptions = {
 		branchId: flagValue(args, "--branch"),
 		marks: runMarks(run),
@@ -359,9 +378,11 @@ async function create(args: string[]): Promise<void> {
 
 function parseScope(args: string[]): CleanupScope {
 	const runRaw = flagValue(args, "--run");
+
 	if (args.includes("--all") === (runRaw !== undefined)) {
 		throw new Error(USAGE);
 	}
+
 	return runRaw === undefined
 		? { kind: "all" }
 		: { kind: "run", run: parseRunId(runRaw) };
@@ -373,16 +394,19 @@ async function cleanup(args: string[]): Promise<void> {
 
 	const counts = await db.transaction(async (tx) => {
 		const found: string[] = [];
+
 		for (const blocker of blockers) {
 			const rows = await tx
 				.select({ id: blocker.id })
 				.from(blocker.fk.table)
 				.where(blocker.where);
+
 			if (rows.length > 0) {
 				const fk = `${getTableName(blocker.fk.table)}.${blocker.fk.name}`;
 				found.push(`  ${fk}: ${rows.map((r) => r.id).join(", ")}`);
 			}
 		}
+
 		if (found.length > 0) {
 			throw new Error(
 				[
@@ -394,17 +418,21 @@ async function cleanup(args: string[]): Promise<void> {
 		}
 
 		const result: Record<string, number> = {};
+
 		for (const step of steps) {
 			const deleted = await tx.delete(step.table).where(step.where);
 			result[getTableName(step.table)] = deleted.rowCount ?? 0;
 		}
+
 		return result;
 	});
+
 	console.log(JSON.stringify({ scope, deleted: counts }, null, 2));
 }
 
 async function main(): Promise<void> {
 	const [command, ...rest] = process.argv.slice(2);
+
 	if (command === "create") {
 		await create(rest);
 	} else if (command === "cleanup") {

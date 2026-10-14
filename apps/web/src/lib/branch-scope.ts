@@ -12,13 +12,16 @@ export type BranchScope =
 export const getUserBranchScope = cache(
 	async (session: DashboardSession): Promise<BranchScope> => {
 		const role = (session.user.role ?? "user") as UserRole;
+
 		if (role === "super_admin") {
 			return { kind: "all" };
 		}
+
 		const rows = await db
 			.select({ branchId: userBranch.branchId })
 			.from(userBranch)
 			.where(eq(userBranch.userId, session.user.id));
+
 		return {
 			kind: "scoped",
 			branchIds: rows.map((r) => r.branchId),
@@ -48,9 +51,11 @@ export function orderInScope(
 	if (scope.kind === "all") {
 		return true;
 	}
+
 	if (branchId === null) {
 		return scope.includeUnassigned;
 	}
+
 	return scope.branchIds.includes(branchId);
 }
 
@@ -60,7 +65,9 @@ function branchCondForColumn(scope: BranchScope, col: SQL): SQL | undefined {
 	if (scope.kind === "all") {
 		return;
 	}
+
 	const parts: SQL[] = [];
+
 	if (scope.branchIds.length > 0) {
 		parts.push(
 			sql`${col} IN (${sql.join(
@@ -69,12 +76,15 @@ function branchCondForColumn(scope: BranchScope, col: SQL): SQL | undefined {
 			)})`
 		);
 	}
+
 	if (scope.includeUnassigned) {
 		parts.push(sql`${col} IS NULL`);
 	}
+
 	if (parts.length === 0) {
 		return sql`false`;
 	}
+
 	return sql`(${sql.join(parts, sql` OR `)})`;
 }
 
@@ -93,5 +103,6 @@ export function orderBranchConditionNoAlias(
 // Fragmento ` AND (...)` p/ anexar a um WHERE existente em subquery raw (ex: estoque com alias `sl`/`sm2`).
 export function branchAndFilter(scope: BranchScope, col: SQL): SQL {
 	const cond = branchCondForColumn(scope, col);
+
 	return cond ? sql` AND ${cond}` : sql``;
 }

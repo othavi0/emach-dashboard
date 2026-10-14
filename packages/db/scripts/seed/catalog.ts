@@ -551,6 +551,7 @@ interface ToolDef {
 function randomWeightKg(): string {
 	return (0.5 + Math.random() * 24.5).toFixed(3); // 0,5–25 kg
 }
+
 function randomDimCm(): string {
 	return (10 + Math.random() * 70).toFixed(2); // 10–80 cm
 }
@@ -976,11 +977,13 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 	// arquivos reais garante render. Fallback: bucket vazio → tool sem imagem
 	// (melhor que link morto).
 	const storageBase = `${env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/tool-images`;
+
 	const existingImages = await tx.execute<{ name: string }>(
 		sql`SELECT name FROM storage.objects
 			WHERE bucket_id = 'tool-images' AND name LIKE '%.webp'
 			ORDER BY created_at`
 	);
+
 	const imageNames = existingImages.rows.map((r) => r.name);
 	let imageCursor = 0;
 
@@ -1008,6 +1011,7 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 	const firstLevelChildren = children.filter(
 		(c) => CATEGORIES.find((x) => x.slug === c.parentSlug)?.parentSlug === null
 	);
+
 	for (const cat of firstLevelChildren) {
 		const parentId = ctx.categoryIdBySlug[cat.parentSlug as string];
 		const id = crypto.randomUUID();
@@ -1027,6 +1031,7 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 	const secondLevelChildren = children.filter(
 		(c) => CATEGORIES.find((x) => x.slug === c.parentSlug)?.parentSlug !== null
 	);
+
 	for (const cat of secondLevelChildren) {
 		const parentId = ctx.categoryIdBySlug[cat.parentSlug as string];
 		const id = crypto.randomUUID();
@@ -1050,8 +1055,10 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 		slug: string;
 		path: string;
 	}>(sql`SELECT id, slug, path FROM category`);
+
 	const pathBySlug: Record<string, string> = {};
 	const pathById: Record<string, string> = {};
+
 	for (const row of categoryRows.rows) {
 		pathBySlug[row.slug] = row.path;
 		pathById[row.id] = row.path;
@@ -1061,9 +1068,11 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 	for (const attr of ATTRIBUTES) {
 		const id = crypto.randomUUID();
 		const catId = ctx.categoryIdBySlug[attr.categorySlug];
+
 		if (!catId) {
 			throw new Error(`Categoria não encontrada: ${attr.categorySlug}`);
 		}
+
 		await tx.insert(attributeDefinition).values({
 			id,
 			slug: attr.slug,
@@ -1080,9 +1089,11 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 
 	// Mapa: attributeId → categoryId (para checar elegibilidade)
 	const attrCategoryId: Record<string, string> = {};
+
 	for (const attr of ATTRIBUTES) {
 		const attrId = ctx.attributeIdBySlug[attr.slug];
 		const catId = ctx.categoryIdBySlug[attr.categorySlug];
+
 		if (attrId && catId) {
 			attrCategoryId[attrId] = catId;
 		}
@@ -1131,6 +1142,7 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 				sortOrder: varDef.sortOrder,
 			});
 			ctx.variantIdsByTool[toolId].push(variantId);
+
 			if (varDef.isDefault) {
 				ctx.defaultVariantByTool[toolId] = variantId;
 			}
@@ -1154,17 +1166,20 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 		// Achar o toolId pelo slug (na ordem de inserção)
 		const toolIndex = TOOLS.indexOf(toolDef);
 		const toolId = ctx.toolIds[toolIndex];
+
 		if (!toolId) {
 			throw new Error(`toolId ausente no índice ${toolIndex}`);
 		}
 
 		// tool_category primária
 		const primaryCatId = ctx.categoryIdBySlug[toolDef.primaryCategorySlug];
+
 		if (!primaryCatId) {
 			throw new Error(
 				`Categoria primária não encontrada: ${toolDef.primaryCategorySlug}`
 			);
 		}
+
 		await tx.insert(toolCategory).values({
 			toolId,
 			categoryId: primaryCatId,
@@ -1175,6 +1190,7 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 		// Categoria secundária opcional
 		if (toolDef.secondaryCategorySlug) {
 			const secCatId = ctx.categoryIdBySlug[toolDef.secondaryCategorySlug];
+
 			if (secCatId) {
 				await tx.insert(toolCategory).values({
 					toolId,
@@ -1186,6 +1202,7 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 
 		// Determinar o path da primary category para filtrar atributos elegíveis
 		const primaryPath = pathById[primaryCatId];
+
 		if (!primaryPath) {
 			throw new Error(`Path não encontrado para categoria: ${primaryCatId}`);
 		}
@@ -1194,6 +1211,7 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 		// path formato: /root-slug/child-slug/...
 		// Um atributo é elegível se sua categoryId está no caminho do root até a primary.
 		const pathCategoryIds = new Set<string>();
+
 		for (const [catId, catPath] of Object.entries(pathById)) {
 			if (primaryPath === catPath || primaryPath.startsWith(`${catPath}/`)) {
 				pathCategoryIds.add(catId);
@@ -1202,15 +1220,20 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 
 		// Inserir assignments + values apenas para atributos elegíveis
 		let sortOrder = 0;
+
 		for (const av of toolDef.attributeValues) {
 			const attrId = ctx.attributeIdBySlug[av.slug];
+
 			if (!attrId) {
 				continue;
 			}
+
 			const attrCatId = attrCategoryId[attrId];
+
 			if (!attrCatId) {
 				continue;
 			}
+
 			if (!pathCategoryIds.has(attrCatId)) {
 				continue;
 			}

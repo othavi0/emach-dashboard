@@ -43,6 +43,7 @@ export function ArchiveSupplierDialog({
 			const result = isArchived
 				? await restoreSupplier(supplierId)
 				: await archiveSupplier(supplierId);
+
 			if (result.ok) {
 				notify.success(
 					isArchived ? "Fornecedor restaurado" : "Fornecedor arquivado"

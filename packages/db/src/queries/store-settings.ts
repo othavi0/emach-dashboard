@@ -42,9 +42,11 @@ export async function getShippingSettings(
 		.limit(1);
 
 	const row = rows[0];
+
 	if (!row) {
 		return DEFAULTS;
 	}
+
 	return {
 		originBranchId: row.originBranchId,
 		originCep: row.originCep,
@@ -91,6 +93,7 @@ export async function getStoreSocialLinks(
 		.limit(1);
 
 	const row = rows[0];
+
 	if (!row) {
 		return [];
 	}

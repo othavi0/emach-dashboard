@@ -21,6 +21,7 @@ describe("getStepErrorCount", () => {
 
 	it("é coerente com stepHasErrors em todos os passos", () => {
 		const issues = collectToolIssues({}, { enforceActivation: false });
+
 		for (const step of TOOL_STEPS) {
 			expect(getStepErrorCount(issues, step.id) > 0).toBe(
 				stepHasErrors(issues, step.id)

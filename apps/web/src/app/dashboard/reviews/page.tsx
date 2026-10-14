@@ -36,12 +36,14 @@ async function ReviewsPageContent({ searchParams }: ReviewsPageProps) {
 
 	const raw = await searchParams;
 	const parsed = reviewsListFiltersSchema.safeParse(raw);
+
 	const filters = parsed.success
 		? parsed.data
 		: reviewsListFiltersSchema.parse({});
 
 	const currentTab =
 		REVIEW_TABS.find((tab) => tab.key === filters.tab) ?? REVIEW_TABS[0];
+
 	const hasFilters =
 		filters.tab !== "pending" ||
 		filters.rating !== undefined ||

@@ -9,6 +9,7 @@ describe("EntityKpisRow", () => {
 				items={[{ label: "Alcance", value: 3, href: "/x?tab=tools" }]}
 			/>
 		);
+
 		expect(html).toContain("<a");
 		expect(html).toContain('href="/x?tab=tools"');
 	});
@@ -19,6 +20,7 @@ describe("EntityKpisRow", () => {
 				items={[{ label: "Alcance", value: 3, switchTab: "tools" }]}
 			/>
 		);
+
 		expect(html).toContain("<button");
 		expect(html).not.toContain("<a");
 	});
@@ -29,6 +31,7 @@ describe("EntityKpisRow", () => {
 				items={[{ href: "/x", label: "Alcance", switchTab: "tools", value: 3 }]}
 			/>
 		);
+
 		expect(html).toContain("<button");
 		expect(html).not.toContain("<a");
 	});

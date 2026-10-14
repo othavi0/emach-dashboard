@@ -16,5 +16,6 @@ export default function DevLayout({ children }: { children: ReactNode }) {
 	if (process.env.NODE_ENV === "production") {
 		notFound();
 	}
+
 	return children;
 }

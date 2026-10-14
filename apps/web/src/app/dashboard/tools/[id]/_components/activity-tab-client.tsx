@@ -69,6 +69,7 @@ export function ActivityTabClient({
 	}
 
 	let listContent: React.ReactNode;
+
 	if (items.length === 0 && pending) {
 		listContent = (
 			<div className="flex items-center justify-center rounded-md border border-border py-12">

@@ -64,36 +64,45 @@ export function CategoriesTree({
 	function toggle(id: string) {
 		setExpanded((prev) => {
 			const next = new Set(prev);
+
 			if (next.has(id)) {
 				next.delete(id);
 			} else {
 				next.add(id);
 			}
+
 			return next;
 		});
 	}
 
 	function handleDragEnd(event: DragEndEvent, siblings: CategoryTreeNode[]) {
 		const { active, over } = event;
+
 		if (!over || active.id === over.id) {
 			return;
 		}
+
 		const ids = siblings.map((s) => s.id);
 		const from = ids.indexOf(String(active.id));
 		const to = ids.indexOf(String(over.id));
+
 		if (from === -1 || to === -1) {
 			return;
 		}
+
 		const reordered = [...ids];
 		const [moved] = reordered.splice(from, 1);
+
 		if (moved === undefined) {
 			return;
 		}
+
 		reordered.splice(to, 0, moved);
 
 		setOrder((prev) =>
 			prev.map((c) => {
 				const idx = reordered.indexOf(c.id);
+
 				return idx === -1 ? c : { ...c, sortOrder: idx };
 			})
 		);
@@ -104,6 +113,7 @@ export function CategoriesTree({
 				parentId,
 				orderedIds: reordered,
 			});
+
 			if (result.ok) {
 				notify.success("Ordem atualizada");
 				router.refresh();
@@ -151,6 +161,7 @@ function SiblingGroup({
 	if (nodes.length === 0) {
 		return null;
 	}
+
 	return (
 		<DndContext
 			id={`cat-sortable-${nodes[0]?.parentId ?? "root"}`}
@@ -205,9 +216,11 @@ function TreeRow({
 		transition,
 		isDragging,
 	} = useSortable({ id: node.id });
+
 	const hasChildren = node.children.length > 0;
 	const isOpen = expanded.has(node.id);
 	let toggleIcon: React.ReactNode = <span className="inline-block size-4" />;
+
 	if (hasChildren) {
 		toggleIcon = isOpen ? (
 			<ChevronDown aria-hidden className="size-4" />
@@ -333,6 +346,7 @@ function CountLabel({
 			</span>
 		);
 	}
+
 	// Recolhido com filhas: total (rollup) + rótulo.
 	if (!isOpen) {
 		return (
@@ -344,6 +358,7 @@ function CountLabel({
 			</span>
 		);
 	}
+
 	// Expandido com filhas: direto + rótulo.
 	return (
 		<span className="text-muted-foreground text-xs tabular-nums">

@@ -33,26 +33,32 @@ export async function getOrCreateShippingSettings(): Promise<StoreSettings> {
 		.from(storeSettings)
 		.where(eq(storeSettings.id, SINGLETON_ID))
 		.limit(1);
+
 	if (existing[0]) {
 		return existing[0];
 	}
+
 	const [created] = await db
 		.insert(storeSettings)
 		.values({ id: SINGLETON_ID })
 		.onConflictDoNothing()
 		.returning();
+
 	if (created) {
 		return created;
 	}
+
 	// Corrida: outra request criou entre o select e o insert.
 	const [row] = await db
 		.select()
 		.from(storeSettings)
 		.where(eq(storeSettings.id, SINGLETON_ID))
 		.limit(1);
+
 	if (!row) {
 		throw new Error("Falha ao inicializar store_settings");
 	}
+
 	return row;
 }
 
@@ -71,6 +77,7 @@ export async function listOriginBranchOptions(): Promise<OriginBranchOption[]> {
 		.from(branch)
 		.where(isNotNull(branch.cep))
 		.orderBy(asc(branch.name));
+
 	return rows.filter((r): r is OriginBranchOption => Boolean(r.cep));
 }
 
@@ -80,6 +87,7 @@ export async function updateShippingSettings(
 	const session = await requireCapability("shipping.manage");
 
 	const parsed = shippingSettingsSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
@@ -100,6 +108,7 @@ export async function updateShippingSettings(
 			});
 	} catch (error) {
 		logger.error("updateShippingSettings falhou", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 
@@ -114,6 +123,7 @@ export async function updateShippingSettings(
 		},
 	});
 	revalidatePath(SHIPPING_PATH);
+
 	return { ok: true, data: { id: SINGLETON_ID } };
 }
 
@@ -122,10 +132,13 @@ export async function createBox(
 ): Promise<ActionResult<{ id: string }>> {
 	const session = await requireCapability("shipping.manage");
 	const parsed = boxSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
+
 	const id = crypto.randomUUID();
+
 	try {
 		await db.insert(shippingBox).values({
 			id,
@@ -139,8 +152,10 @@ export async function createBox(
 		});
 	} catch (error) {
 		logger.error("createBox falhou", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
+
 	await logUserActivity({
 		actorUserId: session.user.id,
 		action: "shipping.box.created",
@@ -149,6 +164,7 @@ export async function createBox(
 		metadata: { name: parsed.data.name },
 	});
 	revalidatePath(SHIPPING_PATH);
+
 	return { ok: true, data: { id } };
 }
 
@@ -158,9 +174,11 @@ export async function updateBox(
 ): Promise<ActionResult<{ id: string }>> {
 	const session = await requireCapability("shipping.manage");
 	const parsed = boxSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
+
 	try {
 		await db
 			.update(shippingBox)
@@ -176,8 +194,10 @@ export async function updateBox(
 			.where(eq(shippingBox.id, id));
 	} catch (error) {
 		logger.error("updateBox falhou", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
+
 	await logUserActivity({
 		actorUserId: session.user.id,
 		action: "shipping.box.updated",
@@ -186,6 +206,7 @@ export async function updateBox(
 		metadata: { name: parsed.data.name },
 	});
 	revalidatePath(SHIPPING_PATH);
+
 	return { ok: true, data: { id } };
 }
 
@@ -194,19 +215,24 @@ export async function deleteBox(
 ): Promise<ActionResult<{ id: string }>> {
 	const session = await requireCapability("shipping.manage");
 	let name: string;
+
 	try {
 		const [row] = await db
 			.delete(shippingBox)
 			.where(eq(shippingBox.id, id))
 			.returning({ name: shippingBox.name });
+
 		if (!row) {
 			return { ok: false, error: "Caixa não encontrada" };
 		}
+
 		name = row.name;
 	} catch (error) {
 		logger.error("deleteBox falhou", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
+
 	await logUserActivity({
 		actorUserId: session.user.id,
 		action: "shipping.box.deleted",
@@ -215,5 +241,6 @@ export async function deleteBox(
 		metadata: { name },
 	});
 	revalidatePath(SHIPPING_PATH);
+
 	return { ok: true, data: { id } };
 }

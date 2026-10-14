@@ -26,20 +26,25 @@ export function formatJanela(
 	if (startsAt && endsAt) {
 		return `${fmtDate(startsAt)} – ${fmtDate(endsAt)}`;
 	}
+
 	if (startsAt) {
 		return `A partir de ${fmtDate(startsAt)}`;
 	}
+
 	if (endsAt) {
 		return `Até ${fmtDate(endsAt)}`;
 	}
+
 	return "Sem janela definida";
 }
 
 export function formatDiscount(type: string, value: string): string {
 	const num = Number(value);
+
 	if (type === "fixed") {
 		return BRL_FMT.format(num);
 	}
+
 	return `${NUMBER_FMT.format(num)}%`;
 }
 
@@ -65,7 +70,9 @@ export function daysUntil(
 	if (!d) {
 		return null;
 	}
+
 	const MS_PER_DAY = 86_400_000;
+
 	return Math.ceil((d.getTime() - now.getTime()) / MS_PER_DAY);
 }
 
@@ -82,10 +89,13 @@ export function daysRemainingDisplay(
 	if (status === "expired") {
 		return { value: "0", tone: "danger" };
 	}
+
 	if (!endsAt) {
 		return { value: "—", tone: "default" };
 	}
+
 	const d = daysUntil(endsAt, now) ?? 0;
 	const clamped = d < 0 ? 0 : d;
+
 	return { value: String(clamped), tone: clamped <= 7 ? "warning" : "default" };
 }

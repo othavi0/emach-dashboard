@@ -141,6 +141,7 @@ describe("unlinkUserFromBranch — last-branch guard", () => {
 					[{ role: "admin" }],
 					[{ branchId: "branch-1" }, { branchId: "branch-2" }]
 				);
+
 				return await cb(tx);
 			}
 		);
@@ -154,6 +155,7 @@ describe("unlinkUserFromBranch — last-branch guard", () => {
 					[{ role: "admin" }],
 					[{ branchId: "branch-1" }] // only 1 branch = the one being removed
 				);
+
 				return await cb(tx);
 			}
 		);
@@ -174,6 +176,7 @@ describe("unlinkUserFromBranch — last-branch guard", () => {
 					[{ role: "admin" }],
 					[{ branchId: "branch-1" }, { branchId: "branch-2" }]
 				);
+
 				return await cb(tx);
 			}
 		);
@@ -191,6 +194,7 @@ describe("unlinkUserFromBranch — last-branch guard", () => {
 					[{ role: "super_admin" }],
 					[{ branchId: "branch-1" }] // only 1 branch, but guard doesn't apply
 				);
+
 				return await cb(tx);
 			}
 		);
@@ -208,6 +212,7 @@ describe("unlinkUserFromBranch — last-branch guard", () => {
 					[], // no user found
 					[]
 				);
+
 				return await cb(tx);
 			}
 		);

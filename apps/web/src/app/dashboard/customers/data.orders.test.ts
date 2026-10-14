@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { execute } = vi.hoisted(() => ({ execute: vi.fn() }));
+
 vi.mock("@emach/db", () => ({ db: { execute } }));
 
 import { listCustomerOrders } from "./data";

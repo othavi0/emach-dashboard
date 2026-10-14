@@ -330,9 +330,11 @@ export async function seedClients(tx: Tx, ctx: SeedContext): Promise<void> {
 	// 2. Inserir endereços
 	for (const addr of ADDRESSES) {
 		const clientId = emailToId[addr.clientEmail];
+
 		if (!clientId) {
 			continue;
 		}
+
 		await tx.insert(clientAddress).values({
 			id: crypto.randomUUID(),
 			clientId,
@@ -353,6 +355,7 @@ export async function seedClients(tx: Tx, ctx: SeedContext): Promise<void> {
 	// 3. Inserir consent_log — tos + privacy para todos; marketing_email para metade
 	for (let i = 0; i < ctx.clientIds.length; i++) {
 		const clientId = ctx.clientIds[i];
+
 		if (!clientId) {
 			continue;
 		}
@@ -417,8 +420,10 @@ export async function seedClients(tx: Tx, ctx: SeedContext): Promise<void> {
 
 	for (const entry of auditEntries) {
 		const clientId = emailToId[entry.clientEmail];
+
 		const actorUserId =
 			ctx.staffUserIds[entry.staffIndex % ctx.staffUserIds.length];
+
 		if (!(clientId && actorUserId)) {
 			continue;
 		}
@@ -435,6 +440,7 @@ export async function seedClients(tx: Tx, ctx: SeedContext): Promise<void> {
 	// 5. Inserir client_export_log (2 entradas)
 	const staffId0 = ctx.staffUserIds[0];
 	const staffId1 = ctx.staffUserIds[Math.min(1, ctx.staffUserIds.length - 1)];
+
 	if (staffId0) {
 		await tx.insert(clientExportLog).values({
 			id: crypto.randomUUID(),
@@ -445,6 +451,7 @@ export async function seedClients(tx: Tx, ctx: SeedContext): Promise<void> {
 			truncated: false,
 		});
 	}
+
 	if (staffId1 && staffId1 !== staffId0) {
 		await tx.insert(clientExportLog).values({
 			id: crypto.randomUUID(),

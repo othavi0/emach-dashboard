@@ -14,6 +14,7 @@ export async function seedCore(tx: Tx, ctx: SeedContext): Promise<void> {
 		await tx.insert(branch).values({ id, name: b.name });
 		ctx.branchIds.push(id);
 	}
+
 	for (const userId of ctx.staffUserIds) {
 		for (const branchId of ctx.branchIds) {
 			await tx.insert(userBranch).values({ userId, branchId });

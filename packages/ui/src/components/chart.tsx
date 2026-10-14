@@ -30,6 +30,7 @@ import {
 const THEMES = { dark: ".dark" } as const;
 
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const;
+
 type TooltipNameType = number | string;
 
 export type ChartConfig = Record<
@@ -50,6 +51,7 @@ interface ChartContextProps {
 type TooltipPayloadItem = NonNullable<
 	DefaultTooltipContentProps<TooltipValueType, TooltipNameType>["payload"]
 >[number];
+
 type ChartTooltipContentProps = ComponentProps<typeof RechartsTooltip> &
 	ComponentProps<"div"> & {
 		hideLabel?: boolean;
@@ -168,6 +170,7 @@ function ChartTooltipContent({
 		const [item] = payload;
 		const key = `${labelKey ?? item?.dataKey ?? item?.name ?? "value"}`;
 		const itemConfig = getPayloadConfigFromPayload(config, item, key);
+
 		const value =
 			!labelKey && typeof label === "string"
 				? (config[label]?.label ?? label)

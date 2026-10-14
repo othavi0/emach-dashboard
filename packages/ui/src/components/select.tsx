@@ -35,6 +35,7 @@ function collectSelectItems(children: ReactNode, items: SelectLabelItem[]) {
 				label: props.children,
 				value: props.value,
 			});
+
 			return;
 		}
 
@@ -53,6 +54,7 @@ function Select({
 	const labelItems = useMemo(() => {
 		const collected: SelectLabelItem[] = [];
 		collectSelectItems(children, collected);
+
 		return collected;
 	}, [children]);
 
@@ -85,6 +87,7 @@ function SelectValue({
 	...props
 }: SelectPrimitive.Value.Props) {
 	const labelItems = useContext(SelectLabelsContext);
+
 	const valueRenderer =
 		children ??
 		((value: unknown) => {

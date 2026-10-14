@@ -14,6 +14,7 @@ interface ConsentInput {
 export async function logConsent(input: ConsentInput): Promise<void> {
 	const ipAddress =
 		input.request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+
 	const userAgent = input.request.headers.get("user-agent") ?? null;
 
 	await db.insert(consentLog).values({
@@ -48,6 +49,7 @@ export async function revokeConsent(args: {
 	if (!latest) {
 		return;
 	}
+
 	await db
 		.update(consentLog)
 		.set({ revokedAt: new Date() })

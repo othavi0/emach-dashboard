@@ -19,6 +19,7 @@ import {
 
 async function main() {
 	const rows = await db.select().from(banner).where(isNull(banner.composition));
+
 	for (const row of rows) {
 		const composition = legacyToComposition({
 			layout: row.layout,
@@ -26,9 +27,11 @@ async function main() {
 			ctaScale: row.ctaScale,
 			...deriveHasFlagsFromBanner(row),
 		});
+
 		await db.update(banner).set({ composition }).where(eq(banner.id, row.id));
 		process.stdout.write(`backfilled ${row.id} (${row.layout})\n`);
 	}
+
 	process.stdout.write(`total: ${rows.length}\n`);
 }
 

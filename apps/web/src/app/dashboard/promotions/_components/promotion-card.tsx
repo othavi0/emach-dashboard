@@ -14,15 +14,19 @@ const METRIC_LABEL =
 
 export function PromotionCard({ promotion }: { promotion: PromotionListItem }) {
 	const isCoupon = promotion.type === "promocode";
+
 	const dimmed =
 		promotion.status === "inactive" || promotion.status === "expired";
+
 	const remaining = daysRemainingDisplay(promotion.status, promotion.endsAt);
 	let remainingTone = "text-foreground";
+
 	if (remaining.tone === "danger") {
 		remainingTone = "text-destructive";
 	} else if (remaining.tone === "warning") {
 		remainingTone = "text-amber-500";
 	}
+
 	const homeVisibility = computeHomeVisibility({
 		featured: promotion.featured,
 		appliesToAll: promotion.appliesToAll,

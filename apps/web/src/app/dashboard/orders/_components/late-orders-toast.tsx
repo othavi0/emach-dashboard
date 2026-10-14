@@ -11,6 +11,7 @@ export function LateOrdersToast({ count }: { count: number }) {
 		if (count <= 0) {
 			return;
 		}
+
 		notify.warning(
 			`${count} ${count === 1 ? "pedido atrasado" : "pedidos atrasados"} aguardando expedição`,
 			{
@@ -22,5 +23,6 @@ export function LateOrdersToast({ count }: { count: number }) {
 			}
 		);
 	}, [count, router]);
+
 	return null;
 }

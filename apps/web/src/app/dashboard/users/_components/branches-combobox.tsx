@@ -40,6 +40,7 @@ export function BranchesCombobox({
 				)}
 				{value.map((id) => {
 					const b = branches.find((br) => br.id === id);
+
 					return (
 						<Badge key={id} variant="default">
 							{b?.name ?? id}

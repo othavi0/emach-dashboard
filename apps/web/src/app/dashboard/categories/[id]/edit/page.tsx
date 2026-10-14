@@ -34,12 +34,14 @@ async function loadAttributeRows(
 		.from(category)
 		.where(eq(category.id, currentCategoryId))
 		.limit(1);
+
 	if (!self) {
 		return { inheritedRows: [], ownRows: [] };
 	}
 
 	const ancestors: { id: string; name: string }[] = [];
 	let cursor: string | null = self.parentId;
+
 	while (cursor) {
 		const [row]: { id: string; name: string; parentId: string | null }[] =
 			await db
@@ -51,9 +53,11 @@ async function loadAttributeRows(
 				.from(category)
 				.where(eq(category.id, cursor))
 				.limit(1);
+
 		if (!row) {
 			break;
 		}
+
 		ancestors.push({ id: row.id, name: row.name });
 		cursor = row.parentId;
 	}
@@ -62,12 +66,14 @@ async function loadAttributeRows(
 	const ancestorNameById = new Map(ancestors.map((a) => [a.id, a.name]));
 
 	const ids = [currentCategoryId, ...ancestorIds];
+
 	const definitions: AttributeDefinition[] = await db
 		.select()
 		.from(attributeDefinition)
 		.where(inArray(attributeDefinition.categoryId, ids));
 
 	const ownDefs = definitions.filter((d) => d.categoryId === currentCategoryId);
+
 	const inheritedDefs = definitions.filter(
 		(d) => d.categoryId !== currentCategoryId
 	);
@@ -75,6 +81,7 @@ async function loadAttributeRows(
 	// Usage counts somente para "próprios" (delete dialog usa esse número)
 	const ownIds = ownDefs.map((d) => d.id);
 	const usageMap = new Map<string, number>();
+
 	if (ownIds.length > 0) {
 		const usages = await db
 			.select({
@@ -84,6 +91,7 @@ async function loadAttributeRows(
 			.from(toolAttributeValue)
 			.where(inArray(toolAttributeValue.attributeId, ownIds))
 			.groupBy(toolAttributeValue.attributeId);
+
 		for (const u of usages) {
 			usageMap.set(u.attributeId, Number(u.count));
 		}

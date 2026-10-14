@@ -36,6 +36,7 @@ function SubmitLabel({
 			</>
 		);
 	}
+
 	return <>{mode === "create" ? "Criar filial" : "Salvar alterações"}</>;
 }
 
@@ -60,9 +61,11 @@ function buildInitial(d: Partial<BranchFormValues>): BranchFormValues {
 export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
+
 	const [values, setValues] = useState<BranchFormValues>(() =>
 		buildInitial(defaultValues)
 	);
+
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<BranchFormValues>();
 
@@ -71,8 +74,10 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 		clearErrors();
 
 		const parsed = branchSchema.safeParse(values);
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
 
@@ -81,6 +86,7 @@ export function BranchForm({ branchId, defaultValues, mode }: BranchFormProps) {
 				mode === "create"
 					? createBranch(parsed.data)
 					: updateBranch(branchId ?? "", parsed.data);
+
 			const result = await action;
 
 			if (result.ok) {

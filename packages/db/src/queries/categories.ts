@@ -70,11 +70,13 @@ export async function getCategoryTree(db: AnyDb): Promise<CategoryNode[]> {
 	]);
 
 	const countById = new Map<string, number>();
+
 	for (const row of countResult.rows) {
 		countById.set(row.category_id, Number(row.product_count) || 0);
 	}
 
 	const byId = new Map<string, CategoryNode>();
+
 	for (const row of result.rows) {
 		byId.set(row.id, {
 			id: row.id,
@@ -91,12 +93,15 @@ export async function getCategoryTree(db: AnyDb): Promise<CategoryNode[]> {
 	}
 
 	const roots: CategoryNode[] = [];
+
 	for (const node of byId.values()) {
 		if (node.parentId === null) {
 			roots.push(node);
 			continue;
 		}
+
 		const parent = byId.get(node.parentId);
+
 		if (parent) {
 			parent.children.push(node);
 		} else {
@@ -125,9 +130,11 @@ export async function getCategoryBySlug(
 	`);
 
 	const cat = found.rows[0];
+
 	if (!cat) {
 		return null;
 	}
+
 	coerceDates(cat, CATEGORY_DATE_KEYS);
 
 	const ancestorIds = cat.path
@@ -135,6 +142,7 @@ export async function getCategoryBySlug(
 		.filter((part) => part !== "" && part !== cat.id);
 
 	let ancestors: Category[] = [];
+
 	if (ancestorIds.length > 0) {
 		const ancestorsRes = await db.execute<Category>(sql`
 			SELECT id, slug, name, parent_id AS "parentId", sort_order AS "sortOrder",
@@ -144,6 +152,7 @@ export async function getCategoryBySlug(
 			WHERE id = ANY(${arrayLiteral(ancestorIds, "text[]")})
 			ORDER BY depth ASC
 		`);
+
 		ancestors = ancestorsRes.rows.map((a) =>
 			coerceDates(a, CATEGORY_DATE_KEYS)
 		);
@@ -160,5 +169,6 @@ export async function getAllCategorySlugs(db: AnyDb): Promise<string[]> {
 	const result = await db.execute<{ slug: string }>(sql`
 		SELECT slug FROM category WHERE is_active = true
 	`);
+
 	return result.rows.map((r) => r.slug);
 }

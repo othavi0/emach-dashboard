@@ -17,17 +17,22 @@ export const fetchDashboardSummary = (
 	branchId: string | null,
 	period: DashboardPeriod
 ) => getDashboardSummary(db, branchId, period);
+
 export const fetchReorderTable = (branchId: string | null) =>
 	getReorderTable(db, branchId);
+
 export const fetchBranchOptions = () => getBranchOptions(db);
+
 export const fetchDailyRevenue = (
 	branchId: string | null,
 	period: DashboardPeriod
 ) => getDailyRevenue(db, branchId, period);
+
 export const fetchOrderFunnel = (
 	branchId: string | null,
 	period: DashboardPeriod
 ) => getOrderFunnel(db, branchId, period);
+
 export const fetchStockFlow = (
 	branchId: string | null,
 	period: DashboardPeriod

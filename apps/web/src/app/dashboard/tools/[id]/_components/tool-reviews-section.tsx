@@ -58,6 +58,7 @@ export function ToolReviewsSection({
 						{[5, 4, 3, 2, 1].map((star) => {
 							const count = summary.breakdown[star as 1 | 2 | 3 | 4 | 5];
 							const pct = (count / maxBucket) * 100;
+
 							return (
 								<div className="flex items-center gap-3 text-sm" key={star}>
 									<span className="w-10 tabular-nums">{star} ★</span>

@@ -10,6 +10,7 @@ export function kgToDisplay(
 	if (kg === undefined) {
 		return;
 	}
+
 	return unit === "g" ? Math.round(kg * 1000) : kg;
 }
 
@@ -21,6 +22,7 @@ export function displayToKg(
 	if (n === undefined) {
 		return;
 	}
+
 	return unit === "g" ? Math.round(n) / 1000 : Math.round(n * 1000) / 1000;
 }
 
@@ -40,8 +42,10 @@ export function conversionHint(
 	if (kg === undefined || kg <= 0) {
 		return null;
 	}
+
 	if (unit === "g") {
 		return `= ${formatMeasure(kg)} kg`;
 	}
+
 	return kg < 1 ? `= ${formatMeasure(Math.round(kg * 1000))} g` : null;
 }

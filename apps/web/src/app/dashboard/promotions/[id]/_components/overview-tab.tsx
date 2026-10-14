@@ -47,6 +47,7 @@ export function OverviewTab({ detail }: { detail: PromotionDetail }) {
 	const isCoupon = detail.type === "promocode";
 
 	let terminoHint = "Sem prazo";
+
 	if (detail.endsAt) {
 		terminoHint =
 			detail.status === "expired"

@@ -437,6 +437,7 @@ export function PickingListDocument({
 }: PickingListDocumentProps) {
 	const stats = pickingListStats(orders);
 	const withCollect = shouldIncludeCollect(orders);
+
 	return (
 		<Document title={`Lista de Separação ${batch}`}>
 			<Page size="A4" style={styles.page}>

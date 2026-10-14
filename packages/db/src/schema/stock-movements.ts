@@ -129,4 +129,5 @@ export const stockMovementRelations = relations(stockMovement, ({ one }) => ({
 }));
 
 export type StockMovement = typeof stockMovement.$inferSelect;
+
 export type NewStockMovement = typeof stockMovement.$inferInsert;

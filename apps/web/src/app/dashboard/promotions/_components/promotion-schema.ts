@@ -164,4 +164,5 @@ export const createPromotionSchema = promotionSchema.superRefine(
 // ---------------------------------------------------------------------------
 
 export type PromotionFormValues = z.infer<typeof promotionSchema>;
+
 export type CreatePromotionFormValues = z.infer<typeof createPromotionSchema>;

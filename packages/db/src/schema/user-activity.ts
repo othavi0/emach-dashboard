@@ -42,4 +42,5 @@ export const userActivityLogRelations = relations(
 );
 
 export type UserActivityLog = typeof userActivityLog.$inferSelect;
+
 export type NewUserActivityLog = typeof userActivityLog.$inferInsert;

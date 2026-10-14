@@ -18,6 +18,7 @@ export function NavigationAnnouncer() {
 		// no corpo do effect (lint set-state-in-effect).
 		const clearId = window.setTimeout(() => setMessage(""), 0);
 		const id = window.setTimeout(() => setMessage("Página carregada"), 100);
+
 		return () => {
 			window.clearTimeout(clearId);
 			window.clearTimeout(id);

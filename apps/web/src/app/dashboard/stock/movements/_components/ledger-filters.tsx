@@ -49,6 +49,7 @@ export function LedgerFiltersBar({
 
 	const push = (updates: Record<string, string | undefined>) => {
 		const params = new URLSearchParams(searchParams.toString());
+
 		for (const [key, value] of Object.entries(updates)) {
 			if (value === undefined || value === "") {
 				params.delete(key);
@@ -56,6 +57,7 @@ export function LedgerFiltersBar({
 				params.set(key, value);
 			}
 		}
+
 		router.push(`?${params.toString()}`);
 	};
 
@@ -74,9 +76,11 @@ export function LedgerFiltersBar({
 
 	const handleReasonToggle = (reason: string) => {
 		const current: string[] = filters.reasons ?? [];
+
 		const next = current.includes(reason)
 			? current.filter((r: string) => r !== reason)
 			: [...current, reason];
+
 		push({ reason: next.length > 0 ? next.join(",") : undefined });
 	};
 
@@ -147,6 +151,7 @@ export function LedgerFiltersBar({
 			<div className="flex flex-wrap gap-1.5">
 				{REASON_OPTIONS.map((r) => {
 					const active = (filters.reasons ?? []).includes(r.value);
+
 					return (
 						<button
 							className={cn(

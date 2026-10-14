@@ -37,19 +37,25 @@ function buildStatusHref(
 	status: Status
 ): string {
 	const params = new URLSearchParams();
+
 	if (status !== "active") {
 		params.set("status", status);
 	}
+
 	if (sp.search) {
 		params.set("search", sp.search);
 	}
+
 	if (sp.role) {
 		params.set("role", sp.role);
 	}
+
 	if (sp.branchId) {
 		params.set("branchId", sp.branchId);
 	}
+
 	const qs = params.toString();
+
 	return qs ? `/dashboard/users?${qs}` : "/dashboard/users";
 }
 
@@ -64,6 +70,7 @@ async function UsersPageContent({ searchParams }: PageProps) {
 	const scope = await getUserBranchScope(actorSession);
 
 	const status = (sp.status as Status | undefined) ?? "active";
+
 	const filters = {
 		status,
 		role: sp.role as "super_admin" | "admin" | "user" | undefined,

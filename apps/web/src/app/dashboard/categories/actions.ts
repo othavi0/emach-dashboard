@@ -32,6 +32,7 @@ export async function getCategoryProductsPage(args: {
 	cursor: string | null;
 }): Promise<InfiniteResult<CategoryProductItem>> {
 	await requireCapability("categories.read");
+
 	return _getCategoryProductsPage(args);
 }
 
@@ -40,6 +41,7 @@ export async function getCategoryChildrenPage(args: {
 	cursor: string | null;
 }): Promise<InfiniteResult<CategoryChildItem>> {
 	await requireCapability("categories.read");
+
 	return _getCategoryChildrenPage(args);
 }
 
@@ -51,6 +53,7 @@ export async function createCategory(
 	const session = await requireCapability("categories.manage");
 
 	const parsed = categorySchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
@@ -80,6 +83,7 @@ export async function createCategory(
 		metadata: { name: parsed.data.name, slug: parsed.data.slug },
 	});
 	revalidateCategoryTrees();
+
 	return { ok: true, data: { id } };
 }
 
@@ -90,6 +94,7 @@ export async function updateCategory(
 	const session = await requireCapability("categories.manage");
 
 	const parsed = categorySchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
@@ -119,6 +124,7 @@ export async function updateCategory(
 	revalidateCategoryTrees();
 	revalidatePath(`${CATEGORIES_PATH}/${id}`);
 	revalidatePath(`${CATEGORIES_PATH}/${id}/edit`);
+
 	return { ok: true, data: undefined };
 }
 
@@ -132,6 +138,7 @@ export async function toggleCategoryActive(
 		await db.update(category).set({ isActive }).where(eq(category.id, id));
 	} catch (e) {
 		logger.error("toggleCategoryActive", e);
+
 		return { ok: false, error: "Não foi possível atualizar o status" };
 	}
 
@@ -144,6 +151,7 @@ export async function toggleCategoryActive(
 	});
 	revalidateCategoryTrees();
 	revalidatePath(`${CATEGORIES_PATH}/${id}`);
+
 	return { ok: true, data: undefined };
 }
 
@@ -156,6 +164,7 @@ export async function reorderCategories(input: unknown): Promise<ActionResult> {
 	const session = await requireCapability("categories.manage");
 
 	const parsed = reorderSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: "Entrada de reordenação inválida" };
 	}
@@ -171,6 +180,7 @@ export async function reorderCategories(input: unknown): Promise<ActionResult> {
 		});
 	} catch (e) {
 		logger.error("reorderCategories", e);
+
 		return { ok: false, error: "Não foi possível salvar a nova ordem" };
 	}
 
@@ -184,6 +194,7 @@ export async function reorderCategories(input: unknown): Promise<ActionResult> {
 		},
 	});
 	revalidateCategoryTrees();
+
 	return { ok: true, data: undefined };
 }
 
@@ -207,7 +218,9 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
 					"Não é possível remover: a categoria tem subcategorias, produtos ou atributos vinculados. Remova-os antes.",
 			};
 		}
+
 		logger.error("deleteCategory", e);
+
 		return { ok: false, error: "Não foi possível remover a categoria" };
 	}
 
@@ -219,5 +232,6 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
 		metadata: { name: categoryRow?.name },
 	});
 	revalidateCategoryTrees();
+
 	return { ok: true, data: undefined };
 }

@@ -39,17 +39,22 @@ export function EntityTabs({
 
 	const handleChange = (next: string) => {
 		const tab = tabs.find((t) => t.value === next);
+
 		if (tab?.href) {
 			router.push(tab.href);
+
 			return;
 		}
+
 		const sp = new URLSearchParams(params);
 		sp.delete("variant");
+
 		if (next === defaultValue) {
 			sp.delete(paramName);
 		} else {
 			sp.set(paramName, next);
 		}
+
 		const qs = sp.toString();
 		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
 	};

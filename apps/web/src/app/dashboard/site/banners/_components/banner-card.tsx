@@ -32,15 +32,18 @@ function SlotChip({ label }: { label: string }) {
 // pré-backfill esperado) — logado pra ficar observável (fix round 1).
 function compositionForCard(item: Banner) {
 	const parsed = compositionSchema.safeParse(item.composition);
+
 	if (parsed.success) {
 		return parsed.data;
 	}
+
 	if (item.composition !== null) {
 		logger.error("banner-card.composition-parse", {
 			bannerId: item.id,
 			issues: parsed.error.issues,
 		});
 	}
+
 	return legacyToComposition({
 		layout: item.layout,
 		productScale: item.productScale,

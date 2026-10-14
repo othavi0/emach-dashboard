@@ -12,6 +12,7 @@ import {
 // (col = horizontal, row = vertical), indexado por charAt (noUncheckedIndexedAccess).
 const TX_BY_COL: Record<string, string> = { l: "0%", c: "-50%", r: "-100%" };
 const TY_BY_ROW: Record<string, string> = { t: "0%", m: "-50%", b: "-100%" };
+
 const PCT_BY_AXIS: Record<string, string> = {
 	l: "0%",
 	c: "50%",
@@ -38,21 +39,25 @@ export function placementToStyle(
 	const ty = TY_BY_ROW[rowOf(p.anchor)] ?? "0%";
 	const originX = PCT_BY_AXIS[colOf(p.anchor)] ?? "50%";
 	const originY = PCT_BY_AXIS[rowOf(p.anchor)] ?? "50%";
+
 	const style: CSSProperties = {
 		left: `${base.x + p.offsetX}%`,
 		top: `${base.y + p.offsetY}%`,
 		transform: `translate(${tx}, ${ty}) scale(${p.scale / 100})`,
 		transformOrigin: `${originX} ${originY}`,
 	};
+
 	if (p.maxWidth !== undefined) {
 		style.maxWidth = `${p.maxWidth}ch`;
 	}
+
 	return style;
 }
 
 export function focalToObjectPosition(focal: Anchor9): string {
 	const x = PCT_BY_AXIS[colOf(focal)] ?? "50%";
 	const y = PCT_BY_AXIS[rowOf(focal)] ?? "50%";
+
 	return `${x} ${y}`;
 }
 
@@ -66,16 +71,21 @@ export function backgroundToStyle(bg: BackgroundConfig): CSSProperties {
 export function textSide(c: BannerComposition): "left" | "right" | "center" {
 	const a =
 		c.desktop.elements.title?.anchor ?? c.desktop.elements.subtitle?.anchor;
+
 	if (a === undefined) {
 		return "center";
 	}
+
 	const col = colOf(a);
+
 	if (col === "l") {
 		return "left";
 	}
+
 	if (col === "r") {
 		return "right";
 	}
+
 	return "center";
 }
 

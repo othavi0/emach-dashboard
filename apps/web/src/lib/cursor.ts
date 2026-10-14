@@ -109,9 +109,11 @@ export function encodeCursor(c: Cursor): string {
 
 export function decodeCursor(raw: string): Cursor {
 	const parsed = JSON.parse(Buffer.from(raw, "base64url").toString()) as Cursor;
+
 	if (parsed.v !== 1) {
 		throw new Error("Cursor incompatível");
 	}
+
 	return parsed;
 }
 
@@ -124,8 +126,10 @@ export function decodeCursorAs<S extends Cursor["sort"]>(
 	sort: S
 ): Extract<Cursor, { sort: S }> {
 	const parsed = decodeCursor(raw);
+
 	if (parsed.sort !== sort) {
 		throw new Error(`Cursor incompatível: esperado ${sort}`);
 	}
+
 	return parsed as Extract<Cursor, { sort: S }>;
 }

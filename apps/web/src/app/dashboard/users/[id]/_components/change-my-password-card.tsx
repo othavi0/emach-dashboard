@@ -23,17 +23,22 @@ export function ChangeMyPasswordCard() {
 		start(async () => {
 			if (next.length < 8) {
 				notify.error("Nova senha: mínimo 8 caracteres");
+
 				return;
 			}
+
 			const res = await authClient.changePassword({
 				currentPassword: current,
 				newPassword: next,
 				revokeOtherSessions: true,
 			});
+
 			if (res.error) {
 				notify.error("Não foi possível trocar a senha");
+
 				return;
 			}
+
 			notify.success("Senha alterada");
 			setCurrent("");
 			setNext("");

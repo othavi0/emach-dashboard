@@ -54,6 +54,7 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 	const isSelf = actorSession.user.id === id;
 	const editLabel = isSelf ? "Editar meus dados" : "Editar usuário";
 	const canDelete = !isSelf && (await can(actorSession, "users.delete"));
+
 	const [canManageBranches, canResetPassword, canRevokeSessions, canSuspend] =
 		await Promise.all([
 			can(actorSession, "users.update_branches"),
@@ -75,6 +76,7 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 
 	const canManagePermissions = await can(actorSession, "permissions.manage");
 	const actorRole = (actorSession.user.role ?? "user") as UserRole;
+
 	// Espelha assertManageableTarget (servidor): nunca si mesmo; super_admin
 	// gerencia qualquer outro; admin só quem está estritamente abaixo na
 	// hierarquia (ROLE_WEIGHT). Mantém a UI alinhada ao que a action aceita —

@@ -53,8 +53,10 @@ function formatDims(
 	if (l === null && w === null && h === null) {
 		return "—";
 	}
+
 	const dim = (v: number | null) =>
 		v === null ? "?" : (formatMeasure(v, 2) ?? "?");
+
 	return `${dim(l)}×${dim(w)}×${dim(h)}`;
 }
 

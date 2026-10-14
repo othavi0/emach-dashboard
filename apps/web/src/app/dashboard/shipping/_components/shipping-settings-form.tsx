@@ -42,14 +42,18 @@ export function ShippingSettingsForm({
 	settings,
 }: ShippingSettingsFormProps) {
 	const [isPending, startTransition] = useTransition();
+
 	const { errors, setErrors, reportValidationError } =
 		useFormErrors<ShippingSettingsFormValues>();
+
 	const [originBranchId, setOriginBranchId] = useState(
 		settings.originBranchId ?? NO_ORIGIN
 	);
+
 	const [insurancePolicy, setInsurancePolicy] = useState(
 		settings.insurancePolicy
 	);
+
 	const [capAmount, setCapAmount] = useState<number | undefined>(
 		settings.insuranceCapAmount
 	);
@@ -65,13 +69,16 @@ export function ShippingSettingsForm({
 		};
 
 		const parsed = shippingSettingsSchema.safeParse(values);
+
 		if (!parsed.success) {
 			reportValidationError(parsed.error);
+
 			return;
 		}
 
 		startTransition(async () => {
 			const result = await updateShippingSettings(parsed.data);
+
 			if (result.ok) {
 				notify.success("Configurações de frete salvas");
 			} else {

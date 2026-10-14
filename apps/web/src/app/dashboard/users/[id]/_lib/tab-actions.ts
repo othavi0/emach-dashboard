@@ -28,15 +28,18 @@ export async function fetchUserActivityTabAction(
 	userId: string
 ): Promise<UserActivityTabData> {
 	await requireUserDetailAccess(userId);
+
 	const [byUser, affecting] = await Promise.all([
 		getUserActivity(userId, null, 25),
 		getUserAffectedActivity(userId, null, 25),
 	]);
+
 	return { byUser, affecting };
 }
 
 export async function fetchUserSessionsTabAction(userId: string) {
 	await requireUserDetailAccess(userId);
+
 	return await getUserSessions(userId);
 }
 
@@ -56,10 +59,12 @@ export async function fetchUserPermissionsTabAction(
 			targetUserId: userId,
 		}
 	);
+
 	const [overrides, actorCaps] = await Promise.all([
 		getUserOverrides(userId),
 		getUserCapabilities(actorSession),
 	]);
+
 	return { overrides: [...overrides.entries()], actorCaps: [...actorCaps] };
 }
 
@@ -70,6 +75,7 @@ export async function fetchAvailableBranchesForUserAction(
 	// (onBranchesTab) no page.tsx — a lista em si não é sensível, mas o
 	// endpoint precisa do mesmo nível de acesso à página de detalhe.
 	await requireUserDetailAccess(userId);
+
 	return await db
 		.select({ id: branch.id, name: branch.name })
 		.from(branch)

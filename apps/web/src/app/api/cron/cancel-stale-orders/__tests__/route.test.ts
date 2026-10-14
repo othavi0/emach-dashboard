@@ -9,6 +9,7 @@ vi.mock("@emach/env/server", () => ({
 const { mockDbSelect, mockDbTransaction } = vi.hoisted(() => {
 	const mockDbSelect = vi.fn();
 	const mockDbTransaction = vi.fn();
+
 	return { mockDbSelect, mockDbTransaction };
 });
 
@@ -63,21 +64,27 @@ function mockTransaction(
 	mockDbTransaction.mockImplementationOnce(
 		(callback: (tx: unknown) => Promise<void>) => {
 			let selectCallIdx = 0;
+
 			const tx = {
 				select: vi.fn(() => {
 					const result = txSelects[selectCallIdx++];
+
 					const forUpdate = vi.fn(() =>
 						Promise.resolve(result ? [result] : [])
 					);
+
 					const where = vi.fn(() => ({ for: forUpdate }));
 					const from = vi.fn(() => ({ where }));
+
 					return { from };
 				}),
 				update: vi.fn(() => {
 					const where = vi.fn(() =>
 						updateOk ? Promise.resolve() : Promise.reject(new Error("DB error"))
 					);
+
 					const set = vi.fn(() => ({ where }));
+
 					return { set };
 				}),
 				insert: vi.fn(() => ({
@@ -88,6 +95,7 @@ function mockTransaction(
 					),
 				})),
 			};
+
 			return callback(tx);
 		}
 	);

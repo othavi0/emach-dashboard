@@ -37,18 +37,23 @@ export function AutoClaimPicking({
 		if (!canStart || firedRef.current) {
 			return;
 		}
+
 		firedRef.current = true;
 
 		// fire-and-forget no mount; firedRef evita double-fire do Strict Mode
 		async function claim() {
 			const result = await startPicking(orderId);
+
 			if (result.ok) {
 				router.refresh();
+
 				return;
 			}
+
 			setError(result.error);
 			notify.error(result.error);
 		}
+
 		claim();
 	}, [canStart, orderId, router]);
 

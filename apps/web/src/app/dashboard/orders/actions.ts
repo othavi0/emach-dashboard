@@ -70,6 +70,7 @@ export async function fetchOrdersPage(args: {
 	cursor: string | null;
 }): Promise<InfiniteResult<OrderListItem>> {
 	await requireCapability("orders.read");
+
 	return await fetchOrdersPageImpl(args);
 }
 
@@ -131,11 +132,13 @@ export async function lockOrderAndAuthorize(
 	// pool (a separate connection), not on `tx` — it touches `user`/`userBranch`,
 	// never the locked `order` row, so there is no deadlock with the held lock.
 	let session: DashboardSession;
+
 	if (locked.branchId === null) {
 		// Pedido na triagem: capability + só quem enxerga a triagem (admin/super_admin).
 		// `user` tem orders.update_status mas não pode agir sobre pedido não-roteado.
 		session = await requireCapability(cap);
 		const scope = await getUserBranchScope(session);
+
 		if (scope.kind === "scoped" && !scope.includeUnassigned) {
 			throw new Error(
 				"Pedido na triagem só pode ser tratado por admin ou super_admin"
@@ -181,15 +184,19 @@ function buildOrderStatusUpdate(
 ): Record<string, unknown> {
 	const updates: Record<string, unknown> = { status: toStatus };
 	const tsField = STATUS_TIMESTAMP_MAP[toStatus];
+
 	if (tsField) {
 		updates[tsField] = new Date();
 	}
+
 	if (toStatus === "shipped" && trackingCode) {
 		updates.shippingTrackingCode = trackingCode;
 	}
+
 	if (toStatus === "preparing" && branchId) {
 		updates.branchId = branchId;
 	}
+
 	return updates;
 }
 
@@ -212,17 +219,20 @@ async function enforceShipGate(
 		if (session.user.role !== "super_admin") {
 			throw new Error("Apenas super admin pode forçar envio sem separação");
 		}
+
 		if (state === "picking_in_progress") {
 			throw new Error(
 				`Separação em andamento por ${latest?.pickerName ?? "outro usuário"} — cancele ou assuma antes de forçar o envio`
 			);
 		}
+
 		await insertOrderEvent(tx, {
 			orderId,
 			eventType: "ship_forced",
 			metadata: { reason: forceReason },
 			actorUserId: session.user.id,
 		});
+
 		return;
 	}
 
@@ -235,6 +245,7 @@ export async function updateOrderStatus(
 	input: UpdateOrderStatusInput
 ): Promise<ActionResult> {
 	const parsed = updateOrderStatusSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -244,6 +255,7 @@ export async function updateOrderStatus(
 
 	const { orderId, toStatus, reason, trackingCode, branchId, returnItems } =
 		parsed.data;
+
 	const cap = capForStatus(toStatus);
 
 	try {
@@ -260,12 +272,14 @@ export async function updateOrderStatus(
 			const { session } = locked;
 			const currentStatus = locked.status as OrderStatus;
 			const allowed = VALID_TRANSITIONS[currentStatus];
+
 			if (!allowed?.includes(toStatus)) {
 				throw new Error(`Transição inválida: ${currentStatus} → ${toStatus}`);
 			}
 
 			// branchId is mandatory when entering "preparing"
 			const resolvedBranchId = branchId ?? locked.branchId;
+
 			if (toStatus === "preparing" && !resolvedBranchId) {
 				throw new Error(
 					"Filial obrigatória para enviar o pedido para separação"
@@ -322,14 +336,17 @@ export async function updateOrderStatus(
 		revalidatePath(ORDERS_PATH);
 		revalidateTag(ORDERS_COUNTS_TAG, "max");
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateOrderStatus", error);
+
 		// Capability failures throw "Forbidden: ..." — never leak that internal
 		// prefix to the UI; surface a clean Portuguese message instead.
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar este pedido." };
 		}
+
 		return {
 			ok: false,
 			error: error instanceof Error ? error.message : "Erro interno",
@@ -373,6 +390,7 @@ export async function bulkStartSeparation(
 	input: BulkStartSeparationInput
 ): Promise<ActionResult<BulkStartSeparationResult>> {
 	const parsed = bulkStartSeparationSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -391,18 +409,22 @@ export async function bulkStartSeparation(
 		// DESTINO uma vez (padrão bulkAssignBranch) — sem isso nem adianta
 		// iterar. Sem filial, mantém o check genérico de sempre (intacto).
 		let destBranchName: string | undefined;
+
 		if (branchId) {
 			await requireCapabilityWithContext("orders.update_status", {
 				targetBranchIds: [branchId],
 			});
+
 			const [destBranch] = await db
 				.select({ name: branch.name })
 				.from(branch)
 				.where(eq(branch.id, branchId))
 				.limit(1);
+
 			if (!destBranch) {
 				return { ok: false, error: "Filial não encontrada" };
 			}
+
 			destBranchName = destBranch.name;
 		} else {
 			await requireCapability("orders.update_status");
@@ -415,6 +437,7 @@ export async function bulkStartSeparation(
 				// não vazar número de pedido fora do escopo do ator (skip reports
 				// pré-autorização usam só o id truncado).
 				const fallbackLabel = orderId.slice(0, 8);
+
 				try {
 					await db.transaction(async (tx) => {
 						const locked = await lockOrderAndAuthorize(
@@ -422,27 +445,34 @@ export async function bulkStartSeparation(
 							"orders.update_status",
 							orderId
 						);
+
 						if (!locked) {
 							skipped.push({ number: fallbackLabel, reason: "não encontrado" });
+
 							return;
 						}
+
 						const [row] = await tx
 							.select({ number: order.number })
 							.from(order)
 							.where(eq(order.id, orderId))
 							.limit(1);
+
 						const label = row?.number ?? fallbackLabel;
 
 						// Pedido sem filial própria herda a informada no lote — a
 						// elegibilidade usa essa filial efetiva pra decidir se ainda
 						// falta filial (nunca sobrescreve quem já tem uma).
 						const effectiveBranchId = locked.branchId ?? branchId ?? null;
+
 						const reason = bulkStartSeparationSkipReason({
 							status: locked.status,
 							branchId: effectiveBranchId,
 						});
+
 						if (reason) {
 							skipped.push({ number: label, reason: BULK_SKIP_LABEL[reason] });
+
 							return;
 						}
 
@@ -482,6 +512,7 @@ export async function bulkStartSeparation(
 					});
 				} catch (error) {
 					const skipReason = bulkSkipReasonFromError(error);
+
 					if (skipReason) {
 						skipped.push({ number: fallbackLabel, reason: skipReason });
 					} else {
@@ -500,15 +531,19 @@ export async function bulkStartSeparation(
 		return { ok: true, data: { moved, movedIds, skipped } };
 	} catch (error) {
 		logger.error("bulkStartSeparation", { err: error });
+
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar pedidos." };
 		}
+
 		// Erro de banco: mapear SQLSTATE p/ mensagem amigável. NUNCA devolver
 		// error.message (o toast exibe o retorno cru — vazaria SQL do drizzle).
 		const pgErr = getPgError(error);
+
 		if (pgErr) {
 			return { ok: false, error: pgErrorMessage(pgErr) };
 		}
+
 		return { ok: false, error: BULK_GENERIC_ERROR };
 	}
 }
@@ -517,6 +552,7 @@ export async function addOrderNote(
 	input: AddOrderNoteInput
 ): Promise<ActionResult> {
 	const parsed = addOrderNoteSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -550,15 +586,19 @@ export async function addOrderNote(
 		});
 
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("addOrderNote", error);
+
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar este pedido." };
 		}
+
 		if (error instanceof Error && error.message === "Pedido não encontrado") {
 			return { ok: false, error: "Pedido não encontrado" };
 		}
+
 		return { ok: false, error: "Erro ao adicionar nota" };
 	}
 }
@@ -567,6 +607,7 @@ export async function togglePinNote(
 	input: TogglePinNoteInput
 ): Promise<ActionResult> {
 	const parsed = togglePinNoteSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -593,9 +634,11 @@ export async function togglePinNote(
 				"orders.add_note",
 				existing.orderId
 			);
+
 			if (!locked) {
 				throw new Error("Pedido não encontrado");
 			}
+
 			await tx
 				.update(orderNote)
 				.set({ pinned })
@@ -603,12 +646,15 @@ export async function togglePinNote(
 		});
 
 		revalidatePath(`${ORDERS_PATH}/${existing.orderId}`);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("togglePinNote", error);
+
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar este pedido." };
 		}
+
 		return { ok: false, error: "Erro ao fixar nota" };
 	}
 }
@@ -617,6 +663,7 @@ export async function assignBranch(
 	input: AssignBranchInput
 ): Promise<ActionResult> {
 	const parsed = assignBranchSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -663,15 +710,19 @@ export async function assignBranch(
 		});
 
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("assignBranch", error);
+
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar este pedido." };
 		}
+
 		if (error instanceof Error && error.message === "Pedido não encontrado") {
 			return { ok: false, error: "Pedido não encontrado" };
 		}
+
 		return { ok: false, error: "Erro ao atribuir filial" };
 	}
 }
@@ -695,6 +746,7 @@ export async function bulkAssignBranch(
 	input: BulkAssignBranchInput
 ): Promise<ActionResult<BulkAssignBranchResult>> {
 	const parsed = bulkAssignBranchSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -721,6 +773,7 @@ export async function bulkAssignBranch(
 			.from(branch)
 			.where(eq(branch.id, branchId))
 			.limit(1);
+
 		if (!destBranch) {
 			return { ok: false, error: "Filial não encontrada" };
 		}
@@ -728,6 +781,7 @@ export async function bulkAssignBranch(
 		try {
 			for (const orderId of orderIds) {
 				const fallbackLabel = orderId.slice(0, 8);
+
 				try {
 					await db.transaction(async (tx) => {
 						const locked = await lockOrderAndAuthorize(
@@ -735,10 +789,13 @@ export async function bulkAssignBranch(
 							"orders.update_status",
 							orderId
 						);
+
 						if (!locked) {
 							skipped.push({ number: fallbackLabel, reason: "não encontrado" });
+
 							return;
 						}
+
 						await tx
 							.update(order)
 							.set({ branchId })
@@ -753,6 +810,7 @@ export async function bulkAssignBranch(
 					});
 				} catch (error) {
 					const skipReason = bulkSkipReasonFromError(error);
+
 					if (skipReason) {
 						skipped.push({ number: fallbackLabel, reason: skipReason });
 					} else {
@@ -770,9 +828,11 @@ export async function bulkAssignBranch(
 		return { ok: true, data: { assigned, skipped } };
 	} catch (error) {
 		logger.error("bulkAssignBranch", { err: error });
+
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para atribuir esta filial." };
 		}
+
 		return { ok: false, error: BULK_ASSIGN_GENERIC_ERROR };
 	}
 }
@@ -781,6 +841,7 @@ export async function updateTrackingCode(
 	input: UpdateTrackingCodeInput
 ): Promise<ActionResult> {
 	const parsed = updateTrackingCodeSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -818,15 +879,19 @@ export async function updateTrackingCode(
 		});
 
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("updateTrackingCode", error);
+
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar este pedido." };
 		}
+
 		if (error instanceof Error && error.message === "Pedido não encontrado") {
 			return { ok: false, error: "Pedido não encontrado" };
 		}
+
 		return { ok: false, error: "Erro ao atualizar rastreio" };
 	}
 }
@@ -835,6 +900,7 @@ export async function markShippingReviewed(
 	input: MarkShippingReviewedInput
 ): Promise<ActionResult> {
 	const parsed = markShippingReviewedSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -874,15 +940,19 @@ export async function markShippingReviewed(
 		revalidatePath(ORDERS_PATH);
 		revalidateTag(ORDERS_COUNTS_TAG, "max");
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("markShippingReviewed", error);
+
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar este pedido." };
 		}
+
 		if (error instanceof Error && error.message === "Pedido não encontrado") {
 			return { ok: false, error: "Pedido não encontrado" };
 		}
+
 		return { ok: false, error: "Erro ao marcar frete como revisado" };
 	}
 }
@@ -891,6 +961,7 @@ export async function refundOrder(
 	input: RefundOrderInput
 ): Promise<ActionResult> {
 	const parsed = refundOrderSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return {
 			ok: false,
@@ -903,6 +974,7 @@ export async function refundOrder(
 	try {
 		await db.transaction(async (tx) => {
 			const locked = await lockOrderAndAuthorize(tx, "orders.refund", orderId);
+
 			if (!locked) {
 				throw new Error("Pedido não encontrado");
 			}
@@ -910,6 +982,7 @@ export async function refundOrder(
 			const { session } = locked;
 			const currentStatus = locked.status as OrderStatus;
 			const allowed = VALID_TRANSITIONS[currentStatus];
+
 			if (!allowed?.includes("refunded")) {
 				throw new Error(`Transição inválida: ${currentStatus} → refunded`);
 			}
@@ -918,6 +991,7 @@ export async function refundOrder(
 				.select({ clientId: order.clientId, total: order.totalAmount })
 				.from(order)
 				.where(eq(order.id, orderId));
+
 			if (!ord) {
 				throw new Error("Pedido não encontrado");
 			}
@@ -949,6 +1023,7 @@ export async function refundOrder(
 						inArray(refundRequest.status, [...ACTIVE_REFUND_STATUSES])
 					)
 				);
+
 			if (openReq) {
 				await tx
 					.update(refundRequest)
@@ -988,12 +1063,15 @@ export async function refundOrder(
 		revalidatePath(ORDERS_PATH);
 		revalidateTag(ORDERS_COUNTS_TAG, "max");
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("refundOrder", error);
+
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para reembolsar este pedido." };
 		}
+
 		return {
 			ok: false,
 			error: error instanceof Error ? error.message : "Erro interno",
@@ -1023,23 +1101,29 @@ async function transitionRefund(
 				})
 				.from(refundRequest)
 				.where(eq(refundRequest.id, refundRequestId));
+
 			if (!req) {
 				throw new Error("Solicitação de reembolso não encontrada");
 			}
+
 			orderId = req.orderId;
+
 			const locked = await lockOrderAndAuthorize(
 				tx,
 				"orders.refund",
 				req.orderId
 			);
+
 			if (!locked) {
 				throw new Error("Pedido não encontrado");
 			}
+
 			if (!from.includes(req.status)) {
 				throw new Error(
 					`Transição de reembolso inválida: ${req.status} → ${to}`
 				);
 			}
+
 			await tx
 				.update(refundRequest)
 				.set({
@@ -1051,16 +1135,20 @@ async function transitionRefund(
 				})
 				.where(eq(refundRequest.id, refundRequestId));
 		});
+
 		if (orderId) {
 			revalidatePath(`${ORDERS_PATH}/${orderId}`);
 			revalidateTag(ORDERS_COUNTS_TAG, "max");
 		}
+
 		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("transitionRefund", error);
+
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para gerenciar reembolsos." };
 		}
+
 		return {
 			ok: false,
 			error: error instanceof Error ? error.message : "Erro interno",
@@ -1095,6 +1183,7 @@ export async function rejectRefund(
 	if (reason.trim().length < 10) {
 		return { ok: false, error: "Motivo da recusa muito curto (mín. 10)." };
 	}
+
 	return await transitionRefund(
 		refundRequestId,
 		["requested", "under_review", "approved"] as const,

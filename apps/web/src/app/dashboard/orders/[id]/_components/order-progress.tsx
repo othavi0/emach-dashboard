@@ -88,16 +88,21 @@ function getStepState(
 		const branchFrom = TERMINAL_BRANCH_FROM[currentStatus as TerminalState];
 		const branchIdx = LINEAR_STEPS.indexOf(branchFrom);
 		const stepIdx = LINEAR_STEPS.indexOf(step);
+
 		return stepIdx <= branchIdx ? "done" : "upcoming";
 	}
+
 	const currentIdx = LINEAR_STEPS.indexOf(currentStatus);
 	const stepIdx = LINEAR_STEPS.indexOf(step);
+
 	if (stepIdx < currentIdx) {
 		return "done";
 	}
+
 	if (stepIdx === currentIdx) {
 		return "current";
 	}
+
 	return "upcoming";
 }
 
@@ -105,6 +110,7 @@ function formatTs(date: Date | null | undefined): string | null {
 	if (!date) {
 		return null;
 	}
+
 	return formatDayTime(date);
 }
 
@@ -158,9 +164,11 @@ interface OrderProgressProps {
 
 export function OrderProgress({ fulfillmentLabel, order }: OrderProgressProps) {
 	const isTerminal = TERMINAL_STATUSES.has(order.status);
+
 	const terminalTsKey = isTerminal
 		? TERMINAL_TIMESTAMP[order.status as TerminalState]
 		: null;
+
 	const terminalTs = terminalTsKey ? formatTs(order[terminalTsKey]) : null;
 
 	return (
@@ -174,10 +182,13 @@ export function OrderProgress({ fulfillmentLabel, order }: OrderProgressProps) {
 					const state = getStepState(step, order.status);
 					const meta = ORDER_STATUS_META[step];
 					const tsKey = STEP_TIMESTAMP[step as LinearStep];
+
 					const timestamp = formatTs(
 						order[tsKey as Exclude<typeof tsKey, "status">] as Date | null
 					);
+
 					const isLast = idx === LINEAR_STEPS.length - 1;
+
 					const connectorDone =
 						state === "done" ||
 						(state === "current" &&
@@ -185,6 +196,7 @@ export function OrderProgress({ fulfillmentLabel, order }: OrderProgressProps) {
 							idx < LINEAR_STEPS.length - 1);
 
 					let labelClass = "text-muted-foreground/60";
+
 					if (state === "current") {
 						labelClass = "text-foreground font-medium";
 					} else if (state === "done") {

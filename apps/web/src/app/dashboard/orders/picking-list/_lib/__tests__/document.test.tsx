@@ -48,6 +48,7 @@ const ORDERS: PickingListOrder[] = [
 describe("PickingListDocument", () => {
 	it("renderiza PDF válido com 2 pedidos (com seção de coleta)", async () => {
 		registerPdfFonts();
+
 		const buf = await renderToBuffer(
 			<PickingListDocument
 				batch="L-1507-1432"
@@ -57,15 +58,18 @@ describe("PickingListDocument", () => {
 				orders={ORDERS}
 			/>
 		);
+
 		expect(buf.subarray(0, 5).toString()).toBe("%PDF-");
 		expect(buf.length).toBeGreaterThan(2000);
 	});
 
 	it("renderiza documento vazio", async () => {
 		registerPdfFonts();
+
 		const buf = await renderToBuffer(
 			<EmptyPickingListDocument batch="L-1507-1432" />
 		);
+
 		expect(buf.subarray(0, 5).toString()).toBe("%PDF-");
 	});
 });

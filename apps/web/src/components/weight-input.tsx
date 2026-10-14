@@ -63,8 +63,10 @@ export function WeightInput({
 	const [unit, setUnit] = useState<WeightUnit>(() =>
 		initialUnit(value, defaultUnit)
 	);
+
 	const conversion = conversionHint(value, unit);
 	const hintText = [conversion, hint].filter(Boolean).join(" · ");
+
 	return (
 		<div className="flex flex-col gap-1">
 			<InputGroup>

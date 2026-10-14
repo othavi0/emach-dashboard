@@ -34,12 +34,14 @@ export function UserBranchCard({ userId, branch, canUnlink }: Props) {
 
 	async function handleUnlink() {
 		setUnlinking(true);
+
 		// Sem finally: React Compiler baila em try com finalizer.
 		try {
 			const result = await unlinkUserFromBranch({
 				userId,
 				branchId: branch.id,
 			});
+
 			if (result.ok) {
 				notify.success("Filial desvinculada");
 				setOpen(false);
@@ -47,6 +49,7 @@ export function UserBranchCard({ userId, branch, canUnlink }: Props) {
 			} else {
 				notify.error(result.error);
 			}
+
 			setUnlinking(false);
 		} catch (err) {
 			setUnlinking(false);

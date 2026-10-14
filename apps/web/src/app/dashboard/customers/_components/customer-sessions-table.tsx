@@ -34,14 +34,19 @@ const RELATIVE = new Intl.RelativeTimeFormat("pt-BR", {
 function formatRelative(date: Date) {
 	const diffMs = date.getTime() - Date.now();
 	const diffDays = Math.round(diffMs / 86_400_000);
+
 	if (Math.abs(diffDays) < 1) {
 		const diffHours = Math.round(diffMs / 3_600_000);
+
 		if (Math.abs(diffHours) < 1) {
 			const diffMinutes = Math.round(diffMs / 60_000);
+
 			return RELATIVE.format(diffMinutes, "minute");
 		}
+
 		return RELATIVE.format(diffHours, "hour");
 	}
+
 	return RELATIVE.format(diffDays, "day");
 }
 
@@ -49,7 +54,9 @@ function summarizeUserAgent(ua: string | null): string {
 	if (!ua) {
 		return "Desconhecido";
 	}
+
 	const truncated = ua.length > 60 ? `${ua.slice(0, 60)}…` : ua;
+
 	return truncated;
 }
 

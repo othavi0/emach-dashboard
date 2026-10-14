@@ -20,9 +20,11 @@ export function ToolDetailActions({
 	canMutate,
 }: ToolDetailActionsProps) {
 	const tab = useActiveTab();
+
 	if (!(canMutate && tab === "visao-geral")) {
 		return null;
 	}
+
 	return (
 		<Link
 			className={buttonVariants({ size: "sm", variant: "default" })}

@@ -9,29 +9,36 @@ vi.mock("@emach/db", () => ({
 	db: { transaction: mockTransaction },
 	createDb: vi.fn(() => ({})),
 }));
+
 vi.mock("../../orders/actions", () => ({
 	lockOrderAndAuthorize: mockLockOrderAndAuthorize,
 }));
+
 vi.mock("../../orders/data", () => ({
 	ORDERS_COUNTS_TAG: "orders-counts",
 }));
+
 vi.mock("next/cache", () => ({
 	revalidatePath: vi.fn(),
 	revalidateTag: vi.fn(),
 }));
+
 vi.mock("@/lib/logger", () => ({
 	logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
+
 vi.mock("@/lib/permissions", () => ({
 	requireCapability: vi
 		.fn()
 		.mockResolvedValue({ user: { id: "usr_1", role: "user" } }),
 }));
+
 vi.mock("@/lib/branch-scope", () => ({
 	getUserBranchScope: vi.fn().mockResolvedValue({ kind: "all" }),
 	orderInScope: vi.fn().mockReturnValue(true),
 	isBlindScope: vi.fn().mockReturnValue(false),
 }));
+
 vi.mock("../data", () => ({
 	fetchPickingQueuePage: vi.fn(),
 	getActivePickingForUser: vi.fn(),
@@ -62,28 +69,35 @@ function makeTx(selectResults: unknown[][]) {
 	// Closure gravando o último argumento passado a `.set()` — permite asserção
 	// de auditoria (status/actor/reason) sem reimplementar um mock de update.
 	const captured: { lastSetArg: unknown } = { lastSetArg: undefined };
+
 	const chain = (result: unknown[]) => {
 		const c: Record<string, unknown> = {
 			// biome-ignore lint/suspicious/noThenProperty: thenable mock — allows `await tx.select()...where()` without a terminal `.limit()` (createPickingItems' orderItem load)
 			then: (resolve: (v: unknown) => void) => resolve(result),
 		};
+
 		c.from = vi.fn(() => c);
 		c.leftJoin = vi.fn(() => c);
 		c.where = vi.fn(() => c);
 		c.for = vi.fn(() => c);
 		c.limit = vi.fn(() => Promise.resolve(result));
 		c.orderBy = vi.fn(() => c);
+
 		return c;
 	};
+
 	const update = () => {
 		const c: Record<string, unknown> = {};
 		c.set = vi.fn((arg: unknown) => {
 			captured.lastSetArg = arg;
+
 			return c;
 		});
 		c.where = vi.fn(() => Promise.resolve({ rowCount: 1 }));
+
 		return c;
 	};
+
 	return {
 		select: vi.fn(() => chain(selectResults[i++] ?? [])),
 		update: vi.fn(update),
@@ -290,10 +304,13 @@ describe("guards de sessão de separação", () => {
 		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
 			cb(makeTx([[{ number: "EM-1" }], [], [LATEST_EXCEPTION]]))
 		);
+
 		const result = await bulkStartPicking({
 			orderIds: ["3f2b7c1a-9d4e-4f6a-8b2c-1a2b3c4d5e6f"],
 		});
+
 		expect(result.ok).toBe(true);
+
 		if (result.ok) {
 			expect(result.data.moved).toBe(0);
 			expect(result.data.skipped).toEqual([

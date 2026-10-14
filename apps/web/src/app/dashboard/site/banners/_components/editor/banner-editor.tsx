@@ -30,7 +30,9 @@ function sanitizeSpecs(
 	if (!Array.isArray(specs)) {
 		return specs;
 	}
+
 	const trimmed = specs.map((s) => s.trim()).filter((s) => s.length > 0);
+
 	return trimmed.length > 0 ? trimmed : null;
 }
 
@@ -40,29 +42,37 @@ function selectionForField(field: string): EditorSelection | undefined {
 
 export function BannerEditor({ banner }: { banner?: Banner }) {
 	const router = useRouter();
+
 	const [state, dispatch] = useReducer(
 		editorReducer,
 		banner ?? null,
 		initialEditorState
 	);
+
 	const [pending, startTransition] = useTransition();
+
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<BannerFormValues>();
 
 	function handleSave() {
 		clearErrors();
+
 		const payload: BannerFormValues = {
 			...state.content,
 			specs: sanitizeSpecs(state.content.specs),
 			composition: state.composition,
 		};
+
 		const parsed = bannerFormSchema.safeParse(payload);
+
 		if (!parsed.success) {
 			const firstPath = parsed.error.issues[0]?.path[0];
+
 			const selection =
 				typeof firstPath === "string"
 					? selectionForField(firstPath)
 					: undefined;
+
 			if (selection) {
 				// Seleciona o painel do campo ANTES de reportar: o Inspector só
 				// monta o FieldError do painel selecionado — sem isso o erro cai
@@ -70,13 +80,17 @@ export function BannerEditor({ banner }: { banner?: Banner }) {
 				// reportValidationError) já cobre o re-render deste dispatch.
 				dispatch({ type: "select", target: selection });
 			}
+
 			reportValidationError(parsed.error);
+
 			return;
 		}
+
 		startTransition(async () => {
 			const r = banner
 				? await updateBanner(banner.id, parsed.data)
 				: await createBanner(parsed.data);
+
 			if (r.ok) {
 				notify.success(banner ? "Banner atualizado" : "Banner criado");
 				router.push("/dashboard/site/banners");

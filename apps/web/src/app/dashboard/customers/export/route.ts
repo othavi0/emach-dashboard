@@ -41,10 +41,13 @@ function escapeCsvField(value: unknown): string {
 	if (value === null || value === undefined) {
 		return "";
 	}
+
 	const str = value instanceof Date ? value.toISOString() : String(value);
+
 	if (CSV_NEEDS_QUOTING_RE.test(str)) {
 		return `"${str.replace(CSV_QUOTE_RE, '""')}"`;
 	}
+
 	return str;
 }
 
@@ -67,8 +70,10 @@ function statusCondition(status: CustomerStatusFilter) {
 function parseSearchParams(req: Request): RawSearchParams {
 	const url = new URL(req.url);
 	const out: RawSearchParams = {};
+
 	for (const [k, v] of url.searchParams.entries()) {
 		const existing = out[k];
+
 		if (Array.isArray(existing)) {
 			existing.push(v);
 		} else if (typeof existing === "string") {
@@ -77,6 +82,7 @@ function parseSearchParams(req: Request): RawSearchParams {
 			out[k] = v;
 		}
 	}
+
 	return out;
 }
 
@@ -85,9 +91,11 @@ export async function GET(req: Request) {
 
 	const raw = parseSearchParams(req);
 	const parsed = customersListFiltersSchema.safeParse(raw);
+
 	if (!parsed.success) {
 		return new Response("Invalid filters", { status: 400 });
 	}
+
 	const filters = parsed.data;
 
 	const conditions: ReturnType<typeof sql>[] = [];
@@ -105,6 +113,7 @@ export async function GET(req: Request) {
 			selectedIds.map((id) => sql`${id}`),
 			sql`, `
 		);
+
 		conditions.push(sql`c.id IN (${ph})`);
 	} else {
 		if (filters.q?.trim()) {
@@ -113,27 +122,34 @@ export async function GET(req: Request) {
 				sql`(c.name ILIKE ${like} OR c.email ILIKE ${like} OR c.document ILIKE ${like})`
 			);
 		}
+
 		if (filters.status) {
 			conditions.push(statusCondition(filters.status));
 		}
+
 		if (filters.clientType?.length) {
 			const ph = sql.join(
 				filters.clientType.map((s) => sql`${s}`),
 				sql`, `
 			);
+
 			conditions.push(sql`c.client_type IN (${ph})`);
 		}
+
 		if (filters.createdFrom) {
 			conditions.push(sql`c.created_at >= ${filters.createdFrom}::date`);
 		}
+
 		if (filters.createdTo) {
 			conditions.push(
 				sql`c.created_at < (${filters.createdTo}::date + INTERVAL '1 day')`
 			);
 		}
+
 		if (filters.ltvMin !== undefined) {
 			conditions.push(sql`COALESCE(stats.ltv, 0) >= ${filters.ltvMin}`);
 		}
+
 		if (filters.ltvMax !== undefined) {
 			conditions.push(sql`COALESCE(stats.ltv, 0) <= ${filters.ltvMax}`);
 		}
@@ -153,12 +169,16 @@ export async function GET(req: Request) {
 
 			const enqueueLine = (line: string): boolean => {
 				const buf = encoder.encode(line);
+
 				if (bytes + buf.byteLength > MAX_BYTES) {
 					truncated = true;
+
 					return false;
 				}
+
 				bytes += buf.byteLength;
 				controller.enqueue(buf);
+
 				return true;
 			};
 
@@ -205,6 +225,7 @@ export async function GET(req: Request) {
 						truncated = true;
 						break;
 					}
+
 					const ok = enqueueLine(
 						encodeRow([
 							r.id,
@@ -221,6 +242,7 @@ export async function GET(req: Request) {
 							toDate(r.last_order_at)?.toISOString() ?? "",
 						])
 					);
+
 					if (!ok) {
 						break;
 					}
@@ -249,6 +271,7 @@ export async function GET(req: Request) {
 			} catch (err) {
 				logger.error("customers.csv_export", err);
 				controller.error(err);
+
 				return;
 			}
 
@@ -257,6 +280,7 @@ export async function GET(req: Request) {
 	});
 
 	const filename = `clientes-${new Date().toISOString().slice(0, 10)}.csv`;
+
 	return new Response(stream, {
 		headers: {
 			"Content-Type": "text/csv; charset=utf-8",

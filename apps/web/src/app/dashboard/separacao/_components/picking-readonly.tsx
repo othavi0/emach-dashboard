@@ -108,6 +108,7 @@ export function PickingReadonly({
 			notFound: it.notFound,
 		}))
 	);
+
 	const lastScan = items.reduce<Date | null>(
 		(max, it) =>
 			it.lastScannedAt && (!max || it.lastScannedAt > max)
@@ -115,10 +116,12 @@ export function PickingReadonly({
 				: max,
 		null
 	);
+
 	const stale = isPickingStale({
 		lastScannedAt: lastScan,
 		startedAt: picking.startedAt,
 	});
+
 	const pct =
 		summary.totalUnits > 0
 			? Math.round((summary.pickedUnits / summary.totalUnits) * 100)
@@ -133,6 +136,7 @@ export function PickingReadonly({
 							"Cancelada por admin (sessão parada)"
 						)
 					: await takeoverPicking(picking.id);
+
 			if (result.ok) {
 				notify.success(
 					action === "cancel" ? "Separação cancelada" : "Separação assumida"

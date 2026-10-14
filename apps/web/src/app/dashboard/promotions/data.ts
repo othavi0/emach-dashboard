@@ -112,12 +112,14 @@ export async function countToolsWithActivePromotion(
 	}
 
 	const now = new Date();
+
 	const activeWindow = [
 		eq(promotion.type, "promotion"),
 		eq(promotion.active, true),
 		or(isNull(promotion.startsAt), lte(promotion.startsAt, now)),
 		or(isNull(promotion.endsAt), gte(promotion.endsAt, now)),
 	];
+
 	const exclude = excludeId ? [ne(promotion.id, excludeId)] : [];
 
 	// Uma promoção global ativa cobre todas as ferramentas — não há linha em
@@ -127,6 +129,7 @@ export async function countToolsWithActivePromotion(
 		.from(promotion)
 		.where(and(...activeWindow, eq(promotion.appliesToAll, true), ...exclude))
 		.limit(1);
+
 	if (globalActive.length > 0) {
 		return toolIds.length;
 	}
@@ -175,24 +178,29 @@ export async function fetchPromotionsPage({
 			if (type !== "all") {
 				conds.push(ops.eq(p.type, type));
 			}
+
 			if (search && search.trim() !== "") {
 				const term = `%${search.trim()}%`;
 				conds.push(
 					ops.or(ops.ilike(p.title, term), ops.ilike(p.code as never, term))
 				);
 			}
+
 			if (typeof discountMin === "number") {
 				// O filtro de desconto é em % (percentageMask na UI); só se aplica a
 				// promoções percentuais — um R$ 50 não casa "desconto 10–50%".
 				conds.push(ops.eq(p.discountType, "percent"));
 				conds.push(ops.gte(p.discountValue, String(discountMin)));
 			}
+
 			if (typeof discountMax === "number") {
 				if (typeof discountMin !== "number") {
 					conds.push(ops.eq(p.discountType, "percent"));
 				}
+
 				conds.push(ops.lte(p.discountValue, String(discountMax)));
 			}
+
 			if (toolId && UUID_RE.test(toolId)) {
 				conds.push(
 					ops.inArray(
@@ -204,6 +212,7 @@ export async function fetchPromotionsPage({
 					)
 				);
 			}
+
 			if (status !== "all") {
 				conds.push(promotionStatusCondition(p, status, ops.sql));
 			}
@@ -211,6 +220,7 @@ export async function fetchPromotionsPage({
 			// keyset: predicado por sort (defensivo — o front reseta o cursor ao trocar sort)
 			if (decoded) {
 				const c = decoded;
+
 				if (sort === "createdDesc" && c.sort === "newest") {
 					conds.push(
 						ops.sql`(${p.createdAt}, ${p.id}) < (${c.createdAt}::timestamptz, ${c.id})`
@@ -291,6 +301,7 @@ export async function fetchPromotionsPage({
 		(row): PromotionListItem => {
 			const tools: PromotionToolItem[] = row.promotionTools.map((pt) => {
 				const defaultVariant = pt.tool.variants.find((v) => v.isDefault);
+
 				return {
 					id: pt.tool.id,
 					name: pt.tool.name,
@@ -374,6 +385,7 @@ export async function getPromotion(
 
 	const tools: PromotionToolItem[] = row.promotionTools.map((pt) => {
 		const defaultVariant = pt.tool.variants.find((v) => v.isDefault);
+
 		return {
 			id: pt.tool.id,
 			name: pt.tool.name,
@@ -442,6 +454,7 @@ export async function getPromotionStatusCounts(): Promise<PromotionStatusCounts>
 export const getToolOptions = cache(
 	async (): Promise<{ id: string; name: string }[]> => {
 		await requireCurrentSession();
+
 		return db
 			.select({ id: tool.id, name: tool.name })
 			.from(tool)

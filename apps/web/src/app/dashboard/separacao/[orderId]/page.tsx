@@ -64,9 +64,11 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 	const scope = await getUserBranchScope(session);
 
 	const orderRow = await getOrderBranchId(orderId);
+
 	if (!orderRow) {
 		notFound();
 	}
+
 	if (!orderInScope(scope, orderRow.branchId)) {
 		notFound();
 	}
@@ -95,10 +97,12 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 			orderRow.status !== "preparing"
 		) {
 			const canViewOrder = await can(session, "orders.read");
+
 			return (
 				<PickingDispatched canViewOrder={canViewOrder} orderId={orderId} />
 			);
 		}
+
 		return (
 			<PickingExecution
 				branchName={orderRow.branchName}
@@ -112,6 +116,7 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 	if (result?.picking.status === "in_progress") {
 		const canManage =
 			session.user.role === "admin" || session.user.role === "super_admin";
+
 		return (
 			<PickingReadonly
 				canManage={canManage}
@@ -128,6 +133,7 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 					pickerName: result.picking.pickerName,
 				}
 			: null;
+
 	// Posse de exceção (spec 2026-07-17): user só reabre a própria; admin/super
 	// reabrem qualquer uma. Mesma régua do guard de startPicking — a UI esconde
 	// o botão, o backend continua sendo a autoridade.
@@ -142,6 +148,7 @@ export default async function SeparacaoOrderPage({ params }: PageProps) {
 				: null,
 			session.user
 		) === null;
+
 	return (
 		<AutoClaimPicking
 			canStart={canStart}

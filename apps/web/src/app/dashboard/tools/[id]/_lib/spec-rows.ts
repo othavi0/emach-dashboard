@@ -17,6 +17,7 @@ export interface PartitionedRows {
 export function partitionRows(candidates: SpecCandidate[]): PartitionedRows {
 	const rows: SpecCandidate[] = [];
 	const emptyLabels: string[] = [];
+
 	for (const c of candidates) {
 		if (c.value === null) {
 			emptyLabels.push(c.label);
@@ -24,6 +25,7 @@ export function partitionRows(candidates: SpecCandidate[]): PartitionedRows {
 			rows.push(c);
 		}
 	}
+
 	return { rows, emptyLabels, total: candidates.length };
 }
 
@@ -46,6 +48,7 @@ export function physicalCandidates(tool: PhysicalSpecSource): SpecCandidate[] {
 		tool.lengthCm !== null && tool.widthCm !== null && tool.heightCm !== null
 			? `${formatMeasure(tool.lengthCm, 2) ?? "?"} × ${formatMeasure(tool.widthCm, 2) ?? "?"} × ${formatMeasure(tool.heightCm, 2) ?? "?"} cm`
 			: null;
+
 	return [
 		{ key: "model", label: "Modelo", mono: true, value: tool.model },
 		{

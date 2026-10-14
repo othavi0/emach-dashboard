@@ -40,6 +40,7 @@ function groupByDay(
 	for (const r of rows) {
 		const d = new Date(r.createdAt);
 		let label: string;
+
 		if (d >= today) {
 			label = "Hoje";
 		} else if (d >= yesterday) {
@@ -55,6 +56,7 @@ function groupByDay(
 			groups.set(label, []);
 			order.push(label);
 		}
+
 		groups.get(label)?.push(r);
 	}
 
@@ -78,6 +80,7 @@ export function ActivityTimeline({ rows }: Props) {
 					<ul className="divide-y divide-border">
 						{g.items.map((r) => {
 							const { Icon, color, bg } = reasonIcon(r.reason);
+
 							const reasonLabel =
 								(r.reason
 									? STOCK_MOVEMENT_REASON_LABELS[
@@ -86,6 +89,7 @@ export function ActivityTimeline({ rows }: Props) {
 									: undefined) ??
 								r.reason ??
 								"—";
+
 							return (
 								<li
 									className="flex items-start gap-3 px-4 py-3 text-sm"

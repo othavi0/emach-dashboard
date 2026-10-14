@@ -29,6 +29,7 @@ export function RefundActions({ refundId, status }: RefundActionsProps) {
 	function run(action: () => Promise<ActionResult>) {
 		startTransition(async () => {
 			const result = await action();
+
 			if (result.ok) {
 				router.refresh();
 			} else {

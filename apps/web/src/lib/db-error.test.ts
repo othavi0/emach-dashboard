@@ -16,6 +16,7 @@ describe("getPgError", () => {
 				constraint: "attribute_definition_category_id_category_id_fk",
 			},
 		};
+
 		const pg = getPgError(drizzleError);
 		expect(pg?.code).toBe("23503");
 		expect(pg?.constraint).toBe(

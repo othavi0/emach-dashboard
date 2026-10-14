@@ -40,10 +40,12 @@ export function ToolFormProvider({
 
 export function useToolFormContext(): ToolFormContextValue {
 	const ctx = useContext(ToolFormContext);
+
 	if (!ctx) {
 		throw new Error(
 			"useToolFormContext deve ser usado dentro de ToolFormProvider"
 		);
 	}
+
 	return ctx;
 }

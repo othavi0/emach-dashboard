@@ -59,6 +59,7 @@ function renderSubmitLabel(isPending: boolean, mode: "create" | "edit") {
 			</>
 		);
 	}
+
 	return mode === "create" ? "Criar atributo" : "Salvar alterações";
 }
 
@@ -70,12 +71,14 @@ export function AttributeForm({
 	onSuccess,
 }: AttributeFormProps) {
 	const [isPending, startTransition] = useTransition();
+
 	const [values, setValues] = useState<AttributeFormValues>({
 		...EMPTY,
 		...defaultValues,
 		options: defaultValues.options ?? [],
 		swatches: defaultValues.swatches ?? [],
 	});
+
 	const { errors, reportValidationError, clearErrors } =
 		useFormErrors<AttributeFormValues>();
 
@@ -89,10 +92,13 @@ export function AttributeForm({
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const result = attributeFormSchema.safeParse(values);
+
 		if (!result.success) {
 			reportValidationError(result.error);
+
 			return;
 		}
+
 		clearErrors();
 		startTransition(async () => {
 			const action =
@@ -103,19 +109,23 @@ export function AttributeForm({
 							categoryId,
 							result.data
 						);
+
 			if (action.ok) {
 				notify.success(
 					mode === "create" ? "Atributo criado" : "Atributo atualizado"
 				);
 				onSuccess();
+
 				return;
 			}
+
 			notify.error(action.error || "Falha ao salvar");
 		});
 	}
 
 	const showOptions = values.inputType === "select";
 	const showSwatches = values.inputType === "color";
+
 	const showUnit =
 		values.inputType === "number" || values.inputType === "numeric_range";
 
@@ -129,6 +139,7 @@ export function AttributeForm({
 						onChange={(e) => {
 							const v = e.target.value;
 							update("label", v);
+
 							if (mode === "create") {
 								update("slug", slugifyLabel(v));
 							}

@@ -40,6 +40,7 @@ export default function BranchDetailPage({ params, searchParams }: PageProps) {
 
 async function BranchDetailPageContent({ params, searchParams }: PageProps) {
 	const session = await requireCapabilityOrRedirect("branches.read");
+
 	const [canManageBranch, canManageTeam] = await Promise.all([
 		can(session, "branches.manage"),
 		can(session, "users.manage"),
@@ -51,6 +52,7 @@ async function BranchDetailPageContent({ params, searchParams }: PageProps) {
 	// P0: branches.read é admin-only, mas admin é filial-scoped — bloquear leitura
 	// de filial fora do escopo (404 não revela existência). super_admin passa.
 	const scope = await getUserBranchScope(session);
+
 	if (!inScope(scope, id)) {
 		notFound();
 	}

@@ -114,6 +114,7 @@ function PlacementControls({
 }) {
 	const bounds = SCALE_BOUNDS[elementKey];
 	const isText = TEXT_KEY_SET.has(elementKey);
+
 	return (
 		<div className="flex flex-col gap-4">
 			<div>
@@ -175,6 +176,7 @@ function ContentFields({
 	errors: Record<string, string>;
 }) {
 	const { content } = state;
+
 	function setContent(patch: Partial<BannerFormValues>) {
 		dispatch({ type: "setContent", patch });
 	}
@@ -353,6 +355,7 @@ function asPlacementOverride(
 	if (entry === undefined || "hidden" in entry) {
 		return null;
 	}
+
 	return entry;
 }
 
@@ -368,6 +371,7 @@ function ElementInspector({
 	errors: Record<string, string>;
 }) {
 	const label = ELEMENT_LABELS[elementKey];
+
 	const desktopPlacement = Reflect.get(
 		state.composition.desktop.elements,
 		elementKey
@@ -431,6 +435,7 @@ function ElementInspector({
 		state.composition.mobile.elements,
 		elementKey
 	) as MobileOverride | undefined;
+
 	const override = asPlacementOverride(mobileEntry);
 	const hidden = mobileEntry !== undefined && override === null;
 
@@ -525,6 +530,7 @@ function BackgroundInspector({
 	errors: Record<string, string>;
 }) {
 	const { content, composition, viewport } = state;
+
 	const bgConfig =
 		viewport === "mobile"
 			? (composition.mobile.background ?? composition.desktop.background)

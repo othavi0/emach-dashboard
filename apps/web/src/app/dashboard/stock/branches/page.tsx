@@ -36,15 +36,19 @@ async function BranchesStockRedirectContent({
 	}
 
 	const qs = new URLSearchParams({ tab: "stock" });
+
 	if (sp.categoryId) {
 		qs.set("categoryId", sp.categoryId);
 	}
+
 	if (sp.search) {
 		qs.set("search", sp.search);
 	}
+
 	if (sp.sort) {
 		qs.set("sort", sp.sort);
 	}
+
 	if (sp.status) {
 		qs.set("status", sp.status);
 	}

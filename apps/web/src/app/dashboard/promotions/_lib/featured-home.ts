@@ -31,15 +31,19 @@ export function computeStatus(p: {
 	endsAt: Date | null;
 }): PromotionStatus {
 	const now = new Date();
+
 	if (p.endsAt && p.endsAt < now) {
 		return "expired";
 	}
+
 	if (!p.active) {
 		return "inactive";
 	}
+
 	if (p.startsAt && p.startsAt > now) {
 		return "scheduled";
 	}
+
 	return "active";
 }
 
@@ -58,17 +62,22 @@ export function computeHomeVisibility(input: {
 	if (!input.featured) {
 		return { visible: false, reason: "not_featured" };
 	}
+
 	if (input.status === "expired") {
 		return { visible: false, reason: "expired" };
 	}
+
 	if (input.status === "inactive") {
 		return { visible: false, reason: "inactive" };
 	}
+
 	if (input.status === "scheduled") {
 		return { visible: false, reason: "scheduled" };
 	}
+
 	if (!input.appliesToAll && input.toolCount < HOME_MIN_PRODUCTS) {
 		return { visible: false, reason: "too_few_products" };
 	}
+
 	return { visible: true };
 }

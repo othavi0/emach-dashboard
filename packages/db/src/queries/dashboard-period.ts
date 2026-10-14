@@ -2,6 +2,7 @@
 // ecommerce, ADR-0009) — sem imports de fora de queries/.
 
 export type DashboardPeriod = "7d" | "30d" | "90d" | "12m";
+
 export type PeriodBucket = "day" | "week" | "month";
 
 export const DASHBOARD_PERIODS: readonly DashboardPeriod[] = [
@@ -38,5 +39,6 @@ export function computeDeltaPct(
 	if (previous === 0) {
 		return null;
 	}
+
 	return Math.round(((current - previous) / previous) * 1000) / 10;
 }

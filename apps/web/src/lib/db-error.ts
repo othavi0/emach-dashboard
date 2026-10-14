@@ -16,18 +16,23 @@ const SQLSTATE_RE = /^[0-9A-Z]{5}$/;
 export function getPgError(error: unknown): PgError | null {
 	let current: unknown = error;
 	const seen = new Set<unknown>();
+
 	while (current && typeof current === "object" && !seen.has(current)) {
 		seen.add(current);
 		const code = (current as { code?: unknown }).code;
+
 		if (typeof code === "string" && SQLSTATE_RE.test(code)) {
 			const constraint = (current as { constraint?: unknown }).constraint;
+
 			return {
 				code,
 				message: String((current as { message?: unknown }).message ?? ""),
 				constraint: typeof constraint === "string" ? constraint : undefined,
 			};
 		}
+
 		current = (current as { cause?: unknown }).cause;
 	}
+
 	return null;
 }

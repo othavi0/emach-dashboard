@@ -77,7 +77,9 @@ function buildBulkSeparationToast(
 			message: `${moved} pedido${pluralSuffix(moved)} enviado${pluralSuffix(moved)} para separação`,
 		};
 	}
+
 	const detail = skipped.map((s) => `${s.number} (${s.reason})`).join(", ");
+
 	return {
 		kind: "warning",
 		message: `${moved} enviado${pluralSuffix(moved)} para separação · ${skipped.length} pulado${pluralSuffix(skipped.length)}: ${detail}`,
@@ -96,7 +98,9 @@ function buildBulkAssignToast(
 			message: `${assigned} pedido${pluralSuffix(assigned)} atribuído${pluralSuffix(assigned)} à filial`,
 		};
 	}
+
 	const detail = skipped.map((s) => `${s.number} (${s.reason})`).join(", ");
+
 	return {
 		kind: "warning",
 		message: `${assigned} atribuído${pluralSuffix(assigned)} · ${skipped.length} pulado${pluralSuffix(skipped.length)}: ${detail}`,
@@ -129,12 +133,14 @@ export function OrdersView({
 	const [assignPending, startAssign] = useTransition();
 	const [assignOpen, setAssignOpen] = useState(false);
 	const [sendOpen, setSendOpen] = useState(false);
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,
 		fetchPage: (cursor) => fetchOrdersPage({ filters, cursor }),
 		resetKey,
 	});
+
 	const sel = useBulkSelection({
 		items,
 		getId: (o) => o.id,
@@ -149,9 +155,11 @@ export function OrdersView({
 			{ paid: o.status === "paid", withoutBranch: o.branchName === null },
 		])
 	);
+
 	const selectedPaidIds = sel.selectedIds.filter(
 		(id) => paidById.get(id)?.paid
 	);
+
 	const selectedWithoutBranchCount = selectedPaidIds.filter(
 		(id) => paidById.get(id)?.withoutBranch
 	).length;
@@ -165,19 +173,24 @@ export function OrdersView({
 				orderIds: selectedPaidIds,
 				branchId: branchId ?? undefined,
 			});
+
 			// Refresh SEMPRE: cada pedido é uma transação própria, então um lote que
 			// retorna {ok:false} pode ter movido parte deles antes de abortar — sem
 			// isso, a lista seguiria mostrando "Pago" para pedido já em separação.
 			setRefreshTick((t) => t + 1);
 			router.refresh();
+
 			if (!result.ok) {
 				notify.error(result.error);
+
 				return;
 			}
+
 			const { kind, message } = buildBulkSeparationToast(
 				result.data.moved,
 				result.data.skipped
 			);
+
 			notify[kind](message);
 			setSendOpen(false);
 			sel.exit();
@@ -190,18 +203,23 @@ export function OrdersView({
 				branchId,
 				orderIds: sel.selectedIds,
 			});
+
 			// Refresh SEMPRE: cada pedido é uma transação própria, um lote {ok:false}
 			// pode ter atribuído parte antes de abortar.
 			setRefreshTick((t) => t + 1);
 			router.refresh();
+
 			if (!result.ok) {
 				notify.error(result.error);
+
 				return;
 			}
+
 			const { kind, message } = buildBulkAssignToast(
 				result.data.assigned,
 				result.data.skipped
 			);
+
 			notify[kind](message);
 			setAssignOpen(false);
 			sel.exit();
@@ -222,6 +240,7 @@ export function OrdersView({
 	// botão avulso sai da seleção de pagos) + dados de envio (tab "Pronto para
 	// enviar"). Array vazio esconde a barra.
 	const bulkActions: BulkAction[] = [];
+
 	if (selectedPaidIds.length > 0) {
 		bulkActions.push({
 			label: bulkPending
@@ -230,6 +249,7 @@ export function OrdersView({
 			run: () => setSendOpen(true),
 		});
 	}
+
 	if (canAssignBranch && filters.branchId === BRANCH_NONE) {
 		bulkActions.push({
 			label: assignPending ? "Atribuindo…" : `Atribuir filial (${sel.count})`,
@@ -237,6 +257,7 @@ export function OrdersView({
 			variant: "outline",
 		});
 	}
+
 	if (tabKey === "picked" && sel.selectedIds.length > 0) {
 		bulkActions.push({
 			label: `Emitir etiquetas (${sel.selectedIds.length})`,

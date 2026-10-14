@@ -20,9 +20,11 @@ export async function GET(req: Request) {
 	try {
 		const session = await requireCapability("orders.read");
 		const resolved = resolveShippingDocParams(new URL(req.url).searchParams);
+
 		if (!resolved.ok) {
 			return new Response(resolved.error, { status: 400 });
 		}
+
 		const scope = await getUserBranchScope(session);
 		const orders = await fetchShippingDocOrders(resolved.params, scope);
 
@@ -34,12 +36,15 @@ export async function GET(req: Request) {
 				const uri = await cepBarcodeDataUri(o.recipient.zipCode).catch(
 					(err) => {
 						logger.error("shipping_doc.barcode", { orderId: o.id, err });
+
 						return null;
 					}
 				);
+
 				return uri ? ([o.id, uri] as const) : null;
 			})
 		);
+
 		const cepBarcodes = Object.fromEntries(
 			barcodeEntries.filter((e): e is readonly [string, string] => e !== null)
 		);
@@ -52,11 +57,13 @@ export async function GET(req: Request) {
 		const buffer = await renderToBuffer(
 			doc as Parameters<typeof renderToBuffer>[0]
 		);
+
 		logger.info("shipping_doc.pdf", {
 			userId: session.user.id,
 			orders: orders.length,
 			mode: resolved.params.mode,
 		});
+
 		return new Response(new Uint8Array(buffer), {
 			headers: {
 				"Cache-Control": "no-store",
@@ -68,7 +75,9 @@ export async function GET(req: Request) {
 		if (isCapabilityError(error)) {
 			return new Response("Sem permissão", { status: 403 });
 		}
+
 		logger.error("shipping_doc.pdf", error);
+
 		return new Response("Erro ao gerar o documento de envio", { status: 500 });
 	}
 }

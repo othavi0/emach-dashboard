@@ -80,6 +80,7 @@ export async function fetchSuppliersPage({
 
 	const whereExpr =
 		conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
+
 	const orderExprs =
 		filters.sort === "name"
 			? [asc(supplier.name), asc(supplier.id)]
@@ -117,13 +118,17 @@ export async function fetchSuppliersTablePage({
 	await requireCapability("suppliers.read");
 	const { getSupplierTableAggregates } = await import("./data");
 	const page = await fetchSuppliersPage({ filters, cursor });
+
 	if (page.items.length === 0) {
 		return { items: [], nextCursor: null };
 	}
+
 	const ids = page.items.map((s) => s.id);
 	const aggregates = await getSupplierTableAggregates(ids);
+
 	const items = page.items.map((s) => {
 		const agg = aggregates.get(s.id) ?? { toolsTotal: 0, toolsActive: 0 };
+
 		return {
 			id: s.id,
 			name: s.name,
@@ -135,6 +140,7 @@ export async function fetchSuppliersTablePage({
 			toolsActive: agg.toolsActive,
 		};
 	});
+
 	return { items, nextCursor: page.nextCursor };
 }
 
@@ -144,6 +150,7 @@ export async function createSupplier(
 	const session = await requireCapability("suppliers.manage");
 
 	const parsed = supplierSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
@@ -175,6 +182,7 @@ export async function createSupplier(
 	});
 	revalidatePath(SUPPLIERS_PATH);
 	revalidatePath(TOOLS_PATH);
+
 	return { ok: true, data: { id } };
 }
 
@@ -185,6 +193,7 @@ export async function updateSupplier(
 	const session = await requireCapability("suppliers.manage");
 
 	const parsed = supplierSchema.safeParse(input);
+
 	if (!parsed.success) {
 		return { ok: false, error: actionErrorMessage(parsed.error) };
 	}
@@ -234,6 +243,7 @@ export async function updateSupplier(
 	revalidatePath(SUPPLIERS_PATH);
 	revalidatePath(`${SUPPLIERS_PATH}/${id}`);
 	revalidatePath(TOOLS_PATH);
+
 	return { ok: true, data: { id } };
 }
 
@@ -279,6 +289,7 @@ async function setSupplierStatus(
 	});
 	revalidatePath(SUPPLIERS_PATH);
 	revalidatePath(`${SUPPLIERS_PATH}/${id}`);
+
 	return { ok: true, data: undefined };
 }
 
@@ -302,5 +313,6 @@ export async function fetchSupplierStockPage({
 	const session = await requireCapability("stock.read");
 	const scope = await getUserBranchScope(session);
 	const { getSupplierStockTools } = await import("./data");
+
 	return await getSupplierStockTools({ supplierId, search, cursor, scope });
 }

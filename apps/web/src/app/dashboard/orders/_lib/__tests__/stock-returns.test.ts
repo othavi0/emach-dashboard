@@ -29,6 +29,7 @@ function makeTx(
 			then: (resolve: (v: unknown[]) => void, _reject?: (e: unknown) => void) =>
 				Promise.resolve(result).then(resolve, _reject),
 		};
+
 		return chain;
 	};
 
@@ -38,9 +39,11 @@ function makeTx(
 	const makeInsertChain = () => ({
 		values: (data: unknown) => {
 			insertValues(data);
+
 			return {
 				onConflictDoUpdate: (opts: unknown) => {
 					insertOnConflict(opts);
+
 					return Promise.resolve(undefined);
 				},
 				// INSERT sem onConflictDoUpdate também é thenable
@@ -56,6 +59,7 @@ function makeTx(
 	const tx = {
 		select: vi.fn((_shape: unknown) => {
 			const result = selectResults[callIdx++] ?? [];
+
 			return makeSelectChain(result);
 		}),
 		insert: vi.fn((_table: unknown) => makeInsertChain()),
@@ -120,6 +124,7 @@ describe("applyStockReturns", () => {
 			string,
 			unknown
 		>;
+
 		expect(stockLevelInsertArg).toMatchObject({
 			variantId: "var-1",
 			branchId: "branch-1",
@@ -132,6 +137,7 @@ describe("applyStockReturns", () => {
 			string,
 			unknown
 		>;
+
 		expect(movementArg).toMatchObject({
 			id: "mock-uuid-1",
 			variantId: "var-1",
@@ -203,6 +209,7 @@ describe("applyStockReturns", () => {
 			string,
 			unknown
 		>;
+
 		expect(movement2).toMatchObject({
 			variantId: "var-2",
 			branchId: "branch-2",

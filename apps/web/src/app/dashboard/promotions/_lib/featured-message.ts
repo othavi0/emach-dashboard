@@ -8,5 +8,6 @@ export function featuredConflictMessage(existing: {
 	if (existing.endsAt) {
 		return `Já existe um destaque ativo até ${formatDate(existing.endsAt)} — remova-o ou aguarde o fim para destacar esta.`;
 	}
+
 	return "Já existe um destaque ativo sem prazo de fim — remova-o para destacar esta.";
 }

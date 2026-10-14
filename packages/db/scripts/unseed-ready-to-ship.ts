@@ -16,6 +16,7 @@ const ORDER_LIKE = `${SEED_ORDER_PREFIX}%`;
 async function main() {
 	const forced =
 		process.argv.includes("--force") || process.env.SEED_FORCE === "1";
+
 	if (!forced) {
 		const host = new URL(env.DATABASE_URL).host;
 		console.error(
@@ -56,6 +57,7 @@ async function main() {
 		const orders = await tx.execute<{ id: string }>(
 			sql`SELECT id FROM "order" WHERE number LIKE ${ORDER_LIKE}`
 		);
+
 		await tx.execute(
 			sql`DELETE FROM order_picking
 				WHERE order_id IN (SELECT id FROM "order" WHERE number LIKE ${ORDER_LIKE})`
@@ -85,6 +87,7 @@ async function main() {
 
 		let stockRemoved = 0;
 		const stockKept: string[] = [];
+
 		for (const load of loads.rows) {
 			const deleted = await tx.execute<{ variant_id: string }>(
 				sql`DELETE FROM stock_level
@@ -93,6 +96,7 @@ async function main() {
 						AND quantity = ${load.new_qty}
 					RETURNING variant_id`
 			);
+
 			if (deleted.rows.length > 0) {
 				stockRemoved += 1;
 			} else {

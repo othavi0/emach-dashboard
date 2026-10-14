@@ -170,6 +170,7 @@ function AddressColumn({
 }) {
 	const sender = senderInline(order.sender);
 	const lines = labelRecipientLines(order.recipient);
+
 	return (
 		<View style={styles.colAddr}>
 			<View style={styles.senderBox}>
@@ -254,6 +255,7 @@ function SheetPage({
 			</Page>
 		);
 	}
+
 	return (
 		<Page size="A4" style={styles.page}>
 			<View style={[styles.half, styles.halfTop]}>
@@ -285,6 +287,7 @@ export function ShippingDocDocument({
 	orders,
 }: ShippingDocDocumentProps) {
 	const sheets = paginateLabels(orders);
+
 	return (
 		<Document title="Etiqueta de envio">
 			{sheets.map((sheet) => (

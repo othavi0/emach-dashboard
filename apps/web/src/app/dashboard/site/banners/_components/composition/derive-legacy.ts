@@ -84,30 +84,38 @@ export function legacyToComposition(input: {
 }): BannerComposition {
 	const trio = LEGACY_TRIO[input.layout];
 	const elements: BannerComposition["desktop"]["elements"] = {};
+
 	// Badge/specs/countdown/subtítulo acompanham o bloco do título no legado.
 	if (input.hasBadge) {
 		elements.badge = p(trio.title);
 	}
+
 	if (input.hasTitle) {
 		elements.title = p(trio.title, 100, 44);
 	}
+
 	if (input.hasSpecs) {
 		elements.specs = p(trio.title, 100, 44);
 	}
+
 	if (input.hasSubtitle) {
 		elements.subtitle = p(trio.title, 100, 44);
 	}
+
 	if (input.hasCountdown) {
 		elements.countdown = p(trio.title);
 	}
+
 	if (input.hasProduct && trio.product !== null) {
 		// center_mid não tem slot de produto no legado (LAYOUT_CONFIG.product
 		// = null no hero-carousel da loja) — omitir, não inventar posição.
 		elements.product = p(trio.product, input.productScale);
 	}
+
 	if (input.hasCta) {
 		elements.cta = p(trio.cta, input.ctaScale);
 	}
+
 	return {
 		version: 1,
 		desktop: { background: { zoom: 100, focal: "mc" }, elements },

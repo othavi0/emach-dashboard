@@ -154,6 +154,7 @@ function formatActorLabel(entry: {
 	if (entry.actorType === "system") {
 		return "Sistema";
 	}
+
 	return entry.actorUserName ?? "Usuário";
 }
 
@@ -169,6 +170,7 @@ function customerFilterConditions(
 	const conditions: ReturnType<typeof sql>[] = [];
 
 	const query = filters.q?.trim();
+
 	if (query) {
 		const like = ESCAPED_LIKE(query);
 		conditions.push(
@@ -181,39 +183,48 @@ function customerFilterConditions(
 			filters.clientType.map((s) => sql`${s}`),
 			sql`, `
 		);
+
 		conditions.push(sql`c.client_type IN (${ph})`);
 	}
 
 	if (filters.createdFrom) {
 		conditions.push(sql`c.created_at >= ${filters.createdFrom}::date`);
 	}
+
 	if (filters.createdTo) {
 		conditions.push(
 			sql`c.created_at < (${filters.createdTo}::date + INTERVAL '1 day')`
 		);
 	}
+
 	if (filters.lastOrderFrom) {
 		conditions.push(sql`stats.last_order_at >= ${filters.lastOrderFrom}::date`);
 	}
+
 	if (filters.lastOrderTo) {
 		conditions.push(
 			sql`stats.last_order_at < (${filters.lastOrderTo}::date + INTERVAL '1 day')`
 		);
 	}
+
 	if (filters.ltvMin !== undefined) {
 		conditions.push(sql`COALESCE(stats.ltv, 0) >= ${filters.ltvMin}`);
 	}
+
 	if (filters.ltvMax !== undefined) {
 		conditions.push(sql`COALESCE(stats.ltv, 0) <= ${filters.ltvMax}`);
 	}
+
 	if (filters.missingDoc) {
 		conditions.push(sql`c.document IS NULL`);
 	}
+
 	if (filters.openOrderInactive) {
 		conditions.push(
 			sql`c.status = 'inactive' AND EXISTS (SELECT 1 FROM "order" o WHERE o.client_id = c.id AND o.status IN ('pending_payment', 'preparing', 'shipped'))`
 		);
 	}
+
 	if (filters.unverifiedNew) {
 		conditions.push(
 			sql`c.email_verified = false AND c.created_at > now() - INTERVAL '14 days'`
@@ -242,8 +253,10 @@ export async function listCustomers({
 	// Cursor where (sort-aware)
 	const sort = filters.sort;
 	let orderBy: ReturnType<typeof sql>;
+
 	if (sort === "createdDesc") {
 		orderBy = sql`c.created_at DESC, c.id DESC`;
+
 		if (decoded?.sort === "newest") {
 			conditions.push(
 				sql`(c.created_at, c.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
@@ -251,6 +264,7 @@ export async function listCustomers({
 		}
 	} else if (sort === "ltvDesc") {
 		orderBy = sql`COALESCE(stats.ltv, 0) DESC, c.id DESC`;
+
 		if (decoded?.sort === "ltvDesc") {
 			conditions.push(
 				sql`(COALESCE(stats.ltv, 0), c.id) < (${decoded.ltv}::numeric, ${decoded.id})`
@@ -258,6 +272,7 @@ export async function listCustomers({
 		}
 	} else if (sort === "lastOrderDesc") {
 		orderBy = sql`stats.last_order_at DESC NULLS LAST, c.id DESC`;
+
 		if (decoded?.sort === "lastOrderDesc") {
 			if (decoded.lastOrderAt) {
 				conditions.push(
@@ -271,6 +286,7 @@ export async function listCustomers({
 		}
 	} else {
 		orderBy = sql`c.name ASC, c.id ASC`;
+
 		if (decoded?.sort === "nameAsc") {
 			conditions.push(sql`(c.name, c.id) > (${decoded.name}, ${decoded.id})`);
 		}
@@ -342,6 +358,7 @@ export async function listCustomers({
 					id: last.id,
 				};
 			}
+
 			if (sort === "ltvDesc") {
 				return {
 					v: 1,
@@ -350,10 +367,12 @@ export async function listCustomers({
 					id: last.id,
 				};
 			}
+
 			if (sort === "lastOrderDesc") {
 				const at = last.last_order_at
 					? toDate(last.last_order_at).toISOString()
 					: null;
+
 				return {
 					v: 1,
 					sort: "lastOrderDesc" as const,
@@ -361,6 +380,7 @@ export async function listCustomers({
 					id: last.id,
 				};
 			}
+
 			return { v: 1, sort: "nameAsc" as const, name: last.name, id: last.id };
 		}
 	);
@@ -377,6 +397,7 @@ export async function countCustomersByStatus(
 	filters: CustomersListFilters
 ): Promise<CustomerStatusCounts> {
 	const conditions = customerFilterConditions(filters);
+
 	const whereClause = conditions.length
 		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
 		: sql``;
@@ -400,6 +421,7 @@ export async function countCustomersByStatus(
 
 	let active = 0;
 	let inactiveBlocked = 0;
+
 	for (const row of rows.rows) {
 		if (row.status === "active") {
 			active += Number(row.count);
@@ -407,6 +429,7 @@ export async function countCustomersByStatus(
 			inactiveBlocked += Number(row.count);
 		}
 	}
+
 	return { active, inactiveBlocked };
 }
 
@@ -418,9 +441,11 @@ export async function getCustomerDetail(
 	id: string
 ): Promise<CustomerDetail | null> {
 	const [row] = await db.select().from(client).where(eq(client.id, id));
+
 	if (!row) {
 		return null;
 	}
+
 	return {
 		id: row.id,
 		name: row.name,
@@ -463,7 +488,9 @@ export async function getCustomerKpis(id: string): Promise<CustomerKpis> {
 		WHERE c.id = ${id}
 		GROUP BY c.created_at
 	`);
+
 	const r = result.rows[0];
+
 	return {
 		ltv: Number(r?.ltv ?? 0),
 		ordersCount: Number(r?.orders_count ?? 0),
@@ -479,6 +506,7 @@ export async function listCustomerOrders(input: {
 	cursor: string | null;
 }): Promise<InfiniteResult<CustomerOrderRow>> {
 	const decoded = input.cursor ? decodeCursor(input.cursor) : null;
+
 	const keyset =
 		decoded?.sort === "newest"
 			? sql`AND (o.created_at, o.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
@@ -579,6 +607,7 @@ export async function getCustomerConsent(
 		.orderBy(asc(consentLog.kind), desc(consentLog.grantedAt));
 
 	const grouped: CustomerConsentByKind = {};
+
 	for (const r of rows) {
 		const arr = grouped[r.kind] ?? [];
 		arr.push({
@@ -591,6 +620,7 @@ export async function getCustomerConsent(
 		});
 		grouped[r.kind] = arr;
 	}
+
 	return grouped;
 }
 
@@ -628,6 +658,7 @@ export async function getCustomerSessionsCount(id: string): Promise<number> {
 		.select({ n: sql<number>`count(*)::int` })
 		.from(clientSession)
 		.where(eq(clientSession.userId, id));
+
 	return row?.n ?? 0;
 }
 
@@ -636,6 +667,7 @@ export async function getCustomerAudit(
 	options: { action?: ClientAuditAction } = {}
 ): Promise<CustomerAuditRow[]> {
 	const conditions = [eq(clientAuditLog.clientId, id)];
+
 	if (options.action) {
 		conditions.push(eq(clientAuditLog.action, options.action));
 	}

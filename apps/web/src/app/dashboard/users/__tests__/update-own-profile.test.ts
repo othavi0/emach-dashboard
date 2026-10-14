@@ -3,8 +3,11 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/session", () => ({ requireCurrentSession: vi.fn() }));
+
 vi.mock("@/lib/activity", () => ({ logUserActivity: vi.fn() }));
+
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+
 vi.mock("@emach/auth/dashboard", () => ({
 	authDashboard: { $context: Promise.resolve({}) },
 }));
@@ -13,6 +16,7 @@ vi.mock("@emach/auth/dashboard", () => ({
 // (`.where(eq(userTable.id, session.user.id))`) sem reconstruir o SQL.
 vi.mock("drizzle-orm", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("drizzle-orm")>();
+
 	return { ...actual, eq: vi.fn(actual.eq) };
 });
 
@@ -25,12 +29,15 @@ vi.mock("@/lib/storage", () => ({
 
 const { setSpy, whereSpy } = vi.hoisted(() => {
 	const whereSpy = vi.fn();
+
 	return { setSpy: vi.fn().mockReturnValue({ where: whereSpy }), whereSpy };
 });
+
 // `db.select(...).from(...).where(...).limit(...)` → [{ image }]; `db.update(...).set(...).where(...)`.
 const { currentImage } = vi.hoisted(() => ({
 	currentImage: { v: null as string | null },
 }));
+
 vi.mock("@emach/db", () => ({
 	db: {
 		update: vi.fn().mockReturnValue({ set: setSpy }),
@@ -104,10 +111,12 @@ describe("updateOwnProfile", () => {
 		currentImage.v =
 			"https://x.supabase.co/storage/v1/object/public/user-avatars/old.png";
 		vi.mocked(requireCurrentSession).mockResolvedValueOnce(session() as never);
+
 		const r = await updateOwnProfile({
 			image:
 				"https://x.supabase.co/storage/v1/object/public/user-avatars/new.png",
 		});
+
 		expect(r.ok).toBe(true);
 		expect(removeStorageObject).toHaveBeenCalledWith("user-avatars", "old.png");
 	});
@@ -115,6 +124,7 @@ describe("updateOwnProfile", () => {
 	it("não remove nada quando a foto é a mesma", async () => {
 		const same =
 			"https://x.supabase.co/storage/v1/object/public/user-avatars/same.png";
+
 		currentImage.v = same;
 		vi.mocked(requireCurrentSession).mockResolvedValueOnce(session() as never);
 		await updateOwnProfile({ image: same });

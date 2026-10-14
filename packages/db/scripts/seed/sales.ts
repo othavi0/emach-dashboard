@@ -25,6 +25,7 @@ function daysAgo(days: number, offsetHours = 0): Date {
 	const d = new Date();
 	d.setDate(d.getDate() - days);
 	d.setHours(d.getHours() - offsetHours);
+
 	return d;
 }
 
@@ -245,6 +246,7 @@ interface ItemDef {
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: script de seed com múltiplas inserções sequenciais de pedidos/movimentos — complexidade inerente ao domínio de bootstrap
 export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 	const staffUserId = ctx.staffUserIds[0];
+
 	if (!staffUserId) {
 		throw new Error("staffUserIds vazio — impossível criar orders.");
 	}
@@ -261,12 +263,14 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 
 	// Mapa: `${variantId}:${branchId}` → quantity atual (decrementado na memória)
 	const stockMap = new Map<string, number>();
+
 	for (const row of stockRows.rows) {
 		stockMap.set(`${row.variant_id}:${row.branch_id}`, row.quantity);
 	}
 
 	// Mapa: variantId → toolId (para lookup reverso)
 	const toolByVariant = new Map<string, string>();
+
 	for (const [toolId, variantIds] of Object.entries(ctx.variantIdsByTool)) {
 		for (const variantId of variantIds) {
 			toolByVariant.set(variantId, toolId);
@@ -297,6 +301,7 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 		})
 		.from(toolVariant)
 		.innerJoin(tool, eq(toolVariant.toolId, tool.id));
+
 	const catalogByVariantId = new Map(
 		catalogRows.map((row) => [row.variantId, row])
 	);
@@ -310,11 +315,13 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 
 	for (let i = 0; i < ORDER_SCENARIOS.length; i++) {
 		const scenario = ORDER_SCENARIOS[i];
+
 		if (!scenario) {
 			continue;
 		}
 
 		const clientId = ctx.clientIds[scenario.clientIndex % ctx.clientIds.length];
+
 		if (!clientId) {
 			continue;
 		}
@@ -345,20 +352,25 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 
 			for (const toolId of selectedTools) {
 				const variantIds = ctx.variantIdsByTool[toolId] ?? [];
+
 				// Escolher variante com saldo positivo na filial
 				const available = variantIds.filter(
 					(vId) => (stockMap.get(`${vId}:${branchId}`) ?? 0) > 0
 				);
+
 				if (available.length === 0) {
 					continue;
 				}
+
 				const variantId = pick(available);
 				const stockKey = `${variantId}:${branchId}`;
 				const currentQty = stockMap.get(stockKey) ?? 0;
 				const qty = Math.min(randInt(1, 5), currentQty);
+
 				if (qty <= 0) {
 					continue;
 				}
+
 				stockMap.set(stockKey, currentQty - qty);
 				itemDefs.push({ toolId, variantId, quantity: qty });
 			}
@@ -370,11 +382,13 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 			if (itemDefs.length === 0) {
 				const toolId = pick(allToolIds);
 				const variantIds = ctx.variantIdsByTool[toolId] ?? [];
+
 				if (variantIds.length > 0) {
 					const variantId = variantIds[0] as string;
 					const stockKey = `${variantId}:${branchId}`;
 					// Garantir que há saldo (mesmo que mínimo)
 					const currentQty = stockMap.get(stockKey) ?? 0;
+
 					if (currentQty > 0) {
 						stockMap.set(stockKey, currentQty - 1);
 						itemDefs.push({ toolId, variantId, quantity: 1 });
@@ -384,11 +398,14 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 		} else {
 			// Orders não pagos: qualquer variante (sem débito de estoque)
 			const selectedTools = pickN(allToolIds, itemCount);
+
 			for (const toolId of selectedTools) {
 				const variantIds = ctx.variantIdsByTool[toolId] ?? [];
+
 				if (variantIds.length === 0) {
 					continue;
 				}
+
 				const variantId = pick(variantIds);
 				itemDefs.push({ toolId, variantId, quantity: randInt(1, 3) });
 			}
@@ -399,6 +416,7 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 			const toolId = pick(allToolIds);
 			const variantIds = ctx.variantIdsByTool[toolId] ?? [];
 			const variantId = variantIds[0];
+
 			if (variantId) {
 				itemDefs.push({ toolId, variantId, quantity: 1 });
 			}
@@ -409,13 +427,16 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 		const subtotal = itemDefs
 			.reduce((acc, item) => {
 				const snap = catalogByVariantId.get(item.variantId);
+
 				return (
 					acc +
 					item.quantity * Number.parseFloat(snap?.priceAmount ?? FALLBACK_PRICE)
 				);
 			}, 0)
 			.toFixed(2);
+
 		const shippingAmount = "29.90";
+
 		const totalAmount = (
 			Number.parseFloat(subtotal) + Number.parseFloat(shippingAmount)
 		).toFixed(2);
@@ -436,6 +457,7 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 		const paidAt = PAID_STATUSES.has(scenario.targetStatus)
 			? hoursAfter(createdAt, 2)
 			: null;
+
 		const shippedAt =
 			scenario.targetStatus === "shipped" ||
 			scenario.targetStatus === "delivered" ||
@@ -443,12 +465,14 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 			scenario.targetStatus === "refunded"
 				? hoursAfter(createdAt, 48)
 				: null;
+
 		const deliveredAt =
 			scenario.targetStatus === "delivered" ||
 			scenario.targetStatus === "returned" ||
 			scenario.targetStatus === "refunded"
 				? hoursAfter(createdAt, 96)
 				: null;
+
 		const canceledAt =
 			scenario.targetStatus === "canceled" ? hoursAfter(createdAt, 6) : null;
 
@@ -571,11 +595,13 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 	// ausência de stock_level.
 	for (const orderId of ctx.orderIds) {
 		const targetStatus = orderStatusByOrderId.get(orderId);
+
 		if (!(targetStatus && PAID_STATUSES.has(targetStatus))) {
 			continue;
 		}
 
 		const branchId = orderBranchByOrderId.get(orderId);
+
 		if (!branchId) {
 			continue;
 		}
@@ -640,6 +666,7 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 	const staffAltId = ctx.staffUserIds[1] ?? ctx.staffUserIds[0] ?? staffUserId;
 
 	const noteOrderIds = pickN(ctx.orderIds, 5);
+
 	const noteBodies = [
 		"Cliente solicitou entrega no período da tarde.",
 		"Verificar disponibilidade de voltagem 127V.",
@@ -650,9 +677,11 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 
 	for (let i = 0; i < noteOrderIds.length; i++) {
 		const noteOrderId = noteOrderIds[i];
+
 		if (!noteOrderId) {
 			continue;
 		}
+
 		await tx.insert(orderNote).values({
 			id: crypto.randomUUID(),
 			orderId: noteOrderId,
@@ -672,6 +701,7 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 
 	for (const orderId of ctx.orderIds) {
 		const targetStatus = orderStatusByOrderId.get(orderId);
+
 		if (!(targetStatus && REVIEW_ELIGIBLE_STATUSES.has(targetStatus))) {
 			continue;
 		}
@@ -679,12 +709,15 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 		const orderRow = await tx.execute<{ client_id: string }>(
 			sql`SELECT client_id FROM "order" WHERE id = ${orderId}`
 		);
+
 		const clientId = orderRow.rows[0]?.client_id;
+
 		if (!clientId) {
 			continue;
 		}
 
 		const items = orderItemsByOrderId.get(orderId) ?? [];
+
 		for (const itemDef of items) {
 			reviewCandidates.push({
 				orderId,
@@ -696,6 +729,7 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 
 	// Garantir unicidade por (toolId, clientId, orderId)
 	const reviewKeys = new Set<string>();
+
 	const reviewStatuses: Array<"pending" | "approved" | "rejected" | "spam"> = [
 		"approved",
 		"approved",
@@ -717,9 +751,11 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 		}
 
 		const key = `${candidate.toolId}:${candidate.clientId}:${candidate.orderId}`;
+
 		if (reviewKeys.has(key)) {
 			continue;
 		}
+
 		reviewKeys.add(key);
 
 		const status = reviewStatuses[reviewCount] ?? "pending";

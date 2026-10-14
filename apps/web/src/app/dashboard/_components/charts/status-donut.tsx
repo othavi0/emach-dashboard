@@ -32,6 +32,7 @@ export function StatusDonut({
 			</p>
 		);
 	}
+
 	return (
 		<ChartContainer className="h-56 w-full" config={config}>
 			<PieChart>

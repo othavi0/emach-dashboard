@@ -24,6 +24,7 @@ export function SupplierCardGrid({
 	initialCursor,
 }: SupplierCardGridProps) {
 	const resetKey = JSON.stringify(filters);
+
 	const { items, hasMore, loadMore, pending, error } = useInfiniteList({
 		initialItems: initial,
 		initialCursor,

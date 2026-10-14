@@ -26,6 +26,7 @@ export function LogisticsFields({
 	disabled,
 }: ToolFieldGroupProps) {
 	const { activeBoxes } = useToolFormContext();
+
 	const showNoFit =
 		dimsReady(values) &&
 		!values.shipsInOwnBox &&
@@ -40,6 +41,7 @@ export function LogisticsFields({
 			},
 			activeBoxes
 		);
+
 	return (
 		<div className="flex flex-col gap-4">
 			<p className="flex items-center gap-1.5 text-muted-foreground text-xs">

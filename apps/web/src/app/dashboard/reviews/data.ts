@@ -58,21 +58,26 @@ export interface ListReviewsParams extends ReviewFilters {
  */
 function buildReviewConditions({ from, q, rating, to }: ReviewFilters): SQL[] {
 	const conditions: SQL[] = [];
+
 	if (rating) {
 		conditions.push(sql`r.rating = ${rating}`);
 	}
+
 	if (q) {
 		const like = `%${q}%`;
 		conditions.push(
 			sql`(c.name ILIKE ${like} OR t.name ILIKE ${like} OR r.title ILIKE ${like} OR r.body ILIKE ${like})`
 		);
 	}
+
 	if (from) {
 		conditions.push(sql`r.created_at >= ${from}::date`);
 	}
+
 	if (to) {
 		conditions.push(sql`r.created_at < (${to}::date + INTERVAL '1 day')`);
 	}
+
 	return conditions;
 }
 
@@ -82,15 +87,18 @@ export async function listReviews({
 	...filters
 }: ListReviewsParams = {}): Promise<InfiniteResult<ReviewListItem>> {
 	const conditions = buildReviewConditions(filters);
+
 	if (status) {
 		conditions.push(sql`r.status = ${status}`);
 	}
+
 	if (cursor) {
 		const decoded = decodeCursorAs(cursor, "newest");
 		conditions.push(
 			sql`(r.created_at, r.id) < (${decoded.createdAt}::timestamptz, ${decoded.id})`
 		);
 	}
+
 	const whereClause = conditions.length
 		? sql` WHERE ${sql.join(conditions, sql` AND `)}`
 		: sql``;
@@ -159,6 +167,7 @@ export async function getReviewsTabCounts(
 	filters: ReviewFilters = {}
 ): Promise<Record<string, number>> {
 	const conditions = buildReviewConditions(filters);
+
 	const whereClause = conditions.length
 		? sql`WHERE ${sql.join(conditions, sql` AND `)}`
 		: sql``;
@@ -173,9 +182,11 @@ export async function getReviewsTabCounts(
 	`);
 
 	const counts: Record<string, number> = {};
+
 	for (const row of result.rows) {
 		counts[row.status] = Number(row.count);
 	}
+
 	return counts;
 }
 
@@ -230,6 +241,7 @@ export async function getReviewDetail(
 	`);
 
 	const row = result.rows[0];
+
 	if (!row) {
 		return null;
 	}

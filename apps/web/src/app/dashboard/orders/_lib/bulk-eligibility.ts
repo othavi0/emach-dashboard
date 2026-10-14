@@ -10,9 +10,11 @@ export function bulkStartSeparationSkipReason(locked: {
 	if (locked.status !== "paid") {
 		return "status_diferente";
 	}
+
 	if (!locked.branchId) {
 		return "sem_filial";
 	}
+
 	return null;
 }
 
@@ -27,6 +29,7 @@ export function bulkSkipReasonFromError(error: unknown): string | null {
 	if (!(error instanceof Error)) {
 		return null;
 	}
+
 	if (
 		error.message.startsWith("Forbidden:") ||
 		error.message.includes("fora do seu escopo") ||
@@ -34,5 +37,6 @@ export function bulkSkipReasonFromError(error: unknown): string | null {
 	) {
 		return "fora do seu escopo";
 	}
+
 	return null;
 }

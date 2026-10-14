@@ -15,6 +15,7 @@ describe("cursor encode/decode", () => {
 			createdAt: "2026-05-18T00:00:00.000Z",
 			id: "abc",
 		};
+
 		expect(decodeCursor(encodeCursor(c))).toEqual(c);
 	});
 
@@ -25,6 +26,7 @@ describe("cursor encode/decode", () => {
 			quantity: 3,
 			id: "variant:branch",
 		};
+
 		expect(decodeCursor(encodeCursor(c))).toEqual(c);
 	});
 
@@ -32,6 +34,7 @@ describe("cursor encode/decode", () => {
 		const raw = Buffer.from(
 			JSON.stringify({ v: 2, sort: "newest", createdAt: "x", id: "y" })
 		).toString("base64url");
+
 		expect(() => decodeCursor(raw)).toThrow("Cursor incompatível");
 	});
 });
@@ -44,6 +47,7 @@ describe("decodeCursorAs", () => {
 			createdAt: "2026-05-18T00:00:00.000Z",
 			id: "abc",
 		});
+
 		const c = decodeCursorAs(raw, "newest");
 		expect(c.createdAt).toBe("2026-05-18T00:00:00.000Z");
 		expect(c.id).toBe("abc");
@@ -56,6 +60,7 @@ describe("decodeCursorAs", () => {
 			quantity: 1,
 			id: "x",
 		});
+
 		expect(() => decodeCursorAs(raw, "newest")).toThrow(
 			"Cursor incompatível: esperado newest"
 		);

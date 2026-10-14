@@ -69,11 +69,13 @@ export interface CategoryChildItem {
 
 export function mapWriteError(e: unknown): string {
 	const pg = getPgError(e);
+
 	if (pg) {
 		// Trigger anti-ciclo (prevent_category_cycle) levanta P0001.
 		if (pg.code === "P0001" && pg.message.includes("category cycle")) {
 			return "Operação criaria um ciclo na árvore";
 		}
+
 		// unique_violation no slug.
 		if (
 			pg.code === "23505" &&
@@ -82,7 +84,9 @@ export function mapWriteError(e: unknown): string {
 			return "Slug já está em uso";
 		}
 	}
+
 	logger.error("category write error", e);
+
 	return "Não foi possível salvar a categoria";
 }
 
@@ -108,6 +112,7 @@ export async function getCategory(
 		.from(category)
 		.where(eq(category.id, id))
 		.limit(1);
+
 	return rows[0] ?? null;
 }
 
@@ -152,6 +157,7 @@ export async function getCategoryDetail(
 	id: string
 ): Promise<CategoryDetailData | null> {
 	const current = await getCategory(id);
+
 	if (!current) {
 		return null;
 	}
@@ -183,6 +189,7 @@ export async function getCategoryDetail(
 			)
 		)
 		.groupBy(toolCategory.categoryId);
+
 	const childCountById = new Map(
 		childCounts.map((r) => [r.categoryId, Number(r.c)])
 	);
@@ -248,6 +255,7 @@ export const getCategoryAncestors = cache(
 				ORDER BY depth ASC
 			`
 		);
+
 		return rows.rows.map((r) => ({ id: r.id, name: r.name }));
 	}
 );
@@ -260,6 +268,7 @@ export async function getCategoryAttributes(
 	const nameById = new Map(ancestors.map((c) => [c.id, c.name]));
 
 	const ids = [categoryId, ...ancestors.map((c) => c.id)];
+
 	const defs = await db
 		.select()
 		.from(attributeDefinition)
@@ -293,6 +302,7 @@ export async function getCategoryProductsPage({
 		.from(category)
 		.where(eq(category.id, categoryId))
 		.limit(1);
+
 	if (!self) {
 		return { items: [], nextCursor: null };
 	}
@@ -330,6 +340,7 @@ export async function getCategoryProductsPage({
 	// materializa — ver packages/db/CLAUDE.md). Primeira imagem por sortOrder.
 	const ids = page.items.map((i) => i.id);
 	const thumbByTool = new Map<string, string>();
+
 	if (ids.length > 0) {
 		const imgs = await db
 			.select({
@@ -340,6 +351,7 @@ export async function getCategoryProductsPage({
 			.from(toolImage)
 			.where(inArray(toolImage.toolId, ids))
 			.orderBy(asc(toolImage.toolId), asc(toolImage.sortOrder));
+
 		for (const img of imgs) {
 			if (!thumbByTool.has(img.toolId)) {
 				thumbByTool.set(img.toolId, img.url);
@@ -397,6 +409,7 @@ export async function getCategoryChildrenPage({
 
 	const ids = page.items.map((i) => i.id);
 	const countById = new Map<string, number>();
+
 	if (ids.length > 0) {
 		const counts = await db
 			.select({ categoryId: toolCategory.categoryId, c: count() })
@@ -408,6 +421,7 @@ export async function getCategoryChildrenPage({
 				)
 			)
 			.groupBy(toolCategory.categoryId);
+
 		for (const r of counts) {
 			countById.set(r.categoryId, Number(r.c));
 		}
@@ -427,5 +441,6 @@ export async function getAttributeUsage(id: string): Promise<number> {
 		.select({ value: count() })
 		.from(toolAttributeValue)
 		.where(eq(toolAttributeValue.attributeId, id));
+
 	return Number(row?.value ?? 0);
 }

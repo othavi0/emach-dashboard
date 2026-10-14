@@ -22,6 +22,7 @@ export function resolveShippingDocParams(sp: URLSearchParams): ResolveResult {
 	if (idsRaw && tabRaw) {
 		return { error: "Use ids OU tab, não ambos", ok: false };
 	}
+
 	if (idsRaw) {
 		const ids = Array.from(
 			new Set(
@@ -31,19 +32,25 @@ export function resolveShippingDocParams(sp: URLSearchParams): ResolveResult {
 					.filter(Boolean)
 			)
 		);
+
 		if (ids.length === 0 || ids.length > MAX_IDS) {
 			return { error: `ids deve ter entre 1 e ${MAX_IDS} itens`, ok: false };
 		}
+
 		if (!ids.every((id) => idSchema.safeParse(id).success)) {
 			return { error: "ids contém valor inválido", ok: false };
 		}
+
 		return { ok: true, params: { ids, mode: "ids" } };
 	}
+
 	if (tabRaw) {
 		if (tabRaw !== "picked") {
 			return { error: "tab inválida", ok: false };
 		}
+
 		return { ok: true, params: { mode: "tab", tab: "picked" } };
 	}
+
 	return { error: "Informe ids ou tab", ok: false };
 }

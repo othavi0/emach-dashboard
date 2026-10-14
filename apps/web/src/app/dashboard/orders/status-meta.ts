@@ -116,6 +116,7 @@ export function canonicalOrderTabKey(tab?: string): string | undefined {
 	if (!tab) {
 		return tab;
 	}
+
 	return LEGACY_TAB_ALIASES[tab] ?? tab;
 }
 

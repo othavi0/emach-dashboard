@@ -10,6 +10,7 @@ import { ORDER_STATUS_META, type OrderStatus } from "../status-meta";
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
 	const meta = ORDER_STATUS_META[status];
 	const Icon = STATUS_ICONS[meta.iconKey];
+
 	return (
 		<Badge
 			className={STATUS_BADGE_CAPS}

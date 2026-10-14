@@ -79,6 +79,7 @@ async function DashboardPageContent({
 			can(session, "promotions.read"),
 			can(session, "orders.read"),
 		]);
+
 	// Toast de atrasados na overview (spec 2026-07-13, régua late ≥72h por etapa).
 	// Sem AutoRefresh aqui: a overview tem gráficos pesados e é tela de análise,
 	// não fila operacional — o alerta no load + refresh-on-navegação basta.
@@ -127,6 +128,7 @@ async function DashboardPageContent({
 
 async function BranchFilterSlot({ value }: { value: string | null }) {
 	const options = await fetchBranchOptions();
+
 	return <BranchFilter options={options} value={value} />;
 }
 
@@ -162,6 +164,7 @@ async function PendingSection({
 		canReadReviews ? fetchPendingReviews(null) : null,
 		canReadPromotions ? fetchExpiringPromotions(null) : null,
 	]);
+
 	const tabs: PendingTab[] = [
 		{
 			id: "stock",
@@ -173,6 +176,7 @@ async function PendingSection({
 			fetchPage: fetchPendingStock,
 		},
 	];
+
 	if (canReadOrders && orders) {
 		tabs.push({
 			id: "orders",
@@ -184,6 +188,7 @@ async function PendingSection({
 			fetchPage: fetchPendingOrders,
 		});
 	}
+
 	if (canReadReviews && reviews) {
 		tabs.push({
 			id: "reviews",
@@ -195,6 +200,7 @@ async function PendingSection({
 			fetchPage: fetchPendingReviews,
 		});
 	}
+
 	if (canReadPromotions && promos) {
 		tabs.push({
 			id: "promotions",
@@ -206,6 +212,7 @@ async function PendingSection({
 			fetchPage: fetchExpiringPromotions,
 		});
 	}
+
 	return (
 		<section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 			<PendingPanel tabs={tabs} />
@@ -234,11 +241,13 @@ async function SalesOrdersSection({
 		fetchDailyRevenue(branchId, period),
 		fetchOrderFunnel(branchId, period),
 	]);
+
 	const revenueData = revenue.map((p) => ({
 		day: formatDateShort(p.day),
 		revenue: p.revenue,
 		movingAvg: p.movingAvg,
 	}));
+
 	return (
 		<section className="grid gap-4 lg:grid-cols-[2fr_1fr]">
 			<Card>
@@ -273,11 +282,13 @@ async function StockSection({
 		fetchStockFlow(branchId, period),
 		fetchReorderTable(branchId),
 	]);
+
 	const flowData = stockFlow.map((p) => ({
 		week: formatDateShort(p.week),
 		entradas: p.entradas,
 		saidas: p.saidas,
 	}));
+
 	return (
 		<section className="-mx-6 grid gap-4 border-border border-y bg-muted/50 px-6 py-10 lg:grid-cols-2">
 			<Card>

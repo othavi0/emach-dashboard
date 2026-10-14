@@ -17,7 +17,9 @@ export function BranchStockCard({ onSelect, row }: BranchStockCardProps) {
 		minQty: row.minQty,
 		reorderPoint: row.reorderPoint,
 	});
+
 	let quantityColor = "text-foreground";
+
 	if (status === "critical" || row.quantity === 0) {
 		quantityColor = "text-destructive";
 	} else if (status === "reorder") {

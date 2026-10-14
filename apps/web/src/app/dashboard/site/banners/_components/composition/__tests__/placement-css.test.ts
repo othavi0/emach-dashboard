@@ -13,6 +13,7 @@ describe("placementToStyle", () => {
 			{ anchor: "bl", offsetX: 2, offsetY: -2, scale: 100 },
 			"desktop"
 		);
+
 		expect(s.left).toBe("7%");
 		expect(s.top).toBe("86%");
 		expect(s.transform).toBe("translate(0%, -100%) scale(1)");
@@ -22,6 +23,7 @@ describe("placementToStyle", () => {
 			{ anchor: "mc", offsetX: 0, offsetY: 0, scale: 120 },
 			"desktop"
 		);
+
 		expect(s.transform).toBe("translate(-50%, -50%) scale(1.2)");
 	});
 	test("maxWidth vira ch", () => {
@@ -29,6 +31,7 @@ describe("placementToStyle", () => {
 			{ anchor: "bl", offsetX: 0, offsetY: 0, scale: 100, maxWidth: 44 },
 			"desktop"
 		);
+
 		expect(s.maxWidth).toBe("44ch");
 	});
 });

@@ -13,6 +13,7 @@ export const userRoleEnum = pgEnum("user_role", [
 	"admin",
 	"user",
 ]);
+
 export type UserRole = (typeof userRoleEnum.enumValues)[number];
 
 export const userStatusEnum = pgEnum("user_status", [
@@ -20,6 +21,7 @@ export const userStatusEnum = pgEnum("user_status", [
 	"active",
 	"suspended",
 ]);
+
 export type UserStatus = (typeof userStatusEnum.enumValues)[number];
 
 export const user = pgTable("user", {

@@ -5,7 +5,9 @@ export function formatSessionIp(ip: string | null): string {
 	if (!ip) {
 		return "—";
 	}
+
 	const trimmed = ip.trim();
+
 	if (
 		trimmed === "::" ||
 		trimmed === "::1" ||
@@ -14,5 +16,6 @@ export function formatSessionIp(ip: string | null): string {
 	) {
 		return "Local";
 	}
+
 	return trimmed;
 }

@@ -54,6 +54,7 @@ describe("branchSchema cepRanges", () => {
 				{ from: "13000000", to: "13999999" },
 			],
 		});
+
 		expect(r.success).toBe(true);
 	});
 	it("rejeita faixas sobrepostas da mesma filial", () => {
@@ -64,6 +65,7 @@ describe("branchSchema cepRanges", () => {
 				{ from: "05000000", to: "07000000" },
 			],
 		});
+
 		expect(r.success).toBe(false);
 	});
 });
@@ -112,6 +114,7 @@ describe("businessHoursSchema — intervalo de almoço", () => {
 			saturday: { isOpen: false, opensAt: null, closesAt: null },
 			holidays: { isOpen: false, opensAt: null, closesAt: null },
 		});
+
 		expect(r.success).toBe(true);
 	});
 
@@ -121,6 +124,7 @@ describe("businessHoursSchema — intervalo de almoço", () => {
 			saturday: { isOpen: false, opensAt: null, closesAt: null },
 			holidays: { isOpen: false, opensAt: null, closesAt: null },
 		});
+
 		expect(r.success).toBe(true);
 	});
 
@@ -130,6 +134,7 @@ describe("businessHoursSchema — intervalo de almoço", () => {
 			saturday: { isOpen: false, opensAt: null, closesAt: null },
 			holidays: { isOpen: false, opensAt: null, closesAt: null },
 		});
+
 		expect(r.success).toBe(false);
 	});
 
@@ -139,6 +144,7 @@ describe("businessHoursSchema — intervalo de almoço", () => {
 			saturday: { isOpen: false, opensAt: null, closesAt: null },
 			holidays: { isOpen: false, opensAt: null, closesAt: null },
 		});
+
 		expect(r.success).toBe(false);
 	});
 
@@ -152,6 +158,7 @@ describe("businessHoursSchema — intervalo de almoço", () => {
 			saturday: { isOpen: false, opensAt: null, closesAt: null },
 			holidays: { isOpen: false, opensAt: null, closesAt: null },
 		});
+
 		expect(r.success).toBe(false);
 	});
 
@@ -167,6 +174,7 @@ describe("businessHoursSchema — intervalo de almoço", () => {
 			saturday: { isOpen: false, opensAt: null, closesAt: null },
 			holidays: { isOpen: false, opensAt: null, closesAt: null },
 		});
+
 		expect(r.weekdays.breakStart).toBeNull();
 		expect(r.weekdays.breakEnd).toBeNull();
 	});

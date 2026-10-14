@@ -9,6 +9,7 @@ describe("foldTabCounts", () => {
 			{ status: "preparing", is_late: true, is_picked: false, count: 1 },
 			{ status: "shipped", is_late: false, is_picked: false, count: 4 },
 		]);
+
 		expect(counts.paid).toBe(5);
 		expect(counts.preparing).toBe(1);
 		expect(counts.late).toBe(3);
@@ -20,6 +21,7 @@ describe("foldTabCounts", () => {
 			{ status: "canceled", is_late: false, is_picked: false, count: 1 },
 			{ status: "refunded", is_late: false, is_picked: false, count: 2 },
 		]);
+
 		expect(counts.canceled).toBe(3);
 	});
 });
@@ -31,6 +33,7 @@ describe("foldTabCounts com bucket picked", () => {
 			{ status: "preparing", is_late: false, is_picked: false, count: 4 },
 			{ status: "paid", is_late: false, is_picked: false, count: 5 },
 		]);
+
 		expect(counts.picked).toBe(2);
 		expect(counts.preparing).toBe(4);
 		expect(counts.paid).toBe(5);
@@ -43,6 +46,7 @@ describe("foldTabCounts com bucket picked", () => {
 		const counts = foldTabCounts([
 			{ status: "preparing", is_late: true, is_picked: true, count: 3 },
 		]);
+
 		expect(counts.late).toBe(3);
 		expect(counts.late_picked).toBe(3);
 		expect(counts.picked).toBe(3);
@@ -54,6 +58,7 @@ describe("foldTabCounts com bucket picked", () => {
 		const counts = foldTabCounts([
 			{ status: "shipped", is_late: false, is_picked: true, count: 1 },
 		]);
+
 		expect(counts.shipped).toBe(1);
 		expect(counts.picked).toBe(0);
 	});
@@ -77,6 +82,7 @@ describe("foldTabCounts — bucket de triagem (is_unassigned)", () => {
 				count: 6,
 			},
 		]);
+
 		// Overlay ortogonal: os 4 na triagem também estão em "Pago".
 		expect(counts.unassigned).toBe(4);
 		expect(counts.paid).toBe(10);
@@ -86,6 +92,7 @@ describe("foldTabCounts — bucket de triagem (is_unassigned)", () => {
 		const counts = foldTabCounts([
 			{ status: "paid", is_late: false, is_picked: false, count: 3 },
 		]);
+
 		expect(counts.unassigned).toBe(0);
 	});
 });

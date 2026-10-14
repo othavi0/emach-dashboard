@@ -38,6 +38,7 @@ export function DeleteAttributeDialog({
 	function handleConfirm() {
 		startTransition(async () => {
 			const result = await deleteCategoryAttribute(attributeId, categoryId);
+
 			if (result.ok) {
 				notify.success("Atributo removido");
 				setOpen(false);

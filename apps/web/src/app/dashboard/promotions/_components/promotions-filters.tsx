@@ -31,6 +31,7 @@ import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
 import type { PromotionSort } from "../data";
 
 const BASE = "/dashboard/promotions";
+
 const TRACKED = [
 	"search",
 	"type",
@@ -68,10 +69,12 @@ const TYPE_OPTIONS: Array<{
 
 export function PromotionsFilters({ availableTools }: PromotionsFiltersProps) {
 	const router = useRouter();
+
 	const { setParam, clearAll, hasActive, searchParams } = useFilterState({
 		basePath: BASE,
 		trackedKeys: TRACKED,
 	});
+
 	const [search, setSearch] = useDebouncedParam({
 		basePath: BASE,
 		key: "search",
@@ -88,14 +91,19 @@ export function PromotionsFilters({ availableTools }: PromotionsFiltersProps) {
 				(currentToolId !== "all" && currentToolId)
 		)
 	);
+
 	const [discountMin, setDiscountMin] = useState<number | undefined>(() => {
 		const v = searchParams.get("discountMin");
+
 		return v ? Number(v) : undefined;
 	});
+
 	const [discountMax, setDiscountMax] = useState<number | undefined>(() => {
 		const v = searchParams.get("discountMax");
+
 		return v ? Number(v) : undefined;
 	});
+
 	const [toolPopoverOpen, setToolPopoverOpen] = useState(false);
 
 	const selectedTool = availableTools.find((t) => t.id === currentToolId);
@@ -103,16 +111,19 @@ export function PromotionsFilters({ availableTools }: PromotionsFiltersProps) {
 	// Aplica min+max num único replace (evita o closure-staleness de 2x setParam)
 	function applyDiscountRange() {
 		const next = new URLSearchParams(searchParams.toString());
+
 		if (typeof discountMin === "number") {
 			next.set("discountMin", String(discountMin));
 		} else {
 			next.delete("discountMin");
 		}
+
 		if (typeof discountMax === "number") {
 			next.set("discountMax", String(discountMax));
 		} else {
 			next.delete("discountMax");
 		}
+
 		const qs = next.toString();
 		router.replace(qs ? `${BASE}?${qs}` : BASE);
 	}

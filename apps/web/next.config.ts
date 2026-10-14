@@ -16,6 +16,7 @@ const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
 const cspConnectSrc = supabaseHostname
 	? `'self' https://${supabaseHostname}`
 	: "'self'";
+
 const cspImgSrc = supabaseHostname
 	? `'self' data: https://${supabaseHostname} https://i.pravatar.cc`
 	: "'self' data: https://i.pravatar.cc";

@@ -48,7 +48,9 @@ export function DestructiveActionDialog({
 		if (tooShort) {
 			return;
 		}
+
 		const result = onConfirm(reason.trim());
+
 		if (result instanceof Promise) {
 			result.catch(() => undefined);
 		}

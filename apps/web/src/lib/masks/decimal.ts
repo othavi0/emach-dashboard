@@ -11,6 +11,7 @@ function formatDecimal(raw: number | undefined): string {
 	if (raw === undefined || Number.isNaN(raw)) {
 		return "";
 	}
+
 	return String(raw).replace(".", ",");
 }
 
