@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+import type { JsonValue } from "../utils";
 import { user } from "./auth";
 
 export const userActivityLog = pgTable(
@@ -13,7 +14,7 @@ export const userActivityLog = pgTable(
 		action: text("action").notNull(),
 		targetType: text("target_type"),
 		targetId: text("target_id"),
-		metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+		metadata: jsonb("metadata").$type<{ [key: string]: JsonValue }>(),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),

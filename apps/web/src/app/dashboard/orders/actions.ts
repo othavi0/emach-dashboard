@@ -74,15 +74,27 @@ export async function fetchOrdersPage(args: {
 	return await fetchOrdersPageImpl(args);
 }
 
-const STATUS_TIMESTAMP_MAP: Partial<Record<OrderStatus, string>> = {
-	paid: "paidAt",
-	preparing: "preparingAt",
-	shipped: "shippedAt",
-	delivered: "deliveredAt",
-	canceled: "canceledAt",
-	returned: "returnedAt",
-	refunded: "refundedAt",
-};
+type OrderUpdate = Partial<typeof order.$inferInsert>;
+
+type OrderTimestampField =
+	| "paidAt"
+	| "preparingAt"
+	| "shippedAt"
+	| "deliveredAt"
+	| "canceledAt"
+	| "returnedAt"
+	| "refundedAt";
+
+const STATUS_TIMESTAMP_MAP: Partial<Record<OrderStatus, OrderTimestampField>> =
+	{
+		paid: "paidAt",
+		preparing: "preparingAt",
+		shipped: "shippedAt",
+		delivered: "deliveredAt",
+		canceled: "canceledAt",
+		returned: "returnedAt",
+		refunded: "refundedAt",
+	};
 
 // Mensagens do gate de envio, indexadas pelo FulfillmentState que bloqueia o
 // despacho (todos exceto "picked"). Não exportado: arquivo é "use server" e
@@ -153,16 +165,20 @@ export async function lockOrderAndAuthorize(
 	return { status: locked.status, branchId: locked.branchId, session };
 }
 
+/** Metadata gravado em `order_event` por tipo de evento. */
+type OrderEventPayload =
+	| { eventType: "tracking_set"; metadata: { trackingCode: string } }
+	| {
+			eventType: "branch_assigned";
+			metadata: { branchId: string; branchName: string };
+	  }
+	| { eventType: "shipping_reviewed"; metadata: Record<never, never> }
+	| { eventType: "ship_forced"; metadata: { reason?: string } };
+
 async function insertOrderEvent(
 	tx: OrderTx,
-	args: {
+	args: OrderEventPayload & {
 		orderId: string;
-		eventType:
-			| "tracking_set"
-			| "branch_assigned"
-			| "shipping_reviewed"
-			| "ship_forced";
-		metadata: Record<string, unknown>;
 		actorUserId: string | null;
 	}
 ): Promise<void> {
@@ -181,8 +197,8 @@ function buildOrderStatusUpdate(
 	toStatus: OrderStatus,
 	trackingCode: string | undefined,
 	branchId: string | undefined
-): Record<string, unknown> {
-	const updates: Record<string, unknown> = { status: toStatus };
+): OrderUpdate {
+	const updates: OrderUpdate = { status: toStatus };
 	const tsField = STATUS_TIMESTAMP_MAP[toStatus];
 
 	if (tsField) {

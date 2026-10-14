@@ -48,15 +48,19 @@ type HasFlagsSource = Pick<
 // Fonte única dos flags has* consumidos por legacyToComposition — antes
 // triplicado (idêntico) em backfill-banner-composition.ts, editor-reducer.ts
 // e banner-card.tsx. Zero mudança de semântica: só dedup (fix round 1, T14).
-export function deriveHasFlagsFromBanner(banner: HasFlagsSource): {
-	hasTitle: boolean;
-	hasSubtitle: boolean;
+export interface BannerHasFlags {
 	hasBadge: boolean;
-	hasSpecs: boolean;
 	hasCountdown: boolean;
-	hasProduct: boolean;
 	hasCta: boolean;
-} {
+	hasProduct: boolean;
+	hasSpecs: boolean;
+	hasSubtitle: boolean;
+	hasTitle: boolean;
+}
+
+export function deriveHasFlagsFromBanner(
+	banner: HasFlagsSource
+): BannerHasFlags {
 	return {
 		hasTitle: banner.title !== null,
 		hasSubtitle: banner.subtitle !== null,

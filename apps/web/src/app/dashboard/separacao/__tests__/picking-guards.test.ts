@@ -75,39 +75,58 @@ type SetPayload =
 	| Partial<typeof orderPicking.$inferInsert>
 	| Partial<typeof orderPickingItem.$inferInsert>;
 
+interface SelectChain {
+	for: () => SelectChain;
+	from: () => SelectChain;
+	leftJoin: () => SelectChain;
+	limit: () => Promise<unknown[]>;
+	orderBy: () => SelectChain;
+	then: (resolve: (v: unknown[]) => void) => void;
+	where: () => SelectChain;
+}
+
+interface UpdateChain {
+	set: (arg: SetPayload) => UpdateChain;
+	where: () => Promise<{ rowCount: number }>;
+}
+
+interface CapturedSet {
+	lastSetArg: SetPayload | undefined;
+}
+
 function makeTx(selectResults: unknown[][]) {
 	let i = 0;
 
 	// Closure gravando o último argumento passado a `.set()` — permite asserção
 	// de auditoria (status/actor/reason) sem reimplementar um mock de update.
-	const captured: { lastSetArg: SetPayload | undefined } = {
+	const captured: CapturedSet = {
 		lastSetArg: undefined,
 	};
 
 	const chain = (result: unknown[]) => {
-		const c: Record<string, unknown> = {
+		const c: SelectChain = {
 			// biome-ignore lint/suspicious/noThenProperty: thenable mock — allows `await tx.select()...where()` without a terminal `.limit()` (createPickingItems' orderItem load)
 			then: (resolve: (v: unknown[]) => void) => resolve(result),
+			from: vi.fn(() => c),
+			leftJoin: vi.fn(() => c),
+			where: vi.fn(() => c),
+			for: vi.fn(() => c),
+			limit: vi.fn(() => Promise.resolve(result)),
+			orderBy: vi.fn(() => c),
 		};
-
-		c.from = vi.fn(() => c);
-		c.leftJoin = vi.fn(() => c);
-		c.where = vi.fn(() => c);
-		c.for = vi.fn(() => c);
-		c.limit = vi.fn(() => Promise.resolve(result));
-		c.orderBy = vi.fn(() => c);
 
 		return c;
 	};
 
 	const update = () => {
-		const c: Record<string, unknown> = {};
-		c.set = vi.fn((arg: SetPayload) => {
-			captured.lastSetArg = arg;
+		const c: UpdateChain = {
+			set: vi.fn((arg: SetPayload) => {
+				captured.lastSetArg = arg;
 
-			return c;
-		});
-		c.where = vi.fn(() => Promise.resolve({ rowCount: 1 }));
+				return c;
+			}),
+			where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
+		};
 
 		return c;
 	};

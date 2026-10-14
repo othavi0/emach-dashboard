@@ -390,8 +390,11 @@ export const SECTION_ORDER: readonly NavSection[] = [
 	"Administração",
 ];
 
+type CapabilityResource = (typeof CAPABILITIES)[Capability]["resource"];
+
 // Recurso (meta.resource) → seção da sidebar. Alinha a tela de permissões à navegação.
-const RESOURCE_SECTION: Record<string, NavSection> = {
+// O satisfies exige uma seção para todo resource declarado em CAPABILITIES.
+const RESOURCE_SECTION = {
 	Pedidos: "Operação",
 	Filiais: "Operação",
 	Ferramentas: "Catálogo",
@@ -407,13 +410,10 @@ const RESOURCE_SECTION: Record<string, NavSection> = {
 	Usuários: "Administração",
 	Permissões: "Administração",
 	Auditoria: "Administração",
-};
+} as const satisfies Record<CapabilityResource, NavSection>;
 
 export function sectionForCapability(cap: Capability): NavSection {
-	// RESOURCE_SECTION cobre todo resource declarado em CAPABILITIES.
-	// O teste "toda capability tem uma seção em SECTION_ORDER" garante exaustividade.
-	// biome-ignore lint/style/noNonNullAssertion: cobertura garantida pelo teste de regressão
-	return RESOURCE_SECTION[CAPABILITIES[cap].resource]!;
+	return RESOURCE_SECTION[CAPABILITIES[cap].resource];
 }
 
 export function roleDefaultCapabilities(role: UserRole): Set<Capability> {

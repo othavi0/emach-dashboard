@@ -1,5 +1,6 @@
 "use client";
 
+import type { UserRole } from "@emach/db/schema/auth";
 import {
 	Avatar,
 	AvatarFallback,
@@ -38,11 +39,14 @@ export function getSidebarProfileHref(userId: string): string {
 	return `/dashboard/users/${userId}`;
 }
 
-const ROLE_LABEL: Record<string, string> = {
-	super_admin: "Super admin",
-	admin: "Admin",
-	user: "Usuário",
-};
+// `FooterUser.role` é string da sessão; o Map devolve undefined fora do enum.
+const ROLE_LABEL = new Map<string, string>(
+	Object.entries({
+		super_admin: "Super admin",
+		admin: "Admin",
+		user: "Usuário",
+	} satisfies Record<UserRole, string>)
+);
 
 export function SidebarFooterUser({ user }: { user: FooterUser }) {
 	const router = useRouter();
@@ -87,7 +91,7 @@ export function SidebarFooterUser({ user }: { user: FooterUser }) {
 	};
 
 	const profileHref = getSidebarProfileHref(user.id);
-	const roleLabel = user.role ? (ROLE_LABEL[user.role] ?? user.role) : null;
+	const roleLabel = user.role ? (ROLE_LABEL.get(user.role) ?? user.role) : null;
 
 	const avatar = (
 		<Avatar size="default">

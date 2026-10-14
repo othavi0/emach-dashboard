@@ -40,24 +40,28 @@ import { fetchToolActivityPage, getToolActivity } from "../tool-activity-data";
 const FORBIDDEN = new Error('Forbidden: capability "stock.read" requerida');
 const SESSION = { user: { id: "usr_1", role: "user" } };
 
+interface SelectChain {
+	from: () => SelectChain;
+	innerJoin: () => SelectChain;
+	leftJoin: () => SelectChain;
+	limit: () => Promise<unknown[]>;
+	orderBy: () => SelectChain;
+	then: (resolve: (v: unknown[]) => void) => void;
+	where: () => SelectChain;
+}
+
 // Chain de select que resolve [] em qualquer terminal (where/limit/orderBy).
 function makeSelectChain(result: unknown[] = []) {
-	const chain: Record<string, unknown> = {
+	const chain: SelectChain = {
+		from: vi.fn(() => chain),
+		innerJoin: vi.fn(() => chain),
+		leftJoin: vi.fn(() => chain),
+		limit: vi.fn(() => Promise.resolve(result)),
+		orderBy: vi.fn(() => chain),
 		// biome-ignore lint/suspicious/noThenProperty: thenable mock — permite await sem terminal explícito
 		then: (resolve: (v: unknown[]) => void) => resolve(result),
+		where: vi.fn(() => chain),
 	};
-
-	for (const m of [
-		"from",
-		"innerJoin",
-		"leftJoin",
-		"where",
-		"orderBy",
-	] as const) {
-		chain[m] = vi.fn(() => chain);
-	}
-
-	chain.limit = vi.fn(() => Promise.resolve(result));
 
 	return chain;
 }

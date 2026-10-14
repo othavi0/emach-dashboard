@@ -1,4 +1,5 @@
 import type { ClientStatus, ClientType } from "@emach/db/schema/client";
+import type { OrderStatus } from "@emach/db/schema/orders";
 
 const WHITESPACE_RE = /\s+/;
 
@@ -29,7 +30,9 @@ export const CLIENT_TYPE_CONFIG: Record<
 	b2b: { label: "Pessoa Jurídica (B2B)", variant: "warning" },
 };
 
-export const ORDER_STATUS_LABELS: Record<string, string> = {
+// Partial de propósito: payment_failed e returned caem no fallback do caller
+// (o próprio status), comportamento herdado. Completar o mapa muda o texto visível.
+export const ORDER_STATUS_LABELS: Partial<Record<OrderStatus, string>> = {
 	pending_payment: "Aguardando pagamento",
 	paid: "Pago",
 	preparing: "Preparando",

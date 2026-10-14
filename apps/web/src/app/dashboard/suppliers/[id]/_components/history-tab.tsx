@@ -1,16 +1,17 @@
+import type { SupplierAuditAction } from "@emach/db/schema/supplier-audit";
 import {
 	type AuditEntry,
 	EntityAuditLogTable,
 } from "@/components/entity/entity-audit-log-table";
 import type { SupplierAuditRow } from "../../data";
 
-const ACTION_LABELS: Record<string, string> = {
+const ACTION_LABELS = {
 	created: "Criado",
 	profile_updated: "Atualizado",
 	deleted: "Removido",
 	archived: "Arquivado",
 	restored: "Restaurado",
-};
+} as const satisfies Record<SupplierAuditAction, string>;
 
 export function HistoryTab({ rows }: { rows: SupplierAuditRow[] }) {
 	const entries: AuditEntry[] = rows.map((r) => ({

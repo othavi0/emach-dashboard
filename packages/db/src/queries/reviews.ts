@@ -1,5 +1,4 @@
 import { and, eq, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import { order, orderItem } from "../schema/orders";
 import type { Review } from "../schema/reviews";
@@ -33,10 +32,8 @@ export type CanCreateReviewResult =
 	| { ok: true }
 	| { ok: false; reason: CanCreateReviewReason };
 
-type LocalAnyDb = NodePgDatabase<Record<string, unknown>>;
-
 export async function canCreateReview(
-	db: LocalAnyDb,
+	db: AnyDb,
 	input: CanCreateReviewInput
 ): Promise<CanCreateReviewResult> {
 	const { clientId, orderId, toolId } = input;

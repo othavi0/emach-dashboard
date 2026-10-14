@@ -11,10 +11,13 @@ import {
 
 import type { BranchActivityRow } from "../activity-data";
 
-const TEAM_ACTION_LABEL: Record<string, string> = {
-	"branch.created": "Filial criada",
-	"branch.updated": "Filial atualizada",
-};
+// Map: `action` chega como string livre do log de atividade.
+const TEAM_ACTION_LABEL = new Map(
+	Object.entries({
+		"branch.created": "Filial criada",
+		"branch.updated": "Filial atualizada",
+	})
+);
 
 function dayLabel(date: Date, now: Date): string {
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -131,7 +134,7 @@ function teamVisual(r: BranchActivityRow): RowVisual {
 	} else if (r.action === "user.branch_unlinked") {
 		text = `${r.memberName ?? "Membro"} removido da equipe`;
 	} else {
-		text = TEAM_ACTION_LABEL[r.action ?? ""] ?? r.action ?? "—";
+		text = TEAM_ACTION_LABEL.get(r.action ?? "") ?? r.action ?? "—";
 	}
 
 	return {

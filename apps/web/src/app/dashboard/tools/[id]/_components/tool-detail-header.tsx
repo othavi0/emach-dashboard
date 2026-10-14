@@ -1,25 +1,26 @@
+import type { ToolStatus } from "@emach/db/schema/tools";
 import { Alert, AlertDescription } from "@emach/ui/components/alert";
 import { Badge } from "@emach/ui/components/badge";
 import { Eye, EyeOff, TriangleAlert, Wrench } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 import { EntityIdentityHeader } from "@/components/entity/entity-identity-header";
 import type { ToolDetail } from "../_lib/tool-detail-data";
 
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL = {
 	active: "Ativa",
 	draft: "Rascunho",
 	discontinued: "Descontinuada",
-};
+} as const satisfies Record<ToolStatus, string>;
 
-const STATUS_VARIANT: Record<
-	string,
-	"default" | "destructive" | "outline" | "secondary" | "success"
-> = {
+const STATUS_VARIANT = {
 	active: "success",
 	draft: "secondary",
 	discontinued: "outline",
-};
+} as const satisfies Record<
+	ToolStatus,
+	ComponentProps<typeof Badge>["variant"]
+>;
 
 interface ToolDetailHeaderProps {
 	actions?: ReactNode;
@@ -48,8 +49,8 @@ export function ToolDetailHeader({ detail, actions }: ToolDetailHeaderProps) {
 				avatarUrl={cover?.url}
 				badges={
 					<>
-						<Badge variant={STATUS_VARIANT[tool.status] ?? "secondary"}>
-							{STATUS_LABEL[tool.status] ?? tool.status}
+						<Badge variant={STATUS_VARIANT[tool.status]}>
+							{STATUS_LABEL[tool.status]}
 						</Badge>
 						{tool.status === "active" && stockSummary.totalStock === 0 && (
 							<Badge variant="destructive">Esgotado</Badge>

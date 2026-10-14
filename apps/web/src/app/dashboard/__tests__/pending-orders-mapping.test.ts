@@ -23,7 +23,19 @@ const isoHoursAgo = (h: number) =>
 	new Date(Date.now() - h * HOUR_MS).toISOString();
 
 // Linha crua no formato que db.execute devolve (snake_case, timestamp string).
-function row(overrides: Record<string, unknown> = {}) {
+// Espelha o genérico de db.execute em fetchPendingOrders.
+interface PendingOrderSqlRow {
+	client_name: string;
+	created_at: string;
+	id: string;
+	number: string;
+	paid_at: string | null;
+	picking_status: string | null;
+	preparing_at: string | null;
+	status: string;
+}
+
+function row(overrides: Partial<PendingOrderSqlRow> = {}): PendingOrderSqlRow {
 	const recent = isoHoursAgo(1);
 
 	return {

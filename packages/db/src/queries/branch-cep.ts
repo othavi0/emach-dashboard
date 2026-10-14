@@ -1,6 +1,6 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { branch } from "../schema/inventory";
+import type { AnyDb } from "./catalog-helpers";
 
 export interface CepRange {
 	from: string;
@@ -65,7 +65,7 @@ export function matchBranchByCep(
 
 /** Consulta filiais ativas com faixas e roda o match. Conveniência server-side. */
 export async function getBranchByCep(
-	db: NodePgDatabase<Record<string, unknown>>,
+	db: AnyDb,
 	cep: string
 ): Promise<{ id: string; name: string } | null> {
 	const normalized = normalizeCep(cep);

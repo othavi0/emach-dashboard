@@ -5,7 +5,7 @@
  */
 
 /** Voz passiva: o que aconteceu COM o usuário (ele é o alvo). */
-export const ACTIVITY_LABELS_AFFECTING: Record<string, string> = {
+const ACTIVITY_LABELS_AFFECTING_ENTRIES = {
 	"user.approved": "Foi aprovado",
 	"user.rejected": "Foi rejeitado",
 	"user.updated": "Foi atualizado",
@@ -17,10 +17,14 @@ export const ACTIVITY_LABELS_AFFECTING: Record<string, string> = {
 	"user.all_sessions_revoked": "Todas as sessões revogadas",
 	"user.branch_linked": "Filial vinculada",
 	"user.branch_unlinked": "Filial desvinculada",
-};
+} as const satisfies Record<string, string>;
+
+export const ACTIVITY_LABELS_AFFECTING = new Map<string, string>(
+	Object.entries(ACTIVITY_LABELS_AFFECTING_ENTRIES)
+);
 
 /** Voz ativa: o que o usuário FEZ (ele é o ator). */
-export const ACTIVITY_LABELS_BY: Record<string, string> = {
+const ACTIVITY_LABELS_BY_ENTRIES = {
 	"user.approved": "Aprovou usuário",
 	"user.rejected": "Rejeitou usuário",
 	"user.updated": "Atualizou usuário",
@@ -35,4 +39,8 @@ export const ACTIVITY_LABELS_BY: Record<string, string> = {
 	"tool.created": "Criou ferramenta",
 	"tool.updated": "Atualizou ferramenta",
 	"tool.deleted": "Deletou ferramenta",
-};
+} as const satisfies Record<string, string>;
+
+export const ACTIVITY_LABELS_BY = new Map<string, string>(
+	Object.entries(ACTIVITY_LABELS_BY_ENTRIES)
+);

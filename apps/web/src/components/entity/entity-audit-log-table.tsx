@@ -1,5 +1,6 @@
 "use client";
 
+import type { JsonValue } from "@emach/db/utils";
 import { Badge } from "@emach/ui/components/badge";
 import {
 	Table,
@@ -22,9 +23,9 @@ import { formatDateTime } from "@/lib/format/datetime";
 export interface AuditEntry {
 	action: string;
 	actor: { id: string | null; name: string; type: "user" | "system" };
-	after?: Record<string, unknown> | null;
+	after?: { [key: string]: JsonValue } | null;
 	at: Date;
-	before?: Record<string, unknown> | null;
+	before?: { [key: string]: JsonValue } | null;
 	id: string;
 	reason?: string | null;
 	target?: { label: string; href?: string };

@@ -62,6 +62,12 @@ function pluralSuffix(count: number): string {
 	return count === 1 ? "" : "s";
 }
 
+/** Toast de ação em lote, consumido direto por `notify[kind](message)`. */
+interface BulkToast {
+	kind: "success" | "warning";
+	message: string;
+}
+
 /**
  * Extraído do callback de `runBulkSeparation` para ficar sob o teto de
  * complexidade cognitiva do ultracite (o inline original somava 23 > 20
@@ -70,7 +76,7 @@ function pluralSuffix(count: number): string {
 function buildBulkSeparationToast(
 	moved: number,
 	skipped: { number: string; reason: string }[]
-): { kind: "success" | "warning"; message: string } {
+): BulkToast {
 	if (skipped.length === 0) {
 		return {
 			kind: "success",
@@ -91,7 +97,7 @@ function buildBulkSeparationToast(
 function buildBulkAssignToast(
 	assigned: number,
 	skipped: { number: string; reason: string }[]
-): { kind: "success" | "warning"; message: string } {
+): BulkToast {
 	if (skipped.length === 0) {
 		return {
 			kind: "success",

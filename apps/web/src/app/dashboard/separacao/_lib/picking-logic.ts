@@ -184,10 +184,15 @@ export const BULK_PICKING_EXCEPTION_OWNER_LABEL = "exceção de outro operador";
 
 // ─── Agrupamento da fila por operador (mockup A, spec 2026-07-17) ────────────
 
+export interface QueueOwnershipSplit<T> {
+	mine: T[];
+	others: T[];
+}
+
 export function splitQueueByOwnership<T extends { pickerUserId?: string }>(
 	items: T[],
 	sessionUserId: string
-): { mine: T[]; others: T[] } {
+): QueueOwnershipSplit<T> {
 	const mine: T[] = [];
 	const others: T[] = [];
 

@@ -33,14 +33,16 @@ interface LazyTabState<T> {
 	status: LazyTabStatus;
 }
 
+export interface LazyTabResult<T> {
+	data: T | null;
+	retry: () => void;
+	status: LazyTabStatus;
+}
+
 export function useLazyTab<T>(
 	load: () => Promise<T>,
 	reloadKey?: string
-): {
-	status: LazyTabStatus;
-	data: T | null;
-	retry: () => void;
-} {
+): LazyTabResult<T> {
 	const [state, setState] = useState<LazyTabState<T>>({
 		attempt: 0,
 		data: null,

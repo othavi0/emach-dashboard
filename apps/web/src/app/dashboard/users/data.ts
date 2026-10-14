@@ -8,6 +8,7 @@ import {
 } from "@emach/db/schema/auth";
 import { branch, userBranch } from "@emach/db/schema/inventory";
 import { userActivityLog } from "@emach/db/schema/user-activity";
+import type { JsonValue } from "@emach/db/utils";
 import {
 	and,
 	asc,
@@ -22,6 +23,7 @@ import {
 	type SQL,
 	sql,
 } from "drizzle-orm";
+import { z } from "zod";
 
 import type { BranchScope } from "@/lib/branch-scope";
 
@@ -379,9 +381,18 @@ export interface UserActivityRow {
 	action: string;
 	createdAt: Date;
 	id: string;
-	metadata: Record<string, unknown> | null;
+	metadata: { [key: string]: JsonValue } | null;
 	targetId: string | null;
 	targetType: string | null;
+}
+
+// Ator removido do banco: o nome sobrevive no metadata do log, gravado como texto.
+const metadataActorNameSchema = z.string().nullable().catch(null);
+
+function metadataActorName(
+	metadata: { [key: string]: JsonValue } | null
+): string | null {
+	return metadataActorNameSchema.parse(metadata?.actorName ?? null);
 }
 
 export async function getUserActivity(
@@ -483,15 +494,10 @@ export async function getUserAffectedActivity(
 	return {
 		items: items.map((r) => ({
 			action: r.action,
-			actorName:
-				r.actorName ??
-				((r.metadata as Record<string, unknown> | null)?.actorName as
-					| string
-					| null) ??
-				null,
+			actorName: r.actorName ?? metadataActorName(r.metadata),
 			createdAt: r.createdAt,
 			id: r.id,
-			metadata: (r.metadata as Record<string, unknown> | null) ?? null,
+			metadata: r.metadata ?? null,
 			targetId: r.targetId,
 			targetType: r.targetType,
 		})),

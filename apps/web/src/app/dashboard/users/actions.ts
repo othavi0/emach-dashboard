@@ -54,7 +54,12 @@ const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 const AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-function makeInviteToken(): { token: string; expiresAt: Date } {
+interface InviteToken {
+	expiresAt: Date;
+	token: string;
+}
+
+function makeInviteToken(): InviteToken {
 	return {
 		token: randomBytes(32).toString("base64url"),
 		expiresAt: new Date(Date.now() + INVITE_TTL_MS),
@@ -391,11 +396,9 @@ export async function updateUser(
 		}
 
 		await db.transaction(async (tx) => {
-			const update: {
-				name?: string;
-				role?: UpdateUserInput["role"];
-				emailVerified?: boolean;
-			} = {};
+			const update: Partial<
+				Pick<typeof userTable.$inferInsert, "emailVerified" | "name" | "role">
+			> = {};
 
 			if (parsed.data.name) {
 				update.name = parsed.data.name;
@@ -431,7 +434,9 @@ export async function updateUser(
 		return { ok: false, error: message };
 	}
 
-	const changes: Record<string, unknown> = {};
+	const changes: Partial<
+		Pick<typeof parsed.data, "emailVerified" | "name" | "role">
+	> = {};
 
 	if (parsed.data.name !== undefined) {
 		changes.name = parsed.data.name;
@@ -472,7 +477,8 @@ export async function updateOwnProfile(
 		return { ok: false, error: "validação" };
 	}
 
-	const update: { name?: string; image?: string | null } = {};
+	const update: Partial<Pick<typeof userTable.$inferInsert, "image" | "name">> =
+		{};
 
 	if (parsed.data.name !== undefined) {
 		update.name = parsed.data.name;

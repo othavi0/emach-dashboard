@@ -65,7 +65,11 @@ describe("getPgError", () => {
 	});
 
 	it("não entra em loop com cadeia .cause circular", () => {
-		const a: { cause?: unknown } = {};
+		interface CircularError {
+			cause?: CircularError;
+		}
+
+		const a: CircularError = {};
 		a.cause = a;
 		expect(getPgError(a)).toBeNull();
 	});

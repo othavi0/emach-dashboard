@@ -1,6 +1,9 @@
 import type { CSSProperties } from "react";
 import {
+	ANCHOR_PARTS,
 	type Anchor9,
+	type AnchorCol,
+	type AnchorRow,
 	anchorBasePosition,
 	type BackgroundConfig,
 	type BannerComposition,
@@ -9,36 +12,41 @@ import {
 } from "./composition-schema";
 
 // Deslocamento de translate p/ ancorar o ponto de referência no elemento
-// (col = horizontal, row = vertical), indexado por charAt (noUncheckedIndexedAccess).
-const TX_BY_COL: Record<string, string> = { l: "0%", c: "-50%", r: "-100%" };
-const TY_BY_ROW: Record<string, string> = { t: "0%", m: "-50%", b: "-100%" };
+// (col = horizontal, row = vertical).
+const TX_BY_COL = {
+	l: "0%",
+	c: "-50%",
+	r: "-100%",
+} as const satisfies Record<AnchorCol, string>;
 
-const PCT_BY_AXIS: Record<string, string> = {
+const TY_BY_ROW = {
+	t: "0%",
+	m: "-50%",
+	b: "-100%",
+} as const satisfies Record<AnchorRow, string>;
+
+const PCT_BY_COL = {
 	l: "0%",
 	c: "50%",
 	r: "100%",
+} as const satisfies Record<AnchorCol, string>;
+
+const PCT_BY_ROW = {
 	t: "0%",
 	m: "50%",
 	b: "100%",
-};
-
-function colOf(anchor: Anchor9): string {
-	return anchor.charAt(1);
-}
-
-function rowOf(anchor: Anchor9): string {
-	return anchor.charAt(0);
-}
+} as const satisfies Record<AnchorRow, string>;
 
 export function placementToStyle(
 	p: ElementPlacement,
 	viewport: Viewport
 ): CSSProperties {
 	const base = anchorBasePosition(p.anchor, viewport);
-	const tx = TX_BY_COL[colOf(p.anchor)] ?? "0%";
-	const ty = TY_BY_ROW[rowOf(p.anchor)] ?? "0%";
-	const originX = PCT_BY_AXIS[colOf(p.anchor)] ?? "50%";
-	const originY = PCT_BY_AXIS[rowOf(p.anchor)] ?? "50%";
+	const { row, col } = ANCHOR_PARTS[p.anchor];
+	const tx = TX_BY_COL[col];
+	const ty = TY_BY_ROW[row];
+	const originX = PCT_BY_COL[col];
+	const originY = PCT_BY_ROW[row];
 
 	const style: CSSProperties = {
 		left: `${base.x + p.offsetX}%`,
@@ -55,8 +63,9 @@ export function placementToStyle(
 }
 
 export function focalToObjectPosition(focal: Anchor9): string {
-	const x = PCT_BY_AXIS[colOf(focal)] ?? "50%";
-	const y = PCT_BY_AXIS[rowOf(focal)] ?? "50%";
+	const { row, col } = ANCHOR_PARTS[focal];
+	const x = PCT_BY_COL[col];
+	const y = PCT_BY_ROW[row];
 
 	return `${x} ${y}`;
 }
@@ -76,7 +85,7 @@ export function textSide(c: BannerComposition): "left" | "right" | "center" {
 		return "center";
 	}
 
-	const col = colOf(a);
+	const { col } = ANCHOR_PARTS[a];
 
 	if (col === "l") {
 		return "left";

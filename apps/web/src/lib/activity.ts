@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@emach/db";
 import { user as userTable } from "@emach/db/schema/auth";
 import { userActivityLog } from "@emach/db/schema/user-activity";
+import type { JsonValue } from "@emach/db/utils";
 import { eq } from "drizzle-orm";
 
 import { logger } from "./logger";
@@ -10,7 +11,7 @@ import { logger } from "./logger";
 export interface LogUserActivityInput {
 	action: string;
 	actorUserId: string;
-	metadata?: Record<string, unknown>;
+	metadata?: { [key: string]: JsonValue };
 	targetId?: string;
 	targetType?: string;
 }

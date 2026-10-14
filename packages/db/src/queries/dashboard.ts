@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { orderStatusEnum } from "../schema/orders";
+import type { AnyDb } from "./catalog-helpers";
 import {
 	computeDeltaPct,
 	type DashboardPeriod,
@@ -11,8 +11,6 @@ import {
 	REVENUE_ORDER_STATUSES,
 	sqlStatusList,
 } from "./order-status-groups";
-
-type AnyDb = NodePgDatabase<Record<string, unknown>>;
 
 /** Ordem canônica do ciclo de vida (não a ordem de ADD VALUE do enum). */
 export const ORDER_STATUS_FUNNEL = [

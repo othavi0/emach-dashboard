@@ -65,21 +65,20 @@ function cnpjFromRoot(root8: string): string {
 	return `${base}${dv1}${dv2}`; // 14 dígitos, só números
 }
 
-const BRANCH_ENRICH: Record<
-	string,
-	{
-		cep: string;
-		street: string;
-		streetNumber: string;
-		complement: string | null;
-		neighborhood: string;
-		city: string;
-		state: string;
-		phone: string;
-		responsibleEmail: string;
-		cepRanges: Array<{ from: string; to: string; label: string }>;
-	}
-> = {
+interface BranchEnrich {
+	cep: string;
+	cepRanges: Array<{ from: string; to: string; label: string }>;
+	city: string;
+	complement: string | null;
+	neighborhood: string;
+	phone: string;
+	responsibleEmail: string;
+	state: string;
+	street: string;
+	streetNumber: string;
+}
+
+const BRANCH_ENRICH = {
 	"Matriz — São Paulo": {
 		cep: "04101000",
 		street: "Rua Vergueiro",
@@ -120,7 +119,7 @@ const BRANCH_ENRICH: Record<
 			{ from: "14000000", to: "14109999", label: "Ribeirão Preto e região" },
 		],
 	},
-};
+} satisfies Record<string, BranchEnrich>;
 
 const BUSINESS_HOURS = {
 	weekdays: {
@@ -146,110 +145,123 @@ const BUSINESS_HOURS = {
 	},
 };
 
-const SUPPLIER_ENRICH: Record<
-	string,
-	{ root8: string; email: string; phone: string; website: string }
-> = {
-	"Bosch Ferramentas Ltda": {
-		root8: "51000001",
-		email: "vendas@bosch-demo.com.br",
-		phone: "(11) 2126-1100",
-		website: "https://www.bosch.com.br",
-	},
-	"Makita do Brasil Ferramentas": {
-		root8: "51000002",
-		email: "vendas@makita-demo.com.br",
-		phone: "(11) 4589-8500",
-		website: "https://www.makita.com.br",
-	},
-	"Stanley Black & Decker Brasil": {
-		root8: "51000003",
-		email: "contato@stanley-demo.com.br",
-		phone: "(11) 3789-6000",
-		website: "https://www.stanleyblackanddecker.com.br",
-	},
-	"Grupo Tramontina Industrial": {
-		root8: "51000004",
-		email: "comercial@tramontina-demo.com.br",
-		phone: "(54) 3461-7000",
-		website: "https://www.tramontina.com.br",
-	},
-	"Vonder Importações e Comércio": {
-		root8: "51000005",
-		email: "vendas@vonder-demo.com.br",
-		phone: "(41) 3535-1900",
-		website: "https://www.vonder.com.br",
-	},
-	"Ferramentas Ciser Distribuidora": {
-		root8: "51000006",
-		email: "comercial@ciser-demo.com.br",
-		phone: "(47) 3441-8000",
-		website: "https://www.ciser.com.br",
-	},
-};
+interface SupplierEnrich {
+	email: string;
+	phone: string;
+	root8: string;
+	website: string;
+}
+
+// Map porque a chave vem de `supplier.name` lido do banco (string qualquer).
+const SUPPLIER_ENRICH = new Map<string, SupplierEnrich>(
+	Object.entries({
+		"Bosch Ferramentas Ltda": {
+			root8: "51000001",
+			email: "vendas@bosch-demo.com.br",
+			phone: "(11) 2126-1100",
+			website: "https://www.bosch.com.br",
+		},
+		"Makita do Brasil Ferramentas": {
+			root8: "51000002",
+			email: "vendas@makita-demo.com.br",
+			phone: "(11) 4589-8500",
+			website: "https://www.makita.com.br",
+		},
+		"Stanley Black & Decker Brasil": {
+			root8: "51000003",
+			email: "contato@stanley-demo.com.br",
+			phone: "(11) 3789-6000",
+			website: "https://www.stanleyblackanddecker.com.br",
+		},
+		"Grupo Tramontina Industrial": {
+			root8: "51000004",
+			email: "comercial@tramontina-demo.com.br",
+			phone: "(54) 3461-7000",
+			website: "https://www.tramontina.com.br",
+		},
+		"Vonder Importações e Comércio": {
+			root8: "51000005",
+			email: "vendas@vonder-demo.com.br",
+			phone: "(41) 3535-1900",
+			website: "https://www.vonder.com.br",
+		},
+		"Ferramentas Ciser Distribuidora": {
+			root8: "51000006",
+			email: "comercial@ciser-demo.com.br",
+			phone: "(47) 3441-8000",
+			website: "https://www.ciser.com.br",
+		},
+	})
+);
+
+interface ToolEnrich {
+	hsCode: string;
+	manufacturer: string;
+	ncm: string;
+}
 
 // NCM real por categoria de ferramenta (capítulo 84.67 = ferramentas elétricas
 // portáteis motorizadas). manufacturer = marca plausível pela linha/SKU.
-const TOOL_ENRICH: Record<
-	string,
-	{ ncm: string; hsCode: string; manufacturer: string }
-> = {
-	"furadeira-de-impacto-650w": {
-		ncm: "84672100",
-		hsCode: "846721",
-		manufacturer: "Makita",
-	},
-	"parafusadeira-a-bateria-18v": {
-		ncm: "84672100",
-		hsCode: "846721",
-		manufacturer: "Makita",
-	},
-	"serra-circular-7-1-4-1400w": {
-		ncm: "84672200",
-		hsCode: "846722",
-		manufacturer: "Bosch",
-	},
-	"serra-tico-tico-500w": {
-		ncm: "84672200",
-		hsCode: "846722",
-		manufacturer: "Black & Decker",
-	},
-	"esmerilhadeira-angular-4-1-2-720w": {
-		ncm: "84672900",
-		hsCode: "846729",
-		manufacturer: "Bosch",
-	},
-	"lixadeira-orbital-300w": {
-		ncm: "84672900",
-		hsCode: "846729",
-		manufacturer: "Bosch",
-	},
-	"compressor-de-ar-100l-2hp": {
-		ncm: "84148019",
-		hsCode: "841480",
-		manufacturer: "Schulz",
-	},
-	"martelo-carpinteiro-27mm": {
-		ncm: "82052000",
-		hsCode: "820520",
-		manufacturer: "Tramontina",
-	},
-	"alicate-universal-8": {
-		ncm: "82032090",
-		hsCode: "820320",
-		manufacturer: "Tramontina",
-	},
-	"plaina-eletrica-82mm-600w": {
-		ncm: "84672900",
-		hsCode: "846729",
-		manufacturer: "Vonder",
-	},
-	"disco-de-corte-inox-4-1-2": {
-		ncm: "68042290",
-		hsCode: "680422",
-		manufacturer: "Bosch",
-	},
-};
+// Map porque a chave vem de `tool.slug` lido do banco (string qualquer).
+const TOOL_ENRICH = new Map<string, ToolEnrich>(
+	Object.entries({
+		"furadeira-de-impacto-650w": {
+			ncm: "84672100",
+			hsCode: "846721",
+			manufacturer: "Makita",
+		},
+		"parafusadeira-a-bateria-18v": {
+			ncm: "84672100",
+			hsCode: "846721",
+			manufacturer: "Makita",
+		},
+		"serra-circular-7-1-4-1400w": {
+			ncm: "84672200",
+			hsCode: "846722",
+			manufacturer: "Bosch",
+		},
+		"serra-tico-tico-500w": {
+			ncm: "84672200",
+			hsCode: "846722",
+			manufacturer: "Black & Decker",
+		},
+		"esmerilhadeira-angular-4-1-2-720w": {
+			ncm: "84672900",
+			hsCode: "846729",
+			manufacturer: "Bosch",
+		},
+		"lixadeira-orbital-300w": {
+			ncm: "84672900",
+			hsCode: "846729",
+			manufacturer: "Bosch",
+		},
+		"compressor-de-ar-100l-2hp": {
+			ncm: "84148019",
+			hsCode: "841480",
+			manufacturer: "Schulz",
+		},
+		"martelo-carpinteiro-27mm": {
+			ncm: "82052000",
+			hsCode: "820520",
+			manufacturer: "Tramontina",
+		},
+		"alicate-universal-8": {
+			ncm: "82032090",
+			hsCode: "820320",
+			manufacturer: "Tramontina",
+		},
+		"plaina-eletrica-82mm-600w": {
+			ncm: "84672900",
+			hsCode: "846729",
+			manufacturer: "Vonder",
+		},
+		"disco-de-corte-inox-4-1-2": {
+			ncm: "68042290",
+			hsCode: "680422",
+			manufacturer: "Bosch",
+		},
+	})
+);
 
 const ADMIN_EMAIL = "maellen.mendonca01@gmail.com";
 const STAFF_ACTOR_EMAIL = "othavioquiliao@gmail.com"; // ator dos writes de staff
@@ -319,13 +331,15 @@ const NEW_ORDERS: NewOrderSpec[] = [
 const SHIPPING = "29.90";
 const money = (n: number) => n.toFixed(2);
 
-const STATUS_PATH: Record<string, string[]> = {
+type NewOrderStatus = NewOrderSpec["status"];
+
+const STATUS_PATH = {
 	pending_payment: ["pending_payment"],
 	paid: ["pending_payment", "paid"],
 	preparing: ["pending_payment", "paid", "preparing"],
 	shipped: ["pending_payment", "paid", "preparing", "shipped"],
 	delivered: ["pending_payment", "paid", "preparing", "shipped", "delivered"],
-};
+} as const satisfies Record<NewOrderStatus, readonly NewOrderStatus[]>;
 
 const PAID_PLUS = new Set(["paid", "preparing", "shipped", "delivered"]);
 
@@ -442,7 +456,7 @@ async function main() {
 
 			// ── 2. Suppliers (UPDATE onde cnpj IS NULL) ─────────────────────────────
 			for (const s of suppliers) {
-				const e = SUPPLIER_ENRICH[s.name];
+				const e = SUPPLIER_ENRICH.get(s.name);
 
 				if (!e) {
 					continue;
@@ -465,7 +479,7 @@ async function main() {
 
 			// ── 3. Tools (UPDATE onde ncm IS NULL) ──────────────────────────────────
 			for (const t of tools) {
-				const e = t.slug ? TOOL_ENRICH[t.slug] : undefined;
+				const e = t.slug ? TOOL_ENRICH.get(t.slug) : undefined;
 
 				if (!e) {
 					continue;
@@ -763,7 +777,7 @@ async function main() {
 				}
 
 				// status history (criação + transições) — actor system (fluxo ecommerce)
-				const path = STATUS_PATH[spec.status] ?? [];
+				const path = STATUS_PATH[spec.status];
 				await tx.insert(orderStatusHistory).values({
 					id: crypto.randomUUID(),
 					orderId,

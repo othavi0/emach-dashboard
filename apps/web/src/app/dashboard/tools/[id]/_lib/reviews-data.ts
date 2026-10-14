@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import type { ReviewStatus } from "@emach/db/schema/reviews";
 import { toDate } from "@emach/db/utils";
 import { sql } from "drizzle-orm";
 
@@ -15,7 +16,7 @@ export interface ToolReviewRecent {
 	createdAt: Date;
 	id: string;
 	rating: number;
-	status: string;
+	status: ReviewStatus;
 	title: string | null;
 }
 
@@ -56,7 +57,7 @@ export async function getToolReviewsSummary(
 			rating: number;
 			title: string | null;
 			body: string;
-			status: string;
+			status: ReviewStatus;
 			client_name: string;
 			created_at: Date;
 		}>(sql`

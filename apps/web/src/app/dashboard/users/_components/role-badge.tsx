@@ -1,27 +1,22 @@
+import type { UserRole } from "@emach/db/schema/auth";
 import { Badge } from "@emach/ui/components/badge";
 import type { LucideIcon } from "lucide-react";
 import { Crown, ShieldCheck, UserRound } from "lucide-react";
 
-const META: Record<
-	string,
-	{
-		icon: LucideIcon;
-		label: string;
-		variant?: "default" | "secondary" | "outline";
-	}
-> = {
+interface RoleMeta {
+	icon: LucideIcon;
+	label: string;
+	variant?: "default" | "secondary" | "outline";
+}
+
+const META: Record<UserRole, RoleMeta> = {
 	super_admin: { label: "Super Admin", icon: Crown },
 	admin: { label: "Admin", icon: ShieldCheck },
 	user: { label: "Estoquista", icon: UserRound, variant: "outline" },
 };
 
-export function RoleBadge({ role }: { role: string }) {
-	const m = META[role] ?? META.user;
-
-	if (!m) {
-		return null;
-	}
-
+export function RoleBadge({ role }: { role: UserRole }) {
+	const m = META[role];
 	const Icon = m.icon;
 
 	return (

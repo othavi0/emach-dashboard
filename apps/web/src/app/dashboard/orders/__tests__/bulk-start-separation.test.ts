@@ -1,3 +1,8 @@
+import type {
+	NewOrder,
+	NewOrderEvent,
+	NewOrderStatusHistory,
+} from "@emach/db/schema/orders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
@@ -92,12 +97,28 @@ const BRANCH_ID = "550e8400-e29b-41d4-a716-446655440000";
 const OWN_BRANCH_ID = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 const USER_ID = "usr_42";
 
+interface SelectChain {
+	for: () => SelectChain;
+	from: () => SelectChain;
+	limit: () => Promise<unknown[]>;
+	where: () => SelectChain;
+}
+
+interface UpdateChain {
+	set: (vals: Partial<NewOrder>) => UpdateChain;
+	where: () => Promise<{ rowCount: number }>;
+}
+
+/** Linhas que a tx insere: histórico de status e orderEvent. */
+type InsertedRow = NewOrderEvent | NewOrderStatusHistory;
+
 function makeSelectChain(result: unknown[]) {
-	const chain: Record<string, unknown> = {};
-	chain.from = vi.fn(() => chain);
-	chain.where = vi.fn(() => chain);
-	chain.for = vi.fn(() => chain);
-	chain.limit = vi.fn(() => Promise.resolve(result));
+	const chain: SelectChain = {
+		from: vi.fn(() => chain),
+		where: vi.fn(() => chain),
+		for: vi.fn(() => chain),
+		limit: vi.fn(() => Promise.resolve(result)),
+	};
 
 	return chain;
 }
@@ -109,23 +130,24 @@ function makeSelectChain(result: unknown[]) {
  */
 function makeMockTx(selectResults: unknown[][]) {
 	let selectCallIdx = 0;
-	const insertedRows: Record<string, unknown>[] = [];
-	const updateSets: Record<string, unknown>[] = [];
+	const insertedRows: InsertedRow[] = [];
+	const updateSets: Partial<NewOrder>[] = [];
 
 	const makeUpdateChain = () => {
-		const chain: Record<string, unknown> = {};
-		chain.set = vi.fn((vals: Record<string, unknown>) => {
-			updateSets.push(vals);
+		const chain: UpdateChain = {
+			set: vi.fn((vals: Partial<NewOrder>) => {
+				updateSets.push(vals);
 
-			return chain;
-		});
-		chain.where = vi.fn(() => Promise.resolve({ rowCount: 1 }));
+				return chain;
+			}),
+			where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
+		};
 
 		return chain;
 	};
 
 	const makeInsertChain = () => ({
-		values: vi.fn((vals: Record<string, unknown>) => {
+		values: vi.fn((vals: InsertedRow) => {
 			insertedRows.push(vals);
 
 			return Promise.resolve(undefined);
@@ -259,7 +281,7 @@ describe("bulkStartSeparation", () => {
 
 		// orderEvent branch_assigned auditado, igual ao assignBranch singular.
 		const branchEvent = tx._insertedRows.find(
-			(row) => row.eventType === "branch_assigned"
+			(row) => "eventType" in row && row.eventType === "branch_assigned"
 		);
 
 		expect(branchEvent).toMatchObject({
@@ -294,7 +316,7 @@ describe("bulkStartSeparation", () => {
 		expect(tx._updateSets[0]?.branchId).toBeUndefined();
 
 		const branchEvent = tx._insertedRows.find(
-			(row) => row.eventType === "branch_assigned"
+			(row) => "eventType" in row && row.eventType === "branch_assigned"
 		);
 
 		expect(branchEvent).toBeUndefined();

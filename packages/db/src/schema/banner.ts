@@ -35,6 +35,69 @@ export const bannerBackgroundMobileMode = pgEnum(
 	["inherit", "custom", "none"]
 );
 
+// Espelho em TS do `compositionSchema` (zod) de apps/web
+// .../composition/composition-schema.ts, que é a fonte da validação. O
+// `row.composition = persisted.composition` das actions de banner só compila
+// enquanto o tipo inferido do zod couber aqui.
+export type BannerAnchor =
+	| "tl"
+	| "tc"
+	| "tr"
+	| "ml"
+	| "mc"
+	| "mr"
+	| "bl"
+	| "bc"
+	| "br";
+
+export interface BannerElementPlacement {
+	anchor: BannerAnchor;
+	offsetX: number;
+	offsetY: number;
+	scale: number;
+}
+
+export interface BannerTextPlacement extends BannerElementPlacement {
+	maxWidth?: number;
+}
+
+export interface BannerBackgroundConfig {
+	focal: BannerAnchor;
+	zoom: number;
+}
+
+export interface BannerHiddenElement {
+	hidden: true;
+}
+
+export interface BannerCompositionData {
+	desktop: {
+		background: BannerBackgroundConfig;
+		elements: {
+			badge?: BannerTextPlacement;
+			title?: BannerTextPlacement;
+			subtitle?: BannerTextPlacement;
+			specs?: BannerTextPlacement;
+			countdown?: BannerTextPlacement;
+			product?: BannerElementPlacement;
+			cta?: BannerElementPlacement;
+		};
+	};
+	mobile: {
+		background?: BannerBackgroundConfig;
+		elements: {
+			badge?: BannerHiddenElement | BannerTextPlacement;
+			title?: BannerHiddenElement | BannerTextPlacement;
+			subtitle?: BannerHiddenElement | BannerTextPlacement;
+			specs?: BannerHiddenElement | BannerTextPlacement;
+			countdown?: BannerHiddenElement | BannerTextPlacement;
+			product?: BannerHiddenElement | BannerElementPlacement;
+			cta?: BannerHiddenElement | BannerElementPlacement;
+		};
+	};
+	version: 1;
+}
+
 export const banner = pgTable(
 	"banner",
 	{
@@ -53,11 +116,7 @@ export const banner = pgTable(
 		specs: jsonb("specs").$type<string[]>(),
 		// Composição por elemento (spec 2026-07-29). Estrutura validada por zod no app
 		// (apps/web .../composition/composition-schema.ts); NULL = banner pré-backfill.
-		composition: jsonb("composition").$type<{
-			version: 1;
-			desktop: Record<string, unknown>;
-			mobile: Record<string, unknown>;
-		} | null>(),
+		composition: jsonb("composition").$type<BannerCompositionData | null>(),
 		altText: text("alt_text"),
 		badgeText: text("badge_text"),
 		ctaLabel: text("cta_label"),

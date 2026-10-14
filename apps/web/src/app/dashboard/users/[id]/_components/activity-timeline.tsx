@@ -1,5 +1,6 @@
 "use client";
 
+import type { JsonValue } from "@emach/db/utils";
 import {
 	Table,
 	TableBody,
@@ -21,7 +22,7 @@ export interface TimelineEntry {
 	action: string;
 	createdAt: Date | string;
 	id: string;
-	metadata?: Record<string, unknown> | null;
+	metadata?: { [key: string]: JsonValue } | null;
 	/** Conteúdo da coluna de origem (ex.: ator ou alvo da ação). */
 	subtitle?: ReactNode;
 	/** Texto/markup principal já resolvido pelo caller (label + voz própria). */
@@ -86,7 +87,8 @@ export function ActivityTimeline({
 					</TableHeader>
 					<TableBody>
 						{entries.map((entry) => {
-							const Icon = ACTION_ICONS[entry.action] ?? FALLBACK_ACTION_ICON;
+							const Icon =
+								ACTION_ICONS.get(entry.action) ?? FALLBACK_ACTION_ICON;
 
 							const rows = metadataRows(entry.metadata);
 							const hasMetadata = rows.length > 0;

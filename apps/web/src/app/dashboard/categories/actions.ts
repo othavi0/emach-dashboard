@@ -231,7 +231,9 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
 		action: "category.deleted",
 		targetId: id,
 		targetType: "category",
-		metadata: { name: categoryRow?.name },
+		// Sem a linha, o JSON gravado fica só com actorName, como antes
+		// (JSON.stringify já descartava `name: undefined`).
+		metadata: categoryRow ? { name: categoryRow.name } : undefined,
 	});
 	revalidateCategoryTrees();
 

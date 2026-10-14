@@ -45,7 +45,10 @@ function makeTx(
 		return chain;
 	};
 
-	const insertValues = vi.fn().mockResolvedValue(undefined);
+	const insertValues = vi
+		.fn<(data: InsertedRow) => Promise<void>>()
+		.mockResolvedValue(undefined);
+
 	const insertOnConflict = vi.fn().mockResolvedValue(undefined);
 
 	const makeInsertChain = () => ({
@@ -138,10 +141,7 @@ describe("applyStockReturns", () => {
 		expect(tx.select).toHaveBeenCalledTimes(3);
 
 		// INSERT em stockLevel (upsert)
-		const stockLevelInsertArg = tx._insertValues.mock.calls[0]?.[0] as Record<
-			string,
-			unknown
-		>;
+		const stockLevelInsertArg = tx._insertValues.mock.calls[0]?.[0];
 
 		expect(stockLevelInsertArg).toMatchObject({
 			variantId: "var-1",
@@ -151,10 +151,7 @@ describe("applyStockReturns", () => {
 		expect(tx._insertOnConflict).toHaveBeenCalledOnce();
 
 		// INSERT em stockMovement
-		const movementArg = tx._insertValues.mock.calls[1]?.[0] as Record<
-			string,
-			unknown
-		>;
+		const movementArg = tx._insertValues.mock.calls[1]?.[0];
 
 		expect(movementArg).toMatchObject({
 			id: "mock-uuid-1",
@@ -223,10 +220,7 @@ describe("applyStockReturns", () => {
 		expect(tx._insertValues).toHaveBeenCalledTimes(4);
 
 		// Verificar o movimento do item 2 especificamente (previousQty=0, newQty=1)
-		const movement2 = tx._insertValues.mock.calls[3]?.[0] as Record<
-			string,
-			unknown
-		>;
+		const movement2 = tx._insertValues.mock.calls[3]?.[0];
 
 		expect(movement2).toMatchObject({
 			variantId: "var-2",

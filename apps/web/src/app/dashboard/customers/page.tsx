@@ -16,13 +16,19 @@ import { CustomerStatusTabs } from "./_components/customer-status-tabs";
 import { CustomersInfinite } from "./_components/customers-infinite";
 import { ExportCsvLink } from "./_components/export-csv-link";
 import { countCustomersByStatus, listCustomers } from "./data";
-import { customersListFiltersSchema } from "./schema";
+import {
+	type CustomersListFilters,
+	customersListFiltersSchema,
+} from "./schema";
 
 export const metadata: Metadata = {
 	title: "Clientes",
 };
 
-const EMPTY_TITLES: Record<string, string> = {
+// Partial: as tabs "inactive" e "blocked" isoladas caem no título genérico.
+const EMPTY_TITLES: Partial<
+	Record<NonNullable<CustomersListFilters["status"]>, string>
+> = {
 	active: "Nenhum cliente ativo",
 	inactive_blocked: "Nenhum cliente inativo ou bloqueado",
 };
@@ -98,7 +104,7 @@ async function CustomersPageContent({ searchParams }: PageProps) {
 					<Empty>
 						<EmptyHeader>
 							<EmptyTitle>
-								{EMPTY_TITLES[filters.status ?? ""] ??
+								{(filters.status ? EMPTY_TITLES[filters.status] : undefined) ??
 									"Nenhum cliente encontrado"}
 							</EmptyTitle>
 							<EmptyDescription>

@@ -108,16 +108,16 @@ export const LATE_SUB_TABS = [
 
 // Chaves antigas que ainda podem chegar por deep-link/bookmark. "to_prepare"
 // era a aba agregada pago+preparando; cai na fila de entrada.
-const LEGACY_TAB_ALIASES: Record<string, string> = {
-	to_prepare: "paid",
-};
+// A chave vem da URL (string livre): o Map devolve undefined para o que não é
+// alias, sem cair em propriedade herdada de Object.prototype.
+const LEGACY_TAB_ALIASES = new Map([["to_prepare", "paid"]]);
 
 export function canonicalOrderTabKey(tab?: string): string | undefined {
 	if (!tab) {
 		return tab;
 	}
 
-	return LEGACY_TAB_ALIASES[tab] ?? tab;
+	return LEGACY_TAB_ALIASES.get(tab) ?? tab;
 }
 
 // Estados fora do fluxo principal de ação (grupo da direita na barra de tabs).

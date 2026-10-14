@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AttributeValueInput } from "../tool-schema";
+import type { AttributeValueInput, ToolFormInput } from "../tool-schema";
 import {
 	activationRequirementIssues,
 	collectToolIssues,
@@ -44,28 +44,32 @@ describe("MIN_SPECS_ACTIVE", () => {
 
 describe("countFilledSpecs", () => {
 	it("conta apenas atributos vinculados E com valor real", () => {
-		const values: Record<string, AttributeValueInput> = {
+		const values = {
 			a: txt("700W"),
 			b: num(12),
 			c: bool(false),
 			d: txt(""), // vazio → não conta
-		};
+		} satisfies Record<string, AttributeValueInput>;
 
 		const assignments = ["a", "b", "c", "d"];
 		expect(countFilledSpecs(values, assignments)).toBe(3);
 	});
 
 	it("ignora valores sem vínculo (preenchido mas não em assignments)", () => {
-		const values: Record<string, AttributeValueInput> = {
+		const values = {
 			a: txt("x"),
 			orphan: txt("y"),
-		};
+		} satisfies Record<string, AttributeValueInput>;
 
 		expect(countFilledSpecs(values, ["a"])).toBe(1);
 	});
 
 	it("ignora vinculados sem valor algum", () => {
-		const values: Record<string, AttributeValueInput> = { a: txt("x") };
+		const values = { a: txt("x") } satisfies Record<
+			string,
+			AttributeValueInput
+		>;
+
 		expect(countFilledSpecs(values, ["a", "b", "c"])).toBe(1);
 	});
 
@@ -94,7 +98,7 @@ describe("countFilledSpecs", () => {
 	});
 });
 
-function baseTool(overrides: Record<string, unknown> = {}) {
+function baseTool(overrides: Partial<ToolFormInput> = {}) {
 	return {
 		name: "Furadeira de impacto",
 		status: "active" as const,
@@ -207,7 +211,7 @@ describe("collectToolIssues", () => {
 });
 
 describe("toolFormSchema — rascunho leve (só nome obrigatório)", () => {
-	function draftMinimal(overrides: Record<string, unknown> = {}) {
+	function draftMinimal(overrides: Partial<ToolFormInput> = {}) {
 		return {
 			name: "Ferramenta em rascunho",
 			status: "draft" as const,

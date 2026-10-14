@@ -1,5 +1,6 @@
 "use client";
 
+import type { ClientStatus, ClientType } from "@emach/db/schema/client";
 import {
 	Avatar,
 	AvatarFallback,
@@ -46,22 +47,22 @@ function formatRelativeDate(value: Date) {
 	return relative.charAt(0).toUpperCase() + relative.slice(1);
 }
 
-const CLIENT_STATUS_CONFIG: Record<
-	string,
-	{ label: string; variant: "secondary" | "destructive" | "success" }
-> = {
+const CLIENT_STATUS_CONFIG = {
 	active: { label: "Ativo", variant: "success" },
 	inactive: { label: "Inativo", variant: "secondary" },
 	blocked: { label: "Bloqueado", variant: "destructive" },
-};
+} as const satisfies Record<
+	ClientStatus,
+	{ label: string; variant: "secondary" | "destructive" | "success" }
+>;
 
-const CLIENT_TYPE_CONFIG: Record<
-	string,
-	{ label: string; variant: "info" | "warning" }
-> = {
+const CLIENT_TYPE_CONFIG = {
 	b2c: { label: "B2C", variant: "info" },
 	b2b: { label: "B2B", variant: "warning" },
-};
+} as const satisfies Record<
+	ClientType,
+	{ label: string; variant: "info" | "warning" }
+>;
 
 interface CustomerRowProps {
 	customer: CustomerListItem;

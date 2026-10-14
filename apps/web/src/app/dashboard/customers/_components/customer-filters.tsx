@@ -1,5 +1,6 @@
 "use client";
 
+import type { ClientType } from "@emach/db/schema/client";
 import { Input } from "@emach/ui/components/input";
 import {
 	Select,
@@ -36,6 +37,11 @@ const SORT_LABELS: Record<(typeof SORT_OPTIONS)[number], string> = {
 	lastOrderDesc: "Último pedido",
 	nameAsc: "Nome (A–Z)",
 };
+
+const CLIENT_TYPE_LABELS = {
+	b2c: "B2C",
+	b2b: "B2B",
+} as const satisfies Record<ClientType, string>;
 
 export function CustomerFilters() {
 	const router = useRouter();
@@ -90,8 +96,6 @@ export function CustomerFilters() {
 							currentType ? currentType.split(",").filter(Boolean) : []
 						).includes(t);
 
-						const labels: Record<string, string> = { b2c: "B2C", b2b: "B2B" };
-
 						return (
 							<Toggle
 								aria-label={t === "b2c" ? "Pessoa Física" : "Pessoa Jurídica"}
@@ -110,7 +114,7 @@ export function CustomerFilters() {
 								size="sm"
 								variant="outline"
 							>
-								{labels[t]}
+								{CLIENT_TYPE_LABELS[t]}
 							</Toggle>
 						);
 					})}

@@ -52,8 +52,16 @@ vi.mock("../_components/video-actions", () => ({
 
 import { deleteTool } from "../actions";
 
+/** Colunas que deleteTool lê nos selects de nome/status, imagens e vídeo. */
+interface ToolSelectRow {
+	name: string;
+	poster: string | null;
+	status: string;
+	url: string | null;
+}
+
 /** db.select(...).from(...).where(...) → linhas; usado p/ nome, imagens e vídeo. */
-function setupSelect(rows: Record<string, unknown>[]) {
+function setupSelect(rows: ToolSelectRow[]) {
 	mockDbSelect.mockReturnValue({
 		from: () => ({
 			where: () => ({

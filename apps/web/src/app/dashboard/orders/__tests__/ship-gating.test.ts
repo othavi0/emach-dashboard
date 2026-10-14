@@ -88,6 +88,18 @@ const ORDER_ID = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
 const BRANCH_ID = "550e8400-e29b-41d4-a716-446655440000";
 const USER_ID = "usr_42";
 
+interface SelectChain {
+	for: () => SelectChain;
+	from: () => SelectChain;
+	limit: () => Promise<unknown[]>;
+	where: () => SelectChain;
+}
+
+interface UpdateChain {
+	set: () => UpdateChain;
+	where: () => Promise<{ rowCount: number }>;
+}
+
 /**
  * Build a mockTx that mimics the Drizzle transaction object.
  * selectResults[0] = the FOR UPDATE row from lockOrderAndAuthorize.
@@ -96,19 +108,21 @@ function makeMockTx(selectResults: unknown[][]) {
 	let selectCallIdx = 0;
 
 	const makeSelectChain = (result: unknown[]) => {
-		const chain: Record<string, unknown> = {};
-		chain.from = vi.fn(() => chain);
-		chain.where = vi.fn(() => chain);
-		chain.for = vi.fn(() => chain);
-		chain.limit = vi.fn(() => Promise.resolve(result));
+		const chain: SelectChain = {
+			from: vi.fn(() => chain),
+			where: vi.fn(() => chain),
+			for: vi.fn(() => chain),
+			limit: vi.fn(() => Promise.resolve(result)),
+		};
 
 		return chain;
 	};
 
 	const makeUpdateChain = () => {
-		const chain: Record<string, unknown> = {};
-		chain.set = vi.fn(() => chain);
-		chain.where = vi.fn(() => Promise.resolve({ rowCount: 1 }));
+		const chain: UpdateChain = {
+			set: vi.fn(() => chain),
+			where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
+		};
 
 		return chain;
 	};

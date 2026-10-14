@@ -1,10 +1,8 @@
 import { asc, eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import { shippingBox } from "../schema/shipping";
+import type { AnyDb } from "./catalog-helpers";
 import type { QuoteBox } from "./shipping-quote";
-
-type AnyDb = NodePgDatabase<Record<string, unknown>>;
 
 export async function getActiveBoxes(db: AnyDb): Promise<QuoteBox[]> {
 	const rows = await db

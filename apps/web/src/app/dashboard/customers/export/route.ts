@@ -233,7 +233,7 @@ export async function GET(req: Request) {
 					await db.insert(clientExportLog).values({
 						id: crypto.randomUUID(),
 						userId: session.user.id,
-						filters: filters as Record<string, unknown>,
+						filters,
 						rowCount: rows,
 						bytesWritten: bytes,
 						truncated,

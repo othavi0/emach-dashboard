@@ -1,5 +1,6 @@
 "use client";
 
+import type { UserRole } from "@emach/db/schema/auth";
 import { Input } from "@emach/ui/components/input";
 import {
 	Select,
@@ -25,12 +26,17 @@ interface UsersFiltersProps {
 const BASE = "/dashboard/users";
 const TRACKED = ["search", "role", "branchId"] as const;
 
-const ROLE_LABELS: Record<string, string> = {
-	all: "Todos os cargos",
-	super_admin: "Super Admin",
-	admin: "Admin",
-	user: "Estoquista",
-};
+const ALL_ROLES_LABEL = "Todos os cargos";
+
+// Map: o valor do Select chega como string livre.
+const ROLE_LABELS = new Map(
+	Object.entries({
+		all: ALL_ROLES_LABEL,
+		super_admin: "Super Admin",
+		admin: "Admin",
+		user: "Estoquista",
+	} as const satisfies Record<UserRole | "all", string>)
+);
 
 export function UsersFilters({ branches }: UsersFiltersProps) {
 	const { setParam, clearAll, hasActive, searchParams } = useFilterState({
@@ -70,7 +76,7 @@ export function UsersFilters({ branches }: UsersFiltersProps) {
 				>
 					<SelectTrigger id="users-role">
 						<SelectValue>
-							{(v: string) => ROLE_LABELS[v] ?? ROLE_LABELS.all}
+							{(v: string) => ROLE_LABELS.get(v) ?? ALL_ROLES_LABEL}
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>

@@ -14,6 +14,22 @@ export const ANCHORS = [
 
 export type Anchor9 = (typeof ANCHORS)[number];
 
+export type AnchorRow = "t" | "m" | "b";
+
+export type AnchorCol = "l" | "c" | "r";
+
+export const ANCHOR_PARTS = {
+	tl: { row: "t", col: "l" },
+	tc: { row: "t", col: "c" },
+	tr: { row: "t", col: "r" },
+	ml: { row: "m", col: "l" },
+	mc: { row: "m", col: "c" },
+	mr: { row: "m", col: "r" },
+	bl: { row: "b", col: "l" },
+	bc: { row: "b", col: "c" },
+	br: { row: "b", col: "r" },
+} as const satisfies Record<Anchor9, { row: AnchorRow; col: AnchorCol }>;
+
 export const ELEMENT_KEYS = [
 	"badge",
 	"title",
@@ -136,11 +152,15 @@ export const SAFE_STACK_ORDER: ElementKey[] = [
 // override mobile → empilha (safe stack); override com placement → posiciona
 // absoluto; override com hidden → não renderiza. Só considera keys presentes
 // em desktop.elements (não existe no desktop = não existe no mobile).
-export function partitionMobileElements(c: BannerComposition): {
-	stacked: ElementKey[];
-	positioned: [ElementKey, ElementPlacement][];
+export interface MobileElementPartition {
 	hidden: ElementKey[];
-} {
+	positioned: [ElementKey, ElementPlacement][];
+	stacked: ElementKey[];
+}
+
+export function partitionMobileElements(
+	c: BannerComposition
+): MobileElementPartition {
 	const stacked: ElementKey[] = [];
 	const positioned: [ElementKey, ElementPlacement][] = [];
 	const hiddenKeys: ElementKey[] = [];
@@ -171,9 +191,13 @@ export const SAFE_AREA = {
 	bottom: { desktop: 10, mobile: 16 },
 } as const;
 
-const COL_BY_HALIGN: Record<string, number> = { l: 5, c: 50, r: 95 };
+const COL_BY_HALIGN = {
+	l: 5,
+	c: 50,
+	r: 95,
+} as const satisfies Record<AnchorCol, number>;
 
-function rowByValign(valign: string, bottomRow: number) {
+function rowByValign(valign: AnchorRow, bottomRow: number) {
 	if (valign === "t") {
 		return 5;
 	}
@@ -187,9 +211,10 @@ function rowByValign(valign: string, bottomRow: number) {
 
 // Posição-base do ponto de referência de cada âncora (% do container).
 export function anchorBasePosition(anchor: Anchor9, viewport: Viewport) {
-	const col = COL_BY_HALIGN[anchor.charAt(1)] ?? 50;
+	const { row: valign, col: halign } = ANCHOR_PARTS[anchor];
+	const col = COL_BY_HALIGN[halign];
 	const bottomRow = viewport === "desktop" ? 88 : 84;
-	const row = rowByValign(anchor.charAt(0), bottomRow);
+	const row = rowByValign(valign, bottomRow);
 
 	return { x: col, y: row };
 }

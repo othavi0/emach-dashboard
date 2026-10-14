@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 /** Ícone por tipo de ação, compartilhado pelas views/tabela de atividade e pela prévia do Perfil. */
-export const ACTION_ICONS: Record<string, LucideIcon> = {
+const ACTION_ICONS_ENTRIES = {
 	"user.approved": CheckCircle2,
 	"user.rejected": XCircle,
 	"user.updated": Pencil,
@@ -30,6 +30,10 @@ export const ACTION_ICONS: Record<string, LucideIcon> = {
 	"tool.created": Wrench,
 	"tool.updated": Wrench,
 	"tool.deleted": Wrench,
-};
+} as const satisfies Record<string, LucideIcon>;
+
+export const ACTION_ICONS = new Map<string, LucideIcon>(
+	Object.entries(ACTION_ICONS_ENTRIES)
+);
 
 export const FALLBACK_ACTION_ICON = Activity;

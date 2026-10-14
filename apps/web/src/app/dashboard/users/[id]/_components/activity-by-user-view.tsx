@@ -31,7 +31,7 @@ export function ActivityByUserView({ userId, initial, initialCursor }: Props) {
 				subtitle: item.targetId
 					? `${item.targetType ?? "—"} · ${item.targetId.slice(0, 8)}`
 					: undefined,
-				title: ACTIVITY_LABELS_BY[item.action] ?? item.action,
+				title: ACTIVITY_LABELS_BY.get(item.action) ?? item.action,
 			}))}
 			error={error}
 			hasMore={hasMore}

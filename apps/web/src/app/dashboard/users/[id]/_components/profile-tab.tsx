@@ -184,7 +184,7 @@ export function ProfileTab({
 							<TableBody>
 								{recentActivity.map((item) => {
 									const Icon =
-										ACTION_ICONS[item.action] ?? FALLBACK_ACTION_ICON;
+										ACTION_ICONS.get(item.action) ?? FALLBACK_ACTION_ICON;
 
 									return (
 										<TableRow key={item.id}>
@@ -195,7 +195,7 @@ export function ProfileTab({
 														className="size-4 shrink-0 text-muted-foreground"
 													/>
 													<span>
-														{ACTIVITY_LABELS_AFFECTING[item.action] ??
+														{ACTIVITY_LABELS_AFFECTING.get(item.action) ??
 															item.action}
 													</span>
 												</div>

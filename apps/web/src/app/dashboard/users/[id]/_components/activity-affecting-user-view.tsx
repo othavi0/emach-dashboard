@@ -33,7 +33,7 @@ export function ActivityAffectingUserView({
 				id: item.id,
 				metadata: item.metadata,
 				subtitle: item.actorName ?? "Sistema",
-				title: ACTIVITY_LABELS_AFFECTING[item.action] ?? item.action,
+				title: ACTIVITY_LABELS_AFFECTING.get(item.action) ?? item.action,
 			}))}
 			error={error}
 			hasMore={hasMore}

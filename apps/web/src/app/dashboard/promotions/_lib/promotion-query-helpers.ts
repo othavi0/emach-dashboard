@@ -93,10 +93,12 @@ export async function assertCodeUnique(
 
 // Campos exclusivos de cupom (promocode). Em promoção automática são sempre
 // null. Centralizado para create/update não divergirem.
-export function buildCouponFields(data: PromotionFormValues): {
+export interface CouponFields {
 	maxRedemptions: number | null;
 	minOrderAmount: string | null;
-} {
+}
+
+export function buildCouponFields(data: PromotionFormValues): CouponFields {
 	if (data.type === "promocode") {
 		return {
 			maxRedemptions: data.maxRedemptions ?? null,

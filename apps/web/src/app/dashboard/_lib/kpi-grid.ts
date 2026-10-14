@@ -9,12 +9,12 @@ export interface KpiCaps {
 
 // Classes completas por contagem de KPIs visíveis (literais → Tailwind purge-safe).
 // Mínimo é 2 (Pedidos + Rupturas, sempre visíveis: orders.read/stock.read são SAU).
-const KPI_GRID_BY_COUNT: Record<number, string> = {
-	2: "xl:grid-cols-2",
-	3: "md:grid-cols-3 xl:grid-cols-3",
-	4: "md:grid-cols-2 xl:grid-cols-4",
-	5: "md:grid-cols-3 xl:grid-cols-5",
-};
+const KPI_GRID_BY_COUNT = new Map([
+	[2, "xl:grid-cols-2"],
+	[3, "md:grid-cols-3 xl:grid-cols-3"],
+	[4, "md:grid-cols-2 xl:grid-cols-4"],
+	[5, "md:grid-cols-3 xl:grid-cols-5"],
+]);
 
 // Quantos KPIs ficam visíveis para o conjunto de capabilities — base 2 + restritos.
 export function visibleKpiCount(caps: KpiCaps): number {
@@ -27,5 +27,5 @@ export function visibleKpiCount(caps: KpiCaps): number {
 }
 
 export function kpiGridClass(count: number): string {
-	return KPI_GRID_BY_COUNT[count] ?? "md:grid-cols-3 xl:grid-cols-5";
+	return KPI_GRID_BY_COUNT.get(count) ?? "md:grid-cols-3 xl:grid-cols-5";
 }

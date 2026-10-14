@@ -1,3 +1,10 @@
+import type {
+	NewOrderPicking,
+	NewOrderPickingItem,
+	NewOrderPickingScan,
+	NewOrderStatusHistory,
+	OrderPickingItem,
+} from "@emach/db/schema/orders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
@@ -105,14 +112,41 @@ const mockSession = {
  * Build a mock Drizzle transaction object.
  * selectResults: each inner array is one select call's resolved rows.
  */
+/** Linhas que as actions de separação passam a `tx.insert(<tabela>).values()`. */
+type InsertedRow =
+	| NewOrderPicking
+	| NewOrderPickingItem
+	| NewOrderPickingScan
+	| NewOrderStatusHistory;
+
+interface SelectChain {
+	catch: () => SelectChain;
+	finally: (fn: () => void) => SelectChain;
+	for: () => SelectChain;
+	from: () => SelectChain;
+	leftJoin: () => SelectChain;
+	limit: () => Promise<unknown[]>;
+	orderBy: () => SelectChain;
+	then: (resolve: (v: unknown[]) => void) => void;
+	where: () => SelectChain;
+}
+
+interface UpdateChain {
+	set: () => UpdateChain;
+	where: () => Promise<{ rowCount: number }>;
+}
+
 function makeMockTx(selectResults: unknown[][]) {
 	let selectCallIdx = 0;
-	const insertValues = vi.fn().mockResolvedValue(undefined);
+
+	const insertValues = vi
+		.fn<(vals: InsertedRow) => Promise<void>>()
+		.mockResolvedValue(undefined);
 
 	const makeSelectChain = (result: unknown[]) => {
 		// Make the chain thenable so `await tx.select().from(t).where(...)` works
 		// both with and without a terminal .limit() call.
-		const chain: Record<string, unknown> = {
+		const chain: SelectChain = {
 			// biome-ignore lint/suspicious/noThenProperty: intentional thenable mock for Drizzle query builder
 			then: (resolve: (v: unknown[]) => void) => resolve(result),
 			catch: () => chain,
@@ -121,22 +155,22 @@ function makeMockTx(selectResults: unknown[][]) {
 
 				return chain;
 			},
+			from: vi.fn(() => chain),
+			leftJoin: vi.fn(() => chain),
+			where: vi.fn(() => chain),
+			for: vi.fn(() => chain),
+			limit: vi.fn(() => Promise.resolve(result)),
+			orderBy: vi.fn(() => chain),
 		};
-
-		chain.from = vi.fn(() => chain);
-		chain.leftJoin = vi.fn(() => chain);
-		chain.where = vi.fn(() => chain);
-		chain.for = vi.fn(() => chain);
-		chain.limit = vi.fn(() => Promise.resolve(result));
-		chain.orderBy = vi.fn(() => chain);
 
 		return chain;
 	};
 
 	const makeUpdateChain = () => {
-		const chain: Record<string, unknown> = {};
-		chain.set = vi.fn(() => chain);
-		chain.where = vi.fn(() => Promise.resolve({ rowCount: 1 }));
+		const chain: UpdateChain = {
+			set: vi.fn(() => chain),
+			where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
+		};
 
 		return chain;
 	};
@@ -200,7 +234,7 @@ describe("startPicking", () => {
 	});
 
 	it("cria picking com status paid e transiciona para preparing", async () => {
-		const captured: Record<string, unknown>[] = [];
+		const captured: InsertedRow[] = [];
 
 		mockTransaction.mockImplementation(
 			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
@@ -221,13 +255,11 @@ describe("startPicking", () => {
 					],
 				]);
 
-				mockTx._insertValues.mockImplementation(
-					(vals: Record<string, unknown>) => {
-						captured.push(vals);
+				mockTx._insertValues.mockImplementation((vals: InsertedRow) => {
+					captured.push(vals);
 
-						return Promise.resolve(undefined);
-					}
-				);
+					return Promise.resolve(undefined);
+				});
 
 				return cb(mockTx);
 			}
@@ -362,7 +394,7 @@ describe("scanItem", () => {
 	});
 
 	it("retorna accepted e insere scan quando item aceito", async () => {
-		const captured: Record<string, unknown>[] = [];
+		const captured: InsertedRow[] = [];
 
 		mockTransaction.mockImplementation(
 			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
@@ -395,13 +427,11 @@ describe("scanItem", () => {
 					[], // toolVariant lookup
 				]);
 
-				mockTx._insertValues.mockImplementation(
-					(vals: Record<string, unknown>) => {
-						captured.push(vals);
+				mockTx._insertValues.mockImplementation((vals: InsertedRow) => {
+					captured.push(vals);
 
-						return Promise.resolve(undefined);
-					}
-				);
+					return Promise.resolve(undefined);
+				});
 
 				return cb(mockTx);
 			}
@@ -626,11 +656,11 @@ describe("confirmItemManually", () => {
 
 	function armTx(selectResults: unknown[][]) {
 		let tx: MockTx | undefined;
-		const captured: Record<string, unknown>[] = [];
+		const captured: InsertedRow[] = [];
 		mockTransaction.mockImplementation(
 			async <T>(cb: (t: MockTx) => Promise<T>): Promise<T> => {
 				tx = makeMockTx(selectResults);
-				tx._insertValues.mockImplementation((vals: Record<string, unknown>) => {
+				tx._insertValues.mockImplementation((vals: InsertedRow) => {
 					captured.push(vals);
 
 					return Promise.resolve(undefined);
@@ -653,7 +683,19 @@ describe("confirmItemManually", () => {
 
 	const PREPARING_LOCK = { status: "preparing", branchId: BRANCH_ID };
 
-	function itemRow(overrides: Record<string, unknown> = {}) {
+	function itemRow(
+		overrides: Partial<
+			Pick<
+				OrderPickingItem,
+				| "id"
+				| "notFound"
+				| "pickingId"
+				| "qtyExpected"
+				| "qtyPicked"
+				| "variantId"
+			>
+		> = {}
+	) {
 		return {
 			id: PICKING_ITEM_ID,
 			pickingId: PICKING_ID,
@@ -997,7 +1039,7 @@ describe("bulkStartPicking", () => {
 	});
 
 	it("transiciona paid→preparing e grava history ao criar a sessão", async () => {
-		const captured: Record<string, unknown>[] = [];
+		const captured: InsertedRow[] = [];
 		let tx: MockTx | undefined;
 
 		mockTransaction.mockImplementationOnce(
@@ -1018,7 +1060,7 @@ describe("bulkStartPicking", () => {
 						},
 					], // createPickingItems: orderItem[]
 				]);
-				tx._insertValues.mockImplementation((vals: Record<string, unknown>) => {
+				tx._insertValues.mockImplementation((vals: InsertedRow) => {
 					captured.push(vals);
 
 					return Promise.resolve(undefined);

@@ -1,3 +1,4 @@
+import type { ReviewStatus } from "@emach/db/schema/reviews";
 import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import {
@@ -32,22 +33,22 @@ const STATE_VARIANT: Record<
 	order_not_paid: "warning",
 };
 
-const REVIEW_STATUS_LABEL: Record<string, string> = {
+const REVIEW_STATUS_LABEL = {
 	pending: "Pendente moderação",
 	approved: "Aprovado",
 	rejected: "Rejeitado",
 	spam: "Spam",
-};
+} as const satisfies Record<ReviewStatus, string>;
 
-const REVIEW_STATUS_VARIANT: Record<
-	string,
-	"destructive" | "success" | "warning"
-> = {
+const REVIEW_STATUS_VARIANT = {
 	pending: "warning",
 	approved: "success",
 	rejected: "destructive",
 	spam: "destructive",
-};
+} as const satisfies Record<
+	ReviewStatus,
+	"destructive" | "success" | "warning"
+>;
 
 export function OrderReviewsSection({ rows }: OrderReviewsSectionProps) {
 	if (rows.length === 0) {
@@ -111,8 +112,8 @@ function ReviewStateDetail({ row }: { row: OrderReviewRow }) {
 					{"★".repeat(row.review.rating)}
 					{"☆".repeat(5 - row.review.rating)}
 				</span>
-				<Badge variant={REVIEW_STATUS_VARIANT[row.review.status] ?? "warning"}>
-					{REVIEW_STATUS_LABEL[row.review.status] ?? row.review.status}
+				<Badge variant={REVIEW_STATUS_VARIANT[row.review.status]}>
+					{REVIEW_STATUS_LABEL[row.review.status]}
 				</Badge>
 				<Link
 					className={buttonVariants({ size: "sm", variant: "ghost" })}

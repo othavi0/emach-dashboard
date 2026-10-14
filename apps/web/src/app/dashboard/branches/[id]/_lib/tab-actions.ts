@@ -41,17 +41,23 @@ export async function fetchBranchActivityToolsAction(
 	return await fetchBranchActivityTools(branchId);
 }
 
-const SORT_MAP: Record<string, BranchStockSort> = {
-	name: "name",
-	"stock-low": "stockLow",
-	"stock-high": "stockHigh",
-};
+// Map: a chave vem da URL (string livre), e o .get() devolve undefined sem
+// cair em chave herdada do protótipo.
+const SORT_MAP = new Map(
+	Object.entries({
+		name: "name",
+		"stock-low": "stockLow",
+		"stock-high": "stockHigh",
+	} as const satisfies Record<string, BranchStockSort>)
+);
 
-const STATUS_MAP: Record<string, BranchStockStatus> = {
-	critical: "critical",
-	reorder: "reorder",
-	ok: "ok",
-};
+const STATUS_MAP = new Map(
+	Object.entries({
+		critical: "critical",
+		reorder: "reorder",
+		ok: "ok",
+	} as const satisfies Record<string, BranchStockStatus>)
+);
 
 export interface BranchStockTabData {
 	canMutate: boolean;
@@ -89,8 +95,8 @@ export async function fetchBranchStockTabAction(input: {
 		branchId: input.branchId,
 		categoryId: input.categoryId || undefined,
 		search: input.search?.trim() || undefined,
-		sort: SORT_MAP[input.sort ?? ""] ?? "urgency",
-		status: STATUS_MAP[input.status ?? ""] ?? undefined,
+		sort: SORT_MAP.get(input.sort ?? "") ?? "urgency",
+		status: STATUS_MAP.get(input.status ?? ""),
 	};
 
 	const first = await fetchBranchStockPage({ filters, cursor: null });

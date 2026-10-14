@@ -1,3 +1,4 @@
+import type { ConsentKind } from "@emach/db/schema/consent-log";
 import { Badge } from "@emach/ui/components/badge";
 import {
 	Card,
@@ -10,14 +11,19 @@ import { Empty, EmptyHeader, EmptyTitle } from "@emach/ui/components/empty";
 import { formatDateTime } from "@/lib/format/datetime";
 import type { CustomerConsentByKind } from "../data";
 
-const KIND_LABELS: Record<string, string> = {
+const KIND_LABELS = {
 	tos: "Termos de Uso",
 	privacy: "Privacidade",
 	marketing_email: "Email Marketing",
 	cookies: "Cookies",
-};
+} as const satisfies Record<ConsentKind, string>;
 
-const KIND_ORDER = ["tos", "privacy", "marketing_email", "cookies"] as const;
+const KIND_ORDER = [
+	"tos",
+	"privacy",
+	"marketing_email",
+	"cookies",
+] as const satisfies readonly ConsentKind[];
 
 interface CustomerConsentListProps {
 	consentByKind: CustomerConsentByKind;
@@ -44,7 +50,7 @@ export function CustomerConsentList({
 							return (
 								<div className="rounded-lg border border-border p-4" key={kind}>
 									<h3 className="mb-2 font-medium text-sm">
-										{KIND_LABELS[kind] ?? kind}
+										{KIND_LABELS[kind]}
 									</h3>
 									{entries.length === 0 ? (
 										<p className="text-muted-foreground text-xs">

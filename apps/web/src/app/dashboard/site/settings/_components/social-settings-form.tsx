@@ -6,6 +6,7 @@ import { Label } from "@emach/ui/components/label";
 import { Spinner } from "@emach/ui/components/spinner";
 import { Switch } from "@emach/ui/components/switch";
 import { useState, useTransition } from "react";
+import type { z } from "zod";
 import { FieldError } from "@/components/field-error";
 import {
 	errorToastMessage,
@@ -63,12 +64,18 @@ export function SocialSettingsForm({ settings }: SocialSettingsFormProps) {
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		const raw: Record<string, unknown> = {};
-
-		for (const n of SOCIAL_NETWORKS) {
-			raw[`${n.key}Url`] = state[n.key].url;
-			raw[`${n.key}Visible`] = state[n.key].visible;
-		}
+		const raw: z.input<typeof socialSettingsSchema> = {
+			instagramUrl: state.instagram.url,
+			instagramVisible: state.instagram.visible,
+			linkedinUrl: state.linkedin.url,
+			linkedinVisible: state.linkedin.visible,
+			facebookUrl: state.facebook.url,
+			facebookVisible: state.facebook.visible,
+			xUrl: state.x.url,
+			xVisible: state.x.visible,
+			youtubeUrl: state.youtube.url,
+			youtubeVisible: state.youtube.visible,
+		};
 
 		const parsed = socialSettingsSchema.safeParse(raw);
 

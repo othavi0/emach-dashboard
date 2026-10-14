@@ -37,10 +37,12 @@ const STATUS_SLA_LABEL: Partial<Record<OrderStatus, string>> = {
 	refunded: "Reembolsado há",
 };
 
-function computeSlaDays(order: OrderDetail): {
+interface SlaDays {
 	days: number | null;
 	label: string;
-} {
+}
+
+function computeSlaDays(order: OrderDetail): SlaDays {
 	const tsKey = STATUS_SLA_TIMESTAMP[order.status];
 	const label = STATUS_SLA_LABEL[order.status] ?? "No estado há";
 

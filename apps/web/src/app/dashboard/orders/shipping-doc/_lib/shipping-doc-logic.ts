@@ -109,11 +109,15 @@ export function paginateLabels(orders: ShippingDocOrder[]): LabelSheet[] {
 	return sheets;
 }
 
-export function labelRecipientLines(r: ShippingDocRecipient): {
+export interface LabelRecipientLines {
 	cep: string | null;
 	locality: string | null;
 	street: string | null;
-} {
+}
+
+export function labelRecipientLines(
+	r: ShippingDocRecipient
+): LabelRecipientLines {
 	const cep = formatCep(r.zipCode);
 
 	return {

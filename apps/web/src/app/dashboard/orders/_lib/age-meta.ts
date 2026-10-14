@@ -19,22 +19,24 @@ const HA_PREFIX = /^há /;
 // "há" — quebra a gramática do label fixo "Pago há"/"Enviado há"/"Criado há"
 // (ex: "pago há anteontem"). Mapeia essas formas de volta pra uma contagem
 // numérica antes do strip, mantendo o label gramatical.
-const RELATIVE_WORD_MAP: Record<string, string> = {
-	"este minuto": "instantes",
-	ontem: "1 dia",
-	anteontem: "2 dias",
-	"mês passado": "1 mês",
-	"ano passado": "1 ano",
-};
+const RELATIVE_WORD_MAP = new Map([
+	["este minuto", "instantes"],
+	["ontem", "1 dia"],
+	["anteontem", "2 dias"],
+	["mês passado", "1 mês"],
+	["ano passado", "1 ano"],
+]);
 
 function normalizeRelative(value: string): string {
-	return RELATIVE_WORD_MAP[value] ?? value.replace(HA_PREFIX, "");
+	return RELATIVE_WORD_MAP.get(value) ?? value.replace(HA_PREFIX, "");
 }
 
-export function ageMetaForTab(
-	tabKey: string,
-	item: AgeSource
-): { label: string; value: string } {
+export interface AgeMeta {
+	label: string;
+	value: string;
+}
+
+export function ageMetaForTab(tabKey: string, item: AgeSource): AgeMeta {
 	switch (tabKey) {
 		case "paid":
 			return {

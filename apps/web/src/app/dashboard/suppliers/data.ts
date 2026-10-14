@@ -2,9 +2,12 @@ import "server-only";
 
 import { db } from "@emach/db";
 import { user as userTable } from "@emach/db/schema/auth";
-import { supplierAuditLog } from "@emach/db/schema/supplier-audit";
+import {
+	type SupplierAuditAction,
+	supplierAuditLog,
+} from "@emach/db/schema/supplier-audit";
 import { supplier } from "@emach/db/schema/tools";
-import { toDate } from "@emach/db/utils";
+import { type JsonValue, toDate } from "@emach/db/utils";
 import { desc, eq, sql } from "drizzle-orm";
 
 import { type BranchScope, branchAndFilter } from "@/lib/branch-scope";
@@ -251,10 +254,10 @@ export async function getSupplierStockTools({
 }
 
 export interface SupplierAuditRow {
-	action: string;
+	action: SupplierAuditAction;
 	actorName: string | null;
-	afterJson: Record<string, unknown> | null;
-	beforeJson: Record<string, unknown> | null;
+	afterJson: { [key: string]: JsonValue } | null;
+	beforeJson: { [key: string]: JsonValue } | null;
 	createdAt: Date;
 	id: string;
 	reason: string | null;

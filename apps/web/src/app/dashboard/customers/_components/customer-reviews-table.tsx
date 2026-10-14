@@ -43,22 +43,22 @@ import { useLazyTabReload } from "@/components/entity/lazy-tab";
 import { notify } from "@/lib/notify";
 import type { CustomerReviewRow } from "../data";
 
-const REVIEW_STATUS_LABELS: Record<string, string> = {
+const REVIEW_STATUS_LABELS = {
 	pending: "Pendente",
 	approved: "Aprovada",
 	rejected: "Rejeitada",
 	spam: "Spam",
-};
+} as const satisfies Record<ReviewStatus, string>;
 
-const REVIEW_STATUS_VARIANTS: Record<
-	string,
-	"warning" | "success" | "destructive"
-> = {
+const REVIEW_STATUS_VARIANTS = {
 	pending: "warning",
 	approved: "success",
 	rejected: "destructive",
 	spam: "destructive",
-};
+} as const satisfies Record<
+	ReviewStatus,
+	"warning" | "success" | "destructive"
+>;
 
 type PendingAction = {
 	reviewId: string;

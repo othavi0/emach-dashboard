@@ -1,29 +1,26 @@
 "use client";
 
+import type { ReviewStatus } from "@emach/db/schema/reviews";
 import { Badge } from "@emach/ui/components/badge";
 import { buttonVariants } from "@emach/ui/components/button";
 import Link from "next/link";
+import type { ComponentProps } from "react";
 
 import { formatDate } from "@/lib/format/datetime";
 import type { ToolReviewSummary } from "../_lib/reviews-data";
 import { SectionCard } from "./section-card";
 
-const REVIEW_STATUS_LABEL: Record<string, string> = {
-	pending: "Pendente",
-	approved: "Aprovado",
-	rejected: "Rejeitado",
-	spam: "Spam",
-};
+interface ReviewStatusBadge {
+	label: string;
+	variant: ComponentProps<typeof Badge>["variant"];
+}
 
-const REVIEW_STATUS_VARIANT: Record<
-	string,
-	"destructive" | "success" | "warning"
-> = {
-	pending: "warning",
-	approved: "success",
-	rejected: "destructive",
-	spam: "destructive",
-};
+const REVIEW_STATUS_BADGE = {
+	pending: { label: "Pendente", variant: "warning" },
+	approved: { label: "Aprovado", variant: "success" },
+	rejected: { label: "Rejeitado", variant: "destructive" },
+	spam: { label: "Spam", variant: "destructive" },
+} as const satisfies Record<ReviewStatus, ReviewStatusBadge>;
 
 export function ToolReviewsSection({
 	toolId,
@@ -98,8 +95,8 @@ export function ToolReviewsSection({
 								{r.title && (
 									<span className="font-medium text-sm">{r.title}</span>
 								)}
-								<Badge variant={REVIEW_STATUS_VARIANT[r.status] ?? "warning"}>
-									{REVIEW_STATUS_LABEL[r.status] ?? r.status}
+								<Badge variant={REVIEW_STATUS_BADGE[r.status].variant}>
+									{REVIEW_STATUS_BADGE[r.status].label}
 								</Badge>
 								<span className="ml-auto text-muted-foreground text-xs">
 									{r.clientName} · {formatDate(r.createdAt)}

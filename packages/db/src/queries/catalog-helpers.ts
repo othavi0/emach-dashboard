@@ -23,7 +23,10 @@ export const REVIEW_DATE_KEYS = [
 	"updatedAt",
 ] as const;
 
-export type AnyDb = NodePgDatabase<Record<string, unknown>>;
+// As queries compartilhadas só usam `select` e `execute`, que não dependem do
+// schema relacional do client. O Pick aceita o db do dashboard, o do
+// emach-ecommerce e uma transação, cada um com o seu schema.
+export type AnyDb = Pick<NodePgDatabase, "execute" | "select">;
 
 // ---------------------------------------------------------------------------
 // Constants

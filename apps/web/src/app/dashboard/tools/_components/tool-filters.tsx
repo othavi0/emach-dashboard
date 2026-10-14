@@ -11,6 +11,7 @@ import {
 } from "@emach/ui/components/select";
 import { FiltersBar } from "@/components/filters-bar";
 import { useDebouncedParam, useFilterState } from "@/lib/use-filter-state";
+import type { ToolsListMode } from "../data";
 import { TOOL_STATUS_LABELS, TOOL_STATUS_OPTIONS } from "./tool-schema";
 
 interface CategoryOption {
@@ -42,10 +43,13 @@ const TRACKED = [
 	"branchId",
 ] as const;
 
-const MODE_LABELS: Record<string, string> = {
-	repor: "Repor agora",
-	esgotado: "Esgotadas",
-};
+// O valor do Select chega como string; o Map devolve undefined fora dos modos.
+const MODE_LABELS = new Map<string, string>(
+	Object.entries({
+		repor: "Repor agora",
+		esgotado: "Esgotadas",
+	} satisfies Record<Exclude<ToolsListMode, "catalog">, string>)
+);
 
 export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 	const { searchParams, setParam, clearAll, hasActive } = useFilterState({
@@ -92,7 +96,7 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 					<SelectTrigger id="tool-mode">
 						<SelectValue>
 							{(v: string) =>
-								v === ALL ? "Todas" : (MODE_LABELS[v] ?? "Todas")
+								v === ALL ? "Todas" : (MODE_LABELS.get(v) ?? "Todas")
 							}
 						</SelectValue>
 					</SelectTrigger>

@@ -1,4 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+
+/** Métodos de tx que inviteUser usa dentro de db.transaction. */
+interface InviteTxMock {
+	delete: Mock;
+	insert: Mock;
+	update: Mock;
+}
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks — must be defined before vi.mock factories
@@ -32,7 +39,7 @@ const {
 
 	// db.transaction executes the callback with a tx mock
 	const mockTransaction = vi.fn(
-		async (cb: (tx: Record<string, unknown>) => Promise<void>) => {
+		async (cb: (tx: InviteTxMock) => Promise<void>) => {
 			await cb({
 				update: mockTxUpdate,
 				delete: mockTxDelete,
@@ -206,7 +213,7 @@ describe("inviteUser — atomicidade e compensação", () => {
 
 		// Reset transaction to the standard pass-through (runs callback with tx mock)
 		mockTransaction.mockImplementation(
-			async (cb: (tx: Record<string, unknown>) => Promise<void>) => {
+			async (cb: (tx: InviteTxMock) => Promise<void>) => {
 				await cb({
 					update: mockTxUpdate,
 					delete: mockTxDelete,

@@ -1,3 +1,4 @@
+import type { NewOrderEvent } from "@emach/db/schema/orders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
@@ -72,6 +73,18 @@ const BRANCH_ID = "550e8400-e29b-41d4-a716-446655440000";
 const SOURCE_BRANCH_ID = "6ba7b810-9dad-41d1-80b4-00c04fd430c8";
 const USER_ID = "usr_42";
 
+interface SelectChain {
+	for: () => SelectChain;
+	from: () => SelectChain;
+	limit: () => Promise<unknown[]>;
+	where: () => SelectChain;
+}
+
+interface UpdateChain {
+	set: () => UpdateChain;
+	where: () => Promise<{ rowCount: number }>;
+}
+
 /**
  * Build a `mockTx` that mimics the Drizzle transaction object.
  *
@@ -87,20 +100,22 @@ function makeMockTx(selectResults: unknown[][]) {
 	// Build a chainable select: supports .from().where().for().limit() and
 	// .from().where().limit() (no .for()).
 	const makeSelectChain = (result: unknown[]) => {
-		const chain: Record<string, unknown> = {};
-		chain.from = vi.fn(() => chain);
-		chain.where = vi.fn(() => chain);
-		chain.for = vi.fn(() => chain);
-		chain.limit = vi.fn(() => Promise.resolve(result));
+		const chain: SelectChain = {
+			from: vi.fn(() => chain),
+			where: vi.fn(() => chain),
+			for: vi.fn(() => chain),
+			limit: vi.fn(() => Promise.resolve(result)),
+		};
 
 		return chain;
 	};
 
 	// Build a chainable update: .set().where() resolves.
 	const makeUpdateChain = () => {
-		const chain: Record<string, unknown> = {};
-		chain.set = vi.fn(() => chain);
-		chain.where = vi.fn(() => Promise.resolve({ rowCount: 1 }));
+		const chain: UpdateChain = {
+			set: vi.fn(() => chain),
+			where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
+		};
 
 		return chain;
 	};
@@ -202,7 +217,7 @@ describe("assignBranch", () => {
 	// -------------------------------------------------------------------------
 	it("(c) sucesso → retorna { ok: true } e grava actorUserId = session.user.id", async () => {
 		// Use an array so TS CFA doesn't narrow the captured value to `null`
-		const captured: Record<string, unknown>[] = [];
+		const captured: NewOrderEvent[] = [];
 
 		mockTransaction.mockImplementation(
 			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
@@ -212,13 +227,11 @@ describe("assignBranch", () => {
 				]);
 
 				// Capture insert values for assertion
-				mockTx._insertValues.mockImplementation(
-					(vals: Record<string, unknown>) => {
-						captured.push(vals);
+				mockTx._insertValues.mockImplementation((vals: NewOrderEvent) => {
+					captured.push(vals);
 
-						return Promise.resolve(undefined);
-					}
-				);
+					return Promise.resolve(undefined);
+				});
 
 				return cb(mockTx);
 			}

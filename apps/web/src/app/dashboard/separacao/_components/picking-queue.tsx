@@ -61,6 +61,12 @@ function QueueSectionHeader({
 	);
 }
 
+/** Toast de ação em lote, consumido direto por `notify[kind](message)`. */
+interface BulkToast {
+	kind: "success" | "warning";
+	message: string;
+}
+
 /**
  * Extraído do callback de `runBulkPick` para ficar sob o teto de complexidade
  * cognitiva do ultracite — espelha `buildBulkSeparationToast` (orders-view.tsx).
@@ -68,7 +74,7 @@ function QueueSectionHeader({
 function buildBulkPickToast(
 	moved: number,
 	skipped: { number: string; reason: string }[]
-): { kind: "success" | "warning"; message: string } {
+): BulkToast {
 	if (skipped.length === 0) {
 		return {
 			kind: "success",

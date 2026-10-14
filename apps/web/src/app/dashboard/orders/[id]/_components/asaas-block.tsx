@@ -8,43 +8,44 @@ import {
 
 // ─── NF-e status maps ─────────────────────────────────────────────────────────
 
-const NFE_STATUS_VARIANT: Record<
-	string,
-	"success" | "destructive" | "warning" | "info" | "secondary"
-> = {
-	authorized: "success",
-	autorizada: "success",
-	canceled: "destructive",
-	cancelled: "destructive",
-	cancelada: "destructive",
-	rejected: "destructive",
-	rejeitada: "destructive",
-	pending: "warning",
-	pendente: "warning",
-	processing: "info",
-	processando: "info",
-};
+type NfeStatusVariant = "success" | "destructive" | "warning" | "info";
 
-const NFE_STATUS_LABELS: Record<string, string> = {
-	authorized: "Autorizada",
-	autorizada: "Autorizada",
-	canceled: "Cancelada",
-	cancelled: "Cancelada",
-	cancelada: "Cancelada",
-	rejected: "Rejeitada",
-	rejeitada: "Rejeitada",
-	pending: "Pendente",
-	pendente: "Pendente",
-	processing: "Processando",
-	processando: "Processando",
-};
+// O status vem do provedor fiscal como string livre (pt ou en); o Map
+// devolve undefined para chave desconhecida e cai no fallback do badge.
+const NFE_STATUS_VARIANT = new Map<string, NfeStatusVariant>([
+	["authorized", "success"],
+	["autorizada", "success"],
+	["canceled", "destructive"],
+	["cancelled", "destructive"],
+	["cancelada", "destructive"],
+	["rejected", "destructive"],
+	["rejeitada", "destructive"],
+	["pending", "warning"],
+	["pendente", "warning"],
+	["processing", "info"],
+	["processando", "info"],
+]);
+
+const NFE_STATUS_LABELS = new Map([
+	["authorized", "Autorizada"],
+	["autorizada", "Autorizada"],
+	["canceled", "Cancelada"],
+	["cancelled", "Cancelada"],
+	["cancelada", "Cancelada"],
+	["rejected", "Rejeitada"],
+	["rejeitada", "Rejeitada"],
+	["pending", "Pendente"],
+	["pendente", "Pendente"],
+	["processing", "Processando"],
+	["processando", "Processando"],
+]);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function NfeStatusBadge({ status }: { status: string }) {
 	const key = status.toLowerCase();
-	const variant = NFE_STATUS_VARIANT[key] ?? "secondary";
-	const label = NFE_STATUS_LABELS[key] ?? status;
+	const variant = NFE_STATUS_VARIANT.get(key) ?? "secondary";
+	const label = NFE_STATUS_LABELS.get(key) ?? status;
 
 	return <Badge variant={variant}>{label}</Badge>;
 }

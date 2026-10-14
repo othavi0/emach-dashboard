@@ -54,8 +54,10 @@ import {
 // mensagem amigável (o catch genérico mapeia por instanceof).
 class VariantMutationBlockedError extends Error {}
 
+type ActionFailure = Extract<ActionResult, { ok: false }>;
+
 // Mapeamento compartilhado dos erros do sync de tool/variantes (create/update).
-function mapToolMutationError(cause: unknown): { ok: false; error: string } {
+function mapToolMutationError(cause: unknown): ActionFailure {
 	if (cause instanceof VariantMutationBlockedError) {
 		return { ok: false, error: cause.message };
 	}
@@ -716,7 +718,7 @@ export async function updateToolVariant(
 			return { ok: false, error: "Variante não encontrada" };
 		}
 
-		const updateFields: Record<string, unknown> = {};
+		const updateFields: Partial<typeof toolVariant.$inferInsert> = {};
 
 		if (fields.sku !== undefined) {
 			updateFields.sku = fields.sku.trim();

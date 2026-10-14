@@ -3,8 +3,9 @@ import "server-only";
 import { db } from "@emach/db";
 import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
+import type { ReviewStatus } from "@emach/db/schema/reviews";
 import { tool, toolImage } from "@emach/db/schema/tools";
-import { toDate } from "@emach/db/utils";
+import { type JsonValue, toDate } from "@emach/db/utils";
 import { cache } from "react";
 
 export type { OrderStatus } from "@emach/db/schema/orders";
@@ -18,6 +19,7 @@ import {
 	orderNote,
 	orderPicking,
 	orderStatusHistory,
+	type RefundStatus,
 	refundRequest,
 } from "@emach/db/schema/orders";
 import { asc, desc, eq, inArray, sql } from "drizzle-orm";
@@ -148,7 +150,7 @@ export interface OrderRefundItem {
 	rejectionReason: string | null;
 	requestedAt: Date;
 	resolvedAt: Date | null;
-	status: string;
+	status: RefundStatus;
 }
 
 export interface OrderEventItem {
@@ -156,7 +158,7 @@ export interface OrderEventItem {
 	createdAt: Date;
 	eventType: string;
 	id: string;
-	metadata: Record<string, unknown> | null;
+	metadata: JsonValue | null;
 }
 
 export interface OrderAttachmentItem {
@@ -715,7 +717,7 @@ export interface OrderReviewRow {
 	review: {
 		id: string;
 		rating: number;
-		status: string;
+		status: ReviewStatus;
 	} | null;
 	reviewState: OrderReviewState;
 	thumbUrl: string | null;
@@ -732,7 +734,9 @@ export async function getOrderReviewsOverview(
 		thumb_url: string | null;
 		review_id: string | null;
 		rating: number | null;
-		review_status: string | null;
+		// `review.status` é a coluna enum `review_status`: o Postgres só devolve
+		// um dos valores de `ReviewStatus`.
+		review_status: ReviewStatus | null;
 		review_state: OrderReviewState;
 		days_remaining: number | null;
 	}>(sql`
@@ -1137,7 +1141,9 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 		events: eventRows.map((e) => ({
 			id: e.id,
 			eventType: e.eventType,
-			metadata: (e.metadata ?? null) as Record<string, unknown> | null,
+			// SAFETY: `order_event.metadata` é jsonb; o driver devolve o JSON já
+			// parseado, então o valor é sempre um `JsonValue` ou null.
+			metadata: (e.metadata ?? null) as JsonValue | null,
 			actorLabel: formatActorLabel({
 				actorType: e.actorType,
 				actorUserName: e.actorUserName,

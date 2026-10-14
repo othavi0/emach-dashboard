@@ -32,6 +32,12 @@ const selfEditSchema = updateOwnProfileSchema.extend({
 		.transform((v) => v.toLowerCase()),
 });
 
+/** Só os campos que o usuário mudou; campo ausente fica fora do update. */
+interface ProfilePayload {
+	image?: string | null;
+	name?: string;
+}
+
 function buildProfilePayload(args: {
 	name: string;
 	initialName: string;
@@ -39,8 +45,8 @@ function buildProfilePayload(args: {
 	image: string | null;
 	initialImage: string | null;
 	parsedImage: string | null | undefined;
-}): { name?: string; image?: string | null } {
-	const payload: { name?: string; image?: string | null } = {};
+}): ProfilePayload {
+	const payload: ProfilePayload = {};
 
 	if (args.name !== args.initialName) {
 		payload.name = args.parsedName;

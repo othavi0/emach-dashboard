@@ -1,5 +1,6 @@
 "use client";
 
+import type { RefundStatus } from "@emach/db/schema/orders";
 import {
 	ExternalLinkIcon,
 	FileIcon,
@@ -186,15 +187,15 @@ function normalizeEvents(items: OrderEventItem[]): FeedItem[] {
 	});
 }
 
-const REFUND_STATUS_LABELS: Record<string, string> = {
-	approved: "aprovado",
-	rejected: "rejeitado",
-	pending: "pendente",
-};
+// Só parte dos `RefundStatus` tem rótulo; o resto cai no valor cru.
+const REFUND_STATUS_LABELS = new Map<RefundStatus, string>([
+	["approved", "aprovado"],
+	["rejected", "rejeitado"],
+]);
 
 function normalizeRefunds(items: OrderRefundItem[]): FeedItem[] {
 	return items.map((r) => {
-		const statusLabel = REFUND_STATUS_LABELS[r.status] ?? r.status;
+		const statusLabel = REFUND_STATUS_LABELS.get(r.status) ?? r.status;
 		const subtitle = `${r.reasonCategory} · ${formatCurrency(r.amount)} · ${statusLabel}`;
 
 		return {

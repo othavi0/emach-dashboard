@@ -27,7 +27,7 @@ interface Palette {
 	tokens: Record<string, string>;
 }
 
-const SHARED_TOKENS: Record<string, string> = {
+const SHARED_TOKENS = {
 	"--background": "oklch(0.16 0.005 70)",
 	"--foreground": "oklch(0.97 0.008 85)",
 	"--card": "oklch(0.20 0.005 70)",
@@ -44,7 +44,7 @@ const SHARED_TOKENS: Record<string, string> = {
 	"--input": "oklch(0.42 0.010 70)",
 	"--destructive": "oklch(0.55 0.20 15)",
 	"--destructive-foreground": "oklch(0.99 0 0)",
-};
+} satisfies Palette["tokens"];
 
 const PALETTES: Palette[] = [
 	{
