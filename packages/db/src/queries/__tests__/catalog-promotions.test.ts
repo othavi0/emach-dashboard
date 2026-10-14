@@ -14,7 +14,15 @@ function makeDb(responses: unknown[][]): AnyDb {
 		return Promise.resolve({ rows });
 	});
 
-	return { execute } as unknown as AnyDb;
+	return asAnyDb({ execute });
+}
+
+function asAnyDb(stub: { execute: unknown }): AnyDb {
+	const dbStub: object = stub;
+
+	// SAFETY: getActivePromotions só chama db.execute, e o stub implementa
+	// esse método; qualquer outro método falha o teste com TypeError.
+	return dbStub as AnyDb;
 }
 
 interface PromoStub {

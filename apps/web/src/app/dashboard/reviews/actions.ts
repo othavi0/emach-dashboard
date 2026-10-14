@@ -23,6 +23,33 @@ import { REVIEW_TABS } from "./status-meta";
 
 const REVIEWS_PATH = "/dashboard/reviews";
 
+type ReviewModerationSet = Pick<
+	typeof review.$inferInsert,
+	"status" | "moderatedBy" | "moderatedAt" | "moderationNote"
+>;
+
+/**
+ * SET comum à moderação unitária e em lote. Sem nota (caso da aprovação) a
+ * coluna não entra no SET: aprovar não apaga a nota de moderação anterior.
+ */
+function buildModerationSet(
+	status: ReviewModerationSet["status"],
+	moderatedBy: string,
+	note: string | undefined
+): ReviewModerationSet {
+	const values: ReviewModerationSet = {
+		status,
+		moderatedBy,
+		moderatedAt: new Date(),
+	};
+
+	if (note) {
+		values.moderationNote = note;
+	}
+
+	return values;
+}
+
 /** Página keyset da listagem (usada pela página inicial e pelo scroll infinito). */
 export async function fetchReviewsPage({
 	filters,
@@ -63,14 +90,7 @@ export async function moderateReview(
 	try {
 		const updated = await db
 			.update(review)
-			.set({
-				status,
-				moderatedBy: session.user.id,
-				moderatedAt: new Date(),
-				// Sem nota (caso da aprovação) → a coluna não entra no SET: aprovar não
-				// apaga a nota de moderação anterior. Mesma regra do bulk.
-				...(note ? { moderationNote: note } : {}),
-			})
+			.set(buildModerationSet(status, session.user.id, note))
 			.where(
 				and(
 					eq(review.id, reviewId),
@@ -128,14 +148,7 @@ export async function bulkModerateReviews(
 	try {
 		const moderated = await db
 			.update(review)
-			.set({
-				status,
-				moderatedBy: session.user.id,
-				moderatedAt: new Date(),
-				// Sem nota (caso da aprovação) → a coluna não entra no SET: aprovar em
-				// lote não apaga a nota de moderação anterior.
-				...(note ? { moderationNote: note } : {}),
-			})
+			.set(buildModerationSet(status, session.user.id, note))
 			.where(
 				and(
 					inArray(review.id, reviewIds),

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { applyStockReturns, type ReturnItemInput } from "../stock-returns";
+import {
+	applyStockReturns,
+	type ReturnItemInput,
+	type StockReturnTx,
+} from "../stock-returns";
 
 // ---------------------------------------------------------------------------
 // Mock manual do `tx` do Drizzle.
@@ -57,7 +61,7 @@ function makeTx(
 	});
 
 	const tx = {
-		select: vi.fn((_shape: unknown) => {
+		select: vi.fn((_selection: unknown) => {
 			const result = selectResults[callIdx++] ?? [];
 
 			return makeSelectChain(result);
@@ -69,6 +73,14 @@ function makeTx(
 	};
 
 	return tx;
+}
+
+function asStockReturnTx(stub: ReturnType<typeof makeTx>): StockReturnTx {
+	const txStub: object = stub;
+
+	// SAFETY: applyStockReturns só chama tx.select e tx.insert, e o stub
+	// implementa os dois; qualquer outro método falha o teste com TypeError.
+	return txStub as StockReturnTx;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,7 +121,7 @@ describe("applyStockReturns", () => {
 		);
 
 		await applyStockReturns(
-			tx as unknown as Parameters<typeof applyStockReturns>[0],
+			asStockReturnTx(tx),
 			ORDER_ID,
 			[ITEM_INPUT],
 			USER_ID,
@@ -162,7 +174,7 @@ describe("applyStockReturns", () => {
 
 		await expect(
 			applyStockReturns(
-				tx as unknown as Parameters<typeof applyStockReturns>[0],
+				asStockReturnTx(tx),
 				ORDER_ID,
 				[ITEM_INPUT],
 				USER_ID,
@@ -193,7 +205,7 @@ describe("applyStockReturns", () => {
 		]);
 
 		await applyStockReturns(
-			tx as unknown as Parameters<typeof applyStockReturns>[0],
+			asStockReturnTx(tx),
 			ORDER_ID,
 			[ITEM_INPUT, item2],
 			USER_ID,
@@ -229,7 +241,7 @@ describe("applyStockReturns", () => {
 		]);
 
 		await applyStockReturns(
-			tx as unknown as Parameters<typeof applyStockReturns>[0],
+			asStockReturnTx(tx),
 			ORDER_ID,
 			[ITEM_INPUT],
 			USER_ID,

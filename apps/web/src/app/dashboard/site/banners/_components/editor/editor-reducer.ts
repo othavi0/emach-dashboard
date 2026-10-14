@@ -114,7 +114,7 @@ function getDesktopElement(
 	elements: BannerComposition["desktop"]["elements"],
 	key: ElementKey
 ): ElementPlacement | undefined {
-	return Reflect.get(elements, key) as ElementPlacement | undefined;
+	return elements[key];
 }
 
 function setDesktopElement(
@@ -135,7 +135,7 @@ function getMobileElement(
 	elements: BannerComposition["mobile"]["elements"],
 	key: ElementKey
 ): MobileOverride | undefined {
-	return Reflect.get(elements, key) as MobileOverride | undefined;
+	return elements[key];
 }
 
 function setMobileElement(
@@ -153,10 +153,7 @@ function setMobileElement(
 }
 
 function clearElementContent(content: BannerFormValues, key: ElementKey) {
-	const fields = Reflect.get(
-		ELEMENT_CONTENT_FIELDS,
-		key
-	) as (keyof BannerFormValues)[];
+	const fields = ELEMENT_CONTENT_FIELDS[key];
 
 	for (const field of fields) {
 		Reflect.set(content, field, null);

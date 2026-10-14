@@ -338,14 +338,15 @@ export async function getToolBySlug(
 			def_is_required: boolean;
 			def_category_id: string;
 			def_sort_order: number;
-			def_created_at: Date;
-			def_updated_at: Date;
+			// db.execute() raw devolve timestamp como string (ver packages/db/CLAUDE.md).
+			def_created_at: string;
+			def_updated_at: string;
 			val_value_text: string | null;
 			val_value_numeric: string | null;
 			val_value_numeric_max: string | null;
 			val_value_bool: boolean | null;
-			val_created_at: Date;
-			val_updated_at: Date;
+			val_created_at: string;
+			val_updated_at: string;
 			assignment_sort: number;
 		}>(sql`
 			SELECT
@@ -451,8 +452,8 @@ export async function getToolBySlug(
 			isRequired: row.def_is_required,
 			categoryId: row.def_category_id,
 			sortOrder: row.def_sort_order,
-			createdAt: new Date(row.def_created_at as unknown as string),
-			updatedAt: new Date(row.def_updated_at as unknown as string),
+			createdAt: new Date(row.def_created_at),
+			updatedAt: new Date(row.def_updated_at),
 		} satisfies AttributeDefinition,
 		value: {
 			toolId,
@@ -461,8 +462,8 @@ export async function getToolBySlug(
 			valueNumeric: row.val_value_numeric,
 			valueNumericMax: row.val_value_numeric_max,
 			valueBool: row.val_value_bool,
-			createdAt: new Date(row.val_created_at as unknown as string),
-			updatedAt: new Date(row.val_updated_at as unknown as string),
+			createdAt: new Date(row.val_created_at),
+			updatedAt: new Date(row.val_updated_at),
 		} satisfies ToolAttributeValue,
 		sortOrder: row.assignment_sort,
 	}));

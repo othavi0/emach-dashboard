@@ -30,13 +30,13 @@ const MOBILE_STATUS_LABEL: Record<MobileStatus, string> = {
 };
 
 function mobileStatus(state: EditorState, key: ElementKey): MobileStatus {
-	const entry = Reflect.get(state.composition.mobile.elements, key);
+	const entry = state.composition.mobile.elements[key];
 
 	if (entry === undefined) {
 		return "herdado";
 	}
 
-	if (typeof entry === "object" && entry !== null && "hidden" in entry) {
+	if ("hidden" in entry) {
 		return "oculto";
 	}
 
@@ -44,7 +44,7 @@ function mobileStatus(state: EditorState, key: ElementKey): MobileStatus {
 }
 
 function isDesktopEnabled(state: EditorState, key: ElementKey): boolean {
-	return Reflect.get(state.composition.desktop.elements, key) !== undefined;
+	return state.composition.desktop.elements[key] !== undefined;
 }
 
 function ElementRow({

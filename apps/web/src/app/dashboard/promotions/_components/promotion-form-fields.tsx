@@ -346,14 +346,19 @@ export function PromotionFormFields({
 	}, [values.toolIds, values.appliesToAll, excludePromotionId]);
 
 	function handleTypeChange(next: PromotionType) {
+		if (next === "promocode") {
+			onPatch({ type: next, code: values.code ?? "" });
+
+			return;
+		}
+
+		// limpar campos só-cupom ao voltar para promoção automática
 		onPatch({
 			type: next,
-			code: next === "promocode" ? (values.code ?? "") : null,
-			// limpar campos só-cupom ao voltar para promoção automática
-			...(next === "promotion"
-				? { maxRedemptions: null, minOrderAmount: null }
-				: {}),
-		} as Partial<PromotionFormValues>);
+			code: null,
+			maxRedemptions: null,
+			minOrderAmount: null,
+		});
 	}
 
 	return (

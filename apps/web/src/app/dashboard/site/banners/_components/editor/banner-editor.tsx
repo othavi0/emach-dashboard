@@ -36,8 +36,13 @@ function sanitizeSpecs(
 	return trimmed.length > 0 ? trimmed : null;
 }
 
+// O path do erro do zod chega como string; o Map aceita a chave sem assertion.
+const SELECTION_BY_FIELD = new Map<string, EditorSelection | undefined>(
+	Object.entries(FIELD_TO_SELECTION)
+);
+
 function selectionForField(field: string): EditorSelection | undefined {
-	return Reflect.get(FIELD_TO_SELECTION, field) as EditorSelection | undefined;
+	return SELECTION_BY_FIELD.get(field);
 }
 
 export function BannerEditor({ banner }: { banner?: Banner }) {

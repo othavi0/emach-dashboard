@@ -372,10 +372,7 @@ function ElementInspector({
 }) {
 	const label = ELEMENT_LABELS[elementKey];
 
-	const desktopPlacement = Reflect.get(
-		state.composition.desktop.elements,
-		elementKey
-	) as ElementPlacement | undefined;
+	const desktopPlacement = state.composition.desktop.elements[elementKey];
 
 	// Elemento desligado (sem placement no desktop): não renderiza os
 	// controles de posição/conteúdo — mexer num slider não pode habilitar o
@@ -431,10 +428,7 @@ function ElementInspector({
 		);
 	}
 
-	const mobileEntry = Reflect.get(
-		state.composition.mobile.elements,
-		elementKey
-	) as MobileOverride | undefined;
+	const mobileEntry = state.composition.mobile.elements[elementKey];
 
 	const override = asPlacementOverride(mobileEntry);
 	const hidden = mobileEntry !== undefined && override === null;

@@ -114,10 +114,7 @@ export async function getStoreSocialLinks(
 		{ network: "youtube", url: row.youtubeUrl, visible: row.youtubeVisible },
 	];
 
-	return candidates
-		.filter(
-			(c): c is { network: SocialNetwork; url: string; visible: boolean } =>
-				Boolean(c.visible && c.url)
-		)
-		.map(({ network, url }) => ({ network, url }));
+	return candidates.flatMap(({ network, url, visible }) =>
+		visible && url ? [{ network, url }] : []
+	);
 }

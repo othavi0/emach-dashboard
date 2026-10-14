@@ -74,7 +74,8 @@ export async function createBanner(
 			.from(banner);
 
 		const id = crypto.randomUUID();
-		await db.insert(banner).values({
+
+		const row: typeof banner.$inferInsert = {
 			id,
 			backgroundImageUrl: persisted.backgroundImageUrl,
 			backgroundImageMobileUrl: persisted.backgroundImageMobileUrl,
@@ -94,8 +95,13 @@ export async function createBanner(
 			countdownTarget: persisted.countdownTarget,
 			isActive: persisted.isActive,
 			sortOrder: (maxRow?.max ?? -1) + 1,
-			...(v.composition ? { composition: persisted.composition } : {}),
-		});
+		};
+
+		if (v.composition) {
+			row.composition = persisted.composition;
+		}
+
+		await db.insert(banner).values(row);
 		await logUserActivity({
 			actorUserId: session.user.id,
 			action: "banner.created",
@@ -136,30 +142,32 @@ export async function updateBanner(
 			};
 		}
 
-		await db
-			.update(banner)
-			.set({
-				backgroundImageUrl: persisted.backgroundImageUrl,
-				backgroundImageMobileUrl: persisted.backgroundImageMobileUrl,
-				backgroundMobileMode: persisted.backgroundMobileMode,
-				productImageUrl: persisted.productImageUrl,
-				productImageMobileUrl: persisted.productImageMobileUrl,
-				title: persisted.title,
-				subtitle: persisted.subtitle,
-				specs: persisted.specs,
-				altText: persisted.altText,
-				badgeText: persisted.badgeText,
-				ctaLabel: persisted.ctaLabel,
-				ctaHref: persisted.ctaHref,
-				ctaVariant: persisted.ctaVariant,
-				layout: persisted.layout,
-				productScale: persisted.productScale,
-				ctaScale: persisted.ctaScale,
-				countdownTarget: persisted.countdownTarget,
-				isActive: persisted.isActive,
-				...(v.composition ? { composition: persisted.composition } : {}),
-			})
-			.where(eq(banner.id, id));
+		const changes: Partial<typeof banner.$inferInsert> = {
+			backgroundImageUrl: persisted.backgroundImageUrl,
+			backgroundImageMobileUrl: persisted.backgroundImageMobileUrl,
+			backgroundMobileMode: persisted.backgroundMobileMode,
+			productImageUrl: persisted.productImageUrl,
+			productImageMobileUrl: persisted.productImageMobileUrl,
+			title: persisted.title,
+			subtitle: persisted.subtitle,
+			specs: persisted.specs,
+			altText: persisted.altText,
+			badgeText: persisted.badgeText,
+			ctaLabel: persisted.ctaLabel,
+			ctaHref: persisted.ctaHref,
+			ctaVariant: persisted.ctaVariant,
+			layout: persisted.layout,
+			productScale: persisted.productScale,
+			ctaScale: persisted.ctaScale,
+			countdownTarget: persisted.countdownTarget,
+			isActive: persisted.isActive,
+		};
+
+		if (v.composition) {
+			changes.composition = persisted.composition;
+		}
+
+		await db.update(banner).set(changes).where(eq(banner.id, id));
 		await logUserActivity({
 			actorUserId: session.user.id,
 			action: "banner.updated",

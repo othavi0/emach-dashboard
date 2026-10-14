@@ -21,41 +21,38 @@ describe("zodIssuesToFieldErrors", () => {
 	});
 
 	it("não sobrescreve: mantém o primeiro erro de cada chave", () => {
-		const err = {
-			issues: [
-				{ path: ["name"], message: "primeiro" },
-				{ path: ["name"], message: "segundo" },
-			],
-		} as unknown as z.ZodError;
+		const err = new z.ZodError([
+			{ code: "custom", path: ["name"], message: "primeiro" },
+			{ code: "custom", path: ["name"], message: "segundo" },
+		]);
 
 		expect(zodIssuesToFieldErrors(err).name).toBe("primeiro");
 	});
 
 	it("usa path[0] para erros aninhados (ex: businessHours.weekdays)", () => {
-		const err = {
-			issues: [
-				{
-					path: ["businessHours", "weekdays", "opensAt"],
-					message: "Horário inválido",
-				},
-			],
-		} as unknown as z.ZodError;
+		const err = new z.ZodError([
+			{
+				code: "custom",
+				path: ["businessHours", "weekdays", "opensAt"],
+				message: "Horário inválido",
+			},
+		]);
 
 		expect(zodIssuesToFieldErrors(err).businessHours).toBe("Horário inválido");
 	});
 
 	it("mapeia issue de path vazio para a chave _form", () => {
-		const err = {
-			issues: [{ path: [], message: "Erro geral do formulário" }],
-		} as unknown as z.ZodError;
+		const err = new z.ZodError([
+			{ code: "custom", path: [], message: "Erro geral do formulário" },
+		]);
 
 		expect(zodIssuesToFieldErrors(err)._form).toBe("Erro geral do formulário");
 	});
 
 	it("mapeia path[0] symbol para _form sem lançar", () => {
-		const err = {
-			issues: [{ path: [Symbol("x")], message: "via symbol" }],
-		} as unknown as z.ZodError;
+		const err = new z.ZodError([
+			{ code: "custom", path: [Symbol("x")], message: "via symbol" },
+		]);
 
 		expect(() => zodIssuesToFieldErrors(err)).not.toThrow();
 		expect(zodIssuesToFieldErrors(err)._form).toBe("via symbol");

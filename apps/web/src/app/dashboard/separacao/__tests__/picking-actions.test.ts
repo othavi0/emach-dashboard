@@ -144,7 +144,7 @@ function makeMockTx(selectResults: unknown[][]) {
 	const makeInsertChain = () => ({ values: insertValues });
 
 	return {
-		select: vi.fn((_shape: unknown) => {
+		select: vi.fn((_selection: unknown) => {
 			const result = selectResults[selectCallIdx++] ?? [];
 
 			return makeSelectChain(result);

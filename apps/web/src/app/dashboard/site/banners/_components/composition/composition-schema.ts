@@ -46,7 +46,7 @@ export const SCALE_BOUNDS: Record<ElementKey, [number, number]> = {
 
 const OFFSET = z.number().min(-20).max(20);
 
-function basePlacementShape(scale: [number, number]) {
+function basePlacementFields(scale: [number, number]) {
 	return {
 		anchor: z.enum(ANCHORS),
 		offsetX: OFFSET,
@@ -56,12 +56,12 @@ function basePlacementShape(scale: [number, number]) {
 }
 
 function placementSchema(scale: [number, number]) {
-	return z.object(basePlacementShape(scale));
+	return z.object(basePlacementFields(scale));
 }
 
 function textPlacementSchema(scale: [number, number]) {
 	return z.object({
-		...basePlacementShape(scale),
+		...basePlacementFields(scale),
 		maxWidth: z.number().int().min(12).max(80).optional(),
 	});
 }
