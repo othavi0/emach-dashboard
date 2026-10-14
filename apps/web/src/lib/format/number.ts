@@ -18,7 +18,7 @@ export function formatMeasure(
 		return null;
 	}
 
-	const n = typeof value === "number" ? value : Number(value);
+	const n = Number(value);
 
 	if (Number.isNaN(n)) {
 		return null;
@@ -41,7 +41,7 @@ export function formatWeight(
 		return null;
 	}
 
-	const n = typeof value === "number" ? value : Number(value);
+	const n = Number(value);
 
 	if (Number.isNaN(n)) {
 		return null;

@@ -76,25 +76,32 @@ export const attributeValueInputSchema = z.object({
 export type AttributeValueInput = z.infer<typeof attributeValueInputSchema>;
 
 /**
+ * Linha crua do editor de variantes, antes da validação: só os campos que dizem
+ * se o usuário a tocou. Campo ausente ou de outro tipo conta como vazio.
+ */
+const variantRowTouchSchema = z.object({
+	id: z.unknown().optional(),
+	sku: z.string().catch(""),
+	barcode: z.string().catch(""),
+	voltage: z.unknown().optional(),
+	priceAmount: z.number().catch(0),
+});
+
+type VariantRowTouch = z.infer<typeof variantRowTouchSchema>;
+
+/**
  * Linha de variante que o usuário nunca tocou (estado inicial do editor):
  * SKU e barcode vazios, sem voltagem e sem preço digitado. Filtrada antes da
  * validação para que rascunho só-com-nome não esbarre em "SKU obrigatório".
  */
-function isPristineVariant(row: unknown): boolean {
-	if (typeof row !== "object" || row === null) {
-		return false;
-	}
-
-	const v = row as Partial<ToolVariantInput>;
-	const sku = typeof v.sku === "string" ? v.sku.trim() : "";
-	const barcode = typeof v.barcode === "string" ? v.barcode.trim() : "";
-
-	const price =
-		typeof v.priceAmount === "number" && !Number.isNaN(v.priceAmount)
-			? v.priceAmount
-			: 0;
-
-	return sku === "" && barcode === "" && !v.voltage && price === 0 && !v.id;
+function isPristineVariant(row: VariantRowTouch): boolean {
+	return (
+		row.sku.trim() === "" &&
+		row.barcode.trim() === "" &&
+		!row.voltage &&
+		row.priceAmount === 0 &&
+		!row.id
+	);
 }
 
 function checkVariantDuplicates(
@@ -176,7 +183,13 @@ export const toolFormSchema = z
 		// linha inicial que o usuário nunca tocou.
 		variants: z.preprocess(
 			(v) =>
-				Array.isArray(v) ? v.filter((row) => !isPristineVariant(row)) : v,
+				Array.isArray(v)
+					? v.filter((row) => {
+							const touch = variantRowTouchSchema.safeParse(row);
+
+							return !(touch.success && isPristineVariant(touch.data));
+						})
+					: v,
 			z.array(toolVariantSchema)
 		),
 		attributeValues: z
@@ -234,6 +247,9 @@ export const toolFormSchema = z
 	});
 
 export type ToolFormValues = z.infer<typeof toolFormSchema>;
+
+/** O que o form entrega ao schema antes do parse (defaults e transforms ainda não aplicados). */
+export type ToolFormInput = z.input<typeof toolFormSchema>;
 
 export type ToolImageValue = z.infer<typeof toolImageSchema>;
 
@@ -367,7 +383,7 @@ export interface ToolIssue {
  * pelos badges/erros por passo do wizard.
  */
 export function collectToolIssues(
-	values: unknown,
+	values: Partial<ToolFormInput>,
 	opts: { enforceActivation: boolean }
 ): ToolIssue[] {
 	const parsed = toolFormSchema.safeParse(values);
@@ -393,22 +409,19 @@ export function collectToolIssues(
 }
 
 function isSpecFilled(v: AttributeValueInput): boolean {
-	if (typeof v.valueText === "string" && v.valueText.trim() !== "") {
+	if (v.valueText != null && v.valueText.trim() !== "") {
 		return true;
 	}
 
-	if (typeof v.valueNumeric === "number" && !Number.isNaN(v.valueNumeric)) {
+	if (v.valueNumeric != null && !Number.isNaN(v.valueNumeric)) {
 		return true;
 	}
 
-	if (
-		typeof v.valueNumericMax === "number" &&
-		!Number.isNaN(v.valueNumericMax)
-	) {
+	if (v.valueNumericMax != null && !Number.isNaN(v.valueNumericMax)) {
 		return true;
 	}
 
-	if (typeof v.valueBool === "boolean") {
+	if (v.valueBool != null) {
 		return true;
 	}
 

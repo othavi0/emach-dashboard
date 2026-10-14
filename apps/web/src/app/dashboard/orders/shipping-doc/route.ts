@@ -35,7 +35,7 @@ export async function GET(req: Request) {
 			orders.map(async (o) => {
 				const uri = await cepBarcodeDataUri(o.recipient.zipCode).catch(
 					(err) => {
-						logger.error("shipping_doc.barcode", { orderId: o.id, err });
+						logger.error("shipping_doc.barcode", err, { orderId: o.id });
 
 						return null;
 					}

@@ -58,9 +58,9 @@ export function ProductivityPanel({
 					value={summary.completedWeek}
 				/>
 				<KpiCard
+					display={formatSessionDuration(summary.avgSessionSeconds)}
 					label="Tempo médio de sessão"
 					sub="últimos 7 dias"
-					value={formatSessionDuration(summary.avgSessionSeconds)}
 				/>
 			</div>
 

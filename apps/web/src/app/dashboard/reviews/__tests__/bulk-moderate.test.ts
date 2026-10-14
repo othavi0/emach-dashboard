@@ -38,7 +38,7 @@ vi.mock("next/cache", () => ({
 // ---------------------------------------------------------------------------
 
 import { review } from "@emach/db/schema/reviews";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, type SQL } from "drizzle-orm";
 
 import { bulkModerateReviews } from "../actions";
 import { BULK_MODERATE_LIMIT, type BulkModerateReviewsInput } from "../schema";
@@ -46,6 +46,9 @@ import { BULK_MODERATE_LIMIT, type BulkModerateReviewsInput } from "../schema";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Payload que a action passa para db.update(review).set(). */
+type ReviewSet = Partial<typeof review.$inferInsert>;
 
 const ID_A = "11111111-1111-4111-8111-111111111111";
 const ID_B = "22222222-2222-4222-8222-222222222222";
@@ -60,7 +63,7 @@ const setSpy = vi.fn();
  */
 function setupUpdate(rows: Array<{ id: string }>) {
 	mockDbUpdate.mockReturnValue({
-		set: (payload: unknown) => {
+		set: (payload: ReviewSet) => {
 			setSpy(payload);
 
 			return {
@@ -73,7 +76,7 @@ function setupUpdate(rows: Array<{ id: string }>) {
 }
 
 /** db.update lança — simula erro de banco. */
-function setupUpdateThrows(error: unknown) {
+function setupUpdateThrows(error: Error) {
 	mockDbUpdate.mockReturnValue({
 		set: () => ({
 			where: () => ({
@@ -273,13 +276,13 @@ describe("bulkModerateReviews", () => {
 	it("compõe o where com inArray(id) e eq(status, expectedStatus)", async () => {
 		setupUpdate([{ id: ID_A }]);
 
-		let capturedWhere: unknown;
+		let capturedWhere: SQL | undefined;
 		mockDbUpdate.mockReturnValue({
-			set: (payload: unknown) => {
+			set: (payload: ReviewSet) => {
 				setSpy(payload);
 
 				return {
-					where: (whereArg: unknown) => {
+					where: (whereArg: SQL | undefined) => {
 						capturedWhere = whereArg;
 
 						return { returning: () => Promise.resolve([{ id: ID_A }]) };

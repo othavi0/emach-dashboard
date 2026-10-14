@@ -269,7 +269,7 @@ function parseNumber(value: string | number | null): number | null {
 		return null;
 	}
 
-	return typeof value === "number" ? value : Number(value);
+	return Number(value);
 }
 
 function formatActorLabel(entry: {

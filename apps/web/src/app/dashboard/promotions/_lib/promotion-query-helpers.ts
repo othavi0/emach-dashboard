@@ -14,18 +14,18 @@ import type { PromotionSort, PromotionStatus } from "./promotion-types";
 // Error helpers
 // ---------------------------------------------------------------------------
 
-export function dbErrorMessage(error: unknown): string {
-	logger.error("promotions", error);
+export function dbErrorMessage(cause: unknown): string {
+	logger.error("promotions", cause);
 
 	return "Erro ao processar operação. Tente novamente.";
 }
 
-export function safeRequireRole(error: unknown): ActionResult<never> {
-	if (isCapabilityError(error)) {
+export function safeRequireRole(cause: unknown): ActionResult<never> {
+	if (isCapabilityError(cause)) {
 		return { ok: false, error: "Acesso negado" };
 	}
 
-	throw error;
+	throw cause;
 }
 
 export function conflict(message: string): never {

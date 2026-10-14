@@ -1,3 +1,5 @@
+import type { stockLevel } from "@emach/db/schema/inventory";
+import type { stockMovement } from "@emach/db/schema/stock-movements";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	applyStockReturns,
@@ -10,6 +12,11 @@ import {
 // applyStockReturns recebe `tx` como argumento — não importa @emach/db,
 // então vi.mock("@emach/db") não é necessário.
 // ---------------------------------------------------------------------------
+
+/** Linhas que applyStockReturns insere: upsert de stock_level e stock_movement. */
+type InsertedRow =
+	| typeof stockLevel.$inferInsert
+	| typeof stockMovement.$inferInsert;
 
 function makeTx(
 	/**
@@ -29,9 +36,10 @@ function makeTx(
 			for: () => Promise.resolve(result),
 			// sem .for() o vitest vai awaitar o objeto chain — então também precisamos
 			// que o chain seja thenable quando não há .for()
+			// Promise.resolve nunca rejeita, então o handler de rejeição é dispensável.
 			// biome-ignore lint/suspicious/noThenProperty: mock intencional do query builder thenable do Drizzle
-			then: (resolve: (v: unknown[]) => void, _reject?: (e: unknown) => void) =>
-				Promise.resolve(result).then(resolve, _reject),
+			then: (resolve: (v: unknown[]) => void) =>
+				Promise.resolve(result).then(resolve),
 		};
 
 		return chain;
@@ -41,32 +49,30 @@ function makeTx(
 	const insertOnConflict = vi.fn().mockResolvedValue(undefined);
 
 	const makeInsertChain = () => ({
-		values: (data: unknown) => {
+		values: (data: InsertedRow) => {
 			insertValues(data);
 
 			return {
-				onConflictDoUpdate: (opts: unknown) => {
-					insertOnConflict(opts);
+				onConflictDoUpdate: () => {
+					insertOnConflict();
 
 					return Promise.resolve(undefined);
 				},
 				// INSERT sem onConflictDoUpdate também é thenable
 				// biome-ignore lint/suspicious/noThenProperty: mock intencional do query builder thenable do Drizzle
-				then: (
-					resolve: (v: undefined) => void,
-					_reject?: (e: unknown) => void
-				) => Promise.resolve(undefined).then(resolve, _reject),
+				then: (resolve: (v: undefined) => void) =>
+					Promise.resolve(undefined).then(resolve),
 			};
 		},
 	});
 
 	const tx = {
-		select: vi.fn((_selection: unknown) => {
+		select: vi.fn(() => {
 			const result = selectResults[callIdx++] ?? [];
 
 			return makeSelectChain(result);
 		}),
-		insert: vi.fn((_table: unknown) => makeInsertChain()),
+		insert: vi.fn(() => makeInsertChain()),
 		// expor para assertions
 		_insertValues: insertValues,
 		_insertOnConflict: insertOnConflict,

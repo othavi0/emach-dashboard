@@ -65,7 +65,7 @@ export async function GET(request: Request) {
 					canceled++;
 				});
 			} catch (perOrderErr) {
-				logger.error("cancelStaleOrder", { orderId: id, err: perOrderErr });
+				logger.error("cancelStaleOrder", perOrderErr, { orderId: id });
 			}
 		}
 

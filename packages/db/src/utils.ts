@@ -1,3 +1,12 @@
+/** Valor que `JSON.stringify` serializa sem descartar nem converter nada. */
+export type JsonValue =
+	| string
+	| number
+	| boolean
+	| null
+	| JsonValue[]
+	| { [key: string]: JsonValue };
+
 export function toDate(value: Date | string): Date;
 export function toDate(value: Date | string | null | undefined): Date | null;
 export function toDate(value: Date | string | null | undefined): Date | null {

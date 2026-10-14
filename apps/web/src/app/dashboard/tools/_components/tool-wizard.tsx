@@ -48,9 +48,8 @@ export function ToolWizard({
 }: {
 	defaultValues?: Partial<ToolFormState>;
 }) {
-	const { values, patch, errors, setErrors, setValues } = useToolFormState(
-		defaultValues ?? {}
-	);
+	const { values, patch, update, errors, setErrors, setValues } =
+		useToolFormState(defaultValues ?? {});
 
 	const [active, setActive] = useState(0);
 	const [visited, setVisited] = useState<Set<ToolStepId>>(() => new Set());
@@ -177,6 +176,7 @@ export function ToolWizard({
 						disabled={isPending}
 						errors={errors}
 						onPatch={patch}
+						onUpdate={update}
 						values={values}
 					/>
 				</div>

@@ -55,12 +55,12 @@ import {
 class VariantMutationBlockedError extends Error {}
 
 // Mapeamento compartilhado dos erros do sync de tool/variantes (create/update).
-function mapToolMutationError(error: unknown): { ok: false; error: string } {
-	if (error instanceof VariantMutationBlockedError) {
-		return { ok: false, error: error.message };
+function mapToolMutationError(cause: unknown): { ok: false; error: string } {
+	if (cause instanceof VariantMutationBlockedError) {
+		return { ok: false, error: cause.message };
 	}
 
-	const pg = getPgError(error);
+	const pg = getPgError(cause);
 
 	if (pg?.code === "23505") {
 		if (pg.constraint === "tool_variant_barcode_key") {
@@ -83,7 +83,7 @@ function mapToolMutationError(error: unknown): { ok: false; error: string } {
 		};
 	}
 
-	return { ok: false, error: actionErrorMessage(error) };
+	return { ok: false, error: actionErrorMessage(cause) };
 }
 
 export async function fetchToolsPageAction(args: {

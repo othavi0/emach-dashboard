@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export interface PgError {
 	code: string;
 	constraint?: string;
@@ -6,6 +8,19 @@ export interface PgError {
 
 const SQLSTATE_RE = /^[0-9A-Z]{5}$/;
 
+/** Nó no formato node-postgres (`DatabaseError`): SQLSTATE de 5 caracteres. */
+const pgErrorNodeSchema = z.object({
+	code: z.string().regex(SQLSTATE_RE),
+	constraint: z.string().optional().catch(undefined),
+	message: z
+		.unknown()
+		.optional()
+		.transform((message) => String(message ?? "")),
+});
+
+/** Qualquer nó da cadeia (Error ou objeto) que possa embrulhar outro em `.cause`. */
+const causeNodeSchema = z.object({ cause: z.unknown().optional() });
+
 /**
  * Drizzle 0.45.x embrulha o erro do driver numa `DrizzleQueryError` cujo
  * `.message` é "Failed query: …" — o erro real do Postgres (com `code`,
@@ -13,25 +28,29 @@ const SQLSTATE_RE = /^[0-9A-Z]{5}$/;
  * na cadeia `.cause` e devolve o primeiro nó no formato node-postgres
  * (`DatabaseError`), ou `null` se não houver erro de banco.
  */
-export function getPgError(error: unknown): PgError | null {
-	let current: unknown = error;
+export function getPgError(cause: unknown): PgError | null {
+	let current = cause;
 	const seen = new Set<unknown>();
 
-	while (current && typeof current === "object" && !seen.has(current)) {
+	while (!seen.has(current)) {
 		seen.add(current);
-		const code = (current as { code?: unknown }).code;
+		const pgNode = pgErrorNodeSchema.safeParse(current);
 
-		if (typeof code === "string" && SQLSTATE_RE.test(code)) {
-			const constraint = (current as { constraint?: unknown }).constraint;
-
+		if (pgNode.success) {
 			return {
-				code,
-				message: String((current as { message?: unknown }).message ?? ""),
-				constraint: typeof constraint === "string" ? constraint : undefined,
+				code: pgNode.data.code,
+				message: pgNode.data.message,
+				constraint: pgNode.data.constraint,
 			};
 		}
 
-		current = (current as { cause?: unknown }).cause;
+		const causeNode = causeNodeSchema.safeParse(current);
+
+		if (!causeNode.success) {
+			return null;
+		}
+
+		current = causeNode.data.cause;
 	}
 
 	return null;

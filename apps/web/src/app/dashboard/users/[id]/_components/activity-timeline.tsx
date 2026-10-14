@@ -15,6 +15,7 @@ import { Fragment, type ReactNode, useState } from "react";
 import { InfiniteSentinel } from "@/components/infinite-sentinel";
 import { formatRelative } from "@/lib/format/relative";
 import { ACTION_ICONS, FALLBACK_ACTION_ICON } from "./activity-icons";
+import { metadataRows } from "./activity-metadata";
 
 export interface TimelineEntry {
 	action: string;
@@ -36,18 +37,6 @@ interface Props {
 	pending: boolean;
 	/** Cabeçalho da coluna de origem. Padrão: "Por quem". */
 	subjectHeader?: string;
-}
-
-function formatMetadataValue(value: unknown): string {
-	if (value === null || value === undefined) {
-		return "—";
-	}
-
-	if (typeof value === "object") {
-		return JSON.stringify(value);
-	}
-
-	return String(value);
 }
 
 export function ActivityTimeline({
@@ -99,10 +88,8 @@ export function ActivityTimeline({
 						{entries.map((entry) => {
 							const Icon = ACTION_ICONS[entry.action] ?? FALLBACK_ACTION_ICON;
 
-							const hasMetadata =
-								entry.metadata !== null &&
-								entry.metadata !== undefined &&
-								Object.keys(entry.metadata).length > 0;
+							const rows = metadataRows(entry.metadata);
+							const hasMetadata = rows.length > 0;
 
 							const isOpen = openIds.has(entry.id);
 
@@ -158,18 +145,16 @@ export function ActivityTimeline({
 												colSpan={4}
 											>
 												<dl className="grid gap-x-6 gap-y-2 px-4 py-3 sm:grid-cols-[auto_1fr] sm:px-6">
-													{Object.entries(
-														entry.metadata as Record<string, unknown>
-													).map(([key, value]) => (
+													{rows.map((row) => (
 														<div
 															className="grid grid-cols-subgrid sm:col-span-2"
-															key={key}
+															key={row.key}
 														>
 															<dt className="text-[10px] text-muted-foreground uppercase tracking-wider sm:self-center">
-																{key}
+																{row.key}
 															</dt>
 															<dd className="break-all font-mono text-info text-xs">
-																{formatMetadataValue(value)}
+																{row.text}
 															</dd>
 														</div>
 													))}

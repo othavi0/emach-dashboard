@@ -530,7 +530,7 @@ export async function bulkStartSeparation(
 
 		return { ok: true, data: { moved, movedIds, skipped } };
 	} catch (error) {
-		logger.error("bulkStartSeparation", { err: error });
+		logger.error("bulkStartSeparation", error);
 
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para alterar pedidos." };
@@ -827,7 +827,7 @@ export async function bulkAssignBranch(
 
 		return { ok: true, data: { assigned, skipped } };
 	} catch (error) {
-		logger.error("bulkAssignBranch", { err: error });
+		logger.error("bulkAssignBranch", error);
 
 		if (isCapabilityError(error)) {
 			return { ok: false, error: "Sem permissão para atribuir esta filial." };

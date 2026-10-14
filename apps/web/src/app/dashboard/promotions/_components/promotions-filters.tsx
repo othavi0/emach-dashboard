@@ -112,16 +112,16 @@ export function PromotionsFilters({ availableTools }: PromotionsFiltersProps) {
 	function applyDiscountRange() {
 		const next = new URLSearchParams(searchParams.toString());
 
-		if (typeof discountMin === "number") {
-			next.set("discountMin", String(discountMin));
-		} else {
+		if (discountMin === undefined) {
 			next.delete("discountMin");
+		} else {
+			next.set("discountMin", String(discountMin));
 		}
 
-		if (typeof discountMax === "number") {
-			next.set("discountMax", String(discountMax));
-		} else {
+		if (discountMax === undefined) {
 			next.delete("discountMax");
+		} else {
+			next.set("discountMax", String(discountMax));
 		}
 
 		const qs = next.toString();

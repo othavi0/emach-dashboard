@@ -46,8 +46,11 @@ describe("fixtures cleanup", () => {
 
 	it("--all casa o formato antigo e o novo", () => {
 		const { steps } = cleanupPlan({ kind: "all" });
-		const params = steps.flatMap((s) => dialect.sqlToQuery(s.where).params);
-		const prefixes = params.filter((p): p is string => typeof p === "string");
+
+		// Todo parâmetro do plano é o prefixo de um starts_with (ver o teste acima).
+		const prefixes = steps
+			.flatMap((s) => dialect.sqlToQuery(s.where).params)
+			.map(String);
 
 		const covered = (value: string) =>
 			prefixes.some((p) => value.startsWith(p));

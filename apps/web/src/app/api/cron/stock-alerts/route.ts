@@ -155,11 +155,7 @@ async function dispatchBranchAlert(
 	);
 
 	if (to.length === 0) {
-		logger.error("stockAlertsCron", {
-			branchId,
-			branchName,
-			reason: "no_recipients",
-		});
+		logger.error("stockAlertsCron", "no_recipients", { branchId, branchName });
 
 		return "no_recipients";
 	}
@@ -285,7 +281,7 @@ export async function GET(request: Request) {
 				itemsAlerted += items.length;
 			} catch (perBranchErr) {
 				branchesSkipped++;
-				logger.error("stockAlertsCron", { branchId, err: perBranchErr });
+				logger.error("stockAlertsCron", perBranchErr, { branchId });
 			}
 		}
 

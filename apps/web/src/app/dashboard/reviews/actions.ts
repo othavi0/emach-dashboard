@@ -117,7 +117,7 @@ export async function moderateReview(
 		return { ok: true, data: undefined };
 	} catch (error) {
 		const pg = getPgError(error);
-		logger.error("moderateReview", { err: error, code: pg?.code });
+		logger.error("moderateReview", error, { code: pg?.code ?? null });
 
 		return { ok: false, error: "Erro ao moderar avaliação" };
 	}
@@ -175,7 +175,7 @@ export async function bulkModerateReviews(
 		};
 	} catch (error) {
 		const pg = getPgError(error);
-		logger.error("bulkModerateReviews", { err: error, code: pg?.code });
+		logger.error("bulkModerateReviews", error, { code: pg?.code ?? null });
 
 		return { ok: false, error: "Erro ao moderar avaliações" };
 	}

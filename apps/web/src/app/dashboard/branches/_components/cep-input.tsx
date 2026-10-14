@@ -95,7 +95,7 @@ export function CepInput({
 				})
 				.catch((err) => {
 					clearTimeout(timeout);
-					logger.error("ViaCEP lookup failed", { err, cep });
+					logger.error("ViaCEP lookup failed", err, { cep });
 					notify.message("Não foi possível buscar endereço — preencha manual");
 				})
 				.finally(() => setIsFetching(false));

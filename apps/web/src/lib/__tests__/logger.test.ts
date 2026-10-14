@@ -22,34 +22,49 @@ describe("logger", () => {
 			logger.error("myScope", new Error("boom"));
 
 			expect(spy).toHaveBeenCalledTimes(1);
-			const arg = spy.mock.calls[0]?.[0] as string;
-			expect(typeof arg).toBe("string");
+			const arg = spy.mock.calls[0]?.[0];
+			expect(arg).toBeTypeOf("string");
 
-			const parsed = JSON.parse(arg) as {
-				level: string;
-				scope: string;
-				ts: string;
-				payload: { message: string; name: string; stack?: string };
-			};
-
-			expect(parsed.level).toBe("error");
-			expect(parsed.scope).toBe("myScope");
-			expect(parsed.payload.message).toBe("boom");
-			expect(typeof parsed.ts).toBe("string");
-			expect(parsed.ts).toMatch(ISO_RE);
+			expect(JSON.parse(arg)).toMatchObject({
+				level: "error",
+				scope: "myScope",
+				ts: expect.stringMatching(ISO_RE),
+				payload: { name: "Error", message: "boom" },
+			});
 		});
 
-		it("error com objeto literal preserva campos do payload", () => {
+		it("error com string como cause a grava como está", () => {
 			const spy = vi.spyOn(console, "error").mockImplementation(noop);
-			logger.error("scope", { orderId: "x", err: "msg" });
+			logger.error("scope", "no_recipients");
 
-			const arg = spy.mock.calls[0]?.[0] as string;
+			const arg = spy.mock.calls[0]?.[0];
 
-			const parsed = JSON.parse(arg) as {
-				payload: { orderId: string; err: string };
-			};
+			expect(JSON.parse(arg)).toMatchObject({ payload: "no_recipients" });
+		});
 
-			expect(parsed.payload.orderId).toBe("x");
+		it("error com context grava Error em payload e o contexto em context", () => {
+			const spy = vi.spyOn(console, "error").mockImplementation(noop);
+			logger.error("cancelStaleOrder", new TypeError("deadlock"), {
+				orderId: "o1",
+				code: null,
+			});
+
+			const parsed = JSON.parse(spy.mock.calls[0]?.[0]);
+
+			expect(parsed).toMatchObject({
+				level: "error",
+				scope: "cancelStaleOrder",
+				payload: { name: "TypeError", message: "deadlock" },
+				context: { orderId: "o1", code: null },
+			});
+			expect(parsed.payload.stack).toContain("deadlock");
+		});
+
+		it("error sem context não grava o campo context", () => {
+			const spy = vi.spyOn(console, "error").mockImplementation(noop);
+			logger.error("scope", new Error("boom"));
+
+			expect(JSON.parse(spy.mock.calls[0]?.[0])).not.toHaveProperty("context");
 		});
 
 		it("info emite JSON com level: info e payload correto", () => {
@@ -57,15 +72,12 @@ describe("logger", () => {
 			logger.info("scope", { count: 5 });
 
 			expect(spy).toHaveBeenCalledTimes(1);
-			const arg = spy.mock.calls[0]?.[0] as string;
+			const arg = spy.mock.calls[0]?.[0];
 
-			const parsed = JSON.parse(arg) as {
-				level: string;
-				payload: { count: number };
-			};
-
-			expect(parsed.level).toBe("info");
-			expect(parsed.payload.count).toBe(5);
+			expect(JSON.parse(arg)).toMatchObject({
+				level: "info",
+				payload: { count: 5 },
+			});
 		});
 	});
 
@@ -76,11 +88,19 @@ describe("logger", () => {
 
 		it("error NÃO emite JSON stringificado", () => {
 			const spy = vi.spyOn(console, "error").mockImplementation(noop);
-			logger.error("scope", new Error("x"));
+			const cause = new Error("x");
+			logger.error("scope", cause);
 
-			const arg = spy.mock.calls[0]?.[0];
-			// arg deve ser uma string de prefixo legível, não JSON
-			expect(typeof arg === "string" && arg.startsWith("{")).toBe(false);
+			// prefixo legível + o próprio erro, não JSON
+			expect(spy).toHaveBeenCalledWith("[scope]", cause);
+		});
+
+		it("error com context passa o contexto como terceiro argumento", () => {
+			const spy = vi.spyOn(console, "error").mockImplementation(noop);
+			const cause = new Error("x");
+			logger.error("scope", cause, { cep: "01001000" });
+
+			expect(spy).toHaveBeenCalledWith("[scope]", cause, { cep: "01001000" });
 		});
 	});
 
@@ -91,8 +111,7 @@ describe("logger", () => {
 			logger.info("scope", { x: 1 });
 
 			expect(spyInfo).toHaveBeenCalledTimes(1);
-			const arg = spyInfo.mock.calls[0]?.[0];
-			expect(typeof arg === "string" && arg.startsWith("{")).toBe(false);
+			expect(spyInfo).toHaveBeenCalledWith("[scope]", { x: 1 });
 		});
 	});
 });

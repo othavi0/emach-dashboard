@@ -25,23 +25,24 @@ function DeltaBadge({ delta }: { delta: number }) {
 	);
 }
 
+// `display` é um valor já formatado (ex: duração "1h 12min"): renderiza
+// estático, sem NumberTicker (o ticker só anima/formata números).
+type KpiValue =
+	| { value: number; format?: NumberFormat; display?: never }
+	| { display: string; value?: never; format?: never };
+
 export function KpiCard({
 	label,
-	value,
 	sub,
 	delta,
 	tone = "default",
-	format,
+	...kpi
 }: {
 	label: string;
-	// string = valor já formatado (ex: duração "1h 12min") — renderiza estático,
-	// sem NumberTicker (o ticker só anima/formata números).
-	value: number | string;
 	sub?: ReactNode;
 	delta?: number | null;
 	tone?: "default" | "warning" | "destructive";
-	format?: NumberFormat;
-}) {
+} & KpiValue) {
 	return (
 		<Card
 			className={cn(
@@ -59,10 +60,10 @@ export function KpiCard({
 						tone === "destructive" && "text-destructive"
 					)}
 				>
-					{typeof value === "number" ? (
-						<NumberTicker format={format} value={value} />
+					{kpi.display === undefined ? (
+						<NumberTicker format={kpi.format} value={kpi.value} />
 					) : (
-						value
+						kpi.display
 					)}
 				</p>
 				{delta == null ? (

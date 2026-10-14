@@ -36,15 +36,12 @@ export function useToolDraft({
 		const draft = parseDraft(localStorage.getItem(DRAFT_KEY), Date.now());
 
 		if (draft) {
-			// Merge defensivo: garante defaults de EMPTY_TOOL_VALUES para campos
-			// ausentes (ex: draft gravado numa versão anterior do schema). O MESMO
-			// valor mergeado vai para onRestore — passar o draft cru faria
-			// stepsWithContent comparar `undefined` contra o default e marcar passos
-			// não-preenchidos como visitados (badge de erro fantasma sob schema drift).
-			const restored = { ...EMPTY_TOOL_VALUES, ...draft };
-			setValues(restored);
+			// parseDraft já completa campo ausente com EMPTY_TOOL_VALUES; onRestore
+			// recebe o mesmo valor completo, senão stepsWithContent compara
+			// `undefined` contra o default e marca passo vazio como visitado.
+			setValues(draft);
 			setRecovered(true);
-			onRestore?.(restored);
+			onRestore?.(draft);
 		} else {
 			localStorage.removeItem(DRAFT_KEY);
 		}

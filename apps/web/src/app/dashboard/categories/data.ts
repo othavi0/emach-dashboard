@@ -67,8 +67,8 @@ export interface CategoryChildItem {
 
 // ── Private helpers (exported so actions.ts can import) ────────────────────
 
-export function mapWriteError(e: unknown): string {
-	const pg = getPgError(e);
+export function mapWriteError(cause: unknown): string {
+	const pg = getPgError(cause);
 
 	if (pg) {
 		// Trigger anti-ciclo (prevent_category_cycle) levanta P0001.
@@ -85,7 +85,7 @@ export function mapWriteError(e: unknown): string {
 		}
 	}
 
-	logger.error("category write error", e);
+	logger.error("category write error", cause);
 
 	return "Não foi possível salvar a categoria";
 }

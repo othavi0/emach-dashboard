@@ -118,15 +118,17 @@ function makeMockTx(selectResults: unknown[][]) {
 	});
 
 	return {
-		select: vi.fn((_selection: unknown) => {
+		select: vi.fn(() => {
 			const result = selectResults[selectCallIdx++] ?? [];
 
 			return makeSelectChain(result);
 		}),
-		update: vi.fn((_table: unknown) => makeUpdateChain()),
-		insert: vi.fn((_table: unknown) => makeInsertChain()),
+		update: vi.fn(() => makeUpdateChain()),
+		insert: vi.fn(() => makeInsertChain()),
 	};
 }
+
+type MockTx = ReturnType<typeof makeMockTx>;
 
 /** Regex that matches the picking gate error message. */
 const SEPARA_RE = /separa/i;
@@ -171,7 +173,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 
 		// Default: transaction runs the callback
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(makeMockTx([[LOCKED_ROW]]))
 		);
 	});

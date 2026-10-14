@@ -186,15 +186,15 @@ export async function fetchPromotionsPage({
 				);
 			}
 
-			if (typeof discountMin === "number") {
+			if (discountMin !== undefined) {
 				// O filtro de desconto é em % (percentageMask na UI); só se aplica a
 				// promoções percentuais — um R$ 50 não casa "desconto 10–50%".
 				conds.push(ops.eq(p.discountType, "percent"));
 				conds.push(ops.gte(p.discountValue, String(discountMin)));
 			}
 
-			if (typeof discountMax === "number") {
-				if (typeof discountMin !== "number") {
+			if (discountMax !== undefined) {
+				if (discountMin === undefined) {
 					conds.push(ops.eq(p.discountType, "percent"));
 				}
 

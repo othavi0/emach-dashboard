@@ -307,7 +307,8 @@ describe("GET /api/cron/stock-alerts", () => {
 			expect(mockSendStockAlertEmail).not.toHaveBeenCalled();
 			expect(logger.error).toHaveBeenCalledWith(
 				"stockAlertsCron",
-				expect.objectContaining({ branchId: "b1", reason: "no_recipients" })
+				"no_recipients",
+				expect.objectContaining({ branchId: "b1" })
 			);
 		});
 	});
@@ -343,7 +344,8 @@ describe("GET /api/cron/stock-alerts", () => {
 			expect(mockDbInsert).toHaveBeenCalledTimes(1);
 			expect(logger.error).toHaveBeenCalledWith(
 				"stockAlertsCron",
-				expect.objectContaining({ branchId: "b1" })
+				expect.objectContaining({ message: "Resend down" }),
+				{ branchId: "b1" }
 			);
 		});
 	});
@@ -393,7 +395,8 @@ describe("GET /api/cron/stock-alerts", () => {
 			expect(mockSendStockAlertEmail).toHaveBeenCalledTimes(1);
 			expect(logger.error).toHaveBeenCalledWith(
 				"stockAlertsCron",
-				expect.objectContaining({ branchId: "b1" })
+				expect.objectContaining({ message: "upsert do 2º item falhou" }),
+				{ branchId: "b1" }
 			);
 		});
 	});

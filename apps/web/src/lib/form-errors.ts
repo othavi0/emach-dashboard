@@ -1,4 +1,9 @@
-import type { ZodError } from "zod";
+import { type ZodError, z } from "zod";
+
+// Chave de campo vinda de issue.path[0] (PropertyKey). Symbol e path vazio
+// não passam e caem em `_form`. Índice de array é inteiro, então o z.number()
+// (que recusa NaN e Infinity) aceita todo índice real.
+const fieldKeySchema = z.union([z.string(), z.number()]);
 
 /**
  * Converte um ZodError em erros por campo (chave = path[0]). Issues de path
@@ -11,12 +16,9 @@ export function zodIssuesToFieldErrors<T = Record<string, string>>(
 	const out: Record<string, string> = {};
 
 	for (const issue of error.issues) {
-		const raw = issue.path[0];
-
 		// Path vazio ou key symbol (raro/exótico) → erro de nível de formulário.
-		// `String(symbol)` lançaria TypeError, por isso o guard explícito.
-		const key =
-			raw === undefined || typeof raw === "symbol" ? "_form" : String(raw);
+		const parsedKey = fieldKeySchema.safeParse(issue.path[0]);
+		const key = parsedKey.success ? String(parsedKey.data) : "_form";
 
 		if (out[key] === undefined) {
 			out[key] = issue.message;
@@ -32,11 +34,11 @@ export function zodIssuesToFieldErrors<T = Record<string, string>>(
  * há `_form`, mostra a própria mensagem em vez de "0 erros".
  */
 export function errorToastMessage(
-	fieldErrors: Record<string, unknown>
+	fieldErrors: Partial<Record<string, string>>
 ): string {
 	const fieldKeys = Object.keys(fieldErrors).filter((k) => k !== "_form");
 
-	if (fieldKeys.length === 0 && typeof fieldErrors._form === "string") {
+	if (fieldKeys.length === 0 && fieldErrors._form !== undefined) {
 		return fieldErrors._form;
 	}
 

@@ -111,17 +111,19 @@ function makeMockTx(selectResults: unknown[][]) {
 	});
 
 	return {
-		select: vi.fn((_selection: unknown) => {
+		select: vi.fn(() => {
 			const result = selectResults[selectCallIdx++] ?? [];
 
 			return makeSelectChain(result);
 		}),
-		update: vi.fn((_table: unknown) => makeUpdateChain()),
-		insert: vi.fn((_table: unknown) => makeInsertChain()),
+		update: vi.fn(() => makeUpdateChain()),
+		insert: vi.fn(() => makeInsertChain()),
 		// exposed for assertions
 		_insertValues: insertValues,
 	};
 }
+
+type MockTx = ReturnType<typeof makeMockTx>;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -136,7 +138,7 @@ describe("assignBranch", () => {
 		});
 		// Default transaction impl (overridden per test as needed)
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						[{ status: "pending_payment", branchId: SOURCE_BRANCH_ID }],
@@ -152,7 +154,7 @@ describe("assignBranch", () => {
 	it("(a) orderId inexistente → retorna { ok: false, error: 'Pedido não encontrado' }", async () => {
 		// tx.select returns [] — lockOrderAndAuthorize receives no locked row → returns null
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(makeMockTx([[], []]))
 		);
 
@@ -171,7 +173,7 @@ describe("assignBranch", () => {
 	it("(b) sem escopo na filial atual → retorna { ok: false, error: 'Sem permissão ...' }", async () => {
 		// Order row exists so lockOrderAndAuthorize proceeds, but cap check fails
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						[{ status: "pending_payment", branchId: SOURCE_BRANCH_ID }],
@@ -203,7 +205,7 @@ describe("assignBranch", () => {
 		const captured: Record<string, unknown>[] = [];
 
 		mockTransaction.mockImplementation(
-			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) => {
+			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
 				const mockTx = makeMockTx([
 					[{ status: "pending_payment", branchId: SOURCE_BRANCH_ID }],
 					[{ name: "Filial Destino" }],

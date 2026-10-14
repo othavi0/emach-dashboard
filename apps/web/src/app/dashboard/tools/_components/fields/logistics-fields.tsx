@@ -15,7 +15,7 @@ import type { ToolFieldGroupProps } from "./types";
 
 function dimsReady(v: ToolFormState): boolean {
 	return [v.weightKg, v.lengthCm, v.widthCm, v.heightCm].every(
-		(n) => typeof n === "number" && n > 0
+		(n) => n !== undefined && n > 0
 	);
 }
 

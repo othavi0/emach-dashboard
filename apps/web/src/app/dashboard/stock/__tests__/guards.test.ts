@@ -44,7 +44,7 @@ const SESSION = { user: { id: "usr_1", role: "user" } };
 function makeSelectChain(result: unknown[] = []) {
 	const chain: Record<string, unknown> = {
 		// biome-ignore lint/suspicious/noThenProperty: thenable mock — permite await sem terminal explícito
-		then: (resolve: (v: unknown) => void) => resolve(result),
+		then: (resolve: (v: unknown[]) => void) => resolve(result),
 	};
 
 	for (const m of [

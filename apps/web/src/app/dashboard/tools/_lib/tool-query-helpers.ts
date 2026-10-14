@@ -7,7 +7,7 @@ import type {
 } from "../_components/tool-schema";
 
 export function toInt(value: number | undefined): number | null {
-	if (typeof value !== "number" || Number.isNaN(value)) {
+	if (value === undefined || Number.isNaN(value)) {
 		return null;
 	}
 
@@ -72,7 +72,7 @@ export function attributeValueRow(
 	}
 
 	const num = (n: number | null | undefined) =>
-		typeof n === "number" && !Number.isNaN(n) ? n.toString() : null;
+		n != null && !Number.isNaN(n) ? n.toString() : null;
 
 	switch (def.inputType) {
 		case "text":
@@ -85,8 +85,7 @@ export function attributeValueRow(
 					}
 				: null;
 		case "number":
-			return typeof input.valueNumeric === "number" &&
-				!Number.isNaN(input.valueNumeric)
+			return input.valueNumeric != null && !Number.isNaN(input.valueNumeric)
 				? {
 						valueText: null,
 						valueNumeric: num(input.valueNumeric),
@@ -95,14 +94,14 @@ export function attributeValueRow(
 					}
 				: null;
 		case "boolean":
-			return typeof input.valueBool === "boolean"
-				? {
+			return input.valueBool == null
+				? null
+				: {
 						valueText: null,
 						valueNumeric: null,
 						valueNumericMax: null,
 						valueBool: input.valueBool,
-					}
-				: null;
+					};
 		case "select":
 		case "color":
 			return input.valueText?.trim()
@@ -114,8 +113,7 @@ export function attributeValueRow(
 					}
 				: null;
 		case "numeric_range":
-			return typeof input.valueNumeric === "number" &&
-				!Number.isNaN(input.valueNumeric)
+			return input.valueNumeric != null && !Number.isNaN(input.valueNumeric)
 				? {
 						valueText: null,
 						valueNumeric: num(input.valueNumeric),

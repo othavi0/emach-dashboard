@@ -33,6 +33,7 @@ const MarkdownEditor = dynamic(
 export function IdentityFields({
 	values,
 	onPatch,
+	onUpdate,
 	errors,
 	disabled,
 }: ToolFieldGroupProps) {
@@ -71,7 +72,7 @@ export function IdentityFields({
 			: slugify(values.name) || "—";
 
 	function toggleCategory(catId: string, checked: boolean) {
-		onPatch((prev) => {
+		onUpdate((prev) => {
 			const next = checked
 				? [...prev.categoryIds, catId]
 				: prev.categoryIds.filter((c) => c !== catId);

@@ -57,7 +57,8 @@ interface ToolPageRow extends Record<string, unknown> {
 	status: string;
 	total_stock: number;
 	variant_count: number;
-	variant_voltages: string[];
+	// array_agg inclui NULL das variantes sem voltagem.
+	variant_voltages: (string | null)[];
 	visible_on_site: boolean;
 }
 
@@ -285,7 +286,7 @@ export async function fetchToolsPage({
 				sku: r.default_sku,
 				variantCount: Number(r.variant_count ?? 0),
 				variantSummaries: (r.variant_voltages ?? []).filter(
-					(v): v is string => typeof v === "string"
+					(v): v is string => v !== null
 				),
 				primaryCategoryName: r.primary_category_name,
 				status: r.status as ToolStatusValue,

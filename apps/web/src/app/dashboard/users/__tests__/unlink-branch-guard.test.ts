@@ -126,6 +126,8 @@ function makeTxMock(
 	return tx;
 }
 
+type MockTx = ReturnType<typeof makeTxMock>;
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -136,7 +138,7 @@ describe("unlinkUserFromBranch — last-branch guard", () => {
 
 		// Default: transaction pass-through (runs callback with tx mock)
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeTxMock>) => Promise<unknown>) => {
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
 				const tx = makeTxMock(
 					[{ role: "admin" }],
 					[{ branchId: "branch-1" }, { branchId: "branch-2" }]
@@ -150,7 +152,7 @@ describe("unlinkUserFromBranch — last-branch guard", () => {
 	it("rejeita quando admin tem exatamente 1 filial", async () => {
 		// Only 1 branch in locked array (the target branch itself)
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeTxMock>) => Promise<unknown>) => {
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
 				const tx = makeTxMock(
 					[{ role: "admin" }],
 					[{ branchId: "branch-1" }] // only 1 branch = the one being removed
@@ -171,7 +173,7 @@ describe("unlinkUserFromBranch — last-branch guard", () => {
 	it("permite quando admin tem 2 filiais e remove uma", async () => {
 		// 2 branches in locked array; after filtering branch-1, still has branch-2
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeTxMock>) => Promise<unknown>) => {
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
 				const tx = makeTxMock(
 					[{ role: "admin" }],
 					[{ branchId: "branch-1" }, { branchId: "branch-2" }]
@@ -189,7 +191,7 @@ describe("unlinkUserFromBranch — last-branch guard", () => {
 	it("permite quando super_admin tem apenas 1 filial (guard não se aplica)", async () => {
 		// super_admin bypasses the last-branch guard entirely
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeTxMock>) => Promise<unknown>) => {
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
 				const tx = makeTxMock(
 					[{ role: "super_admin" }],
 					[{ branchId: "branch-1" }] // only 1 branch, but guard doesn't apply
@@ -207,7 +209,7 @@ describe("unlinkUserFromBranch — last-branch guard", () => {
 	it("retorna erro quando usuário não é encontrado", async () => {
 		// userTable select returns empty array
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeTxMock>) => Promise<unknown>) => {
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
 				const tx = makeTxMock(
 					[], // no user found
 					[]

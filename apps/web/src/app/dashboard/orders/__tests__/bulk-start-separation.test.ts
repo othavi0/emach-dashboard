@@ -145,11 +145,13 @@ function makeMockTx(selectResults: unknown[][]) {
 	};
 }
 
+type MockTx = ReturnType<typeof makeMockTx>;
+
 /** Encadeia uma tx mockada por pedido, na ordem em que orderIds é iterado. */
-function queueTransactions(txs: ReturnType<typeof makeMockTx>[]) {
+function queueTransactions(txs: MockTx[]) {
 	let callIdx = 0;
 	mockTransaction.mockImplementation(
-		(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) => {
+		<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
 			const tx = txs[callIdx++];
 
 			if (!tx) {

@@ -36,12 +36,13 @@ function sanitizeSpecs(
 	return trimmed.length > 0 ? trimmed : null;
 }
 
-// O path do erro do zod chega como string; o Map aceita a chave sem assertion.
-const SELECTION_BY_FIELD = new Map<string, EditorSelection | undefined>(
+// O path do erro do zod é PropertyKey; chave numérica ou symbol não casa com
+// as chaves string do Map e devolve undefined, sem assertion.
+const SELECTION_BY_FIELD = new Map<PropertyKey, EditorSelection | undefined>(
 	Object.entries(FIELD_TO_SELECTION)
 );
 
-function selectionForField(field: string): EditorSelection | undefined {
+function selectionForField(field: PropertyKey): EditorSelection | undefined {
 	return SELECTION_BY_FIELD.get(field);
 }
 
@@ -74,9 +75,7 @@ export function BannerEditor({ banner }: { banner?: Banner }) {
 			const firstPath = parsed.error.issues[0]?.path[0];
 
 			const selection =
-				typeof firstPath === "string"
-					? selectionForField(firstPath)
-					: undefined;
+				firstPath === undefined ? undefined : selectionForField(firstPath);
 
 			if (selection) {
 				// Seleciona o painel do campo ANTES de reportar: o Inspector só

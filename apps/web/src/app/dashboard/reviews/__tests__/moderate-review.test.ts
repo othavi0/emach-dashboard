@@ -38,7 +38,7 @@ vi.mock("next/cache", () => ({
 // ---------------------------------------------------------------------------
 
 import { review } from "@emach/db/schema/reviews";
-import { and, eq } from "drizzle-orm";
+import { and, eq, type SQL } from "drizzle-orm";
 
 import { moderateReview } from "../actions";
 import type { ModerateReviewInput } from "../schema";
@@ -46,6 +46,9 @@ import type { ModerateReviewInput } from "../schema";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Payload que a action passa para db.update(review).set(). */
+type ReviewSet = Partial<typeof review.$inferInsert>;
 
 const ID_A = "11111111-1111-4111-8111-111111111111";
 
@@ -58,7 +61,7 @@ const setSpy = vi.fn();
  */
 function setupUpdate(rows: Array<{ id: string }>) {
 	mockDbUpdate.mockReturnValue({
-		set: (payload: unknown) => {
+		set: (payload: ReviewSet) => {
 			setSpy(payload);
 
 			return {
@@ -71,7 +74,7 @@ function setupUpdate(rows: Array<{ id: string }>) {
 }
 
 /** db.update lança — simula erro de banco. */
-function setupUpdateThrows(error: unknown) {
+function setupUpdateThrows(error: Error) {
 	mockDbUpdate.mockReturnValue({
 		set: () => ({
 			where: () => ({
@@ -113,13 +116,13 @@ describe("moderateReview", () => {
 	});
 
 	it("compõe o where com eq(id) e eq(status, expectedStatus)", async () => {
-		let capturedWhere: unknown;
+		let capturedWhere: SQL | undefined;
 		mockDbUpdate.mockReturnValue({
-			set: (payload: unknown) => {
+			set: (payload: ReviewSet) => {
 				setSpy(payload);
 
 				return {
-					where: (whereArg: unknown) => {
+					where: (whereArg: SQL | undefined) => {
 						capturedWhere = whereArg;
 
 						return { returning: () => Promise.resolve([{ id: ID_A }]) };

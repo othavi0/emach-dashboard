@@ -14,6 +14,7 @@ import {
 	type CustomersListFilters,
 	customersListFiltersSchema,
 } from "../schema";
+import { parseSearchParams } from "./parse-search-params";
 
 const MAX_ROWS = 50_000;
 const MAX_BYTES = 50 * 1024 * 1024;
@@ -37,7 +38,9 @@ const COLUMNS = [
 const CSV_NEEDS_QUOTING_RE = /[",\n\r]/;
 const CSV_QUOTE_RE = /"/g;
 
-function escapeCsvField(value: unknown): string {
+type CsvField = string | number | Date | null | undefined;
+
+function escapeCsvField(value: CsvField): string {
 	if (value === null || value === undefined) {
 		return "";
 	}
@@ -51,12 +54,8 @@ function escapeCsvField(value: unknown): string {
 	return str;
 }
 
-function encodeRow(row: readonly unknown[]): string {
+function encodeRow(row: readonly CsvField[]): string {
 	return `${row.map(escapeCsvField).join(",")}\n`;
-}
-
-interface RawSearchParams {
-	[k: string]: string | string[] | undefined;
 }
 
 type CustomerStatusFilter = NonNullable<CustomersListFilters["status"]>;
@@ -67,29 +66,10 @@ function statusCondition(status: CustomerStatusFilter) {
 		: sql`c.status = ${status}`;
 }
 
-function parseSearchParams(req: Request): RawSearchParams {
-	const url = new URL(req.url);
-	const out: RawSearchParams = {};
-
-	for (const [k, v] of url.searchParams.entries()) {
-		const existing = out[k];
-
-		if (Array.isArray(existing)) {
-			existing.push(v);
-		} else if (typeof existing === "string") {
-			out[k] = [existing, v];
-		} else {
-			out[k] = v;
-		}
-	}
-
-	return out;
-}
-
 export async function GET(req: Request) {
 	const session = await requireCapability("customers.export");
 
-	const raw = parseSearchParams(req);
+	const raw = parseSearchParams(new URL(req.url).searchParams);
 	const parsed = customersListFiltersSchema.safeParse(raw);
 
 	if (!parsed.success) {

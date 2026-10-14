@@ -11,6 +11,7 @@ import { clientAuditLog } from "@emach/db/schema/client-audit";
 import { env } from "@emach/env/server";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import type { z } from "zod";
 import type { ActionResult } from "@/lib/action-result";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
@@ -76,7 +77,7 @@ export async function fetchCustomerOrdersPage(input: {
 type ProfileDiff = Record<string, { after: unknown; before: unknown }>;
 
 export async function updateCustomerProfile(
-	input: unknown
+	input: z.input<typeof updateCustomerProfileSchema>
 ): Promise<ActionResult> {
 	const parsed = updateCustomerProfileSchema.safeParse(input);
 
@@ -191,7 +192,7 @@ export async function updateCustomerProfile(
 // ============================================================================
 
 export async function updateCustomerStatus(
-	input: unknown
+	input: z.input<typeof updateCustomerStatusSchema>
 ): Promise<ActionResult> {
 	const parsed = updateCustomerStatusSchema.safeParse(input);
 
@@ -256,7 +257,7 @@ export async function updateCustomerStatus(
 // ============================================================================
 
 export async function updateCustomerType(
-	input: unknown
+	input: z.input<typeof updateCustomerTypeSchema>
 ): Promise<ActionResult> {
 	const parsed = updateCustomerTypeSchema.safeParse(input);
 
@@ -315,7 +316,7 @@ export async function updateCustomerType(
 // ============================================================================
 
 export async function updateCustomerNotes(
-	input: unknown
+	input: z.input<typeof updateCustomerNotesSchema>
 ): Promise<ActionResult> {
 	const parsed = updateCustomerNotesSchema.safeParse(input);
 
@@ -374,7 +375,7 @@ export async function updateCustomerNotes(
 // ============================================================================
 
 export async function revokeClientSession(
-	input: unknown
+	input: z.input<typeof revokeClientSessionSchema>
 ): Promise<ActionResult> {
 	const parsed = revokeClientSessionSchema.safeParse(input);
 
@@ -425,7 +426,7 @@ export async function revokeClientSession(
 }
 
 export async function revokeAllClientSessions(
-	input: unknown
+	input: z.input<typeof revokeAllClientSessionsSchema>
 ): Promise<ActionResult<{ count: number }>> {
 	const parsed = revokeAllClientSessionsSchema.safeParse(input);
 
@@ -475,7 +476,7 @@ export async function revokeAllClientSessions(
 const DEFAULT_RESET_BASE = "https://emach.com.br";
 
 export async function generatePasswordResetLink(
-	input: unknown
+	input: z.input<typeof generatePasswordResetSchema>
 ): Promise<ActionResult<{ expiresAt: Date; url: string }>> {
 	const parsed = generatePasswordResetSchema.safeParse(input);
 

@@ -114,7 +114,7 @@ export async function createBanner(
 
 		return { ok: true, data: { id } };
 	} catch (error) {
-		logger.error("createBanner", { err: error });
+		logger.error("createBanner", error);
 
 		return { ok: false, error: actionErrorMessage(error) };
 	}
@@ -180,7 +180,7 @@ export async function updateBanner(
 
 		return { ok: true, data: undefined };
 	} catch (error) {
-		logger.error("updateBanner", { err: error });
+		logger.error("updateBanner", error);
 
 		return { ok: false, error: actionErrorMessage(error) };
 	}
@@ -212,7 +212,7 @@ export async function toggleBannerActive(
 
 		return { ok: true, data: undefined };
 	} catch (error) {
-		logger.error("toggleBannerActive", { err: error });
+		logger.error("toggleBannerActive", error);
 
 		return { ok: false, error: actionErrorMessage(error) };
 	}
@@ -237,7 +237,7 @@ export async function reorderBanners(
 
 		return { ok: true, data: undefined };
 	} catch (error) {
-		logger.error("reorderBanners", { err: error });
+		logger.error("reorderBanners", error);
 
 		return { ok: false, error: actionErrorMessage(error) };
 	}
@@ -281,7 +281,7 @@ export async function deleteBanner(id: string): Promise<ActionResult> {
 
 		return { ok: true, data: undefined };
 	} catch (error) {
-		logger.error("deleteBanner", { err: error });
+		logger.error("deleteBanner", error);
 
 		return { ok: false, error: actionErrorMessage(error) };
 	}

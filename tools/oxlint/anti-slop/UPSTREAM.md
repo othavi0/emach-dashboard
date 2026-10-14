@@ -13,10 +13,11 @@ O `LICENSE` (MIT) da raiz do upstream foi copiado para cá; a cópia do ecommerc
 - Os `*.test.ts` de `src/` não foram copiados. O RuleTester do upstream depende de `tsx` e não roda no CI daqui.
 - O plugin Effect (`effect/`) foi copiado mas não está registrado em `.oxlintrc.json`: o repo não depende de `effect`.
 - Severidade em `.oxlintrc.json` difere do upstream (tudo `error`):
-  - `error`: `oxc/no-accumulating-spread`, `no-object-parameters`, `no-reduce-accumulator-copy`, `no-reflect-apply`, `no-unknown-type-aliases`, `no-widen-then-assert`, `require-readable-spacing`, `no-array-filter-map`, `no-chained-type-assertions`, `no-conditional-empty-object-spread`, `no-reflect-get`, `no-shape-in-symbol-names`.
-  - `warn`: `no-known-value-widening`, `no-runtime-typeof`, `no-unknown-parameters`, `no-unknown-returns`, `no-unsafe-dictionary-type`, `require-safety-comment-for-type-assertion`. Dívida existente; cada uma sobe para `error` quando zerar.
+  - `error`: `oxc/no-accumulating-spread`, `no-object-parameters`, `no-reduce-accumulator-copy`, `no-reflect-apply`, `no-unknown-type-aliases`, `no-widen-then-assert`, `require-readable-spacing`, `no-array-filter-map`, `no-chained-type-assertions`, `no-conditional-empty-object-spread`, `no-reflect-get`, `no-shape-in-symbol-names`, `no-runtime-typeof`, `no-unknown-parameters`, `no-unknown-returns`.
+  - `warn`: `no-known-value-widening`, `no-unsafe-dictionary-type`, `require-safety-comment-for-type-assertion`. Dívida existente; cada uma sobe para `error` quando zerar.
   - `off`: `no-module-mocking`. Teste unit mocka `@emach/db` porque o CI não tem banco.
 - O código daqui fica fora do Biome (`biome.json`) e do próprio oxlint (`ignorePatterns`).
+- O `ignorePatterns` também deixa de fora `packages/ui/**` (shadcn, regenerado pelo CLI) e `apps/web/src/lib/permissions.disabled.ts` (snapshot histórico com `@ts-nocheck`).
 
 ## Atualizar
 

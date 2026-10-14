@@ -17,7 +17,7 @@ export function ToolEditView({
 }) {
 	const router = useRouter();
 
-	const { values, patch, errors, setErrors } = useToolFormState(
+	const { values, patch, update, errors, setErrors } = useToolFormState(
 		defaultValues ?? {}
 	);
 
@@ -80,6 +80,7 @@ export function ToolEditView({
 									disabled={isPending}
 									errors={errors}
 									onPatch={patch}
+									onUpdate={update}
 									values={values}
 								/>
 							</div>

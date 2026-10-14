@@ -59,7 +59,7 @@ function setupSelect(rows: Record<string, unknown>[]) {
 			where: () => ({
 				limit: () => Promise.resolve(rows),
 				// biome-ignore lint/suspicious/noThenProperty: mock intencional do query builder thenable do Drizzle
-				then: (resolve: (r: unknown) => unknown) => resolve(rows),
+				then: <R>(resolve: (r: typeof rows) => R) => resolve(rows),
 			}),
 		}),
 	});

@@ -51,8 +51,48 @@ function mockStaleOrders(ids: string[]) {
 }
 
 /**
- * Moca db.transaction para executar o callback com um tx mockado.
+ * Monta o tx mockado de uma transação.
  * `txSelects` é uma lista de resultados que tx.select retorna em sequência.
+ */
+function makeMockTx(
+	txSelects: ({ status: string } | null)[],
+	insertOk: boolean,
+	updateOk: boolean
+) {
+	let selectCallIdx = 0;
+
+	return {
+		select: vi.fn(() => {
+			const result = txSelects[selectCallIdx++];
+
+			const forUpdate = vi.fn(() => Promise.resolve(result ? [result] : []));
+
+			const where = vi.fn(() => ({ for: forUpdate }));
+			const from = vi.fn(() => ({ where }));
+
+			return { from };
+		}),
+		update: vi.fn(() => {
+			const where = vi.fn(() =>
+				updateOk ? Promise.resolve() : Promise.reject(new Error("DB error"))
+			);
+
+			const set = vi.fn(() => ({ where }));
+
+			return { set };
+		}),
+		insert: vi.fn(() => ({
+			values: vi.fn(() =>
+				insertOk ? Promise.resolve() : Promise.reject(new Error("Insert error"))
+			),
+		})),
+	};
+}
+
+type MockTx = ReturnType<typeof makeMockTx>;
+
+/**
+ * Moca db.transaction para executar o callback com um tx mockado.
  * `insertOk` controla se tx.insert resolve ou rejeita.
  */
 function mockTransaction(
@@ -62,42 +102,8 @@ function mockTransaction(
 	const { insertOk = true, updateOk = true } = opts;
 
 	mockDbTransaction.mockImplementationOnce(
-		(callback: (tx: unknown) => Promise<void>) => {
-			let selectCallIdx = 0;
-
-			const tx = {
-				select: vi.fn(() => {
-					const result = txSelects[selectCallIdx++];
-
-					const forUpdate = vi.fn(() =>
-						Promise.resolve(result ? [result] : [])
-					);
-
-					const where = vi.fn(() => ({ for: forUpdate }));
-					const from = vi.fn(() => ({ where }));
-
-					return { from };
-				}),
-				update: vi.fn(() => {
-					const where = vi.fn(() =>
-						updateOk ? Promise.resolve() : Promise.reject(new Error("DB error"))
-					);
-
-					const set = vi.fn(() => ({ where }));
-
-					return { set };
-				}),
-				insert: vi.fn(() => ({
-					values: vi.fn(() =>
-						insertOk
-							? Promise.resolve()
-							: Promise.reject(new Error("Insert error"))
-					),
-				})),
-			};
-
-			return callback(tx);
-		}
+		<T>(callback: (tx: MockTx) => Promise<T>): Promise<T> =>
+			callback(makeMockTx(txSelects, insertOk, updateOk))
 	);
 }
 
@@ -206,7 +212,8 @@ describe("GET /api/cron/cancel-stale-orders", () => {
 			// O erro do item isolado deve ter sido logado
 			expect(logger.error).toHaveBeenCalledWith(
 				"cancelStaleOrder",
-				expect.objectContaining({ orderId: "order-fail" })
+				expect.objectContaining({ message: "Simulated DB failure" }),
+				{ orderId: "order-fail" }
 			);
 		});
 	});

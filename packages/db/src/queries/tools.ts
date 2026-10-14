@@ -117,13 +117,13 @@ function buildToolListWhere(input: GetToolsInput) {
 		)`);
 	}
 
-	if (typeof input.priceMin === "number") {
+	if (input.priceMin !== undefined) {
 		filters.push(
 			sql`(SELECT MIN(price_amount) FROM tool_variant WHERE tool_id = t.id) >= ${input.priceMin}`
 		);
 	}
 
-	if (typeof input.priceMax === "number") {
+	if (input.priceMax !== undefined) {
 		filters.push(
 			sql`(SELECT MIN(price_amount) FROM tool_variant WHERE tool_id = t.id) <= ${input.priceMax}`
 		);

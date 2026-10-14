@@ -51,7 +51,7 @@ vi.mock("@/lib/branch-scope", () => ({
 vi.mock("next/cache", () => ({
 	revalidatePath: vi.fn(),
 	revalidateTag: vi.fn(),
-	unstable_cache: vi.fn((fn: unknown) => fn),
+	unstable_cache: vi.fn(<T>(fn: T): T => fn),
 }));
 
 // Mock logger
@@ -114,7 +114,7 @@ function makeMockTx(selectResults: unknown[][]) {
 		// both with and without a terminal .limit() call.
 		const chain: Record<string, unknown> = {
 			// biome-ignore lint/suspicious/noThenProperty: intentional thenable mock for Drizzle query builder
-			then: (resolve: (v: unknown) => void) => resolve(result),
+			then: (resolve: (v: unknown[]) => void) => resolve(result),
 			catch: () => chain,
 			finally: (fn: () => void) => {
 				fn();
@@ -144,16 +144,18 @@ function makeMockTx(selectResults: unknown[][]) {
 	const makeInsertChain = () => ({ values: insertValues });
 
 	return {
-		select: vi.fn((_selection: unknown) => {
+		select: vi.fn(() => {
 			const result = selectResults[selectCallIdx++] ?? [];
 
 			return makeSelectChain(result);
 		}),
-		update: vi.fn((_table: unknown) => makeUpdateChain()),
-		insert: vi.fn((_table: unknown) => makeInsertChain()),
+		update: vi.fn(() => makeUpdateChain()),
+		insert: vi.fn(() => makeInsertChain()),
 		_insertValues: insertValues,
 	};
 }
+
+type MockTx = ReturnType<typeof makeMockTx>;
 
 // ---------------------------------------------------------------------------
 // Tests: startPicking
@@ -167,7 +169,7 @@ describe("startPicking", () => {
 
 	it("rejeita status inválido (pending_payment)", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(makeMockTx([[{ status: "pending_payment", branchId: BRANCH_ID }]]))
 		);
 
@@ -178,7 +180,7 @@ describe("startPicking", () => {
 
 	it("rejeita quando branchId é null", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(makeMockTx([[{ status: "paid", branchId: null }]]))
 		);
 
@@ -189,7 +191,7 @@ describe("startPicking", () => {
 
 	it("retorna { ok: false } quando pedido não encontrado", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(makeMockTx([[]]))
 		);
 
@@ -201,7 +203,7 @@ describe("startPicking", () => {
 		const captured: Record<string, unknown>[] = [];
 
 		mockTransaction.mockImplementation(
-			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) => {
+			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
 				// select[0]: lockOrderAndAuthorize FOR UPDATE
 				// select[1]: orderItem[] for the order
 				const mockTx = makeMockTx([
@@ -276,7 +278,7 @@ describe("scanItem", () => {
 
 	it("retorna not_in_order quando código não casa com nenhum item", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						// picking row
@@ -318,7 +320,7 @@ describe("scanItem", () => {
 
 	it("retorna already_complete quando item já atingiu qtyExpected", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						[
@@ -363,7 +365,7 @@ describe("scanItem", () => {
 		const captured: Record<string, unknown>[] = [];
 
 		mockTransaction.mockImplementation(
-			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) => {
+			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
 				const mockTx = makeMockTx([
 					[
 						{
@@ -418,7 +420,7 @@ describe("scanItem", () => {
 
 	it("retorna { ok: false } quando picking não está in_progress", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						[{ id: PICKING_ID, orderId: ORDER_ID, status: "completed" }],
@@ -446,7 +448,7 @@ describe("completePicking", () => {
 
 	it("rejeita quando há item não resolvido (nem bipado nem ausente)", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						// picking row
@@ -485,7 +487,7 @@ describe("completePicking", () => {
 
 	it("marca completed quando todos os items estão conferidos", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						[
@@ -522,7 +524,7 @@ describe("completePicking", () => {
 
 	it("finaliza com pendência quando há item ausente resolvido", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						[
@@ -570,7 +572,7 @@ describe("reportMissing", () => {
 
 	it("marca notFound no item e mantém a sessão in_progress", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						// picking item
@@ -601,7 +603,7 @@ describe("reportMissing", () => {
 
 	it("retorna { ok: false } quando picking item não existe", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(makeMockTx([[]]))
 		);
 
@@ -623,10 +625,10 @@ describe("confirmItemManually", () => {
 	});
 
 	function armTx(selectResults: unknown[][]) {
-		let tx: ReturnType<typeof makeMockTx> | undefined;
+		let tx: MockTx | undefined;
 		const captured: Record<string, unknown>[] = [];
 		mockTransaction.mockImplementation(
-			async (cb: (t: ReturnType<typeof makeMockTx>) => unknown) => {
+			async <T>(cb: (t: MockTx) => Promise<T>): Promise<T> => {
 				tx = makeMockTx(selectResults);
 				tx._insertValues.mockImplementation((vals: Record<string, unknown>) => {
 					captured.push(vals);
@@ -803,7 +805,7 @@ describe("cancelPicking", () => {
 
 	it("marca picking como canceled", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						[
@@ -826,7 +828,7 @@ describe("cancelPicking", () => {
 
 	it("retorna { ok: false } quando picking não encontrado", async () => {
 		mockTransaction.mockImplementation(
-			async (cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(makeMockTx([[]]))
 		);
 
@@ -856,9 +858,9 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 	});
 
 	function armTx(selectResults: unknown[][]) {
-		let tx: ReturnType<typeof makeMockTx> | undefined;
+		let tx: MockTx | undefined;
 		mockTransaction.mockImplementation(
-			async (cb: (t: ReturnType<typeof makeMockTx>) => unknown) => {
+			async <T>(cb: (t: MockTx) => Promise<T>): Promise<T> => {
 				tx = makeMockTx(selectResults);
 
 				return await cb(tx);
@@ -968,7 +970,7 @@ describe("bulkStartPicking", () => {
 		});
 
 		mockTransaction.mockImplementationOnce(
-			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) => {
+			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
 				const tx = makeMockTx([
 					[{ status: "preparing", branchId: BRANCH_ID }], // lockOrderAndAuthorize
 					[{ number: "EM-2026-0001" }], // order.number (label)
@@ -996,10 +998,10 @@ describe("bulkStartPicking", () => {
 
 	it("transiciona paid→preparing e grava history ao criar a sessão", async () => {
 		const captured: Record<string, unknown>[] = [];
-		let tx: ReturnType<typeof makeMockTx> | undefined;
+		let tx: MockTx | undefined;
 
 		mockTransaction.mockImplementationOnce(
-			(cb: (t: ReturnType<typeof makeMockTx>) => unknown) => {
+			<T>(cb: (t: MockTx) => Promise<T>): Promise<T> => {
 				tx = makeMockTx([
 					[{ status: "paid", branchId: BRANCH_ID }], // lockOrderAndAuthorize
 					[{ number: "EM-2026-0002" }], // order.number (label)
@@ -1058,7 +1060,7 @@ describe("bulkStartPicking", () => {
 		const ORDER_ID_2 = "a1eac10b-58cc-4372-a567-0e02b2c3d480";
 
 		mockTransaction.mockImplementationOnce(
-			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						[{ status: "preparing", branchId: BRANCH_ID }],
@@ -1069,7 +1071,7 @@ describe("bulkStartPicking", () => {
 				)
 		);
 		mockTransaction.mockImplementationOnce(
-			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						[{ status: "preparing", branchId: BRANCH_ID }],
@@ -1103,11 +1105,11 @@ describe("bulkStartPicking", () => {
 		);
 
 		mockTransaction.mockImplementationOnce(
-			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(makeMockTx([[{ status: "preparing", branchId: BRANCH_ID }]]))
 		);
 		mockTransaction.mockImplementationOnce(
-			(cb: (tx: ReturnType<typeof makeMockTx>) => unknown) =>
+			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
 				cb(
 					makeMockTx([
 						[{ status: "preparing", branchId: BRANCH_ID }],

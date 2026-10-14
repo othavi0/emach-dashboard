@@ -10,6 +10,7 @@ import {
 	APPROVED,
 	formatReviewerName,
 	REVIEW_DATE_KEYS,
+	toNullableNumber,
 } from "./catalog-helpers";
 
 export const REVIEW_WINDOW_DAYS = 90;
@@ -219,14 +220,4 @@ export async function getReviewStats(
 			5: Number(row?.c5 ?? 0),
 		},
 	};
-}
-
-function toNullableNumber(value: unknown): number | null {
-	if (value === null || value === undefined) {
-		return null;
-	}
-
-	const n = typeof value === "number" ? value : Number(value);
-
-	return Number.isFinite(n) ? n : null;
 }

@@ -1,6 +1,7 @@
 import { EMPTY_TOOL_VALUES, type ToolFormState } from "./tool-form-state";
 import {
 	collectToolIssues,
+	type ToolFormInput,
 	type ToolFormValues,
 	type ToolIssue,
 } from "./tool-schema";
@@ -105,7 +106,7 @@ export function stepHasErrors(
 }
 
 export function getStepFieldErrors(
-	values: unknown,
+	values: Partial<ToolFormInput>,
 	stepId: ToolStepId,
 	enforceActivation: boolean
 ): Partial<Record<keyof ToolFormValues, string>> {
@@ -125,7 +126,7 @@ export function getStepFieldErrors(
 }
 
 export function firstStepWithError(
-	values: unknown,
+	values: Partial<ToolFormInput>,
 	enforceActivation: boolean
 ): ToolStepId | null {
 	const issues = collectToolIssues(values, { enforceActivation });

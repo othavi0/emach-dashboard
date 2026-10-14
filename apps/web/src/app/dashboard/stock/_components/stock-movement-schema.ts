@@ -75,8 +75,7 @@ export const stockWriteOffSchema = z
 			.optional(),
 	})
 	.refine(
-		(d) =>
-			d.reason !== "outro" || (typeof d.note === "string" && d.note.length > 0),
+		(d) => d.reason !== "outro" || (d.note !== undefined && d.note.length > 0),
 		{
 			path: ["note"],
 			message: "Observação obrigatória quando motivo é 'Outro'",

@@ -160,7 +160,9 @@ const reorderSchema = z.object({
 	orderedIds: z.array(z.string().min(1)).min(1),
 });
 
-export async function reorderCategories(input: unknown): Promise<ActionResult> {
+export async function reorderCategories(
+	input: z.input<typeof reorderSchema>
+): Promise<ActionResult> {
 	const session = await requireCapability("categories.manage");
 
 	const parsed = reorderSchema.safeParse(input);

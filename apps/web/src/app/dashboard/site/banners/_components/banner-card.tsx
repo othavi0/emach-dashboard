@@ -38,9 +38,8 @@ function compositionForCard(item: Banner) {
 	}
 
 	if (item.composition !== null) {
-		logger.error("banner-card.composition-parse", {
+		logger.error("banner-card.composition-parse", parsed.error, {
 			bannerId: item.id,
-			issues: parsed.error.issues,
 		});
 	}
 
@@ -96,7 +95,7 @@ export function BannerCard({
 					composition={composition}
 					viewport="desktop"
 				/>
-				{typeof order === "number" && (
+				{order !== undefined && (
 					<span className="absolute top-2 left-2 rounded-md bg-black/60 px-2 py-0.5 font-bold text-white text-xs backdrop-blur">
 						#{order}
 					</span>

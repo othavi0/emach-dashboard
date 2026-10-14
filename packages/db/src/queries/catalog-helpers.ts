@@ -40,17 +40,24 @@ export const TOOLS_PER_PROMO = 4;
 // Scalar helpers
 // ---------------------------------------------------------------------------
 
-export function toNullableNumber(value: unknown): number | null {
+// Coluna numérica crua do db.execute: numeric/AVG chega como string, int como number.
+export function toNullableNumber(
+	value: string | number | null | undefined
+): number | null {
 	if (value === null || value === undefined) {
 		return null;
 	}
 
-	const n = typeof value === "number" ? value : Number(value);
+	const n = Number(value);
 
 	return Number.isFinite(n) ? n : null;
 }
 
-export function toBoolean(value: unknown): boolean {
+// Booleano cru do db.execute: o driver devolve boolean, mas o texto "t"/"true"
+// e o inteiro 1 também contam como verdadeiro.
+export type RawPgBoolean = boolean | string | number;
+
+export function toBoolean(value: RawPgBoolean): boolean {
 	return value === true || value === "t" || value === "true" || value === 1;
 }
 

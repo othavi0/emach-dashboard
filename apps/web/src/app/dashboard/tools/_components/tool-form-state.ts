@@ -14,10 +14,11 @@ export type ToolFormState = Omit<
 	packagingWeightKg?: number;
 };
 
-export type ToolPatch = (
-	next:
-		| Partial<ToolFormState>
-		| ((prev: ToolFormState) => Partial<ToolFormState>)
+export type ToolPatch = (partial: Partial<ToolFormState>) => void;
+
+/** Patch calculado a partir do estado mais recente, para mudanças que dependem dele. */
+export type ToolUpdate = (
+	derive: (prev: ToolFormState) => Partial<ToolFormState>
 ) => void;
 
 export const EMPTY_TOOL_VALUES: ToolFormState = {
@@ -74,12 +75,13 @@ export function useToolFormState(defaultValues: Partial<ToolFormState>) {
 		Partial<Record<keyof ToolFormValues, string>>
 	>({});
 
-	const patch: ToolPatch = (next) => {
-		setValues((prev) => ({
-			...prev,
-			...(typeof next === "function" ? next(prev) : next),
-		}));
+	const patch: ToolPatch = (partial) => {
+		setValues((prev) => ({ ...prev, ...partial }));
 	};
 
-	return { values, setValues, patch, errors, setErrors };
+	const update: ToolUpdate = (derive) => {
+		setValues((prev) => ({ ...prev, ...derive(prev) }));
+	};
+
+	return { values, setValues, patch, update, errors, setErrors };
 }

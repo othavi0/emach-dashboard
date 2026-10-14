@@ -17,6 +17,7 @@ import { env } from "@emach/env/server";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import type { z } from "zod";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
@@ -193,7 +194,9 @@ export async function inviteUser(
 	return { ok: true, data: undefined };
 }
 
-export async function resendInvite(input: unknown): Promise<ActionResult> {
+export async function resendInvite(
+	input: z.input<typeof inviteIdSchema>
+): Promise<ActionResult> {
 	const parsed = inviteIdSchema.safeParse(input);
 
 	if (!parsed.success) {
@@ -249,7 +252,9 @@ export async function resendInvite(input: unknown): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
-export async function revokeInvite(input: unknown): Promise<ActionResult> {
+export async function revokeInvite(
+	input: z.input<typeof inviteIdSchema>
+): Promise<ActionResult> {
 	const parsed = inviteIdSchema.safeParse(input);
 
 	if (!parsed.success) {
@@ -290,7 +295,9 @@ export async function revokeInvite(input: unknown): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
-export async function acceptInvite(input: unknown): Promise<ActionResult> {
+export async function acceptInvite(
+	input: z.input<typeof acceptInviteSchema>
+): Promise<ActionResult> {
 	const parsed = acceptInviteSchema.safeParse(input);
 
 	if (!parsed.success) {
@@ -450,7 +457,9 @@ export async function updateUser(
 	return { ok: true, data: undefined };
 }
 
-export async function updateOwnProfile(input: unknown): Promise<ActionResult> {
+export async function updateOwnProfile(
+	input: z.input<typeof updateOwnProfileSchema>
+): Promise<ActionResult> {
 	const session = await requireCurrentSession();
 
 	if (session.user.status !== "active") {
@@ -556,7 +565,9 @@ export async function uploadOwnAvatar(
 	}
 }
 
-export async function suspendUser(input: unknown): Promise<ActionResult> {
+export async function suspendUser(
+	input: z.input<typeof suspendUserSchema>
+): Promise<ActionResult> {
 	const parsed = suspendUserSchema.safeParse(input);
 
 	if (!parsed.success) {
@@ -644,7 +655,7 @@ export async function reactivateUser(input: {
 }
 
 export async function triggerPasswordReset(
-	input: unknown
+	input: z.input<typeof triggerPasswordResetSchema>
 ): Promise<ActionResult> {
 	const session = await requireCurrentSession();
 	const parsed = triggerPasswordResetSchema.safeParse(input);
@@ -687,7 +698,9 @@ export async function triggerPasswordReset(
 	return { ok: true, data: undefined };
 }
 
-export async function deleteUser(input: unknown): Promise<ActionResult> {
+export async function deleteUser(
+	input: z.input<typeof deleteUserSchema>
+): Promise<ActionResult> {
 	const parsed = deleteUserSchema.safeParse(input);
 
 	if (!parsed.success) {
@@ -769,7 +782,9 @@ export async function deleteUser(input: unknown): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
-export async function revokeUserSession(input: unknown): Promise<ActionResult> {
+export async function revokeUserSession(
+	input: z.input<typeof revokeSessionSchema>
+): Promise<ActionResult> {
 	// Contexto vazio: o alvo é um sessionId, então o userId só é conhecido após o
 	// lookup abaixo — o self-guard (SELF_RESTRICTED) não tem como agir aqui. A
 	// proteção self vive no check explícito `target.userId === actor.user.id` adiante.
@@ -812,7 +827,7 @@ export async function revokeUserSession(input: unknown): Promise<ActionResult> {
 }
 
 export async function forceLogoutAllSessions(
-	input: unknown
+	input: z.input<typeof userIdSchema>
 ): Promise<ActionResult<{ count: number }>> {
 	const actor = await requireCurrentSession();
 	const parsed = userIdSchema.safeParse(input);
@@ -848,7 +863,9 @@ export async function forceLogoutAllSessions(
 	return { ok: true, data: { count: deleted.length } };
 }
 
-export async function linkUserToBranch(input: unknown): Promise<ActionResult> {
+export async function linkUserToBranch(
+	input: z.input<typeof branchLinkSchema>
+): Promise<ActionResult> {
 	const parsed = branchLinkSchema.safeParse(input);
 
 	if (!parsed.success) {
@@ -921,7 +938,7 @@ export async function fetchUserActivityAffectingPage(
 }
 
 export async function unlinkUserFromBranch(
-	input: unknown
+	input: z.input<typeof branchLinkSchema>
 ): Promise<ActionResult> {
 	const parsed = branchLinkSchema.safeParse(input);
 

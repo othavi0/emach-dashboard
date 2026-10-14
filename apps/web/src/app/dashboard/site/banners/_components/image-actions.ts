@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { logUserActivity } from "@/lib/activity";
 import { requireCapability } from "@/lib/permissions";
 import {
@@ -11,17 +12,23 @@ import { BANNER_IMAGES_BUCKET } from "@/lib/supabase-server";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+const DEFAULT_MAX_BYTES = 4 * 1024 * 1024;
+
+// Campo "maxBytes" do FormData: string numérica finita; qualquer outra coisa
+// (ausente, File, texto não numérico) cai no default.
+const maxBytesFieldSchema = z
+	.string()
+	.refine((v) => Number.isFinite(Number(v)))
+	.transform((v) => Number(v));
+
 export async function uploadBannerImage(
 	formData: FormData
 ): Promise<{ url: string }> {
 	const session = await requireCapability("site.update_banners");
 
-	const raw = formData.get("maxBytes");
+	const maxBytes = maxBytesFieldSchema.safeParse(formData.get("maxBytes"));
 
-	const maxSizeBytes =
-		typeof raw === "string" && Number.isFinite(Number(raw))
-			? Number(raw)
-			: 4 * 1024 * 1024;
+	const maxSizeBytes = maxBytes.success ? maxBytes.data : DEFAULT_MAX_BYTES;
 
 	const { url } = await uploadToPublicBucket({
 		bucket: BANNER_IMAGES_BUCKET,

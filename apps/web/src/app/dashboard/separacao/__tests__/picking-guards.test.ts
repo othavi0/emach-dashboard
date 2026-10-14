@@ -1,3 +1,8 @@
+import type {
+	order,
+	orderPicking,
+	orderPickingItem,
+} from "@emach/db/schema/orders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockTransaction, mockLockOrderAndAuthorize } = vi.hoisted(() => ({
@@ -64,16 +69,25 @@ const OWNERSHIP_ERROR_RE = /iniciou/i;
 const STATUS_ERROR_RE = /andamento/i;
 const EXCEPTION_OWNER_ERROR_RE = /João/;
 
+// Payload que as actions passam a `tx.update(<tabela>).set()`.
+type SetPayload =
+	| Partial<typeof order.$inferInsert>
+	| Partial<typeof orderPicking.$inferInsert>
+	| Partial<typeof orderPickingItem.$inferInsert>;
+
 function makeTx(selectResults: unknown[][]) {
 	let i = 0;
+
 	// Closure gravando o último argumento passado a `.set()` — permite asserção
 	// de auditoria (status/actor/reason) sem reimplementar um mock de update.
-	const captured: { lastSetArg: unknown } = { lastSetArg: undefined };
+	const captured: { lastSetArg: SetPayload | undefined } = {
+		lastSetArg: undefined,
+	};
 
 	const chain = (result: unknown[]) => {
 		const c: Record<string, unknown> = {
 			// biome-ignore lint/suspicious/noThenProperty: thenable mock — allows `await tx.select()...where()` without a terminal `.limit()` (createPickingItems' orderItem load)
-			then: (resolve: (v: unknown) => void) => resolve(result),
+			then: (resolve: (v: unknown[]) => void) => resolve(result),
 		};
 
 		c.from = vi.fn(() => c);
@@ -88,7 +102,7 @@ function makeTx(selectResults: unknown[][]) {
 
 	const update = () => {
 		const c: Record<string, unknown> = {};
-		c.set = vi.fn((arg: unknown) => {
+		c.set = vi.fn((arg: SetPayload) => {
 			captured.lastSetArg = arg;
 
 			return c;
@@ -105,6 +119,8 @@ function makeTx(selectResults: unknown[][]) {
 		captured,
 	};
 }
+
+type MockTx = ReturnType<typeof makeTx>;
 
 function sessionAs(id: string, role: "user" | "admin" | "super_admin") {
 	return {
@@ -127,8 +143,9 @@ describe("guards de sessão de separação", () => {
 
 	it("completePicking por não-dono → erro de ownership", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[PICKING_IN_PROGRESS]]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[PICKING_IN_PROGRESS]]))
 		);
 		const result = await completePicking(PICKING_ID);
 		expect(result.ok).toBe(false);
@@ -139,13 +156,14 @@ describe("guards de sessão de separação", () => {
 
 	it("reportMissing com sessão completed → erro de status", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs(OWNER, "user"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(
-				makeTx([
-					[{ id: "pi_1", pickingId: PICKING_ID }],
-					[{ ...PICKING_IN_PROGRESS, status: "completed" }],
-				])
-			)
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(
+					makeTx([
+						[{ id: "pi_1", pickingId: PICKING_ID }],
+						[{ ...PICKING_IN_PROGRESS, status: "completed" }],
+					])
+				)
 		);
 		const result = await reportMissing("pi_1", "faltou na prateleira");
 		expect(result.ok).toBe(false);
@@ -156,8 +174,9 @@ describe("guards de sessão de separação", () => {
 
 	it("cancelPicking de sessão já completed → erro de status", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs(OWNER, "user"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[{ ...PICKING_IN_PROGRESS, status: "completed" }]]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[{ ...PICKING_IN_PROGRESS, status: "completed" }]]))
 		);
 		const result = await cancelPicking(PICKING_ID);
 		expect(result.ok).toBe(false);
@@ -165,16 +184,17 @@ describe("guards de sessão de separação", () => {
 
 	it("cancelPicking por não-dono role user → recusado; por admin → aceito", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[PICKING_IN_PROGRESS]]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[PICKING_IN_PROGRESS]]))
 		);
 		const denied = await cancelPicking(PICKING_ID);
 		expect(denied.ok).toBe(false);
 
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_adm", "admin"));
 		const adminTx = makeTx([[PICKING_IN_PROGRESS]]);
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(adminTx)
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => cb(adminTx)
 		);
 		const allowed = await cancelPicking(PICKING_ID, "picker ausente");
 		expect(allowed.ok).toBe(true);
@@ -188,8 +208,9 @@ describe("guards de sessão de separação", () => {
 
 	it("scanItem por não-dono → erro de ownership", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[PICKING_IN_PROGRESS]]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[PICKING_IN_PROGRESS]]))
 		);
 		const result = await scanItem(PICKING_ID, "7891234560016");
 		expect(result.ok).toBe(false);
@@ -200,10 +221,14 @@ describe("guards de sessão de separação", () => {
 
 	it("reportMissing por não-dono → erro de ownership", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(
-				makeTx([[{ id: "pi_1", pickingId: PICKING_ID }], [PICKING_IN_PROGRESS]])
-			)
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(
+					makeTx([
+						[{ id: "pi_1", pickingId: PICKING_ID }],
+						[PICKING_IN_PROGRESS],
+					])
+				)
 		);
 		const result = await reportMissing("pi_1", "faltou na prateleira");
 		expect(result.ok).toBe(false);
@@ -214,8 +239,9 @@ describe("guards de sessão de separação", () => {
 
 	it("takeoverPicking em sessão completed → erro de status", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_adm", "admin"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[{ ...PICKING_IN_PROGRESS, status: "completed" }]]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[{ ...PICKING_IN_PROGRESS, status: "completed" }]]))
 		);
 		const result = await takeoverPicking(PICKING_ID);
 		expect(result.ok).toBe(false);
@@ -226,8 +252,9 @@ describe("guards de sessão de separação", () => {
 
 	it("takeoverPicking por role user → recusado", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[PICKING_IN_PROGRESS]]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[PICKING_IN_PROGRESS]]))
 		);
 		const result = await takeoverPicking(PICKING_ID);
 		expect(result.ok).toBe(false);
@@ -235,8 +262,9 @@ describe("guards de sessão de separação", () => {
 
 	it("takeoverPicking da própria sessão → recusado (é só continuar)", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs(OWNER, "admin"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[PICKING_IN_PROGRESS]]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[PICKING_IN_PROGRESS]]))
 		);
 		const result = await takeoverPicking(PICKING_ID);
 		expect(result.ok).toBe(false);
@@ -244,8 +272,9 @@ describe("guards de sessão de separação", () => {
 
 	it("takeoverPicking por admin em sessão alheia in_progress → ok", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_adm", "admin"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[PICKING_IN_PROGRESS], []]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[PICKING_IN_PROGRESS], []]))
 		);
 		const result = await takeoverPicking(PICKING_ID);
 		expect(result.ok).toBe(true);
@@ -259,8 +288,9 @@ describe("guards de sessão de separação", () => {
 
 	it("startPicking sobre exceção alheia por role user → recusado", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[LATEST_EXCEPTION]]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[LATEST_EXCEPTION]]))
 		);
 		const result = await startPicking("ord_1");
 		expect(result.ok).toBe(false);
@@ -272,8 +302,9 @@ describe("guards de sessão de separação", () => {
 	it("startPicking sobre a própria exceção por role user → ok", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs(OWNER, "user"));
 		// selects: [última sessão] e depois [itens do pedido] (createPickingItems)
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[LATEST_EXCEPTION], []]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[LATEST_EXCEPTION], []]))
 		);
 		const result = await startPicking("ord_1");
 		expect(result.ok).toBe(true);
@@ -281,8 +312,9 @@ describe("guards de sessão de separação", () => {
 
 	it("startPicking sobre exceção alheia por admin → ok", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_adm", "admin"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[LATEST_EXCEPTION], []]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[LATEST_EXCEPTION], []]))
 		);
 		const result = await startPicking("ord_1");
 		expect(result.ok).toBe(true);
@@ -290,8 +322,9 @@ describe("guards de sessão de separação", () => {
 
 	it("startPicking sobre sessão canceled de outro → ok (pool geral)", async () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[{ ...LATEST_EXCEPTION, status: "canceled" }], []]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[{ ...LATEST_EXCEPTION, status: "canceled" }], []]))
 		);
 		const result = await startPicking("ord_1");
 		expect(result.ok).toBe(true);
@@ -301,8 +334,9 @@ describe("guards de sessão de separação", () => {
 		mockLockOrderAndAuthorize.mockResolvedValue(sessionAs("usr_other", "user"));
 		// selects por pedido: [number], [sessão in_progress existente → nenhuma],
 		// [última sessão → exceção alheia]
-		mockTransaction.mockImplementation(async (cb: (tx: unknown) => unknown) =>
-			cb(makeTx([[{ number: "EM-1" }], [], [LATEST_EXCEPTION]]))
+		mockTransaction.mockImplementation(
+			async <T>(cb: (tx: MockTx) => Promise<T>): Promise<T> =>
+				cb(makeTx([[{ number: "EM-1" }], [], [LATEST_EXCEPTION]]))
 		);
 
 		const result = await bulkStartPicking({
