@@ -195,7 +195,13 @@ function TypeSelector({
 	return (
 		<RadioGroup
 			className="grid gap-3 sm:grid-cols-2"
-			onValueChange={(v: string) => onChange(v as PromotionType)}
+			onValueChange={(v: string) => {
+				const next = TYPE_OPTIONS.find((opt) => opt.value === v);
+
+				if (next) {
+					onChange(next.value);
+				}
+			}}
 			value={value}
 		>
 			{TYPE_OPTIONS.map((opt) => {
@@ -296,7 +302,7 @@ export function PromotionFormFields({
 	onPatch,
 	values,
 }: PromotionFormFieldsProps) {
-	const type = values.type as PromotionType;
+	const type = values.type;
 	const isCoupon = type === "promocode";
 
 	const homeVisibility = computeHomeVisibility({
@@ -460,7 +466,7 @@ export function PromotionFormFields({
 									onChange={(e) =>
 										onPatch({
 											code: e.target.value,
-										} as Partial<PromotionFormValues>)
+										})
 									}
 									placeholder="VERAO2025"
 									value={values.code ?? ""}
@@ -485,12 +491,9 @@ export function PromotionFormFields({
 										onChange={(n) =>
 											onPatch({
 												maxRedemptions: n ?? null,
-											} as Partial<PromotionFormValues>)
+											})
 										}
-										value={
-											(values as { maxRedemptions?: number | null })
-												.maxRedemptions ?? undefined
-										}
+										value={values.maxRedemptions ?? undefined}
 									/>
 								)}
 							</LabeledField>
@@ -508,12 +511,9 @@ export function PromotionFormFields({
 										onChange={(n) =>
 											onPatch({
 												minOrderAmount: n,
-											} as Partial<PromotionFormValues>)
+											})
 										}
-										value={
-											(values as { minOrderAmount?: number | null })
-												.minOrderAmount
-										}
+										value={values.minOrderAmount}
 									/>
 								)}
 							</LabeledField>

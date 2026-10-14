@@ -2,19 +2,21 @@
 
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { z } from "zod";
 import { MaskedInput } from "@/components/masked-input";
 import { logger } from "@/lib/logger";
 import { cepMask } from "@/lib/masks";
 import { notify } from "@/lib/notify";
 
-interface ViaCepResponse {
-	bairro?: string;
-	cep?: string;
-	erro?: boolean;
-	localidade?: string;
-	logradouro?: string;
-	uf?: string;
-}
+// ViaCEP responde `{ "erro": true }` ou `{ "erro": "true" }` para CEP inexistente.
+const viaCepResponseSchema = z.object({
+	bairro: z.string().optional(),
+	cep: z.string().optional(),
+	erro: z.union([z.boolean(), z.string()]).optional(),
+	localidade: z.string().optional(),
+	logradouro: z.string().optional(),
+	uf: z.string().optional(),
+});
 
 export interface CepResolved {
 	city: string;
@@ -75,7 +77,7 @@ export function CepInput({
 			fetch(`https://viacep.com.br/ws/${cep}/json/`, {
 				signal: controller.signal,
 			})
-				.then((r) => r.json() as Promise<ViaCepResponse>)
+				.then(async (r) => viaCepResponseSchema.parse(await r.json()))
 				.then((data) => {
 					clearTimeout(timeout);
 

@@ -6,7 +6,13 @@ import { PageHeader } from "@/components/page-header";
 import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { BranchCardGrid } from "./_components/branch-card-grid";
 import { BranchesFilters } from "./_components/branches-filters";
-import { type BranchesFiltersInput, fetchBranchesTablePage } from "./actions";
+import {
+	type BranchesFiltersInput,
+	type BranchSort,
+	fetchBranchesTablePage,
+} from "./actions";
+
+const BRANCH_SORTS: readonly BranchSort[] = ["newest", "name"];
 
 export const metadata: Metadata = {
 	title: "Filiais",
@@ -30,7 +36,7 @@ async function BranchesPageContent({ searchParams }: PageProps) {
 
 	const filters: BranchesFiltersInput = {
 		search: sp.search,
-		sort: (sp.sort as BranchesFiltersInput["sort"]) ?? "newest",
+		sort: BRANCH_SORTS.find((s) => s === sp.sort) ?? "newest",
 	};
 
 	const firstPage = await fetchBranchesTablePage({ filters, cursor: null });

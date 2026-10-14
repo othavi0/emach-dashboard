@@ -12,8 +12,14 @@ import type {
 import { ActivityTabClient } from "./activity-tab-client";
 
 const ALL_KINDS: BranchActivityKind[] = ["stock", "order", "user"];
-const VALID_KINDS = new Set<string>(ALL_KINDS);
-const VALID_PERIODS = new Set<string>(["today", "7d", "30d", "90d", "all"]);
+
+const VALID_PERIODS: readonly BranchActivityPeriod[] = [
+	"today",
+	"7d",
+	"30d",
+	"90d",
+	"all",
+];
 
 type ActivityLoad = [
 	{ items: BranchActivityRow[]; nextCursor: string | null },
@@ -27,13 +33,14 @@ export function ActivityTabLoader({ branchId }: { branchId: string }) {
 	const type = params.get("type") ?? undefined;
 
 	// Deep-link da drawer: ?type=stock&toolId=… pré-filtra o feed.
-	const initialKinds: BranchActivityKind[] =
-		type && VALID_KINDS.has(type) ? [type as BranchActivityKind] : ALL_KINDS;
+	const deepLinkKind = ALL_KINDS.find((kind) => kind === type);
+
+	const initialKinds: BranchActivityKind[] = deepLinkKind
+		? [deepLinkKind]
+		: ALL_KINDS;
 
 	const initialPeriod: BranchActivityPeriod =
-		period && VALID_PERIODS.has(period)
-			? (period as BranchActivityPeriod)
-			: "30d";
+		VALID_PERIODS.find((p) => p === period) ?? "30d";
 
 	return (
 		<LazyTab

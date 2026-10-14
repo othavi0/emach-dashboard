@@ -1,5 +1,5 @@
 import {
-	CAPABILITIES,
+	CAPABILITY_ENTRIES,
 	type Capability,
 	type NavSection,
 	SECTION_ORDER,
@@ -54,10 +54,7 @@ export function buildPermissionTree(args: {
 	const catalogOrder = new Map<string, number>();
 	let idx = 0;
 
-	for (const [cap, meta] of Object.entries(CAPABILITIES) as [
-		Capability,
-		(typeof CAPABILITIES)[Capability],
-	][]) {
+	for (const [cap, meta] of CAPABILITY_ENTRIES) {
 		catalogOrder.set(meta.resource, catalogOrder.get(meta.resource) ?? idx++);
 		const section = sectionForCapability(cap);
 		const resources = bySection.get(section) ?? new Map<string, ActionRow[]>();

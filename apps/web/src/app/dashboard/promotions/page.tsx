@@ -44,20 +44,20 @@ interface PageProps {
 	}>;
 }
 
-const VALID_STATUS = new Set<PromotionStatus>([
+const VALID_STATUS: readonly PromotionStatus[] = [
 	"active",
 	"scheduled",
 	"expired",
 	"inactive",
-]);
+];
 
-const VALID_SORT = new Set<PromotionSort>([
+const VALID_SORT: readonly PromotionSort[] = [
 	"createdDesc",
 	"createdAsc",
 	"discountDesc",
 	"discountAsc",
 	"endsAtAsc",
-]);
+];
 
 const STATUS_TABS: Array<{ value: PromotionStatus; label: string }> = [
 	{ value: "active", label: "Ativas" },
@@ -94,8 +94,10 @@ function buildStatusHref(
 		"discountMin",
 		"discountMax",
 	] as const) {
-		if (sp[key]) {
-			params.set(key, sp[key] as string);
+		const value = sp[key];
+
+		if (value) {
+			params.set(key, value);
 		}
 	}
 
@@ -123,15 +125,11 @@ async function PromotionsPageContent({ searchParams }: PageProps) {
 	const typeFilter =
 		typeParam === "promotion" || typeParam === "promocode" ? typeParam : "all";
 
-	const statusFilter = (
-		VALID_STATUS.has(params.status as PromotionStatus)
-			? params.status
-			: "active"
-	) as PromotionStatus;
+	const statusFilter: PromotionStatus =
+		VALID_STATUS.find((s) => s === params.status) ?? "active";
 
-	const sort = (
-		VALID_SORT.has(params.sort as PromotionSort) ? params.sort : "createdDesc"
-	) as PromotionSort;
+	const sort: PromotionSort =
+		VALID_SORT.find((s) => s === params.sort) ?? "createdDesc";
 
 	const discountMin = parseDiscount(params.discountMin);
 	const discountMax = parseDiscount(params.discountMax);

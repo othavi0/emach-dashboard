@@ -1,3 +1,4 @@
+import type { DashboardSession } from "@emach/auth/dashboard";
 import { user as userTable } from "@emach/db/schema/auth";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -34,9 +35,16 @@ const { setSpy, whereSpy } = vi.hoisted(() => {
 });
 
 // `db.select(...).from(...).where(...).limit(...)` → [{ image }]; `db.update(...).set(...).where(...)`.
-const { currentImage } = vi.hoisted(() => ({
-	currentImage: { v: null as string | null },
-}));
+/** Avatar que o SELECT mockado devolve; cada teste troca `v`. */
+interface CurrentImage {
+	v: string | null;
+}
+
+const { currentImage } = vi.hoisted(() => {
+	const currentImage: CurrentImage = { v: null };
+
+	return { currentImage };
+});
 
 vi.mock("@emach/db", () => ({
 	db: {
@@ -64,9 +72,30 @@ import { requireCurrentSession } from "@/lib/session";
 import { removeStorageObject } from "@/lib/storage";
 import { updateOwnProfile } from "../actions";
 
-const session = (over = {}) => ({
-	user: { id: "u1", status: "active", ...over },
-});
+function session(status = "active"): DashboardSession {
+	const at = new Date(0);
+
+	return {
+		session: {
+			id: "session-u1",
+			token: "token-u1",
+			userId: "u1",
+			expiresAt: at,
+			createdAt: at,
+			updatedAt: at,
+		},
+		user: {
+			id: "u1",
+			email: "u1@test.local",
+			emailVerified: true,
+			name: "u1",
+			createdAt: at,
+			updatedAt: at,
+			role: undefined,
+			status,
+		},
+	};
+}
 
 describe("updateOwnProfile", () => {
 	// O brief não zera os spies entre testes (sem `clearMocks` no
@@ -80,7 +109,7 @@ describe("updateOwnProfile", () => {
 
 	it("bloqueia conta não ativa", async () => {
 		vi.mocked(requireCurrentSession).mockResolvedValueOnce(
-			session({ status: "suspended" }) as never
+			session("suspended")
 		);
 		const r = await updateOwnProfile({ name: "Novo" });
 		expect(r.ok).toBe(false);
@@ -88,7 +117,7 @@ describe("updateOwnProfile", () => {
 
 	it("atualiza só o próprio nome (self-scope) e audita", async () => {
 		currentImage.v = null;
-		vi.mocked(requireCurrentSession).mockResolvedValueOnce(session() as never);
+		vi.mocked(requireCurrentSession).mockResolvedValueOnce(session());
 		const r = await updateOwnProfile({ name: "Novo Nome" });
 		expect(r.ok).toBe(true);
 		expect(setSpy).toHaveBeenCalledWith({ name: "Novo Nome" });
@@ -110,7 +139,7 @@ describe("updateOwnProfile", () => {
 	it("remove o avatar antigo quando a foto muda", async () => {
 		currentImage.v =
 			"https://x.supabase.co/storage/v1/object/public/user-avatars/old.png";
-		vi.mocked(requireCurrentSession).mockResolvedValueOnce(session() as never);
+		vi.mocked(requireCurrentSession).mockResolvedValueOnce(session());
 
 		const r = await updateOwnProfile({
 			image:
@@ -126,7 +155,7 @@ describe("updateOwnProfile", () => {
 			"https://x.supabase.co/storage/v1/object/public/user-avatars/same.png";
 
 		currentImage.v = same;
-		vi.mocked(requireCurrentSession).mockResolvedValueOnce(session() as never);
+		vi.mocked(requireCurrentSession).mockResolvedValueOnce(session());
 		await updateOwnProfile({ image: same });
 		expect(removeStorageObject).not.toHaveBeenCalled();
 	});

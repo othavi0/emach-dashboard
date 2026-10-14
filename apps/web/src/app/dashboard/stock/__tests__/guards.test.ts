@@ -24,6 +24,7 @@ vi.mock("@/lib/branch-scope", async (importOriginal) => {
 	};
 });
 
+import { makeSession } from "@/lib/__tests__/fixtures/make-session";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import {
 	requireCapability,
@@ -38,7 +39,8 @@ import {
 import { fetchToolActivityPage, getToolActivity } from "../tool-activity-data";
 
 const FORBIDDEN = new Error('Forbidden: capability "stock.read" requerida');
-const SESSION = { user: { id: "usr_1", role: "user" } };
+
+const SESSION = makeSession({ id: "usr_1", role: "user", status: "active" });
 
 interface SelectChain {
 	from: () => SelectChain;
@@ -69,12 +71,8 @@ function makeSelectChain(result: unknown[] = []) {
 beforeEach(() => {
 	vi.clearAllMocks();
 	mockSelect.mockImplementation(() => makeSelectChain());
-	vi.mocked(requireCapability).mockResolvedValue(
-		SESSION as Awaited<ReturnType<typeof requireCapability>>
-	);
-	vi.mocked(requireCapabilityWithContext).mockResolvedValue(
-		SESSION as Awaited<ReturnType<typeof requireCapabilityWithContext>>
-	);
+	vi.mocked(requireCapability).mockResolvedValue(SESSION);
+	vi.mocked(requireCapabilityWithContext).mockResolvedValue(SESSION);
 	vi.mocked(getUserBranchScope).mockResolvedValue({ kind: "all" });
 });
 

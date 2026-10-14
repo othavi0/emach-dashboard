@@ -10,13 +10,13 @@ import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import { getUserBranchScope, inScope } from "@/lib/branch-scope";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import { requireCapability } from "@/lib/permissions";
-import type { STOCK_MOVEMENT_REASONS } from "./_components/stock-movement-schema";
 import {
 	computePeriodCutoff,
 	encodeMovementCursor,
 	movementKeysetCondition,
 	type PeriodPreset,
 } from "./_lib/movements-shared";
+import { parseReasons } from "./movements-data";
 
 export type { PeriodPreset } from "./_lib/movements-shared";
 
@@ -120,10 +120,7 @@ export async function fetchToolActivityPage(
 
 	if (filters.reasons && filters.reasons.length > 0) {
 		conditions.push(
-			inArray(
-				stockMovement.reason,
-				filters.reasons as (typeof STOCK_MOVEMENT_REASONS)[number][]
-			)
+			inArray(stockMovement.reason, parseReasons(filters.reasons))
 		);
 	}
 

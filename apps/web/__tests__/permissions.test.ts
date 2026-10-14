@@ -11,13 +11,17 @@ vi.mock("@/lib/session", () => ({
 	ROLE_WEIGHT: { super_admin: 3, admin: 2, user: 1 },
 }));
 
+// Mock sem tipo de propósito: cada helper abaixo devolve só a cadeia
+// from().where()[.limit()] que lib/permissions usa, não o builder do Drizzle.
+const { dbSelect } = vi.hoisted(() => ({ dbSelect: vi.fn() }));
+
 vi.mock("@emach/db", () => ({
 	db: {
-		select: vi.fn(),
+		select: dbSelect,
 	},
 }));
 
-import { db } from "@emach/db";
+import { makeSession } from "@/lib/__tests__/fixtures/make-session";
 import {
 	getUserCapabilities,
 	requireCapabilityWithContext,
@@ -79,39 +83,45 @@ describe("matriz de capability (3 níveis)", () => {
 	});
 	it("role nula/desconhecida → nega", () => {
 		expect(roleHasCapability(null, "orders.read")).toBe(false);
-		expect(roleHasCapability("intruso", "orders.read" as never)).toBe(false);
+		expect(roleHasCapability("intruso", "orders.read")).toBe(false);
 	});
 });
 
-const sessionActive = {
-	user: { id: "actor-1", status: "active", role: "user" },
-} as never;
+const sessionActive = makeSession({
+	id: "actor-1",
+	status: "active",
+	role: "user",
+});
 
-const sessionSuspended = {
-	user: { id: "actor-1", status: "suspended", role: "user" },
-} as never;
+const sessionSuspended = makeSession({
+	id: "actor-1",
+	status: "suspended",
+	role: "user",
+});
 
-const sessionSuperAdmin = {
-	user: { id: "actor-1", status: "active", role: "super_admin" },
-} as never;
+const sessionSuperAdmin = makeSession({
+	id: "actor-1",
+	status: "active",
+	role: "super_admin",
+});
 
 function mockTargetLookup(target: { role: string; status: string } | null) {
 	const limit = vi.fn(() => Promise.resolve(target ? [target] : []));
 	const where = vi.fn(() => ({ limit }));
 	const from = vi.fn(() => ({ where }));
-	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+	dbSelect.mockReturnValueOnce({ from });
 }
 
 function mockCountQuery(count: number) {
 	const where = vi.fn(() => Promise.resolve([{ value: count }]));
 	const from = vi.fn(() => ({ where }));
-	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+	dbSelect.mockReturnValueOnce({ from });
 }
 
 function mockOverrides(rows: { capability: string; effect: string }[]) {
 	const where = vi.fn(() => Promise.resolve(rows));
 	const from = vi.fn(() => ({ where }));
-	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+	dbSelect.mockReturnValueOnce({ from });
 }
 
 function mockBranchRows(branchIds: string[]) {
@@ -120,32 +130,30 @@ function mockBranchRows(branchIds: string[]) {
 	);
 
 	const from = vi.fn(() => ({ where }));
-	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+	dbSelect.mockReturnValueOnce({ from });
 }
 
 describe("requireCapabilityWithContext — guards mantidos", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
-			sessionSuperAdmin
-		);
+		vi.mocked(requireCurrentSession).mockResolvedValue(sessionSuperAdmin);
 	});
 
 	it("rejeita se status != active", async () => {
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
-			sessionSuspended
-		);
+		vi.mocked(requireCurrentSession).mockResolvedValue(sessionSuspended);
 		await expect(
 			requireCapabilityWithContext("tools.delete", {})
 		).rejects.toThrow("Conta não ativa");
 	});
 
 	it("gate de capability: role sem a cap é rejeitado (regressão P0)", async () => {
-		const s = {
-			user: { id: "guard-cap-1", status: "active", role: "user" },
-		} as never;
+		const s = makeSession({
+			id: "guard-cap-1",
+			status: "active",
+			role: "user",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		mockOverrides([]);
 		// role "user" NÃO tem orders.refund — deve barrar pela capability,
 		// não passar batido só por estar ativo / sem contexto de filial.
@@ -155,11 +163,13 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("self-action guard: usuário não pode se suspender", async () => {
-		const s = {
-			user: { id: "guard-self-1", status: "active", role: "super_admin" },
-		} as never;
+		const s = makeSession({
+			id: "guard-self-1",
+			status: "active",
+			role: "super_admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		await expect(
 			requireCapabilityWithContext("users.suspend", {
@@ -169,11 +179,13 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("self-action guard: não gerencia as próprias permissões (permissions.manage)", async () => {
-		const s = {
-			user: { id: "guard-self-perm", status: "active", role: "super_admin" },
-		} as never;
+		const s = makeSession({
+			id: "guard-self-perm",
+			status: "active",
+			role: "super_admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		await expect(
 			requireCapabilityWithContext("permissions.manage", {
@@ -183,11 +195,13 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("self-action guard NÃO bloqueia caps fora de SELF_RESTRICTED", async () => {
-		const s = {
-			user: { id: "guard-self-2", status: "active", role: "super_admin" },
-		} as never;
+		const s = makeSession({
+			id: "guard-self-2",
+			status: "active",
+			role: "super_admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		await expect(
 			requireCapabilityWithContext("users.update_branches", {
@@ -197,11 +211,13 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("self-action guard: não reseta a própria senha", async () => {
-		const s = {
-			user: { id: "guard-self-reset", status: "active", role: "super_admin" },
-		} as never;
+		const s = makeSession({
+			id: "guard-self-reset",
+			status: "active",
+			role: "super_admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		await expect(
 			requireCapabilityWithContext("users.reset_password", {
 				targetUserId: "guard-self-reset",
@@ -210,11 +226,13 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("self-action guard: não revoga as próprias sessões", async () => {
-		const s = {
-			user: { id: "guard-self-revoke", status: "active", role: "super_admin" },
-		} as never;
+		const s = makeSession({
+			id: "guard-self-revoke",
+			status: "active",
+			role: "super_admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		await expect(
 			requireCapabilityWithContext("users.revoke_sessions", {
 				targetUserId: "guard-self-revoke",
@@ -223,11 +241,13 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("last super_admin guard: rejeita se alvo é o último super_admin ativo", async () => {
-		const s = {
-			user: { id: "guard-lsa-1", status: "active", role: "super_admin" },
-		} as never;
+		const s = makeSession({
+			id: "guard-lsa-1",
+			status: "active",
+			role: "super_admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		mockTargetLookup({ role: "super_admin", status: "active" });
 		mockCountQuery(0);
@@ -237,11 +257,13 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("last super_admin guard: permite se há outros super_admin ativos", async () => {
-		const s = {
-			user: { id: "guard-lsa-2", status: "active", role: "super_admin" },
-		} as never;
+		const s = makeSession({
+			id: "guard-lsa-2",
+			status: "active",
+			role: "super_admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		mockTargetLookup({ role: "super_admin", status: "active" });
 		mockCountQuery(2);
@@ -251,11 +273,13 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("hierarquia: admin não gerencia usuário de role igual/superior", async () => {
-		const s = {
-			user: { id: "guard-hier-1", status: "active", role: "admin" },
-		} as never;
+		const s = makeSession({
+			id: "guard-hier-1",
+			status: "active",
+			role: "admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		mockOverrides([]);
 		mockTargetLookup({ role: "admin", status: "active" });
 		await expect(
@@ -266,11 +290,13 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("hierarquia: admin gerencia usuário de role user", async () => {
-		const s = {
-			user: { id: "guard-hier-2", status: "active", role: "admin" },
-		} as never;
+		const s = makeSession({
+			id: "guard-hier-2",
+			status: "active",
+			role: "admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		mockOverrides([]);
 		mockTargetLookup({ role: "user", status: "active" });
 		await expect(
@@ -281,11 +307,13 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 	});
 
 	it("last super_admin guard: ignora alvo não-super_admin", async () => {
-		const s = {
-			user: { id: "guard-lsa-3", status: "active", role: "super_admin" },
-		} as never;
+		const s = makeSession({
+			id: "guard-lsa-3",
+			status: "active",
+			role: "super_admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities — db.select não é chamado.
 		mockTargetLookup({ role: "admin", status: "active" });
 		await expect(
@@ -297,9 +325,7 @@ describe("requireCapabilityWithContext — guards mantidos", () => {
 describe("requireUserDetailAccessOrRedirect", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(
-			sessionActive
-		);
+		vi.mocked(requireCurrentSession).mockResolvedValue(sessionActive);
 	});
 
 	it("libera self-view do detalhe do próprio usuário", async () => {
@@ -314,9 +340,7 @@ describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)"
 
 	it("sem overrides = role default puro", async () => {
 		// id único por teste para garantir cache miss do React.cache
-		const s = {
-			user: { id: "ovr-1", role: "admin", status: "active" },
-		} as never;
+		const s = makeSession({ id: "ovr-1", role: "admin", status: "active" });
 
 		mockOverrides([]);
 		const caps = await getUserCapabilities(s);
@@ -324,10 +348,25 @@ describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)"
 		expect(caps.has("tools.delete")).toBe(false);
 	});
 
+	it("role fora do enum não herda default nenhum (fail-closed)", async () => {
+		const s = makeSession({ id: "ovr-0", role: "intruso", status: "active" });
+
+		mockOverrides([]);
+		const caps = await getUserCapabilities(s);
+		expect(caps.size).toBe(0);
+	});
+
+	it("role ausente vale os defaults de user", async () => {
+		const s = makeSession({ id: "ovr-00", role: null, status: "active" });
+
+		mockOverrides([]);
+		const caps = await getUserCapabilities(s);
+		expect(caps.has("orders.update_status")).toBe(true);
+		expect(caps.has("tools.create")).toBe(false);
+	});
+
 	it("grant adiciona capability acima do role", async () => {
-		const s = {
-			user: { id: "ovr-2", role: "admin", status: "active" },
-		} as never;
+		const s = makeSession({ id: "ovr-2", role: "admin", status: "active" });
 
 		mockOverrides([{ capability: "tools.delete", effect: "grant" }]);
 		const caps = await getUserCapabilities(s);
@@ -335,9 +374,7 @@ describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)"
 	});
 
 	it("revoke remove capability do role", async () => {
-		const s = {
-			user: { id: "ovr-3", role: "admin", status: "active" },
-		} as never;
+		const s = makeSession({ id: "ovr-3", role: "admin", status: "active" });
 
 		mockOverrides([{ capability: "tools.create", effect: "revoke" }]);
 		const caps = await getUserCapabilities(s);
@@ -345,25 +382,26 @@ describe("getUserCapabilities — conjunto efetivo (role defaults ± overrides)"
 	});
 
 	it("ignora override de cap fora do registry (fail-closed)", async () => {
-		const s = {
-			user: { id: "ovr-4", role: "admin", status: "active" },
-		} as never;
+		const s = makeSession({ id: "ovr-4", role: "admin", status: "active" });
 
 		mockOverrides([{ capability: "legado.removido", effect: "grant" }]);
-		const caps = await getUserCapabilities(s);
-		expect(caps.has("legado.removido" as never)).toBe(false);
+		// Lido como conjunto de strings para consultar uma chave fora do registry.
+		const capNames: ReadonlySet<string> = await getUserCapabilities(s);
+		expect(capNames.has("legado.removido")).toBe(false);
 	});
 
 	it("super_admin ignora overrides: cap permanece mesmo com revoke gravado", async () => {
-		const s = {
-			user: { id: "ovr-sa-1", role: "super_admin", status: "active" },
-		} as never;
+		const s = makeSession({
+			id: "ovr-sa-1",
+			role: "super_admin",
+			status: "active",
+		});
 
 		mockOverrides([{ capability: "permissions.manage", effect: "revoke" }]);
 		const caps = await getUserCapabilities(s);
 		expect(caps.has("permissions.manage")).toBe(true);
 		// Não busca overrides para super_admin (early-return antes do db.select).
-		expect(db.select).not.toHaveBeenCalled();
+		expect(dbSelect).not.toHaveBeenCalled();
 	});
 });
 
@@ -377,11 +415,13 @@ describe("requireCapabilityWithContext — branch-scoping (assertBranchScope)", 
 
 	it("admin com targetBranchIds fora do escopo → rejeita", async () => {
 		// ID único = cache miss em getUserBranchScope (React.cache).
-		const s = {
-			user: { id: "bs-admin-1", status: "active", role: "admin" },
-		} as never;
+		const s = makeSession({
+			id: "bs-admin-1",
+			status: "active",
+			role: "admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		// 1º db.select: overrides (admin não tem early-return em getUserCapabilities).
 		mockOverrides([]);
 		// 2º db.select: userBranch rows → admin tem só b-sp.
@@ -394,11 +434,13 @@ describe("requireCapabilityWithContext — branch-scoping (assertBranchScope)", 
 	});
 
 	it("admin com targetBranchIds dentro do escopo → resolve", async () => {
-		const s = {
-			user: { id: "bs-admin-2", status: "active", role: "admin" },
-		} as never;
+		const s = makeSession({
+			id: "bs-admin-2",
+			status: "active",
+			role: "admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		mockOverrides([]);
 		mockBranchRows(["b-sp"]);
 		await expect(
@@ -409,11 +451,13 @@ describe("requireCapabilityWithContext — branch-scoping (assertBranchScope)", 
 	});
 
 	it("super_admin resolve para qualquer branch sem consultar escopo", async () => {
-		const s = {
-			user: { id: "bs-sa-1", status: "active", role: "super_admin" },
-		} as never;
+		const s = makeSession({
+			id: "bs-sa-1",
+			status: "active",
+			role: "super_admin",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		// super_admin: early-return em getUserCapabilities E em assertBranchScope.
 		// db.select NÃO deve ser chamado.
 		await expect(
@@ -421,17 +465,19 @@ describe("requireCapabilityWithContext — branch-scoping (assertBranchScope)", 
 				targetBranchIds: ["b-rj", "b-sp", "b-bh"],
 			})
 		).resolves.toBe(s);
-		expect(db.select).not.toHaveBeenCalled();
+		expect(dbSelect).not.toHaveBeenCalled();
 	});
 
 	it("user sem vínculo (fail-closed) → rejeita para qualquer branch", async () => {
 		// Fail-closed: getUserBranchScope retorna branchIds:[] + includeUnassigned:false.
 		// Qualquer targetBranchIds → "Filial fora do seu escopo".
-		const s = {
-			user: { id: "bs-user-blind-1", status: "active", role: "user" },
-		} as never;
+		const s = makeSession({
+			id: "bs-user-blind-1",
+			status: "active",
+			role: "user",
+		});
 
-		(requireCurrentSession as ReturnType<typeof vi.fn>).mockResolvedValue(s);
+		vi.mocked(requireCurrentSession).mockResolvedValue(s);
 		mockOverrides([]);
 		// Sem vínculo: DB retorna 0 rows.
 		mockBranchRows([]);

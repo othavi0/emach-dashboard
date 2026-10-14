@@ -14,8 +14,8 @@ import { EntityClientTabs } from "@/components/entity/entity-client-tabs";
 import { clampInitialTab } from "@/components/entity/tab-url";
 import { roleDefaultCapabilities } from "@/lib/capabilities";
 import { can, requireUserDetailAccessOrRedirect } from "@/lib/permissions";
-import { ROLE_WEIGHT, type UserRole } from "@/lib/session";
-import type { UserRow } from "../_components/types";
+import { ROLE_WEIGHT } from "@/lib/session";
+import { getUserRole } from "@/lib/user-role";
 import { UserEditSheet } from "../_components/user-edit-sheet";
 import {
 	getUserAffectedActivity,
@@ -75,7 +75,7 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 	}
 
 	const canManagePermissions = await can(actorSession, "permissions.manage");
-	const actorRole = (actorSession.user.role ?? "user") as UserRole;
+	const actorRole = getUserRole(actorSession);
 
 	// Espelha assertManageableTarget (servidor): nunca si mesmo; super_admin
 	// gerencia qualquer outro; admin só quem está estritamente abaixo na
@@ -85,7 +85,7 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 		canManagePermissions &&
 		actorSession.user.id !== user.id &&
 		(actorRole === "super_admin" ||
-			ROLE_WEIGHT[actorRole] > ROLE_WEIGHT[user.role as UserRole]);
+			ROLE_WEIGHT[actorRole] > ROLE_WEIGHT[user.role]);
 
 	const tabs: EntityClientTab[] = [
 		{
@@ -165,7 +165,7 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 					<SuperAdminPermissionsNotice />
 				) : (
 					<PermissionsTabLoader
-						roleDefaults={[...roleDefaultCapabilities(user.role as UserRole)]}
+						roleDefaults={[...roleDefaultCapabilities(user.role)]}
 						targetUserId={user.id}
 					/>
 				),
@@ -202,7 +202,7 @@ async function UserDetailPageContent({ params, searchParams }: PageProps) {
 				/>
 			) : (
 				<UserEditSheet
-					actorRole={actorSession.user.role as UserRow["role"]}
+					actorRole={actorRole}
 					user={{
 						id: user.id,
 						name: user.name,

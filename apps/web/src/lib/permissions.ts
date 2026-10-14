@@ -16,6 +16,7 @@ import {
 	requireCurrentSession,
 	type UserRole,
 } from "@/lib/session";
+import { getUserRole, parseUserRole } from "@/lib/user-role";
 
 // Re-export do tipo direto da fonte (evita lint/style/noExportedImports).
 export type { Capability } from "@/lib/capabilities";
@@ -33,11 +34,13 @@ export function roleHasCapability(
 	role: string | null | undefined,
 	cap: Capability
 ): boolean {
-	if (!(role && role in ROLE_CAPS)) {
+	const parsed = parseUserRole(role);
+
+	if (!parsed) {
 		return false;
 	}
 
-	return ROLE_CAPS[role as UserRole].has(cap);
+	return ROLE_CAPS[parsed].has(cap);
 }
 
 // Conjunto EFETIVO (role default ± overrides). Use em Server Components para
@@ -53,8 +56,14 @@ export async function can(
 // keya por identidade da session). base do role ± overrides do usuário.
 export const getUserCapabilities = cache(
 	async (session: DashboardSession): Promise<ReadonlySet<Capability>> => {
-		const role = (session.user.role ?? "user") as UserRole;
-		const caps = roleDefaultCapabilities(role);
+		// Role ausente vale "user", como em getUserRole; role fora do enum não
+		// herda default de ninguém (deny-by-default).
+		const role = parseUserRole(session.user.role ?? "user");
+
+		const caps =
+			role === undefined
+				? new Set<Capability>()
+				: roleDefaultCapabilities(role);
 
 		// super_admin é irrestrito por construção: overrides não se aplicam (grant
 		// é redundante, revoke seria vetor de lock-out — issue #184 / ADR-0017).
@@ -214,7 +223,7 @@ async function assertManageableTarget(
 		return;
 	}
 
-	const actorRole = (session.user.role ?? "user") as UserRole;
+	const actorRole = getUserRole(session);
 
 	if (actorRole === "super_admin") {
 		return;
@@ -230,7 +239,7 @@ async function assertManageableTarget(
 		throw new Error("Usuário alvo não encontrado");
 	}
 
-	if (ROLE_WEIGHT[target.role as UserRole] >= ROLE_WEIGHT[actorRole]) {
+	if (ROLE_WEIGHT[target.role] >= ROLE_WEIGHT[actorRole]) {
 		throw new Error(
 			"Não é possível gerenciar usuário com role igual ou superior"
 		);

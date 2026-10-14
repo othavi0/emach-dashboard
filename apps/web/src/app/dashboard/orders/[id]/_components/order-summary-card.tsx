@@ -13,7 +13,17 @@ function formatCurrency(value: number): string {
 
 // ─── SLA helpers ──────────────────────────────────────────────────────────────
 
-const STATUS_SLA_TIMESTAMP: Partial<Record<OrderStatus, keyof OrderDetail>> = {
+type SlaTimestampKey = keyof Pick<
+	OrderDetail,
+	| "createdAt"
+	| "paidAt"
+	| "preparingAt"
+	| "shippedAt"
+	| "deliveredAt"
+	| "canceledAt"
+>;
+
+const STATUS_SLA_TIMESTAMP: Partial<Record<OrderStatus, SlaTimestampKey>> = {
 	pending_payment: "createdAt",
 	payment_failed: "createdAt",
 	paid: "paidAt",
@@ -50,7 +60,7 @@ function computeSlaDays(order: OrderDetail): SlaDays {
 		return { days: null, label };
 	}
 
-	const ts = order[tsKey] as Date | null;
+	const ts = order[tsKey];
 	const ref = ts ?? order.createdAt;
 	const diffMs = Date.now() - ref.getTime();
 	const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));

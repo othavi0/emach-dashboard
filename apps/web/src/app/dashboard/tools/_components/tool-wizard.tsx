@@ -86,11 +86,11 @@ export function ToolWizard({
 	}
 
 	const handleValidationFail = (errorKeys: string[]) => {
-		const idx = TOOL_STEPS.findIndex((s) =>
-			(STEP_FIELDS[s.id] as readonly string[]).some((f) =>
-				errorKeys.includes(f)
-			)
-		);
+		const idx = TOOL_STEPS.findIndex((s) => {
+			const fields: readonly string[] = STEP_FIELDS[s.id];
+
+			return fields.some((f) => errorKeys.includes(f));
+		});
 
 		if (idx >= 0) {
 			setActive(idx);

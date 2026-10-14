@@ -205,7 +205,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 		});
 
 		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(SEPARA_RE);
+		expect(result).toMatchObject({ error: expect.stringMatching(SEPARA_RE) });
 	});
 
 	it("(2) última sessão canceled (havia completed antiga) → bloqueado", async () => {
@@ -251,7 +251,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 		});
 
 		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(EXCECAO_RE);
+		expect(result).toMatchObject({ error: expect.stringMatching(EXCECAO_RE) });
 	});
 
 	it("(5) forceShip por admin → recusado", async () => {
@@ -280,7 +280,7 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 		});
 
 		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(MOTIVO_RE);
+		expect(result).toMatchObject({ error: expect.stringMatching(MOTIVO_RE) });
 	});
 
 	it("(7) forceShip super_admin com motivo, sem sessão ativa → passa", async () => {
@@ -332,8 +332,8 @@ describe("updateOrderStatus — ship gating (separação)", () => {
 		});
 
 		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(
-			ANDAMENTO_RE
-		);
+		expect(result).toMatchObject({
+			error: expect.stringMatching(ANDAMENTO_RE),
+		});
 	});
 });

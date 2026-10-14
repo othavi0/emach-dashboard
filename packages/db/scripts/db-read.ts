@@ -20,7 +20,7 @@ export interface ReadArgs {
 }
 
 function isFlag(value: string): value is Flag {
-	return (FLAGS as readonly string[]).includes(value);
+	return FLAGS.some((flag) => flag === value);
 }
 
 function positiveInt(flag: Flag, raw: string | undefined): number {

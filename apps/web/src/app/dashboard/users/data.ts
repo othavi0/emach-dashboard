@@ -179,7 +179,7 @@ export async function fetchUsersPage(
 	// NOTE(045): paginate() não se aplica — limit é variável (filters.limit),
 	// não o BATCH_SIZE fixo. Manter hand-rolled para preservar flexibilidade.
 	const hasMore = rows.length > limit;
-	const items = (hasMore ? rows.slice(0, limit) : rows) as UserListRow[];
+	const items: UserListRow[] = hasMore ? rows.slice(0, limit) : rows;
 	const last = items.at(-1);
 
 	const nextCursor =
@@ -242,7 +242,7 @@ export async function getUserDetail(id: string): Promise<UserDetail | null> {
 		.orderBy(asc(accountTable.createdAt))
 		.limit(1);
 
-	return { ...(row as UserDetail), provider: acc?.providerId ?? null };
+	return { ...row, provider: acc?.providerId ?? null };
 }
 
 // ============================================================================

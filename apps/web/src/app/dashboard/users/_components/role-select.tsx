@@ -21,7 +21,13 @@ export function RoleSelect({ value, onChange, disabled, allowedRoles }: Props) {
 	return (
 		<Select
 			disabled={disabled}
-			onValueChange={(v) => onChange(v as Role)}
+			onValueChange={(v) => {
+				const next = allowedRoles.find((r) => r === v);
+
+				if (next) {
+					onChange(next);
+				}
+			}}
 			value={value}
 		>
 			<SelectTrigger>

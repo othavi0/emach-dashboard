@@ -17,7 +17,16 @@ import { can, requireCapability } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { type Lateness, latenessOf } from "./orders/_lib/lateness";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "./orders/status-meta";
-import { REVIEW_STATUS_LABELS, type ReviewStatus } from "./reviews/status-meta";
+import { REVIEW_STATUS_LABELS } from "./reviews/status-meta";
+
+// Map: o `aux` do feed de atividade chega como texto cru do UNION.
+const ORDER_STATUS_LABEL_BY_KEY: ReadonlyMap<string, string> = new Map(
+	Object.entries(ORDER_STATUS_LABELS)
+);
+
+const REVIEW_STATUS_LABEL_BY_KEY: ReadonlyMap<string, string> = new Map(
+	Object.entries(REVIEW_STATUS_LABELS)
+);
 
 export interface DashboardCounts {
 	orders: number;
@@ -101,7 +110,8 @@ export async function fetchPendingOrders(
 		paid_at: string | null;
 		picking_status: string | null;
 		preparing_at: string | null;
-		status: string;
+		// o.status é a coluna order_status (pgEnum), devolvida como o próprio rótulo.
+		status: OrderStatus;
 	}>(sql`
 		SELECT o.id, o.number, o.status, o.created_at, o.paid_at, o.preparing_at,
 			c.name AS client_name, lp.status AS picking_status
@@ -153,7 +163,7 @@ export async function fetchPendingOrders(
 					now,
 					paidAt: r.paid_at ? toDate(r.paid_at) : null,
 					preparingAt: r.preparing_at ? toDate(r.preparing_at) : null,
-					status: r.status as OrderStatus,
+					status: r.status,
 				})
 			);
 
@@ -385,10 +395,10 @@ export async function fetchDashboardActivity(
 			let secondary = r.secondary ?? undefined;
 
 			if (r.kind === "order" && r.aux) {
-				const label = ORDER_STATUS_LABELS[r.aux as OrderStatus] ?? r.aux;
+				const label = ORDER_STATUS_LABEL_BY_KEY.get(r.aux) ?? r.aux;
 				primary = `${r.primary} → ${label}`;
 			} else if (r.kind === "review" && r.aux) {
-				secondary = REVIEW_STATUS_LABELS[r.aux as ReviewStatus] ?? r.aux;
+				secondary = REVIEW_STATUS_LABEL_BY_KEY.get(r.aux) ?? r.aux;
 			}
 
 			return {

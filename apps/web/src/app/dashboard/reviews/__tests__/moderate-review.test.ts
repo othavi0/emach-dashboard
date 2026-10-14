@@ -210,11 +210,14 @@ describe("moderateReview", () => {
 	it("rejeita quando expectedStatus está ausente (Zod), sem tocar no banco", async () => {
 		// Simula um caller desatualizado (ex: build antigo do client) que ainda
 		// não manda `expectedStatus` — o Zod tem que barrar antes do banco.
-		const legacyInput = { reviewId: ID_A, status: "approved" } as Omit<
-			ModerateReviewInput,
-			"expectedStatus"
-		>;
+		const legacyInput: Omit<ModerateReviewInput, "expectedStatus"> = {
+			reviewId: ID_A,
+			status: "approved",
+		};
 
+		// SAFETY: o tipo mente de propósito para simular o caller antigo;
+		// moderateReview passa o input por moderateReviewSchema.safeParse antes
+		// de qualquer leitura, e é esse parse que o teste exercita.
 		const result = await moderateReview(legacyInput as ModerateReviewInput);
 
 		expect(result.ok).toBe(false);

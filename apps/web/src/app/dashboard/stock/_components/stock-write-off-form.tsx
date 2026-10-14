@@ -107,7 +107,9 @@ export function StockWriteOffForm({
 			<div className="flex flex-col gap-1.5">
 				<Label>Motivo</Label>
 				<div className="flex gap-2">
-					{(["perda", "outro"] as StockWriteOffReason[]).map((r) => (
+					{(
+						["perda", "outro"] as const satisfies readonly StockWriteOffReason[]
+					).map((r) => (
 						<Button
 							disabled={disabled}
 							key={r}

@@ -40,10 +40,7 @@ async function StockMovementsPageContent({ searchParams }: PageProps) {
 	type Period = (typeof validPeriods)[number];
 
 	// Default 7d (não "all"): janela recente é o caso comum e barateia o scan.
-	const period: Period =
-		sp.period && (validPeriods as readonly string[]).includes(sp.period)
-			? (sp.period as Period)
-			: "7d";
+	const period: Period = validPeriods.find((p) => p === sp.period) ?? "7d";
 
 	const filters: LedgerFilters = {
 		period,

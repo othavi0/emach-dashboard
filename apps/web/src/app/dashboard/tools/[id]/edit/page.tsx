@@ -18,9 +18,7 @@ import { ToolFormProvider } from "../../_components/tool-form-context";
 import type {
 	AttributeValueInput,
 	ToolFormValues,
-	ToolStatusValue,
 	ToolVariantInput,
-	VOLTAGE_OPTIONS,
 } from "../../_components/tool-schema";
 
 export const metadata: Metadata = {
@@ -31,7 +29,6 @@ interface PageProps {
 	params: Promise<{ id: string }>;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: mapeamento de dados DB → form com múltiplos campos opcionais; complexidade inerente à transformação
 function toFormValues(
 	row: typeof tool.$inferSelect,
 	images: (typeof toolImage.$inferSelect)[],
@@ -57,7 +54,7 @@ function toFormValues(
 			id: v.id,
 			sku: v.sku ?? "",
 			barcode: v.barcode ?? "",
-			voltage: (v.voltage ?? "") as (typeof VOLTAGE_OPTIONS)[number] | "",
+			voltage: v.voltage ?? "",
 			priceAmount: Number.isFinite(priceNum) ? priceNum : 0,
 			isDefault: v.isDefault,
 			sortOrder: v.sortOrder,
@@ -87,7 +84,7 @@ function toFormValues(
 		model: row.model ?? "",
 		invoiceModel: row.invoiceModel ?? "",
 		manufacturerName: row.manufacturerName ?? "",
-		status: (row.status ?? "draft") as ToolStatusValue,
+		status: row.status,
 		hsCode: row.hsCode ?? "",
 		ncm: row.ncm ?? "",
 		cest: row.cest ?? "",

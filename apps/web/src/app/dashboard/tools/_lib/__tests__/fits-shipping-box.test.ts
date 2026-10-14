@@ -1,32 +1,34 @@
 import { describe, expect, it } from "vitest";
 import { type FitCheckItem, fitsAnyActiveBox } from "../fits-shipping-box";
 
-const BOXES = [
-	{
-		id: "box-s",
-		internalLengthCm: 35,
-		internalWidthCm: 35,
-		internalHeightCm: 30,
-		maxWeightKg: 20,
-		tareWeightKg: 0.5,
-	},
-	{
-		id: "box-l",
-		internalLengthCm: 70,
-		internalWidthCm: 60,
-		internalHeightCm: 50,
-		maxWeightKg: 60,
-		tareWeightKg: 1.2,
-	},
-	{
-		id: "box-xl",
-		internalLengthCm: 90,
-		internalWidthCm: 70,
-		internalHeightCm: 60,
-		maxWeightKg: 80,
-		tareWeightKg: 1.8,
-	},
-];
+const BOX_S = {
+	id: "box-s",
+	internalLengthCm: 35,
+	internalWidthCm: 35,
+	internalHeightCm: 30,
+	maxWeightKg: 20,
+	tareWeightKg: 0.5,
+};
+
+const BOX_L = {
+	id: "box-l",
+	internalLengthCm: 70,
+	internalWidthCm: 60,
+	internalHeightCm: 50,
+	maxWeightKg: 60,
+	tareWeightKg: 1.2,
+};
+
+const BOX_XL = {
+	id: "box-xl",
+	internalLengthCm: 90,
+	internalWidthCm: 70,
+	internalHeightCm: 60,
+	maxWeightKg: 80,
+	tareWeightKg: 1.8,
+};
+
+const BOXES = [BOX_S, BOX_L, BOX_XL];
 
 const FURADEIRA: FitCheckItem = {
 	lengthCm: 35,
@@ -113,14 +115,10 @@ describe("fitsAnyActiveBox", () => {
 			stackable: false,
 		};
 
-		expect(
-			fitsAnyActiveBox(chapado, [BOXES[1] as (typeof BOXES)[number]])
-		).toBe(false);
-		expect(
-			fitsAnyActiveBox({ ...chapado, stackable: true }, [
-				BOXES[1] as (typeof BOXES)[number],
-			])
-		).toBe(true);
+		expect(fitsAnyActiveBox(chapado, [BOX_L])).toBe(false);
+		expect(fitsAnyActiveBox({ ...chapado, stackable: true }, [BOX_L])).toBe(
+			true
+		);
 	});
 
 	it("lista de caixas vazia → false", () => {
@@ -130,7 +128,6 @@ describe("fitsAnyActiveBox", () => {
 	it("fill factor fixo 0.9 aceita ocupação 31500/36750 na box-s (paridade com o motor)", () => {
 		const naoEmpilhavel: FitCheckItem = { ...FURADEIRA, stackable: false };
 		// occupied 35×30×30=31500 ≤ 0.9×36750=33075.
-		const boxS = BOXES[0] as (typeof BOXES)[number];
-		expect(fitsAnyActiveBox(naoEmpilhavel, [boxS])).toBe(true);
+		expect(fitsAnyActiveBox(naoEmpilhavel, [BOX_S])).toBe(true);
 	});
 });

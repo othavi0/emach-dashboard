@@ -14,8 +14,9 @@ export async function createToolVideoUploadUrl(input: {
 > {
 	const session = await requireCapability("tools.update");
 
-	const ext =
-		ALLOWED_VIDEO_MIME[input.contentType as keyof typeof ALLOWED_VIDEO_MIME];
+	const ext = Object.entries(ALLOWED_VIDEO_MIME).find(
+		([mime]) => mime === input.contentType
+	)?.[1];
 
 	if (!ext) {
 		return { ok: false, error: "Formato inválido. Use MP4 ou WebM." };

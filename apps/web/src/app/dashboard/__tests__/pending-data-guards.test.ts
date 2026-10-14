@@ -9,14 +9,16 @@ vi.mock("@/lib/permissions", () => ({
 	can: vi.fn(),
 }));
 
-import type { DashboardSession } from "@emach/auth/dashboard";
+import { makeSession } from "@/lib/__tests__/fixtures/make-session";
 import { can } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import { fetchDashboardActivity } from "../pending-data";
 
-const FAKE_SESSION = {
-	user: { id: "u1", role: "super_admin" },
-} as DashboardSession;
+const FAKE_SESSION = makeSession({
+	id: "u1",
+	role: "super_admin",
+	status: "active",
+});
 
 describe("fetchDashboardActivity — guard de sessão", () => {
 	it("rejeita quando requireCurrentSession lança", async () => {

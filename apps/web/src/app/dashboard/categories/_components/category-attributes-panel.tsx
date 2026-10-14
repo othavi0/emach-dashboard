@@ -1,9 +1,6 @@
 "use client";
 
-import type {
-	AttributeDefinition,
-	AttributeOptions,
-} from "@emach/db/schema/attributes";
+import type { AttributeDefinition } from "@emach/db/schema/attributes";
 import { Button } from "@emach/ui/components/button";
 import {
 	Card,
@@ -38,7 +35,7 @@ interface CategoryAttributesPanelProps {
 function defToFormValues(
 	def: AttributeDefinition
 ): Partial<AttributeFormValues> {
-	const opts = def.options as AttributeOptions | null;
+	const opts = def.options;
 
 	return {
 		slug: def.slug,

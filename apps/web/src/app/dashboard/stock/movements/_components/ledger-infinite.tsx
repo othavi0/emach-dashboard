@@ -34,11 +34,7 @@ function LedgerRowItem({ row }: { row: LedgerRow }) {
 	const { Icon, color, bg } = reasonIcon(row.reason);
 
 	const reasonLabel =
-		(row.reason
-			? STOCK_MOVEMENT_REASON_LABELS[
-					row.reason as keyof typeof STOCK_MOVEMENT_REASON_LABELS
-				]
-			: undefined) ??
+		(row.reason ? STOCK_MOVEMENT_REASON_LABELS[row.reason] : undefined) ??
 		row.reason ??
 		"—";
 

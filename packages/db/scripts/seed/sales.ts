@@ -383,8 +383,9 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 				const toolId = pick(allToolIds);
 				const variantIds = ctx.variantIdsByTool[toolId] ?? [];
 
-				if (variantIds.length > 0) {
-					const variantId = variantIds[0] as string;
+				const variantId = variantIds[0];
+
+				if (variantId !== undefined) {
 					const stockKey = `${variantId}:${branchId}`;
 					// Garantir que há saldo (mesmo que mínimo)
 					const currentQty = stockMap.get(stockKey) ?? 0;
@@ -567,9 +568,14 @@ export async function seedSales(tx: Tx, ctx: SeedContext): Promise<void> {
 				createdAt: hoursAfter(createdAt, 0),
 			});
 
-			for (let t = 0; t < path.length - 1; t++) {
-				const fromStatus = path[t] as OrderStatus;
-				const toStatus = path[t + 1] as OrderStatus;
+			// Cada passo t liga path[t] (de) a path[t + 1] (para).
+			for (const [t, toStatus] of path.slice(1).entries()) {
+				const fromStatus = path[t];
+
+				if (fromStatus === undefined) {
+					continue;
+				}
+
 				const transitionKey = `${fromStatus}→${toStatus}`;
 				const isSystemTransition = SYSTEM_TRANSITIONS.has(transitionKey);
 

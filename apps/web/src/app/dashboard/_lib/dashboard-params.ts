@@ -21,7 +21,5 @@ export function parsePeriodParam(
 ): DashboardPeriod {
 	const v = Array.isArray(value) ? value[0] : value;
 
-	return DASHBOARD_PERIODS.includes(v as DashboardPeriod)
-		? (v as DashboardPeriod)
-		: DEFAULT_PERIOD;
+	return DASHBOARD_PERIODS.find((period) => period === v) ?? DEFAULT_PERIOD;
 }

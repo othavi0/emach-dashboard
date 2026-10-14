@@ -27,6 +27,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { z } from "zod";
 
 import { MaskedInput } from "@/components/masked-input";
 import { integerMask } from "@/lib/masks";
@@ -44,12 +45,15 @@ import { ScanInput, scanInputOutcomeFromKind } from "./scan-input";
 
 // ─── tipos ──────────────────────────────────────────────────────────────────
 
-interface VariantSnapshot {
-	barcode?: string | null;
-	name?: string;
-	sku?: string | null;
-	voltage?: string | null;
-}
+// `variant_snapshot` é jsonb sem tipo. O writer (createPickingItems) grava
+// name como string e barcode/voltage como string ou null; outra forma vira vazio.
+const variantSnapshotSchema = z
+	.object({
+		barcode: z.string().nullish().catch(null),
+		name: z.string().optional().catch(undefined),
+		voltage: z.string().nullish().catch(null),
+	})
+	.catch({ barcode: null, name: undefined, voltage: null });
 
 interface LocalItem {
 	barcode: string | null;
@@ -72,7 +76,7 @@ const MIN_MANUAL_REASON_LENGTH = 10;
 // ─── helpers puros ──────────────────────────────────────────────────────────
 
 function toLocalItem(item: OrderPickingItem): LocalItem {
-	const snap = (item.variantSnapshot ?? {}) as VariantSnapshot;
+	const snap = variantSnapshotSchema.parse(item.variantSnapshot);
 
 	return {
 		id: item.id,

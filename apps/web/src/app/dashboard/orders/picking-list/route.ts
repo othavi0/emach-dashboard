@@ -47,6 +47,9 @@ export async function GET(req: Request) {
 						orders,
 					});
 
+		// SAFETY: PickingListDocument e EmptyPickingListDocument (_lib/document.tsx)
+		// devolvem <Document> como raiz; renderToBuffer tipa o parâmetro pelas
+		// props de Document e createElement tipa o elemento pelas props do componente.
 		const buffer = await renderToBuffer(
 			doc as Parameters<typeof renderToBuffer>[0]
 		);

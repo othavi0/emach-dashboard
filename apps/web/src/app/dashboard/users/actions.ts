@@ -29,6 +29,7 @@ import {
 	uploadToPublicBucket,
 } from "@/lib/storage";
 import { USER_AVATARS_BUCKET } from "@/lib/supabase-server";
+import { getUserRole } from "@/lib/user-role";
 import { allowedApprovalRoles } from "./_lib/approval-roles";
 import { requireUserDetailAccess } from "./[id]/_lib/access";
 import {
@@ -82,7 +83,8 @@ export async function inviteUser(
 		targetBranchIds: parsed.data.branchIds,
 	});
 
-	const actorRole = session.user.role as "super_admin" | "admin" | "user";
+	// Role fora do enum vira "user", que allowedApprovalRoles já trata como sem permissão.
+	const actorRole = getUserRole(session);
 
 	if (!allowedApprovalRoles(actorRole).includes(parsed.data.role)) {
 		return { ok: false, error: "Você não pode atribuir esse cargo" };

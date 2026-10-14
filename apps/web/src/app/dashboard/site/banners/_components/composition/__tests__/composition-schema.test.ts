@@ -17,13 +17,19 @@ describe("compositionSchema", () => {
 		expect(compositionSchema.safeParse(c).success).toBe(false);
 	});
 	test("âncora inválida falha", () => {
-		const c = base();
-		c.desktop.elements.title = {
-			anchor: "xx" as never,
-			offsetX: 0,
-			offsetY: 0,
-			scale: 100,
+		const valid = base();
+
+		const c = {
+			...valid,
+			desktop: {
+				...valid.desktop,
+				elements: {
+					...valid.desktop.elements,
+					title: { anchor: "xx", offsetX: 0, offsetY: 0, scale: 100 },
+				},
+			},
 		};
+
 		expect(compositionSchema.safeParse(c).success).toBe(false);
 	});
 	test("offset fora de ±20 falha", () => {

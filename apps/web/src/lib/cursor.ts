@@ -1,120 +1,144 @@
-interface CursorBase {
-	id: string;
-	v: 1;
-}
+import { z } from "zod";
 
-export interface NewestCursor extends CursorBase {
-	createdAt: string;
-	sort: "newest";
-}
+// O cursor chega do cliente (query string) em base64url: é parseado aqui,
+// no boundary, e o resto do código confia no tipo que sai.
+const cursorBase = { id: z.string(), v: z.literal(1) };
 
-export interface NameCursor extends CursorBase {
-	name: string;
-	sort: "name";
-}
+const newestCursorSchema = z.object({
+	...cursorBase,
+	createdAt: z.string(),
+	sort: z.literal("newest"),
+});
 
-export interface StockHighCursor extends CursorBase {
-	sort: "stockHigh";
-	totalStock: number;
-}
+const nameCursorSchema = z.object({
+	...cursorBase,
+	name: z.string(),
+	sort: z.literal("name"),
+});
 
-export interface StockLowCursor extends CursorBase {
-	sort: "stockLow";
-	totalStock: number;
-}
+const stockHighCursorSchema = z.object({
+	...cursorBase,
+	sort: z.literal("stockHigh"),
+	totalStock: z.number(),
+});
 
-export interface UrgencyCursor extends CursorBase {
-	createdAt: string;
-	reorderCount: number;
-	sort: "urgency";
-	totalStock: number;
-}
+const stockLowCursorSchema = z.object({
+	...cursorBase,
+	sort: z.literal("stockLow"),
+	totalStock: z.number(),
+});
 
-export interface LtvCursor extends CursorBase {
-	ltv: number;
-	sort: "ltvDesc";
-}
+const urgencyCursorSchema = z.object({
+	...cursorBase,
+	createdAt: z.string(),
+	reorderCount: z.number(),
+	sort: z.literal("urgency"),
+	totalStock: z.number(),
+});
 
-export interface LastOrderCursor extends CursorBase {
-	lastOrderAt: string | null;
-	sort: "lastOrderDesc";
-}
+const ltvCursorSchema = z.object({
+	...cursorBase,
+	ltv: z.number(),
+	sort: z.literal("ltvDesc"),
+});
 
-export interface NameAscCursor extends CursorBase {
-	name: string;
-	sort: "nameAsc";
-}
+const lastOrderCursorSchema = z.object({
+	...cursorBase,
+	lastOrderAt: z.string().nullable(),
+	sort: z.literal("lastOrderDesc"),
+});
 
-export interface PendingStockCursor extends CursorBase {
-	quantity: number;
-	sort: "pendingStock";
-}
+const nameAscCursorSchema = z.object({
+	...cursorBase,
+	name: z.string(),
+	sort: z.literal("nameAsc"),
+});
 
-export interface ActivityCursor extends CursorBase {
-	createdAt: string;
-	sort: "activity";
-}
+const pendingStockCursorSchema = z.object({
+	...cursorBase,
+	quantity: z.number(),
+	sort: z.literal("pendingStock"),
+});
 
-export interface ExpiringPromoCursor extends CursorBase {
-	endsAt: string;
-	sort: "expiringPromo";
-}
+const activityCursorSchema = z.object({
+	...cursorBase,
+	createdAt: z.string(),
+	sort: z.literal("activity"),
+});
 
-export interface PromoCreatedAscCursor extends CursorBase {
-	createdAt: string;
-	sort: "promoCreatedAsc";
-}
+const expiringPromoCursorSchema = z.object({
+	...cursorBase,
+	endsAt: z.string(),
+	sort: z.literal("expiringPromo"),
+});
 
-export interface PromoDiscountCursor extends CursorBase {
-	discountValue: string;
-	sort: "promoDiscountAsc" | "promoDiscountDesc";
-}
+const promoCreatedAscCursorSchema = z.object({
+	...cursorBase,
+	createdAt: z.string(),
+	sort: z.literal("promoCreatedAsc"),
+});
 
-export interface PromoEndsAtAscCursor extends CursorBase {
-	endsAt: string | null;
-	sort: "promoEndsAtAsc";
-}
+const promoDiscountCursorSchema = z.object({
+	...cursorBase,
+	discountValue: z.string(),
+	sort: z.enum(["promoDiscountAsc", "promoDiscountDesc"]),
+});
 
-export interface CategoryTreeCursor extends CursorBase {
-	sort: "categoryTree";
-	sortOrder: number;
-}
+const promoEndsAtAscCursorSchema = z.object({
+	...cursorBase,
+	endsAt: z.string().nullable(),
+	sort: z.literal("promoEndsAtAsc"),
+});
 
-export interface PaidAtAscCursor extends CursorBase {
-	paidAt: string;
-	sort: "paidAtAsc";
-}
+const categoryTreeCursorSchema = z.object({
+	...cursorBase,
+	sort: z.literal("categoryTree"),
+	sortOrder: z.number(),
+});
 
-export type Cursor =
-	| NewestCursor
-	| NameCursor
-	| StockHighCursor
-	| StockLowCursor
-	| UrgencyCursor
-	| LtvCursor
-	| LastOrderCursor
-	| NameAscCursor
-	| PendingStockCursor
-	| ActivityCursor
-	| ExpiringPromoCursor
-	| PromoCreatedAscCursor
-	| PromoDiscountCursor
-	| PromoEndsAtAscCursor
-	| CategoryTreeCursor
-	| PaidAtAscCursor;
+const paidAtAscCursorSchema = z.object({
+	...cursorBase,
+	paidAt: z.string(),
+	sort: z.literal("paidAtAsc"),
+});
+
+const cursorSchema = z.discriminatedUnion("sort", [
+	newestCursorSchema,
+	nameCursorSchema,
+	stockHighCursorSchema,
+	stockLowCursorSchema,
+	urgencyCursorSchema,
+	ltvCursorSchema,
+	lastOrderCursorSchema,
+	nameAscCursorSchema,
+	pendingStockCursorSchema,
+	activityCursorSchema,
+	expiringPromoCursorSchema,
+	promoCreatedAscCursorSchema,
+	promoDiscountCursorSchema,
+	promoEndsAtAscCursorSchema,
+	categoryTreeCursorSchema,
+	paidAtAscCursorSchema,
+]);
+
+export type PaidAtAscCursor = z.infer<typeof paidAtAscCursorSchema>;
+
+export type Cursor = z.infer<typeof cursorSchema>;
 
 export function encodeCursor(c: Cursor): string {
 	return Buffer.from(JSON.stringify(c)).toString("base64url");
 }
 
 export function decodeCursor(raw: string): Cursor {
-	const parsed = JSON.parse(Buffer.from(raw, "base64url").toString()) as Cursor;
+	const parsed = cursorSchema.safeParse(
+		JSON.parse(Buffer.from(raw, "base64url").toString())
+	);
 
-	if (parsed.v !== 1) {
+	if (!parsed.success) {
 		throw new Error("Cursor incompatível");
 	}
 
-	return parsed;
+	return parsed.data;
 }
 
 /**
@@ -131,5 +155,7 @@ export function decodeCursorAs<S extends Cursor["sort"]>(
 		throw new Error(`Cursor incompatível: esperado ${sort}`);
 	}
 
+	// SAFETY: o if acima garante parsed.sort === sort, e Cursor é união
+	// discriminada por `sort`; o TS só não estreita porque S é genérico.
 	return parsed as Extract<Cursor, { sort: S }>;
 }

@@ -37,7 +37,22 @@ export interface ShippingPackage {
 const FILL_FACTOR = 0.9;
 
 function sortedDesc(a: number, b: number, c: number): [number, number, number] {
-	return [a, b, c].sort((x, y) => y - x) as [number, number, number];
+	// Rede de ordenação de 3 elementos: três trocas deixam hi >= mid >= lo.
+	let [hi, mid, lo] = [a, b, c];
+
+	if (hi < mid) {
+		[hi, mid] = [mid, hi];
+	}
+
+	if (mid < lo) {
+		[mid, lo] = [lo, mid];
+	}
+
+	if (hi < mid) {
+		[hi, mid] = [mid, hi];
+	}
+
+	return [hi, mid, lo];
 }
 
 function fitsByDims(item: QuoteItem, box: QuoteBox): boolean {

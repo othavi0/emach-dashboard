@@ -60,7 +60,7 @@ interface RowState {
 	barcode: string;
 	priceAmount: number | undefined;
 	sku: string;
-	voltage: string | null;
+	voltage: ToolDetailVariant["voltage"];
 }
 
 function makeRowState(v: ToolDetailVariant): RowState {
@@ -224,10 +224,7 @@ function EditableRow({
 				variantId: variant.id,
 				sku: state.sku === initial.sku ? undefined : state.sku,
 				barcode: state.barcode === initial.barcode ? undefined : state.barcode,
-				voltage:
-					state.voltage === initial.voltage
-						? undefined
-						: (state.voltage as (typeof VOLTAGE_OPTIONS)[number] | null),
+				voltage: state.voltage === initial.voltage ? undefined : state.voltage,
 				priceAmount:
 					state.priceAmount === initial.priceAmount
 						? undefined
@@ -352,7 +349,10 @@ function EditableRow({
 			<TableCell>
 				<Select
 					onValueChange={(value) =>
-						setState({ ...state, voltage: value === "_none_" ? null : value })
+						setState({
+							...state,
+							voltage: VOLTAGE_OPTIONS.find((opt) => opt === value) ?? null,
+						})
 					}
 					value={state.voltage ?? "_none_"}
 				>

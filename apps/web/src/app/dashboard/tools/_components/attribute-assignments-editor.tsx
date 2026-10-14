@@ -144,7 +144,7 @@ export function AttributeAssignmentsEditor({
 
 			{availableExtras.length > 0 && (
 				<div className="flex flex-col gap-1">
-					<Select onValueChange={(v) => addExtra((v ?? "") as string)} value="">
+					<Select onValueChange={(v) => addExtra(v ?? "")} value="">
 						<SelectTrigger className="w-full md:w-72">
 							<SelectValue placeholder="+ Adicionar atributo extra…" />
 						</SelectTrigger>

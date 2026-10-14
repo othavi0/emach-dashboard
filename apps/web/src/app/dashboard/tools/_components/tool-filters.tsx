@@ -193,11 +193,9 @@ export function ToolFilters({ branches, categories }: ToolFiltersProps) {
 									return "Todas (com arquivadas)";
 								}
 
-								return (
-									TOOL_STATUS_LABELS[
-										v as (typeof TOOL_STATUS_OPTIONS)[number]
-									] ?? v
-								);
+								const status = TOOL_STATUS_OPTIONS.find((s) => s === v);
+
+								return status ? TOOL_STATUS_LABELS[status] : v;
 							}}
 						</SelectValue>
 					</SelectTrigger>

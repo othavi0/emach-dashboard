@@ -113,7 +113,7 @@ type OrderTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 interface LockedOrderAuth {
 	branchId: string | null;
 	session: DashboardSession;
-	status: string;
+	status: OrderStatus;
 }
 
 /**
@@ -286,7 +286,7 @@ export async function updateOrderStatus(
 			}
 
 			const { session } = locked;
-			const currentStatus = locked.status as OrderStatus;
+			const currentStatus = locked.status;
 			const allowed = VALID_TRANSITIONS[currentStatus];
 
 			if (!allowed?.includes(toStatus)) {
@@ -597,7 +597,7 @@ export async function addOrderNote(
 				orderId,
 				authorId: locked.session.user.id,
 				body,
-				statusAtCreation: locked.status as OrderStatus,
+				statusAtCreation: locked.status,
 			});
 		});
 
@@ -996,7 +996,7 @@ export async function refundOrder(
 			}
 
 			const { session } = locked;
-			const currentStatus = locked.status as OrderStatus;
+			const currentStatus = locked.status;
 			const allowed = VALID_TRANSITIONS[currentStatus];
 
 			if (!allowed?.includes("refunded")) {

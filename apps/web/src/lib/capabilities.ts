@@ -374,6 +374,14 @@ export function isCapability(value: string): value is Capability {
 	return value in CAPABILITIES;
 }
 
+// Object.entries perde o tipo da chave; o filtro por isCapability o recupera
+// sem asserção, na ordem de declaração do registry.
+export const CAPABILITY_ENTRIES: ReadonlyArray<
+	readonly [Capability, CapabilityMeta]
+> = Object.keys(CAPABILITIES)
+	.filter(isCapability)
+	.map((key) => [key, CAPABILITIES[key]] as const);
+
 export type NavSection =
 	| "Operação"
 	| "Catálogo"
@@ -419,10 +427,7 @@ export function sectionForCapability(cap: Capability): NavSection {
 export function roleDefaultCapabilities(role: UserRole): Set<Capability> {
 	const result = new Set<Capability>();
 
-	for (const [key, meta] of Object.entries(CAPABILITIES) as [
-		Capability,
-		CapabilityMeta,
-	][]) {
+	for (const [key, meta] of CAPABILITY_ENTRIES) {
 		if (meta.defaultRoles.includes(role)) {
 			result.add(key);
 		}

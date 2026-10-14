@@ -1,4 +1,5 @@
 import { db } from "@emach/db";
+import { userStatusEnum } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
 import {
 	Tabs,
@@ -12,16 +13,22 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { requireCapabilityOrRedirect } from "@/lib/permissions";
+import { getUserRole, parseUserRole } from "@/lib/user-role";
 import { InviteDialog } from "./_components/invite-dialog";
 import { UsersCardGrid } from "./_components/users-card-grid";
 import { UsersFilters } from "./_components/users-filters";
-import { fetchUsersPage, getUserKpis, type UserListRow } from "./data";
+import { fetchUsersPage, getUserKpis } from "./data";
 
 export const metadata: Metadata = {
 	title: "Usuários",
 };
 
-type Status = "active" | "pending" | "suspended";
+type Status = (typeof userStatusEnum.enumValues)[number];
+
+// `status` chega da query string: valor fora do enum cai no default da página.
+function parseStatus(value: string | undefined): Status | undefined {
+	return userStatusEnum.enumValues.find((s) => s === value);
+}
 
 interface PageProps {
 	searchParams: Promise<{
@@ -69,11 +76,11 @@ async function UsersPageContent({ searchParams }: PageProps) {
 
 	const scope = await getUserBranchScope(actorSession);
 
-	const status = (sp.status as Status | undefined) ?? "active";
+	const status = parseStatus(sp.status) ?? "active";
 
 	const filters = {
 		status,
-		role: sp.role as "super_admin" | "admin" | "user" | undefined,
+		role: parseUserRole(sp.role),
 		branchId: sp.branchId,
 		search: sp.search,
 		scope,
@@ -93,7 +100,7 @@ async function UsersPageContent({ searchParams }: PageProps) {
 			<PageHeader
 				action={
 					<InviteDialog
-						actorRole={actorSession.user.role as UserListRow["role"]}
+						actorRole={getUserRole(actorSession)}
 						branches={branches}
 					/>
 				}

@@ -37,10 +37,10 @@ export type OrderFunnelCoversEnum = AssertNever<
 >;
 
 export function sortByFunnel<T extends { status: string }>(rows: T[]): T[] {
+	const funnel: readonly string[] = ORDER_STATUS_FUNNEL;
+
 	const pos = (s: string) => {
-		const i = ORDER_STATUS_FUNNEL.indexOf(
-			s as (typeof ORDER_STATUS_FUNNEL)[number]
-		);
+		const i = funnel.indexOf(s);
 
 		return i === -1 ? Number.MAX_SAFE_INTEGER : i;
 	};
@@ -226,7 +226,7 @@ export async function getDailyRevenue(
 
 	return res.rows.map((r, i) => ({
 		day: localDate(r.day),
-		revenue: revenues[i] as number,
+		revenue: Number(r.revenue),
 		movingAvg: Number(ma[i]?.toFixed(2) ?? 0),
 	}));
 }

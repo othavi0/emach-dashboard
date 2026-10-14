@@ -18,7 +18,13 @@ import {
 	sanitizePercent,
 } from "@/lib/discount-format";
 
-type DiscountType = "percent" | "fixed";
+const DISCOUNT_TYPES = ["percent", "fixed"] as const;
+
+type DiscountType = (typeof DISCOUNT_TYPES)[number];
+
+function parseDiscountType(value: string | null): DiscountType | undefined {
+	return DISCOUNT_TYPES.find((t) => t === value);
+}
 
 interface DiscountInputProps {
 	"aria-invalid"?: true | undefined;
@@ -77,7 +83,13 @@ export function DiscountInput({
 	const prefix = (
 		<Select
 			disabled={disabled}
-			onValueChange={(v) => handleTypeChange(v as DiscountType)}
+			onValueChange={(v) => {
+				const next = parseDiscountType(v);
+
+				if (next) {
+					handleTypeChange(next);
+				}
+			}}
 			value={discountType}
 		>
 			<SelectTrigger

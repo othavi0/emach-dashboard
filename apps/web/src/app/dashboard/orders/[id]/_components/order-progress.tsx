@@ -15,7 +15,14 @@ type StepState = "done" | "current" | "upcoming";
 
 // ─── Linear lifecycle ─────────────────────────────────────────────────────────
 
-const LINEAR_STEPS: OrderStatus[] = [
+type LinearStep =
+	| "pending_payment"
+	| "paid"
+	| "preparing"
+	| "shipped"
+	| "delivered";
+
+const LINEAR_STEPS: LinearStep[] = [
 	"pending_payment",
 	"paid",
 	"preparing",
@@ -23,14 +30,18 @@ const LINEAR_STEPS: OrderStatus[] = [
 	"delivered",
 ];
 
-const TERMINAL_STATUSES = new Set<OrderStatus>([
+const TERMINAL_STATUSES: ReadonlySet<OrderStatus> = new Set<TerminalState>([
 	"canceled",
 	"returned",
 	"refunded",
 	"payment_failed",
 ]);
 
-const TERMINAL_BRANCH_FROM: Record<TerminalState, OrderStatus> = {
+function isTerminalState(status: OrderStatus): status is TerminalState {
+	return TERMINAL_STATUSES.has(status);
+}
+
+const TERMINAL_BRANCH_FROM: Record<TerminalState, LinearStep> = {
 	canceled: "pending_payment",
 	payment_failed: "pending_payment",
 	refunded: "paid",
@@ -39,27 +50,12 @@ const TERMINAL_BRANCH_FROM: Record<TerminalState, OrderStatus> = {
 
 // ─── Timestamp mapping ────────────────────────────────────────────────────────
 
-type TimestampFields = Pick<
+type StepTimestampKey = keyof Pick<
 	OrderDetail,
-	| "status"
-	| "createdAt"
-	| "paidAt"
-	| "preparingAt"
-	| "shippedAt"
-	| "deliveredAt"
-	| "canceledAt"
-	| "returnedAt"
-	| "refundedAt"
+	"createdAt" | "paidAt" | "preparingAt" | "shippedAt" | "deliveredAt"
 >;
 
-type LinearStep =
-	| "pending_payment"
-	| "paid"
-	| "preparing"
-	| "shipped"
-	| "delivered";
-
-const STEP_TIMESTAMP: Record<LinearStep, keyof TimestampFields> = {
+const STEP_TIMESTAMP: Record<LinearStep, StepTimestampKey> = {
 	pending_payment: "createdAt",
 	paid: "paidAt",
 	preparing: "preparingAt",
@@ -80,12 +76,9 @@ const TERMINAL_TIMESTAMP: Record<
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getStepState(
-	step: OrderStatus,
-	currentStatus: OrderStatus
-): StepState {
-	if (TERMINAL_STATUSES.has(currentStatus)) {
-		const branchFrom = TERMINAL_BRANCH_FROM[currentStatus as TerminalState];
+function getStepState(step: LinearStep, currentStatus: OrderStatus): StepState {
+	if (isTerminalState(currentStatus)) {
+		const branchFrom = TERMINAL_BRANCH_FROM[currentStatus];
 		const branchIdx = LINEAR_STEPS.indexOf(branchFrom);
 		const stepIdx = LINEAR_STEPS.indexOf(step);
 
@@ -163,10 +156,10 @@ interface OrderProgressProps {
 }
 
 export function OrderProgress({ fulfillmentLabel, order }: OrderProgressProps) {
-	const isTerminal = TERMINAL_STATUSES.has(order.status);
+	const isTerminal = isTerminalState(order.status);
 
-	const terminalTsKey = isTerminal
-		? TERMINAL_TIMESTAMP[order.status as TerminalState]
+	const terminalTsKey = isTerminalState(order.status)
+		? TERMINAL_TIMESTAMP[order.status]
 		: null;
 
 	const terminalTs = terminalTsKey ? formatTs(order[terminalTsKey]) : null;
@@ -181,11 +174,7 @@ export function OrderProgress({ fulfillmentLabel, order }: OrderProgressProps) {
 				{LINEAR_STEPS.map((step, idx) => {
 					const state = getStepState(step, order.status);
 					const meta = ORDER_STATUS_META[step];
-					const tsKey = STEP_TIMESTAMP[step as LinearStep];
-
-					const timestamp = formatTs(
-						order[tsKey as Exclude<typeof tsKey, "status">] as Date | null
-					);
+					const timestamp = formatTs(order[STEP_TIMESTAMP[step]]);
 
 					const isLast = idx === LINEAR_STEPS.length - 1;
 

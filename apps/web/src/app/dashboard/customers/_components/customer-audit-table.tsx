@@ -64,7 +64,21 @@ const ACTION_VARIANTS: Record<
 	exported: "info",
 };
 
-const ALL_ACTIONS = Object.keys(ACTION_LABELS) as ClientAuditAction[];
+// ACTION_LABELS é Record<ClientAuditAction, …>: suas chaves próprias são
+// exatamente as ações do enum.
+function isClientAuditAction(value: string): value is ClientAuditAction {
+	return Object.hasOwn(ACTION_LABELS, value);
+}
+
+const ALL_ACTIONS = Object.keys(ACTION_LABELS).filter(isClientAuditAction);
+
+function filterLabel(value: string): string {
+	if (value === "__all__") {
+		return "Todas as ações";
+	}
+
+	return isClientAuditAction(value) ? ACTION_LABELS[value] : value;
+}
 
 interface CustomerAuditTableProps {
 	currentAction?: string;
@@ -94,13 +108,7 @@ export function CustomerAuditTable({
 						value={currentAction ?? "__all__"}
 					>
 						<SelectTrigger>
-							<SelectValue>
-								{(v: string) =>
-									v === "__all__"
-										? "Todas as ações"
-										: (ACTION_LABELS[v as ClientAuditAction] ?? v)
-								}
-							</SelectValue>
+							<SelectValue>{filterLabel}</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
 							<SelectGroup>

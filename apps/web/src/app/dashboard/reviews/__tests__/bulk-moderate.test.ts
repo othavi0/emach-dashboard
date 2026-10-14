@@ -260,11 +260,14 @@ describe("bulkModerateReviews", () => {
 	it("rejeita quando expectedStatus está ausente (Zod), sem tocar no banco", async () => {
 		// Simula um caller desatualizado (ex: build antigo do client) que ainda
 		// não manda `expectedStatus` — o Zod tem que barrar antes do banco.
-		const legacyInput = { reviewIds: [ID_A], status: "approved" } as Omit<
-			BulkModerateReviewsInput,
-			"expectedStatus"
-		>;
+		const legacyInput: Omit<BulkModerateReviewsInput, "expectedStatus"> = {
+			reviewIds: [ID_A],
+			status: "approved",
+		};
 
+		// SAFETY: o tipo mente de propósito para simular o caller antigo;
+		// bulkModerateReviews passa o input por bulkModerateReviewsSchema.safeParse
+		// antes de qualquer leitura, e é esse parse que o teste exercita.
 		const result = await bulkModerateReviews(
 			legacyInput as BulkModerateReviewsInput
 		);

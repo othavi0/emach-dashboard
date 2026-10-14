@@ -16,7 +16,10 @@ export interface FitCheckItem {
 }
 
 function sortedDesc(a: number, b: number, c: number): [number, number, number] {
-	return [a, b, c].sort((x, y) => y - x) as [number, number, number];
+	// Os defaults nunca entram: o array ordenado tem sempre os 3 elementos.
+	const [first = a, second = b, third = c] = [a, b, c].sort((x, y) => y - x);
+
+	return [first, second, third];
 }
 
 function fitsByDims(item: FitCheckItem, box: QuoteBox): boolean {

@@ -156,7 +156,7 @@ export function ReviewsFilters({ counts, filters }: ReviewsFiltersProps) {
 					</label>
 					<Select
 						onValueChange={(v) =>
-							setParam("rating", v === RATING_ALL ? null : (v as string))
+							setParam("rating", v === RATING_ALL ? null : v)
 						}
 						value={currentRating}
 					>

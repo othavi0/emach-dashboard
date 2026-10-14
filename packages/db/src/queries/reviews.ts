@@ -163,7 +163,7 @@ export async function getReviews(
 
 	const reviews: ReviewWithReviewer[] = listRes.rows.map((row) => {
 		const { client_name, ...rest } = row;
-		const rev = coerceDates(rest as Review, REVIEW_DATE_KEYS);
+		const rev = coerceDates<Review>(rest, REVIEW_DATE_KEYS);
 
 		return {
 			...rev,

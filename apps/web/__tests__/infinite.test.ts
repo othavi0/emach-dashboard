@@ -41,10 +41,15 @@ describe("paginate", () => {
 		const spy = vi.fn(makeCursor);
 		const result = paginate(makeRows(BATCH_SIZE + 1), mapRow, spy);
 		expect(result.items).toHaveLength(BATCH_SIZE);
-		expect(result.nextCursor).not.toBeNull();
+		const { nextCursor } = result;
+
+		if (nextCursor === null) {
+			expect.unreachable("nextCursor deveria existir quando há mais linhas");
+		}
+
 		expect(spy).toHaveBeenCalledTimes(1);
 		expect(spy).toHaveBeenCalledWith({ n: BATCH_SIZE - 1 });
-		const decoded = decodeCursor(result.nextCursor as string);
+		const decoded = decodeCursor(nextCursor);
 		expect(decoded).toMatchObject({
 			sort: "newest",
 			id: `id${BATCH_SIZE - 1}`,

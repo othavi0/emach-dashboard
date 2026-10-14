@@ -43,6 +43,10 @@ const CLIENT_TYPE_LABELS = {
 	b2b: "B2B",
 } as const satisfies Record<ClientType, string>;
 
+function parseSort(value: string | null): (typeof SORT_OPTIONS)[number] {
+	return SORT_OPTIONS.find((opt) => opt === value) ?? "createdDesc";
+}
+
 export function CustomerFilters() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -56,9 +60,7 @@ export function CustomerFilters() {
 
 	const currentType = searchParams.get("clientType") ?? "";
 
-	const currentSort =
-		(searchParams.get("sort") as (typeof SORT_OPTIONS)[number]) ??
-		"createdDesc";
+	const currentSort = parseSort(searchParams.get("sort"));
 
 	const setMultiParam = (key: string, values: string[]) => {
 		const next = new URLSearchParams(searchParams.toString());
@@ -136,10 +138,7 @@ export function CustomerFilters() {
 				>
 					<SelectTrigger id="customers-sort">
 						<SelectValue>
-							{(v: string) =>
-								SORT_LABELS[v as (typeof SORT_OPTIONS)[number]] ??
-								SORT_LABELS.createdDesc
-							}
+							{(v: string) => SORT_LABELS[parseSort(v)]}
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>

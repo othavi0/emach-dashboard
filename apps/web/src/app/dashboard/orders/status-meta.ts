@@ -38,6 +38,12 @@ export interface OrderTabDef {
 	statuses: readonly DbOrderStatus[] | null;
 }
 
+// Tipa cada `statuses` abaixo como DbOrderStatus[] em vez da tupla literal
+// readonly que o `as const` inferiria.
+function statusList(...statuses: DbOrderStatus[]): DbOrderStatus[] {
+	return statuses;
+}
+
 // Fluxo ativo do operador interno (grupo da esquerda na barra de tabs).
 // Um chip por status do funil (spec 2026-07-08); a antiga aba agregada
 // "A preparar" (paid+preparing) foi dividida em "Pago" e "Em separação".
@@ -50,7 +56,7 @@ export const ORDER_FLOW_TABS = [
 	{
 		key: "paid",
 		label: "Pago",
-		statuses: ["paid"] as DbOrderStatus[],
+		statuses: statusList("paid"),
 		// `lateness` explícito (undefined) — sem ele, a inferência de predicado do
 		// TS 5.5+ em `.find()` narrowa pro literal exato desta entrada, que não
 		// declara a chave, e `?.lateness` vira erro de check-types (TS2339).
@@ -59,7 +65,7 @@ export const ORDER_FLOW_TABS = [
 	{
 		key: "preparing",
 		label: "Em separação",
-		statuses: ["preparing"] as DbOrderStatus[],
+		statuses: statusList("preparing"),
 		lateness: undefined,
 		picking: "not_picked",
 	},
@@ -68,20 +74,20 @@ export const ORDER_FLOW_TABS = [
 		// picking concluída — separado, aguardando código de envio.
 		key: "picked",
 		label: "Pronto para enviar",
-		statuses: ["preparing"] as DbOrderStatus[],
+		statuses: statusList("preparing"),
 		lateness: undefined,
 		picking: "picked",
 	},
 	{
 		key: "shipped",
 		label: "Enviados",
-		statuses: ["shipped"] as DbOrderStatus[],
+		statuses: statusList("shipped"),
 		lateness: undefined,
 	},
 	{
 		key: "delivered",
 		label: "Entregues",
-		statuses: ["delivered"] as DbOrderStatus[],
+		statuses: statusList("delivered"),
 		lateness: undefined,
 	},
 	{
@@ -90,7 +96,7 @@ export const ORDER_FLOW_TABS = [
 		// ("Pago"/"Em separação"/"Separado"), spec 2026-07-13.
 		key: "late",
 		label: "Atrasados",
-		statuses: ["paid", "preparing"] as DbOrderStatus[],
+		statuses: statusList("paid", "preparing"),
 		lateness: "only",
 	},
 ] as const satisfies readonly OrderTabDef[];
@@ -125,17 +131,17 @@ export const ORDER_EXCEPTION_TABS = [
 	{
 		key: "pending_payment",
 		label: "Aguardando pagamento",
-		statuses: ["pending_payment", "payment_failed"] as DbOrderStatus[],
+		statuses: statusList("pending_payment", "payment_failed"),
 	},
 	{
 		key: "returned",
 		label: "Devolvidos",
-		statuses: ["returned"] as DbOrderStatus[],
+		statuses: statusList("returned"),
 	},
 	{
 		key: "canceled",
 		label: "Cancelados",
-		statuses: ["canceled", "refunded"] as DbOrderStatus[],
+		statuses: statusList("canceled", "refunded"),
 	},
 ] as const satisfies readonly OrderTabDef[];
 
@@ -174,6 +180,9 @@ export const ORDER_STATUS_META: Record<
 	refunded: { label: "Reembolsado", iconKey: "rotate", tone: "destructive" },
 };
 
+// SAFETY: ORDER_STATUS_META é um Record<DbOrderStatus, ...> literal, então tem
+// exatamente uma chave por status; Object.entries só alarga a chave para string
+// e o map preserva cada chave.
 export const ORDER_STATUS_LABELS: Record<DbOrderStatus, string> =
 	Object.fromEntries(
 		Object.entries(ORDER_STATUS_META).map(([status, meta]) => [

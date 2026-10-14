@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { z } from "zod";
 import { startOfDaySaoPaulo } from "@/lib/format/date-input";
 import { createPromotionSchema, promotionSchema } from "../promotion-schema";
 
@@ -149,19 +150,19 @@ describe("promotionSchema", () => {
 });
 
 const validBase = {
-	type: "promotion" as const,
+	type: "promotion",
 	title: "Liquidação",
 	description: null,
-	discountType: "percent" as const,
+	discountType: "percent",
 	discountValue: 10,
 	appliesToAll: true,
 	active: true,
 	featured: false,
-	startsAt: null as Date | null,
-	endsAt: null as Date | null,
+	startsAt: null,
+	endsAt: null,
 	code: null,
-	toolIds: [] as string[],
-};
+	toolIds: [],
+} satisfies Partial<z.input<typeof promotionSchema>>;
 
 describe("promotion-schema — datas e código", () => {
 	it("aceita promoção de 1 dia (início = fim no mesmo dia)", () => {

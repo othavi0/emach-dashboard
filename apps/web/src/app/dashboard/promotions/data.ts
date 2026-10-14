@@ -13,6 +13,7 @@ import {
 	lte,
 	ne,
 	or,
+	type SQL,
 	sql,
 } from "drizzle-orm";
 import { cache } from "react";
@@ -35,6 +36,18 @@ export type { PromotionSort, PromotionStatus } from "./_lib/promotion-types";
 
 const UUID_RE =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type DiscountType = "percent" | "fixed";
+
+// A CHECK `valid_discount_type` do banco só aceita 'percent' e 'fixed'; o throw
+// cobre um banco fora desse contrato em vez de deixar o valor vazar para a UI.
+function parseDiscountType(raw: string): DiscountType {
+	if (raw === "percent" || raw === "fixed") {
+		return raw;
+	}
+
+	throw new Error(`promotion.discount_type inválido: ${raw}`);
+}
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -63,7 +76,7 @@ export interface PromotionListItem {
 	createdAt: Date;
 	createdByName: string | null;
 	description: string | null;
-	discountType: string;
+	discountType: DiscountType;
 	discountValue: string;
 	endsAt: Date | null;
 	featured: boolean;
@@ -173,7 +186,7 @@ export async function fetchPromotionsPage({
 	const rows = await db.query.promotion.findMany({
 		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: keyset + filtros opcionais — complexidade inerente à query paginada
 		where: (p, ops) => {
-			const conds: unknown[] = [];
+			const conds: Array<SQL | undefined> = [];
 
 			if (type !== "all") {
 				conds.push(ops.eq(p.type, type));
@@ -181,9 +194,7 @@ export async function fetchPromotionsPage({
 
 			if (search && search.trim() !== "") {
 				const term = `%${search.trim()}%`;
-				conds.push(
-					ops.or(ops.ilike(p.title, term), ops.ilike(p.code as never, term))
-				);
+				conds.push(ops.or(ops.ilike(p.title, term), ops.ilike(p.code, term)));
 			}
 
 			if (discountMin !== undefined) {
@@ -256,9 +267,7 @@ export async function fetchPromotionsPage({
 				}
 			}
 
-			return conds.length > 0
-				? ops.and(...(conds as Parameters<typeof ops.and>))
-				: undefined;
+			return conds.length > 0 ? ops.and(...conds) : undefined;
 		},
 		orderBy: (p, { asc: qAsc, desc: qDesc, sql: qSql }) => {
 			switch (sort) {
@@ -317,7 +326,7 @@ export async function fetchPromotionsPage({
 				description: row.description,
 				type: row.type,
 				code: row.code,
-				discountType: row.discountType,
+				discountType: parseDiscountType(row.discountType),
 				discountValue: row.discountValue,
 				appliesToAll: row.appliesToAll,
 				maxRedemptions: row.maxRedemptions,
@@ -401,7 +410,7 @@ export async function getPromotion(
 		description: row.description,
 		type: row.type,
 		code: row.code,
-		discountType: row.discountType,
+		discountType: parseDiscountType(row.discountType),
 		discountValue: row.discountValue,
 		appliesToAll: row.appliesToAll,
 		maxRedemptions: row.maxRedemptions,

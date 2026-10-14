@@ -13,6 +13,7 @@ import {
 import { toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { z } from "zod";
 import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { getUserBranchScope, orderInScope } from "@/lib/branch-scope";
@@ -53,6 +54,12 @@ function revalidatePickingPaths(orderId: string): void {
 }
 
 type PickingRow = typeof orderPicking.$inferSelect;
+
+// `variant_snapshot` é jsonb sem tipo. O writer (createPickingItems) grava
+// barcode como string ou null; qualquer outra forma vira null.
+const pickingSnapshotBarcodeSchema = z
+	.object({ barcode: z.string().nullish().catch(null) })
+	.catch({ barcode: null });
 
 interface SessionUser {
 	id: string;
@@ -541,12 +548,7 @@ export async function scanItem(
 
 			// Build PickItem array from picking items (using variantSnapshot for barcode)
 			const pickItems = pickingItems.map((pi) => {
-				const snap = (pi.variantSnapshot ?? {}) as {
-					sku?: string | null;
-					name?: string;
-					barcode?: string | null;
-					voltage?: string | null;
-				};
+				const snap = pickingSnapshotBarcodeSchema.parse(pi.variantSnapshot);
 
 				return {
 					id: pi.id,

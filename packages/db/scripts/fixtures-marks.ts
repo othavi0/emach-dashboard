@@ -21,20 +21,25 @@ export type RunId = string & { readonly __brand: "FixtureRunId" };
 
 const RUN_ID = /^[0-9A-F]{6}$/;
 
+function isRunId(value: string): value is RunId {
+	return RUN_ID.test(value);
+}
+
+// Os 6 primeiros caracteres de um UUID são sempre hex, então o parse passa.
 export function newRunId(): RunId {
-	return crypto.randomUUID().slice(0, 6).toUpperCase() as RunId;
+	return parseRunId(crypto.randomUUID().slice(0, 6));
 }
 
 export function parseRunId(raw: string | undefined): RunId {
 	const value = raw?.toUpperCase();
 
-	if (!(value && RUN_ID.test(value))) {
+	if (!(value && isRunId(value))) {
 		throw new Error(
 			`[fixtures] run inválido: "${raw ?? ""}" (esperado 6 hex, ex: 1A2B3C).`
 		);
 	}
 
-	return value as RunId;
+	return value;
 }
 
 export interface RunMarks {

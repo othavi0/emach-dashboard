@@ -1,7 +1,6 @@
 import { ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { OrderStatusBadge } from "@/app/dashboard/orders/_components/order-status-badge";
-import type { OrderStatus } from "@/app/dashboard/orders/status-meta";
 import { formatDateTime } from "@/lib/format/datetime";
 
 import type { BranchOrderRow } from "../../data";
@@ -29,7 +28,7 @@ export function BranchOrderCard({ order }: { order: BranchOrderRow }) {
 						{formatDateTime(order.createdAt)}
 					</p>
 				</div>
-				<OrderStatusBadge status={order.status as OrderStatus} />
+				<OrderStatusBadge status={order.status} />
 			</div>
 
 			<div className="mt-auto flex flex-col items-center border-border border-t py-2.5">

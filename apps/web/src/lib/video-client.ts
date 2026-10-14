@@ -26,8 +26,7 @@ export function capturePosterFrame(file: File): Promise<File> {
 		const video = document.createElement("video");
 		video.preload = "auto";
 		video.muted = true;
-		// biome-ignore lint/suspicious/noExplicitAny: playsInline não está no lib dom desta versão
-		(video as any).playsInline = true;
+		video.playsInline = true;
 		const objectUrl = URL.createObjectURL(file);
 		const cleanup = () => URL.revokeObjectURL(objectUrl);
 

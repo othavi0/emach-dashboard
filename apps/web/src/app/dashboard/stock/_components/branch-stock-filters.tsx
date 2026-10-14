@@ -65,7 +65,7 @@ export function BranchStockFilters({
 		key: "search",
 	});
 
-	const currentStatus = (searchParams.get("status") ?? "all") as StatusValue;
+	const currentStatus = searchParams.get("status") ?? "all";
 	const currentSort = searchParams.get("sort") ?? "urgency";
 	const currentCategory = searchParams.get("categoryId") ?? ALL;
 

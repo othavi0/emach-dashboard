@@ -54,6 +54,9 @@ export async function GET(req: Request) {
 				? createElement(EmptyShippingDocDocument)
 				: createElement(ShippingDocDocument, { cepBarcodes, orders });
 
+		// SAFETY: ShippingDocDocument e EmptyShippingDocDocument (_lib/shipping-doc.tsx)
+		// devolvem <Document> como raiz; renderToBuffer tipa o parâmetro pelas
+		// props de Document e createElement tipa o elemento pelas props do componente.
 		const buffer = await renderToBuffer(
 			doc as Parameters<typeof renderToBuffer>[0]
 		);

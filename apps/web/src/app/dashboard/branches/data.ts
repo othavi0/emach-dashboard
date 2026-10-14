@@ -8,7 +8,7 @@ import {
 	stockLevel,
 	userBranch,
 } from "@emach/db/schema/inventory";
-import { order } from "@emach/db/schema/orders";
+import { type OrderStatus, order } from "@emach/db/schema/orders";
 import { toolVariant } from "@emach/db/schema/tools";
 import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { getUserBranchScope } from "@/lib/branch-scope";
@@ -94,7 +94,7 @@ export async function getBranchDetail(
 		.where(eq(branch.id, id))
 		.limit(1);
 
-	return (row as BranchDetail) ?? null;
+	return row ?? null;
 }
 
 export interface BranchDetailKpis {
@@ -178,7 +178,7 @@ export interface BranchOrderRow {
 	createdAt: Date;
 	id: string;
 	number: string;
-	status: string;
+	status: OrderStatus;
 	totalAmount: number;
 }
 

@@ -8,10 +8,12 @@ import {
 } from "@emach/ui/components/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
-import {
-	ORDER_STATUS_LABELS,
-	type OrderStatus,
-} from "../../orders/status-meta";
+import { ORDER_STATUS_LABELS } from "../../orders/status-meta";
+
+// Map: o eixo categórico entrega o status como string solta.
+const STATUS_LABEL_BY_KEY: ReadonlyMap<string, string> = new Map(
+	Object.entries(ORDER_STATUS_LABELS)
+);
 
 // Inclui os status no config para que o header do tooltip resolva o rótulo PT
 // (ChartTooltipContent consulta config[label] pelo valor do eixo categórico).
@@ -47,7 +49,7 @@ export function OrderFunnel({
 					axisLine={false}
 					dataKey="status"
 					tickFormatter={(value: string) =>
-						ORDER_STATUS_LABELS[value as OrderStatus] ?? value
+						STATUS_LABEL_BY_KEY.get(value) ?? value
 					}
 					tickLine={false}
 					type="category"

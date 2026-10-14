@@ -149,7 +149,10 @@ export function ShippingSettingsForm({
 					{(field) => (
 						<Select
 							onValueChange={(v) =>
-								setInsurancePolicy(v as typeof insurancePolicy)
+								setInsurancePolicy(
+									(prev) =>
+										INSURANCE_POLICY_OPTIONS.find((p) => p === v) ?? prev
+								)
 							}
 							value={insurancePolicy}
 						>

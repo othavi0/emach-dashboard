@@ -4,6 +4,7 @@ import type {
 	orderPickingItem,
 } from "@emach/db/schema/orders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ActionResult } from "@/lib/action-result";
 
 const { mockTransaction, mockLockOrderAndAuthorize } = vi.hoisted(() => ({
 	mockTransaction: vi.fn(),
@@ -68,6 +69,12 @@ const OWNER = "usr_owner";
 const OWNERSHIP_ERROR_RE = /iniciou/i;
 const STATUS_ERROR_RE = /andamento/i;
 const EXCEPTION_OWNER_ERROR_RE = /João/;
+
+// Mensagem de erro de um resultado ok:false; undefined quando a action passou,
+// o que faz o toMatch seguinte falhar como antes.
+function errorOf(result: ActionResult<unknown>): string | undefined {
+	return result.ok ? undefined : result.error;
+}
 
 // Payload que as actions passam a `tx.update(<tabela>).set()`.
 type SetPayload =
@@ -168,9 +175,7 @@ describe("guards de sessão de separação", () => {
 		);
 		const result = await completePicking(PICKING_ID);
 		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(
-			OWNERSHIP_ERROR_RE
-		);
+		expect(errorOf(result)).toMatch(OWNERSHIP_ERROR_RE);
 	});
 
 	it("reportMissing com sessão completed → erro de status", async () => {
@@ -186,9 +191,7 @@ describe("guards de sessão de separação", () => {
 		);
 		const result = await reportMissing("pi_1", "faltou na prateleira");
 		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(
-			STATUS_ERROR_RE
-		);
+		expect(errorOf(result)).toMatch(STATUS_ERROR_RE);
 	});
 
 	it("cancelPicking de sessão já completed → erro de status", async () => {
@@ -233,9 +236,7 @@ describe("guards de sessão de separação", () => {
 		);
 		const result = await scanItem(PICKING_ID, "7891234560016");
 		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(
-			OWNERSHIP_ERROR_RE
-		);
+		expect(errorOf(result)).toMatch(OWNERSHIP_ERROR_RE);
 	});
 
 	it("reportMissing por não-dono → erro de ownership", async () => {
@@ -251,9 +252,7 @@ describe("guards de sessão de separação", () => {
 		);
 		const result = await reportMissing("pi_1", "faltou na prateleira");
 		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(
-			OWNERSHIP_ERROR_RE
-		);
+		expect(errorOf(result)).toMatch(OWNERSHIP_ERROR_RE);
 	});
 
 	it("takeoverPicking em sessão completed → erro de status", async () => {
@@ -264,9 +263,7 @@ describe("guards de sessão de separação", () => {
 		);
 		const result = await takeoverPicking(PICKING_ID);
 		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(
-			STATUS_ERROR_RE
-		);
+		expect(errorOf(result)).toMatch(STATUS_ERROR_RE);
 	});
 
 	it("takeoverPicking por role user → recusado", async () => {
@@ -313,9 +310,7 @@ describe("guards de sessão de separação", () => {
 		);
 		const result = await startPicking("ord_1");
 		expect(result.ok).toBe(false);
-		expect((result as { ok: false; error: string }).error).toMatch(
-			EXCEPTION_OWNER_ERROR_RE
-		);
+		expect(errorOf(result)).toMatch(EXCEPTION_OWNER_ERROR_RE);
 	});
 
 	it("startPicking sobre a própria exceção por role user → ok", async () => {

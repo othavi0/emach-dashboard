@@ -31,13 +31,24 @@ interface Props {
 }
 
 interface FormValues {
-	clientType: string; // "" | "b2c" | "b2b"
+	clientType: NonNullable<CustomerDetail["clientType"]> | "";
 	email: string;
 	internalNotes: string;
 	name: string;
 	phone: string;
 	status: CustomerDetail["status"];
 }
+
+const CLIENT_STATUSES: readonly FormValues["status"][] = [
+	"active",
+	"inactive",
+	"blocked",
+];
+
+const CLIENT_TYPES: readonly NonNullable<CustomerDetail["clientType"]>[] = [
+	"b2c",
+	"b2b",
+];
 
 function toFormValues(c: CustomerDetail): FormValues {
 	return {
@@ -95,7 +106,7 @@ export function CustomerEditSheet({ customer }: Props) {
 			phone: values.phone.trim() || null,
 			internalNotes: values.internalNotes.trim() || null,
 			status: values.status,
-			clientType: (values.clientType as "b2c" | "b2b") || null,
+			clientType: values.clientType || null,
 		});
 
 		if (!parsed.success) {
@@ -210,7 +221,7 @@ export function CustomerEditSheet({ customer }: Props) {
 							onValueChange={(v) =>
 								setValues((p) => ({
 									...p,
-									status: (v ?? p.status) as FormValues["status"],
+									status: CLIENT_STATUSES.find((s) => s === v) ?? p.status,
 								}))
 							}
 							value={values.status}
@@ -239,7 +250,7 @@ export function CustomerEditSheet({ customer }: Props) {
 							onValueChange={(v) =>
 								setValues((p) => ({
 									...p,
-									clientType: v == null || v === "__none__" ? "" : v,
+									clientType: CLIENT_TYPES.find((t) => t === v) ?? "",
 								}))
 							}
 							value={values.clientType || "__none__"}

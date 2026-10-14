@@ -343,6 +343,21 @@ const STATUS_PATH = {
 
 const PAID_PLUS = new Set(["paid", "preparing", "shipped", "delivered"]);
 
+/**
+ * Primeira linha de um SELECT de agregado. `count(*)` sem GROUP BY sempre
+ * devolve exatamente uma linha; o genérico de cada `tx.execute` abaixo declara
+ * a coluna `count(*)::int AS <alias>` que o SQL projeta (int4 vem como number).
+ */
+function firstRow<T>(result: { rows: T[] }): T {
+	const row = result.rows[0];
+
+	if (row === undefined) {
+		throw new Error("[enrich-demo] SELECT de agregado sem linha");
+	}
+
+	return row;
+}
+
 async function main() {
 	if (!(FORCED || DRY_RUN)) {
 		const host = new URL(env.DATABASE_URL).host;
@@ -542,17 +557,17 @@ async function main() {
 			// empilhe cópias (o `number` vem de MAX+1, então seria append infinito).
 			const matrizId = branchByName.get("Matriz — São Paulo");
 
-			const geoOrders = (
-				await tx.execute(
+			const geoOrders = firstRow(
+				await tx.execute<{ n: number }>(
 					sql`SELECT count(*)::int AS n FROM "order" WHERE branch_id IS DISTINCT FROM ${matrizId ?? null}`
 				)
-			).rows[0] as { n: number };
+			).n;
 
-			const skipNewOrders = geoOrders.n > 0;
+			const skipNewOrders = geoOrders > 0;
 
 			if (skipNewOrders) {
 				changes.push(
-					`novos pedidos PULADOS (já há ${geoOrders.n} pedido(s) fora da Matriz — idempotência)`
+					`novos pedidos PULADOS (já há ${geoOrders} pedido(s) fora da Matriz — idempotência)`
 				);
 			}
 
@@ -789,12 +804,21 @@ async function main() {
 					createdAt,
 				});
 
-				for (let i = 0; i < path.length - 1; i++) {
+				const steps: readonly NewOrderStatus[] = path;
+
+				// Cada passo i liga steps[i] (de) a steps[i + 1] (para).
+				for (const [i, toStatus] of steps.slice(1).entries()) {
+					const fromStatus = steps[i];
+
+					if (fromStatus === undefined) {
+						continue;
+					}
+
 					await tx.insert(orderStatusHistory).values({
 						id: crypto.randomUUID(),
 						orderId,
-						fromStatus: path[i] as never,
-						toStatus: path[i + 1] as never,
+						fromStatus,
+						toStatus,
 						actorType: "system",
 						actorUserId: null,
 						createdAt: new Date(createdAt.getTime() + (i + 1) * 12 * 3600e3),
@@ -1003,52 +1027,50 @@ async function main() {
 			}
 
 			// ── VERIFY (antes do commit) ────────────────────────────────────────────
-			const ledger = (
-				await tx.execute(sql`
+			const ledger = firstRow(
+				await tx.execute<{ bad: number }>(sql`
 				WITH mv AS (SELECT variant_id, branch_id, sum(delta) d FROM stock_movement WHERE variant_id IS NOT NULL AND branch_id IS NOT NULL GROUP BY 1,2)
 				SELECT count(*)::int AS bad FROM stock_level s LEFT JOIN mv ON mv.variant_id=s.variant_id AND mv.branch_id=s.branch_id WHERE COALESCE(mv.d,0) <> s.quantity`)
-			).rows[0] as { bad: number };
+			).bad;
 
-			if (ledger.bad > 0) {
-				throw new Error(
-					`VERIFY ledger falhou: ${ledger.bad} pares divergentes`
-				);
+			if (ledger > 0) {
+				throw new Error(`VERIFY ledger falhou: ${ledger} pares divergentes`);
 			}
 
-			const badMoney = (
-				await tx.execute(
+			const badMoney = firstRow(
+				await tx.execute<{ bad: number }>(
 					sql`SELECT count(*)::int AS bad FROM "order" WHERE total_amount <> subtotal_amount - discount_amount + shipping_amount`
 				)
-			).rows[0] as { bad: number };
+			).bad;
 
-			if (badMoney.bad > 0) {
-				throw new Error(`VERIFY money falhou: ${badMoney.bad} pedidos`);
+			if (badMoney > 0) {
+				throw new Error(`VERIFY money falhou: ${badMoney} pedidos`);
 			}
 
-			const failClosed = (
-				await tx.execute(
+			const failClosed = firstRow(
+				await tx.execute<{ bad: number }>(
 					sql`SELECT count(*)::int AS bad FROM "user" u WHERE u.role IN ('admin','user') AND u.status='active' AND u.id NOT IN (SELECT user_id FROM user_branch)`
 				)
-			).rows[0] as { bad: number };
+			).bad;
 
-			if (failClosed.bad > 0) {
+			if (failClosed > 0) {
 				throw new Error(
-					`VERIFY fail-closed falhou: ${failClosed.bad} usuários sem filial`
+					`VERIFY fail-closed falhou: ${failClosed} usuários sem filial`
 				);
 			}
 
-			const superAdmins = (
-				await tx.execute(
+			const superAdmins = firstRow(
+				await tx.execute<{ n: number }>(
 					sql`SELECT count(*)::int AS n FROM "user" WHERE role='super_admin' AND status='active'`
 				)
-			).rows[0] as { n: number };
+			).n;
 
-			if (superAdmins.n < 1) {
+			if (superAdmins < 1) {
 				throw new Error("VERIFY: nenhum super_admin ativo restante");
 			}
 
 			console.log(
-				`[enrich-demo] VERIFY OK — ledger ${ledger.bad} / money ${badMoney.bad} / fail-closed ${failClosed.bad} / super_admins ativos ${superAdmins.n}`
+				`[enrich-demo] VERIFY OK — ledger ${ledger} / money ${badMoney} / fail-closed ${failClosed} / super_admins ativos ${superAdmins}`
 			);
 			console.log(`[enrich-demo] ${changes.length} mudanças:`);
 

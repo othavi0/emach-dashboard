@@ -1,5 +1,4 @@
 import { BoxIcon, type LucideIcon, UserCogIcon } from "lucide-react";
-import type { OrderStatus } from "@/app/dashboard/orders/status-meta";
 import { ORDER_STATUS_META } from "@/app/dashboard/orders/status-meta";
 import { STOCK_MOVEMENT_REASON_LABELS } from "@/app/dashboard/stock/_components/stock-movement-schema";
 import { STATUS_ICONS, TONE_TEXT } from "@/components/status-visual";
@@ -18,6 +17,13 @@ const TEAM_ACTION_LABEL = new Map(
 		"branch.updated": "Filial atualizada",
 	})
 );
+
+// Map: `reason` e `toStatus` chegam do UNION como `::text`, não como enum.
+const STOCK_REASON_LABEL: ReadonlyMap<string, string> = new Map(
+	Object.entries(STOCK_MOVEMENT_REASON_LABELS)
+);
+
+const ORDER_STATUS_META_BY_KEY = new Map(Object.entries(ORDER_STATUS_META));
 
 function dayLabel(date: Date, now: Date): string {
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -70,11 +76,7 @@ function stockVisual(r: BranchActivityRow): RowVisual {
 	const deltaClass = delta >= 0 ? "text-success" : "text-destructive";
 
 	const reasonLabel =
-		(r.reason
-			? STOCK_MOVEMENT_REASON_LABELS[
-					r.reason as keyof typeof STOCK_MOVEMENT_REASON_LABELS
-				]
-			: undefined) ??
+		(r.reason ? STOCK_REASON_LABEL.get(r.reason) : undefined) ??
 		r.reason ??
 		"—";
 
@@ -105,7 +107,7 @@ function stockVisual(r: BranchActivityRow): RowVisual {
 
 function orderVisual(r: BranchActivityRow): RowVisual {
 	const meta = r.toStatus
-		? ORDER_STATUS_META[r.toStatus as OrderStatus]
+		? ORDER_STATUS_META_BY_KEY.get(r.toStatus)
 		: undefined;
 
 	const Icon = meta ? STATUS_ICONS[meta.iconKey] : BoxIcon;

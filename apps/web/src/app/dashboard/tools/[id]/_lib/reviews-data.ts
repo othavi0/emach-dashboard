@@ -20,6 +20,8 @@ export interface ToolReviewRecent {
 	title: string | null;
 }
 
+const STARS = [1, 2, 3, 4, 5] as const;
+
 const EMPTY_BREAKDOWN: Record<1 | 2 | 3 | 4 | 5, number> = {
 	1: 0,
 	2: 0,
@@ -83,9 +85,10 @@ export async function getToolReviewsSummary(
 
 	for (const [k, v] of Object.entries(aggRow?.breakdown ?? {})) {
 		const n = Number(k);
+		const star = STARS.find((s) => s === n);
 
-		if (n >= 1 && n <= 5) {
-			breakdown[n as 1 | 2 | 3 | 4 | 5] = Number(v);
+		if (star) {
+			breakdown[star] = Number(v);
 		}
 	}
 

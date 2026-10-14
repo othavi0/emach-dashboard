@@ -10,7 +10,7 @@ describe("cepBarcodeDataUri", () => {
 		expect(uri).toMatch(DATA_URI_PREFIX);
 
 		const decoded = Buffer.from(
-			(uri as string).replace("data:image/png;base64,", ""),
+			(uri ?? "").replace("data:image/png;base64,", ""),
 			"base64"
 		);
 

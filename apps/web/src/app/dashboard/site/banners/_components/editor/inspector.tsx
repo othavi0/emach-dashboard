@@ -55,7 +55,7 @@ const BG_MOBILE_MODE_OPTIONS: {
 ];
 
 function sliderValue(val: number | readonly number[]): number {
-	return Array.isArray(val) ? (val[0] ?? 0) : (val as number);
+	return [val].flat()[0] ?? 0;
 }
 
 function SectionHeading({ children }: { children: ReactNode }) {

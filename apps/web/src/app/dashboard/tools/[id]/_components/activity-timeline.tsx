@@ -1,5 +1,8 @@
 import { ArrowDown, ArrowUp, Pencil, X } from "lucide-react";
-import { STOCK_MOVEMENT_REASON_LABELS } from "@/app/dashboard/stock/_components/stock-movement-schema";
+import {
+	STOCK_MOVEMENT_REASON_LABELS,
+	STOCK_MOVEMENT_REASONS,
+} from "@/app/dashboard/stock/_components/stock-movement-schema";
 import type { ToolActivityRow } from "@/app/dashboard/stock/tool-activity-data";
 import {
 	formatDayMonthShort,
@@ -81,14 +84,14 @@ export function ActivityTimeline({ rows }: Props) {
 						{g.items.map((r) => {
 							const { Icon, color, bg } = reasonIcon(r.reason);
 
+							const knownReason = STOCK_MOVEMENT_REASONS.find(
+								(reason) => reason === r.reason
+							);
+
 							const reasonLabel =
-								(r.reason
-									? STOCK_MOVEMENT_REASON_LABELS[
-											r.reason as keyof typeof STOCK_MOVEMENT_REASON_LABELS
-										]
-									: undefined) ??
-								r.reason ??
-								"—";
+								(knownReason
+									? STOCK_MOVEMENT_REASON_LABELS[knownReason]
+									: r.reason) ?? "—";
 
 							return (
 								<li

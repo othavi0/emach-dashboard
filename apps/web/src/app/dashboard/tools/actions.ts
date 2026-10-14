@@ -324,7 +324,7 @@ export async function updateTool(
 				.where(eq(toolVariant.toolId, id));
 
 			const incomingVariantIds = new Set(
-				parsed.data.variants.map((v) => v.id).filter(Boolean) as string[]
+				parsed.data.variants.flatMap((v) => (v.id ? [v.id] : []))
 			);
 
 			const variantsToDelete = existingVariants
@@ -427,7 +427,7 @@ export async function updateTool(
 				.where(eq(toolImage.toolId, id));
 
 			const incomingImageIds = new Set(
-				parsed.data.images.map((img) => img.id).filter(Boolean) as string[]
+				parsed.data.images.flatMap((img) => (img.id ? [img.id] : []))
 			);
 
 			toDelete = existingImages.filter((row) => !incomingImageIds.has(row.id));

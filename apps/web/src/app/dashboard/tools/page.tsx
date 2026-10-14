@@ -67,10 +67,7 @@ async function ToolsPageContent({ searchParams }: PageProps) {
 	const canMutate = await can(session, "tools.create");
 	const params = await searchParams;
 	const search = params.search ?? params.q;
-	const sortParam = params.sort as ToolSort | undefined;
-
-	const sort: ToolSort =
-		sortParam && VALID_SORTS.includes(sortParam) ? sortParam : "newest";
+	const sort: ToolSort = VALID_SORTS.find((s) => s === params.sort) ?? "newest";
 
 	let mode: ToolsListMode | undefined;
 

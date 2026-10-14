@@ -98,7 +98,16 @@ export function PromotionForm({
 	const [submitted, setSubmitted] = useState(false);
 
 	const onPatch = (p: Partial<PromotionFormValues>) =>
-		setValues((prev) => ({ ...prev, ...p }) as PromotionFormValues);
+		setValues(
+			(prev) =>
+				// SAFETY: só handleTypeChange (promotion-form-fields) troca `type`, e
+				// manda junto os campos da variante nova: `code` string para cupom;
+				// `code`, `maxRedemptions` e `minOrderAmount` nulos para automática.
+				// Os demais patches mexem em campos da variante atual, então o merge
+				// segue sendo uma variante de PromotionFormValues. O submit revalida
+				// tudo com safeParse.
+				({ ...prev, ...p }) as PromotionFormValues
+		);
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();

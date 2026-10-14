@@ -56,9 +56,7 @@ function MovementRow({ m }: { m: StockMovementRow }) {
 			<div className="min-w-0 flex-1">
 				<p className="text-foreground">
 					{m.reason
-						? (STOCK_MOVEMENT_REASON_LABELS[
-								m.reason as keyof typeof STOCK_MOVEMENT_REASON_LABELS
-							] ?? m.reason)
+						? (STOCK_MOVEMENT_REASON_LABELS[m.reason] ?? m.reason)
 						: "Sem motivo"}
 					{m.supplierName ? (
 						<span className="ml-1 text-muted-foreground">

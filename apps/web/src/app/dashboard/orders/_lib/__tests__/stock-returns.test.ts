@@ -99,6 +99,7 @@ function asStockReturnTx(stub: ReturnType<typeof makeTx>): StockReturnTx {
 const ORDER_ID = "order-abc";
 const USER_ID = "user-xyz";
 const REASON_NOTE = "Devolução ao estoque — pedido devolvido";
+const MOCK_UUID = "00000000-0000-4000-8000-000000000001";
 
 const ITEM_INPUT: ReturnItemInput = {
 	branchId: "branch-1",
@@ -125,9 +126,7 @@ describe("applyStockReturns", () => {
 			[{ quantity: 10 }], // stockLevel
 		]);
 
-		vi.spyOn(crypto, "randomUUID").mockReturnValue(
-			"mock-uuid-1" as ReturnType<typeof crypto.randomUUID>
-		);
+		vi.spyOn(crypto, "randomUUID").mockReturnValue(MOCK_UUID);
 
 		await applyStockReturns(
 			asStockReturnTx(tx),
@@ -154,7 +153,7 @@ describe("applyStockReturns", () => {
 		const movementArg = tx._insertValues.mock.calls[1]?.[0];
 
 		expect(movementArg).toMatchObject({
-			id: "mock-uuid-1",
+			id: MOCK_UUID,
 			variantId: "var-1",
 			branchId: "branch-1",
 			previousQty: 10,

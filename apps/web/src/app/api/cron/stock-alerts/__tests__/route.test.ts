@@ -1,3 +1,4 @@
+import type { sendStockAlertEmail } from "@emach/email/send";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- mocks (devem vir antes dos imports do código sob teste) ---
@@ -18,7 +19,7 @@ const {
 	mockDbExecute: vi.fn(),
 	mockDbInsert: vi.fn(),
 	mockDbTransaction: vi.fn(),
-	mockSendStockAlertEmail: vi.fn(),
+	mockSendStockAlertEmail: vi.fn<typeof sendStockAlertEmail>(),
 }));
 
 vi.mock("@emach/db", () => ({
@@ -216,12 +217,10 @@ describe("GET /api/cron/stock-alerts", () => {
 				expect.objectContaining({ emailsSent: 1, itemsAlerted: 1 })
 			);
 
-			const call = mockSendStockAlertEmail.mock.calls[0]?.[0] as {
-				items: Array<{ sku: string }>;
-			};
+			const call = mockSendStockAlertEmail.mock.calls[0]?.[0];
 
-			expect(call.items).toHaveLength(1);
-			expect(call.items[0]?.sku).toBe("FUR-500W-002");
+			expect(call?.items).toHaveLength(1);
+			expect(call?.items[0]?.sku).toBe("FUR-500W-002");
 			expect(mockDbInsert).toHaveBeenCalledTimes(1);
 		});
 

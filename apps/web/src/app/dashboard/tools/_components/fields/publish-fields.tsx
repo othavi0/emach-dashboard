@@ -20,7 +20,6 @@ import {
 	MIN_IMAGES_ACTIVE,
 	TOOL_STATUS_LABELS,
 	TOOL_STATUS_OPTIONS,
-	type ToolFormValues,
 } from "../tool-schema";
 import { ToolVideoField } from "../tool-video-field";
 import type { ToolFieldGroupProps } from "./types";
@@ -75,7 +74,12 @@ export function PublishFields({
 						<Select
 							disabled={disabled}
 							onValueChange={(v) => {
-								const status = v as ToolFormValues["status"];
+								const status = TOOL_STATUS_OPTIONS.find((s) => s === v);
+
+								if (!status) {
+									return;
+								}
+
 								// Rascunho/descontinuado não deve nascer público: força o
 								// usuário a reativar "Visível no site" manualmente.
 								onPatch(

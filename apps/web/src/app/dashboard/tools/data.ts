@@ -54,7 +54,8 @@ interface ToolPageRow extends Record<string, unknown> {
 	primary_category_name: string | null;
 	reorder_count: number;
 	slug: string | null;
-	status: string;
+	// t.status: o CHECK valid_tool_status restringe a coluna a esses valores.
+	status: ToolStatusValue;
 	total_stock: number;
 	variant_count: number;
 	// array_agg inclui NULL das variantes sem voltagem.
@@ -278,21 +279,20 @@ export async function fetchToolsPage({
 
 	return paginate(
 		rows.rows,
-		(r) =>
-			({
-				id: r.id,
-				name: r.name,
-				imageUrl: r.image_url,
-				sku: r.default_sku,
-				variantCount: Number(r.variant_count ?? 0),
-				variantSummaries: (r.variant_voltages ?? []).filter(
-					(v): v is string => v !== null
-				),
-				primaryCategoryName: r.primary_category_name,
-				status: r.status as ToolStatusValue,
-				totalStock: Number(r.total_stock ?? 0),
-				cartAdds30d: Number(r.cart_adds_30d ?? 0),
-			}) as ToolCardData,
+		(r): ToolCardData => ({
+			id: r.id,
+			name: r.name,
+			imageUrl: r.image_url,
+			sku: r.default_sku,
+			variantCount: Number(r.variant_count ?? 0),
+			variantSummaries: (r.variant_voltages ?? []).filter(
+				(v): v is string => v !== null
+			),
+			primaryCategoryName: r.primary_category_name,
+			status: r.status,
+			totalStock: Number(r.total_stock ?? 0),
+			cartAdds30d: Number(r.cart_adds_30d ?? 0),
+		}),
 		(last) =>
 			filters.sort === "name"
 				? { v: 1, sort: "name" as const, name: last.name, id: last.id }

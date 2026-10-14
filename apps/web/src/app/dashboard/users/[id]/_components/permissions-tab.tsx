@@ -182,7 +182,7 @@ function CapabilityTriState({
 			className="shrink-0"
 			disabled={disabled}
 			onValueChange={(v) => {
-				const next = v[0] as OverrideState | undefined;
+				const next = options.find((opt) => opt.key === v[0])?.key;
 
 				if (next) {
 					onChange(next);

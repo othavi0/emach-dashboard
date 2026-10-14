@@ -17,7 +17,7 @@ interface DragTracker {
 	lastClientY: number;
 	moved: boolean;
 	pointerId: number;
-	target: HTMLElement;
+	target: Element;
 }
 
 export function EditorCanvas({
@@ -36,7 +36,7 @@ export function EditorCanvas({
 		e: ReactPointerEvent<Element>
 	) {
 		e.stopPropagation();
-		const target = e.currentTarget as HTMLElement;
+		const target = e.currentTarget;
 		target.setPointerCapture(e.pointerId);
 		dragRef.current = {
 			key,

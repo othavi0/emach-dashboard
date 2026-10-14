@@ -8,6 +8,10 @@ import {
 	sectionForCapability,
 } from "@/lib/capabilities";
 
+// Object.keys devolve string[]; o filtro pelo guard isCapability estreita para
+// Capability sem perder nenhuma chave do registry.
+const ALL_CAPABILITIES = Object.keys(CAPABILITIES).filter(isCapability);
+
 // Tipadas como Capability[] de propósito: o compilador valida que cada string
 // é uma key real do registry (pega typo na lista de regressão).
 // Matriz alvo do role user (estoqueista/operacional) — ver ADR-0016 e ADR-0017.
@@ -67,7 +71,7 @@ describe("registry de capabilities", () => {
 			expect(adminCaps.has(c), `admin não deve ter ${c}`).toBe(false);
 		}
 
-		for (const key of Object.keys(CAPABILITIES) as Capability[]) {
+		for (const key of ALL_CAPABILITIES) {
 			if (!LEGACY_SUPER_EXCLUSIVE.includes(key)) {
 				expect(adminCaps.has(key), `admin deve ter ${key}`).toBe(true);
 			}
@@ -110,7 +114,7 @@ describe("seções de navegação (redesign permissões)", () => {
 	});
 
 	it("toda capability tem uma seção em SECTION_ORDER", () => {
-		for (const cap of Object.keys(CAPABILITIES) as Capability[]) {
+		for (const cap of ALL_CAPABILITIES) {
 			expect(SECTION_ORDER).toContain(sectionForCapability(cap));
 		}
 	});

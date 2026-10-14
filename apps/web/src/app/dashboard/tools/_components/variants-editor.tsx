@@ -179,11 +179,13 @@ export function VariantsEditor({
 						<div className="flex flex-col gap-2">
 							<Label htmlFor={`var-volt-${index}`}>Voltagem</Label>
 							<Select
-								onValueChange={(v) =>
-									update(index, {
-										voltage: v as (typeof VOLTAGE_OPTIONS)[number],
-									})
-								}
+								onValueChange={(v) => {
+									const voltage = VOLTAGE_OPTIONS.find((o) => o === v);
+
+									if (voltage) {
+										update(index, { voltage });
+									}
+								}}
 								value={variant.voltage ?? ""}
 							>
 								<SelectTrigger id={`var-volt-${index}`}>

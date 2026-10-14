@@ -1,8 +1,13 @@
 import {
 	type BannerComposition,
 	DEFAULT_COMPOSITION,
+	ELEMENT_KEYS,
 	type ElementKey,
 } from "./composition-schema";
+
+function isElementKey(value: string): value is ElementKey {
+	return ELEMENT_KEYS.some((key) => key === value);
+}
 
 function t(
 	key: string,
@@ -15,7 +20,7 @@ function t(
 		label,
 		hint,
 		composition,
-		slots: Object.keys(composition.desktop.elements) as ElementKey[],
+		slots: Object.keys(composition.desktop.elements).filter(isElementKey),
 	};
 }
 

@@ -6,6 +6,7 @@ import type {
 	OrderPickingItem,
 } from "@emach/db/schema/orders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ActionResult } from "@/lib/action-result";
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks — defined before vi.mock calls
@@ -191,6 +192,19 @@ function makeMockTx(selectResults: unknown[][]) {
 
 type MockTx = ReturnType<typeof makeMockTx>;
 
+// Mensagem de erro de um resultado ok:false; undefined quando a action passou,
+// o que faz o toContain seguinte falhar como antes.
+function errorOf(result: ActionResult<unknown>): string | undefined {
+	return result.ok ? undefined : result.error;
+}
+
+// Cadeia devolvida pela 1ª chamada de tx.update, para asserções sobre .set().
+function firstUpdateChain(tx: MockTx | undefined): UpdateChain | undefined {
+	const first = tx?.update.mock.results[0];
+
+	return first?.type === "return" ? first.value : undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Tests: startPicking
 // ---------------------------------------------------------------------------
@@ -209,7 +223,7 @@ describe("startPicking", () => {
 
 		const result = await startPicking(ORDER_ID);
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain("status");
+		expect(errorOf(result)).toContain("status");
 	});
 
 	it("rejeita quando branchId é null", async () => {
@@ -220,7 +234,7 @@ describe("startPicking", () => {
 
 		const result = await startPicking(ORDER_ID);
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain("filial");
+		expect(errorOf(result)).toContain("filial");
 	});
 
 	it("retorna { ok: false } quando pedido não encontrado", async () => {
@@ -292,9 +306,7 @@ describe("startPicking", () => {
 
 		const result = await startPicking(ORDER_ID);
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain(
-			"andamento"
-		);
+		expect(errorOf(result)).toContain("andamento");
 	});
 });
 
@@ -510,9 +522,7 @@ describe("completePicking", () => {
 
 		const result = await completePicking(PICKING_ID);
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain(
-			"restantes"
-		);
+		expect(errorOf(result)).toContain("restantes");
 	});
 
 	it("marca completed quando todos os items estão conferidos", async () => {
@@ -733,9 +743,7 @@ describe("confirmItemManually", () => {
 			});
 		}
 
-		const updateChain = getTx()?.update.mock.results[0]?.value as
-			| { set: ReturnType<typeof vi.fn> }
-			| undefined;
+		const updateChain = firstUpdateChain(getTx());
 
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ qtyPicked: 3, notFound: false })
@@ -747,7 +755,7 @@ describe("confirmItemManually", () => {
 
 		const result = await confirmItemManually(PICKING_ITEM_ID, 1, "curto");
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain("10");
+		expect(errorOf(result)).toContain("10");
 	});
 
 	it("rejeita quantidade acima do restante", async () => {
@@ -755,9 +763,7 @@ describe("confirmItemManually", () => {
 
 		const result = await confirmItemManually(PICKING_ITEM_ID, 3, VALID_REASON);
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain(
-			"restante"
-		);
+		expect(errorOf(result)).toContain("restante");
 	});
 
 	it("rejeita quantidade não inteira ou menor que 1", async () => {
@@ -776,9 +782,7 @@ describe("confirmItemManually", () => {
 
 		const result = await confirmItemManually(PICKING_ITEM_ID, 1, VALID_REASON);
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain(
-			"completo"
-		);
+		expect(errorOf(result)).toContain("completo");
 	});
 
 	it("limpa notFound de item antes reportado como ausente", async () => {
@@ -791,9 +795,7 @@ describe("confirmItemManually", () => {
 		const result = await confirmItemManually(PICKING_ITEM_ID, 3, VALID_REASON);
 		expect(result).toMatchObject({ ok: true });
 
-		const updateChain = getTx()?.update.mock.results[0]?.value as
-			| { set: ReturnType<typeof vi.fn> }
-			| undefined;
+		const updateChain = firstUpdateChain(getTx());
 
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ qtyPicked: 3, notFound: false })
@@ -809,7 +811,7 @@ describe("confirmItemManually", () => {
 
 		const result = await confirmItemManually(PICKING_ITEM_ID, 1, VALID_REASON);
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain("iniciou");
+		expect(errorOf(result)).toContain("iniciou");
 	});
 
 	it("encerra a sessão quando o pedido saiu de preparing", async () => {
@@ -821,13 +823,9 @@ describe("confirmItemManually", () => {
 
 		const result = await confirmItemManually(PICKING_ITEM_ID, 1, VALID_REASON);
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain(
-			"encerrada"
-		);
+		expect(errorOf(result)).toContain("encerrada");
 
-		const updateChain = getTx()?.update.mock.results[0]?.value as
-			| { set: ReturnType<typeof vi.fn> }
-			| undefined;
+		const updateChain = firstUpdateChain(getTx());
 
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
@@ -916,13 +914,9 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 		const getTx = armTx([[OWNED_PICKING], [CANCELED_LOCK]]);
 		const result = await scanItem(PICKING_ID, "7891234567890");
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain(
-			"encerrada"
-		);
+		expect(errorOf(result)).toContain("encerrada");
 
-		const updateChain = getTx()?.update.mock.results[0]?.value as
-			| { set: ReturnType<typeof vi.fn> }
-			| undefined;
+		const updateChain = firstUpdateChain(getTx());
 
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
@@ -933,13 +927,9 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 		const getTx = armTx([[OWNED_PICKING], [CANCELED_LOCK]]);
 		const result = await completePicking(PICKING_ID);
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain(
-			"encerrada"
-		);
+		expect(errorOf(result)).toContain("encerrada");
 
-		const updateChain = getTx()?.update.mock.results[0]?.value as
-			| { set: ReturnType<typeof vi.fn> }
-			| undefined;
+		const updateChain = firstUpdateChain(getTx());
 
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
@@ -959,13 +949,9 @@ describe("guard: pedido saiu de preparing durante picking ativo", () => {
 		);
 
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain(
-			"encerrada"
-		);
+		expect(errorOf(result)).toContain("encerrada");
 
-		const updateChain = getTx()?.update.mock.results[0]?.value as
-			| { set: ReturnType<typeof vi.fn> }
-			| undefined;
+		const updateChain = firstUpdateChain(getTx());
 
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ canceledByName: "Sistema", status: "canceled" })
@@ -998,7 +984,7 @@ describe("bulkStartPicking", () => {
 		const result = await bulkStartPicking({ orderIds });
 
 		expect(result).toMatchObject({ ok: false });
-		expect((result as { ok: false; error: string }).error).toContain("20");
+		expect(errorOf(result)).toContain("20");
 		expect(mockTransaction).not.toHaveBeenCalled();
 	});
 
@@ -1080,9 +1066,7 @@ describe("bulkStartPicking", () => {
 			expect(result.data.skipped).toEqual([]);
 		}
 
-		const updateChain = tx?.update.mock.results[0]?.value as
-			| { set: ReturnType<typeof vi.fn> }
-			| undefined;
+		const updateChain = firstUpdateChain(tx);
 
 		expect(updateChain?.set).toHaveBeenCalledWith(
 			expect.objectContaining({ status: "preparing" })

@@ -40,5 +40,7 @@ export function formatAddress(address: ShippingAddressSnapshot): string[] {
 
 	const line3 = [address.zipCode, address.country].filter(Boolean).join(" · ");
 
-	return [address.recipient, line1, line2, line3].filter(Boolean) as string[];
+	return [address.recipient, line1, line2, line3].filter(
+		(line): line is string => Boolean(line)
+	);
 }

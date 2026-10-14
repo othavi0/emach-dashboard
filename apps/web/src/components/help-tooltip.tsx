@@ -46,7 +46,7 @@ export function HelpTooltip(props: HelpTooltipProps) {
 		);
 	}
 
-	const { title, body, example } = props as RichProps;
+	const { title, body, example } = props;
 
 	return (
 		<HoverCard>

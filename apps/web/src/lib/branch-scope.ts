@@ -3,7 +3,6 @@ import { db } from "@emach/db";
 import { userBranch } from "@emach/db/schema/inventory";
 import { eq, type SQL, sql } from "drizzle-orm";
 import { cache } from "react";
-import type { UserRole } from "@/lib/session";
 
 export type BranchScope =
 	| { kind: "all" }
@@ -11,7 +10,7 @@ export type BranchScope =
 
 export const getUserBranchScope = cache(
 	async (session: DashboardSession): Promise<BranchScope> => {
-		const role = (session.user.role ?? "user") as UserRole;
+		const role = session.user.role ?? "user";
 
 		if (role === "super_admin") {
 			return { kind: "all" };

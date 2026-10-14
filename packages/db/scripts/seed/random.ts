@@ -43,6 +43,8 @@ export function pick<T>(arr: T[]): T {
 
 	const idx = Math.floor(rng() * arr.length);
 
+	// SAFETY: arr não é vazio (checado acima) e rng() fica em [0, 1), então
+	// idx está em [0, arr.length) e aponta para um elemento existente.
 	return arr[idx] as T;
 }
 

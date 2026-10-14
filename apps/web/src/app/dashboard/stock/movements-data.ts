@@ -4,7 +4,10 @@ import { db } from "@emach/db";
 import { user } from "@emach/db/schema/auth";
 import { branch } from "@emach/db/schema/inventory";
 import { order, orderItem } from "@emach/db/schema/orders";
-import { stockMovement } from "@emach/db/schema/stock-movements";
+import {
+	type StockMovementReason,
+	stockMovement,
+} from "@emach/db/schema/stock-movements";
 import { supplier, tool, toolVariant } from "@emach/db/schema/tools";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { getUserBranchScope, inScope } from "@/lib/branch-scope";
@@ -13,12 +16,22 @@ import {
 	requireCapability,
 	requireCapabilityWithContext,
 } from "@/lib/permissions";
+import { STOCK_MOVEMENT_REASONS } from "./_components/stock-movement-schema";
 import {
 	computePeriodCutoff,
 	encodeMovementCursor,
 	movementKeysetCondition,
 	type PeriodPreset,
 } from "./_lib/movements-shared";
+
+/** Motivos do filtro vêm da URL ou da action; descarta o que não é motivo. */
+export function parseReasons(raw: string[]): StockMovementReason[] {
+	return raw.flatMap((value) => {
+		const reason = STOCK_MOVEMENT_REASONS.find((r) => r === value);
+
+		return reason ? [reason] : [];
+	});
+}
 
 export type { PeriodPreset } from "./_lib/movements-shared";
 
@@ -41,7 +54,7 @@ export interface LedgerRow {
 	id: string;
 	newQty: number;
 	previousQty: number;
-	reason: string | null;
+	reason: StockMovementReason | null;
 	reasonNote: string | null;
 	supplierId: string | null;
 	supplierName: string | null;
@@ -91,10 +104,7 @@ export async function fetchLedgerPage(
 
 	if (filters.reasons && filters.reasons.length > 0) {
 		conditions.push(
-			inArray(
-				stockMovement.reason,
-				filters.reasons as (typeof stockMovement.reason._.data)[]
-			)
+			inArray(stockMovement.reason, parseReasons(filters.reasons))
 		);
 	}
 
@@ -160,7 +170,7 @@ export interface StockMovementRow {
 	id: string;
 	newQty: number;
 	previousQty: number;
-	reason: string | null;
+	reason: StockMovementReason | null;
 	reasonNote: string | null;
 	supplierId: string | null;
 	supplierName: string | null;

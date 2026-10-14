@@ -4,7 +4,12 @@ import type { SeedContext, Tx } from "./context";
 
 export async function seedMarketing(tx: Tx, ctx: SeedContext): Promise<void> {
 	const now = new Date();
-	const staffId = ctx.staffUserIds[0] as string;
+	const staffId = ctx.staffUserIds[0];
+
+	// seedInventory roda antes e já lança com a lista vazia; aqui é só o narrow.
+	if (!staffId) {
+		throw new Error("staffUserIds vazio — impossível setar createdBy.");
+	}
 
 	// --- promoções ---
 	// p1: campanha ativa (tipo promotion, sem code)

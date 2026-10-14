@@ -11,26 +11,44 @@ vi.mock("@/lib/permissions", () => ({
 	getUserCapabilities: vi.fn(),
 }));
 
-vi.mock("@emach/db", () => ({
-	db: { select: vi.fn(), insert: vi.fn(), delete: vi.fn() },
+// Mocks sem tipo de propósito: cada teste devolve só a cadeia que a action
+// usa (from/where/limit, values/onConflictDoUpdate, where), não o builder do
+// Drizzle.
+const { dbSelect, dbInsert, dbDelete } = vi.hoisted(() => ({
+	dbSelect: vi.fn(),
+	dbInsert: vi.fn(),
+	dbDelete: vi.fn(),
 }));
 
-import { db } from "@emach/db";
+vi.mock("@emach/db", () => ({
+	db: { select: dbSelect, insert: dbInsert, delete: dbDelete },
+}));
+
 import { setUserCapability } from "@/app/dashboard/users/[id]/permissions/actions";
+import { makeSession } from "@/lib/__tests__/fixtures/make-session";
 import { logUserActivity } from "@/lib/activity";
+import type { Capability } from "@/lib/capabilities";
 import { logger } from "@/lib/logger";
 import {
 	getUserCapabilities,
 	requireCapabilityWithContext,
 } from "@/lib/permissions";
 
-const actorAdmin = {
-	user: { id: "actor-admin", role: "admin", status: "active" },
-} as never;
+const actorAdmin = makeSession({
+	id: "actor-admin",
+	role: "admin",
+	status: "active",
+});
 
-const actorSuperAdmin = {
-	user: { id: "actor-sa", role: "super_admin", status: "active" },
-} as never;
+const actorSuperAdmin = makeSession({
+	id: "actor-sa",
+	role: "super_admin",
+	status: "active",
+});
+
+function mockActorCapabilities(caps: Capability[]) {
+	vi.mocked(getUserCapabilities).mockResolvedValue(new Set(caps));
+}
 
 function mockTargetBranches(ids: string[]) {
 	const where = vi.fn(() =>
@@ -38,7 +56,7 @@ function mockTargetBranches(ids: string[]) {
 	);
 
 	const from = vi.fn(() => ({ where }));
-	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+	dbSelect.mockReturnValueOnce({ from });
 }
 
 // 1º db.select da action: role do alvo (guard super_admin da issue #184).
@@ -46,7 +64,7 @@ function mockTargetRole(role: string | null) {
 	const limit = vi.fn(() => Promise.resolve(role ? [{ role }] : []));
 	const where = vi.fn(() => ({ limit }));
 	const from = vi.fn(() => ({ where }));
-	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+	dbSelect.mockReturnValueOnce({ from });
 }
 
 // 3º db.select da action: estado anterior do override (para o `before` do audit).
@@ -54,14 +72,12 @@ function mockExistingOverride(effect: string | null) {
 	const limit = vi.fn(() => Promise.resolve(effect ? [{ effect }] : []));
 	const where = vi.fn(() => ({ limit }));
 	const from = vi.fn(() => ({ where }));
-	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+	dbSelect.mockReturnValueOnce({ from });
 }
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	(requireCapabilityWithContext as ReturnType<typeof vi.fn>).mockResolvedValue(
-		actorAdmin
-	);
+	vi.mocked(requireCapabilityWithContext).mockResolvedValue(actorAdmin);
 });
 
 describe("setUserCapability — teto e validações", () => {
@@ -76,9 +92,7 @@ describe("setUserCapability — teto e validações", () => {
 	});
 
 	it("anti-escalada: ator não pode conceder cap que ele não tem", async () => {
-		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
-			new Set(["tools.create"])
-		);
+		mockActorCapabilities(["tools.create"]);
 		mockTargetRole("user");
 		mockTargetBranches(["b1"]);
 
@@ -92,9 +106,7 @@ describe("setUserCapability — teto e validações", () => {
 	});
 
 	it("alvo sem filial: admin (não super_admin) é barrado (fail-closed)", async () => {
-		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
-			new Set(["tools.create"])
-		);
+		mockActorCapabilities(["tools.create"]);
 		mockTargetRole("user");
 		mockTargetBranches([]);
 
@@ -105,19 +117,17 @@ describe("setUserCapability — teto e validações", () => {
 		});
 
 		expect(r.ok).toBe(false);
-		expect(db.insert).not.toHaveBeenCalled();
+		expect(dbInsert).not.toHaveBeenCalled();
 	});
 
 	it("grant válido: ator tem a cap e alvo no escopo → insere + audita", async () => {
-		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
-			new Set(["tools.create"])
-		);
+		mockActorCapabilities(["tools.create"]);
 		mockTargetRole("user");
 		mockTargetBranches(["b1"]);
 		mockExistingOverride(null);
 		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 		const values = vi.fn(() => ({ onConflictDoUpdate }));
-		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
+		dbInsert.mockReturnValue({ values });
 
 		const r = await setUserCapability({
 			targetUserId: "u1",
@@ -136,14 +146,12 @@ describe("setUserCapability — teto e validações", () => {
 	});
 
 	it("inherit: remove a linha de override", async () => {
-		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
-			new Set(["tools.create"])
-		);
+		mockActorCapabilities(["tools.create"]);
 		mockTargetRole("user");
 		mockTargetBranches(["b1"]);
 		mockExistingOverride("grant");
 		const where = vi.fn(() => Promise.resolve());
-		(db.delete as ReturnType<typeof vi.fn>).mockReturnValue({ where });
+		dbDelete.mockReturnValue({ where });
 
 		const r = await setUserCapability({
 			targetUserId: "u1",
@@ -152,22 +160,20 @@ describe("setUserCapability — teto e validações", () => {
 		});
 
 		expect(r.ok).toBe(true);
-		expect(db.delete).toHaveBeenCalled();
+		expect(dbDelete).toHaveBeenCalled();
 		expect(logUserActivity).toHaveBeenCalledWith(
 			expect.objectContaining({ action: "permission.reset", targetId: "u1" })
 		);
 	});
 
 	it("revoke válido: insere effect=revoke e audita permission.revoked", async () => {
-		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
-			new Set(["tools.create"])
-		);
+		mockActorCapabilities(["tools.create"]);
 		mockTargetRole("user");
 		mockTargetBranches(["b1"]);
 		mockExistingOverride(null);
 		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 		const values = vi.fn(() => ({ onConflictDoUpdate }));
-		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
+		dbInsert.mockReturnValue({ values });
 
 		const r = await setUserCapability({
 			targetUserId: "u1",
@@ -185,13 +191,11 @@ describe("setUserCapability — teto e validações", () => {
 	});
 
 	it("erro de banco: retorna ok:false genérico (não vaza)", async () => {
-		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
-			new Set(["tools.create"])
-		);
+		mockActorCapabilities(["tools.create"]);
 		mockTargetRole("user");
 		mockTargetBranches(["b1"]);
 		mockExistingOverride(null);
-		(db.insert as ReturnType<typeof vi.fn>).mockImplementation(() => {
+		dbInsert.mockImplementation(() => {
 			throw new Error("violates foreign key constraint xyz");
 		});
 
@@ -214,15 +218,13 @@ describe("setUserCapability — teto e validações", () => {
 	});
 
 	it("revoke: ator SEM a cap, alvo gerenciável → sucesso + audit permission.revoked", async () => {
-		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
-			new Set([])
-		);
+		mockActorCapabilities([]);
 		mockTargetRole("user");
 		mockTargetBranches(["b1"]);
 		mockExistingOverride(null);
 		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 		const values = vi.fn(() => ({ onConflictDoUpdate }));
-		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
+		dbInsert.mockReturnValue({ values });
 
 		const r = await setUserCapability({
 			targetUserId: "u1",
@@ -241,14 +243,12 @@ describe("setUserCapability — teto e validações", () => {
 	});
 
 	it("inherit: ator SEM a cap, alvo gerenciável → sucesso (delete) + audit permission.reset", async () => {
-		(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
-			new Set([])
-		);
+		mockActorCapabilities([]);
 		mockTargetRole("user");
 		mockTargetBranches(["b1"]);
 		mockExistingOverride("grant");
 		const where = vi.fn(() => Promise.resolve());
-		(db.delete as ReturnType<typeof vi.fn>).mockReturnValue({ where });
+		dbDelete.mockReturnValue({ where });
 
 		const r = await setUserCapability({
 			targetUserId: "u1",
@@ -257,7 +257,7 @@ describe("setUserCapability — teto e validações", () => {
 		});
 
 		expect(r.ok).toBe(true);
-		expect(db.delete).toHaveBeenCalled();
+		expect(dbDelete).toHaveBeenCalled();
 		expect(logUserActivity).toHaveBeenCalledWith(
 			expect.objectContaining({ action: "permission.reset" })
 		);
@@ -265,9 +265,9 @@ describe("setUserCapability — teto e validações", () => {
 	});
 
 	it("revoke: guards continuam barrando — requireCapabilityWithContext lança → ok:false, sem mutação", async () => {
-		(
-			requireCapabilityWithContext as ReturnType<typeof vi.fn>
-		).mockRejectedValue(new Error("Forbidden"));
+		vi.mocked(requireCapabilityWithContext).mockRejectedValue(
+			new Error("Forbidden")
+		);
 		mockTargetRole("user");
 		mockTargetBranches(["b1"]);
 
@@ -278,8 +278,8 @@ describe("setUserCapability — teto e validações", () => {
 		});
 
 		expect(r.ok).toBe(false);
-		expect(db.insert).not.toHaveBeenCalled();
-		expect(db.delete).not.toHaveBeenCalled();
+		expect(dbInsert).not.toHaveBeenCalled();
+		expect(dbDelete).not.toHaveBeenCalled();
 	});
 
 	it("alvo super_admin: revoke de permissions.manage é rejeitado (lock-out #184)", async () => {
@@ -292,8 +292,8 @@ describe("setUserCapability — teto e validações", () => {
 		});
 
 		expect(r.ok).toBe(false);
-		expect(db.insert).not.toHaveBeenCalled();
-		expect(db.delete).not.toHaveBeenCalled();
+		expect(dbInsert).not.toHaveBeenCalled();
+		expect(dbDelete).not.toHaveBeenCalled();
 	});
 
 	it("alvo super_admin: revoke de cap arbitrária também é rejeitado (classe geral)", async () => {
@@ -306,18 +306,16 @@ describe("setUserCapability — teto e validações", () => {
 		});
 
 		expect(r.ok).toBe(false);
-		expect(db.insert).not.toHaveBeenCalled();
+		expect(dbInsert).not.toHaveBeenCalled();
 	});
 
 	it("alvo super_admin: inherit é permitido (limpeza idempotente)", async () => {
-		(
-			requireCapabilityWithContext as ReturnType<typeof vi.fn>
-		).mockResolvedValue(actorSuperAdmin);
+		vi.mocked(requireCapabilityWithContext).mockResolvedValue(actorSuperAdmin);
 		mockTargetRole("super_admin");
 		mockTargetBranches([]);
 		mockExistingOverride("revoke");
 		const where = vi.fn(() => Promise.resolve());
-		(db.delete as ReturnType<typeof vi.fn>).mockReturnValue({ where });
+		dbDelete.mockReturnValue({ where });
 
 		const r = await setUserCapability({
 			targetUserId: "sa-target",
@@ -326,8 +324,8 @@ describe("setUserCapability — teto e validações", () => {
 		});
 
 		expect(r.ok).toBe(true);
-		expect(db.delete).toHaveBeenCalled();
+		expect(dbDelete).toHaveBeenCalled();
 		// inherit sobre super_admin nunca insere override — só limpa (issue #184).
-		expect(db.insert).not.toHaveBeenCalled();
+		expect(dbInsert).not.toHaveBeenCalled();
 	});
 });

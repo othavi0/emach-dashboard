@@ -25,6 +25,9 @@ export function zodIssuesToFieldErrors<T = Record<string, string>>(
 		}
 	}
 
+	// SAFETY: `out` só recebe valores string, então ler qualquer chave dá string
+	// ou undefined, que é tudo o que o Partial<Record<K, string>> promete para
+	// qualquer K. O TS só não aceita Record<string> em um K genérico.
 	return out as Partial<Record<keyof T & string, string>> & { _form?: string };
 }
 

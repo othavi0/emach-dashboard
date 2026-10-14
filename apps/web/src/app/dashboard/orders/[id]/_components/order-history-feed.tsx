@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { z } from "zod";
 import {
 	STATUS_ICONS,
 	type StatusIconKey,
@@ -82,11 +83,11 @@ interface FeedItem {
 // ─── Normalization helpers ────────────────────────────────────────────────────
 
 function normalizeHistory(items: OrderHistoryItem[]): FeedItem[] {
-	return items.map((h) => {
+	return items.map((h): FeedItem => {
 		const meta = ORDER_STATUS_META[h.toStatus];
 
 		return {
-			category: "status" as FeedCategory,
+			category: "status",
 			createdAt: h.createdAt,
 			iconKey: meta.iconKey,
 			id: `status-${h.id}`,
@@ -99,76 +100,83 @@ function normalizeHistory(items: OrderHistoryItem[]): FeedItem[] {
 }
 
 function normalizeNotes(items: OrderNoteItem[]): FeedItem[] {
-	return items.map((n) => {
+	return items.map((n): FeedItem => {
 		const statusLabel = n.statusAtCreation
 			? ORDER_STATUS_LABELS[n.statusAtCreation]
 			: null;
 
 		return {
-			category: "notes" as FeedCategory,
+			category: "notes",
 			createdAt: n.createdAt,
 			detail: n.body,
-			iconKey: "clock" as StatusIconKey,
+			iconKey: "clock",
 			id: `notes-${n.id}`,
 			noteId: n.id,
 			pinned: n.pinned,
 			subtitle: statusLabel ? `${n.authorName} · ${statusLabel}` : n.authorName,
 			title: "Nota interna",
-			tone: "info" as Tone,
+			tone: "info",
 		};
 	});
 }
 
 function normalizeAttachments(items: OrderAttachmentItem[]): FeedItem[] {
-	return items.map((a) => {
+	return items.map((a): FeedItem => {
 		const sizeLabel = formatBytes(a.fileSize);
 		const subtitleParts = [a.uploaderName, sizeLabel].filter(Boolean);
 
 		return {
 			attachment: { attachmentId: a.id, label: a.label ?? a.fileName },
-			category: "documents" as FeedCategory,
+			category: "documents",
 			createdAt: a.createdAt,
 			detail: a.description ?? undefined,
-			iconKey: "package" as StatusIconKey,
+			iconKey: "package",
 			id: `documents-${a.id}`,
 			subtitle: subtitleParts.join(" · "),
 			title: "Anexo adicionado",
-			tone: "info" as Tone,
+			tone: "info",
 		};
 	});
 }
 
+// `metadata` é jsonb livre: só campo string conta como rótulo, e metadata fora
+// desse formato vira null em vez de quebrar o feed.
+const eventMetadataSchema = z
+	.object({
+		branchId: z.string().optional().catch(undefined),
+		branchName: z.string().optional().catch(undefined),
+		trackingCode: z.string().optional().catch(undefined),
+	})
+	.nullable()
+	.catch(null);
+
 function normalizeEvents(items: OrderEventItem[]): FeedItem[] {
-	return items.map((e) => {
-		const m = e.metadata as {
-			branchId?: string;
-			branchName?: string;
-			trackingCode?: string;
-		} | null;
+	return items.map((e): FeedItem => {
+		const m = eventMetadataSchema.parse(e.metadata);
 
 		if (e.eventType === "tracking_set") {
 			const code = m?.trackingCode ?? "";
 
 			return {
-				category: "documents" as FeedCategory,
+				category: "documents",
 				createdAt: e.createdAt,
-				iconKey: "truck" as StatusIconKey,
+				iconKey: "truck",
 				id: `events-${e.id}`,
 				subtitle: code ? `${e.actorLabel} · ${code}` : e.actorLabel,
 				title: "Rastreio definido",
-				tone: "info" as Tone,
+				tone: "info",
 			};
 		}
 
 		if (e.eventType === "shipping_reviewed") {
 			return {
-				category: "status" as FeedCategory,
+				category: "status",
 				createdAt: e.createdAt,
-				iconKey: "check" as StatusIconKey,
+				iconKey: "check",
 				id: `events-${e.id}`,
 				subtitle: e.actorLabel,
 				title: "Frete revisado",
-				tone: "success" as Tone,
+				tone: "success",
 			};
 		}
 
@@ -176,13 +184,13 @@ function normalizeEvents(items: OrderEventItem[]): FeedItem[] {
 		const branchLabel = m?.branchName ?? m?.branchId ?? "";
 
 		return {
-			category: "status" as FeedCategory,
+			category: "status",
 			createdAt: e.createdAt,
-			iconKey: "package" as StatusIconKey,
+			iconKey: "package",
 			id: `events-${e.id}`,
 			subtitle: branchLabel ? `${e.actorLabel} · ${branchLabel}` : e.actorLabel,
 			title: "Filial atribuída",
-			tone: "info" as Tone,
+			tone: "info",
 		};
 	});
 }
@@ -194,19 +202,19 @@ const REFUND_STATUS_LABELS = new Map<RefundStatus, string>([
 ]);
 
 function normalizeRefunds(items: OrderRefundItem[]): FeedItem[] {
-	return items.map((r) => {
+	return items.map((r): FeedItem => {
 		const statusLabel = REFUND_STATUS_LABELS.get(r.status) ?? r.status;
 		const subtitle = `${r.reasonCategory} · ${formatCurrency(r.amount)} · ${statusLabel}`;
 
 		return {
-			category: "financeiro" as FeedCategory,
+			category: "financeiro",
 			createdAt: r.requestedAt,
 			detail: r.reasonText ?? undefined,
-			iconKey: "rotate" as StatusIconKey,
+			iconKey: "rotate",
 			id: `financeiro-${r.id}`,
 			subtitle,
 			title: "Reembolso solicitado",
-			tone: "destructive" as Tone,
+			tone: "destructive",
 		};
 	});
 }
@@ -216,49 +224,49 @@ function normalizePickings(items: OrderPickingTimelineRow[]): FeedItem[] {
 
 	for (const p of items) {
 		feedItems.push({
-			category: "status" as FeedCategory,
+			category: "status",
 			createdAt: p.startedAt,
-			iconKey: "package" as StatusIconKey,
+			iconKey: "package",
 			id: `picking-start-${p.id}`,
 			subtitle: p.pickerName,
 			title: "Separação iniciada",
-			tone: "info" as Tone,
+			tone: "info",
 		});
 
 		if (p.status === "completed" && p.completedAt) {
 			feedItems.push({
-				category: "status" as FeedCategory,
+				category: "status",
 				createdAt: p.completedAt,
-				iconKey: "check" as StatusIconKey,
+				iconKey: "check",
 				id: `picking-end-${p.id}`,
 				subtitle: p.pickerName,
 				title: "Separação concluída",
-				tone: "success" as Tone,
+				tone: "success",
 			});
 		}
 
 		if (p.status === "exception") {
 			feedItems.push({
-				category: "status" as FeedCategory,
+				category: "status",
 				createdAt: p.completedAt ?? p.startedAt,
-				iconKey: "xCircle" as StatusIconKey,
+				iconKey: "xCircle",
 				id: `picking-end-${p.id}`,
 				reason: p.exceptionReason ?? undefined,
 				subtitle: p.pickerName,
 				title: "Separação com pendência",
-				tone: "destructive" as Tone,
+				tone: "destructive",
 			});
 		}
 
 		if (p.status === "canceled") {
 			feedItems.push({
-				category: "status" as FeedCategory,
+				category: "status",
 				createdAt: p.completedAt ?? p.startedAt,
-				iconKey: "ban" as StatusIconKey,
+				iconKey: "ban",
 				id: `picking-cancel-${p.id}`,
 				subtitle: p.pickerName,
 				title: "Separação cancelada",
-				tone: "warning" as Tone,
+				tone: "warning",
 			});
 		}
 	}
@@ -415,7 +423,11 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 									aria-label="Desafixar nota"
 									className="shrink-0 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
 									disabled={isPending}
-									onClick={() => handleTogglePin(item.noteId as string, false)}
+									onClick={() => {
+										if (item.noteId) {
+											handleTogglePin(item.noteId, false);
+										}
+									}}
 									type="button"
 								>
 									<PinOffIcon aria-hidden="true" className="size-3.5" />
@@ -480,9 +492,11 @@ export function OrderHistoryFeed({ order }: { order: OrderDetail }) {
 													aria-label="Fixar nota"
 													className="text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
 													disabled={isPending}
-													onClick={() =>
-														handleTogglePin(item.noteId as string, true)
-													}
+													onClick={() => {
+														if (item.noteId) {
+															handleTogglePin(item.noteId, true);
+														}
+													}}
 													type="button"
 												>
 													<PinIcon aria-hidden="true" className="size-3.5" />

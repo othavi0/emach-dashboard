@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	buildPermissionTree,
+	type SectionView,
 	sectionMasterState,
 } from "@/app/dashboard/users/[id]/permissions/permissions-view";
 import type { Capability } from "@/lib/capabilities";
@@ -68,13 +69,15 @@ describe("buildPermissionTree", () => {
 });
 
 describe("sectionMasterState", () => {
-	const mk = (states: ("inherit" | "grant" | "revoke")[]) => ({
-		section: "Catálogo" as const,
+	// sectionMasterState só lê state e editable de cada linha; a cap é a mesma
+	// em todas porque o valor dela não entra no cálculo.
+	const mk = (states: ("inherit" | "grant" | "revoke")[]): SectionView => ({
+		section: "Catálogo",
 		resources: [
 			{
 				resource: "Ferramentas",
-				rows: states.map((s, i) => ({
-					cap: `c${i}` as Capability,
+				rows: states.map((s) => ({
+					cap: "tools.read",
 					action: "x",
 					defaultOn: false,
 					state: s,

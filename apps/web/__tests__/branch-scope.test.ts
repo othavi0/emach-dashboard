@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+// Mock sem tipo de propósito: o stub devolve só a cadeia from().where() que
+// getUserBranchScope usa, não o builder inteiro do Drizzle.
+const { dbSelect } = vi.hoisted(() => ({ dbSelect: vi.fn() }));
+
 vi.mock("@emach/db", () => ({
-	db: { select: vi.fn() },
+	db: { select: dbSelect },
 }));
 
 vi.mock("@emach/db/schema/inventory", () => ({
@@ -13,7 +17,7 @@ vi.mock("drizzle-orm", () => ({
 	sql: vi.fn(),
 }));
 
-import { db } from "@emach/db";
+import { makeSession } from "@/lib/__tests__/fixtures/make-session";
 import {
 	type BranchScope,
 	getUserBranchScope,
@@ -28,7 +32,7 @@ function mockBranchRows(branchIds: string[]) {
 	);
 
 	const from = vi.fn(() => ({ where }));
-	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+	dbSelect.mockReturnValueOnce({ from });
 }
 
 // --- testes das funções puras (preservados) ---
@@ -80,19 +84,23 @@ describe("getUserBranchScope — mapeamento role → escopo", () => {
 	});
 
 	it("super_admin → {kind:'all'} sem consultar o banco", async () => {
-		const s = {
-			user: { id: "gs-sa-1", role: "super_admin", status: "active" },
-		} as never;
+		const s = makeSession({
+			id: "gs-sa-1",
+			role: "super_admin",
+			status: "active",
+		});
 
 		const scope = await getUserBranchScope(s);
 		expect(scope.kind).toBe("all");
-		expect(db.select).not.toHaveBeenCalled();
+		expect(dbSelect).not.toHaveBeenCalled();
 	});
 
 	it("admin com filiais → scoped + includeUnassigned:true", async () => {
-		const s = {
-			user: { id: "gs-admin-1", role: "admin", status: "active" },
-		} as never;
+		const s = makeSession({
+			id: "gs-admin-1",
+			role: "admin",
+			status: "active",
+		});
 
 		mockBranchRows(["b-sp", "b-rj"]);
 		const scope = await getUserBranchScope(s);
@@ -105,9 +113,7 @@ describe("getUserBranchScope — mapeamento role → escopo", () => {
 	});
 
 	it("user com filial → scoped + includeUnassigned:false", async () => {
-		const s = {
-			user: { id: "gs-user-1", role: "user", status: "active" },
-		} as never;
+		const s = makeSession({ id: "gs-user-1", role: "user", status: "active" });
 
 		mockBranchRows(["b-sp"]);
 		const scope = await getUserBranchScope(s);
@@ -120,9 +126,11 @@ describe("getUserBranchScope — mapeamento role → escopo", () => {
 	});
 
 	it("user sem vínculo (fail-closed) → scoped com branchIds:[] + includeUnassigned:false", async () => {
-		const s = {
-			user: { id: "gs-user-blind-1", role: "user", status: "active" },
-		} as never;
+		const s = makeSession({
+			id: "gs-user-blind-1",
+			role: "user",
+			status: "active",
+		});
 
 		mockBranchRows([]);
 		const scope = await getUserBranchScope(s);

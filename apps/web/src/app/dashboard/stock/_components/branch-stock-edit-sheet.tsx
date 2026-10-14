@@ -203,7 +203,13 @@ export function BranchStockEditSheet({
 							{/* Segmented control — padrão canônico: active coral preenchido
 							    (espelha base Tabs / ActivityFilters / ledger-filters) */}
 							<div className="mb-4 flex gap-1 rounded-md bg-muted p-[3px] ring-1 ring-border/60">
-								{(["entrada", "baixa", "ajuste"] as Mode[]).map((m) => (
+								{(
+									[
+										"entrada",
+										"baixa",
+										"ajuste",
+									] as const satisfies readonly Mode[]
+								).map((m) => (
 									<button
 										className={`flex-1 rounded-sm px-2 py-1 font-medium text-xs transition-all ${
 											mode === m

@@ -5,8 +5,9 @@ import {
 	STEP_FIELDS,
 	TOOL_STEPS,
 } from "@/app/dashboard/tools/_components/tool-form-steps";
+import type { ToolFormInput } from "@/app/dashboard/tools/_components/tool-schema";
 
-const EMPTY = {
+const EMPTY: Partial<ToolFormInput> = {
 	name: "",
 	description: "",
 	model: "",
@@ -21,9 +22,8 @@ const EMPTY = {
 	lengthCm: undefined,
 	widthCm: undefined,
 	heightCm: undefined,
-	categoryIds: [] as string[],
+	categoryIds: [],
 	primaryCategoryId: "",
-	supplierId: "",
 	visibleOnSite: true,
 	images: [],
 	variants: [

@@ -9,6 +9,7 @@ import {
 import { supplier } from "@emach/db/schema/tools";
 import { type JsonValue, toDate } from "@emach/db/utils";
 import { desc, eq, sql } from "drizzle-orm";
+import { z } from "zod";
 
 import { type BranchScope, branchAndFilter } from "@/lib/branch-scope";
 import { decodeCursor, encodeCursor } from "@/lib/cursor";
@@ -179,7 +180,8 @@ export async function getSupplierStockTools({
 		id: string;
 		name: string;
 		slug: string;
-		status: string;
+		// t.status tem CHECK IN ('draft','active','discontinued') no schema de tool.
+		status: SupplierStockToolRow["status"];
 		created_at: string;
 		generalStock: string;
 		receivedFromSupplier: string;
@@ -228,7 +230,7 @@ export async function getSupplierStockTools({
 			id: r.id,
 			name: r.name,
 			slug: r.slug ?? "",
-			status: r.status as SupplierStockToolRow["status"],
+			status: r.status,
 			createdAt: toDate(r.created_at),
 			generalStock: Number(r.generalStock),
 			receivedFromSupplier: Number(r.receivedFromSupplier),
@@ -263,6 +265,9 @@ export interface SupplierAuditRow {
 	reason: string | null;
 }
 
+/** before_json/after_json são jsonb sem tipo; as actions de suppliers gravam objeto ou null. */
+const auditJsonSchema = z.record(z.string(), z.json()).nullable();
+
 export async function getSupplierAuditLog(
 	supplierId: string,
 	limit = 50
@@ -283,7 +288,11 @@ export async function getSupplierAuditLog(
 		.orderBy(desc(supplierAuditLog.createdAt))
 		.limit(limit);
 
-	return rows as SupplierAuditRow[];
+	return rows.map((row) => ({
+		...row,
+		beforeJson: auditJsonSchema.parse(row.beforeJson),
+		afterJson: auditJsonSchema.parse(row.afterJson),
+	}));
 }
 
 export interface SupplierTableRow {

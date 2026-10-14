@@ -991,7 +991,10 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 	// Inserir em ordem topológica (pais antes de filhos).
 	// O trigger PL/pgSQL materializa path e depth — passar placeholders.
 	const roots = CATEGORIES.filter((c) => c.parentSlug === null);
-	const children = CATEGORIES.filter((c) => c.parentSlug !== null);
+
+	const children = CATEGORIES.filter(
+		(c): c is CategoryDef & { parentSlug: string } => c.parentSlug !== null
+	);
 
 	for (const cat of roots) {
 		const id = crypto.randomUUID();
@@ -1013,7 +1016,7 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 	);
 
 	for (const cat of firstLevelChildren) {
-		const parentId = ctx.categoryIdBySlug[cat.parentSlug as string];
+		const parentId = ctx.categoryIdBySlug[cat.parentSlug];
 		const id = crypto.randomUUID();
 		await tx.insert(category).values({
 			id,
@@ -1033,7 +1036,7 @@ export async function seedCatalog(tx: Tx, ctx: SeedContext): Promise<void> {
 	);
 
 	for (const cat of secondLevelChildren) {
-		const parentId = ctx.categoryIdBySlug[cat.parentSlug as string];
+		const parentId = ctx.categoryIdBySlug[cat.parentSlug];
 		const id = crypto.randomUUID();
 		await tx.insert(category).values({
 			id,

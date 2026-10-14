@@ -164,9 +164,13 @@ export function AttributeForm({
 				>
 					{(field) => (
 						<Select
-							onValueChange={(v) =>
-								update("inputType", v as AttributeFormValues["inputType"])
-							}
+							onValueChange={(v) => {
+								const inputType = ATTRIBUTE_INPUT_TYPES.find((t) => t === v);
+
+								if (inputType) {
+									update("inputType", inputType);
+								}
+							}}
 							value={values.inputType}
 						>
 							<SelectTrigger {...field}>

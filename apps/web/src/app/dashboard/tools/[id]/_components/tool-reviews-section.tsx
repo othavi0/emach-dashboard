@@ -52,8 +52,8 @@ export function ToolReviewsSection({
 						</span>
 					</div>
 					<div className="flex flex-col justify-center gap-1.5">
-						{[5, 4, 3, 2, 1].map((star) => {
-							const count = summary.breakdown[star as 1 | 2 | 3 | 4 | 5];
+						{([5, 4, 3, 2, 1] as const).map((star) => {
+							const count = summary.breakdown[star];
 							const pct = (count / maxBucket) * 100;
 
 							return (

@@ -11,27 +11,39 @@ vi.mock("@/lib/permissions", () => ({
 	getUserCapabilities: vi.fn(),
 }));
 
-vi.mock("@emach/db", () => ({
-	db: { select: vi.fn(), insert: vi.fn(), delete: vi.fn() },
+// Mocks sem tipo de propósito: cada teste devolve só a cadeia que a action
+// usa (from/where/limit, values/onConflictDoUpdate, where), não o builder do
+// Drizzle.
+const { dbSelect, dbInsert, dbDelete } = vi.hoisted(() => ({
+	dbSelect: vi.fn(),
+	dbInsert: vi.fn(),
+	dbDelete: vi.fn(),
 }));
 
-import { db } from "@emach/db";
+vi.mock("@emach/db", () => ({
+	db: { select: dbSelect, insert: dbInsert, delete: dbDelete },
+}));
+
 import { setSectionCapabilities } from "@/app/dashboard/users/[id]/permissions/actions";
+import { makeSession } from "@/lib/__tests__/fixtures/make-session";
 import { logUserActivity } from "@/lib/activity";
+import type { Capability } from "@/lib/capabilities";
 import {
 	getUserCapabilities,
 	requireCapabilityWithContext,
 } from "@/lib/permissions";
 
-const actorSuper = {
-	user: { id: "actor", role: "super_admin", status: "active" },
-} as never;
+const actorSuper = makeSession({
+	id: "actor",
+	role: "super_admin",
+	status: "active",
+});
 
 function mockTargetRole(role: string | null) {
 	const limit = vi.fn(() => Promise.resolve(role ? [{ role }] : []));
 	const where = vi.fn(() => ({ limit }));
 	const from = vi.fn(() => ({ where }));
-	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+	dbSelect.mockReturnValueOnce({ from });
 }
 
 function mockTargetBranches(ids: string[]) {
@@ -40,16 +52,14 @@ function mockTargetBranches(ids: string[]) {
 	);
 
 	const from = vi.fn(() => ({ where }));
-	(db.select as ReturnType<typeof vi.fn>).mockReturnValueOnce({ from });
+	dbSelect.mockReturnValueOnce({ from });
 }
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	(requireCapabilityWithContext as ReturnType<typeof vi.fn>).mockResolvedValue(
-		actorSuper
-	);
-	(getUserCapabilities as ReturnType<typeof vi.fn>).mockResolvedValue(
-		new Set(["tools.create", "tools.delete"])
+	vi.mocked(requireCapabilityWithContext).mockResolvedValue(actorSuper);
+	vi.mocked(getUserCapabilities).mockResolvedValue(
+		new Set<Capability>(["tools.create", "tools.delete"])
 	);
 });
 
@@ -59,7 +69,7 @@ describe("setSectionCapabilities", () => {
 		mockTargetBranches(["b1"]);
 		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 		const values = vi.fn(() => ({ onConflictDoUpdate }));
-		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
+		dbInsert.mockReturnValue({ values });
 
 		const r = await setSectionCapabilities({
 			targetUserId: "u1",
@@ -81,7 +91,7 @@ describe("setSectionCapabilities", () => {
 		mockTargetRole("user");
 		mockTargetBranches(["b1"]);
 		const where = vi.fn(() => Promise.resolve());
-		(db.delete as ReturnType<typeof vi.fn>).mockReturnValue({ where });
+		dbDelete.mockReturnValue({ where });
 
 		const r = await setSectionCapabilities({
 			targetUserId: "u1",
@@ -90,8 +100,8 @@ describe("setSectionCapabilities", () => {
 		});
 
 		expect(r.ok).toBe(true);
-		expect(db.delete).toHaveBeenCalledTimes(2);
-		expect(db.insert).not.toHaveBeenCalled();
+		expect(dbDelete).toHaveBeenCalledTimes(2);
+		expect(dbInsert).not.toHaveBeenCalled();
 		expect(logUserActivity).toHaveBeenCalledWith(
 			expect.objectContaining({
 				metadata: expect.objectContaining({ bulk: true, effect: "inherit" }),
@@ -109,7 +119,7 @@ describe("setSectionCapabilities", () => {
 		});
 
 		expect(r.ok).toBe(false);
-		expect(db.insert).not.toHaveBeenCalled();
+		expect(dbInsert).not.toHaveBeenCalled();
 	});
 
 	it("grant em massa pula caps que o ator não possui (anti-escalada)", async () => {
@@ -117,7 +127,7 @@ describe("setSectionCapabilities", () => {
 		mockTargetBranches(["b1"]);
 		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 		const values = vi.fn(() => ({ onConflictDoUpdate }));
-		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
+		dbInsert.mockReturnValue({ values });
 
 		const r = await setSectionCapabilities({
 			targetUserId: "u1",
@@ -134,7 +144,7 @@ describe("setSectionCapabilities", () => {
 		mockTargetBranches(["b1"]);
 		const onConflictDoUpdate = vi.fn(() => Promise.resolve());
 		const values = vi.fn(() => ({ onConflictDoUpdate }));
-		(db.insert as ReturnType<typeof vi.fn>).mockReturnValue({ values });
+		dbInsert.mockReturnValue({ values });
 
 		const r = await setSectionCapabilities({
 			targetUserId: "u1",

@@ -37,6 +37,11 @@ const BUSINESS_HOURS_ROWS: Array<{ key: BusinessHoursKey; label: string }> = [
 
 const BREAK_ROWS = new Set<BusinessHoursKey>(["weekdays", "saturday"]);
 
+const BRANCH_STATUSES: readonly BranchFormValues["status"][] = [
+	"active",
+	"inactive",
+];
+
 interface Props {
 	branchId?: string;
 	/** 1 = empilhado (drawer); 2 = duas colunas (página de criar). Default 1. */
@@ -112,7 +117,7 @@ export function BranchFormFields({
 							disabled={disabled}
 							onValueChange={(v) =>
 								onPatch({
-									status: (v ?? "active") as BranchFormValues["status"],
+									status: BRANCH_STATUSES.find((s) => s === v) ?? "active",
 								})
 							}
 							value={values.status}

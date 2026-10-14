@@ -8,7 +8,15 @@ import { type Capability, isCapability } from "@/lib/capabilities";
 export type OverrideState = "inherit" | "grant" | "revoke";
 
 // Overrides persistidos só podem ser grant/revoke (inherit = ausência de linha).
-const PERSISTED_EFFECTS = new Set(["grant", "revoke"]);
+const PERSISTED_EFFECTS = [
+	"grant",
+	"revoke",
+] as const satisfies readonly OverrideState[];
+
+// A coluna é text: o enum do Drizzle só tipa, não impede valor legado no banco.
+function parsePersistedEffect(value: string): OverrideState | undefined {
+	return PERSISTED_EFFECTS.find((effect) => effect === value);
+}
 
 export async function getUserOverrides(
 	userId: string
@@ -26,8 +34,10 @@ export async function getUserOverrides(
 	for (const r of rows) {
 		// Ignora linhas com cap fora do registry ou effect inesperado (fail-closed:
 		// dado legado/inválido não vira um override fantasma na UI).
-		if (isCapability(r.capability) && PERSISTED_EFFECTS.has(r.effect)) {
-			map.set(r.capability, r.effect as OverrideState);
+		const effect = parsePersistedEffect(r.effect);
+
+		if (isCapability(r.capability) && effect) {
+			map.set(r.capability, effect);
 		}
 	}
 

@@ -98,7 +98,7 @@ export function stepHasErrors(
 	issues: ToolIssue[],
 	stepId: ToolStepId
 ): boolean {
-	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
+	const fields = new Set<string>(STEP_FIELDS[stepId]);
 
 	return issues.some(
 		(issue) => issue.path.length > 0 && fields.has(String(issue.path[0]))
@@ -111,13 +111,14 @@ export function getStepFieldErrors(
 	enforceActivation: boolean
 ): Partial<Record<keyof ToolFormValues, string>> {
 	const issues = collectToolIssues(values, { enforceActivation });
-	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
+	const fields: readonly (keyof ToolFormValues)[] = STEP_FIELDS[stepId];
 	const out: Partial<Record<keyof ToolFormValues, string>> = {};
 
 	for (const issue of issues) {
-		const key = issue.path[0] as keyof ToolFormValues | undefined;
+		const head = issue.path[0];
+		const key = fields.find((field) => field === head);
 
-		if (key && fields.has(String(key)) && out[key] === undefined) {
+		if (key && out[key] === undefined) {
 			out[key] = issue.message;
 		}
 	}
@@ -148,7 +149,7 @@ export function getStepErrorCount(
 	issues: ToolIssue[],
 	stepId: ToolStepId
 ): number {
-	const fields = new Set<string>(STEP_FIELDS[stepId] as string[]);
+	const fields = new Set<string>(STEP_FIELDS[stepId]);
 	const seen = new Set<string>();
 
 	for (const issue of issues) {
@@ -164,7 +165,7 @@ export function stepsWithContent(values: ToolFormState): Set<ToolStepId> {
 	const result = new Set<ToolStepId>();
 
 	for (const step of TOOL_STEPS) {
-		const fields = STEP_FIELDS[step.id] as (keyof ToolFormState)[];
+		const fields: readonly (keyof ToolFormState)[] = STEP_FIELDS[step.id];
 
 		const differs = fields.some(
 			(f) => JSON.stringify(values[f]) !== JSON.stringify(EMPTY_TOOL_VALUES[f])

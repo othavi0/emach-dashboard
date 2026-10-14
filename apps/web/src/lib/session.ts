@@ -1,10 +1,12 @@
 import { authDashboard, type DashboardSession } from "@emach/auth/dashboard";
 // biome-ignore lint/style/noExportedImports: importado localmente para uso no return type de getUserStatus; re-exportado para consumidores
 import type { UserStatus } from "@emach/db/schema/auth";
+import { userStatusEnum } from "@emach/db/schema/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { logger } from "./logger";
+import { getUserRole } from "./user-role";
 
 export type { UserStatus };
 
@@ -17,7 +19,11 @@ export const ROLE_WEIGHT: Record<UserRole, number> = {
 };
 
 export function getUserStatus(session: DashboardSession): UserStatus {
-	return (session.user.status ?? "pending") as UserStatus;
+	return (
+		userStatusEnum.enumValues.find(
+			(status) => status === session.user.status
+		) ?? "pending"
+	);
 }
 
 // cache() do React deduplica a resolução por-request: layout + page + guards
@@ -61,7 +67,7 @@ export const requireRole = async (
 		throw new Error("Conta não ativa");
 	}
 
-	const actual = (session.user.role ?? "user") as UserRole;
+	const actual = getUserRole(session);
 
 	if (ROLE_WEIGHT[actual] < ROLE_WEIGHT[role]) {
 		throw new Error(`Forbidden: role "${role}" requerida`);
