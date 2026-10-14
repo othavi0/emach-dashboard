@@ -90,11 +90,11 @@ describe("canonicalOrderTabKey", () => {
 
 describe("REFUND_STATUS_LABELS", () => {
 	it.each([
-		["requested", "solicitado"],
-		["under_review", "em análise"],
-		["approved", "aprovado"],
-		["refunded", "reembolsado"],
-		["rejected", "rejeitado"],
+		["requested", "Solicitado"],
+		["under_review", "Em análise"],
+		["approved", "Aprovado"],
+		["refunded", "Reembolsado"],
+		["rejected", "Rejeitado"],
 	] as const)("mostra %s como %s", (status, label) => {
 		expect(REFUND_STATUS_LABELS[status]).toBe(label);
 	});

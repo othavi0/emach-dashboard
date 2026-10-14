@@ -194,11 +194,10 @@ export const ORDER_STATUS_LABELS: Record<DbOrderStatus, string> =
 		])
 	) as Record<DbOrderStatus, string>;
 
-// Minúsculos porque entram no meio do subtítulo do histórico do pedido.
 export const REFUND_STATUS_LABELS = {
-	requested: "solicitado",
-	under_review: "em análise",
-	approved: "aprovado",
-	refunded: "reembolsado",
-	rejected: "rejeitado",
+	requested: "Solicitado",
+	under_review: "Em análise",
+	approved: "Aprovado",
+	refunded: "Reembolsado",
+	rejected: "Rejeitado",
 } as const satisfies Record<RefundStatus, string>;

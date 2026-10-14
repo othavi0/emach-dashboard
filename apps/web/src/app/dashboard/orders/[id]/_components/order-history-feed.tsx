@@ -200,7 +200,7 @@ function normalizeEvents(items: OrderEventItem[]): FeedItem[] {
 
 function normalizeRefunds(items: OrderRefundItem[]): FeedItem[] {
 	return items.map((r): FeedItem => {
-		const statusLabel = REFUND_STATUS_LABELS[r.status];
+		const statusLabel = REFUND_STATUS_LABELS[r.status].toLowerCase();
 		const subtitle = `${r.reasonCategory} · ${formatCurrency(r.amount)} · ${statusLabel}`;
 
 		return {
