@@ -30,7 +30,10 @@ export function coerceDates<T extends object>(
 		const v = obj[k];
 
 		if (v !== null && v !== undefined && !(v instanceof Date)) {
-			(obj as Record<keyof T, unknown>)[k] = new Date(v as string);
+			// SAFETY: o if acima já tirou null, undefined e Date; o que sobra numa
+			// chave de timestamp é a string crua que o driver do `db.execute` devolve
+			// (callers passam só as listas *_DATE_KEYS de catalog-helpers.ts).
+			Object.assign(obj, { [k]: new Date(v as string) });
 		}
 	}
 
