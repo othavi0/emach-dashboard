@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Lint (ultracite)
+      - name: Lint (ultracite e anti-slop)
         run: bun check
 
       - name: Caminhos citados nos docs

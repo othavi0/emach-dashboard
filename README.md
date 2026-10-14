@@ -13,7 +13,7 @@ Dashboard interno + base para futuro ecomerce BR. Monorepo Bun + Turborepo. Auth
 - **DB:** PostgreSQL via Supabase + Drizzle ORM (`packages/db`)
 - **Auth:** Better Auth 1.6 — instância dashboard em `packages/auth/src/dashboard.ts` (convite-only, ADR-0013); instância ecommerce vive no repo ecommerce (ADR-0004)
 - **Env validation:** `@t3-oss/env-core` + Zod (`packages/env`)
-- **Lint/format:** Biome 2.4.15 + Ultracite (`bun fix`)
+- **Lint/format:** Biome 2.4.15 + Ultracite (`bun fix`), mais as regras anti-slop do Oxlint (`bun run fix:slop`)
 - **Storage:** Supabase Storage (`tool-images` bucket) para imagens de produtos
 - **Design system:** Industrial-workshop warm-dark + coral, Barlow Condensed caixa-alta em h1, dark-mode único, AAA (ver `DESIGN.md`)
 
@@ -69,8 +69,9 @@ Blocks específicos do app: rodar shadcn CLI dentro de `apps/web` (não em `pack
 
 ## Lint / Format
 
-- `bun check` — dry-run (Ultracite check; falha se houver issue)
-- `bun fix` — aplica fixes automáticos (também roda como PostToolUse hook)
+- `bun check` — dry-run (Ultracite check e depois o anti-slop do Oxlint; falha se houver issue)
+- `bun fix` — aplica fixes automáticos do Biome (também roda como PostToolUse hook)
+- `bun run fix:slop` — aplica o autofix do anti-slop (linhas em branco do `require-readable-spacing`). O pre-commit roda os dois nos arquivos staged.
 
 ## Project Structure
 
@@ -109,8 +110,9 @@ emach-dashboard/
 | `bun dev:web`                                       | Inicia apenas o web (port 3001)                                           |
 | `bun build`                                         | Build de todos os apps                                                    |
 | `bun check-types`                                   | `tsc --noEmit` em todos os workspaces                                     |
-| `bun check`                                         | Ultracite check (lint/format dry-run; falha se issue)                     |
+| `bun check`                                         | Ultracite check + anti-slop (lint/format dry-run; falha se issue)         |
 | `bun fix`                                           | Ultracite fix (aplica auto-format)                                        |
+| `bun run fix:slop`                                  | Autofix do anti-slop (Oxlint)                                             |
 | `bun db:sync`                                       | drizzle-kit push + triggers + RLS (push-only — ADR-0006)                  |
 | `bun db:push`                                       | Só o schema Drizzle (sem triggers/RLS)                                    |
 | `bun db:studio`                                     | UI inspetora de tabelas (drizzle-kit)                                     |

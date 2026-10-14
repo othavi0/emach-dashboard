@@ -30,7 +30,8 @@
       "!**/.superpowers",
       "!**/.impeccable",
       "!**/.claude",
-      "!**/graphify-out"
+      "!**/graphify-out",
+      "!tools/oxlint/anti-slop"
     ]
   },
   "formatter": {

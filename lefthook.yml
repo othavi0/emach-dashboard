@@ -6,6 +6,9 @@
 # Os dois são idempotentes juntos.
 
 pre-commit:
+  # Em série, com o anti-slop depois do Biome: o formatter pode quebrar um const
+  # em várias linhas, e a linha em branco que isso exige só o oxlint --fix põe.
+  piped: true
   commands:
     react-doctor:
       # bunx: o binário de node_modules/.bin não está no PATH do hook —
@@ -17,6 +20,12 @@ pre-commit:
     - name: lint-fix
       glob: "*.{js,jsx,mjs,cjs,ts,tsx,json,jsonc,css}"
       run: bun run fix {staged_files}
+      stage_fixed: true
+    # Sem --no-error-on-unmatched-pattern, um commit só com arquivos ignorados
+    # pelo .oxlintrc.json (ex.: tools/oxlint/anti-slop) falha com "No files found".
+    - name: anti-slop
+      glob: "*.{ts,tsx,js,jsx,mjs,cjs}"
+      run: bun run fix:slop --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
     - name: ast-grep
       glob: "*.{ts,tsx}"
