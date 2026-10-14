@@ -62,6 +62,7 @@ import {
 	updateTrackingCodeSchema,
 	VALID_TRANSITIONS,
 } from "./schema";
+import { REFUND_STATUS_LABELS } from "./status-meta";
 
 const ORDERS_PATH = "/dashboard/orders";
 
@@ -1136,7 +1137,7 @@ async function transitionRefund(
 
 			if (!from.includes(req.status)) {
 				throw new Error(
-					`Transição de reembolso inválida: ${req.status} → ${to}`
+					`Transição de reembolso inválida: ${REFUND_STATUS_LABELS[req.status]} → ${REFUND_STATUS_LABELS[to]}`
 				);
 			}
 
