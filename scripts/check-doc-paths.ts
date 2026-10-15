@@ -23,7 +23,7 @@ const PREFIX =
 	/^(\.\/)?(apps|packages|docs|scripts|tooling|tools|\.github|\.claude)\//;
 
 const SKIP =
-	/(^|\/)\.env(\.|$)|[*<>{}$\s|]|^https?:|^mailto:|^@|^#|^~|^\/|\.\.\.|^[a-z]+:\/\//;
+	/(^|\/)\.env(\.|$)|[*<>{}$\s|]|^https?:|^mailto:|^@|^#|^~|^\/|^node_modules\/|\.\.\.|^[a-z]+:\/\//;
 
 const ANCHOR = /#.*$/;
 const LINE_OR_SYMBOL = /:(L?\d+([-–,]L?\d+)*(:\d+)?|[A-Za-z_]\w*)$/;
