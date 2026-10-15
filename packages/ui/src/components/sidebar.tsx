@@ -30,6 +30,7 @@ import {
 	useEffect,
 	useMemo,
 	useState,
+	useSyncExternalStore,
 } from "react";
 
 const SIDEBAR_WIDTH = "16rem";
@@ -41,6 +42,7 @@ interface SidebarContextProps {
 	isMobile: boolean;
 	open: boolean;
 	openMobile: boolean;
+	serverOpen: boolean;
 	setOpen: (open: boolean) => void;
 	setOpenMobile: (open: boolean) => void;
 	state: "expanded" | "collapsed";
@@ -49,11 +51,33 @@ interface SidebarContextProps {
 
 const SidebarContext = createContext<SidebarContextProps | null>(null);
 
+const subscribeNever = () => () => undefined;
+const notHydrating = () => false;
+const hydrating = () => true;
+
 function useSidebar() {
 	const context = useContext(SidebarContext);
+	// Cookie e viewport entram no contexto por efeito do provider, antes de um
+	// <Suspense> que chega por streaming hidratar. Enquanto ESTE consumidor
+	// hidrata, o snapshot do servidor mantém o que o SSR renderizou.
+	const isHydrating = useSyncExternalStore(
+		subscribeNever,
+		notHydrating,
+		hydrating
+	);
 
 	if (!context) {
 		throw new Error("useSidebar must be used within a SidebarProvider.");
+	}
+
+	if (isHydrating) {
+		return {
+			...context,
+			isMobile: false,
+			open: context.serverOpen,
+			openMobile: false,
+			state: context.serverOpen ? "expanded" : "collapsed",
+		} satisfies SidebarContextProps;
 	}
 
 	return context;
@@ -80,9 +104,9 @@ function SidebarProvider({
 	// defaultOpen is the initial value; the cookie is synced client-side after mount.
 	const [_open, _setOpen] = useState(defaultOpen);
 	// O layout não lê mais o cookie server-side (cacheComponents: o read dinâmico
-	// impediria o static shell de prerenderizar). SSR + 1º render client usam
-	// defaultOpen (sem hydration mismatch); este efeito sincroniza pro valor
-	// persistido no cookie logo após o mount.
+	// impediria o static shell de prerenderizar). O SSR usa defaultOpen; este
+	// efeito sincroniza pro valor persistido no cookie logo após o mount, e o
+	// useSidebar segura o valor do SSR enquanto cada consumidor hidrata.
 	useEffect(() => {
 		const match = document.cookie
 			.split(";")
@@ -94,6 +118,7 @@ function SidebarProvider({
 		}
 	}, []);
 	const open = openProp ?? _open;
+	const serverOpen = openProp ?? defaultOpen;
 
 	const setOpen = useCallback(
 		(value: boolean | ((value: boolean) => boolean)) => {
@@ -147,10 +172,11 @@ function SidebarProvider({
 			setOpen,
 			isMobile,
 			openMobile,
+			serverOpen,
 			setOpenMobile,
 			toggleSidebar,
 		}),
-		[state, open, setOpen, isMobile, openMobile, toggleSidebar]
+		[state, open, setOpen, isMobile, openMobile, serverOpen, toggleSidebar]
 	);
 
 	return (
