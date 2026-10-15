@@ -6,7 +6,7 @@ Dashboard Next 16 / React 19. Regras gerais (auth invariantes, anti-patterns, go
 
 - Sempre `"use server"` no topo + `await requireCapability(cap)` (ou `requireCurrentSession()`) no início.
 - Padrão de retorno: `ActionResult<T>` = `{ ok: true; data } | { ok: false; error }`.
-- Validação com Zod `safeParse`. Em catch: `logger.error("nomeDaAction", err)` + retornar `{ ok: false, error: "mensagem" }`. Não logar com `console`.
+- Validação com Zod `safeParse`. Em catch: `logger.error("nomeDaAction", err)` + retornar `{ ok: false, error: "mensagem" }`. Não logar com `console`. O oxlint acusa catch sem `logger.error` (ou sem relançar o erro) com `emach/require-log-in-action-catch`, hoje como aviso.
 - **Erro de banco no catch:** o drizzle põe o erro real do Postgres em `e.cause` (o `e.message` é só `"Failed query: …"`). **Nunca** detectar por `e.message.includes("foreign key"/"unique"/…)` — não casa e vaza SQL cru no toast. Usar `getPgError(e)` (`src/lib/db-error.ts`) → `{code, message, constraint}`, mapear SQLSTATE (`23503`/`23505`/`P0001`) p/ mensagem amigável; fallback loga + genérica. Detalhe em `packages/db/CLAUDE.md`.
 - `revalidatePath` ou `revalidateTag` após mutações.
 
