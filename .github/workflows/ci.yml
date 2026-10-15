@@ -70,3 +70,4 @@ jobs:
 
       - name: Hooks do harness e run-capped — tabela de casos
         run: scripts/test-hooks.sh
+# sonda de permissão, apagar
