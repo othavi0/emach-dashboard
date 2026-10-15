@@ -24,6 +24,15 @@ jobs:
       - name: Lint (ultracite e anti-slop)
         run: bun check
 
+      # test:lint-rules roda os .test.ts direto no Node (type stripping), com a mesma versão do CI do ecommerce.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Testes das regras oxlint emach
+        run: bun run test:lint-rules
+
       - name: Caminhos citados nos docs
         run: bun run check:docs
 

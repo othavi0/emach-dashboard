@@ -40,6 +40,7 @@
     "fix": "ultracite fix",
     "lint:slop": "bun node_modules/.bin/oxlint",
     "fix:slop": "bun node_modules/.bin/oxlint --fix",
+    "test:lint-rules": "node tools/oxlint/emach/rules/no-regexp-in-loop.test.ts && node tools/oxlint/emach/rules/require-log-in-action-catch.test.ts",
     "test": "turbo test",
     "verify": "bun check-types && bun check && bun run check:docs && bun guard:forms && bun run test",
     "guard:forms": "ast-grep scan",
