@@ -106,7 +106,7 @@ emach-dashboard/
 
 ## Available Scripts
 
-Os scripts marcados com ⛔ escrevem no banco único e seguem a regra de [Banco compartilhado: regra de escrita dos dois apps](CLAUDE.md#banco-compartilhado-regra-de-escrita-dos-dois-apps).
+Os scripts que mudam schema (`db:sync`, `db:push`, `db:apply-sql`) e os marcados com ⛔, que apagam ou repopulam em massa, pedem autorização explícita pela regra de [Banco compartilhado: regra de escrita dos dois apps](CLAUDE.md#banco-compartilhado-regra-de-escrita-dos-dois-apps).
 
 | Script                                              | Função                                                                    |
 | --------------------------------------------------- | ------------------------------------------------------------------------- |
