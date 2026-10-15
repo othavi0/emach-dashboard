@@ -351,11 +351,23 @@ Algoritmo na validação do cupom (carrinho/checkout):
 5. **Cálculo:** `percent` → percentual sobre a base elegível; `fixed` → abate `discount_value`
    em reais (clamp em ≥ 0).
 
-Na confirmação do pedido (transição para `paid`):
+No checkout (criação do pedido em `pending_payment`):
 
-- Incrementar `redemption_count` de forma **idempotente**: `SELECT ... FOR UPDATE` na `promotion`
-  + re-check do limite na mesma transação (mesmo padrão do débito de estoque em `stock_movement`).
-  O contador nunca pode ultrapassar `max_redemptions` sob disparo concorrente.
+- Reservar a redenção: incrementar `redemption_count` com `SELECT ... FOR UPDATE` na `promotion`
+  + re-check do limite na mesma transação. O contador nunca passa de `max_redemptions` sob disparo
+  concorrente.
+- Pedido abandonado segura a redenção até ser cancelado, pelo cliente ou pelo cron de 72 h.
+
+Em todo cancelamento (cliente na loja, admin no dashboard, cron `cancel-stale-orders`):
+
+- Devolver uma redenção com `GREATEST(redemption_count - 1, 0)` na `promotion` do
+  `order.coupon_id`, na mesma transação que grava `canceled`. Como `canceled` é terminal, a
+  devolução roda uma vez por pedido. No dashboard, os dois caminhos usam
+  `releaseCouponRedemption` (`apps/web/src/lib/coupon-redemption.ts`).
+- `refunded` não devolve a redenção: o cupom foi usado numa venda paga.
+
+No pedido:
+
 - Persistir o cupom aplicado no pedido: `order.coupon_id` (FK → `promotion.id`, `set null`) +
   o valor abatido em `order.discount_amount`.
 - Qualquer write automático no `stock_movement` de `saida_venda`: `actor_type='system'`, sem `actor_id` (CHECK `actor_coherence`). A tabela `promotion` não tem colunas de actor nem esse CHECK.
