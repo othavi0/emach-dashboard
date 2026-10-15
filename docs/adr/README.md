@@ -13,7 +13,7 @@ Decisões de arquitetura do dashboard. Cada ADR registra **uma** decisão não-�
 | [0003](0003-lead-nao-e-conceito-do-dominio.md)           | Lead não é um conceito do domínio                    | 2026-05-17 | Aceito                          |
 | [0004](0004-integracao-ecommerce-e-so-db-compartilhada.md) | Integração com o e-commerce é só DB compartilhada  | 2026-05-17 | Aceito                          |
 | [0005](0005-order-tem-eixo-unico-de-status.md)           | Order tem um eixo único de status                    | 2026-05-17 | Aceito                          |
-| [0006](0006-db-workflow-push-only.md)                    | DB workflow é push-only até produção                 | 2026-05-17 | Aceito                          |
+| [0006](0006-db-workflow-push-only.md)                    | DB workflow é push-only até produção                 | 2026-05-17 | Aceito — estendido por 0030     |
 | [0007](0007-estoque-debita-no-pagamento.md)              | Débito de estoque ocorre na transição para `paid`    | 2026-05-18 | Aceito                          |
 | [0008](0008-documentos-asaas-via-db.md)                  | Documentos do Asaas chegam pelo banco de dados       | 2026-05-18 | Aceito                          |
 | [0009](0009-sync-schema-via-ci.md)                       | Schema do ecommerce sincroniza via CI (PR automático) | 2026-05-18 | Aceito                          |
@@ -21,7 +21,7 @@ Decisões de arquitetura do dashboard. Cada ADR registra **uma** decisão não-�
 | [0011](0011-audit-log-de-user-sobrevive-ao-delete.md)    | Audit log de user sobrevive ao delete                | 2026-05-26 | Aceito                          |
 | [0012](0012-disable-role-based-gates.md)                 | Desligar bloqueios role-based mantendo roles         | 2026-05-27 | ⚠️ Superseded por [0016](0016-religacao-gates-3-niveis-filial.md) |
 | [0013](0013-auth-convite-only.md)                        | Auth de staff é convite-only                         | 2026-06-05 | Aceito — substitui 0010         |
-| [0014](0014-rls-deny-all-postgrest.md)                   | RLS deny-all nas tabelas public via PostgREST        | 2026-06-11 | Aceito                          |
+| [0014](0014-rls-deny-all-postgrest.md)                   | RLS deny-all em todas as tabelas do schema public    | 2026-06-11 | Aceito                          |
 | [0015](0015-fornecedor-na-entrada-de-estoque.md)         | Proveniência de Fornecedor vive na entrada de estoque | 2026-06-14 | Aceito                          |
 | [0016](0016-religacao-gates-3-niveis-filial.md)          | Religar gates com 3 níveis e escopo de filial        | 2026-06-15 | Aceito — substitui 0012         |
 | [0017](0017-permissoes-por-usuario.md)                   | Permissões por usuário (overrides de capability)     | 2026-06-15 | Aceito — estende 0016           |
@@ -37,6 +37,7 @@ Decisões de arquitetura do dashboard. Cada ADR registra **uma** decisão não-�
 | [0027](0027-nfe-emitida-pelo-ecommerce-dashboard-le.md) | NF-e é emitida pelo ecommerce/Asaas; dashboard só lê | 2026-07-01 | Aceito — estende 0004/0008 |
 | [0028](0028-conciliacao-financeira-asaas-design.md) | Conciliação financeira Asaas via ledger (design, adiado) | 2026-07-01 | Aceito (design) |
 | [0029](0029-anonimizacao-lgpd-direito-ao-esquecimento.md) | Anonimização LGPD preservando histórico fiscal | 2026-07-01 | Aceito (design) |
+| [0030](0030-push-only-com-producao-e-guardas.md) | Schema push-only com produção ativa, sob guardas | 2026-10-14 | Aceito — estende 0006 |
 
 ## Cadeias de decisão
 
@@ -47,7 +48,7 @@ Alguns ADRs formam linha evolutiva — ler na ordem dá o estado atual:
 - **Integração com o e-commerce:** [0004](0004-integracao-ecommerce-e-so-db-compartilhada.md) (só DB, sem API) fundamenta [0008](0008-documentos-asaas-via-db.md) (Asaas via DB), [0009](0009-sync-schema-via-ci.md) (sync de schema via CI) e [0027](0027-nfe-emitida-pelo-ecommerce-dashboard-le.md) (NF-e emitida pelo ecommerce).
 - **Ciclo do pedido / pós-venda (auditoria 2026-07-01):** [0007](0007-estoque-debita-no-pagamento.md) (débito no pagamento) → [0026](0026-devolucao-recredita-estoque-reason-propria.md) (devolução re-credita com motivo próprio) + [0025](0025-reembolso-refund-request-fonte-de-verdade.md) (`refund_request` fonte de verdade) + [0027](0027-nfe-emitida-pelo-ecommerce-dashboard-le.md) (NF-e). Fecham os P0/P1 achados no ciclo de reembolso/devolução/faturamento.
 - **Pré-produção (design, implementar depois):** [0028](0028-conciliacao-financeira-asaas-design.md) (ledger de conciliação Asaas) e [0029](0029-anonimizacao-lgpd-direito-ao-esquecimento.md) (anonimização LGPD) — decisões registradas, código adiado.
-- **Schema workflow:** [0006](0006-db-workflow-push-only.md) (push-only) sustenta o modo de aplicar mudanças em [0005](0005-order-tem-eixo-unico-de-status.md), [0009](0009-sync-schema-via-ci.md), [0014](0014-rls-deny-all-postgrest.md), [0015](0015-fornecedor-na-entrada-de-estoque.md).
+- **Schema workflow:** [0006](0006-db-workflow-push-only.md) (push-only) → **[0030](0030-push-only-com-producao-e-guardas.md)** (push-only com produção ativa: `db:sync` só com autorização do dono, rename e drop por expand-contract, vigente). Juntos sustentam o modo de aplicar mudanças em [0005](0005-order-tem-eixo-unico-de-status.md), [0009](0009-sync-schema-via-ci.md), [0014](0014-rls-deny-all-postgrest.md), [0015](0015-fornecedor-na-entrada-de-estoque.md).
 - **Sessão / `cookieCache`:** [0020](0020-cookie-cache-sessao-dashboard.md) (cookieCache habilitado, superseded) → **[0021](0021-remocao-cookie-cache-sessao-dashboard.md)** (removido — a medição de prod do #223 mostrou que não entregava no caminho SSR).
 - **Navegação / first-paint:** #222 (freeze + barra de progresso, remove `loading.tsx`) → 006-B tentou PPR (`cacheComponents`) para a casca estática → **[0022](0022-nao-adotar-cache-components-ppr.md)** (PPR é incompatível com o freeze; revertido, mantém o #222) → **[0023](0023-statetimes-router-cache-navegacao.md)** (`staleTimes` reaproveita a navegação no Router Cache — ataca o custo de revisita que o #223 não pegou) → **[0024](0024-tabs-client-side-detalhe-entidade.md)** (tabs de detalhe viram client-side — trocar tab não toca o servidor; ataca a 1ª-abertura que o `staleTimes` não cobre; piloto no tool detail, generalizado para as páginas de detalhe em jul/2026; hoje são 8).
 

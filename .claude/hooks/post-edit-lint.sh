@@ -31,6 +31,19 @@ $(printf '%s\n' "$out" | tail -n 5)"
 	fi
 fi
 
+# Depois do Biome, como no pre-commit: a linha em branco que o formatter passa a
+# exigir só o oxlint --fix põe. Arquivo ignorado pelo .oxlintrc.json sai 0.
+case "$f" in
+*.ts | *.tsx | *.js | *.jsx | *.mjs | *.cjs)
+	if ! out=$(bun node_modules/.bin/oxlint --fix --no-error-on-unmatched-pattern --format=unix "$f" 2>&1); then
+		found=$(printf '%s\n' "$out" | grep -E '^[^ ]+:[0-9]+:[0-9]+: ' | head -n "$max")
+		problems="${problems:+$problems
+}${found:-oxlint falhou sem diagnóstico:
+$(printf '%s\n' "$out" | tail -n 5)}"
+	fi
+	;;
+esac
+
 case "$f" in
 *.ts | *.tsx)
 	if ! out=$(node_modules/.bin/ast-grep scan --report-style short "$f" 2>&1); then

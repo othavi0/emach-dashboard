@@ -1,0 +1,9 @@
+id: no-ts-nocheck
+language: tsx
+severity: error
+message: >-
+  @ts-nocheck desliga a checagem de tipo do arquivo inteiro (CLAUDE.md, anti-patterns).
+  Corrija o tipo; código morto sai do repo, não fica guardado sem checagem.
+rule:
+  kind: comment
+  regex: '@ts-nocheck'

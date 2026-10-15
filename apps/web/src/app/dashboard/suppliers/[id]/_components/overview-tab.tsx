@@ -9,16 +9,9 @@ import {
 import { CalendarPlus, CheckCircle2, Circle, FolderTree } from "lucide-react";
 import { EntityKpisRow } from "@/components/entity/entity-kpis-row";
 import { ToolDescription } from "@/components/tool-description";
+import { formatDocument } from "@/lib/cpf-cnpj";
 import { formatDate } from "@/lib/format/datetime";
 import type { SupplierDetail, SupplierDetailKpis } from "../../data";
-
-function formatCnpj(c: string): string {
-	if (c.length !== 14) {
-		return c;
-	}
-
-	return `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12, 14)}`;
-}
 
 interface Props {
 	detail: SupplierDetail;
@@ -117,7 +110,7 @@ export function OverviewTab({ detail, kpis }: Props) {
 									CNPJ
 								</dt>
 								<dd className="mt-1 font-medium text-sm tabular-nums">
-									{detail.cnpj ? formatCnpj(detail.cnpj) : "—"}
+									{detail.cnpj ? formatDocument(detail.cnpj) : "—"}
 								</dd>
 							</div>
 						</dl>

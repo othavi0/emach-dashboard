@@ -15,7 +15,7 @@ O `LICENSE` (MIT) da raiz do upstream foi copiado para cá. O `vendor/eslint-sty
 - Severidade em `.oxlintrc.json`: todas as regras do plugin principal e `oxc/no-accumulating-spread` estão em `error`, como o upstream recomenda. A dívida inicial (795 avisos) foi zerada regra a regra antes de cada uma subir para `error`. A única exceção:
   - `off`: `no-module-mocking`. Teste unit mocka `@emach/db` porque o CI não tem banco.
 - O código daqui fica fora do Biome (`biome.json`) e do próprio oxlint (`ignorePatterns`).
-- O `ignorePatterns` também deixa de fora `packages/ui/**` (shadcn, regenerado pelo CLI) e `apps/web/src/lib/permissions.disabled.ts` (snapshot histórico com `@ts-nocheck`).
+- O `ignorePatterns` também deixa de fora `packages/ui/**` (shadcn, regenerado pelo CLI).
 
 ## Atualizar
 

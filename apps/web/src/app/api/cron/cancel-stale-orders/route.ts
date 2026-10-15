@@ -7,7 +7,11 @@ import { env } from "@emach/env/server";
 import { and, eq, lt, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
+import { releaseCouponRedemption } from "@/lib/coupon-redemption";
 import { logger } from "@/lib/logger";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const STALE_INTERVAL = sql`interval '72 hours'`;
 
@@ -38,7 +42,10 @@ export async function GET(request: Request) {
 			try {
 				await db.transaction(async (tx) => {
 					const [current] = await tx
-						.select({ status: orderTable.status })
+						.select({
+							status: orderTable.status,
+							couponId: orderTable.couponId,
+						})
 						.from(orderTable)
 						.where(eq(orderTable.id, id))
 						.for("update");
@@ -61,6 +68,8 @@ export async function GET(request: Request) {
 						actorUserId: null,
 						reason: REASON,
 					});
+
+					await releaseCouponRedemption(tx, current.couponId);
 
 					canceled++;
 				});

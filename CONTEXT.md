@@ -39,7 +39,7 @@ A coluna "Tabelas núcleo" não é exaustiva: lista as tabelas centrais de cada 
 ### Pessoas e acesso
 
 - **User (Staff / Usuário interno)** — funcionário da Emach com acesso ao dashboard. Tabela `user`. Tem `role` e `status`. Em código, `User` significa **sempre** staff — nunca cliente final.
-- **Client (Cliente)** — comprador final brasileiro, dono dos pedidos. Tabela `client`. Identificado por `document` (CPF/CNPJ normalizado, só dígitos). Autentica pela instância **ecommerce** do Better Auth; o dashboard apenas **lê** dados de Client, nunca cria sessão de Client.
+- **Client (Cliente)** — comprador final brasileiro, dono dos pedidos. Tabela `client`. Identificado por `document` (CPF só com dígitos; CNPJ alfanumérico em maiúsculas, sem pontuação). Autentica pela instância **ecommerce** do Better Auth; o dashboard apenas **lê** dados de Client, nunca cria sessão de Client.
 - **Client type (B2C / B2B)** — `clientType`: rótulo de **segmentação** do Client (pessoa física × jurídica), apenas para filtro e relatório. Não dirige preço, regra fiscal nem fluxo — não há precificação por tipo. **Derivado automaticamente** do `document` por trigger (`derive_client_type`: CPF → `b2c`, CNPJ → `b2b`); override manual é respeitado. `null` apenas quando `document` é nulo.
 - **Client Address (Endereço do cliente)** — endereço cadastrado de um Client (tabela `client_address`), com um default por cliente. **Distinto** do `shipping_address` do Order (snapshot JSONB congelado no checkout).
 - **Role** — papel hierárquico do staff: `super_admin` > `admin` > `user` (**3 níveis**). Define o conjunto padrão de Capabilities. `client` **não** tem role. O enum Postgres tem 3 valores: `super_admin`/`admin`/`user`; o valor `manager` foi removido em 2026-06-16 (ADR-0016).

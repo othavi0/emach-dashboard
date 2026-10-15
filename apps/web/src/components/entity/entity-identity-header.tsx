@@ -43,7 +43,10 @@ export function EntityIdentityHeader({
 					</AvatarFallback>
 				</Avatar>
 				<div className="min-w-0">
-					<p className="truncate font-medium font-serif text-xl leading-tight">
+					<p
+						// ast-grep-ignore: display-font-only-h1 título de entidade no header de detalhe, em sentence-case
+						className="truncate font-medium font-serif text-xl leading-tight"
+					>
 						{title}
 					</p>
 					{subtitle ? (

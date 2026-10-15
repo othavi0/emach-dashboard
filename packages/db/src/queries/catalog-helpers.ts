@@ -37,7 +37,6 @@ export const APPROVED = "approved" as const;
 export const DEFAULT_LIST_LIMIT = 24;
 export const DEFAULT_SEARCH_LIMIT = 8;
 export const DEFAULT_PROMO_LIMIT = 4;
-export const TOOLS_PER_PROMO = 4;
 
 // ---------------------------------------------------------------------------
 // Scalar helpers

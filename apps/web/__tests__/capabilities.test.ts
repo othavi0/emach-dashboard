@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
 	CAPABILITIES,
@@ -30,7 +32,7 @@ const OPERATIONAL_USER: readonly Capability[] = [
 	"orders.pick",
 ];
 
-const LEGACY_SUPER_EXCLUSIVE: readonly Capability[] = [
+const SUPER_ADMIN_EXCLUSIVE: readonly Capability[] = [
 	"branches.manage",
 	"users.delete",
 	"site.update_banners",
@@ -42,6 +44,19 @@ const LEGACY_SUPER_EXCLUSIVE: readonly Capability[] = [
 	"attributes.delete",
 	"shipping.manage",
 ];
+
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+
+// As duas cópias em texto da lista de exclusivos que agentes leem antes do código.
+const EXCLUSIVE_LIST_DOCS = [
+	{ doc: "CLAUDE.md", marker: "exclusivos de `super_admin`" },
+	{
+		doc: "docs/adr/0016-religacao-gates-3-niveis-filial.md",
+		marker: "Exclusivo de super_admin",
+	},
+];
+
+const BACKTICK_NAME = /`([^`]+)`/g;
 
 describe("registry de capabilities", () => {
 	it("toda key tem metadata completa", () => {
@@ -67,15 +82,51 @@ describe("registry de capabilities", () => {
 	it("admin default == tudo menos os exclusivos de super_admin", () => {
 		const adminCaps = roleDefaultCapabilities("admin");
 
-		for (const c of LEGACY_SUPER_EXCLUSIVE) {
+		for (const c of SUPER_ADMIN_EXCLUSIVE) {
 			expect(adminCaps.has(c), `admin não deve ter ${c}`).toBe(false);
 		}
 
 		for (const key of ALL_CAPABILITIES) {
-			if (!LEGACY_SUPER_EXCLUSIVE.includes(key)) {
+			if (!SUPER_ADMIN_EXCLUSIVE.includes(key)) {
 				expect(adminCaps.has(key), `admin deve ter ${key}`).toBe(true);
 			}
 		}
+	});
+
+	it("SUPER_ADMIN_EXCLUSIVE == caps com defaultRoles só super_admin", () => {
+		const onlySuper = ALL_CAPABILITIES.filter((key) => {
+			const roles = CAPABILITIES[key].defaultRoles;
+
+			return roles.length === 1 && roles[0] === "super_admin";
+		});
+
+		expect(onlySuper.sort()).toEqual([...SUPER_ADMIN_EXCLUSIVE].sort());
+	});
+
+	it.each(
+		EXCLUSIVE_LIST_DOCS
+	)("$doc lista os mesmos exclusivos de super_admin que o código", ({
+		doc,
+		marker,
+	}) => {
+		const text = readFileSync(path.resolve(REPO_ROOT, doc), "utf8");
+		const line = text.split("\n").find((l) => l.includes(marker));
+		expect(line, `${doc}: linha com "${marker}" sumiu`).toBeDefined();
+
+		const listed = new Set<Capability>();
+
+		for (const [, name = ""] of (line ?? "").matchAll(BACKTICK_NAME)) {
+			if (isCapability(name)) {
+				listed.add(name);
+			}
+		}
+
+		const missing = SUPER_ADMIN_EXCLUSIVE.filter((c) => !listed.has(c));
+		const extra = [...listed].filter((c) => !SUPER_ADMIN_EXCLUSIVE.includes(c));
+		expect({ missing, extra }, `${doc} diverge de capabilities.ts`).toEqual({
+			missing: [],
+			extra: [],
+		});
 	});
 
 	it("admin mantém as caps que mudaram de nível na matriz operacional do user", () => {
