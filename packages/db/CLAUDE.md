@@ -116,7 +116,7 @@ Mudanças nessas tabelas exigem coordenação de deploy.
 
 ## Queries owned-by-dashboard
 
-`packages/db/src/queries/*.ts` é ferramenta de leitura/regra de negócio que o storefront consome. Lista atual: `tools.ts` (`getTools`, `getToolBySlug`, `searchTools`...), `categories.ts` (`getCategoryTree`...), `promotions.ts`, `catalog-helpers.ts`, `reviews.ts` (`canCreateReview`), `store-settings.ts` (`getShippingSettings`, config de frete singleton lida pelo storefront), `shipping.ts`, `shipping-quote.ts`, `branch-cep.ts`, `dashboard.ts`, `dashboard-period.ts`, `order-status-groups.ts`.
+`packages/db/src/queries/*.ts` é ferramenta de leitura/regra de negócio que o storefront consome. Lista atual: `tools.ts` (`getTools`, `getToolBySlug`, `searchTools`...), `categories.ts` (`getCategoryTree`...), `promotions.ts`, `promo-limits.ts` (`TOOLS_PER_PROMO`, sem imports, lido também por Client Component do dashboard), `catalog-helpers.ts`, `reviews.ts` (`canCreateReview`), `store-settings.ts` (`getShippingSettings`, config de frete singleton lida pelo storefront), `shipping.ts`, `shipping-quote.ts`, `branch-cep.ts`, `dashboard.ts`, `dashboard-period.ts`, `order-status-groups.ts`.
 
 **Regra:** dashboard é fonte de verdade. Mudanças de regra começam aqui e propagam via CI. **Não editar em isolamento no ecommerce**.
 
