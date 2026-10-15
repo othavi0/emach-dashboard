@@ -23,4 +23,4 @@ A direção é unidirecional: dashboard → ecommerce. Mudança de schema sempre
 - O ecommerce passa a guardar triggers em `sql/triggers.sql` (antes `migrations/_triggers.sql`); a pasta morta `migrations/` é removida.
 - Um job de CI no ecommerce falha se `packages/db/src/{schema,sql,queries}` divergir do `main` do dashboard — pega o caso de PR de sync esquecido sem mergear.
 - Não se edita schema/queries/triggers isoladamente no ecommerce; toda mudança começa no dashboard.
-- Quando produção entrar no horizonte (ADR-0006), o mesmo Action passa a espelhar também a pasta de migrations versionadas.
+- Quando produção entrar no horizonte (ADR-0006), o mesmo Action passa a espelhar também a pasta de migrations versionadas. **Atualização (2026-10-14):** não vale mais. O [ADR-0030](0030-push-only-com-producao-e-guardas.md) manteve o push-only com produção ativa, então não há pasta de migrations para espelhar.

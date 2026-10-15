@@ -2,21 +2,22 @@
 
 Drizzle 0.45 + node-postgres + Supabase Postgres. Regras gerais na raiz.
 
-## Schema workflow (push-only — ADR-0006)
+## Schema workflow (push-only — ADR-0006 e ADR-0030)
 
 Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte de verdade**.
 
-- **Aplicar no banco:** `bun db:sync` (= `drizzle-kit push` + `db:apply-sql`). Rodar após editar `src/schema/*.ts` e após todo `git checkout` — banco compartilhado espelha a branch em checkout.
+- **Aplicar no banco:** `bun db:sync` (= `drizzle-kit push` + `db:apply-sql`). O `drizzle.config.ts` lê o `DATABASE_URL` de `apps/web/.env`, que aponta para o banco único: `db:sync` escreve no banco de produção e só roda com autorização do dono na sessão (ADR-0030). Nunca rodar por troca de branch.
 - `bun db:push` sozinho aplica só schema Drizzle (sem triggers/indexes). Prefira `db:sync`.
-- `drizzle-kit push` pede confirmação TTY em mudanças destrutivas — falha em CI/scripted. Em dev, rodar interativo.
+- `drizzle-kit push` pede confirmação TTY em mudanças destrutivas — falha em CI/scripted. Com a autorização do dono, rodar interativo; rename e drop seguem o expand-contract abaixo.
 - **Gotcha unique constraint composta:** declarar colunas do `.on()` na **mesma ordem** que aparecem na definição da tabela — drizzle-kit introspecta colunas de constraint em ordem de `attnum` e gera diff fantasma se divergir.
 - **Gotcha FK > 63 chars:** nome auto-gerado é truncado pelo Postgres e push entra em loop de diff — dar nome explícito via `foreignKey({ ..., name })`.
-- **Gotcha predicado de partial index:** `drizzle-kit push` casa índice por nome + colunas e **não faz diff do `WHERE`**. Mudar só o predicado (ex: `IN ('a','b')` → `IN ('a','b','c')`) reporta "Changes applied" mas é no-op — o índice no banco continua o antigo. Em dev, recriar manualmente: `DROP INDEX <nome>; CREATE [UNIQUE] INDEX ... WHERE (...)` numa transação, depois confirmar com `SELECT indexdef FROM pg_indexes WHERE indexname='<nome>'`. (Incidente #91.)
+- **Gotcha predicado de partial index:** `drizzle-kit push` casa índice por nome + colunas e **não faz diff do `WHERE`**. Mudar só o predicado (ex: `IN ('a','b')` → `IN ('a','b','c')`) reporta "Changes applied" mas é no-op — o índice no banco continua o antigo. Com a autorização do dono (o banco é produção), recriar manualmente: `DROP INDEX <nome>; CREATE [UNIQUE] INDEX ... WHERE (...)` numa transação, depois confirmar com `SELECT indexdef FROM pg_indexes WHERE indexname='<nome>'`. (Incidente #91.)
 - **Gotcha CHECK novo × dados existentes:** adicionar um `check()` via `db:sync` **falha** se alguma linha já viola (`ERROR: check constraint "x" is violated by some row`, SQLSTATE `23514`) — a coluna/index até é criada, mas o CHECK não. **Backfill/corrigir os dados ANTES.** Ex (ADR-0015): ao adicionar `entrada_requires_supplier` em `stock_movement`, 60 entradas legadas sem fornecedor foram convertidas pra `ajuste_inventario` antes do push.
-- **Drops:** PR explícito + comunicar ao app ecomerce (DB compartilhada). Em dev sem TTY (subagent/script), o `drizzle-kit push` de um drop pendura no prompt — fazer o `ALTER TABLE ... DROP COLUMN` direto via pg client + remover do schema TS; depois `db:push` vê schema≡banco (no-op). Coluna dropada leva índice/FK junto.
-- Quando o dado deixar de ser descartável: gerar baseline `0000` limpo a partir do schema atual e versionar a partir daí.
+- **Rename e drop:** só por expand-contract (ADR-0030), em PRs separados. Fase 1 adiciona a coluna nova e grava nas duas. Fase 2 faz o backfill e muda os leitores nos dois apps, e o PR de sync do ecommerce precisa estar mergeado. Fase 3, num PR separado, remove a coluna antiga. Nunca rename direto. Coluna dropada leva índice/FK junto.
+- **Coluna ou tabela nova:** aditiva (nullable ou com default), aplicada antes do código que a usa.
+- Sem baseline nem pasta de migrations: o ADR-0030 manteve o push-only com produção ativa.
 
-**Drop & recreate** (quando renames ambíguos quebram push sem TTY): `DROP SCHEMA public CASCADE` + push + `db:apply-sql` + `db:seed-demo`. ⛔ **Proibido sem autorização explícita do user na sessão:** o banco é único e compartilhado (dev = prod = ecommerce, ver aviso no CLAUDE.md da raiz).
+**Drop & recreate** (quando renames ambíguos quebram push sem TTY; o expand-contract do ADR-0030 evita o rename ambíguo): `DROP SCHEMA public CASCADE` + push + `db:apply-sql` + `db:seed-demo`. ⛔ **Proibido sem autorização explícita do user na sessão:** o banco é único e compartilhado (dev = prod = ecommerce, ver aviso no CLAUDE.md da raiz).
 
 ## Triggers PL/pgSQL
 

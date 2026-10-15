@@ -1,7 +1,7 @@
 # ADR 0006 — DB workflow é push-only até produção
 
 **Data:** 2026-05-17
-**Status:** Aceito
+**Status:** Aceito, estendido pelo [ADR-0030](0030-push-only-com-producao-e-guardas.md)
 
 ## Contexto
 
@@ -18,3 +18,4 @@ Sem produção, um histórico de migrations não tem nada que o consuma; mantê-
 - Quando produção entrar no horizonte, gerar um baseline `0000` limpo a partir do schema atual e versionar a partir daí.
 - O repo do app e-commerce sincroniza o schema contra os arquivos TS de `packages/db/src/schema/`, não contra migrations.
 - O banco compartilhado espelha a branch em checkout (`db:push` após cada `git checkout`); não é um ambiente estável. **Atualização (2026-09-28):** superado pelo aviso de banco único dev = prod no CLAUDE.md da raiz; não rodar `db:push` por branch.
+- **Atualização (2026-10-14):** a produção chegou sem o baseline. A primeira Consequência (baseline `0000`) foi substituída pelo [ADR-0030](0030-push-only-com-producao-e-guardas.md): o schema continua push-only, `db:sync` só roda com autorização do dono na sessão, e rename e drop seguem expand-contract.
