@@ -3,11 +3,17 @@
 > Log de mistakes recorrentes e decisões não-óbvias. Código vence em conflito.
 > Produto: register de ferramentas + dashboard interno. Dois apps compartilham DB Supabase (admin = este; site ecomerce = repo separado).
 
-## ⛔ Banco único dev=prod (incidente 2026-07)
+## Banco compartilhado: regra de escrita dos dois apps
 
-- O Supabase deste repo é ÚNICO e COMPARTILHADO (dev = prod = ecommerce). NUNCA `seed`/`truncate`/`drop`/reset/`db:push` destrutivo sem autorização explícita do user NESTA sessão — `db:seed-demo` já truncou 28 tabelas via Task de subagente que não recebeu esta restrição.
-- **Write pontual de linha é OK sem autorização caso-a-caso** — o dado povoado é seed descartável (`EM-TEST-*`/`EM-2026-*`). Vale INSERT/UPDATE/DELETE de poucas linhas via app ou script one-off, ex: fabricar um estado que o seed não tem pra fechar smoke visual (2026-07-16: exceção de picking pra provar a linha de exceção da overview, #329). **Reverter o que criou ao terminar** (guardar o id e deletar; preferível ao fluxo do app, que resolve pra frente e deixa histórico). A fronteira é **volume + irreversibilidade**, não o ato de escrever: o destrutivo em massa do item acima (reset/truncate/drop/seed) continua exigindo autorização explícita.
-- Todo subagente/Task que toca banco recebe **as duas** restrições acima COLADAS no prompt (subagente não herda este arquivo).
+Esta seção é a fonte da regra de escrita no banco para o dashboard e para o ecommerce. As outras docs dos dois repos apontam para cá.
+
+- O Supabase é um só para dev, produção, dashboard e ecommerce.
+- **Pede autorização explícita do user nesta sessão:** todo comando que muda schema, apaga em massa ou não tem volta. No dashboard: `db:sync`, `db:push`, `db:apply-sql`, `db:reset-demo`, todo `db:seed-*` e `db:unseed-*`, drop e recreate do schema. No ecommerce: `db:push`, `db:apply-triggers`, todo `db:seed-*`, `db:anonymize-client`, drop e recreate do schema. Em 2026-07, um `db:seed-demo` rodado por subagente sem esta regra truncou 28 tabelas.
+- **Write pontual é liberado sem autorização caso a caso:** INSERT, UPDATE ou DELETE de poucas linhas para fabricar um estado de smoke, feito pelo app, por script one-off ou, no dashboard, por `db:fixtures`. Guarde o id e reverta ao terminar. Prefira apagar o que criou a resolver pelo fluxo do app, que anda para a frente e deixa histórico.
+- A fronteira é volume e irreversibilidade, não o ato de escrever.
+- Leitura é livre: `db:read` no dashboard ou qualquer consulta só de leitura.
+- Todo subagente que toca o banco recebe esta seção colada no prompt, porque subagente não herda este arquivo.
+- Se o classificador de permissões barrar um write pontual, pare e peça ao user. Não contorne.
 - PII/credenciais de bootstrap do reset de 2026-06 permanecem no **histórico git** (arquivo `RESET-PLAN.md` em commits anteriores a `03984800`; a working tree está limpa desde então e o arquivo foi removido em 2026-07-13 — purge de histórico nunca foi feito).
 - Dado fabricado para smoke sai por `bun run --cwd packages/db db:fixtures create <superfície>` e volta por `db:fixtures cleanup --run <run>` (o `create` imprime o run). Consulta sem o MCP: `db:read`, só leitura. Detalhes em `packages/db/CLAUDE.md`.
 - CWD é a raiz do monorepo. O `dev` de `apps/web` e o `scripts/remove-tool-image-bg.py` se cercam sozinhos com `scripts/run-capped.sh` (teto de memória por systemd, ajustável por `MEM_HIGH`/`MEM_MAX`). Comando pesado novo passa pelo mesmo script. Dev server: `PORT=<n> bun dev:web`. Em dev o auth aceita qualquer `localhost:<porta>`, então trocar de porta não pede edição do `.env`.

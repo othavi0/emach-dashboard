@@ -1,6 +1,6 @@
 # packages/db — Convenções
 
-Drizzle 0.45 + node-postgres + Supabase Postgres. Regras gerais na raiz.
+Drizzle 0.45 + node-postgres + Supabase Postgres. Regras gerais na raiz. O que pede autorização e o que conta como write pontual no banco único vive em [Banco compartilhado: regra de escrita dos dois apps](../../CLAUDE.md#banco-compartilhado-regra-de-escrita-dos-dois-apps); os avisos ⛔ deste arquivo resumem essa regra.
 
 ## Schema workflow (push-only — ADR-0006)
 
