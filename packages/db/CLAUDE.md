@@ -146,6 +146,21 @@ Não há script nem server action de anonimização de cliente ("direito ao esqu
 
 `bun db:seed-demo` (trunca e repopula o banco inteiro) e `bun db:reset-demo` (só trunca demo) em `packages/db/scripts/`. ⛔ Os dois são destrutivos no banco único dev = prod: só com autorização explícita do user na sessão.
 
-- **Estado fabricado para smoke visual:** `bun run --cwd packages/db db:fixtures create <order|picking-exception|banner|review> [--branch <id>] [--run <run>]`. Cada `create` grava um token de execução no marcador (`EM-TEST-FX-<run>-<id8>` no número do pedido, `[EM-TEST-FX:<run>]` no texto livre; fonte em `scripts/fixtures-marks.ts`) e imprime run, ids, número, rota e o comando de volta. `--run` junta várias superfícies na mesma execução. Ao terminar, `db:fixtures cleanup --run <run>` apaga só aquela execução; `cleanup --all` apaga toda fixture, inclusive o formato antigo sem run, e pode levar a de outra sessão. O pedido usa o client ativo mais antigo por `(created_at, id)`, hoje o único client do banco, sem pedido real.
-- **Fixture não passa por reembolso, devolução nem envio:** ela nasce `paid` sem débito de estoque, então esses fluxos mexem no `stock_level` de variante real; o cleanup aborta sem apagar nada se achar `refund_request` ou `stock_movement` ligado a ela e pede estorno manual.
+- **Estado fabricado para smoke visual:** `bun run --cwd packages/db db:fixtures create <order|picking-exception|banner|review|payment-failed|canceled|returned|refunded|ready-to-ship> [--branch <id>] [--run <run>] [--age <horas>]`. Cada `create` grava um token de execução no marcador (`EM-TEST-FX-<run>-<id8>` no número do pedido, `[EM-TEST-FX:<run>]` no texto livre; fonte em `scripts/fixtures-marks.ts`) e imprime run, ids, número, rota e o comando de volta. `--run` junta várias superfícies na mesma execução. Ao terminar, `db:fixtures cleanup --run <run>` apaga só aquela execução; `cleanup --all` apaga toda fixture, inclusive o formato antigo sem run, e pode levar a de outra sessão. O pedido usa o client ativo mais antigo por `(created_at, id)`, hoje o único client do banco, sem pedido real. A lista de superfícies e o caminho de status de cada uma vivem em `scripts/fixtures-surfaces.ts`, e `src/__tests__/fixtures-doc.test.ts` confere esta seção contra ela.
+
+| Superfície | Nasce | Linhas além de `order`, `order_item` e histórico | Rota impressa |
+| --- | --- | --- | --- |
+| `order` | `paid` | nenhuma | pedido e `?tab=paid` |
+| `picking-exception` | `preparing` | `order_picking` em `exception` e item `notFound` | pedido e `/dashboard` (linha de exceção) |
+| `banner` | — | só o `banner` inativo, sem pedido | `/dashboard/site/banners` |
+| `review` | `delivered` | `review` | `/dashboard/reviews/<id>` |
+| `payment-failed` | `payment_failed` | nenhuma | pedido e `?tab=pending_payment` |
+| `canceled` | `canceled` | nenhuma | pedido e `?tab=canceled` |
+| `returned` | `returned` | nenhuma | pedido e `?tab=returned` |
+| `refunded` | `refunded` | `refund_request` em `refunded` com a marca no `reasonText` | pedido e `?tab=canceled` |
+| `ready-to-ship` | `preparing` | `order_picking` em `completed`, item bipado e scan | pedido e `?tab=picked` (Pronto para enviar) |
+
+- **`--age <horas>`** (inteiro positivo, só superfícies de pedido) recua a última etapa para `agora - horas` e as anteriores de hora em hora. `order --age 80` cai na aba de atrasados, que conta a partir de 72 h (`apps/web/src/app/dashboard/orders/_lib/lateness.ts`). Sem a flag, a última etapa fica 1 h atrás.
+- **Nenhuma superfície debita nem credita estoque.** Fluxos do app que mexem em estoque sobre uma fixture (envio, devolução com crédito, reembolso com crédito) alteram o `stock_level` de variante real. O cleanup aborta sem apagar nada se achar `stock_movement` ou `refund_request` sem a marca ligado à fixture, e pede estorno manual. O `refund_request` que a superfície `refunded` grava tem a marca e sai no cleanup.
+- **Drizzle Studio:** `bun run --cwd packages/db db:studio` abre o `drizzle-kit studio` contra o `DATABASE_URL`, que é o banco único. A edição pela UI escreve direto em produção.
 - **Consulta sem MCP:** `bun run --cwd packages/db db:read "<sql>" [--limit N] [--timeout S]`. Um statement só (`SELECT`, `WITH`, `VALUES` ou `TABLE`; `EXPLAIN` e `SHOW` não entram em cursor), em `BEGIN READ ONLY` com `statement_timeout` de 15 s e `ROLLBACK` sempre. O servidor manda no máximo `limit + 1` linhas (cursor + `FETCH`); escrita falha com `cannot execute ... in a read-only transaction` ou `DECLARE CURSOR must not contain data-modifying statements`.
