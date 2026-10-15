@@ -67,7 +67,7 @@ export function PromotionCard({ promotion }: { promotion: PromotionListItem }) {
 							>
 								<AlertTriangle aria-hidden className="size-3" />
 								{homeVisibility.reason === "too_few_products" &&
-									"Destaque sem efeito: faltam produtos"}
+									"Destaque sem efeito: sem produtos"}
 								{homeVisibility.reason === "inactive" &&
 									"Destaque sem efeito: inativa"}
 								{homeVisibility.reason === "expired" &&

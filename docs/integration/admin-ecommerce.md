@@ -96,7 +96,7 @@ Helper compartilhado em `@emach/db/queries/store-settings`:
 
 - `originCep` (CEP da filial de origem, ou `null`): origem da cotação. O storefront **já consome** — usa `originCep` como `SellerCEP` quando tem 8 dígitos válidos; senão cai no fallback `env.FRENET_SELLER_CEP`.
 - `insurancePolicy`: `'none'` (sem valor declarado adicional) ou `'cart_value'` (declara o valor do carrinho até `insuranceCapAmount` como `ShipmentInvoiceValue` na cotação Frenet). Também já consumido pelo storefront.
-- **Frete grátis** não vive aqui: é só via cupom/promoção (`promotion`). O `R$ 299` hardcoded no storefront é bug a remover (issue separado no emach-ecommerce).
+- **Frete grátis** não vive aqui: é só via cupom/promoção (`promotion`).
 
 As colunas `shipping_fill_factor` e `shipping_box_padding_cm` foram removidas do schema em 2026-07-29 (nunca foram consumidas pela cotação; o motor usa folga fixa de 0.9). O drop físico das colunas no banco é coordenado — ver "Regra de sincronização" abaixo.
 
@@ -393,10 +393,8 @@ storefront (`hero-carousel.tsx`) renderiza. Desde a spec 2026-07-29 ("Banner Bui
 elemento"), a fonte de verdade **deixou de ser** o enum `layout` + `product_scale`/`cta_scale` e
 passou a ser a coluna nova **`composition`** (jsonb, nullable). O preview do dashboard (canvas do
 editor + card da listagem) espelha 1:1 o que o storefront deve produzir via o mesmo componente de
-referência — divergência entre os dois é bug. **Status da migração:** o dashboard já escreve
-`composition` em todo save; o storefront ainda não lê essa coluna — migração rastreada em
-[emach-ecommerce#210](https://github.com/othavi0/emach-ecommerce/issues/210) (ver "Transição"
-abaixo).
+referência — divergência entre os dois é bug. O storefront lê `composition` desde o merge do
+ecommerce#212 (ver "Transição" abaixo).
 
 Conteúdo (textos, link, URLs de imagem, `ctaVariant`, `specs`, `countdownTarget`,
 `backgroundMobileMode`/`backgroundImageMobileUrl`) continua nas colunas atuais — a `composition`
@@ -544,7 +542,7 @@ confirmada e registrada na ecommerce#210). O dual-write foi **removido** do dash
 data: `createBanner` grava só `composition`; **`layout`/`product_scale`/`cta_scale` são
 deprecated** e sem leitor primário (o único uso restante é o fallback de leitura
 `legacyToComposition` para `composition` NULL/inválida, nos dois apps). Hoje o `updateBanner`
-ainda regrava as três colunas a cada save (`site/banners/actions.ts:141-143`), então elas seguem
+ainda regrava as três colunas a cada save (`updateBanner` em `apps/web/src/app/dashboard/site/banners/actions.ts`), então elas seguem
 com escritor nesse caminho. Não introduzir escrita nova nessas colunas; remoção
 física do schema fica pra um ciclo futuro (exige sync coordenado — ADR-0009).
 
@@ -603,16 +601,20 @@ A fonte de verdade é sempre o dashboard (este repositório). O e-commerce **nun
 
 ## Seção de promoção em destaque (home)
 
-O storefront renderiza a promoção `featured` da home com regras de layout que
-dependem da quantidade de produtos vinculados:
+O storefront busca a promoção `featured` da home com `getFeaturedPromotion`
+(`packages/db/src/queries/promotions.ts`). A quantidade de produtos vinculados
+decide o que aparece:
 
-- **Mínimo de 2 produtos** — com menos de 2 produtos específicos, a seção **não
-  renderiza**.
-- **Teto de 4 produtos** — a home exibe os 4 mais recentes (`created_at`); os
-  demais só em "Ver todas as ofertas".
+- **Mínimo de 1 produto.** A seção aparece com 1 produto ou mais. A query devolve
+  `null` quando a promoção de produtos específicos não tem ferramenta vinculada ou
+  quando nenhuma ferramenta da promoção passa no filtro da vitrine
+  (`visible_on_site` e status de vitrine).
+- **Teto de `TOOLS_PER_PROMO` produtos (4).** A home mostra os mais recentes
+  (`created_at`). Os demais só aparecem em "Ver todas as ofertas". O teto é o
+  `LIMIT` da query.
 
-O dashboard espelha esses números em
-`apps/web/src/app/dashboard/promotions/_lib/featured-home.ts`
-(`HOME_MIN_PRODUCTS = 2`, `HOME_MAX_PRODUCTS = 4`) para validar/avisar no form e
-na listagem. **Alterar o layout no storefront exige atualizar essas constantes
-no dashboard junto** (sincronia manual — não há import cross-repo).
+`TOOLS_PER_PROMO` vive em `packages/db/src/queries/promo-limits.ts`, um módulo sem
+imports. A query da loja e o dashboard leem a mesma constante. O dashboard a
+importa em `apps/web/src/app/dashboard/promotions/_lib/featured-home.ts`
+(`HOME_MAX_PRODUCTS`), com `HOME_MIN_PRODUCTS = 1`, para validar e avisar no form
+e na listagem.
