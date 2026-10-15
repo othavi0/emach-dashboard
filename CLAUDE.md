@@ -24,7 +24,7 @@ Duas instâncias **completamente isoladas** Better Auth no mesmo banco:
 1. `apps/web` **pode** importar `@emach/db/schema/client` (admin lê dados de cliente). `apps/web` **nunca** importa `@emach/auth/ecommerce`. App ecomerce **nunca** importa `@emach/db/schema/auth`.
 2. `DashboardSession` ≠ `EcommerceSession`. Não existe tipo "Session" genérico.
 3. **Nunca** setar `advanced.cookies.<name>.attributes.domain = ".emach.com.br"`. Subdomínios distintos isolam por host.
-4. CPF/CNPJ: validação no app (zod refine + dígito verificador). Sempre normalizar (só dígitos) antes de persistir em `client.document`.
+4. CPF/CNPJ: validação no app (zod refine + dígito verificador). Normalizar antes de persistir: CPF só com dígitos; CNPJ alfanumérico em maiúsculas, sem pontuação (IN RFB 2.229/2024). A lógica copia `packages/validators/src/cpf-cnpj.ts` do ecommerce; mudança num lado exige a mesma no outro.
 5. Schema é **push-only** (ADR-0006): `bun db:sync` após editar `packages/db/src/schema/*.ts`. Sem migrations versionadas.
 6. DB compartilhada com app ecomerce externo (ADR-0004). Admin **não** chama ecomerce; ecomerce **não** chama admin. Coordenação via schema. Sync schema TS é **CI PR automático** dashboard → ecommerce (ADR-0009). Contrato: `docs/integration/admin-ecommerce.md`.
 
