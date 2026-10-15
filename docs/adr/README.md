@@ -21,7 +21,7 @@ Decisões de arquitetura do dashboard. Cada ADR registra **uma** decisão não-�
 | [0011](0011-audit-log-de-user-sobrevive-ao-delete.md)    | Audit log de user sobrevive ao delete                | 2026-05-26 | Aceito                          |
 | [0012](0012-disable-role-based-gates.md)                 | Desligar bloqueios role-based mantendo roles         | 2026-05-27 | ⚠️ Superseded por [0016](0016-religacao-gates-3-niveis-filial.md) |
 | [0013](0013-auth-convite-only.md)                        | Auth de staff é convite-only                         | 2026-06-05 | Aceito — substitui 0010         |
-| [0014](0014-rls-deny-all-postgrest.md)                   | RLS deny-all nas tabelas public via PostgREST        | 2026-06-11 | Aceito                          |
+| [0014](0014-rls-deny-all-postgrest.md)                   | RLS deny-all em todas as tabelas do schema public    | 2026-06-11 | Aceito                          |
 | [0015](0015-fornecedor-na-entrada-de-estoque.md)         | Proveniência de Fornecedor vive na entrada de estoque | 2026-06-14 | Aceito                          |
 | [0016](0016-religacao-gates-3-niveis-filial.md)          | Religar gates com 3 níveis e escopo de filial        | 2026-06-15 | Aceito — substitui 0012         |
 | [0017](0017-permissoes-por-usuario.md)                   | Permissões por usuário (overrides de capability)     | 2026-06-15 | Aceito — estende 0016           |
