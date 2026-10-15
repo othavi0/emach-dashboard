@@ -447,7 +447,7 @@ Surface-deep cria o "well" — sem necessidade de border adicional. Scroll horiz
 - Cool blue-grays no chrome. Teal só em info-role e charts.
 - `text-xs` no body principal.
 - Drop shadows pesados. Depth = surface contrast + ring.
-- `font-serif` (display Barlow Condensed) em h3, body, controls, sidebar — restrito a h1 + wordmark.
+- `font-serif` (display Barlow Condensed) em h3, body, controls, sidebar — restrito a h1 + wordmark. A regra ast-grep `display-font-only-h1` barra no `bun guard:forms`.
 - Manchete h1 sem caixa-alta — o `uppercase` é a voz; exceção só em nome de entidade dinâmico (sentence-case).
 - Emojis decorativos.
 - `bg-surface-deep` como surface padrão de card. Só code/log/featured.
@@ -583,7 +583,7 @@ Roles **nunca** dependem só de matiz. Cada estado carrega ícone + label + cor:
 
 - Não introduza cool blue-grays. Toda neutra tem chroma warm (oklch hue 70).
 - Não use copper hue 45 — saiu junto com a iteração industrial.
-- Não use `font-serif` (display) em h3, body, controls, sidebar, dentro de tabelas — só h1 + wordmark.
+- Não use `font-serif` (display) em h3, body, controls, sidebar, dentro de tabelas — só h1 + wordmark. O `bun guard:forms` barra (`display-font-only-h1`); exceção com motivo segue o `CLAUDE.md`.
 - Não use caixa-alta em nome de entidade dinâmico/longo — ilegível com truncate; use sentence-case.
 - Não pinte coisas de coral aleatoriamente. Restrinja a CTA + focus + brand + callout-card.
 - Não use mais de 1 callout-card-coral por página.
