@@ -101,8 +101,8 @@ export function SupplierFormFields({
 					error={errors.cnpj}
 					help={
 						<HelpTooltip
-							body="Só os dígitos são salvos; a máscara é apenas visual. Se não informar o CNPJ, descreva o motivo nas observações."
-							example="12.345.678/0001-90 → 12345678000190"
+							body="Letras e dígitos são salvos sem pontuação; a máscara é apenas visual. Se não informar o CNPJ, descreva o motivo nas observações."
+							example="12.ABC.345/01DE-35 → 12ABC34501DE35"
 							title="CNPJ"
 						/>
 					}

@@ -1,42 +1,32 @@
+import { normalizeDocument } from "@/lib/cpf-cnpj";
 import type { Mask } from "./index";
 
-const CNPJ_DIGITS_MAX = 14;
+const CNPJ_CHARS_MAX = 14;
+const CNPJ_A_RE = /^([0-9A-Z]{2})([0-9A-Z])/;
+const CNPJ_B_RE = /^([0-9A-Z]{2})\.([0-9A-Z]{3})([0-9A-Z])/;
+const CNPJ_C_RE = /\.([0-9A-Z]{3})([0-9A-Z])/;
+const CNPJ_D_RE = /([0-9A-Z]{4})([0-9A-Z])/;
 
+// Mesma máscara do `maskCpfCnpj` do ecommerce: CNPJ alfanumérico (IN RFB
+// 2.229/2024) mantém letras em maiúsculas.
 function sanitizeCnpj(display: string): string {
-	const digits = display.replace(/\D/g, "").slice(0, CNPJ_DIGITS_MAX);
-
-	if (digits.length === 0) {
-		return "";
-	}
-
-	if (digits.length <= 2) {
-		return digits;
-	}
-
-	if (digits.length <= 5) {
-		return `${digits.slice(0, 2)}.${digits.slice(2)}`;
-	}
-
-	if (digits.length <= 8) {
-		return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
-	}
-
-	if (digits.length <= 12) {
-		return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
-	}
-
-	return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+	return normalizeDocument(display)
+		.slice(0, CNPJ_CHARS_MAX)
+		.replace(CNPJ_A_RE, "$1.$2")
+		.replace(CNPJ_B_RE, "$1.$2.$3")
+		.replace(CNPJ_C_RE, ".$1/$2")
+		.replace(CNPJ_D_RE, "$1-$2");
 }
 
 export const cnpjMask: Mask<string> = {
 	format: (raw) => (raw ? sanitizeCnpj(raw) : ""),
 	parse: (display) => {
-		const digits = display.replace(/\D/g, "");
+		const cnpj = normalizeDocument(display).slice(0, CNPJ_CHARS_MAX);
 
-		return digits.length === 0 ? undefined : digits;
+		return cnpj.length === 0 ? undefined : cnpj;
 	},
 	sanitize: sanitizeCnpj,
-	inputMode: "numeric",
+	inputMode: "text",
 	placeholder: "00.000.000/0000-00",
 	maxLength: 18,
 };
