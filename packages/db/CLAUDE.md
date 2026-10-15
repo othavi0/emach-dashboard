@@ -32,7 +32,18 @@ Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte 
 - FK: explicitar `onDelete: "cascade" | "restrict" | "set null"`. Default = `restrict` por integridade.
 - Money: `numeric(10, 2)` para preço/custo de produto; `numeric(12, 2)` em totais de pedido. **Nunca `real`/`double`**.
 - **Timestamp: sempre `timestamp("x", { withTimezone: true })`** (= `timestamptz`). Migrado em 2026-06-10 (todas as colunas da época). **Nunca declarar `timestamp(...)` sem tz** — coluna naïve quebra paginação por cursor em runtime não-UTC: o cursor é serializado via `new Date(rawString).toISOString()`, que em dev BR (−03) injeta +3h, e o keyset `< ${cursor}::timestamp` passa a reincluir o item-cursor → loop de refetch + duplicate keys. Banco compartilhado: migração coordenada com ecommerce (issue ecommerce#79).
-- Auditoria: `actorType pgEnum('actor_type', ['user','system'])` + FK do ator (user). **Nome da coluna varia por tabela:** `stockMovement.actorId`; as demais (`orderStatusHistory`, `clientAuditLog`, `supplierAuditLog`, `userActivityLog`) usam `actorUserId`. As tabelas com `actorType` têm CHECK `*_actor_coherence` (o nome varia: `actor_coherence`, `client_audit_actor_coherence`, `supplier_audit_actor_coherence`, `order_event_actor_coherence`, `refund_actor_coherence`). `userActivityLog` não tem `actorType` nem CHECK, só `actorUserId` nullable.
+- Auditoria: `actorType` (`actorTypeEnum`, pgEnum `actor_type` com `user` e `system`) + FK do ator para `user`. Ator humano grava `actorType: "user"` e a FK = `session.user.id`; seed, script, cron e escrita do ecommerce gravam `actorType: "system"` e a FK `null`. O CHECK de coerência de cada tabela recusa outro par. As 6 tabelas com `actor_type`:
+
+  | Tabela | Coluna do ator | CHECK |
+  | --- | --- | --- |
+  | `stockMovement` | `actorId` | `actor_coherence` |
+  | `orderStatusHistory` | `actorUserId` | `actor_coherence` |
+  | `orderEvent` | `actorUserId` | `order_event_actor_coherence` |
+  | `refundRequest` | `actorUserId` | `refund_actor_coherence` |
+  | `clientAuditLog` | `actorUserId` | `client_audit_actor_coherence` |
+  | `supplierAuditLog` | `actorUserId` | `supplier_audit_actor_coherence` |
+
+  `userActivityLog` não tem `actor_type` nem CHECK, só `actorUserId` nullable. `src/__tests__/actor-coherence.test.ts` falha quando uma tabela com `actor_type` não tem CHECK que cite a coluna, ou quando o conjunto de tabelas sai desta lista.
 - "No máximo 1 marcado": `uniqueIndex(...).on(parentId).where(sql\`${isDefault} = true\`)` — ex `tool_variant.isDefault` (1 default por tool).
 - `unique()` em colunas de busca natural (sku, barcode, slug, document).
 
@@ -116,7 +127,7 @@ Mudanças nessas tabelas exigem coordenação de deploy.
 
 ## Queries owned-by-dashboard
 
-`packages/db/src/queries/*.ts` é ferramenta de leitura/regra de negócio que o storefront consome. Lista atual: `tools.ts` (`getTools`, `getToolBySlug`, `searchTools`...), `categories.ts` (`getCategoryTree`...), `promotions.ts`, `catalog-helpers.ts`, `reviews.ts` (`canCreateReview`), `store-settings.ts` (`getShippingSettings`, config de frete singleton lida pelo storefront), `shipping.ts`, `shipping-quote.ts`, `branch-cep.ts`, `dashboard.ts`, `dashboard-period.ts`, `order-status-groups.ts`.
+`packages/db/src/queries/*.ts` é ferramenta de leitura/regra de negócio que o storefront consome. Os arquivos estão no próprio diretório `packages/db/src/queries/`; exemplos de entrada: `getTools`, `getCategoryTree`, `getShippingSettings`.
 
 **Regra:** dashboard é fonte de verdade. Mudanças de regra começam aqui e propagam via CI. **Não editar em isolamento no ecommerce**.
 

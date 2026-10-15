@@ -91,11 +91,7 @@ Formatar timestamps **sempre** via `src/lib/format/datetime.ts` (`formatDate`, `
 
 ## Auditoria de mutações DB
 
-Ao inserir em `stockMovement`, `orderStatusHistory`, `clientAuditLog`, `supplierAuditLog`, `userActivityLog`:
-- Admin user → `actorType: "user"` + a FK do ator = `session.user.id`. **Atenção ao nome da coluna:** `stockMovement` usa `actorId`; **todas as outras** (`orderStatusHistory`, `clientAuditLog`, `supplierAuditLog`, `userActivityLog`) usam `actorUserId`.
-- Seed/script/mutação automática (inclui escritas do app e-commerce) → `actorType: "system"` (default), FK do ator `null`.
-
-CHECK `actor_coherence` no DB rejeita combinações inválidas.
+A regra de `actorType` (quais tabelas têm a coluna, o nome da FK do ator e o CHECK de cada uma) vive em `packages/db/CLAUDE.md`, seção "Convenções de schema". No app: server action de admin grava `actorType: "user"` com `session.user.id`; job e cron gravam `actorType: "system"` com a FK `null`.
 
 `stockMovement.variantId` (não mais `toolId`) — toda movimentação por variante. Pra revalidar paths do tool-pai após `adjustStock`: `SELECT toolId FROM tool_variant WHERE id = $variantId` antes de `revalidatePath`.
 
