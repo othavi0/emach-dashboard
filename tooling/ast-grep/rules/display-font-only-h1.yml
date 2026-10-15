@@ -1,0 +1,21 @@
+id: display-font-only-h1
+language: tsx
+severity: error
+message: >-
+  font-serif é o display (Barlow Condensed) e fica restrito a h1 e wordmark
+  (CLAUDE.md, anti-patterns). Exceção: // ast-grep-ignore: display-font-only-h1 com o motivo,
+  dentro da tag, na linha de cima do className.
+ignores:
+  - packages/ui/**
+rule:
+  kind: string_fragment
+  regex: '(^|\s)font-serif(\s|$)'
+  inside:
+    kind: jsx_attribute
+    stopBy: end
+    has: { kind: property_identifier, regex: '^className$' }
+  not:
+    inside:
+      kind: jsx_opening_element
+      stopBy: end
+      has: { field: name, regex: '^h1$' }

@@ -1,0 +1,12 @@
+id: no-ts-nocheck-ts
+valid:
+  - 'const a: number = 1; // tipo explícito'
+  - '/* @ts-check */ const b = 2;'
+  - 'const s = "@ts-nocheck";'
+invalid:
+  - |
+    // @ts-nocheck
+    const a: number = "x";
+  - |
+    /* @ts-nocheck */
+    const b: number = "y";
