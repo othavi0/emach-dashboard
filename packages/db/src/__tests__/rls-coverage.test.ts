@@ -11,7 +11,7 @@ const ALTER_LINE = /^ALTER TABLE/gm;
 const rlsSql = readFileSync(new URL("../sql/rls.sql", import.meta.url), "utf8");
 const rlsTables = Array.from(rlsSql.matchAll(RLS_LINE), (m) => m[1] ?? "");
 
-async function schemaTables() {
+async function schemaTables(): Promise<string[]> {
 	const schema = await import("../schema/index");
 
 	return Object.values(schema)
