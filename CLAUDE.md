@@ -36,14 +36,14 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 
 `bun check` (Biome) barra `console`, `any`, `@ts-ignore`, `key={index}`, o import de `forwardRef` e componente async em arquivo `"use client"` (`noNextAsyncClientComponent`, ligado pelo preset `ultracite/biome/next`). `bun guard:forms` (ast-grep) barra `useMemo`, `useCallback`, `@ts-expect-error`, erro de validação cru fora de `<FieldError>` (`raw-validation-error`) e `font-serif` fora de h1 (`display-font-only-h1`). Cada item abaixo diz quem o barra; o que diz "revisão" não tem check. As exceções ficam nos próprios checks:
 
-- Log em produção passa por `logger` (`apps/web/src/lib/logger.ts`). Biome (`noConsole`, desligado só no `logger.ts` e em `**/scripts/**`).
+- Log em produção passa por `logger` (`apps/web/src/lib/logger.ts`). Biome (`noConsole`, desligado no `logger.ts`, em `**/scripts/**` e, pelo preset `ultracite/biome/core`, em arquivo de teste, `bin`, `.mjs` e `.cjs`).
 - `key={index}` só em lista curta de primitivos sem id ou de inputs controlados, com `// biome-ignore lint/suspicious/noArrayIndexKey: <motivo>` na linha logo acima do atributo `key`. `packages/ui` (shadcn) fica fora da regra.
 - `useMemo`/`useCallback` só onde o React Compiler não compila o componente, com `// ast-grep-ignore: no-manual-memo <motivo>` (`no-manual-memo-ts` em `.ts`).
 - `<img>` puro — sempre `next/image` (exceto thumbs Supabase com biome-ignore). Biome (`noImgElement`).
 - Barrel files (`index.ts` re-export only). Biome (`noBarrelFile`). Exceções marcadas com `biome-ignore lint/performance/noBarrelFile`: `packages/db/src/schema/index.ts` (API pública do pacote `@emach/db`) e `apps/web/src/lib/masks/index.ts` (import ergonômico das máscaras de input). Outros barrels em `src/index.ts` de pacotes que exportam lógica real (ex: `packages/db/src/index.ts`) **não são barrels** pela definição do biome — não precisam de anotação.
 - Componente async em arquivo `"use client"` — usar Server Component pra fetching. Handler async dentro do componente é permitido. Biome (`noNextAsyncClientComponent`).
 - `.forEach()` — `for...of`. Biome (`noForEach`), em qualquer lugar, não só em hot path.
-- Regex literal ou `new RegExp(...)` dentro de função — extrair top-level. Biome (`useTopLevelRegex`).
+- Regex dentro de função — extrair top-level. Literal: Biome (`useTopLevelRegex`). `new RegExp` com string constante: Biome (`useRegexLiterals`, cujo fix a vira literal). `new RegExp` com padrão dinâmico em loop: revisão.
 - `target="_blank"` sem `rel="noopener"`. Biome (`noBlankTarget`; o fix acrescenta o `rel`).
 - APIs que injetam HTML não-sanitizado — exceto com sanitização (ex: `react-markdown` + `rehype-sanitize` preset `defaultSchema`). Biome (`noDangerouslySetInnerHtml`).
 - Cool blue-grays — neutros têm chroma warm (oklch hue ~70). Revisão: a cor entra por token, valor arbitrário ou utilitário do Tailwind, e nenhum padrão de sintaxe separa matiz quente de frio.
