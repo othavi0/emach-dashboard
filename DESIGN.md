@@ -75,7 +75,7 @@ Display e h1 em **Barlow Condensed caixa-alta** (`uppercase tracking-[0.015em]`)
 | Função | Classes Tailwind | Notas |
 |---|---|---|
 | Display (overview, hero) | `font-serif text-5xl font-medium uppercase tracking-[0.015em]` | 48px Barlow Condensed caixa-alta. Overview, login hero. |
-| h1 página | `font-serif text-2xl font-medium uppercase tracking-[0.015em]` | 24px Barlow Condensed caixa-alta nas páginas com `PageHeader` (22 usos). Exceções com h1 inline: `/dashboard` (`text-3xl`) e criar/editar ferramenta, criar promoção e detalhe de review (`text-4xl`). |
+| h1 página | `font-serif text-2xl font-medium uppercase tracking-[0.015em]` | 24px Barlow Condensed caixa-alta nas páginas com `PageHeader`. Exceções com h1 inline: `/dashboard` (`text-3xl`) e criar/editar ferramenta, criar promoção e detalhe de review (`text-4xl`). |
 | h2 seção | `font-sans text-2xl font-semibold tracking-tight` | 24px Barlow. Headers de seção são sans (h2 não usa display na prática). |
 | h3 sub-seção | `font-sans text-sm font-semibold uppercase tracking-wider` | 14px caps — section marker (sans, não serif) |
 | Title prominent | `font-sans text-base font-medium` | 16px — card titles em listas, dentro de tabelas |
@@ -397,19 +397,28 @@ Metáfora "esquerda: o que precisa de ação / direita: o que aconteceu". Usado 
 Regras:
 - **Wrapper `min-h-[18rem]` no ActivityFeed** (com `absolute inset-0` no filho). Sem wrapper, o ActivityFeed cresce com o conteúdo e desequilibra o par.
 - **Sub-tabs do PendingPanel são Tabs reais** (não ToggleGroup). Carregam `<TabsCountBadge>` no contador. Drop intencional: a cor por `tab.role` no badge das sub-tabs (warning/success/info) **não** é aplicada; uniformidade > sinalização redundante. Sinalização de severidade fica nos badges do header do painel ou no `row.badge` dos itens (continua usando `BADGE_COLORS` por role).
-- **Ícone de status nas linhas (opcional).** `PendingRow` aceita `iconKey`/`tone` (de `status-visual`) → ícone de status colorido à esquerda da linha. `ActivityEvent` aceita `iconKey`/`tone`/`accentLabel` → o ícone vira o do status e o `accentLabel` (nome do status) é renderizado colorido após o `primary` (ex: `#EM-2026-0014 → Em preparação`). Campos **opcionais**: consumidores que não os passam mantêm o ícone+cor por `kind` (`KIND_META`). O `accentLabel` é declarado e renderizado em `activity-feed.tsx`, mas hoje nenhum consumidor o passa.
+- **Ícone de status nas linhas (opcional).** `PendingRow` aceita `iconKey`/`tone` (de `status-visual`) → ícone de status colorido à esquerda da linha. `ActivityEvent` declara `iconKey`, `tone` e `accentLabel` em `activity-feed.tsx`, mas nenhum consumidor passa esses campos: o único produtor de eventos (`fetchDashboardActivity`) não os preenche, e o feed usa o ícone+cor por `kind` (`KIND_META`).
 
 ### Callout coral (`callout-card-coral`)
+
+> Receita sem uso no app hoje. Ao adotar, siga as regras abaixo.
 
 Full-bleed coral card para CTA grande, empty state de módulo vazio (ex: "Nenhuma ferramenta cadastrada"), ou banner de onboarding crítico. Pattern portado do "callout-card-coral" da Anthropic.
 
 ```tsx
+import { buttonVariants } from "@emach/ui/components/button";
+import { cn } from "@emach/ui/lib/utils";
+import Link from "next/link";
+
 <div className="rounded-lg bg-primary p-12 text-primary-foreground">
-  <h2 className="font-serif text-3xl font-normal tracking-tight">Comece criando sua primeira ferramenta</h2>
+  <h2 className="font-sans text-2xl font-semibold tracking-tight">Comece criando sua primeira ferramenta</h2>
   <p className="mt-3 text-base">…</p>
-  <Button asChild className="mt-6 bg-card text-foreground hover:bg-card/80">
-    <Link href="/dashboard/tools/new">Nova ferramenta</Link>
-  </Button>
+  <Link
+    className={cn(buttonVariants(), "mt-6 bg-card text-foreground hover:bg-card/80")}
+    href="/dashboard/tools/new"
+  >
+    Nova ferramenta
+  </Link>
 </div>
 ```
 
@@ -419,6 +428,8 @@ Regras:
 - CTA interna inverte para `bg-card text-foreground` (botão claro sobre coral).
 
 ### Featured card (`featured-card-dark`)
+
+> Receita sem uso no app hoje. Ao adotar, siga as regras abaixo.
 
 Para destacar item recomendado em grid/lista (template de pedido sugerido, ferramenta featured, plano recomendado em comparação). Bg `bg-surface-deep` + `ring-2 ring-primary` cria inversão visual no meio de cards `bg-card` regulares.
 
