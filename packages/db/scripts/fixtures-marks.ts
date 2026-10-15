@@ -102,12 +102,17 @@ export function cleanupPlan(scope: CleanupScope): CleanupPlan {
 		.from(orderPicking)
 		.where(inArray(orderPicking.orderId, orderIds));
 
+	// A superfície refunded grava o próprio refund_request com a marca. Um sem
+	// a marca foi o app que gravou sobre a fixture, e esse bloqueia.
+	const fixtureRefund = sql`coalesce(${startsWith(refundRequest.reasonText, marks.text)}, false)`;
+	const refundOfFixtureOrder = inArray(refundRequest.orderId, orderIds);
+
 	return {
 		blockers: [
 			{
 				fk: refundRequest.orderId,
 				id: refundRequest.id,
-				where: inArray(refundRequest.orderId, orderIds),
+				where: sql`${refundOfFixtureOrder} and not ${fixtureRefund}`,
 			},
 			{
 				fk: stockMovement.orderId,
@@ -122,6 +127,10 @@ export function cleanupPlan(scope: CleanupScope): CleanupPlan {
 		],
 		steps: [
 			{ table: review, where: inArray(review.orderId, orderIds) },
+			{
+				table: refundRequest,
+				where: sql`${refundOfFixtureOrder} and ${fixtureRefund}`,
+			},
 			{
 				table: orderPickingScan,
 				where: inArray(orderPickingScan.pickingId, pickingIds),
