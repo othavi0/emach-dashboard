@@ -86,7 +86,7 @@ interface UpdateChain {
 /** Tabelas recebidas por tx.update, em ordem. */
 const updatedTables: string[] = [];
 
-/** selectResults[0] é a linha travada pelo lockOrderAndAuthorize. */
+/** `lockedRow` é a linha que o lockOrderAndAuthorize lê sob o FOR UPDATE. */
 function makeMockTx(lockedRow: LockedRow) {
 	const selectChain: SelectChain = {
 		from: vi.fn(() => selectChain),
