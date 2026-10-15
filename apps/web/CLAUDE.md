@@ -120,7 +120,7 @@ Route handlers em `src/app/api/cron/*` autenticam via header `Authorization: Bea
 
 **Convenções:**
 
-- `export const dynamic = "force-dynamic"` + `runtime = "nodejs"` no topo do handler. Hoje `cancel-stale-orders` ainda não exporta os dois.
+- `export const dynamic = "force-dynamic"` + `runtime = "nodejs"` no topo do handler. A regra ast-grep `cron-route-exports` (`bun guard:forms`) cobra os dois em `src/app/api/cron/**/route.ts`.
 - Authorize ANTES de qualquer query: `if (authHeader !== \`Bearer \${env.CRON_SECRET}\`) return 401`.
 - Processar item-a-item em transações separadas com `FOR UPDATE` + re-check de estado (idempotência contra disparo concorrente + race com ecommerce).
 - `actorType: 'system'`, `actorUserId: null` em writes — CHECK `actor_coherence` no DB exige.

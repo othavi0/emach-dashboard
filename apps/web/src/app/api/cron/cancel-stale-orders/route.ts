@@ -10,6 +10,9 @@ import { NextResponse } from "next/server";
 import { releaseCouponRedemption } from "@/lib/coupon-redemption";
 import { logger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const STALE_INTERVAL = sql`interval '72 hours'`;
 
 const REASON =
