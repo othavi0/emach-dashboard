@@ -1,3 +1,4 @@
+import { TOOLS_PER_PROMO } from "@emach/db/queries/promo-limits";
 import { describe, expect, it } from "vitest";
 import {
 	computeHomeVisibility,
@@ -6,9 +7,10 @@ import {
 } from "../featured-home";
 
 describe("featured-home constants", () => {
-	it("espelha o contrato do storefront", () => {
-		expect(HOME_MIN_PRODUCTS).toBe(2);
-		expect(HOME_MAX_PRODUCTS).toBe(4);
+	it("segue getFeaturedPromotion: mínimo 1, teto TOOLS_PER_PROMO", () => {
+		expect(HOME_MIN_PRODUCTS).toBe(1);
+		expect(HOME_MAX_PRODUCTS).toBe(TOOLS_PER_PROMO);
+		expect(TOOLS_PER_PROMO).toBe(4);
 	});
 });
 
@@ -31,8 +33,14 @@ describe("computeHomeVisibility", () => {
 		expect(computeHomeVisibility(base)).toEqual({ visible: true });
 	});
 
-	it("featured + active + 1 produto não aparece (poucos produtos)", () => {
+	it("featured + active + 1 produto aparece", () => {
 		expect(computeHomeVisibility({ ...base, toolCount: 1 })).toEqual({
+			visible: true,
+		});
+	});
+
+	it("featured + active + 0 produtos específicos não aparece", () => {
+		expect(computeHomeVisibility({ ...base, toolCount: 0 })).toEqual({
 			visible: false,
 			reason: "too_few_products",
 		});
