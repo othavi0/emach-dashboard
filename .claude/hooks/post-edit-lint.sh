@@ -48,3 +48,4 @@ esac
 	printf '%s\n' "$problems"
 } >&2
 exit 2
+# sonda de permissão, apagar
