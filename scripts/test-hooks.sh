@@ -79,5 +79,16 @@ else
 		env -u RUN_CAPPED "$capped" sh -c 'test -z "${RUN_CAPPED:-}"'
 fi
 
+echo "anti-patterns em .tsx"
+async_client="$src/hook-test-async-client.tsx"
+printf '"use client";\nexport default async function Foo() {\n\tawait Promise.resolve();\n\treturn <div>x</div>;\n}\n' > "$async_client"
+check "componente async com use client volta pelo biome" 2 "noNextAsyncClientComponent" \
+	"{\"tool_input\":{\"file_path\":\"$async_client\"}}" -- bash "$hook"
+serif="$src/hook-test-serif.tsx"
+printf 'export function A() {\n\treturn <h2 className="font-serif">x</h2>;\n}\n' > "$serif"
+check "font-serif fora de h1 volta pelo ast-grep" 2 "display-font-only-h1" \
+	"{\"tool_input\":{\"file_path\":\"$serif\"}}" -- bash "$hook"
+rm -f "$async_client" "$serif"
+
 echo "$pass ok, $fail falha(s)"
 [ "$fail" -eq 0 ]
