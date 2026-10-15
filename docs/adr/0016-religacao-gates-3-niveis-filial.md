@@ -2,7 +2,7 @@
 
 **Data:** 2026-06-15
 **Status:** Aceito — **substitui o ADR-0012**
-**Relaciona:** a matriz viva é `apps/web/src/lib/capabilities.ts` (`defaultRoles`); o snapshot da matriz de 4 níveis que este ADR estendeu foi apagado na issue #394; depende de ADR-0013 (convite-only), ADR-0004 (DB compartilhada).
+**Relaciona:** a matriz viva é `apps/web/src/lib/capabilities.ts` (`defaultRoles`); o snapshot da matriz de 4 níveis que este ADR estendeu foi apagado no PR #420; depende de ADR-0013 (convite-only), ADR-0004 (DB compartilhada).
 
 ## Contexto
 
