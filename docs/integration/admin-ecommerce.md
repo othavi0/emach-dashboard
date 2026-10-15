@@ -1,5 +1,7 @@
 # Contrato de integração: admin ↔ site e-commerce
 
+> **Fonte e cópia.** A fonte deste contrato é o repo `othavi0/emach-dashboard`. O `emach-ecommerce` recebe uma cópia em `docs/integration/admin-ecommerce.md` pelo PR do workflow `sync-db-schema.yml`. Não edite a cópia do ecommerce: a mudança começa no dashboard. Os caminhos de arquivo citados aqui são do dashboard quando o texto não diz o contrário.
+
 O dashboard administrativo e o site e-commerce compartilham o mesmo banco Postgres via Drizzle. **Nenhum dos dois chama o outro por HTTP.** Toda coordenação acontece pelo schema compartilhado. Ver ADR-0004.
 
 ---
@@ -576,7 +578,7 @@ canvas do editor **e** pelo card da listagem — é a implementação de referê
 
 ## Regra de sincronização do schema TS
 
-As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **automatizada por CI** — o workflow `sync-db-schema.yml` espelha `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` para o repo `emach-ecommerce` via Pull Request automático sempre que esses arquivos mudam na `main`. Direção unidirecional: dashboard → ecommerce. Ver ADR-0009.
+As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **automatizada por CI** — o workflow `sync-db-schema.yml` espelha `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` e este contrato (`docs/integration/admin-ecommerce.md`) para o repo `emach-ecommerce` via Pull Request automático sempre que esses arquivos mudam na `main`. Direção unidirecional: dashboard → ecommerce. Ver ADR-0009.
 
 Quando qualquer arquivo em `packages/db/src/schema/` for alterado:
 
