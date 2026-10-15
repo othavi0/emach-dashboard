@@ -6,13 +6,13 @@ Dashboard Next 16 / React 19. Regras gerais (auth invariantes, anti-patterns, go
 
 - Sempre `"use server"` no topo + `await requireCapability(cap)` (ou `requireCurrentSession()`) no início.
 - Padrão de retorno: `ActionResult<T>` = `{ ok: true; data } | { ok: false; error }`.
-- Validação com Zod `safeParse`. Em catch: `logger.error("nomeDaAction", err)` + retornar `{ ok: false, error: "mensagem" }`. Não logar com `console`.
+- Validação com Zod `safeParse`. Em catch: `logger.error("nomeDaAction", err)` + retornar `{ ok: false, error: "mensagem" }`. Não logar com `console`. O oxlint acusa catch sem `logger.error` (ou sem relançar o erro) com `emach/require-log-in-action-catch`, hoje como aviso.
 - **Erro de banco no catch:** o drizzle põe o erro real do Postgres em `e.cause` (o `e.message` é só `"Failed query: …"`). **Nunca** detectar por `e.message.includes("foreign key"/"unique"/…)` — não casa e vaza SQL cru no toast. Usar `getPgError(e)` (`src/lib/db-error.ts`) → `{code, message, constraint}`, mapear SQLSTATE (`23503`/`23505`/`P0001`) p/ mensagem amigável; fallback loga + genérica. Detalhe em `packages/db/CLAUDE.md`.
 - `revalidatePath` ou `revalidateTag` após mutações.
 
 ## Capabilities (`src/lib/permissions.ts`)
 
-**Religado em 2026-06-15 (ADR-0016, substitui 0012).** `requireCapability`, `requireCapabilityOrRedirect`, `requireCapabilityWithContext`, `requireCapabilityWithContextOrRedirect`, `can` **enforçam** a matriz de 3 níveis (`super_admin`/`admin`/`user`). `requireCapabilityWithContext` valida tb `targetBranchIds ⊆ escopo` (Branch-scoping). Snapshot da matriz antiga (4 níveis, incluía `manager`) em `src/lib/permissions.disabled.ts` (não-importada, `@ts-nocheck`, só histórico). O valor `manager` foi removido do enum DB e de todo o código vivo em 2026-06-16 (era alias de admin — ver ADR-0016).
+**Religado em 2026-06-15 (ADR-0016, substitui 0012).** `requireCapability`, `requireCapabilityOrRedirect`, `requireCapabilityWithContext`, `requireCapabilityWithContextOrRedirect`, `can` **enforçam** a matriz de 3 níveis (`super_admin`/`admin`/`user`). `requireCapabilityWithContext` valida tb `targetBranchIds ⊆ escopo` (Branch-scoping). O valor `manager` foi removido do enum DB e de todo o código vivo em 2026-06-16 (era alias de admin — ver ADR-0016).
 
 **O padrão obrigatório em server actions continua sendo `await requireCapability(cap)` ou `requireCapabilityWithContext(cap, ctx)`** — assim todo endpoint nasce coberto. **Nunca remover essas chamadas; novos endpoints precisam delas.**
 
@@ -144,7 +144,7 @@ Cache de dado: `unstable_cache` com `tags` (ex.: `computeOrdersTabCounts` em `or
 
 `tsc` não detecta SQL inválido em template strings nem queries com colunas removidas. Após mexer em schema ou queries SSR: `bun dev:web` + visitar rotas afetadas. Stack trace via `nextjs_call <port> get_errors` (MCP `next-devtools`).
 
-**`bun run build` é gate obrigatório após refatorar arquivo `"use server"`.** Re-exportar de um `"use server"` qualquer coisa que **não seja async function** (tipo, const) quebra o build com `Only async functions are allowed to be exported in a "use server" file` — `check-types`/lint/test **não pegam** (regra só do build). Ao mover reads/tipos de um `actions.ts` pra `data.ts`/`_lib`, **atualize os consumers** a importarem de lá; **não** deixe re-export shim no `actions.ts`. (Incidente: split de god-module bloqueado, 2026-06; resolvido no plano 028 re-do.)
+**O `bun verify` e o CI buildam o app, e o build é o único gate que pega erro de `"use server"`.** Re-exportar de um `"use server"` qualquer coisa que **não seja async function** (tipo, const) quebra o build com `Only async functions are allowed to be exported in a "use server" file` ou, para uma `const`, `A "use server" file can only export async functions, found string.` — `check-types`/lint/test **não pegam** (regra só do build). Ao mover reads/tipos de um `actions.ts` pra `data.ts`/`_lib`, **atualize os consumers** a importarem de lá; **não** deixe re-export shim no `actions.ts`. (Incidente: split de god-module bloqueado, 2026-06; resolvido no plano 028 re-do.)
 
 **Padrão canônico de split de god-module `actions.ts` (ADR-0019):** 3 camadas — `data.ts` (`import "server-only"`, reads+tipos+builders) + `_lib/*-query-helpers.ts` (helpers puros, sem auth) + `actions.ts` (`"use server"`, só mutations + thin wrappers de read com guard). Read chamado de Client Component ganha wrapper `"use server"` que faz `requireCapability` e delega ao `data.ts` (padrão `fetchToolsPageAction`/`fetchLedgerPageAction`); read só-server importa direto de `data.ts`. Helper sync **não pode ser exportado de `"use server"` pra teste** (mesma regra) → mover-pro-`_lib`-então-testar. Exemplares: `tools/`, `promotions/`, `stock/`.
 
@@ -163,7 +163,7 @@ O compiler **baila** (componente inteiro perde memoização) em: (a) `try` com `
 
 - **`server-only` em testes:** módulos que importam `server-only` (boundary do Next, ex: `src/lib/activity.ts`) são testáveis porque `vitest.config.ts` faz `resolve.alias['server-only'] → src/__mocks__/server-only.ts` (stub vazio). Ao adicionar teste para código que importa `server-only`, não precisa de `vi.mock` — o alias já resolve.
 - Mock de `@emach/db` por `vi.hoisted` + `vi.mock` (ver `__tests__/activity.test.ts` como referência de como mockar o query builder do Drizzle).
-- **No CI a suíte precisa de env dummy:** importar `@emach/db` dispara a validação de `@emach/env` no load. O step `Tests` do `ci.yml` provê valores **dummy** (não-secrets) que satisfazem o schema Zod; local o `.env` cobre. Sem env → `Invalid environment variables` no CI (mesmo com o DB mockado). Adicionar var nova obrigatória em `packages/env/src/server.ts` exige atualizar o bloco `env:` do CI.
+- **No CI a suíte precisa de env dummy:** importar `@emach/db` dispara a validação de `@emach/env` no load. O `scripts/verify.sh` exporta os valores **dummy** (não-secrets) de `scripts/ci-dummy.env`, que satisfazem o schema Zod, antes de todos os gates, local e no CI. Sem env → `Invalid environment variables` (mesmo com o DB mockado). Adicionar var nova obrigatória em `packages/env/src/server.ts` exige atualizar o `scripts/ci-dummy.env`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
