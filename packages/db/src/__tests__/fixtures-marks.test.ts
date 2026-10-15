@@ -11,8 +11,9 @@ import {
 } from "../../scripts/fixtures-marks";
 import { refundRequest } from "../schema/orders";
 
-// Prefixo dos pedidos legados do seed-ready-to-ship apagado. Pedidos com ele
-// ainda podem existir no banco, e o cleanup nunca pode alcançá-los.
+// Prefixo dos pedidos "Pronto para enviar" do seed legado, já apagado do
+// repo. Pedidos com ele ainda existem no banco, e o cleanup nunca pode
+// alcançá-los.
 const SEED_ORDER_PREFIX = "EM-TEST-91";
 
 const dialect = new PgDialect();
