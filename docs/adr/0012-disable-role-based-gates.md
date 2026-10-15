@@ -41,6 +41,7 @@ Guard-rails mantidos:
 O plano original previa restaurar a matriz preservada quase tal qual ("reativar = restaurar 3 arquivos"). Na prática o ADR-0016 **redesenhou** a autorização em vez de restaurar: 3 níveis (não 4), `admin` filial-scoped, `getUserBranchScope` reconstruído. Os passos abaixo ficam como registro do que se imaginava na época:
 
 1. Copiar `apps/web/src/lib/permissions.disabled.ts` de volta pra `permissions.ts` (sobrescrever).
+   - Nota: o snapshot foi apagado na issue #394. A matriz viva é `apps/web/src/lib/capabilities.ts` (ADR-0016).
 2. Restaurar consulta original em `apps/web/src/lib/branch-scope.ts` (recuperável via `git log -p -- apps/web/src/lib/branch-scope.ts`).
 3. Restaurar checagem de `ROLE_WEIGHT` em `apps/web/src/lib/session.ts:requireRole` (recuperável via `git log -p`).
 4. Decidir se mantém `ensureActive` e `assertNotLastActiveSuperAdmin` como defesa adicional ou remove.

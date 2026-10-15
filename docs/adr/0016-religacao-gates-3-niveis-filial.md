@@ -2,7 +2,7 @@
 
 **Data:** 2026-06-15
 **Status:** Aceito — **substitui o ADR-0012**
-**Relaciona:** estende a matriz preservada em `apps/web/src/lib/permissions.disabled.ts`; depende de ADR-0013 (convite-only), ADR-0004 (DB compartilhada).
+**Relaciona:** a matriz viva é `apps/web/src/lib/capabilities.ts` (`defaultRoles`); o snapshot da matriz de 4 níveis que este ADR estendeu foi apagado na issue #394; depende de ADR-0013 (convite-only), ADR-0004 (DB compartilhada).
 
 ## Contexto
 
@@ -21,7 +21,7 @@ Religar a autorização com **dois eixos ortogonais**:
 - **admin** — gestor de filial: opera Pedidos/Estoque das suas filiais (+ Pedidos na triagem), edita o Catálogo global (sem deletar), modera Clientes/Reviews, e gerencia os `user` das próprias filiais. Não toca Filiais, Store Settings, deleções de catálogo, nem outros admins.
 - **user** — operador de filial: Pedidos (status/nota) e Estoque da própria filial; o resto é leitura.
 
-**Exclusivo de super_admin:** `branches.manage`, `users.delete`, `site.update_*`, e os `*.delete` do catálogo (`tools/categories/promotions/attributes`). `ADMIN_CAPS = ALL_CAPS − exclusivos`.
+**Exclusivo de super_admin:** `branches.manage`, `users.delete`, `shipping.manage`, `site.update_banners`, `site.update_settings`, `site.publish_announcements`, `tools.delete`, `categories.delete`, `promotions.delete` e `attributes.delete`. `ADMIN_CAPS = ALL_CAPS − exclusivos`.
 
 **Invariante novo:** todo `admin`/`user` pertence a ≥1 filial (exigido no convite; last-branch guard ao desvincular). Staff sem filial = **fail-closed** (vê/age sobre nada). Só `super_admin` é sem-filial.
 
