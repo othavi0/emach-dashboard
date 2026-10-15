@@ -47,6 +47,7 @@ gate check-types bun check-types
 gate check bun check
 gate test:lint-rules lint_rules_test
 gate check:docs bun run check:docs
+gate test:scripts bun test ./scripts/
 gate ruff uvx ruff@0.16.10 check .
 gate guard:forms bun guard:forms
 gate "ast-grep self-test" ast_grep_self_test

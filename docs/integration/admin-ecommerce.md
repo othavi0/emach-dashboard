@@ -403,7 +403,7 @@ preço negativo. Desconto percentual já é limitado a 100% no admin.
 ## Render do hero (`banner`) — composition v1
 
 O dashboard é a fonte de verdade da **composição** do banner (posição/forma de cada elemento); o
-storefront (`hero-carousel.tsx`) renderiza. Desde a spec 2026-07-29 ("Banner Builder por
+storefront do ecommerce (`hero-carousel.tsx`) renderiza. Desde a spec 2026-07-29 ("Banner Builder por
 elemento"), a fonte de verdade **deixou de ser** o enum `layout` + `product_scale`/`cta_scale` e
 passou a ser a coluna nova **`composition`** (jsonb, nullable). O preview do dashboard (canvas do
 editor + card da listagem) espelha 1:1 o que o storefront deve produzir via o mesmo componente de
@@ -598,7 +598,7 @@ canvas do editor **e** pelo card da listagem — é a implementação de referê
 
 ## Regra de sincronização do schema TS
 
-As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **automatizada por CI** — o workflow `sync-db-schema.yml` espelha `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` e este contrato (`docs/integration/admin-ecommerce.md`) para o repo `emach-ecommerce` via Pull Request automático sempre que esses arquivos mudam na `main`. Direção unidirecional: dashboard → ecommerce. Ver ADR-0009.
+As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **automatizada por CI** — o workflow `sync-db-schema.yml` espelha `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` e este contrato (`docs/integration/admin-ecommerce.md`) para o repo `emach-ecommerce` via Pull Request automático sempre que esses arquivos mudam na `main`. Direção unidirecional: dashboard → ecommerce. Ver ADR-0009. <!-- sync-paths -->
 
 Quando qualquer arquivo em `packages/db/src/schema/` for alterado:
 
