@@ -9,7 +9,11 @@ import {
 	parseRunId,
 	runMarks,
 } from "../../scripts/fixtures-marks";
-import { SEED_ORDER_PREFIX } from "../../scripts/ready-to-ship-marks";
+import { refundRequest } from "../schema/orders";
+
+// Prefixo dos pedidos legados do seed-ready-to-ship apagado. Pedidos com ele
+// ainda podem existir no banco, e o cleanup nunca pode alcançá-los.
+const SEED_ORDER_PREFIX = "EM-TEST-91";
 
 const dialect = new PgDialect();
 const run = parseRunId("1a2b3c");
@@ -39,9 +43,36 @@ describe("fixtures cleanup", () => {
 		for (const { name, where } of wheres) {
 			const { sql, params } = dialect.sqlToQuery(where);
 			expect(sql, name).not.toMatch(LOOSE_OR_TRUE);
-			expect(params, name).toHaveLength(1);
-			expect([orderPrefix, text], name).toContain(params[0]);
+			expect(params.length, name).toBeGreaterThan(0);
+
+			for (const param of params) {
+				expect([orderPrefix, text], name).toContain(param);
+			}
 		}
+	});
+
+	it("refund_request com a marca é apagado e sem a marca bloqueia", () => {
+		const { blockers, steps } = cleanupPlan({ kind: "run", run });
+		const refundTable = getTableName(refundRequest);
+
+		const blocker = blockers.find(
+			(b) => getTableName(b.fk.table) === refundTable
+		);
+
+		const step = steps.find((s) => getTableName(s.table) === refundTable);
+
+		if (!(blocker && step)) {
+			throw new Error("plano sem bloqueio ou passo de refund_request");
+		}
+
+		const blocks = dialect.sqlToQuery(blocker.where);
+		const deletes = dialect.sqlToQuery(step.where);
+		expect(blocks.sql).toBe(deletes.sql.replace(" and ", " and not "));
+		expect(blocks.params).toEqual([
+			runMarks(run).orderPrefix,
+			runMarks(run).text,
+		]);
+		expect(deletes.params).toEqual(blocks.params);
 	});
 
 	it("--all casa o formato antigo e o novo", () => {
