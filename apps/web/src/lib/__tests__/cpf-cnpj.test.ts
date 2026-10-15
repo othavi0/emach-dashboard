@@ -200,6 +200,69 @@ describe("isValidDocument", () => {
 	});
 });
 
+// Exemplo oficial do Serpro ("Cálculo dos dígitos verificadores de CNPJ
+// alfanumérico", manual-dv-cnpj.pdf da Receita Federal): 12.ABC.345/01DE-35.
+// Mesmos vetores de emach-ecommerce/packages/validators/src/cpf-cnpj.test.ts.
+describe("isValidCnpj alfanumérico", () => {
+	it("aceita o exemplo oficial sem máscara", () => {
+		expect(isValidCnpj("12ABC34501DE35")).toBe(true);
+	});
+
+	it("aceita o exemplo oficial com máscara", () => {
+		expect(isValidCnpj("12.ABC.345/01DE-35")).toBe(true);
+	});
+
+	it("aceita letras minúsculas", () => {
+		expect(isValidCnpj("12.abc.345/01de-35")).toBe(true);
+	});
+
+	it("rejeita dígito verificador errado", () => {
+		expect(isValidCnpj("12ABC34501DE36")).toBe(false);
+	});
+
+	it("rejeita letra na posição do dígito verificador", () => {
+		expect(isValidCnpj("12ABC34501DE3A")).toBe(false);
+	});
+
+	it("rejeita letra trocada na raiz", () => {
+		expect(isValidCnpj("12ABD34501DE35")).toBe(false);
+	});
+});
+
+describe("normalizeDocument alfanumérico", () => {
+	it("tira pontuação e passa para maiúsculas", () => {
+		expect(normalizeDocument(" 12.abc.345/01de-35 ")).toBe("12ABC34501DE35");
+	});
+
+	it("mantém CPF só com dígitos", () => {
+		expect(normalizeDocument("529.982.247-25")).toBe("52998224725");
+	});
+});
+
+describe("formatDocument alfanumérico", () => {
+	it("formata CNPJ alfanumérico com letras", () => {
+		expect(formatDocument("12ABC34501DE35")).toBe("12.ABC.345/01DE-35");
+	});
+
+	it("formata CNPJ alfanumérico em minúsculas e com pontuação", () => {
+		expect(formatDocument("12.abc.345/01de-35")).toBe("12.ABC.345/01DE-35");
+	});
+
+	it("não formata como CPF 11 caracteres com letra", () => {
+		expect(formatDocument("5299822472A")).toBe("5299822472A");
+	});
+});
+
+describe("isValidDocument alfanumérico", () => {
+	it("aceita CNPJ alfanumérico", () => {
+		expect(isValidDocument("12.abc.345/01de-35")).toBe(true);
+	});
+
+	it("rejeita CPF com letra", () => {
+		expect(isValidDocument("5299822472A")).toBe(false);
+	});
+});
+
 describe("documentZodRefine", () => {
 	it("retorna true para string vazia (campo opcional)", () => {
 		expect(documentZodRefine("")).toBe(true);
