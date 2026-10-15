@@ -51,6 +51,7 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 
 ## Gotchas
 
+- **`bun.lock` é gitignored, então cada checkout tem o seu:** o `bun install` não sobe dependência cujo lock local ainda satisfaz o range do `package.json`, enquanto o CI resolve do zero a versão mais nova. Config ou flag que exige versão nova de ferramenta sobe o piso do range no mesmo PR (ex.: `agentGuidance` no `turbo.json` exige `turbo` `^2.11.5`; o 2.10.12 recusa a chave).
 - **`createDb()` × `db` singleton:** `packages/auth/*` usa `createDb()` pra evitar ciclo de import com env; resto usa `db`. Não consolidar.
 - **Hook PostToolUse (`.claude/hooks/post-edit-lint.sh`):** formata o arquivo editado e devolve com exit 2 o erro de lint que o fix não corrige. Pode reordenar campos e quebrar `old_string` de Edits seguintes: re-ler se o Edit falhar.
 - **lefthook pre-commit:** o `react-doctor` não roda no pre-commit, só no CI (consultivo, `.github/workflows/react-doctor.yml`); na raiz do monorepo ele não acha o projeto React e desliga as regras. Worktree novo: `scripts/worktree-setup.sh` liga `apps/web/.env` ao checkout principal e faz `bun install` real. ⚠️ git **worktrees compartilham `.git/hooks`** — em integração multi-commit usando worktrees, os hooks firam nos commits do main tree (podem reformatar e deixar a mudança fora do commit). Se atrapalhar, scrub: `for h in .git/hooks/*; do grep -qil lefthook "$h" && rm -f "$h"; done` (reinstala no próximo `bun install`).
