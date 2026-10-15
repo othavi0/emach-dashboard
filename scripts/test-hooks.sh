@@ -7,7 +7,8 @@ hook="$root/.claude/hooks/post-edit-lint.sh"
 capped="$root/scripts/run-capped.sh"
 src="$root/apps/web/src"
 tmp=$(mktemp -d)
-trap 'rm -rf "$tmp" "$src"/hook-test-*.ts' EXIT
+ignored="$root/packages/ui/src/hook-test-ignored.ts"
+trap 'rm -rf "$tmp" "$src"/hook-test-*.ts "$ignored"' EXIT
 
 pass=0
 fail=0
@@ -80,6 +81,15 @@ else
 	check "comando roda sem teto, com aviso e sem RUN_CAPPED" 0 "sem teto" "" -- \
 		env -u RUN_CAPPED "$capped" sh -c 'test -z "${RUN_CAPPED:-}"'
 fi
+
+echo "post-edit-lint.sh: anti-slop"
+slop=$(fixture slop 'export const r = Reflect.apply(Math.max, undefined, [1, 2]);\n')
+check "anti-slop volta com exit 2" 2 "no-reflect-apply" "$slop" -- bash "$hook"
+spacing=$(fixture spacing 'export function f(x: number): number {\n\tconst y = x + 1;\n\treturn y;\n}\n')
+check "autofix do anti-slop corrige calado" 0 "" "$spacing" -- bash "$hook"
+check "autofix põe a linha em branco" 0 "" "" -- grep -Pzq 'y = x \+ 1;\n\n\treturn' "$src/hook-test-spacing.ts"
+printf 'export const r = Reflect.apply(Math.max, undefined, [1, 2]);\n' > "$ignored"
+check "arquivo ignorado pelo .oxlintrc.json passa" 0 "" "{\"tool_input\":{\"file_path\":\"$ignored\"}}" -- bash "$hook"
 
 echo "$pass ok, $fail falha(s)"
 [ "$fail" -eq 0 ]

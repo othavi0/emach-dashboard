@@ -36,6 +36,8 @@ bun db:sync                                  # drizzle-kit push + triggers + RLS
 # ⛔ não rode db:seed-demo: o banco é único (dev = prod), e o seed trunca tudo
 ```
 
+O banco é um só para dev, produção, dashboard e ecommerce. O que pede autorização e o que conta como write pontual está em [Banco compartilhado: regra de escrita dos dois apps](CLAUDE.md#banco-compartilhado-regra-de-escrita-dos-dois-apps).
+
 Servidor de desenvolvimento:
 
 ```bash
@@ -104,6 +106,8 @@ emach-dashboard/
 
 ## Available Scripts
 
+Os scripts que mudam schema (`db:sync`, `db:push`, `db:apply-sql`) e os marcados com ⛔, que apagam ou repopulam em massa, pedem autorização explícita pela regra de [Banco compartilhado: regra de escrita dos dois apps](CLAUDE.md#banco-compartilhado-regra-de-escrita-dos-dois-apps).
+
 | Script                                              | Função                                                                    |
 | --------------------------------------------------- | ------------------------------------------------------------------------- |
 | `bun dev`                                           | Inicia todos os apps em paralelo (Turbo TUI)                              |
@@ -119,9 +123,6 @@ emach-dashboard/
 | `bun --cwd packages/db db:apply-sql`                | Aplica `src/sql/{triggers,rls}.sql` (triggers + RLS deny-all, idempotente) |
 | `bun --cwd packages/db db:seed-demo`                | ⛔ Trunca e repopula o banco único (dev = prod); só com autorização       |
 | `bun --cwd packages/db db:reset-demo`               | ⛔ Trunca as tabelas demo no banco único; só com autorização               |
-| `bun --cwd packages/db db:seed-test-orders`         | ⛔ Insere pedidos de teste no banco único (dev = prod); só com autorização |
-| `bun --cwd packages/db db:seed-ready-to-ship`       | ⛔ Insere pedidos prontos para envio no banco único; só com autorização   |
-| `bun --cwd packages/db db:unseed-ready-to-ship`     | ⛔ Apaga pedidos `EM-TEST-91*` e devolve o estoque no banco único; só com autorização |
 | `bun verify`                                        | `check-types` + `check` + testes de `apps/web`                            |
 | `bun --cwd apps/web test`                           | Vitest de `apps/web` (`test:watch` para modo watch)                       |
 | `bun --cwd packages/db test`                        | Vitest de `packages/db`                                                   |
