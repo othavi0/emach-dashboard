@@ -208,10 +208,16 @@ export default function DesignPage() {
 					</Showcase>
 					<Showcase label="Display · h1 (Barlow Condensed · caixa-alta)">
 						<div className="flex w-full flex-col gap-3">
-							<p className="font-medium font-serif text-4xl uppercase tracking-[0.015em]">
+							<p
+								// ast-grep-ignore: display-font-only-h1 showcase do token de display no design system
+								className="font-medium font-serif text-4xl uppercase tracking-[0.015em]"
+							>
 								Catálogo de ferramentas
 							</p>
-							<p className="font-serif text-base leading-relaxed">
+							<p
+								// ast-grep-ignore: display-font-only-h1 showcase do token de display no design system
+								className="font-serif text-base leading-relaxed"
+							>
 								Caixa-alta via text-transform (DOM minúsculo → a11y/SEO ok).
 								Nomes longos de entidade ficam em sentence-case, sem caixa-alta.
 							</p>

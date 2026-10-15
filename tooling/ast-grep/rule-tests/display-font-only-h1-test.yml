@@ -1,0 +1,10 @@
+id: display-font-only-h1
+valid:
+  - '<h1 className="font-medium font-serif">x</h1>'
+  - '<h1 className={cn("font-serif", a)}>x</h1>'
+  - '<p className="font-serif-like">x</p>'
+  - '<p className="font-sans">x</p>'
+invalid:
+  - '<h2 className="font-serif">x</h2>'
+  - '<p className={cn("truncate font-serif", a)}>x</p>'
+  - '<span className={`font-serif ${a}`}>x</span>'
