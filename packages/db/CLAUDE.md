@@ -106,9 +106,9 @@ Drizzle 0.45 embrulha o erro do driver numa `DrizzleQueryError` cujo `.message` 
 
 ## Schema compartilhado com app ecomerce (ADR-0009)
 
-Site ecomerce escreve em `order`, `orderItem`, `orderStatusHistory`, `stockMovement`, `client*`, `review`, `refundRequest`, `consentLog`, `cartEvent` e no contador de uso de `promotion`. Cópia do schema TS no repo `emach-ecommerce` é sincronizada **automaticamente por CI** — workflow `sync-db-schema.yml` abre PR no ecommerce sempre que `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` muda na `main` (direção unidirecional dashboard → ecommerce).
+Site ecomerce escreve em `order`, `orderItem`, `orderStatusHistory`, `stockMovement`, `client*`, `review`, `refundRequest`, `consentLog`, `cartEvent` e no contador de uso de `promotion`. Cópia do schema TS no repo `emach-ecommerce` é sincronizada **automaticamente por CI** — workflow `sync-db-schema.yml` abre PR no ecommerce sempre que `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` ou o contrato `docs/integration/admin-ecommerce.md` muda na `main` (direção unidirecional dashboard → ecommerce). O contrato chega no ecommerce no mesmo caminho e não se edita lá.
 
-**⚠️ Superfície de sync = só `schema/`, `queries/`, `utils.ts`, `sql/triggers.sql`, `sql/rls.sql`.** Um arquivo dentro dessa superfície **não pode importar de fora dela** (ex: `src/` raiz; `utils.ts` é a única exceção da raiz, porque é espelhado) — o ecommerce recebe a cópia mas não o irmão não-sincronizado e o `check-types` lá quebra com `TS2307 Cannot find module`. Incidente #88: `queries/dashboard.ts` importava `../order-status-groups` (raiz de `src/`). Helpers compartilhados por queries vivem **em `queries/`**.
+**⚠️ Superfície de sync de código = só `schema/`, `queries/`, `utils.ts`, `sql/triggers.sql`, `sql/rls.sql`.** Um arquivo dentro dessa superfície **não pode importar de fora dela** (ex: `src/` raiz; `utils.ts` é a única exceção da raiz, porque é espelhado) — o ecommerce recebe a cópia mas não o irmão não-sincronizado e o `check-types` lá quebra com `TS2307 Cannot find module`. Incidente #88: `queries/dashboard.ts` importava `../order-status-groups` (raiz de `src/`). Helpers compartilhados por queries vivem **em `queries/`**. Essa regra de import vale só para código: o contrato `docs/integration/admin-ecommerce.md` também é espelhado, mas não entra nela.
 
 **Atenção pós-refactor de variants:** `stock_level`, `stock_movement`, `order_item` referenciam `tool_variant.id` (não mais `tool.id`). Ecomerce envia `variantId` em pedidos e movimentos. `tool_variant` traz SKU vendável; `tool` é o produto-pai (info comum).
 
@@ -116,7 +116,7 @@ Mudanças nessas tabelas exigem coordenação de deploy.
 
 ## Queries owned-by-dashboard
 
-`packages/db/src/queries/*.ts` é ferramenta de leitura/regra de negócio que o storefront consome. Lista atual: `tools.ts` (`getTools`, `getToolBySlug`, `searchTools`...), `categories.ts` (`getCategoryTree`...), `promotions.ts`, `catalog-helpers.ts`, `reviews.ts` (`canCreateReview`), `store-settings.ts` (`getShippingSettings`, config de frete singleton lida pelo storefront), `shipping.ts`, `shipping-quote.ts`, `branch-cep.ts`, `dashboard.ts`, `dashboard-period.ts`, `order-status-groups.ts`.
+`packages/db/src/queries/*.ts` é ferramenta de leitura/regra de negócio que o storefront consome. Lista atual: `tools.ts` (`getTools`, `getToolBySlug`, `searchTools`...), `categories.ts` (`getCategoryTree`...), `promotions.ts`, `promo-limits.ts` (`TOOLS_PER_PROMO`, sem imports, lido também por Client Component do dashboard), `catalog-helpers.ts`, `reviews.ts` (`canCreateReview`), `store-settings.ts` (`getShippingSettings`, config de frete singleton lida pelo storefront), `shipping.ts`, `shipping-quote.ts`, `branch-cep.ts`, `dashboard.ts`, `dashboard-period.ts`, `order-status-groups.ts`.
 
 **Regra:** dashboard é fonte de verdade. Mudanças de regra começam aqui e propagam via CI. **Não editar em isolamento no ecommerce**.
 
