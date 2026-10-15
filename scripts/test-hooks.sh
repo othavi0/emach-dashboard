@@ -7,7 +7,8 @@ hook="$root/.claude/hooks/post-edit-lint.sh"
 capped="$root/scripts/run-capped.sh"
 src="$root/apps/web/src"
 tmp=$(mktemp -d)
-trap 'rm -rf "$tmp" "$src"/hook-test-*.ts' EXIT
+ignored="$root/packages/ui/src/hook-test-ignored.ts"
+trap 'rm -rf "$tmp" "$src"/hook-test-*.ts "$src"/hook-test-*.tsx "$ignored"' EXIT
 
 pass=0
 fail=0
@@ -39,6 +40,7 @@ unused=$(fixture unused 'function helper(x: number): number {\n  return x + 1;\n
 memo=$(fixture memo 'import { useMemo } from "react";\nexport function useX(): number {\n  return useMemo(() => 1, []);\n}\n')
 expect=$(fixture expect '// @ts-expect-error teste\nexport const c: number = 1;\n')
 clean=$(fixture clean 'export const d = 1;\n')
+authEco=$(fixture auth-eco 'import { auth } from "@emach/auth/ecommerce";\nexport const e = auth;\n')
 
 echo "post-edit-lint.sh"
 check "erro do biome volta com exit 2" 2 "noConsole" "$console" -- bash "$hook"
@@ -55,6 +57,7 @@ git init -q "$other"
 printf 'console.log(1);\n' > "$other/x.ts"
 check "arquivo de outro repo git sai 0" 0 "" "{\"tool_input\":{\"file_path\":\"$other/x.ts\"}}" -- bash "$hook"
 check "sem jq avisa e sai 1" 1 "jq ausente" "$clean" -- env PATH=/nonexistent "$(command -v bash)" "$hook"
+check "import de @emach/auth/ecommerce volta pelo biome" 2 "noRestrictedImports" "$authEco" -- bash "$hook"
 
 echo "run-capped.sh"
 check "sem comando sai 64" 64 "uso:" "" -- "$capped"
@@ -79,6 +82,15 @@ else
 		env -u RUN_CAPPED "$capped" sh -c 'test -z "${RUN_CAPPED:-}"'
 fi
 
+echo "post-edit-lint.sh: anti-slop"
+slop=$(fixture slop 'export const r = Reflect.apply(Math.max, undefined, [1, 2]);\n')
+check "anti-slop volta com exit 2" 2 "no-reflect-apply" "$slop" -- bash "$hook"
+spacing=$(fixture spacing 'export function f(x: number): number {\n\tconst y = x + 1;\n\treturn y;\n}\n')
+check "autofix do anti-slop corrige calado" 0 "" "$spacing" -- bash "$hook"
+check "autofix põe a linha em branco" 0 "" "" -- grep -Pzq 'y = x \+ 1;\n\n\treturn' "$src/hook-test-spacing.ts"
+printf 'export const r = Reflect.apply(Math.max, undefined, [1, 2]);\n' > "$ignored"
+check "arquivo ignorado pelo .oxlintrc.json passa" 0 "" "{\"tool_input\":{\"file_path\":\"$ignored\"}}" -- bash "$hook"
+
 echo "anti-patterns em .tsx"
 async_client="$src/hook-test-async-client.tsx"
 printf '"use client";\nexport default async function Foo() {\n\tawait Promise.resolve();\n\treturn <div>x</div>;\n}\n' > "$async_client"
@@ -88,7 +100,6 @@ serif="$src/hook-test-serif.tsx"
 printf 'export function A() {\n\treturn <h2 className="font-serif">x</h2>;\n}\n' > "$serif"
 check "font-serif fora de h1 volta pelo ast-grep" 2 "display-font-only-h1" \
 	"{\"tool_input\":{\"file_path\":\"$serif\"}}" -- bash "$hook"
-rm -f "$async_client" "$serif"
 
 echo "$pass ok, $fail falha(s)"
 [ "$fail" -eq 0 ]
