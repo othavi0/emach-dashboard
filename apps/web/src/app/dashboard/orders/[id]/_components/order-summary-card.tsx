@@ -1,9 +1,7 @@
 import { Badge } from "@emach/ui/components/badge";
+import { formatDocument } from "@/lib/cpf-cnpj";
 import type { OrderDetail, OrderStatus } from "../../data";
-import {
-	formatCurrency as currencyFmt,
-	formatDocument,
-} from "../_lib/format-address";
+import { formatCurrency as currencyFmt } from "../_lib/format-address";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
