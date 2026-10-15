@@ -275,6 +275,16 @@ Transições completas (fonte canônica: `apps/web/src/app/dashboard/orders/sche
 
 ## Estoque: débito ocorre em `paid`
 
+### Status hoje
+
+O débito em `paid` é contrato alvo e ainda não tem escritor. Nenhum app grava `stock_movement` com `reason = 'saida_venda'`. Só os scripts de seed em `packages/db/scripts` gravam esse motivo.
+
+- O e-commerce não move pedido para `paid`. O pagamento real é stub e não há webhook do Asaas (`emach-ecommerce/CLAUDE.md`, item "Pagamento real ausente", roadmap #4).
+- O admin pode marcar um pedido `pending_payment` como `paid` à mão no dashboard. A action `updateOrderStatus` (`apps/web/src/app/dashboard/orders/actions.ts`) grava o status e o histórico e não debita `stock_level` nem grava `stock_movement`. Ela só mexe em estoque quando o destino é `returned`.
+- Um reembolso com "creditar estoque" de um pedido marcado `paid` à mão infla o estoque. `refundOrder` chama `applyStockReturns` (`apps/web/src/app/dashboard/orders/_lib/stock-returns.ts`), que credita a quantidade do item sem conferir se houve débito antes. O estoque credita uma quantidade que nunca saiu.
+
+### Contrato alvo
+
 **`pending_payment` não reserva estoque.** O débito de `stock_level` acontece apenas quando o pedido transita para `paid`.
 
 Motivação: pedidos não pagos não devem imobilizar estoque — o cliente pode abandonar o checkout. Cancelar um pedido em `pending_payment` ou `payment_failed` não mexe em `stock_movement` nem em `stock_level`. Ver ADR-0007.
