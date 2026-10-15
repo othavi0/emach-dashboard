@@ -1,22 +1,23 @@
 # packages/db — Convenções
 
-Drizzle 0.45 + node-postgres + Supabase Postgres. Regras gerais na raiz.
+Drizzle 0.45 + node-postgres + Supabase Postgres. Regras gerais na raiz. O que pede autorização e o que conta como write pontual no banco único vive em [Banco compartilhado: regra de escrita dos dois apps](../../CLAUDE.md#banco-compartilhado-regra-de-escrita-dos-dois-apps); os avisos ⛔ deste arquivo resumem essa regra.
 
-## Schema workflow (push-only — ADR-0006)
+## Schema workflow (push-only — ADR-0006 e ADR-0030)
 
 Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte de verdade**.
 
-- **Aplicar no banco:** `bun db:sync` (= `drizzle-kit push` + `db:apply-sql`). Rodar após editar `src/schema/*.ts` e após todo `git checkout` — banco compartilhado espelha a branch em checkout.
+- **Aplicar no banco:** `bun db:sync` (= `drizzle-kit push` + `db:apply-sql`). O `drizzle.config.ts` lê o `DATABASE_URL` de `apps/web/.env`, que aponta para o banco único: `db:sync` escreve no banco de produção e só roda com autorização do dono na sessão (ADR-0030). Nunca rodar por troca de branch.
 - `bun db:push` sozinho aplica só schema Drizzle (sem triggers/indexes). Prefira `db:sync`.
-- `drizzle-kit push` pede confirmação TTY em mudanças destrutivas — falha em CI/scripted. Em dev, rodar interativo.
+- `drizzle-kit push` pede confirmação TTY em mudanças destrutivas — falha em CI/scripted. Com a autorização do dono, rodar interativo; rename e drop seguem o expand-contract abaixo.
 - **Gotcha unique constraint composta:** declarar colunas do `.on()` na **mesma ordem** que aparecem na definição da tabela — drizzle-kit introspecta colunas de constraint em ordem de `attnum` e gera diff fantasma se divergir.
 - **Gotcha FK > 63 chars:** nome auto-gerado é truncado pelo Postgres e push entra em loop de diff — dar nome explícito via `foreignKey({ ..., name })`.
-- **Gotcha predicado de partial index:** `drizzle-kit push` casa índice por nome + colunas e **não faz diff do `WHERE`**. Mudar só o predicado (ex: `IN ('a','b')` → `IN ('a','b','c')`) reporta "Changes applied" mas é no-op — o índice no banco continua o antigo. Em dev, recriar manualmente: `DROP INDEX <nome>; CREATE [UNIQUE] INDEX ... WHERE (...)` numa transação, depois confirmar com `SELECT indexdef FROM pg_indexes WHERE indexname='<nome>'`. (Incidente #91.)
+- **Gotcha predicado de partial index:** `drizzle-kit push` casa índice por nome + colunas e **não faz diff do `WHERE`**. Mudar só o predicado (ex: `IN ('a','b')` → `IN ('a','b','c')`) reporta "Changes applied" mas é no-op — o índice no banco continua o antigo. Com a autorização do dono (o banco é produção), recriar manualmente: `DROP INDEX <nome>; CREATE [UNIQUE] INDEX ... WHERE (...)` numa transação, depois confirmar com `SELECT indexdef FROM pg_indexes WHERE indexname='<nome>'`. (Incidente #91.)
 - **Gotcha CHECK novo × dados existentes:** adicionar um `check()` via `db:sync` **falha** se alguma linha já viola (`ERROR: check constraint "x" is violated by some row`, SQLSTATE `23514`) — a coluna/index até é criada, mas o CHECK não. **Backfill/corrigir os dados ANTES.** Ex (ADR-0015): ao adicionar `entrada_requires_supplier` em `stock_movement`, 60 entradas legadas sem fornecedor foram convertidas pra `ajuste_inventario` antes do push.
-- **Drops:** PR explícito + comunicar ao app ecomerce (DB compartilhada). Em dev sem TTY (subagent/script), o `drizzle-kit push` de um drop pendura no prompt — fazer o `ALTER TABLE ... DROP COLUMN` direto via pg client + remover do schema TS; depois `db:push` vê schema≡banco (no-op). Coluna dropada leva índice/FK junto.
-- Quando o dado deixar de ser descartável: gerar baseline `0000` limpo a partir do schema atual e versionar a partir daí.
+- **Rename e drop:** só por expand-contract (ADR-0030), em PRs separados. Fase 1 adiciona a coluna nova e grava nas duas. Fase 2 faz o backfill e muda os leitores nos dois apps, e o PR de sync do ecommerce precisa estar mergeado. Fase 3, num PR separado, remove a coluna antiga. Nunca rename direto. Coluna dropada leva índice/FK junto.
+- **Coluna ou tabela nova:** aditiva (nullable ou com default), aplicada antes do código que a usa.
+- Sem baseline nem pasta de migrations: o ADR-0030 manteve o push-only com produção ativa.
 
-**Drop & recreate** (quando renames ambíguos quebram push sem TTY): `DROP SCHEMA public CASCADE` + push + `db:apply-sql` + `db:seed-demo`. ⛔ **Proibido sem autorização explícita do user na sessão:** o banco é único e compartilhado (dev = prod = ecommerce, ver aviso no CLAUDE.md da raiz).
+**Drop & recreate** (quando renames ambíguos quebram push sem TTY; o expand-contract do ADR-0030 evita o rename ambíguo): `DROP SCHEMA public CASCADE` + push + `db:apply-sql` + `db:seed-demo`. ⛔ **Proibido sem autorização explícita do user na sessão:** o banco é único e compartilhado (dev = prod = ecommerce, ver aviso no CLAUDE.md da raiz).
 
 ## Triggers PL/pgSQL
 
@@ -106,9 +107,9 @@ Drizzle 0.45 embrulha o erro do driver numa `DrizzleQueryError` cujo `.message` 
 
 ## Schema compartilhado com app ecomerce (ADR-0009)
 
-Site ecomerce escreve em `order`, `orderItem`, `orderStatusHistory`, `stockMovement`, `client*`, `review`, `refundRequest`, `consentLog`, `cartEvent` e no contador de uso de `promotion`. Cópia do schema TS no repo `emach-ecommerce` é sincronizada **automaticamente por CI** — workflow `sync-db-schema.yml` abre PR no ecommerce sempre que `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` muda na `main` (direção unidirecional dashboard → ecommerce).
+Site ecomerce escreve em `order`, `orderItem`, `orderStatusHistory`, `stockMovement`, `client*`, `review`, `refundRequest`, `consentLog`, `cartEvent` e no contador de uso de `promotion`. Cópia do schema TS no repo `emach-ecommerce` é sincronizada **automaticamente por CI** — workflow `sync-db-schema.yml` abre PR no ecommerce sempre que `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` ou o contrato `docs/integration/admin-ecommerce.md` muda na `main` (direção unidirecional dashboard → ecommerce). O contrato chega no ecommerce no mesmo caminho e não se edita lá.
 
-**⚠️ Superfície de sync = só `schema/`, `queries/`, `utils.ts`, `sql/triggers.sql`, `sql/rls.sql`.** Um arquivo dentro dessa superfície **não pode importar de fora dela** (ex: `src/` raiz; `utils.ts` é a única exceção da raiz, porque é espelhado) — o ecommerce recebe a cópia mas não o irmão não-sincronizado e o `check-types` lá quebra com `TS2307 Cannot find module`. Incidente #88: `queries/dashboard.ts` importava `../order-status-groups` (raiz de `src/`). Helpers compartilhados por queries vivem **em `queries/`**.
+**⚠️ Superfície de sync de código = só `schema/`, `queries/`, `utils.ts`, `sql/triggers.sql`, `sql/rls.sql`.** Um arquivo dentro dessa superfície **não pode importar de fora dela** (ex: `src/` raiz; `utils.ts` é a única exceção da raiz, porque é espelhado) — o ecommerce recebe a cópia mas não o irmão não-sincronizado e o `check-types` lá quebra com `TS2307 Cannot find module`. Incidente #88: `queries/dashboard.ts` importava `../order-status-groups` (raiz de `src/`). Helpers compartilhados por queries vivem **em `queries/`**. Essa regra de import vale só para código: o contrato `docs/integration/admin-ecommerce.md` também é espelhado, mas não entra nela.
 
 **Atenção pós-refactor de variants:** `stock_level`, `stock_movement`, `order_item` referenciam `tool_variant.id` (não mais `tool.id`). Ecomerce envia `variantId` em pedidos e movimentos. `tool_variant` traz SKU vendável; `tool` é o produto-pai (info comum).
 
@@ -116,7 +117,7 @@ Mudanças nessas tabelas exigem coordenação de deploy.
 
 ## Queries owned-by-dashboard
 
-`packages/db/src/queries/*.ts` é ferramenta de leitura/regra de negócio que o storefront consome. Lista atual: `tools.ts` (`getTools`, `getToolBySlug`, `searchTools`...), `categories.ts` (`getCategoryTree`...), `promotions.ts`, `catalog-helpers.ts`, `reviews.ts` (`canCreateReview`), `store-settings.ts` (`getShippingSettings`, config de frete singleton lida pelo storefront), `shipping.ts`, `shipping-quote.ts`, `branch-cep.ts`, `dashboard.ts`, `dashboard-period.ts`, `order-status-groups.ts`.
+`packages/db/src/queries/*.ts` é ferramenta de leitura/regra de negócio que o storefront consome. Lista atual: `tools.ts` (`getTools`, `getToolBySlug`, `searchTools`...), `categories.ts` (`getCategoryTree`...), `promotions.ts`, `promo-limits.ts` (`TOOLS_PER_PROMO`, sem imports, lido também por Client Component do dashboard), `catalog-helpers.ts`, `reviews.ts` (`canCreateReview`), `store-settings.ts` (`getShippingSettings`, config de frete singleton lida pelo storefront), `shipping.ts`, `shipping-quote.ts`, `branch-cep.ts`, `dashboard.ts`, `dashboard-period.ts`, `order-status-groups.ts`.
 
 **Regra:** dashboard é fonte de verdade. Mudanças de regra começam aqui e propagam via CI. **Não editar em isolamento no ecommerce**.
 
@@ -146,6 +147,21 @@ Não há script nem server action de anonimização de cliente ("direito ao esqu
 
 `bun db:seed-demo` (trunca e repopula o banco inteiro) e `bun db:reset-demo` (só trunca demo) em `packages/db/scripts/`. ⛔ Os dois são destrutivos no banco único dev = prod: só com autorização explícita do user na sessão.
 
-- **Estado fabricado para smoke visual:** `bun run --cwd packages/db db:fixtures create <order|picking-exception|banner|review> [--branch <id>] [--run <run>]`. Cada `create` grava um token de execução no marcador (`EM-TEST-FX-<run>-<id8>` no número do pedido, `[EM-TEST-FX:<run>]` no texto livre; fonte em `scripts/fixtures-marks.ts`) e imprime run, ids, número, rota e o comando de volta. `--run` junta várias superfícies na mesma execução. Ao terminar, `db:fixtures cleanup --run <run>` apaga só aquela execução; `cleanup --all` apaga toda fixture, inclusive o formato antigo sem run, e pode levar a de outra sessão. O pedido usa o client ativo mais antigo por `(created_at, id)`, hoje o único client do banco, sem pedido real.
-- **Fixture não passa por reembolso, devolução nem envio:** ela nasce `paid` sem débito de estoque, então esses fluxos mexem no `stock_level` de variante real; o cleanup aborta sem apagar nada se achar `refund_request` ou `stock_movement` ligado a ela e pede estorno manual.
+- **Estado fabricado para smoke visual:** `bun run --cwd packages/db db:fixtures create <order|picking-exception|banner|review|payment-failed|canceled|returned|refunded|ready-to-ship> [--branch <id>] [--run <run>] [--age <horas>]`. Cada `create` grava um token de execução no marcador (`EM-TEST-FX-<run>-<id8>` no número do pedido, `[EM-TEST-FX:<run>]` no texto livre; fonte em `scripts/fixtures-marks.ts`) e imprime run, ids, número, rota e o comando de volta. `--run` junta várias superfícies na mesma execução. Ao terminar, `db:fixtures cleanup --run <run>` apaga só aquela execução; `cleanup --all` apaga toda fixture, inclusive o formato antigo sem run, e pode levar a de outra sessão. O pedido usa o client ativo mais antigo por `(created_at, id)`, hoje o único client do banco, sem pedido real. A lista de superfícies e o caminho de status de cada uma vivem em `scripts/fixtures-surfaces.ts`, e `src/__tests__/fixtures-doc.test.ts` confere esta seção contra ela.
+
+| Superfície | Nasce | Linhas além de `order`, `order_item` e histórico | Rota impressa |
+| --- | --- | --- | --- |
+| `order` | `paid` | nenhuma | pedido e `?tab=paid` |
+| `picking-exception` | `preparing` | `order_picking` em `exception` e item `notFound` | pedido e `/dashboard` (linha de exceção) |
+| `banner` | — | só o `banner` inativo, sem pedido | `/dashboard/site/banners` |
+| `review` | `delivered` | `review` | `/dashboard/reviews/<id>` |
+| `payment-failed` | `payment_failed` | nenhuma | pedido e `?tab=pending_payment` |
+| `canceled` | `canceled` | nenhuma | pedido e `?tab=canceled` |
+| `returned` | `returned` | nenhuma | pedido e `?tab=returned` |
+| `refunded` | `refunded` | `refund_request` em `refunded` com a marca no `reasonText` | pedido e `?tab=canceled` |
+| `ready-to-ship` | `preparing` | `order_picking` em `completed`, item bipado e scan | pedido e `?tab=picked` (Pronto para enviar) |
+
+- **`--age <horas>`** (inteiro positivo, só superfícies de pedido) recua a última etapa para `agora - horas` e as anteriores de hora em hora. `order --age 80` cai na aba de atrasados, que conta a partir de 72 h (`apps/web/src/app/dashboard/orders/_lib/lateness.ts`). Sem a flag, a última etapa fica 1 h atrás.
+- **Nenhuma superfície debita nem credita estoque.** Fluxos do app que mexem em estoque sobre uma fixture (envio, devolução com crédito, reembolso com crédito) alteram o `stock_level` de variante real. O cleanup aborta sem apagar nada se achar `stock_movement` ou `refund_request` sem a marca ligado à fixture, e pede estorno manual. O `refund_request` que a superfície `refunded` grava tem a marca e sai no cleanup.
+- **Drizzle Studio:** `bun run --cwd packages/db db:studio` abre o `drizzle-kit studio` contra o `DATABASE_URL`, que é o banco único. A edição pela UI escreve direto em produção.
 - **Consulta sem MCP:** `bun run --cwd packages/db db:read "<sql>" [--limit N] [--timeout S]`. Um statement só (`SELECT`, `WITH`, `VALUES` ou `TABLE`; `EXPLAIN` e `SHOW` não entram em cursor), em `BEGIN READ ONLY` com `statement_timeout` de 15 s e `ROLLBACK` sempre. O servidor manda no máximo `limit + 1` linhas (cursor + `FETCH`); escrita falha com `cannot execute ... in a read-only transaction` ou `DECLARE CURSOR must not contain data-modifying statements`.

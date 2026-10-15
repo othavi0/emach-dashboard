@@ -10,8 +10,8 @@ import {
 	PROMOTION_DATE_KEYS,
 	rowToToolListItem,
 	STOREFRONT_STATUS_SQL,
-	TOOLS_PER_PROMO,
 } from "./catalog-helpers";
+import { TOOLS_PER_PROMO } from "./promo-limits";
 
 export type PromotionWithTools = Promotion & {
 	tools: ToolListItem[];
