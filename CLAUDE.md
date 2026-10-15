@@ -97,3 +97,5 @@ Vocabulário canônico de 5 labels sem override (`needs-triage`, `needs-info`, `
 ### Domain docs
 
 Single-context: um `CONTEXT.md` + `docs/adr/` na raiz cobrem o monorepo inteiro. Ver `docs/agents/domain.md`.
+
+<!-- sonda de permissão, apagar -->
