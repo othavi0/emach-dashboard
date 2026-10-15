@@ -39,6 +39,7 @@ unused=$(fixture unused 'function helper(x: number): number {\n  return x + 1;\n
 memo=$(fixture memo 'import { useMemo } from "react";\nexport function useX(): number {\n  return useMemo(() => 1, []);\n}\n')
 expect=$(fixture expect '// @ts-expect-error teste\nexport const c: number = 1;\n')
 clean=$(fixture clean 'export const d = 1;\n')
+authEco=$(fixture auth-eco 'import { auth } from "@emach/auth/ecommerce";\nexport const e = auth;\n')
 
 echo "post-edit-lint.sh"
 check "erro do biome volta com exit 2" 2 "noConsole" "$console" -- bash "$hook"
@@ -55,6 +56,7 @@ git init -q "$other"
 printf 'console.log(1);\n' > "$other/x.ts"
 check "arquivo de outro repo git sai 0" 0 "" "{\"tool_input\":{\"file_path\":\"$other/x.ts\"}}" -- bash "$hook"
 check "sem jq avisa e sai 1" 1 "jq ausente" "$clean" -- env PATH=/nonexistent "$(command -v bash)" "$hook"
+check "import de @emach/auth/ecommerce volta pelo biome" 2 "noRestrictedImports" "$authEco" -- bash "$hook"
 
 echo "run-capped.sh"
 check "sem comando sai 64" 64 "uso:" "" -- "$capped"

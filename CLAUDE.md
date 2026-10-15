@@ -19,9 +19,9 @@ Duas instâncias **completamente isoladas** Better Auth no mesmo banco:
 | Instância                                  | Import                  | Cookie prefix | trustedOrigins     |
 | ------------------------------------------ | ----------------------- | ------------- | ------------------ |
 | Dashboard (super_admin/admin/user) | `@emach/auth/dashboard` | default       | `CORS_ORIGIN` em produção, `http://localhost:*` em dev |
-| Ecomerce (clientes BR, vive no repo `emach-ecommerce`) | `@emach/auth/ecommerce` | `ecommerce`   | `ECOMMERCE_ORIGIN` |
+| Ecomerce (clientes BR, vive no repo `emach-ecommerce`) | `@emach/auth/ecommerce`: só resolve no repo `emach-ecommerce` (`packages/auth/src/ecommerce.ts` de lá); o `biome.json` deste repo barra o import | `ecommerce`   | `ECOMMERCE_ORIGIN` |
 
-1. `apps/web` **pode** importar `@emach/db/schema/client` (admin lê dados de cliente). `apps/web` **nunca** importa `@emach/auth/ecommerce`. App ecomerce **nunca** importa `@emach/db/schema/auth`.
+1. `apps/web` **pode** importar `@emach/db/schema/client` (admin lê dados de cliente). `apps/web` **nunca** importa `@emach/auth/ecommerce` (barrado pelo `noRestrictedImports` do `biome.json`). App ecomerce **nunca** importa `@emach/db/schema/auth`.
 2. `DashboardSession` ≠ `EcommerceSession`. Não existe tipo "Session" genérico.
 3. **Nunca** setar `advanced.cookies.<name>.attributes.domain = ".emach.com.br"`. Subdomínios distintos isolam por host.
 4. CPF/CNPJ: validação no app (zod refine + dígito verificador). Sempre normalizar (só dígitos) antes de persistir em `client.document`.
@@ -34,7 +34,7 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 
 ## Anti-patterns banidos (P0/P1)
 
-`bun check` (biome) barra `console`, `any`, `@ts-ignore`, `key={index}` e o import de `forwardRef`. `bun guard:forms` (ast-grep) barra `useMemo`, `useCallback` e `@ts-expect-error`. As exceções ficam nos próprios checks:
+`bun check` (biome) barra `console`, `any`, `@ts-ignore`, `key={index}`, o import de `forwardRef` e o de `@emach/auth/ecommerce`. `bun guard:forms` (ast-grep) barra `useMemo`, `useCallback` e `@ts-expect-error`. As exceções ficam nos próprios checks:
 
 - Log em produção passa por `logger` (`apps/web/src/lib/logger.ts`).
 - `key={index}` só em lista curta de primitivos sem id ou de inputs controlados, com `// biome-ignore lint/suspicious/noArrayIndexKey: <motivo>` na linha logo acima do atributo `key`. `packages/ui` (shadcn) fica fora da regra.
