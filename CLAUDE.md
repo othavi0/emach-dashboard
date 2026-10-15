@@ -67,7 +67,7 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 
 `bun check-types` não detecta SQL inválido em template strings nem queries com colunas removidas. Após mexer em schema/queries SSR: subir o dev server (`PORT=<n> bun dev:web`) e visitar as rotas afetadas. Stack trace rápido via `nextjs_call <port> get_errors` (MCP `next-devtools`).
 
-`check-types` (tsc) também **não pega regras de lint** (`useAwait`, `noNestedTernary`, etc.). Antes de commitar ou abrir PR: **`bun verify`**. Exceção: warnings que o código canônico de referência também tem (ex: `role="button"` em card clicável, nested-ternary em header contextual de detalhe espelhando `branches`) — manter por consistência, não corrigir divergindo do padrão.
+`check-types` (tsc) também **não pega regras de lint** (`useAwait`, `noNestedTernary`, etc.). Antes de commitar ou abrir PR: **`bun verify`**. Ele roda os mesmos gates do CI, na mesma ordem: check-types, check, check:docs, ruff, guard:forms, self-test do ast-grep, test, `scripts/test-hooks.sh` e o `next build` do `apps/web` (por `scripts/run-capped.sh`). Todos rodam com o env dummy de `scripts/ci-dummy.env`, então nenhum conecta no banco único. A lista vive só em `scripts/verify.sh`, e o `ci.yml` só chama `bun run verify`. Gate novo entra no script. Exceção: warnings que o código canônico de referência também tem (ex: `role="button"` em card clicável, nested-ternary em header contextual de detalhe espelhando `branches`) — manter por consistência, não corrigir divergindo do padrão.
 
 ## Onde estão os outros mistakes-logs
 

@@ -7,7 +7,9 @@ import {
 	orderItem,
 	orderPicking,
 	orderPickingItem,
+	orderPickingScan,
 	orderStatusHistory,
+	refundRequest,
 } from "@emach/db/schema/orders";
 import { review } from "@emach/db/schema/reviews";
 import { tool, toolVariant } from "@emach/db/schema/tools";
@@ -23,13 +25,22 @@ import {
 	type RunMarks,
 	runMarks,
 } from "./fixtures-marks";
+import {
+	FIXTURE_SURFACES,
+	ORDER_STATUS_PATH,
+	type OrderSurface,
+	parseAgeHours,
+	type Surface,
+} from "./fixtures-surfaces";
 import type { Tx } from "./seed/context";
 
 const HIDDEN_FROM_STOREFRONT = false;
 
-const HOURS = 3_600_000;
+const MINUTES = 60_000;
+const HOURS = 60 * MINUTES;
 
 interface CreateOptions {
+	ageHours: number | undefined;
 	branchId: string | undefined;
 	marks: RunMarks;
 	run: RunId;
@@ -47,6 +58,7 @@ interface Base {
 	branchId: string;
 	clientId: string;
 	variant: {
+		barcode: string | null;
 		name: string;
 		priceAmount: string;
 		sku: string;
@@ -89,6 +101,7 @@ async function loadBase(tx: Tx, opts: CreateOptions): Promise<Base> {
 			variantId: toolVariant.id,
 			toolId: toolVariant.toolId,
 			sku: toolVariant.sku,
+			barcode: toolVariant.barcode,
 			priceAmount: toolVariant.priceAmount,
 			name: tool.name,
 		})
@@ -112,44 +125,62 @@ async function loadBase(tx: Tx, opts: CreateOptions): Promise<Base> {
 	};
 }
 
-const STATUS_PATH = [
-	"paid",
-	"preparing",
-	"shipped",
-	"delivered",
-] as const satisfies readonly OrderStatus[];
+type ReachedAtColumn = Extract<
+	keyof typeof order.$inferInsert,
+	| "paidAt"
+	| "preparingAt"
+	| "shippedAt"
+	| "deliveredAt"
+	| "canceledAt"
+	| "returnedAt"
+	| "refundedAt"
+>;
 
-type FixtureOrderStatus = (typeof STATUS_PATH)[number];
-
-const REACHED_AT_COLUMN = {
+// pending_payment e payment_failed não têm coluna; ficam só no histórico.
+const REACHED_AT_COLUMN: Partial<Record<OrderStatus, ReachedAtColumn>> = {
 	paid: "paidAt",
 	preparing: "preparingAt",
 	shipped: "shippedAt",
 	delivered: "deliveredAt",
-} as const satisfies Record<
-	FixtureOrderStatus,
-	keyof typeof order.$inferInsert
->;
+	canceled: "canceledAt",
+	returned: "returnedAt",
+	refunded: "refundedAt",
+};
+
+interface FixtureOrder {
+	itemId: string;
+	orderId: string;
+	orderNumber: string;
+	reachedAt: Date;
+	totalAmount: string;
+}
 
 async function insertFixtureOrder(
 	tx: Tx,
 	base: Base,
 	opts: CreateOptions,
-	status: FixtureOrderStatus
-): Promise<{ itemId: string; orderId: string; orderNumber: string }> {
+	surface: OrderSurface
+): Promise<FixtureOrder> {
 	const orderId = crypto.randomUUID();
 	const itemId = crypto.randomUUID();
 	const orderNumber = fixtureOrderNumber(opts.run, orderId);
-	const steps = STATUS_PATH.slice(0, STATUS_PATH.indexOf(status) + 1);
-	const createdAt = new Date(Date.now() - (steps.length + 1) * HOURS);
-	const stepAt = (i: number) => new Date(createdAt.getTime() + (i + 1) * HOURS);
+	const steps = ORDER_STATUS_PATH[surface];
+	const status = steps.at(-1) ?? "pending_payment";
+	const lastStepAt = Date.now() - (opts.ageHours ?? 1) * HOURS;
 
-	const reachedAt: Partial<
-		Record<(typeof REACHED_AT_COLUMN)[FixtureOrderStatus], Date>
-	> = {};
+	const stepAt = (i: number) =>
+		new Date(lastStepAt - (steps.length - 1 - i) * HOURS);
+
+	const createdAt = new Date(lastStepAt - steps.length * HOURS);
+
+	const reachedAt: Partial<Record<ReachedAtColumn, Date>> = {};
 
 	for (const [i, s] of steps.entries()) {
-		reachedAt[REACHED_AT_COLUMN[s]] = stepAt(i);
+		const column = REACHED_AT_COLUMN[s];
+
+		if (column) {
+			reachedAt[column] = stepAt(i);
+		}
 	}
 
 	await tx.insert(order).values({
@@ -219,21 +250,26 @@ async function insertFixtureOrder(
 
 	await tx.insert(orderStatusHistory).values(history);
 
-	return { itemId, orderId, orderNumber };
+	return {
+		itemId,
+		orderId,
+		orderNumber,
+		reachedAt: stepAt(steps.length - 1),
+		totalAmount: base.variant.priceAmount,
+	};
 }
 
-type Surface = "order" | "picking-exception" | "banner" | "review";
-
-const SURFACES: Record<
-	Surface,
-	(tx: Tx, opts: CreateOptions) => Promise<Created>
-> = {
-	order: async (tx, opts) => {
+// Pedido sem linha extra: o status vem do caminho e a aba da listagem confirma.
+function plainOrderSurface(
+	surface: OrderSurface,
+	tab: string
+): (tx: Tx, opts: CreateOptions) => Promise<Created> {
+	return async (tx, opts) => {
 		const base = await loadBase(tx, opts);
-		const o = await insertFixtureOrder(tx, base, opts, "paid");
+		const o = await insertFixtureOrder(tx, base, opts, surface);
 
 		return {
-			surface: "order",
+			surface,
 			ids: {
 				order: o.orderId,
 				order_item: o.itemId,
@@ -242,12 +278,126 @@ const SURFACES: Record<
 			},
 			orderNumber: o.orderNumber,
 			route: `/dashboard/orders/${o.orderId}`,
+			extraRoutes: [
+				{ route: `/dashboard/orders?tab=${tab}`, shows: "aba da listagem" },
+			],
+		};
+	};
+}
+
+const SURFACES: Record<
+	Surface,
+	(tx: Tx, opts: CreateOptions) => Promise<Created>
+> = {
+	order: plainOrderSurface("order", "paid"),
+	"payment-failed": plainOrderSurface("payment-failed", "pending_payment"),
+	canceled: plainOrderSurface("canceled", "canceled"),
+	returned: plainOrderSurface("returned", "returned"),
+
+	refunded: async (tx, opts) => {
+		const base = await loadBase(tx, opts);
+		const o = await insertFixtureOrder(tx, base, opts, "refunded");
+		const refundId = crypto.randomUUID();
+		await tx.insert(refundRequest).values({
+			id: refundId,
+			orderId: o.orderId,
+			clientId: base.clientId,
+			reasonCategory: "outro",
+			reasonText: `${opts.marks.text} reembolso de fixture`,
+			status: "refunded",
+			amount: o.totalAmount,
+			actorType: "system",
+			actorUserId: null,
+			requestedAt: o.reachedAt,
+			resolvedAt: o.reachedAt,
+		});
+
+		return {
+			surface: "refunded",
+			ids: {
+				order: o.orderId,
+				order_item: o.itemId,
+				refund_request: refundId,
+				branch: base.branchId,
+				client: base.clientId,
+			},
+			orderNumber: o.orderNumber,
+			route: `/dashboard/orders/${o.orderId}`,
+			extraRoutes: [
+				{ route: "/dashboard/orders?tab=canceled", shows: "aba da listagem" },
+			],
+		};
+	},
+
+	"ready-to-ship": async (tx, opts) => {
+		const base = await loadBase(tx, opts);
+		const o = await insertFixtureOrder(tx, base, opts, "ready-to-ship");
+		const pickingId = crypto.randomUUID();
+		const pickingItemId = crypto.randomUUID();
+		const scanId = crypto.randomUUID();
+		const pickerName = `${opts.marks.text} Separador`;
+		const scannedAt = new Date(o.reachedAt.getTime() + 10 * MINUTES);
+		const completedAt = new Date(o.reachedAt.getTime() + 15 * MINUTES);
+		const { barcode } = base.variant;
+
+		await tx.insert(orderPicking).values({
+			id: pickingId,
+			orderId: o.orderId,
+			branchId: base.branchId,
+			status: "completed",
+			pickerName,
+			startedAt: o.reachedAt,
+			completedAt,
+		});
+		await tx.insert(orderPickingItem).values({
+			id: pickingItemId,
+			pickingId,
+			orderItemId: o.itemId,
+			variantId: base.variant.variantId,
+			variantSnapshot: {
+				sku: base.variant.sku,
+				name: base.variant.name,
+				barcode,
+			},
+			qtyExpected: 1,
+			qtyPicked: 1,
+			lastScannedAt: scannedAt,
+		});
+		await tx.insert(orderPickingScan).values({
+			id: scanId,
+			pickingId,
+			pickingItemId,
+			variantId: base.variant.variantId,
+			scannedCode: barcode ?? base.variant.sku,
+			manual: barcode === null,
+			manualReason:
+				barcode === null ? `${opts.marks.text} variante sem código` : null,
+			scannedByName: pickerName,
+			scannedAt,
+		});
+
+		return {
+			surface: "ready-to-ship",
+			ids: {
+				order: o.orderId,
+				order_item: o.itemId,
+				order_picking: pickingId,
+				order_picking_item: pickingItemId,
+				order_picking_scan: scanId,
+				branch: base.branchId,
+				client: base.clientId,
+			},
+			orderNumber: o.orderNumber,
+			route: `/dashboard/orders/${o.orderId}`,
+			extraRoutes: [
+				{ route: "/dashboard/orders?tab=picked", shows: "Pronto para enviar" },
+			],
 		};
 	},
 
 	"picking-exception": async (tx, opts) => {
 		const base = await loadBase(tx, opts);
-		const o = await insertFixtureOrder(tx, base, opts, "preparing");
+		const o = await insertFixtureOrder(tx, base, opts, "picking-exception");
 		const pickingId = crypto.randomUUID();
 		const pickingItemId = crypto.randomUUID();
 		await tx.insert(orderPicking).values({
@@ -287,6 +437,10 @@ const SURFACES: Record<
 	},
 
 	banner: async (tx, opts) => {
+		if (opts.ageHours !== undefined) {
+			throw new Error("[fixtures] --age vale só para superfícies de pedido.");
+		}
+
 		const id = crypto.randomUUID();
 		await tx.insert(banner).values({
 			id,
@@ -304,7 +458,7 @@ const SURFACES: Record<
 
 	review: async (tx, opts) => {
 		const base = await loadBase(tx, opts);
-		const o = await insertFixtureOrder(tx, base, opts, "delivered");
+		const o = await insertFixtureOrder(tx, base, opts, "review");
 		const id = crypto.randomUUID();
 		await tx.insert(review).values({
 			id,
@@ -330,7 +484,7 @@ function isSurface(value: string | undefined): value is Surface {
 }
 
 const CLI = "bun run --cwd packages/db db:fixtures";
-const USAGE = `[fixtures] uso: ${CLI} create <${Object.keys(SURFACES).join("|")}> [--branch <id>] [--run <run>] | ${CLI} cleanup --run <run> | ${CLI} cleanup --all`;
+const USAGE = `[fixtures] uso: ${CLI} create <${FIXTURE_SURFACES.join("|")}> [--branch <id>] [--run <run>] [--age <horas>] | ${CLI} cleanup --run <run> | ${CLI} cleanup --all`;
 
 function flagValue(args: string[], flag: string): string | undefined {
 	const at = args.indexOf(flag);
@@ -360,7 +514,10 @@ async function create(args: string[]): Promise<void> {
 	const runRaw = flagValue(args, "--run");
 	const run = runRaw === undefined ? newRunId() : parseRunId(runRaw);
 
+	const ageRaw = flagValue(args, "--age");
+
 	const opts: CreateOptions = {
+		ageHours: ageRaw === undefined ? undefined : parseAgeHours(ageRaw),
 		branchId: flagValue(args, "--branch"),
 		marks: runMarks(run),
 		run,

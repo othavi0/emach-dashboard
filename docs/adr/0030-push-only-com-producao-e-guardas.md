@@ -39,6 +39,6 @@ O schema continua push-only. Os arquivos TS de `packages/db/src/schema/` são a 
 ## Consequências
 
 - O baseline `0000` previsto na primeira Consequência do ADR-0006 não será gerado.
-- O sync do ADR-0009 continua espelhando só `schema/`, `queries/`, `utils.ts` e os SQL (`triggers.sql`, `rls.sql`). Não há pasta de migrations para espelhar.
+- O sync do ADR-0009 continua espelhando só `schema/`, `queries/`, `utils.ts`, os SQL (`triggers.sql`, `rls.sql`) e o contrato `docs/integration/admin-ecommerce.md`. Não há pasta de migrations para espelhar.
 - Mudança destrutiva (rename ou drop) gera pelo menos dois PRs no dashboard e exige o PR de sync do ecommerce mergeado entre eles.
 - As guardas são regra escrita. O script `db:sync` não exige confirmação nem imprime o host; uma guarda mecânica fica para ticket próprio.

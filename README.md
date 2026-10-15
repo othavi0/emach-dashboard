@@ -119,9 +119,6 @@ emach-dashboard/
 | `bun --cwd packages/db db:apply-sql`                | Aplica `src/sql/{triggers,rls}.sql` (triggers + RLS deny-all, idempotente) |
 | `bun --cwd packages/db db:seed-demo`                | ⛔ Trunca e repopula o banco único (dev = prod); só com autorização       |
 | `bun --cwd packages/db db:reset-demo`               | ⛔ Trunca as tabelas demo no banco único; só com autorização               |
-| `bun --cwd packages/db db:seed-test-orders`         | ⛔ Insere pedidos de teste no banco único (dev = prod); só com autorização |
-| `bun --cwd packages/db db:seed-ready-to-ship`       | ⛔ Insere pedidos prontos para envio no banco único; só com autorização   |
-| `bun --cwd packages/db db:unseed-ready-to-ship`     | ⛔ Apaga pedidos `EM-TEST-91*` e devolve o estoque no banco único; só com autorização |
 | `bun verify`                                        | `check-types` + `check` + testes de `apps/web`                            |
 | `bun --cwd apps/web test`                           | Vitest de `apps/web` (`test:watch` para modo watch)                       |
 | `bun --cwd packages/db test`                        | Vitest de `packages/db`                                                   |
