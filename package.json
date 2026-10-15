@@ -46,7 +46,7 @@
     "guard:forms": "ast-grep scan",
     "guard:forms:test": "ast-grep test --skip-snapshot-tests",
     "prepare": "if git rev-parse --git-dir > /dev/null 2>&1; then lefthook install; fi",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "react-doctor apps/web"
   },
   "devDependencies": {
     "@ast-grep/cli": "0.43.0",
