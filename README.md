@@ -7,7 +7,7 @@ Dashboard interno + base para futuro ecomerce BR. Monorepo Bun + Turborepo. Auth
 ## Stack
 
 - **Runtime:** Bun 1.3 (workspaces + catalog)
-- **Build:** Turborepo 2.10 (TUI)
+- **Build:** Turborepo 2.11 (TUI)
 - **Frontend:** Next 16 + React 19 (`apps/web`, port 3001)
 - **UI:** shadcn/ui + Tailwind 4 + Base UI React (`packages/ui`)
 - **DB:** PostgreSQL via Supabase + Drizzle ORM (`packages/db`)
@@ -29,14 +29,16 @@ PostgreSQL + Drizzle ORM via Supabase.
 
 1. Provisionar Postgres (Supabase ou local).
 2. Popular `apps/web/.env` a partir de `apps/web/.env.example` (inclui `DATABASE_URL` + `NEXT_PUBLIC_SUPABASE_*`).
-3. Aplicar schema (push-only — ver ADR-0006):
+3. Não aplicar schema num checkout novo. O `DATABASE_URL` aponta para o banco único (dev = prod = ecommerce), em uso pela produção.
 
 ```bash
-bun db:sync                                  # drizzle-kit push + triggers + RLS
-# ⛔ não rode db:seed-demo: o banco é único (dev = prod), e o seed trunca tudo
+# ⛔ não rode db:sync nem db:push: o drizzle-kit push grava o schema da branch atual no banco de produção
+# ⛔ não rode db:seed-demo: o seed trunca o banco único
 ```
 
-O banco é um só para dev, produção, dashboard e ecommerce. O que pede autorização e o que conta como write pontual está em [Banco compartilhado: regra de escrita dos dois apps](CLAUDE.md#banco-compartilhado-regra-de-escrita-dos-dois-apps).
+O schema é push-only (ADR-0006). Aplicar schema com `bun db:sync` só cabe depois de editar `packages/db/src/schema/*.ts` e com autorização do dono na sessão. O que pede autorização e o que conta como write pontual está em [Banco compartilhado: regra de escrita dos dois apps](CLAUDE.md#banco-compartilhado-regra-de-escrita-dos-dois-apps). O fluxo de schema está em [`packages/db/CLAUDE.md`](packages/db/CLAUDE.md).
+
+Para dado de smoke e consulta sem escrita, use `db:fixtures` e `db:read` (tabela abaixo).
 
 Servidor de desenvolvimento:
 
@@ -94,10 +96,7 @@ emach-dashboard/
 │   ├── agents/                      # Guias de consumo de domínio/issues p/ agentes
 │   ├── integration/admin-ecommerce.md
 │   └── storage-buckets.md
-├── scripts/
-│   ├── clean.sh
-│   ├── remove-tool-image-bg.py
-│   └── sync-fork.sh
+├── scripts/                         # gates (verify.sh), setup de worktree, limpeza e utilitários (lista: `ls scripts`)
 ├── CLAUDE.md                        # Guia canônico para Claude Code
 ├── DESIGN.md                        # Sistema visual industrial-workshop dark + coral + condensada
 ├── PRODUCT.md                       # Register product + personality + anti-references
@@ -117,18 +116,23 @@ Os scripts que mudam schema (`db:sync`, `db:push`, `db:apply-sql`) e os marcados
 | `bun check`                                         | Ultracite check + anti-slop (lint/format dry-run; falha se issue)         |
 | `bun fix`                                           | Ultracite fix (aplica auto-format)                                        |
 | `bun run fix:slop`                                  | Autofix do anti-slop (Oxlint)                                             |
-| `bun db:sync`                                       | drizzle-kit push + triggers + RLS (push-only — ADR-0006)                  |
-| `bun db:push`                                       | Só o schema Drizzle (sem triggers/RLS)                                    |
+| `bun run lint:slop`                                 | Anti-slop do Oxlint sem fix (o `bun check` já roda)                       |
+| `bun run check:docs`                                | Confere se os caminhos citados nas docs existem                           |
+| `bun run test:lint-rules`                           | Testes das regras Oxlint próprias (`tools/oxlint/emach`); exige Node 24   |
+| `bun db:sync`                                       | ⛔ drizzle-kit push + triggers + RLS no banco único; só com autorização    |
+| `bun db:push`                                       | ⛔ Só o schema Drizzle (sem triggers/RLS) no banco único; só com autorização |
 | `bun db:studio`                                     | UI inspetora de tabelas (drizzle-kit)                                     |
-| `bun --cwd packages/db db:apply-sql`                | Aplica `src/sql/{triggers,rls}.sql` (triggers + RLS deny-all, idempotente) |
+| `bun --cwd packages/db db:apply-sql`                | ⛔ Aplica `src/sql/{triggers,rls}.sql` no banco único; só com autorização  |
+| `bun run --cwd packages/db db:fixtures create <superfície>` | Fabrica dado de smoke marcado; `db:fixtures cleanup --run <run>` desfaz |
+| `bun run --cwd packages/db db:read "<sql>"`         | Consulta só leitura (`BEGIN READ ONLY`, timeout de 15 s)                  |
 | `bun --cwd packages/db db:seed-demo`                | ⛔ Trunca e repopula o banco único (dev = prod); só com autorização       |
 | `bun --cwd packages/db db:reset-demo`               | ⛔ Trunca as tabelas demo no banco único; só com autorização               |
-| `bun verify`                                        | `check-types` + `check` + testes de `apps/web`                            |
+| `bun verify`                                        | Os mesmos gates do CI, na ordem de `scripts/verify.sh` (inclui o build do web) |
 | `bun --cwd apps/web test`                           | Vitest de `apps/web` (`test:watch` para modo watch)                       |
 | `bun --cwd packages/db test`                        | Vitest de `packages/db`                                                   |
 | `bun guard:forms`                                   | `ast-grep scan` (regras de formulário)                                    |
 | `bun guard:forms:test`                              | Testes das regras do `guard:forms`                                        |
-| `bun doctor`                                        | `react-doctor` (diagnóstico de React)                                     |
+| `bun doctor`                                        | `react-doctor` instalado contra `apps/web` (diagnóstico de React)         |
 | `bun sync:fork`                                     | Sincroniza o fork (`scripts/sync-fork.sh`); `sync:fork:dry` só simula     |
 | `bun clean`                                         | Remove `node_modules` + caches Turbo/Next                                 |
 | `bun clean-all`                                     | Como `clean`, sem confirmação e limpando o cache do bun                   |
