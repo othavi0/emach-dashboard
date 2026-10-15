@@ -28,7 +28,10 @@ export default function DashboardLayout({
 			<SidebarInset>
 				<header className="flex h-12 items-center gap-2 border-b px-4 md:hidden">
 					<SidebarTrigger />
-					<span className="font-serif text-base uppercase tracking-[0.04em]">
+					<span
+						// ast-grep-ignore: display-font-only-h1 wordmark do header mobile
+						className="font-serif text-base uppercase tracking-[0.04em]"
+					>
 						emach
 					</span>
 				</header>

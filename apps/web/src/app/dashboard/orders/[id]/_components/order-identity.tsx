@@ -21,7 +21,14 @@ export function OrderIdentity({ order }: OrderIdentityProps) {
 				</>
 			}
 			subtitle={`${order.clientName} · ${order.clientEmail} · criado ${formatDate(order.createdAt)}`}
-			title={<span className="font-serif tracking-tight">{order.number}</span>}
+			title={
+				<span
+					// ast-grep-ignore: display-font-only-h1 número do pedido como título de entidade no header de detalhe
+					className="font-serif tracking-tight"
+				>
+					{order.number}
+				</span>
+			}
 		/>
 	);
 }

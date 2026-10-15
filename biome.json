@@ -76,6 +76,9 @@
           "level": "error",
           "options": {
             "paths": {
+              "@emach/auth/ecommerce": {
+                "message": "P0: o dashboard usa só @emach/auth/dashboard. A instância ecommerce vive no repo emach-ecommerce (CLAUDE.md, invariante 1)."
+              },
               "react": {
                 "importNames": ["forwardRef", "default"],
                 "message": "React 19 passa ref como prop comum: forwardRef é banido, e o import default de react também (React.forwardRef escaparia, porque noReactForwardRef não roda com react em catalog:)."
