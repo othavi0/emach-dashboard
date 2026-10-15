@@ -345,7 +345,11 @@ function checkCode(file: string, line: number, code: string, l: string) {
 		return;
 	}
 
-	if (!DELIBERATE_MISSING.test(l) && isPathRef(code)) {
+	const deliberate =
+		DELIBERATE_MISSING.test(l) &&
+		(!code.includes("/") || WARN_ONLY_FILE.test(file));
+
+	if (!deliberate && isPathRef(code)) {
 		checkPath({ file, line, raw: code, kind: "code" });
 	}
 }
@@ -364,7 +368,8 @@ function checkDoc(file: string) {
 		}
 
 		const skipLinks =
-			SKIP_LINE_CITING_OTHER_REPO.test(l) || DELIBERATE_MISSING.test(l);
+			SKIP_LINE_CITING_OTHER_REPO.test(l) ||
+			(DELIBERATE_MISSING.test(l) && WARN_ONLY_FILE.test(file));
 
 		for (const [, raw] of l.matchAll(LINK)) {
 			if (raw && !skipLinks) {

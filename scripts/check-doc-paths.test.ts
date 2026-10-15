@@ -59,6 +59,31 @@ describe("(a) arquivos da raiz e de tools/", () => {
 			{ code: 0, lines: ["files=1 refs=0 broken=0 warned=0"] }
 		);
 	});
+
+	test("palavra de remoção em doc viva não pula caminho com barra nem link", () => {
+		expect(
+			check({
+				"README.md":
+					"O `old.ts` foi apagado; ver `apps/web/gone.ts` e [doc](docs/gone.md).",
+			})
+		).toEqual({
+			code: 1,
+			lines: [
+				"README.md:1\tcaminho\tdocs/gone.md não existe no repo",
+				"README.md:1\tcaminho\tapps/web/gone.ts não existe no repo",
+				"files=1 refs=2 broken=2 warned=0",
+			],
+		});
+	});
+
+	test("palavra de remoção em ADR pula caminho com barra e link", () => {
+		expect(
+			check({
+				"docs/adr/0001-x.md":
+					"O `apps/web/gone.ts` foi removido; ver [doc](gone.md).",
+			})
+		).toEqual({ code: 0, lines: ["files=1 refs=0 broken=0 warned=0"] });
+	});
 });
 
 describe("(b) bun <script>", () => {
