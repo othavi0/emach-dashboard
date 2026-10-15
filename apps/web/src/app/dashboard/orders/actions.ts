@@ -18,6 +18,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { isCapabilityError } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { getUserBranchScope } from "@/lib/branch-scope";
+import { releaseCouponRedemption } from "@/lib/coupon-redemption";
 import { getPgError } from "@/lib/db-error";
 import type { InfiniteResult } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
@@ -113,6 +114,7 @@ type OrderTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 interface LockedOrderAuth {
 	branchId: string | null;
+	couponId: string | null;
 	session: DashboardSession;
 	status: OrderStatus;
 }
@@ -131,7 +133,11 @@ export async function lockOrderAndAuthorize(
 	orderId: string
 ): Promise<LockedOrderAuth | null> {
 	const [locked] = await tx
-		.select({ status: order.status, branchId: order.branchId })
+		.select({
+			status: order.status,
+			branchId: order.branchId,
+			couponId: order.couponId,
+		})
 		.from(order)
 		.where(eq(order.id, orderId))
 		.for("update")
@@ -163,7 +169,12 @@ export async function lockOrderAndAuthorize(
 		});
 	}
 
-	return { status: locked.status, branchId: locked.branchId, session };
+	return {
+		status: locked.status,
+		branchId: locked.branchId,
+		couponId: locked.couponId,
+		session,
+	};
 }
 
 /** Metadata gravado em `order_event` por tipo de evento. */
@@ -326,6 +337,10 @@ export async function updateOrderStatus(
 				actorUserId: session.user.id,
 				reason: reason ?? parsed.data.forceReason ?? null,
 			});
+
+			if (toStatus === "canceled") {
+				await releaseCouponRedemption(tx, locked.couponId);
+			}
 
 			if (toStatus === "shipped" && trackingCode) {
 				await insertOrderEvent(tx, {

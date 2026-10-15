@@ -1,5 +1,7 @@
 # Contrato de integração: admin ↔ site e-commerce
 
+> **Fonte e cópia.** A fonte deste contrato é o repo `othavi0/emach-dashboard`. O `emach-ecommerce` recebe uma cópia em `docs/integration/admin-ecommerce.md` pelo PR do workflow `sync-db-schema.yml`. Não edite a cópia do ecommerce: a mudança começa no dashboard. Os caminhos de arquivo citados aqui são do dashboard quando o texto não diz o contrário.
+
 O dashboard administrativo e o site e-commerce compartilham o mesmo banco Postgres via Drizzle. **Nenhum dos dois chama o outro por HTTP.** Toda coordenação acontece pelo schema compartilhado. Ver ADR-0004.
 
 ---
@@ -96,7 +98,7 @@ Helper compartilhado em `@emach/db/queries/store-settings`:
 
 - `originCep` (CEP da filial de origem, ou `null`): origem da cotação. O storefront **já consome** — usa `originCep` como `SellerCEP` quando tem 8 dígitos válidos; senão cai no fallback `env.FRENET_SELLER_CEP`.
 - `insurancePolicy`: `'none'` (sem valor declarado adicional) ou `'cart_value'` (declara o valor do carrinho até `insuranceCapAmount` como `ShipmentInvoiceValue` na cotação Frenet). Também já consumido pelo storefront.
-- **Frete grátis** não vive aqui: é só via cupom/promoção (`promotion`). O `R$ 299` hardcoded no storefront é bug a remover (issue separado no emach-ecommerce).
+- **Frete grátis** não vive aqui: é só via cupom/promoção (`promotion`).
 
 As colunas `shipping_fill_factor` e `shipping_box_padding_cm` foram removidas do schema em 2026-07-29 (nunca foram consumidas pela cotação; o motor usa folga fixa de 0.9). O drop físico das colunas no banco é coordenado — ver "Regra de sincronização" abaixo.
 
@@ -275,6 +277,16 @@ Transições completas (fonte canônica: `apps/web/src/app/dashboard/orders/sche
 
 ## Estoque: débito ocorre em `paid`
 
+### Status hoje
+
+O débito em `paid` é contrato alvo e ainda não tem escritor. Nenhum app grava `stock_movement` com `reason = 'saida_venda'`. Só os scripts de seed em `packages/db/scripts` gravam esse motivo.
+
+- O e-commerce não move pedido para `paid`. O pagamento real é stub e não há webhook do Asaas (`emach-ecommerce/CLAUDE.md`, item "Pagamento real ausente", roadmap #4).
+- O admin pode marcar um pedido `pending_payment` como `paid` à mão no dashboard. A action `updateOrderStatus` (`apps/web/src/app/dashboard/orders/actions.ts`) grava o status e o histórico e não debita `stock_level` nem grava `stock_movement`. Ela só mexe em estoque quando o destino é `returned`.
+- Um reembolso com "creditar estoque" de um pedido marcado `paid` à mão infla o estoque. `refundOrder` chama `applyStockReturns` (`apps/web/src/app/dashboard/orders/_lib/stock-returns.ts`), que credita a quantidade do item sem conferir se houve débito antes. O estoque credita uma quantidade que nunca saiu.
+
+### Contrato alvo
+
 **`pending_payment` não reserva estoque.** O débito de `stock_level` acontece apenas quando o pedido transita para `paid`.
 
 Motivação: pedidos não pagos não devem imobilizar estoque — o cliente pode abandonar o checkout. Cancelar um pedido em `pending_payment` ou `payment_failed` não mexe em `stock_movement` nem em `stock_level`. Ver ADR-0007.
@@ -351,11 +363,23 @@ Algoritmo na validação do cupom (carrinho/checkout):
 5. **Cálculo:** `percent` → percentual sobre a base elegível; `fixed` → abate `discount_value`
    em reais (clamp em ≥ 0).
 
-Na confirmação do pedido (transição para `paid`):
+No checkout (criação do pedido em `pending_payment`):
 
-- Incrementar `redemption_count` de forma **idempotente**: `SELECT ... FOR UPDATE` na `promotion`
-  + re-check do limite na mesma transação (mesmo padrão do débito de estoque em `stock_movement`).
-  O contador nunca pode ultrapassar `max_redemptions` sob disparo concorrente.
+- Reservar a redenção: incrementar `redemption_count` com `SELECT ... FOR UPDATE` na `promotion`
+  + re-check do limite na mesma transação. O contador nunca passa de `max_redemptions` sob disparo
+  concorrente.
+- Pedido abandonado segura a redenção até ser cancelado, pelo cliente ou pelo cron de 72 h.
+
+Em todo cancelamento (cliente na loja, admin no dashboard, cron `cancel-stale-orders`):
+
+- Devolver uma redenção com `GREATEST(redemption_count - 1, 0)` na `promotion` do
+  `order.coupon_id`, na mesma transação que grava `canceled`. Como `canceled` é terminal, a
+  devolução roda uma vez por pedido. No dashboard, os dois caminhos usam
+  `releaseCouponRedemption` (`apps/web/src/lib/coupon-redemption.ts`).
+- `refunded` não devolve a redenção: o cupom foi usado numa venda paga.
+
+No pedido:
+
 - Persistir o cupom aplicado no pedido: `order.coupon_id` (FK → `promotion.id`, `set null`) +
   o valor abatido em `order.discount_amount`.
 - Qualquer write automático no `stock_movement` de `saida_venda`: `actor_type='system'`, sem `actor_id` (CHECK `actor_coherence`). A tabela `promotion` não tem colunas de actor nem esse CHECK.
@@ -383,10 +407,8 @@ storefront (`hero-carousel.tsx`) renderiza. Desde a spec 2026-07-29 ("Banner Bui
 elemento"), a fonte de verdade **deixou de ser** o enum `layout` + `product_scale`/`cta_scale` e
 passou a ser a coluna nova **`composition`** (jsonb, nullable). O preview do dashboard (canvas do
 editor + card da listagem) espelha 1:1 o que o storefront deve produzir via o mesmo componente de
-referência — divergência entre os dois é bug. **Status da migração:** o dashboard já escreve
-`composition` em todo save; o storefront ainda não lê essa coluna — migração rastreada em
-[emach-ecommerce#210](https://github.com/othavi0/emach-ecommerce/issues/210) (ver "Transição"
-abaixo).
+referência — divergência entre os dois é bug. O storefront lê `composition` desde o merge do
+ecommerce#212 (ver "Transição" abaixo).
 
 Conteúdo (textos, link, URLs de imagem, `ctaVariant`, `specs`, `countdownTarget`,
 `backgroundMobileMode`/`backgroundImageMobileUrl`) continua nas colunas atuais — a `composition`
@@ -534,7 +556,7 @@ confirmada e registrada na ecommerce#210). O dual-write foi **removido** do dash
 data: `createBanner` grava só `composition`; **`layout`/`product_scale`/`cta_scale` são
 deprecated** e sem leitor primário (o único uso restante é o fallback de leitura
 `legacyToComposition` para `composition` NULL/inválida, nos dois apps). Hoje o `updateBanner`
-ainda regrava as três colunas a cada save (`site/banners/actions.ts:141-143`), então elas seguem
+ainda regrava as três colunas a cada save (`updateBanner` em `apps/web/src/app/dashboard/site/banners/actions.ts`), então elas seguem
 com escritor nesse caminho. Não introduzir escrita nova nessas colunas; remoção
 física do schema fica pra um ciclo futuro (exige sync coordenado — ADR-0009).
 
@@ -576,7 +598,7 @@ canvas do editor **e** pelo card da listagem — é a implementação de referê
 
 ## Regra de sincronização do schema TS
 
-As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **automatizada por CI** — o workflow `sync-db-schema.yml` espelha `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` para o repo `emach-ecommerce` via Pull Request automático sempre que esses arquivos mudam na `main`. Direção unidirecional: dashboard → ecommerce. Ver ADR-0009.
+As tabelas compartilhadas têm **cópia idêntica** do schema Drizzle (`packages/db/src/schema/`) no repositório do e-commerce. A sincronização é **automatizada por CI** — o workflow `sync-db-schema.yml` espelha `packages/db/src/{schema,queries,utils.ts,sql/triggers.sql,sql/rls.sql}` e este contrato (`docs/integration/admin-ecommerce.md`) para o repo `emach-ecommerce` via Pull Request automático sempre que esses arquivos mudam na `main`. Direção unidirecional: dashboard → ecommerce. Ver ADR-0009.
 
 Quando qualquer arquivo em `packages/db/src/schema/` for alterado:
 
@@ -593,16 +615,20 @@ A fonte de verdade é sempre o dashboard (este repositório). O e-commerce **nun
 
 ## Seção de promoção em destaque (home)
 
-O storefront renderiza a promoção `featured` da home com regras de layout que
-dependem da quantidade de produtos vinculados:
+O storefront busca a promoção `featured` da home com `getFeaturedPromotion`
+(`packages/db/src/queries/promotions.ts`). A quantidade de produtos vinculados
+decide o que aparece:
 
-- **Mínimo de 2 produtos** — com menos de 2 produtos específicos, a seção **não
-  renderiza**.
-- **Teto de 4 produtos** — a home exibe os 4 mais recentes (`created_at`); os
-  demais só em "Ver todas as ofertas".
+- **Mínimo de 1 produto.** A seção aparece com 1 produto ou mais. A query devolve
+  `null` quando a promoção de produtos específicos não tem ferramenta vinculada ou
+  quando nenhuma ferramenta da promoção passa no filtro da vitrine
+  (`visible_on_site` e status de vitrine).
+- **Teto de `TOOLS_PER_PROMO` produtos (4).** A home mostra os mais recentes
+  (`created_at`). Os demais só aparecem em "Ver todas as ofertas". O teto é o
+  `LIMIT` da query.
 
-O dashboard espelha esses números em
-`apps/web/src/app/dashboard/promotions/_lib/featured-home.ts`
-(`HOME_MIN_PRODUCTS = 2`, `HOME_MAX_PRODUCTS = 4`) para validar/avisar no form e
-na listagem. **Alterar o layout no storefront exige atualizar essas constantes
-no dashboard junto** (sincronia manual — não há import cross-repo).
+`TOOLS_PER_PROMO` vive em `packages/db/src/queries/promo-limits.ts`, um módulo sem
+imports. A query da loja e o dashboard leem a mesma constante. O dashboard a
+importa em `apps/web/src/app/dashboard/promotions/_lib/featured-home.ts`
+(`HOME_MAX_PRODUCTS`), com `HOME_MIN_PRODUCTS = 1`, para validar e avisar no form
+e na listagem.

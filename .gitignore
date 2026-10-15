@@ -15,6 +15,8 @@ build
 # Claude Code artifacts
 .claude/worktrees/
 .superpowers/
+# Gerado pelo `next dev` do Next 16.4+ quando detecta agente de código
+apps/web/AGENTS.md
 
 # IDEs and editors
 .vscode/*

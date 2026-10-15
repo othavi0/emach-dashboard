@@ -7,12 +7,9 @@ import {
 } from "@emach/ui/components/card";
 import Link from "next/link";
 
+import { formatDocument } from "@/lib/cpf-cnpj";
 import type { OrderDetail } from "../../../data";
-import {
-	formatAddress,
-	formatCurrency,
-	formatDocument,
-} from "../../_lib/format-address";
+import { formatAddress, formatCurrency } from "../../_lib/format-address";
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
 	return (
@@ -61,7 +58,9 @@ export function CustomerDeliveryTab({ order }: { order: OrderDetail }) {
 					<Row label="Telefone">{order.clientPhone ?? "—"}</Row>
 					<Row label="CPF / CNPJ">
 						<span className="font-mono">
-							{formatDocument(order.clientDocument)}
+							{order.clientDocument
+								? formatDocument(order.clientDocument)
+								: "—"}
 						</span>
 					</Row>
 					<Link

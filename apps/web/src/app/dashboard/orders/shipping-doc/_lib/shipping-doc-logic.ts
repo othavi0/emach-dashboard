@@ -17,7 +17,7 @@ export interface ShippingDocSender {
 export interface ShippingDocRecipient {
 	city: string | null;
 	complement: string | null;
-	document: string | null; // CPF/CNPJ cru (só dígitos após normalização)
+	document: string | null; // CPF só com dígitos; CNPJ alfanumérico em maiúsculas, sem pontuação
 	name: string | null; // recipient do snapshot
 	neighborhood: string | null;
 	number: string | null;

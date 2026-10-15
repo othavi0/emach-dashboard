@@ -33,7 +33,7 @@ function normalizePayload(input: SupplierFormValues) {
 	const contactEmail = input.contactEmail?.trim();
 	const phone = input.phone?.trim();
 	const website = input.website?.trim();
-	const cnpjDigits = input.cnpj ? normalizeCnpj(input.cnpj) : "";
+	const cnpj = input.cnpj ? normalizeCnpj(input.cnpj) : "";
 	const notes = input.notes?.trim();
 
 	return {
@@ -41,7 +41,7 @@ function normalizePayload(input: SupplierFormValues) {
 		contactEmail: contactEmail ? contactEmail : null,
 		phone: phone ? phone : null,
 		website: website ? website : null,
-		cnpj: cnpjDigits ? cnpjDigits : null,
+		cnpj: cnpj ? cnpj : null,
 		notes: notes ? notes : null,
 	};
 }

@@ -1,121 +1,103 @@
 /**
- * Validação e formatação de CPF/CNPJ (BR).
- * Sem deps externas. Algoritmo dígito verificador mod 11.
+ * Validação e formatação de CPF/CNPJ (BR). Sem deps externas.
+ *
+ * CNPJ alfanumérico (IN RFB 2.229/2024): as 12 primeiras posições aceitam A-Z,
+ * então o documento é normalizado para maiúsculas sem pontuação, não só dígitos.
+ * CPF continua só com dígitos. A lógica copia
+ * `emach-ecommerce/packages/validators/src/cpf-cnpj.ts`, que grava o mesmo
+ * `client.document`: mudança num lado exige a mesma no outro.
  */
+
+const NON_DIGITS_RE = /\D/g;
+const NON_ALNUM_RE = /[^0-9A-Z]/g;
+const ONLY_DIGITS_RE = /^\d*$/;
+const CNPJ_RE = /^[0-9A-Z]{12}\d{2}$/;
+const ALL_SAME_CHAR_RE = /^(.)\1+$/;
+
+const CNPJ_WEIGHTS_1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+const CNPJ_WEIGHTS_2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 
 export function normalizeDocument(input: string | null | undefined): string {
 	if (!input) {
 		return "";
 	}
 
-	return input.replace(/\D+/g, "");
+	return input.toUpperCase().replace(NON_ALNUM_RE, "");
 }
 
 export function formatDocument(input: string | null | undefined): string {
-	const digits = normalizeDocument(input);
+	const d = normalizeDocument(input);
 
-	if (digits.length === 11) {
-		return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
+	if (d.length === 11 && ONLY_DIGITS_RE.test(d)) {
+		return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9, 11)}`;
 	}
 
-	if (digits.length === 14) {
-		return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12, 14)}`;
+	if (d.length === 14) {
+		return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12, 14)}`;
 	}
 
-	return digits;
+	return d;
 }
 
-const ALL_SAME_DIGIT_RE = /^(\d)\1+$/;
+function cpfCheck(digits: string, length: number): number {
+	let sum = 0;
 
-function allSameDigit(digits: string): boolean {
-	return ALL_SAME_DIGIT_RE.test(digits);
+	for (let i = 0; i < length; i++) {
+		sum += Number(digits[i]) * (length + 1 - i);
+	}
+
+	const rest = (sum * 10) % 11;
+
+	return rest === 10 ? 0 : rest;
 }
 
 export function isValidCpf(input: string | null | undefined): boolean {
-	const d = normalizeDocument(input);
+	const d = input ? input.replace(NON_DIGITS_RE, "") : "";
 
-	if (d.length !== 11 || allSameDigit(d)) {
+	if (d.length !== 11 || ALL_SAME_CHAR_RE.test(d)) {
 		return false;
 	}
 
+	if (cpfCheck(d, 9) !== Number(d[9])) {
+		return false;
+	}
+
+	return cpfCheck(d, 10) === Number(d[10]);
+}
+
+// Valor de cada caractere = código ASCII - 48 (0-9 → 0-9, A-Z → 17-42),
+// conforme o manual de cálculo do DV do CNPJ alfanumérico do Serpro.
+function cnpjCheck(cnpj: string, weights: number[]): number {
 	let sum = 0;
 
-	for (let i = 0; i < 9; i++) {
-		// biome-ignore lint/style/noNonNullAssertion: length checked above
-		sum += Number.parseInt(d[i]!, 10) * (10 - i);
+	for (let i = 0; i < weights.length; i++) {
+		sum += (cnpj.charCodeAt(i) - 48) * (weights[i] ?? 0);
 	}
 
-	let dv1 = (sum * 10) % 11;
+	const rest = sum % 11;
 
-	if (dv1 === 10) {
-		dv1 = 0;
-	}
-
-	// biome-ignore lint/style/noNonNullAssertion: length checked at top of function
-	if (dv1 !== Number.parseInt(d[9]!, 10)) {
-		return false;
-	}
-
-	sum = 0;
-
-	for (let i = 0; i < 10; i++) {
-		// biome-ignore lint/style/noNonNullAssertion: length checked at top of function
-		sum += Number.parseInt(d[i]!, 10) * (11 - i);
-	}
-
-	let dv2 = (sum * 10) % 11;
-
-	if (dv2 === 10) {
-		dv2 = 0;
-	}
-
-	// biome-ignore lint/style/noNonNullAssertion: length checked at top of function
-	return dv2 === Number.parseInt(d[10]!, 10);
+	return rest < 2 ? 0 : 11 - rest;
 }
 
 export function isValidCnpj(input: string | null | undefined): boolean {
 	const d = normalizeDocument(input);
 
-	if (d.length !== 14 || allSameDigit(d)) {
+	if (!CNPJ_RE.test(d) || ALL_SAME_CHAR_RE.test(d)) {
 		return false;
 	}
 
-	const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-	const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-	let sum = 0;
-
-	for (let i = 0; i < 12; i++) {
-		// biome-ignore lint/style/noNonNullAssertion: length checked above
-		sum += Number.parseInt(d[i]!, 10) * w1[i]!;
-	}
-
-	let dv1 = sum % 11;
-	dv1 = dv1 < 2 ? 0 : 11 - dv1;
-
-	// biome-ignore lint/style/noNonNullAssertion: length checked above
-	if (dv1 !== Number.parseInt(d[12]!, 10)) {
+	if (cnpjCheck(d, CNPJ_WEIGHTS_1) !== Number(d[12])) {
 		return false;
 	}
 
-	sum = 0;
-
-	for (let i = 0; i < 13; i++) {
-		// biome-ignore lint/style/noNonNullAssertion: length checked above
-		sum += Number.parseInt(d[i]!, 10) * w2[i]!;
-	}
-
-	let dv2 = sum % 11;
-	dv2 = dv2 < 2 ? 0 : 11 - dv2;
-
-	// biome-ignore lint/style/noNonNullAssertion: length checked above
-	return dv2 === Number.parseInt(d[13]!, 10);
+	return cnpjCheck(d, CNPJ_WEIGHTS_2) === Number(d[13]);
 }
 
 export function isValidDocument(input: string | null | undefined): boolean {
 	const d = normalizeDocument(input);
 
 	if (d.length === 11) {
-		return isValidCpf(d);
+		return ONLY_DIGITS_RE.test(d) && isValidCpf(d);
 	}
 
 	if (d.length === 14) {
