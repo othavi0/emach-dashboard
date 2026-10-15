@@ -21,14 +21,14 @@ No detalhe de entidade, tornar a navegação entre tabs **100% client-side**: tr
 
 ## Opções consideradas
 
-- **A (escolhida)** — tabs client-side, piloto no tool detail e depois generalizada às 9 páginas de detalhe. Elimina o round-trip por troca de tab (re-auth + re-busca do `detail`). Verificado: trocar entre tabs eager = 0 requests (Resource Timing). Custo: refactor do padrão de navegação (pago uma vez no piloto + extração do shell em #264), e uma janela menor de robustez (error state nos loaders, resolvida).
+- **A (escolhida)** — tabs client-side, piloto no tool detail e depois generalizada às páginas de detalhe (9 na migração; hoje 8, porque shipping/carriers saiu no #288). Elimina o round-trip por troca de tab (re-auth + re-busca do `detail`). Verificado: trocar entre tabs eager = 0 requests (Resource Timing). Custo: refactor do padrão de navegação (pago uma vez no piloto + extração do shell em #264), e uma janela menor de robustez (error state nos loaders, resolvida).
 - **B (rejeitada)** — cachear `getToolDetail` no servidor (`unstable_cache`/`cacheTag`), mantendo as tabs server-nav. Mataria as 7 queries redundantes sem refactor client, e sem trade-off de auth — mas mantém um round-trip + re-auth por troca de tab. Descartada: a migração das 8 páginas restantes se justificou (mesmo ganho replicado, shell já compartilhado) e foi concluída em jul/2026.
 - **C (rejeitada)** — reabrir `cookieCache` (ADR-0021) para baratear a re-auth. Já rejeitado por medição de prod; com tabs client-side a re-auth por troca simplesmente desaparece, tornando o ganho irrelevante.
 - **Zustand** — descartado: o estado da tab ativa é local da página (React Context basta); cache de dados de servidor por tab seria TanStack Query, não Zustand. Nenhum dos dois é necessário.
 
 ## Consequências
 
-- **Trocar de tab no detalhe de entidade não toca o servidor** (0 requests; verificado em dev e via build, nas 9 páginas). Header reativo no cliente; URL `?tab=` preservada (deep-link + voltar/avançar via `popstate`).
+- **Trocar de tab no detalhe de entidade não toca o servidor** (0 requests; verificado em dev e via build, nas 9 páginas da migração; shipping/carriers saiu depois, no #288). Header reativo no cliente; URL `?tab=` preservada (deep-link + voltar/avançar via `popstate`).
 - A **1ª carga** da página renderiza o markup das tabs eager de uma vez — barato (mesmo `detail`, sem queries extras). Tabs lazy mostram skeleton breve na 1ª abertura (inclusive deep-link).
 - **Invariante P0 mantido fresco:** a auth das tabs lazy roda por chamada da `"use server"` action (`requireCapability`), sem janela de staleness — diferente do trade-off de revisita do `staleTimes` (ADR-0023) e do `cookieCache` (ADR-0021).
 - **Canônico consolidado:** as 8 páginas de detalhe (tools, promotions, suppliers, categories, orders, branches, users, customers) usam `EntityClientTabs` (shipping/carriers saiu com o #288). `EntityTabs` (server-nav) segue válido só para páginas **não-detalhe** com tabs (`shipping/page.tsx`, `site/settings/page.tsx`, `dev-preview/entity-preview/page.tsx`) e para tabs de navegação com `href`.

@@ -6,7 +6,7 @@
 - Caminho de origem: `src/` (canônico upstream), copiado para `tools/oxlint/anti-slop/`.
 - Dependências: `oxlint` e `@oxlint/plugins` na mesma versão exata (1.78.0), devDependencies da raiz.
 
-O `LICENSE` (MIT) da raiz do upstream foi copiado para cá; a cópia do ecommerce não o tem. O `vendor/eslint-stylistic/` traz o próprio `LICENSE` (MIT) e o próprio `UPSTREAM.md`; os dois seguem junto com o código.
+O `LICENSE` (MIT) da raiz do upstream foi copiado para cá. O `vendor/eslint-stylistic/` traz o próprio `LICENSE` (MIT) e o próprio `UPSTREAM.md`; os dois seguem junto com o código.
 
 ## Desvios locais
 

@@ -40,7 +40,7 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 - `key={index}` só em lista curta de primitivos sem id ou de inputs controlados, com `// biome-ignore lint/suspicious/noArrayIndexKey: <motivo>` na linha logo acima do atributo `key`. `packages/ui` (shadcn) fica fora da regra.
 - `useMemo`/`useCallback` só onde o React Compiler não compila o componente, com `// ast-grep-ignore: no-manual-memo <motivo>` (`no-manual-memo-ts` em `.ts`).
 - `<img>` puro — sempre `next/image` (exceto thumbs Supabase com biome-ignore).
-- Barrel files (`index.ts` re-export only). Exceções marcadas com `biome-ignore lint/performance/noBarrelFile`: `packages/db/src/schema/index.ts` (API pública do pacote `@emach/db`) e `apps/web/src/lib/masks/index.ts` (import ergonômico das máscaras de input). Outros barrels em `src/index.ts` de pacotes que exportam lógica real (ex: `packages/db/src/index.ts`) **não são barrels** pela definição do biome — não precisam de anotação.
+- Barrel files (`index.ts` re-export only). Exceções marcadas com `biome-ignore lint/performance/noBarrelFile`: `packages/db/src/schema/index.ts` (API pública do pacote `@emach/db`), `apps/web/src/lib/masks/index.ts` (import ergonômico das máscaras de input) e `packages/db/src/queries/tools.ts` (reexporta `STOREFRONT_TOOL_STATUSES`). Outros barrels em `src/index.ts` de pacotes que exportam lógica real (ex: `packages/db/src/index.ts`) **não são barrels** pela definição do biome — não precisam de anotação.
 - `async function` em Client Component — usar Server Component pra fetching.
 - `.forEach()` em hot path — `for...of`.
 - `new RegExp(...)` ou literal em loops — extrair top-level.
