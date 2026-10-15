@@ -26,7 +26,7 @@ jobs:
     if: github.repository == 'othavi0/emach-dashboard'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           # Sem isto, o checkout grava um http.extraheader com o GITHUB_TOKEN
