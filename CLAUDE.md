@@ -77,7 +77,7 @@ Roles dashboard: `user.role` enum `super_admin/admin/user`; `user.status` enum `
 
 O `bun run check:docs` (`scripts/check-doc-paths.ts`) lê os `.md` rastreados, menos skills, plans, superpowers e o anti-slop vendorizado. Ele confere os caminhos citados (com ou sem barra, inclusive arquivos da raiz e de `tools/`), cada `bun <script>` contra os `package.json` e o `node_modules/.bin`, citação de número de linha depois do nome de arquivo, a tabela de ownership do contrato contra os `pgTable`, as linhas marcadas com `<!-- sync-paths -->` e o body do PR de sync contra o `paths:` do `sync-db-schema.yml`, e cada script `db:*` contra o `packages/db/CLAUDE.md`. Em `docs/adr/` e `docs/audits/`, caminho quebrado e citação de linha saem como aviso (`warned=`), sem mudar o exit code.
 
-Linha que cita o ecommerce, ou que menciona de propósito um arquivo removido (com "removid", "apagad", "não usa", "não existe", "histórico do git" ou o marcador `<!-- check-docs: ignore -->`), não tem os caminhos conferidos.
+Linha que cita o ecommerce não tem os caminhos conferidos. Linha que menciona de propósito um arquivo removido (com "removid", "apagad", "não usa", "não existe", "histórico do git" ou o marcador `<!-- check-docs: ignore -->`) tem pulado só o nome de arquivo sem barra. Caminho com barra e link continuam conferidos, salvo em `docs/adr/` e `docs/audits/`, onde a linha inteira é pulada.
 
 ## Onde estão os outros mistakes-logs
 
