@@ -21,61 +21,16 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Lint (ultracite e anti-slop)
-        run: bun check
-
-      # test:lint-rules roda os .test.ts direto no Node (type stripping), com a mesma versão do CI do ecommerce.
+      # O gate test:lint-rules do scripts/verify.sh roda os .test.ts direto no Node
+      # (type stripping), com a mesma versão do CI do ecommerce.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
-      - name: Testes das regras oxlint emach
-        run: bun run test:lint-rules
-
-      - name: Caminhos citados nos docs
-        run: bun run check:docs
-
-      - name: Typecheck
-        run: bun check-types
-
       - name: Setup uv
         uses: astral-sh/setup-uv@v10.2.0
 
-      - name: Lint Python (ruff)
-        run: uvx ruff@0.16.10 check .
-
-      - name: Tests
-        run: bun run test
-        env:
-          # Valores DUMMY só p/ satisfazer a validação de @emach/env no import de
-          # @emach/db durante os testes (que mockam o DB). NÃO são secrets reais.
-          DATABASE_URL: postgresql://test:test@localhost:5432/test
-          BETTER_AUTH_SECRET: ci-test-better-auth-secret-0000000000000000
-          BETTER_AUTH_URL: http://localhost:3001
-          CRON_SECRET: ci-test-cron-secret-00000000000000000000000
-          CORS_ORIGIN: http://localhost:3001
-          SUPABASE_SERVICE_ROLE_KEY: ci-test-service-role-key
-          NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY: sb_publishable_ci_test
-          RESEND_API_KEY: re_ci_test
-          EMAIL_FROM: ci@test.local
-          NODE_ENV: test
-
-      - name: Guard ast-grep — self-test das regras
-        # ast-grep test sai 0 com menos regras quando uma config some; sem
-        # comparar com o número de arquivos de regra, o CI ficaria verde sem enforcement.
-        run: |
-          rules=$(find tooling/ast-grep/rules -name '*.yml' | wc -l)
-          out="$(bun guard:forms:test 2>&1)"
-          echo "$out"
-          echo "$out" | grep -qE "ok\. ${rules} passed; 0 failed" || {
-            echo "::error::esperava ${rules} regras ast-grep testadas e verdes"
-            exit 1
-          }
-
-      - name: Guard de forms — scan
-        run: bun guard:forms
-
-      - name: Hooks do harness e run-capped — tabela de casos
-        run: scripts/test-hooks.sh
+      # A lista de gates, o env dummy e o build vivem em scripts/verify.sh.
+      - name: Gates (bun verify)
+        run: bun run verify

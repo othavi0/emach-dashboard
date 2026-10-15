@@ -99,7 +99,7 @@ export const getUserCapabilities = cache(
 // Listas intencionalmente separadas, ainda que coincidentes hoje:
 // SELF_RESTRICTED = caps proibidas contra si mesmo (UX, independente de outros guards).
 // LAST_SUPER_ADMIN_GUARDED = caps que disparam a checagem de último super_admin ativo.
-// Ao reativar role-based gates, podem divergir (ex: novas caps proibidas só contra self).
+// Ficam separadas porque podem divergir (ex: cap nova proibida só contra self).
 const SELF_RESTRICTED: readonly Capability[] = [
 	"users.suspend",
 	"users.delete",

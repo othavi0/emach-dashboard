@@ -17,14 +17,22 @@ const featuredBase = {
 	toolIds: ["t1", "t2"],
 };
 
-describe("promotionSchema — destaque exige 2 produtos", () => {
-	it("bloqueia featured + ferramentas específicas + 1 produto", () => {
+describe("promotionSchema — destaque segue a home da loja (mínimo 1)", () => {
+	it("aceita featured + ferramentas específicas + 1 produto", () => {
 		const r = promotionSchema.safeParse({ ...featuredBase, toolIds: ["t1"] });
+		expect(r.success).toBe(true);
+	});
+
+	it("bloqueia featured + ferramentas específicas sem produto, com uma mensagem só", () => {
+		const r = promotionSchema.safeParse({ ...featuredBase, toolIds: [] });
 		expect(r.success).toBe(false);
 
 		if (!r.success) {
-			const issue = r.error.issues.find((i) => i.path[0] === "toolIds");
-			expect(issue?.message).toContain("ao menos 2 produtos");
+			const messages = r.error.issues
+				.filter((i) => i.path[0] === "toolIds")
+				.map((i) => i.message);
+
+			expect(messages).toEqual(["Selecione ao menos uma ferramenta"]);
 		}
 	});
 
@@ -42,7 +50,7 @@ describe("promotionSchema — destaque exige 2 produtos", () => {
 		expect(r.success).toBe(true);
 	});
 
-	it("não aplica o mínimo de 2 quando não é featured (só o de 1)", () => {
+	it("aceita 1 produto quando não é featured", () => {
 		const r = promotionSchema.safeParse({
 			...featuredBase,
 			featured: false,

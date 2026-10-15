@@ -42,7 +42,7 @@
     "fix:slop": "bun node_modules/.bin/oxlint --fix",
     "test:lint-rules": "node tools/oxlint/emach/rules/no-regexp-in-loop.test.ts && node tools/oxlint/emach/rules/require-log-in-action-catch.test.ts",
     "test": "turbo test",
-    "verify": "bun check-types && bun check && bun run check:docs && bun guard:forms && bun run test",
+    "verify": "bash scripts/verify.sh",
     "guard:forms": "ast-grep scan",
     "guard:forms:test": "ast-grep test --skip-snapshot-tests",
     "prepare": "if git rev-parse --git-dir > /dev/null 2>&1; then lefthook install; fi",

@@ -26,8 +26,7 @@
     "**/.turbo/**",
     "tools/oxlint/anti-slop/**",
     "tools/oxlint/emach/**",
-    "packages/ui/**",
-    "apps/web/src/lib/permissions.disabled.ts"
+    "packages/ui/**"
   ],
   "rules": {
     "oxc/no-accumulating-spread": "error",

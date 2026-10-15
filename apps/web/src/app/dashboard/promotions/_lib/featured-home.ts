@@ -1,13 +1,13 @@
+import { TOOLS_PER_PROMO } from "@emach/db/queries/promo-limits";
 import type { PromotionStatus } from "./promotion-types";
 
 /**
- * Contrato de renderização da seção de promoção em destaque do storefront
- * (repo emach-ecommerce). Estes números espelham as regras de layout do site e
- * DEVEM ser alterados em conjunto entre os dois repos.
+ * Espelha `getFeaturedPromotion`, a query que a loja chama: ela só esconde a
+ * promoção específica sem ferramentas e corta a lista em TOOLS_PER_PROMO.
  * Ver docs/integration/admin-ecommerce.md.
  */
-export const HOME_MIN_PRODUCTS = 2;
-export const HOME_MAX_PRODUCTS = 4;
+export const HOME_MIN_PRODUCTS = 1;
+export const HOME_MAX_PRODUCTS = TOOLS_PER_PROMO;
 
 export type HomeInvisibleReason =
 	| "not_featured"
@@ -50,8 +50,8 @@ export function computeStatus(p: {
 /**
  * Por que uma promoção (não-)aparece na seção de destaque da home.
  * Replica o contrato do storefront: precisa estar featured, ativa, dentro da
- * vigência e — quando aplica a ferramentas específicas — ter ao menos
- * HOME_MIN_PRODUCTS produtos vinculados.
+ * vigência e, quando aplica a ferramentas específicas, ter ao menos
+ * HOME_MIN_PRODUCTS produto vinculado.
  */
 export function computeHomeVisibility(input: {
 	featured: boolean;
