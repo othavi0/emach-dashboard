@@ -1,0 +1,13 @@
+id: cron-route-exports
+language: typescript
+severity: error
+files:
+  - "apps/web/src/app/api/cron/**/route.ts"
+message: >-
+  Rota de cron exporta `dynamic = "force-dynamic"` e `runtime = "nodejs"`
+  (apps/web/CLAUDE.md, Cron jobs).
+rule:
+  kind: program
+  any:
+    - not: { has: { pattern: 'export const dynamic = "force-dynamic"' } }
+    - not: { has: { pattern: 'export const runtime = "nodejs"' } }

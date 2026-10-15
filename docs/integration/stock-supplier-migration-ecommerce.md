@@ -47,12 +47,12 @@ A tabela `stock_movement` ganhou:
 
 **Semântica:** `supplier_id` é **obrigatório quando `reason = 'entrada_compra'`** (a proveniência da compra) e **nulo nos demais motivos**.
 
-**Impacto no e-commerce:** o e-commerce escreve `stock_movement` apenas com `reason = 'saida_venda'` (débito de venda, ADR-0007). Para `saida_venda`, `supplier_id` é **nulo** — e o CHECK `entrada_requires_supplier` **só restringe `entrada_compra`**, então os inserts de venda do e-commerce **continuam válidos sem nenhuma mudança de lógica**.
+**Impacto no e-commerce:** o e-commerce vai escrever `stock_movement` apenas com `reason = 'saida_venda'` (débito de venda, ADR-0007), quando o débito em `paid` existir. Hoje não há insert de `saida_venda` em nenhum app: o débito é contrato alvo, sem escritor (ver "Estoque: débito ocorre em `paid`" em `admin-ecommerce.md`). Para `saida_venda`, `supplier_id` é **nulo**, e o CHECK `entrada_requires_supplier` **só restringe `entrada_compra`**, então o insert de venda que o e-commerce escrever **é válido sem tratar `supplier_id`**.
 
 **O que o e-commerce precisa fazer:**
 
 - Adicionar `supplier_id` (nullable, FK supplier) à cópia do schema de `stock_movement` (vem no PR de sync).
-- **Nenhuma mudança nos inserts de `saida_venda`** — eles já omitem `supplier_id` (default null), o que é aceito pelo CHECK.
+- **Nenhum tratamento de `supplier_id` no futuro insert de `saida_venda`.** Hoje esse insert não existe. Quando existir, basta omitir `supplier_id` (default null), o que o CHECK aceita.
 - **Não** escrever `entrada_compra` a partir do e-commerce (nunca foi o caso; a entrada é uma operação só do admin). Se algum dia o e-commerce inserir `entrada_compra`, terá que fornecer `supplier_id` ou o CHECK rejeita.
 
 **SQL aplicado no banco (referência):**

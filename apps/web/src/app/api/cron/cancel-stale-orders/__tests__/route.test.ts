@@ -28,6 +28,7 @@ vi.mock("@/lib/logger", () => ({
 
 // --- imports do código sob teste ---
 
+import { getTableName, type Table } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { GET } from "../route";
 
@@ -50,12 +51,20 @@ function mockStaleOrders(ids: string[]) {
 	mockDbSelect.mockReturnValueOnce({ from });
 }
 
+interface LockedRow {
+	couponId?: string | null;
+	status: string;
+}
+
+/** Tabelas recebidas por tx.update, em ordem, em todas as transações do teste. */
+const updatedTables: string[] = [];
+
 /**
  * Monta o tx mockado de uma transação.
  * `txSelects` é uma lista de resultados que tx.select retorna em sequência.
  */
 function makeMockTx(
-	txSelects: ({ status: string } | null)[],
+	txSelects: (LockedRow | null)[],
 	insertOk: boolean,
 	updateOk: boolean
 ) {
@@ -72,7 +81,9 @@ function makeMockTx(
 
 			return { from };
 		}),
-		update: vi.fn(() => {
+		update: vi.fn((table: Table) => {
+			updatedTables.push(getTableName(table));
+
 			const where = vi.fn(() =>
 				updateOk ? Promise.resolve() : Promise.reject(new Error("DB error"))
 			);
@@ -96,7 +107,7 @@ type MockTx = ReturnType<typeof makeMockTx>;
  * `insertOk` controla se tx.insert resolve ou rejeita.
  */
 function mockTransaction(
-	txSelects: ({ status: string } | null)[],
+	txSelects: (LockedRow | null)[],
 	opts: { insertOk?: boolean; updateOk?: boolean } = {}
 ) {
 	const { insertOk = true, updateOk = true } = opts;
@@ -112,6 +123,7 @@ function mockTransaction(
 describe("GET /api/cron/cancel-stale-orders", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		updatedTables.length = 0;
 	});
 
 	describe("gate de autenticação", () => {
@@ -190,6 +202,38 @@ describe("GET /api/cron/cancel-stale-orders", () => {
 			const res = await GET(makeRequest());
 			const body = await res.json();
 			expect(body).toEqual({ ok: true, canceled: 0 });
+		});
+	});
+
+	describe("devolução da redenção do cupom", () => {
+		it("pedido com cupom cancela e devolve a redenção na mesma transação", async () => {
+			mockStaleOrders(["order-coupon"]);
+			mockTransaction([{ status: "pending_payment", couponId: "promo-1" }]);
+
+			const res = await GET(makeRequest());
+
+			expect(await res.json()).toEqual({ ok: true, canceled: 1 });
+			expect(updatedTables).toEqual(["order", "promotion"]);
+		});
+
+		it("pedido sem cupom cancela sem tocar a promotion", async () => {
+			mockStaleOrders(["order-no-coupon"]);
+			mockTransaction([{ status: "pending_payment", couponId: null }]);
+
+			const res = await GET(makeRequest());
+
+			expect(await res.json()).toEqual({ ok: true, canceled: 1 });
+			expect(updatedTables).toEqual(["order"]);
+		});
+
+		it("pedido que saiu de pending_payment antes do lock não devolve a redenção", async () => {
+			mockStaleOrders(["order-paid"]);
+			mockTransaction([{ status: "paid", couponId: "promo-1" }]);
+
+			const res = await GET(makeRequest());
+
+			expect(await res.json()).toEqual({ ok: true, canceled: 0 });
+			expect(updatedTables).toEqual([]);
 		});
 	});
 

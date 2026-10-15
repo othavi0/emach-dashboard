@@ -1,4 +1,4 @@
-# ADR 0014 — RLS deny-all nas tabelas public expostas via PostgREST
+# ADR 0014 — RLS deny-all em todas as tabelas do schema public
 
 **Data:** 2026-06-11
 **Status:** Aceito
@@ -32,3 +32,18 @@ O `ENABLE ROW LEVEL SECURITY` é versionado como SQL canônico em `packages/db/s
 - O CI `sync-db-schema.yml` espelha `rls.sql` pro ecommerce via PR automático, junto com schema/queries/`triggers.sql` (ADR-0009).
 - Se algum dia o produto precisar consumir uma dessas tabelas via PostgREST/anon, será preciso criar policy explícita para essa tabela — não basta remover o deny-all.
 - Acesso server-side (Drizzle, role `postgres` BYPASSRLS) permanece intocado.
+
+## Atualização 2026-10-15: deny-all em todo o schema `public`
+
+Esta seção substitui a regra da atualização de 2026-07-01 e a contagem das Consequências. O histórico acima fica como registro.
+
+Uma consulta só de leitura ao catálogo em 2026-10-14 mostrou dois mecanismos fechando a REST:
+
+- **RLS sem policy.** Vale nas 14 tabelas originais do `rls.sql`. Nelas, `anon` e `authenticated` têm grant, e o RLS é a única barreira.
+- **Ausência de grant.** Vale nas outras 32 tabelas do schema, entre elas `client`, `client_address`, `order`, `session`, `account`, `user` e `verification`, que guardam PII e credencial de sessão. Nelas, as duas roles não têm privilégio nenhum, e não há default ACL no schema. Nenhum arquivo do repo garante esse estado. Um `GRANT` acidental, uma mudança de default do Supabase ou uma tabela nova criada com grant abriria a REST.
+
+Decisão: o deny-all cobre toda tabela do schema `public`, não só as expostas. O `rls.sql` liga RLS sem policy em todas, e o RLS passa a ser a barreira que não depende de grant. A opção de `REVOKE` segue rejeitada como mecanismo principal: a ausência de grant existe hoje, mas é estado do banco, não regra versionada.
+
+Regra: toda tabela nova do `public` ganha a sua linha no `rls.sql`, em ordem alfabética. O teste `packages/db/src/__tests__/rls-coverage.test.ts` compara o `rls.sql` com os `pgTable` exportados pelo schema e falha quando falta uma tabela ou sobra uma linha. `order` e `user` são palavras reservadas e vão entre aspas (`public."order"`).
+
+Consequência nova: depois de aplicado o `rls.sql`, o advisor de segurança mostra `rls_enabled_no_policy` (INFO) em todas as tabelas do schema e nenhum `rls_disabled_in_public`.

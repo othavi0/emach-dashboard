@@ -36,3 +36,7 @@ Mantém o estoque disponível para outros compradores enquanto o pagamento está
 - O e-commerce, ao confirmar o pagamento e gravar status `paid`, deve também decrementar `stock_level` e inserir `stock_movement` por item. Ver `docs/integration/admin-ecommerce.md`.
 - O partial unique index `stock_movement_sale_idempotency` (`UNIQUE` em `order_item_id WHERE reason = 'saida_venda'`) garante idempotência: um segundo disparo do mesmo evento de pagamento não gera duplo débito.
 - Em cenário de oversell (dois compradores confirmam pagamento pelo último item quase simultaneamente), o CHECK `quantity >= 0` rejeita o segundo UPDATE — o gateway precisa tratar o conflito (cancelar o segundo pedido e estornar). Esse cenário é raro mas possível; aceito para o estágio atual.
+
+### Atualização de 2026-10-15
+
+A decisão continua valendo. O escritor do débito ainda não existe: o pagamento real do e-commerce é stub (roadmap #4 do `emach-ecommerce/CLAUDE.md`) e nenhum app grava `saida_venda`. Marcar um pedido `paid` à mão no dashboard (`updateOrderStatus`) não debita `stock_level` nem grava `stock_movement`. O estado de hoje e o contrato alvo estão em `docs/integration/admin-ecommerce.md`, seção "Estoque: débito ocorre em `paid`".
