@@ -12,7 +12,7 @@ Dashboard Next 16 / React 19. Regras gerais (auth invariantes, anti-patterns, go
 
 ## Capabilities (`src/lib/permissions.ts`)
 
-**Religado em 2026-06-15 (ADR-0016, substitui 0012).** `requireCapability`, `requireCapabilityOrRedirect`, `requireCapabilityWithContext`, `requireCapabilityWithContextOrRedirect`, `can` **enforçam** a matriz de 3 níveis (`super_admin`/`admin`/`user`). `requireCapabilityWithContext` valida tb `targetBranchIds ⊆ escopo` (Branch-scoping). Snapshot da matriz antiga (4 níveis, incluía `manager`) em `src/lib/permissions.disabled.ts` (não-importada, `@ts-nocheck`, só histórico). O valor `manager` foi removido do enum DB e de todo o código vivo em 2026-06-16 (era alias de admin — ver ADR-0016).
+**Religado em 2026-06-15 (ADR-0016, substitui 0012).** `requireCapability`, `requireCapabilityOrRedirect`, `requireCapabilityWithContext`, `requireCapabilityWithContextOrRedirect`, `can` **enforçam** a matriz de 3 níveis (`super_admin`/`admin`/`user`). `requireCapabilityWithContext` valida tb `targetBranchIds ⊆ escopo` (Branch-scoping). O valor `manager` foi removido do enum DB e de todo o código vivo em 2026-06-16 (era alias de admin — ver ADR-0016).
 
 **O padrão obrigatório em server actions continua sendo `await requireCapability(cap)` ou `requireCapabilityWithContext(cap, ctx)`** — assim todo endpoint nasce coberto. **Nunca remover essas chamadas; novos endpoints precisam delas.**
 
