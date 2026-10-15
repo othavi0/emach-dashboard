@@ -23,4 +23,10 @@ A direção é unidirecional: dashboard → ecommerce. Mudança de schema sempre
 - O ecommerce passa a guardar triggers em `sql/triggers.sql` (antes `migrations/_triggers.sql`); a pasta morta `migrations/` é removida.
 - Um job de CI no ecommerce falha se `packages/db/src/{schema,sql,queries}` divergir do `main` do dashboard — pega o caso de PR de sync esquecido sem mergear.
 - Não se edita schema/queries/triggers isoladamente no ecommerce; toda mudança começa no dashboard.
-- Quando produção entrar no horizonte (ADR-0006), o mesmo Action passa a espelhar também a pasta de migrations versionadas.
+- Quando produção entrar no horizonte (ADR-0006), o mesmo Action passa a espelhar também a pasta de migrations versionadas. **Atualização (2026-10-14):** não vale mais. O [ADR-0030](0030-push-only-com-producao-e-guardas.md) manteve o push-only com produção ativa, então não há pasta de migrations para espelhar.
+
+## Atualização 2026-10-15
+
+- **Superfície do sync (corrige a linha de queries e triggers em Consequências).** O workflow `sync-db-schema.yml` espelha 6 caminhos: `packages/db/src/schema/`, `packages/db/src/queries/`, `packages/db/src/utils.ts`, `packages/db/src/sql/triggers.sql`, `packages/db/src/sql/rls.sql` e `docs/integration/admin-ecommerce.md`. O `paths:` do gatilho, o passo de cópia e o corpo do PR listam os mesmos 6.
+- **O contrato entrou no sync (complementa a Decisão).** `docs/integration/admin-ecommerce.md` é a fonte da tabela de ownership. Antes ele vivia só no dashboard, e o ecommerce mantinha listas próprias de ownership que já divergiam dele. Com a cópia sincronizada, a ownership tem uma fonte só. A regra de import da superfície de sync vale só para código. O contrato não entra nela.
+- **O job de drift ainda não existe (corrige a linha do job de CI no ecommerce).** Nenhum workflow do ecommerce compara a cópia com a `main` do dashboard. O CI de lá tem só o drift-check de env da Vercel. O job que vai fazer essa comparação está em othavi0/emach-ecommerce#281, e o glob certo para ele são os 5 caminhos de código do `paths:` do workflow mais o contrato. Até ele existir, um PR de sync esquecido sem merge não é barrado.

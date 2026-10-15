@@ -263,7 +263,7 @@ function Section({
 // na home. `not_featured` não é exibido (o indicador só renderiza com featured).
 const HOME_HINT_MESSAGES: Record<HomeInvisibleReason, string> = {
 	not_featured: "",
-	too_few_products: `Não aparecerá na home: faltam produtos (mínimo de ${HOME_MIN_PRODUCTS}).`,
+	too_few_products: `Não aparecerá na home: selecione ao menos ${HOME_MIN_PRODUCTS} produto.`,
 	inactive: "Não aparecerá na home enquanto estiver inativa.",
 	expired: "Não aparecerá na home: vigência expirada.",
 	scheduled: "Aparecerá na home quando a vigência começar.",
@@ -588,8 +588,8 @@ export function PromotionFormFields({
 							</div>
 							<p className="-mt-2 text-muted-foreground text-xs">
 								Aparece em destaque no topo da home. Só uma promoção pode ser
-								destaque por vez, e ela precisa de ao menos 2 produtos
-								vinculados para aparecer.
+								destaque por vez, e ela precisa de ao menos {HOME_MIN_PRODUCTS}{" "}
+								produto vinculado para aparecer.
 							</p>
 							{values.featured && (
 								<HomeVisibilityHint visibility={homeVisibility} />
