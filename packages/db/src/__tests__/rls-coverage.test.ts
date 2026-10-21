@@ -14,7 +14,7 @@ const rlsTables = Array.from(rlsSql.matchAll(RLS_LINE), (m) => m[1] ?? "");
 async function schemaPgTables(): Promise<PgTable[]> {
 	const schema = await import("../schema/index");
 
-	return Object.values(schema).filter((value): value is PgTable =>
+	return Object.values<unknown>(schema).filter((value): value is PgTable =>
 		is(value, PgTable)
 	);
 }
