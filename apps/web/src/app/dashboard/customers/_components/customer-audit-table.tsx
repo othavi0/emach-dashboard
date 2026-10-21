@@ -48,6 +48,7 @@ const ACTION_LABELS: Record<ClientAuditAction, string> = {
 	sessions_revoked_all: "Todas sessões revogadas",
 	password_reset_link_generated: "Link de reset gerado",
 	exported: "Exportado",
+	anonymized: "Anonimizado",
 };
 
 const ACTION_VARIANTS: Record<
@@ -62,6 +63,7 @@ const ACTION_VARIANTS: Record<
 	sessions_revoked_all: "warning",
 	password_reset_link_generated: "info",
 	exported: "info",
+	anonymized: "destructive",
 };
 
 // ACTION_LABELS é Record<ClientAuditAction, …>: suas chaves próprias são

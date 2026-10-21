@@ -244,6 +244,13 @@ export const CAPABILITIES = {
 		description: "Resetar senha do cliente",
 		defaultRoles: SA,
 	},
+	"customers.anonymize": {
+		group: "Clientes",
+		resource: "Clientes",
+		action: "Anonimizar",
+		description: "Anonimizar cliente (LGPD, irreversível)",
+		defaultRoles: S,
+	},
 	"reviews.read": {
 		group: "Clientes",
 		resource: "Avaliações",

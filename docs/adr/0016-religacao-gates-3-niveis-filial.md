@@ -21,7 +21,7 @@ Religar a autorização com **dois eixos ortogonais**:
 - **admin** — gestor de filial: opera Pedidos/Estoque das suas filiais (+ Pedidos na triagem), edita o Catálogo global (sem deletar), modera Clientes/Reviews, e gerencia os `user` das próprias filiais. Não toca Filiais, Store Settings, deleções de catálogo, nem outros admins.
 - **user** — operador de filial: Pedidos (status/nota) e Estoque da própria filial; o resto é leitura.
 
-**Exclusivo de super_admin:** `branches.manage`, `users.delete`, `shipping.manage`, `site.update_banners`, `site.update_settings`, `site.publish_announcements`, `tools.delete`, `categories.delete`, `promotions.delete` e `attributes.delete`. `ADMIN_CAPS = ALL_CAPS − exclusivos`.
+**Exclusivo de super_admin:** `branches.manage`, `users.delete`, `shipping.manage`, `site.update_banners`, `site.update_settings`, `site.publish_announcements`, `customers.anonymize`, `tools.delete`, `categories.delete`, `promotions.delete` e `attributes.delete`. `ADMIN_CAPS = ALL_CAPS − exclusivos`.
 
 **Invariante novo:** todo `admin`/`user` pertence a ≥1 filial (exigido no convite; last-branch guard ao desvincular). Staff sem filial = **fail-closed** (vê/age sobre nada). Só `super_admin` é sem-filial.
 

@@ -110,9 +110,9 @@ A coluna "Tabelas núcleo" não é exaustiva: lista as tabelas centrais de cada 
 ### Compliance / LGPD
 
 - **Consent (Consentimento)** — registro LGPD de aceite ou revogação de `tos` / `privacy` / `marketing_email` / `cookies` por um Client. Tabela `consentLog`, versionado (`version`).
-- **Client Audit Log** — trilha de toda mutação de dados de Client feita pelo staff. Enum `client_audit_action` (8 ações): `profile_updated`, `status_changed`, `type_changed`, `notes_updated`, `session_revoked`, `sessions_revoked_all`, `password_reset_link_generated`, `exported`.
+- **Client Audit Log** — trilha de toda mutação de dados de Client feita pelo staff. Enum `client_audit_action` (9 ações): `profile_updated`, `status_changed`, `type_changed`, `notes_updated`, `session_revoked`, `sessions_revoked_all`, `password_reset_link_generated`, `exported`, `anonymized`.
 - **Client Export** — exportação CSV/LGPD de clientes; cada export é registrado em `clientExportLog` (filtros, contagem, bytes, truncamento).
-- **Right to be forgotten** — direito do Client à anonimização dos seus dados pessoais sob a LGPD. Ainda **não implementado** — não há script nem server action (gap registrado em `packages/db/CLAUDE.md`).
+- **Right to be forgotten** — direito do Client à anonimização dos seus dados pessoais sob a LGPD. Implementado pela server action `anonymizeClient` do dashboard (capability `customers.anonymize`) e pelo script `db:anonymize-client` do ecommerce. Os dois trocam a PII por tombstone e preservam os pedidos (ADR-0029).
 
 ---
 

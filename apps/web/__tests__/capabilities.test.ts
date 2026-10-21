@@ -43,6 +43,7 @@ const SUPER_ADMIN_EXCLUSIVE: readonly Capability[] = [
 	"promotions.delete",
 	"attributes.delete",
 	"shipping.manage",
+	"customers.anonymize",
 ];
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
