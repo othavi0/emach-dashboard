@@ -23,7 +23,7 @@ function uncoveredForeignKeys(exported: readonly unknown[]): string[] {
 
 		const leading: string[][] = [
 			...config.indexes.map((i) =>
-				i.config.columns.map((c) => ("name" in c ? c.name : ""))
+				i.config.columns.map((c) => ("name" in c ? (c.name ?? "") : ""))
 			),
 			...config.uniqueConstraints.map((u) => u.columns.map((c) => c.name)),
 			...config.primaryKeys.map((pk) => pk.columns.map((c) => c.name)),
