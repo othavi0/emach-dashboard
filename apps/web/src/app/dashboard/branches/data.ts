@@ -13,6 +13,7 @@ import { toolVariant } from "@emach/db/schema/tools";
 import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { getCurrentSession } from "@/lib/session";
+import { belowReorderPoint } from "../_lib/repor-count";
 
 export interface EligibleUserOption {
 	email: string;
@@ -242,7 +243,7 @@ export async function getBranchTableAggregates(
 		.select({
 			branchId: stockLevel.branchId,
 			active: sql<number>`count(*) filter (where ${stockLevel.quantity} > 0)::int`,
-			low: sql<number>`count(*) filter (where ${stockLevel.quantity} <= coalesce(${stockLevel.minQty}, 0) and coalesce(${stockLevel.minQty}, 0) > 0)::int`,
+			low: sql<number>`count(*) filter (where ${belowReorderPoint})::int`,
 		})
 		.from(stockLevel)
 		.where(inArray(stockLevel.branchId, branchIds))

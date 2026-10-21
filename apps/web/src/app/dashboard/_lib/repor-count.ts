@@ -1,10 +1,13 @@
 import { db } from "@emach/db";
 import { stockLevel } from "@emach/db/schema/inventory";
 import { toolVariant } from "@emach/db/schema/tools";
-import { and, countDistinct, eq, gt, inArray, lte } from "drizzle-orm";
+import { and, countDistinct, eq, inArray, type SQL, sql } from "drizzle-orm";
 import { cache } from "react";
 
 import type { BranchScope } from "@/lib/branch-scope";
+
+/** Estoque baixo: o nível tem ponto de reposição e a quantidade chegou nele. */
+export const belowReorderPoint: SQL = sql`(${stockLevel.reorderPoint} > 0 and ${stockLevel.quantity} <= ${stockLevel.reorderPoint})`;
 
 export const getReporCount = cache(
 	async (scope: BranchScope): Promise<number> => {
@@ -12,10 +15,7 @@ export const getReporCount = cache(
 			return 0;
 		}
 
-		const whereConditions = [
-			gt(stockLevel.reorderPoint, 0),
-			lte(stockLevel.quantity, stockLevel.reorderPoint),
-		];
+		const whereConditions = [belowReorderPoint];
 
 		if (scope.kind === "scoped") {
 			whereConditions.push(inArray(stockLevel.branchId, scope.branchIds));

@@ -43,7 +43,7 @@ export function BranchCard({ branch, canManage }: BranchCardProps) {
 			stats={[
 				{ label: "Equipe", value: branch.teamCount },
 				{ label: "SKUs ativos", value: branch.activeSkus },
-				{ amber: true, label: "Abaixo mín.", value: branch.lowStock },
+				{ amber: true, label: "A repor", value: branch.lowStock },
 			]}
 			status={branch.status}
 		/>
