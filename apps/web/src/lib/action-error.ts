@@ -1,5 +1,7 @@
 import { ZodError } from "zod";
+import type { ActionResult } from "@/lib/action-result";
 import { getPgError } from "@/lib/db-error";
+import { logger } from "@/lib/logger";
 
 /**
  * Converte qualquer erro capturado em `catch` numa string segura para o toast
@@ -33,4 +35,21 @@ export function actionErrorMessage(cause: unknown): string {
  */
 export function isCapabilityError(cause: unknown): boolean {
 	return cause instanceof Error && cause.message.startsWith("Forbidden:");
+}
+
+/**
+ * Catch de `requireCapability*`: a negação de capability vira `logger.warn` e
+ * "Acesso negado"; qualquer outro erro é relançado.
+ */
+export function safeRequireRole(
+	scope: string,
+	cause: unknown
+): ActionResult<never> {
+	if (isCapabilityError(cause)) {
+		logger.warn(scope, cause);
+
+		return { ok: false, error: "Acesso negado" };
+	}
+
+	throw cause;
 }

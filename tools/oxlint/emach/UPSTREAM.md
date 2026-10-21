@@ -8,10 +8,10 @@
 
 ## Desvios locais
 
-- `require-log-in-action-catch` procura o logger daqui. O ecommerce aceita `log.error` de `@/lib/evlog`. O dashboard aceita `logger.error` de `@/lib/logger` (import direto, renomeado ou `import * as l` com `l.logger.error`). `log` de `@/lib/evlog` não conta mais.
+- `require-log-in-action-catch` procura o logger daqui. O ecommerce aceita `log.error` de `@/lib/evlog`. O dashboard aceita `logger.error` de `@/lib/logger` (import direto, renomeado ou `import * as l` com `l.logger.error`). `log` de `@/lib/evlog` não conta mais. O dashboard também aceita `return safeRequireRole("nomeDaAction", e)` de `@/lib/action-error`, que loga a negação de capability com `logger.warn` e relança o resto.
 - A mensagem da regra de catch cita `logger.error("nomeDaAction", err)` e a seção "Server actions" do `apps/web/CLAUDE.md`.
 - O teste da regra de catch usa `logger` nos mesmos casos do original e ganha três: `actionErrorMessage` sem log, `log` de `@/lib/evlog` e namespace com chave computada.
-- Severidade em `.oxlintrc.json`: `no-regexp-in-loop` em `error`, como no ecommerce. `require-log-in-action-catch` em `warn` até a dívida de catches sem log zerar. No ecommerce as duas estão em `error`.
+- Severidade em `.oxlintrc.json`: `no-regexp-in-loop` em `error`, como no ecommerce. `require-log-in-action-catch` também em `error`, desde que a dívida de catches sem log zerou (#429). No ecommerce as duas estão em `error`.
 - `no-regexp-in-loop` é cópia sem mudança.
 
 ## Testes

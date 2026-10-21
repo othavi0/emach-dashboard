@@ -11,6 +11,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { decodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
+import { logger } from "@/lib/logger";
 import {
 	requireCapability,
 	requireCapabilityWithContext,
@@ -239,6 +240,8 @@ export async function createBranch(
 	try {
 		await db.insert(branch).values({ id, ...payload });
 	} catch (error) {
+		logger.error("createBranch", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 
@@ -291,6 +294,8 @@ export async function updateBranch(
 	try {
 		await db.update(branch).set(payload).where(eq(branch.id, id));
 	} catch (error) {
+		logger.error("updateBranch", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 

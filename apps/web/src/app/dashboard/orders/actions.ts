@@ -546,6 +546,7 @@ export async function bulkStartSeparation(
 					const skipReason = bulkSkipReasonFromError(error);
 
 					if (skipReason) {
+						logger.error("bulkStartSeparation", error);
 						skipped.push({ number: fallbackLabel, reason: skipReason });
 					} else {
 						throw error;
@@ -844,6 +845,7 @@ export async function bulkAssignBranch(
 					const skipReason = bulkSkipReasonFromError(error);
 
 					if (skipReason) {
+						logger.error("bulkAssignBranch", error);
 						skipped.push({ number: fallbackLabel, reason: skipReason });
 					} else {
 						throw error;

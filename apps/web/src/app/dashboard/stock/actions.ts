@@ -11,7 +11,7 @@ import { revalidatePath } from "next/cache";
 import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import type { InfiniteResult } from "@/lib/infinite";
-
+import { logger } from "@/lib/logger";
 import {
 	requireCapability,
 	requireCapabilityWithContext,
@@ -24,7 +24,6 @@ import {
 	stockRecountSchema,
 	stockWriteOffSchema,
 } from "./_components/stock-movement-schema";
-
 import {
 	type StockThresholdInput,
 	stockThresholdSchema,
@@ -215,6 +214,8 @@ export async function recordStockEntry(
 
 		return { ok: true, data: result };
 	} catch (error) {
+		logger.error("recordStockEntry", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
@@ -252,6 +253,8 @@ export async function recordStockWriteOff(
 
 		return { ok: true, data: result };
 	} catch (error) {
+		logger.error("recordStockWriteOff", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
@@ -289,6 +292,8 @@ export async function adjustStock(
 
 		return { ok: true, data: result };
 	} catch (error) {
+		logger.error("adjustStock", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 }
@@ -360,6 +365,8 @@ export async function updateStockThresholds(
 
 		return { ok: true, data: undefined };
 	} catch (error) {
+		logger.error("updateStockThresholds", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 }

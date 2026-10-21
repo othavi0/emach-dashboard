@@ -18,6 +18,11 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import type { z } from "zod";
+import {
+	actionErrorMessage,
+	isCapabilityError,
+	safeRequireRole,
+} from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
 import { logger } from "@/lib/logger";
@@ -592,9 +597,13 @@ export async function suspendUser(
 			targetUserId: parsed.data.userId,
 		});
 	} catch (e) {
-		const message = e instanceof Error ? e.message : "Acesso negado";
+		if (isCapabilityError(e)) {
+			return safeRequireRole("suspendUser", e);
+		}
 
-		return { ok: false, error: message };
+		logger.error("suspendUser", e);
+
+		return { ok: false, error: actionErrorMessage(e) };
 	}
 
 	try {
@@ -725,9 +734,13 @@ export async function deleteUser(
 			targetUserId: parsed.data.userId,
 		});
 	} catch (e) {
-		const message = e instanceof Error ? e.message : "Acesso negado";
+		if (isCapabilityError(e)) {
+			return safeRequireRole("deleteUser", e);
+		}
 
-		return { ok: false, error: message };
+		logger.error("deleteUser", e);
+
+		return { ok: false, error: actionErrorMessage(e) };
 	}
 
 	const [target] = await db
@@ -849,9 +862,13 @@ export async function forceLogoutAllSessions(
 			targetUserId: parsed.data.userId,
 		});
 	} catch (e) {
-		const message = e instanceof Error ? e.message : "Acesso negado";
+		if (isCapabilityError(e)) {
+			return safeRequireRole("forceLogoutAllSessions", e);
+		}
 
-		return { ok: false, error: message };
+		logger.error("forceLogoutAllSessions", e);
+
+		return { ok: false, error: actionErrorMessage(e) };
 	}
 
 	const deleted = await db

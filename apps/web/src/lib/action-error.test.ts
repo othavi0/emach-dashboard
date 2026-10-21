@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { actionErrorMessage } from "./action-error";
+import { actionErrorMessage, safeRequireRole } from "./action-error";
 
 describe("actionErrorMessage", () => {
 	it("retorna mensagem genérica para erro Postgres (drizzle wrapper)", () => {
@@ -98,5 +98,35 @@ describe("actionErrorMessage", () => {
 		if (!result.success) {
 			expect(actionErrorMessage(result.error)).toBe("CPF inválido");
 		}
+	});
+});
+
+describe("safeRequireRole", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("negação de capability vira warn e Acesso negado", () => {
+		// biome-ignore lint/suspicious/noEmptyBlockStatements: mock supressor intencional
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+		const cause = new Error(
+			'Forbidden: capability "promotions.manage" requerida'
+		);
+
+		expect(safeRequireRole("createPromotion", cause)).toEqual({
+			ok: false,
+			error: "Acesso negado",
+		});
+		expect(warn).toHaveBeenCalledTimes(1);
+		expect(warn).toHaveBeenCalledWith("[createPromotion]", cause);
+	});
+
+	it("relança erro que não é de capability, sem log", () => {
+		const warn = vi.spyOn(console, "warn");
+		const cause = new Error("Não é possível executar essa ação em si mesmo");
+
+		expect(() => safeRequireRole("suspendUser", cause)).toThrow(cause);
+		expect(warn).not.toHaveBeenCalled();
 	});
 });

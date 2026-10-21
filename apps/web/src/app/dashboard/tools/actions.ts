@@ -228,6 +228,8 @@ export async function createTool(
 			}
 		});
 	} catch (error) {
+		logger.error("createTool", error);
+
 		return mapToolMutationError(error);
 	}
 
@@ -546,6 +548,8 @@ export async function updateTool(
 			}
 		});
 	} catch (error) {
+		logger.error("updateTool", error);
+
 		return mapToolMutationError(error);
 	}
 
@@ -623,6 +627,8 @@ export async function deleteTool(id: string): Promise<ActionResult> {
 	try {
 		await db.delete(tool).where(eq(tool.id, id));
 	} catch (error) {
+		logger.error("deleteTool", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 
@@ -819,11 +825,11 @@ export async function setDefaultToolVariant(input: {
 
 		return { ok: true, data: undefined };
 	} catch (error) {
+		logger.error("setDefaultToolVariant", error);
+
 		if (error instanceof VariantMutationBlockedError) {
 			return { ok: false, error: error.message };
 		}
-
-		logger.error("setDefaultToolVariant falhou", error);
 
 		return { ok: false, error: "Não foi possível marcar como padrão" };
 	}

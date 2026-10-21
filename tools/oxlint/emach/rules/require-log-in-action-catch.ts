@@ -3,6 +3,7 @@ import { defineRule } from "@oxlint/plugins";
 import { resolveVariable } from "../../anti-slop/shared/scope.ts";
 
 const LOGGER_SOURCE = "@/lib/logger";
+const ACTION_ERROR_SOURCE = "@/lib/action-error";
 
 const FUNCTION_TYPES = new Set([
 	"FunctionDeclaration",
@@ -94,13 +95,13 @@ function childNodes(node: ESTree.Node): AnyNode[] {
 	return children;
 }
 
-function importsFromLogger(specifier: ESTree.Node): boolean {
+function importsFrom(specifier: ESTree.Node, source: string): boolean {
 	const declaration = specifier.parent;
 
 	return (
 		declaration !== null &&
 		declaration.type === "ImportDeclaration" &&
-		declaration.source.value === LOGGER_SOURCE
+		declaration.source.value === source
 	);
 }
 
@@ -125,10 +126,12 @@ function importBindings(
 	return bindings;
 }
 
-/** O identificador é o `logger` importado de @/lib/logger, mesmo com nome local trocado. */
-function isImportedLogger(
+/** O identificador é `name` importado de `source`, mesmo com nome local trocado. */
+function isNamedImport(
 	sourceCode: SourceCode,
-	identifier: ESTree.IdentifierReference
+	identifier: ESTree.IdentifierReference,
+	name: string,
+	source: string
 ): boolean {
 	for (const specifier of importBindings(sourceCode, identifier)) {
 		if (specifier.type !== "ImportSpecifier") {
@@ -139,7 +142,7 @@ function isImportedLogger(
 		const importedName =
 			imported.type === "Identifier" ? imported.name : imported.value;
 
-		if (importedName === "logger" && importsFromLogger(specifier)) {
+		if (importedName === name && importsFrom(specifier, source)) {
 			return true;
 		}
 	}
@@ -155,7 +158,7 @@ function isLoggerNamespace(
 	for (const specifier of importBindings(sourceCode, identifier)) {
 		if (
 			specifier.type === "ImportNamespaceSpecifier" &&
-			importsFromLogger(specifier)
+			importsFrom(specifier, LOGGER_SOURCE)
 		) {
 			return true;
 		}
@@ -192,7 +195,7 @@ function isLoggerReference(
 	node: ESTree.Expression
 ): boolean {
 	if (node.type === "Identifier") {
-		return isImportedLogger(sourceCode, node);
+		return isNamedImport(sourceCode, node, "logger", LOGGER_SOURCE);
 	}
 
 	return (
@@ -218,6 +221,33 @@ function isLogErrorCall(
 	}
 
 	return isLoggerReference(sourceCode, callee.object);
+}
+
+/**
+ * `return safeRequireRole(e)`, com o helper de @/lib/action-error: ele loga a negação
+ * de capability com logger.warn e relança qualquer outro erro.
+ */
+function isSafeRequireRoleReturn(
+	sourceCode: SourceCode,
+	node: AnyNode
+): boolean {
+	if (node.type !== "ReturnStatement") {
+		return false;
+	}
+
+	const argument = (node as ESTree.ReturnStatement).argument;
+
+	return (
+		argument !== null &&
+		argument.type === "CallExpression" &&
+		argument.callee.type === "Identifier" &&
+		isNamedImport(
+			sourceCode,
+			argument.callee,
+			"safeRequireRole",
+			ACTION_ERROR_SOURCE
+		)
+	);
 }
 
 /**
@@ -337,8 +367,12 @@ function statementGuarantees(ctx: Context, node: AnyNode): boolean {
 			return statementGuarantees(ctx, node.body as AnyNode);
 		case "ExpressionStatement":
 			return expressionAlwaysLogs(ctx, node.expression as AnyNode);
-		case "VariableDeclaration":
 		case "ReturnStatement":
+			return (
+				isSafeRequireRoleReturn(ctx.sourceCode, node) ||
+				expressionAlwaysLogs(ctx, node)
+			);
+		case "VariableDeclaration":
 			return expressionAlwaysLogs(ctx, node);
 		case "ForStatement":
 			return (
@@ -365,7 +399,7 @@ function hasUnloggedExit(ctx: Context, node: AnyNode): boolean {
 	}
 
 	if (node.type === "ReturnStatement") {
-		return true;
+		return !isSafeRequireRoleReturn(ctx.sourceCode, node);
 	}
 
 	if (
@@ -408,11 +442,11 @@ export const requireLogInActionCatchRule = defineRule({
 		type: "problem",
 		docs: {
 			description:
-				"Exige logger.error (de @/lib/logger) ou relançamento do erro em todo caminho de catch de server action.",
+				"Exige logger.error (de @/lib/logger), relançamento do erro ou return safeRequireRole(e) (de @/lib/action-error) em todo caminho de catch de server action.",
 		},
 		messages: {
 			missingLog:
-				'Em catch de server action: sempre logger.error("nomeDaAction", err) antes de retornar { ok: false } (apps/web/CLAUDE.md, seção "Server actions"). Chame logger.error de @/lib/logger no início deste catch, antes de qualquer return, ou relance o erro (throw e, ou throw new X(..., { cause: e })).',
+				'Em catch de server action: sempre logger.error("nomeDaAction", err) antes de retornar { ok: false } (apps/web/CLAUDE.md, seção "Server actions"). Chame logger.error de @/lib/logger no início deste catch, antes de qualquer return, ou relance o erro (throw e, ou throw new X(..., { cause: e })). Negação de capability: return safeRequireRole("nomeDaAction", e) de @/lib/action-error.',
 		},
 	},
 	createOnce(context) {
