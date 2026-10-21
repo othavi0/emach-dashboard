@@ -38,6 +38,8 @@ Decisões de arquitetura do dashboard. Cada ADR registra **uma** decisão não-�
 | [0028](0028-conciliacao-financeira-asaas-design.md) | Conciliação financeira Asaas via ledger (design, adiado) | 2026-07-01 | Aceito (design) |
 | [0029](0029-anonimizacao-lgpd-direito-ao-esquecimento.md) | Anonimização LGPD preservando histórico fiscal | 2026-07-01 | Aceito (design) |
 | [0030](0030-push-only-com-producao-e-guardas.md) | Schema push-only com produção ativa, sob guardas | 2026-10-14 | Aceito — estende 0006 |
+| [0031](0031-ordem-de-compra-fora-do-escopo.md) | Ordem de compra fora do escopo por ora | 2026-10-21 | Aceito |
+| [0032](0032-rastreio-serial-lote-garantia-localizacao-fora-do-escopo.md) | Rastreio por serial, lote, garantia e localização fora do escopo por ora | 2026-10-21 | Aceito |
 
 ## Cadeias de decisão
 

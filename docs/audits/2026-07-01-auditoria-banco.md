@@ -215,7 +215,7 @@ Status possíveis: `resolvido`, `parcial`, `aberto`, `decidido` (fechado por ADR
 | §5 · dados incompletos (filiais, fornecedores, NCM, roteamento por CEP, reembolso, eventos, NF-e, cupom, distribuição, role admin) | parcial | o Adendo A preencheu o banco de 2026-07-01, mas o banco foi recriado depois. `db:read` em 2026-10-15: 1 filial com endereço e sem `cep_ranges`, 1 fornecedor com CNPJ, NCM em 11 de 12 tools, `store_settings.shipping_origin_branch_id` preenchido, 1 `admin`, 2 pedidos numa filial só, 0 `refund_request`, 0 `order_event`, 0 pedido com NF-e e 0 com desconto. É estado do seed, não defeito de código | #449 |
 | §6 · custo/COGS | decidido | coluna removida no PR #171 (`d8c10be6`); ADR-0015:48 | |
 | §6 · catálogo de fornecedor `supplier_product` | decidido (rejeitado) | ADR-0015 | |
-| §6 · ordem de compra | aberto (sem decisão) | nenhum ADR | #451 |
+| §6 · ordem de compra | decidido (descartado) | ADR-0031 | #451 |
 | §6 · reserva de estoque contra oversell | decidido (risco aceito) | ADR-0007 | |
 | §6 · transferência entre filiais | decidido (fora de escopo) | ADR-0015:49 | |
 | §6 · reembolso com `refund_request` como fonte de verdade | decidido | ADR-0025; implementado (P0-1) | |
@@ -223,6 +223,6 @@ Status possíveis: `resolvido`, `parcial`, `aberto`, `decidido` (fechado por ADR
 | §6 · NF-e | decidido | ADR-0027, com a emenda de 2026-07-28 que suspende o gate de NCM | |
 | §6 · conciliação Asaas | decidido, implementação adiada | ADR-0028 | |
 | §6 · anonimização LGPD | parcial | ADR-0029 (design). O ecommerce tem `db:anonymize-client` (`packages/db/scripts/anonymize-client.ts` daquele repo). O dashboard não tem `anonymizeClient` nem a capability `customers.anonymize` | #450 |
-| §6 · serial, lote e garantia | aberto (sem decisão) | nenhum ADR | #452 |
-| §6 · localização (bin/prateleira) | aberto (sem decisão) | nenhum ADR | #452 |
+| §6 · serial, lote e garantia | decidido (descartado) | ADR-0032 | #452 |
+| §6 · localização (bin/prateleira) | decidido (descartado) | ADR-0032 | #452 |
 | Adendo B · vocabulário de `nfe_status` | resolvido | `apps/web/src/app/dashboard/orders/[id]/_components/asaas-block.tsx:19` e `:33` reconhecem `cancelled` | |
