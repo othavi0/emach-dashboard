@@ -1,6 +1,7 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
+	check,
 	index,
 	pgEnum,
 	pgTable,
@@ -47,6 +48,12 @@ export const client = pgTable(
 		index("client_type_idx").on(table.clientType),
 		index("client_created_idx").on(table.createdAt.desc(), table.id.desc()),
 		index("client_last_seen_idx").on(table.lastSeenAt.desc()),
+		// Mesma forma do normalizeDocument dos dois apps: CPF só com dígitos,
+		// CNPJ alfanumérico em maiúsculas (IN RFB 2.229/2024), sem pontuação.
+		check(
+			"client_document_format",
+			sql`${table.document} IS NULL OR ${table.document} ~ '^[0-9]{11}$' OR ${table.document} ~ '^[0-9A-Z]{12}[0-9]{2}$'`
+		),
 	]
 ).enableRLS();
 

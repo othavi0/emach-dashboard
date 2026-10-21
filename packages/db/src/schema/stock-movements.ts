@@ -15,13 +15,18 @@ import { order, orderItem } from "./orders";
 import { actorTypeEnum } from "./shared-enums";
 import { supplier, toolVariant } from "./tools";
 
-export type StockMovementReason =
-	| "entrada_compra"
-	| "saida_venda"
-	| "ajuste_inventario"
-	| "devolucao_retorno"
-	| "perda"
-	| "outro";
+// Fonte única dos motivos: o tipo e o CHECK stock_movement_reason_valid
+// derivam daqui. Coluna text (não pgEnum) para não exigir ALTER TYPE.
+export const STOCK_MOVEMENT_REASONS = [
+	"entrada_compra",
+	"saida_venda",
+	"ajuste_inventario",
+	"devolucao_retorno",
+	"perda",
+	"outro",
+] as const;
+
+export type StockMovementReason = (typeof STOCK_MOVEMENT_REASONS)[number];
 
 export const stockMovement = pgTable(
 	"stock_movement",
@@ -58,6 +63,7 @@ export const stockMovement = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("stock_movement_actor_id_idx").on(table.actorId),
 		index("stock_movement_variant_created_idx").on(
 			table.variantId,
 			table.createdAt.desc()
@@ -85,6 +91,12 @@ export const stockMovement = pgTable(
 			.on(table.orderItemId)
 			.where(sql`reason = 'devolucao_retorno' AND order_item_id IS NOT NULL`),
 		check("delta_non_zero", sql`${table.delta} <> 0`),
+		check(
+			"stock_movement_reason_valid",
+			sql.raw(
+				`reason IN (${STOCK_MOVEMENT_REASONS.map((r) => `'${r}'`).join(", ")})`
+			)
+		),
 		// Entrada de compra exige fornecedor; demais motivos têm supplier_id nulo.
 		// saida_venda hoje sai só do dashboard, no paid manual (applySaleDebits,
 		// ADR-0007); o e-commerce vai escrever o mesmo motivo quando o pagamento

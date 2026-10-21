@@ -154,6 +154,7 @@ export const toolAttributeAssignment = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("tool_attribute_assignment_attribute_id_idx").on(table.attributeId),
 		primaryKey({ columns: [table.toolId, table.attributeId] }),
 		index("tool_attribute_assignment_tool_idx").on(table.toolId),
 		// FK nomeada explicitamente: o nome auto-gerado pelo drizzle

@@ -44,6 +44,7 @@ export const supplierAuditLog = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("supplier_audit_log_actor_user_id_idx").on(table.actorUserId),
 		index("supplier_audit_supplier_created_idx").on(
 			table.supplierId,
 			table.createdAt.desc()

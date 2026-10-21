@@ -62,6 +62,7 @@ export const branch = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("branch_responsible_user_id_idx").on(table.responsibleUserId),
 		index("branch_created_idx").on(table.createdAt.desc(), table.id.desc()),
 	]
 ).enableRLS();
@@ -167,7 +168,10 @@ export const stockAlertSent = pgTable(
 		}).notNull(),
 		sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
 	},
-	(table) => [primaryKey({ columns: [table.branchId, table.variantId] })]
+	(table) => [
+		primaryKey({ columns: [table.branchId, table.variantId] }),
+		index("stock_alert_sent_variant_id_idx").on(table.variantId),
+	]
 ).enableRLS();
 
 export const stockAlertSentRelations = relations(stockAlertSent, ({ one }) => ({

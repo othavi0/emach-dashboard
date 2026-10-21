@@ -1,5 +1,11 @@
 import { relations } from "drizzle-orm";
-import { pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	index,
+	pgTable,
+	primaryKey,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
 
@@ -22,6 +28,7 @@ export const userCapabilityOverride = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("user_capability_override_granted_by_idx").on(table.grantedBy),
 		// PK composta (userId, capability) já provê btree com userId à esquerda —
 		// dispensa índice separado em userId (lookups por userId usam a PK).
 		primaryKey({ columns: [table.userId, table.capability] }),

@@ -31,7 +31,9 @@ Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte 
 
 - ID: `text("id").primaryKey()`, preencher com `crypto.randomUUID()` no caller.
 - FK: explicitar `onDelete: "cascade" | "restrict" | "set null"`. Default = `restrict` por integridade.
-- Money: `numeric(10, 2)` para preço/custo de produto; `numeric(12, 2)` em totais de pedido. **Nunca `real`/`double`**.
+- Money: `numeric(10, 2)` para preço/custo de produto; `numeric(12, 2)` em totais de pedido. **Nunca `real`/`double`**. As colunas de dinheiro de `order`, `order_item` e `refund_request` têm CHECK `>= 0`; a lista dos CHECKs que o ecommerce encontra fica em `docs/integration/admin-ecommerce.md`.
+- FK: toda FK tem um índice, unique ou PK que começa pelas colunas dela, com nome explícito de até 63 caracteres (`<tabela>_<coluna>_idx`). `src/__tests__/fk-index-coverage.test.ts` falha quando uma FK fica sem.
+- Motivo de `stock_movement`: o tipo `StockMovementReason` e o CHECK `stock_movement_reason_valid` derivam de `STOCK_MOVEMENT_REASONS`. `src/__tests__/stock-movement-reason.test.ts` confere os dois.
 - **Timestamp: sempre `timestamp("x", { withTimezone: true })`** (= `timestamptz`). Migrado em 2026-06-10 (todas as colunas da época). **Nunca declarar `timestamp(...)` sem tz** — coluna naïve quebra paginação por cursor em runtime não-UTC: o cursor é serializado via `new Date(rawString).toISOString()`, que em dev BR (−03) injeta +3h, e o keyset `< ${cursor}::timestamp` passa a reincluir o item-cursor → loop de refetch + duplicate keys. Banco compartilhado: migração coordenada com ecommerce (issue ecommerce#79).
 - Auditoria: `actorType` (`actorTypeEnum`, pgEnum `actor_type` com `user` e `system`) + FK do ator para `user`. Ator humano grava `actorType: "user"` e a FK = `session.user.id`; seed, script, cron e escrita do ecommerce gravam `actorType: "system"` e a FK `null`. O CHECK de coerência de cada tabela recusa outro par. As 6 tabelas com `actor_type`:
 

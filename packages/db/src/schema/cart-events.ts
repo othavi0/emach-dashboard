@@ -34,6 +34,8 @@ export const cartEvent = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("cart_event_variant_id_idx").on(table.variantId),
+		index("cart_event_client_id_idx").on(table.clientId),
 		index("cart_event_tool_created_idx").on(
 			table.toolId,
 			table.createdAt.desc()

@@ -233,6 +233,20 @@ auto-promo**. A invariante `subtotal − discount + shipping = total` fecha nume
 
 > **Importante:** `order_item` é imutável após o INSERT. Os snapshots de nome, SKU, voltagem, dimensões e NCM ficam congelados — mudanças posteriores na Tool ou na Variant não afetam o histórico do pedido.
 
+### CHECKs nas tabelas que o e-commerce escreve
+
+O banco recusa com SQLSTATE `23514` a linha que viola um destes CHECKs (#446):
+
+| Tabela | CHECK | Regra |
+| --- | --- | --- |
+| `order` | `order_amounts_non_negative` | `subtotal_amount`, `discount_amount`, `shipping_amount` e `total_amount` maiores ou iguais a 0. |
+| `order` | `nfe_access_key_len` | `nfe_access_key` nula ou com 44 caracteres. |
+| `order_item` | `order_item_amounts_non_negative` | `unit_price`, `line_total` e `discount_amount` maiores ou iguais a 0. |
+| `order_item` | `quantity_positive` | `quantity > 0`. |
+| `refund_request` | `refund_amount_non_negative` | `amount >= 0`. |
+| `stock_movement` | `stock_movement_reason_valid` | `reason` em `entrada_compra`, `saida_venda`, `ajuste_inventario`, `devolucao_retorno`, `perda` ou `outro` (lista em `STOCK_MOVEMENT_REASONS`). |
+| `client` | `client_document_format` | `document` nulo, CPF com 11 dígitos ou CNPJ com 12 caracteres `0-9A-Z` e 2 dígitos, sem pontuação. É a saída do `normalizeDocument` dos dois apps; string vazia não passa, grave `NULL`. |
+
 ---
 
 ## Handoff de status: fronteira e-commerce × admin

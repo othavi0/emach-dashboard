@@ -11,10 +11,12 @@ import { logUserActivity } from "@/lib/activity";
 import { getUserBranchScope } from "@/lib/branch-scope";
 import { normalizeCnpj } from "@/lib/cpf-cnpj";
 import { decodeCursor } from "@/lib/cursor";
+import { getPgError, type PgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
 import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import {
+	SUPPLIER_NAME_TAKEN,
 	type SupplierFormValues,
 	supplierSchema,
 } from "./_components/supplier-schema";
@@ -45,6 +47,10 @@ function normalizePayload(input: SupplierFormValues) {
 		cnpj: cnpj ? cnpj : null,
 		notes: notes ? notes : null,
 	};
+}
+
+function isSupplierNameTaken(pg: PgError | null): boolean {
+	return pg?.code === "23505" && pg.constraint === "supplier_name_unique";
 }
 
 type SupplierBaseRow = typeof supplier.$inferSelect;
@@ -164,7 +170,12 @@ export async function createSupplier(
 	} catch (error) {
 		logger.error("createSupplier", error);
 
-		return { ok: false, error: actionErrorMessage(error) };
+		return {
+			ok: false,
+			error: isSupplierNameTaken(getPgError(error))
+				? SUPPLIER_NAME_TAKEN
+				: actionErrorMessage(error),
+		};
 	}
 
 	await db.insert(supplierAuditLog).values({
@@ -225,7 +236,12 @@ export async function updateSupplier(
 	} catch (error) {
 		logger.error("updateSupplier", error);
 
-		return { ok: false, error: actionErrorMessage(error) };
+		return {
+			ok: false,
+			error: isSupplierNameTaken(getPgError(error))
+				? SUPPLIER_NAME_TAKEN
+				: actionErrorMessage(error),
+		};
 	}
 
 	await db.insert(supplierAuditLog).values({

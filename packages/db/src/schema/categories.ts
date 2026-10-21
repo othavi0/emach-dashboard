@@ -59,6 +59,7 @@ export const toolCategory = pgTable(
 		isPrimary: boolean("is_primary").notNull().default(false),
 	},
 	(table) => [
+		index("tool_category_category_id_idx").on(table.categoryId),
 		primaryKey({ columns: [table.toolId, table.categoryId] }),
 		uniqueIndex("tool_category_one_primary")
 			.on(table.toolId)

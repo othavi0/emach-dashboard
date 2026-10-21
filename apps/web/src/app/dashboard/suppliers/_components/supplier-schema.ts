@@ -62,3 +62,7 @@ export const supplierSchema = supplierObject.superRefine((data, ctx) => {
 });
 
 export type SupplierFormValues = z.infer<typeof supplierSchema>;
+
+// Mensagem do 23505 em supplier_name_unique (lower(trim(name))). O form
+// compara com ela para mostrar o erro no campo nome.
+export const SUPPLIER_NAME_TAKEN = "Já existe um fornecedor com esse nome";

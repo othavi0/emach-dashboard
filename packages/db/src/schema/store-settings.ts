@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
 	boolean,
 	check,
+	index,
 	numeric,
 	pgTable,
 	text,
@@ -61,6 +62,9 @@ export const storeSettings = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("store_settings_shipping_origin_branch_id_idx").on(
+			table.shippingOriginBranchId
+		),
 		check("store_settings_singleton", sql`${table.id} = 'singleton'`),
 		check(
 			"insurance_policy_valid",

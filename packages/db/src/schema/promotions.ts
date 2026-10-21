@@ -51,6 +51,8 @@ export const promotion = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(table) => [
+		index("promotion_created_by_idx").on(table.createdBy),
+		index("promotion_updated_by_idx").on(table.updatedBy),
 		index("promotion_created_idx").on(table.createdAt.desc(), table.id.desc()),
 		// Dashboard: contagem/keyset de promoções ativas expirando (getDashboardKpis,
 		// fetchExpiringPromotions). Parcial em active=true cobre o predicado quente.
@@ -100,7 +102,10 @@ export const promotionTool = pgTable(
 			.notNull()
 			.references(() => tool.id, { onDelete: "cascade" }),
 	},
-	(table) => [primaryKey({ columns: [table.promotionId, table.toolId] })]
+	(table) => [
+		primaryKey({ columns: [table.promotionId, table.toolId] }),
+		index("promotion_tool_tool_id_idx").on(table.toolId),
+	]
 ).enableRLS();
 
 export const promotionRelations = relations(promotion, ({ many, one }) => ({

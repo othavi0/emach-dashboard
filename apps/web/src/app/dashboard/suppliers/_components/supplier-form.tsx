@@ -5,12 +5,17 @@ import { Spinner } from "@emach/ui/components/spinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { focusFirstError } from "@/lib/form-errors";
 import { notify } from "@/lib/notify";
 import { useFormErrors } from "@/lib/use-form-errors";
 
 import { createSupplier, updateSupplier } from "../actions";
 import { SupplierFormFields } from "./supplier-form-fields";
-import { type SupplierFormValues, supplierSchema } from "./supplier-schema";
+import {
+	SUPPLIER_NAME_TAKEN,
+	type SupplierFormValues,
+	supplierSchema,
+} from "./supplier-schema";
 
 interface SupplierFormProps {
 	defaultValues: Partial<SupplierFormValues>;
@@ -53,7 +58,7 @@ export function SupplierForm({
 		notes: defaultValues.notes ?? "",
 	});
 
-	const { errors, reportValidationError, clearErrors } =
+	const { errors, setErrors, reportValidationError, clearErrors } =
 		useFormErrors<SupplierFormValues>();
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -82,6 +87,10 @@ export function SupplierForm({
 				);
 				router.push("/dashboard/suppliers");
 				router.refresh();
+			} else if (result.error === SUPPLIER_NAME_TAKEN) {
+				setErrors({ name: SUPPLIER_NAME_TAKEN });
+				notify.error(SUPPLIER_NAME_TAKEN);
+				focusFirstError();
 			} else {
 				notify.error(result.error || "Não foi possível salvar o fornecedor");
 			}

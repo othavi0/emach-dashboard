@@ -52,6 +52,7 @@ export const supplier = pgTable(
 			table.id.desc()
 		),
 		index("supplier_created_idx").on(table.createdAt.desc(), table.id.desc()),
+		uniqueIndex("supplier_name_unique").on(sql`lower(trim(${table.name}))`),
 		uniqueIndex("supplier_cnpj_unique_when_present")
 			.on(table.cnpj)
 			.where(sql`${table.cnpj} IS NOT NULL`),

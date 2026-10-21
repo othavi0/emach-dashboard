@@ -178,6 +178,7 @@ export const order = pgTable(
 		nfeStatus: text("nfe_status"),
 	},
 	(table) => [
+		index("order_coupon_id_idx").on(table.couponId),
 		index("order_client_id_idx").on(table.clientId),
 		index("order_branch_id_idx").on(table.branchId),
 		index("order_status_created_idx").on(table.status, table.createdAt.desc()),
@@ -190,6 +191,10 @@ export const order = pgTable(
 		check(
 			"nfe_access_key_len",
 			sql`${table.nfeAccessKey} IS NULL OR length(${table.nfeAccessKey}) = 44`
+		),
+		check(
+			"order_amounts_non_negative",
+			sql`${table.subtotalAmount} >= 0 AND ${table.discountAmount} >= 0 AND ${table.shippingAmount} >= 0 AND ${table.totalAmount} >= 0`
 		),
 	]
 ).enableRLS();
@@ -230,8 +235,14 @@ export const orderItem = pgTable(
 		heightCm: numeric("height_cm", { precision: 10, scale: 2 }),
 	},
 	(table) => [
+		index("order_item_tool_id_idx").on(table.toolId),
+		index("order_item_variant_id_idx").on(table.variantId),
 		index("order_item_order_id_idx").on(table.orderId),
 		check("quantity_positive", sql`${table.quantity} > 0`),
+		check(
+			"order_item_amounts_non_negative",
+			sql`${table.unitPrice} >= 0 AND ${table.lineTotal} >= 0 AND ${table.discountAmount} >= 0`
+		),
 	]
 ).enableRLS();
 
@@ -254,6 +265,7 @@ export const orderStatusHistory = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("order_status_history_actor_user_id_idx").on(table.actorUserId),
 		index("order_status_history_order_idx").on(
 			table.orderId,
 			table.createdAt.desc()
@@ -289,6 +301,7 @@ export const orderNote = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("order_note_author_id_idx").on(table.authorId),
 		index("order_note_order_idx").on(table.orderId, table.createdAt.desc()),
 	]
 ).enableRLS();
@@ -314,6 +327,7 @@ export const orderAttachment = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("order_attachment_uploaded_by_idx").on(table.uploadedBy),
 		index("order_attachment_order_created_idx").on(
 			table.orderId,
 			table.createdAt.desc()
@@ -339,6 +353,7 @@ export const orderEvent = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("order_event_actor_user_id_idx").on(table.actorUserId),
 		index("order_event_order_idx").on(table.orderId, table.createdAt.desc()),
 		check(
 			"order_event_actor_coherence",
@@ -380,6 +395,7 @@ export const refundRequest = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("refund_request_actor_user_id_idx").on(table.actorUserId),
 		index("refund_request_client_idx").on(
 			table.clientId,
 			table.requestedAt.desc()
@@ -394,6 +410,7 @@ export const refundRequest = pgTable(
 					`status IN (${ACTIVE_REFUND_STATUSES.map((s) => `'${s}'`).join(", ")})`
 				)
 			),
+		check("refund_amount_non_negative", sql`${table.amount} >= 0`),
 		check(
 			"refund_actor_coherence",
 			sql`(
@@ -437,6 +454,8 @@ export const orderPicking = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("order_picking_picker_user_id_idx").on(table.pickerUserId),
+		index("order_picking_canceled_by_user_id_idx").on(table.canceledByUserId),
 		// 1 sessão ATIVA por pedido (anti-concorrência). Partial: só in_progress.
 		uniqueIndex("order_picking_one_active")
 			.on(table.orderId)
@@ -476,6 +495,8 @@ export const orderPickingItem = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("order_picking_item_order_item_id_idx").on(table.orderItemId),
+		index("order_picking_item_variant_id_idx").on(table.variantId),
 		uniqueIndex("order_picking_item_unique").on(
 			table.pickingId,
 			table.orderItemId
@@ -516,6 +537,9 @@ export const orderPickingScan = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("order_picking_scan_picking_item_id_idx").on(table.pickingItemId),
+		index("order_picking_scan_variant_id_idx").on(table.variantId),
+		index("order_picking_scan_scanned_by_idx").on(table.scannedBy),
 		index("order_picking_scan_session_idx").on(
 			table.pickingId,
 			table.scannedAt.desc()
