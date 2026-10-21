@@ -9,7 +9,8 @@ import {
 	parseRunId,
 	runMarks,
 } from "../../scripts/fixtures-marks";
-import { refundRequest } from "../schema/orders";
+import { order, refundRequest } from "../schema/orders";
+import { promotion } from "../schema/promotions";
 
 // Prefixo dos pedidos "Pronto para enviar" do seed legado, já apagado do
 // repo. Pedidos com ele ainda existem no banco, e o cleanup nunca pode
@@ -74,6 +75,21 @@ describe("fixtures cleanup", () => {
 			runMarks(run).text,
 		]);
 		expect(deletes.params).toEqual(blocks.params);
+	});
+
+	it("cupom da fixture é apagado pelo título, depois do pedido que o referencia", () => {
+		const { steps } = cleanupPlan({ kind: "run", run });
+		const names = steps.map((s) => getTableName(s.table));
+		const step = steps.find((s) => s.table === promotion);
+
+		if (!step) {
+			throw new Error("plano sem passo de promotion");
+		}
+
+		expect(names.indexOf("promotion")).toBeGreaterThan(
+			names.indexOf(getTableName(order))
+		);
+		expect(dialect.sqlToQuery(step.where).params).toEqual([runMarks(run).text]);
 	});
 
 	it("--all casa o formato antigo e o novo", () => {

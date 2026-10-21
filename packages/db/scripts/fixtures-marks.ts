@@ -9,6 +9,7 @@ import {
 	orderStatusHistory,
 	refundRequest,
 } from "@emach/db/schema/orders";
+import { promotion } from "@emach/db/schema/promotions";
 import { review } from "@emach/db/schema/reviews";
 import { stockMovement } from "@emach/db/schema/stock-movements";
 import { inArray, type SQL, sql } from "drizzle-orm";
@@ -148,6 +149,8 @@ export function cleanupPlan(scope: CleanupScope): CleanupPlan {
 			{ table: orderItem, where: inArray(orderItem.orderId, orderIds) },
 			{ table: order, where: startsWith(order.number, marks.orderPrefix) },
 			{ table: banner, where: startsWith(banner.title, marks.text) },
+			// Depois do pedido: order.coupon_id é set null, e o pedido já saiu.
+			{ table: promotion, where: startsWith(promotion.title, marks.text) },
 		],
 	};
 }

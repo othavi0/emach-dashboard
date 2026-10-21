@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
 	FIXTURE_SURFACES,
-	ORDER_STATUS_PATH,
+	bornStatus as pathBornStatus,
 	type Surface,
 } from "../../scripts/fixtures-surfaces";
 
@@ -27,7 +27,7 @@ function bornStatus(surface: Surface): string {
 		return "—";
 	}
 
-	return `\`${ORDER_STATUS_PATH[surface].at(-1)}\``;
+	return `\`${pathBornStatus(surface)}\``;
 }
 
 describe("doc do db:fixtures em packages/db/CLAUDE.md", () => {

@@ -11,6 +11,7 @@ import {
 	orderStatusHistory,
 	refundRequest,
 } from "@emach/db/schema/orders";
+import { promotion } from "@emach/db/schema/promotions";
 import { review } from "@emach/db/schema/reviews";
 import { tool, toolVariant } from "@emach/db/schema/tools";
 import { and, asc, eq, getTableName, isNotNull } from "drizzle-orm";
@@ -26,6 +27,7 @@ import {
 	runMarks,
 } from "./fixtures-marks";
 import {
+	bornStatus,
 	FIXTURE_SURFACES,
 	ORDER_STATUS_PATH,
 	type OrderSurface,
@@ -147,6 +149,8 @@ const REACHED_AT_COLUMN: Partial<Record<OrderStatus, ReachedAtColumn>> = {
 	refunded: "refundedAt",
 };
 
+const toCents = (amount: string) => Math.round(Number(amount) * 100);
+
 interface FixtureOrder {
 	itemId: string;
 	orderId: string;
@@ -159,13 +163,21 @@ async function insertFixtureOrder(
 	tx: Tx,
 	base: Base,
 	opts: CreateOptions,
-	surface: OrderSurface
+	surface: OrderSurface,
+	coupon?: { discountAmount: string; id: string }
 ): Promise<FixtureOrder> {
 	const orderId = crypto.randomUUID();
 	const itemId = crypto.randomUUID();
 	const orderNumber = fixtureOrderNumber(opts.run, orderId);
 	const steps = ORDER_STATUS_PATH[surface];
-	const status = steps.at(-1) ?? "pending_payment";
+	const status = bornStatus(surface);
+	const discountAmount = coupon?.discountAmount ?? "0";
+
+	const totalAmount = (
+		(toCents(base.variant.priceAmount) - toCents(discountAmount)) /
+		100
+	).toFixed(2);
+
 	const lastStepAt = Date.now() - (opts.ageHours ?? 1) * HOURS;
 
 	const stepAt = (i: number) =>
@@ -191,8 +203,10 @@ async function insertFixtureOrder(
 		status,
 		paymentMethod: "pix",
 		subtotalAmount: base.variant.priceAmount,
+		discountAmount,
+		couponId: coupon?.id ?? null,
 		shippingAmount: "0",
-		totalAmount: base.variant.priceAmount,
+		totalAmount,
 		shippingAddress: {
 			recipient: opts.marks.text,
 			zipCode: "01001-000",
@@ -255,7 +269,7 @@ async function insertFixtureOrder(
 		orderId,
 		orderNumber,
 		reachedAt: stepAt(steps.length - 1),
-		totalAmount: base.variant.priceAmount,
+		totalAmount,
 	};
 }
 
@@ -453,6 +467,56 @@ const SURFACES: Record<
 			surface: "banner",
 			ids: { banner: id },
 			route: "/dashboard/site/banners",
+		};
+	},
+
+	// Espelha o place-order do ecommerce: cupom promocode com a redenção já
+	// reservada (redemption_count + 1) e o pedido ligado por coupon_id. O cupom
+	// nasce inativo, então a loja não o exibe nem aceita.
+	coupon: async (tx, opts) => {
+		const base = await loadBase(tx, opts);
+		const couponId = crypto.randomUUID();
+		const code = `FX${opts.run}${couponId.slice(0, 4).toUpperCase()}`;
+
+		const discountAmount = (toCents(base.variant.priceAmount) / 1000).toFixed(
+			2
+		);
+
+		await tx.insert(promotion).values({
+			id: couponId,
+			title: `${opts.marks.text} Cupom de fixture`,
+			type: "promocode",
+			code,
+			discountType: "percent",
+			discountValue: "10",
+			maxRedemptions: 10,
+			redemptionCount: 1,
+			active: HIDDEN_FROM_STOREFRONT,
+		});
+
+		const o = await insertFixtureOrder(tx, base, opts, "coupon", {
+			id: couponId,
+			discountAmount,
+		});
+
+		return {
+			surface: "coupon",
+			ids: {
+				order: o.orderId,
+				order_item: o.itemId,
+				promotion: couponId,
+				branch: base.branchId,
+				client: base.clientId,
+			},
+			orderNumber: o.orderNumber,
+			route: `/dashboard/orders/${o.orderId}`,
+			extraRoutes: [
+				{
+					route: "/dashboard/orders?tab=pending_payment",
+					shows: "aba da listagem",
+				},
+				{ route: `/dashboard/promotions/${couponId}`, shows: `cupom ${code}` },
+			],
 		};
 	},
 

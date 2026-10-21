@@ -10,6 +10,7 @@ export const FIXTURE_SURFACES = [
 	"returned",
 	"refunded",
 	"ready-to-ship",
+	"coupon",
 ] as const;
 
 export type Surface = (typeof FIXTURE_SURFACES)[number];
@@ -27,7 +28,12 @@ export const ORDER_STATUS_PATH = {
 	returned: ["paid", "preparing", "shipped", "delivered", "returned"],
 	refunded: ["paid", "refunded"],
 	"ready-to-ship": ["paid", "preparing"],
+	coupon: [],
 } as const satisfies Record<OrderSurface, readonly OrderStatus[]>;
+
+export function bornStatus(surface: OrderSurface): OrderStatus {
+	return ORDER_STATUS_PATH[surface].at(-1) ?? "pending_payment";
+}
 
 const AGE_HOURS = /^[1-9]\d*$/;
 
