@@ -8,10 +8,8 @@ function logCause(
 	cause: unknown,
 	context?: JsonValue
 ): void {
-	const write = level === "error" ? console.error : console.warn;
-
 	if (process.env.NODE_ENV === "production") {
-		write(
+		console[level](
 			JSON.stringify({
 				level,
 				scope,
@@ -24,9 +22,9 @@ function logCause(
 			})
 		);
 	} else if (context === undefined) {
-		write(`[${scope}]`, cause);
+		console[level](`[${scope}]`, cause);
 	} else {
-		write(`[${scope}]`, cause, context);
+		console[level](`[${scope}]`, cause, context);
 	}
 }
 

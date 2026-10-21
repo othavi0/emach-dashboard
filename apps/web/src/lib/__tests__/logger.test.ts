@@ -12,6 +12,32 @@ describe("logger", () => {
 		vi.unstubAllEnvs();
 	});
 
+	// O Next instrumenta o console com métodos que dependem do this; chamar o
+	// método solto lança "Cannot read properties of undefined".
+	describe.each([
+		"production",
+		"development",
+	])("com console instrumentado (NODE_ENV=%s)", (env) => {
+		beforeEach(() => {
+			vi.stubEnv("NODE_ENV", env);
+		});
+
+		it.each([
+			"error",
+			"warn",
+		] as const)("%s chama o método com o console como this", (level) => {
+			vi.spyOn(console, level).mockImplementation(function (
+				this: Console | undefined
+			) {
+				if (this !== console) {
+					throw new TypeError("console sem this");
+				}
+			});
+
+			expect(() => logger[level]("scope", new Error("boom"))).not.toThrow();
+		});
+	});
+
 	describe("em produção (NODE_ENV=production)", () => {
 		beforeEach(() => {
 			vi.stubEnv("NODE_ENV", "production");
