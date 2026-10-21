@@ -279,11 +279,16 @@ Transições completas (fonte canônica: `apps/web/src/app/dashboard/orders/sche
 
 ### Status hoje
 
-O débito em `paid` é contrato alvo e ainda não tem escritor. Nenhum app grava `stock_movement` com `reason = 'saida_venda'`. Só os scripts de seed em `packages/db/scripts` gravam esse motivo.
+Entre os apps, o dashboard é o único escritor do débito hoje (os scripts de seed em `packages/db/scripts` também gravam `saida_venda`). Desde 2026-10-21 (#440), marcar um pedido `paid` à mão em `updateOrderStatus` (`apps/web/src/app/dashboard/orders/actions.ts`) chama `applySaleDebits` (`apps/web/src/app/dashboard/orders/_lib/stock-debits.ts`) na mesma transação do status:
 
-- O e-commerce não move pedido para `paid`. O pagamento real é stub e não há webhook do Asaas (`emach-ecommerce/CLAUDE.md`, item "Pagamento real ausente", roadmap #4).
-- O admin pode marcar um pedido `pending_payment` como `paid` à mão no dashboard. A action `updateOrderStatus` (`apps/web/src/app/dashboard/orders/actions.ts`) grava o status e o histórico e não debita `stock_level` nem grava `stock_movement`. Ela só mexe em estoque quando o destino é `returned`.
-- Um reembolso com "creditar estoque" de um pedido marcado `paid` à mão infla o estoque. `refundOrder` chama `applyStockReturns` (`apps/web/src/app/dashboard/orders/_lib/stock-returns.ts`), que credita a quantidade do item sem conferir se houve débito antes. O estoque credita uma quantidade que nunca saiu.
+- Grava um `stock_movement` por `order_item` com `reason = 'saida_venda'`, `delta = -quantity`, `order_id`, `order_item_id`, a filial do pedido e `actor_type = 'user'` com o id do admin.
+- O insert usa `ON CONFLICT DO NOTHING` no índice `stock_movement_sale_idempotency`. O `stock_level` da filial só desce quando o insert devolveu linha, por `UPDATE` condicional (`quantity >= n`).
+- Pedido sem filial não vira `paid` e o admin vê a mensagem que manda atribuir uma filial. Estoque insuficiente numa variante também recusa, com o nome e o SKU do item, sem gravar nada.
+- O "Disponível" da ficha de estoque (`getReservedQtyByVariantBranch`, `apps/web/src/app/dashboard/stock/movements-data.ts`) só conta como reservado o item de pedido `paid` ou `preparing` que ainda não tem `saida_venda`.
+
+O e-commerce não move pedido para `paid`. O pagamento real é stub e não há webhook do Asaas (`emach-ecommerce/CLAUDE.md`, item "Pagamento real ausente", roadmap #4).
+
+Pedido marcado `paid` à mão antes de 2026-10-21 não tem `saida_venda`. Um reembolso com "creditar estoque" de um pedido desses infla o estoque, porque `refundOrder` chama `applyStockReturns` (`apps/web/src/app/dashboard/orders/_lib/stock-returns.ts`) sem conferir se houve débito antes.
 
 ### Contrato alvo
 
@@ -291,7 +296,7 @@ O débito em `paid` é contrato alvo e ainda não tem escritor. Nenhum app grava
 
 Motivação: pedidos não pagos não devem imobilizar estoque — o cliente pode abandonar o checkout. Cancelar um pedido em `pending_payment` ou `payment_failed` não mexe em `stock_movement` nem em `stock_level`. Ver ADR-0007.
 
-Quando o e-commerce confirmar o pagamento e gravar o status `paid`, deve também:
+Quando o e-commerce confirmar o pagamento e gravar o status `paid`, deve também (o mesmo que o dashboard já faz no `paid` manual, com `actor_type = 'system'`):
 
 1. Decrementar `stock_level.quantity` para cada `(variant_id, branch_id)` dos itens.
 2. Inserir um registro em `stock_movement` por item:

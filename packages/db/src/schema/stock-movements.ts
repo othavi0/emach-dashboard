@@ -86,9 +86,10 @@ export const stockMovement = pgTable(
 			.where(sql`reason = 'devolucao_retorno' AND order_item_id IS NOT NULL`),
 		check("delta_non_zero", sql`${table.delta} <> 0`),
 		// Entrada de compra exige fornecedor; demais motivos têm supplier_id nulo.
-		// O único motivo que o e-commerce vai escrever é saida_venda, ainda sem
-		// escritor (ver docs/integration/admin-ecommerce.md); o CHECK não o afeta
-		// (ADR-0015).
+		// saida_venda hoje sai só do dashboard, no paid manual (applySaleDebits,
+		// ADR-0007); o e-commerce vai escrever o mesmo motivo quando o pagamento
+		// real existir (ver docs/integration/admin-ecommerce.md). O CHECK não o
+		// afeta (ADR-0015).
 		check(
 			"entrada_requires_supplier",
 			sql`(${table.reason} <> 'entrada_compra') OR (${table.supplierId} IS NOT NULL)`

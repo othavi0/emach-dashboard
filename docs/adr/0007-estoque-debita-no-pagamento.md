@@ -40,3 +40,13 @@ Mantém o estoque disponível para outros compradores enquanto o pagamento está
 ### Atualização de 2026-10-15
 
 A decisão continua valendo. O escritor do débito ainda não existe: o pagamento real do e-commerce é stub (roadmap #4 do `emach-ecommerce/CLAUDE.md`) e nenhum app grava `saida_venda`. Marcar um pedido `paid` à mão no dashboard (`updateOrderStatus`) não debita `stock_level` nem grava `stock_movement`. O estado de hoje e o contrato alvo estão em `docs/integration/admin-ecommerce.md`, seção "Estoque: débito ocorre em `paid`".
+
+### Atualização de 2026-10-21
+
+O dashboard passa a ser o escritor do débito manual (#440, decisão do dono). Quando o admin marca um pedido `paid` em `updateOrderStatus` (`apps/web/src/app/dashboard/orders/actions.ts`), a mesma transação do status chama `applySaleDebits` (`apps/web/src/app/dashboard/orders/_lib/stock-debits.ts`):
+
+- Cada `order_item` ganha um `stock_movement` com `reason = 'saida_venda'`, `delta` negativo, `order_id`, `order_item_id`, a filial do pedido e `actor_type = 'user'` com o id do admin.
+- O insert usa `ON CONFLICT DO NOTHING` no índice `stock_movement_sale_idempotency`. O `stock_level` da filial só desce quando o insert devolveu linha, por um `UPDATE` condicional (`quantity >= n`).
+- Pedido sem filial não vira `paid`: a mensagem manda atribuir uma filial. Estoque insuficiente numa variante também recusa, com a mensagem que nomeia o item, e a transação não grava nada.
+
+O e-commerce continua sem escritor (pagamento real é stub). Quando o webhook do Asaas existir, ele grava `saida_venda` com `actor_type = 'system'` e o mesmo índice impede o débito duplo de um pedido que o admin já marcou pago. Os pedidos que viraram `paid` sem débito antes desta data ficam como estão.
