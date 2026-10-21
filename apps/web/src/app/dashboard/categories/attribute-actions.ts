@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { actionErrorMessage } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { logUserActivity } from "@/lib/activity";
+import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import {
 	type AttributeFormValues,
@@ -45,6 +46,8 @@ export async function createCategoryAttribute(
 			.insert(attributeDefinition)
 			.values({ id, ...normalize(parsed.data, categoryId) });
 	} catch (error) {
+		logger.error("createCategoryAttribute", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 
@@ -78,6 +81,8 @@ export async function updateCategoryAttribute(
 			.set(normalize(parsed.data, categoryId))
 			.where(eq(attributeDefinition.id, id));
 	} catch (error) {
+		logger.error("updateCategoryAttribute", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 
@@ -103,6 +108,8 @@ export async function deleteCategoryAttribute(
 		// Cascade na FK de toolAttributeValue lida com valores existentes.
 		await db.delete(attributeDefinition).where(eq(attributeDefinition.id, id));
 	} catch (error) {
+		logger.error("deleteCategoryAttribute", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 

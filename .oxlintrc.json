@@ -49,6 +49,6 @@
     "anti-slop/require-safety-comment-for-type-assertion": "error",
     "anti-slop/no-module-mocking": "off",
     "emach/no-regexp-in-loop": "error",
-    "emach/require-log-in-action-catch": "warn"
+    "emach/require-log-in-action-catch": "error"
   }
 }

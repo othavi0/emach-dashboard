@@ -144,7 +144,7 @@ export const banner = pgTable(
 		),
 		check("banner_cta_scale_bounds", sql`${t.ctaScale} between 80 and 140`),
 	]
-);
+).enableRLS();
 
 export type Banner = typeof banner.$inferSelect;
 

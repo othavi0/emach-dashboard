@@ -8,6 +8,7 @@ const tester = new RuleTester({
 
 const error = { messageId: "missingLog" };
 const header = '"use server";\nimport { logger } from "@/lib/logger";\n';
+const roleHeader = `${header}import { isCapabilityError, safeRequireRole } from "@/lib/action-error";\n`;
 
 function action(catchClause: string): string {
 	return `${header}export async function a() { try { await x(); } ${catchClause} }`;
@@ -90,6 +91,18 @@ tester.run("emach/require-log-in-action-catch", requireLogInActionCatchRule, {
 		{
 			name: "throw e em try aninhado só com finally",
 			code: action("catch (e) { try { throw e; } finally { z(); } }"),
+		},
+		{
+			name: "retorno de safeRequireRole",
+			code: `${roleHeader}export async function a() { try { await x(); } catch (e) { return safeRequireRole(e); } }`,
+		},
+		{
+			name: "safeRequireRole condicional antes do logger.error",
+			code: `${roleHeader}export async function a() { try { await x(); } catch (e) { if (isCapabilityError(e)) { return safeRequireRole(e); } logger.error("a", e); return { ok: false }; } }`,
+		},
+		{
+			name: "safeRequireRole importado com outro nome",
+			code: '"use server";\nimport { safeRequireRole as deny } from "@/lib/action-error";\nexport async function a() { try { await x(); } catch (e) { return deny(e); } }',
 		},
 		{
 			name: "arquivo sem diretiva não é analisado",
@@ -312,6 +325,21 @@ tester.run("emach/require-log-in-action-catch", requireLogInActionCatchRule, {
 		{
 			name: "use server depois de use strict ainda é diretiva",
 			code: '"use strict";\n"use server";\nasync function a() { try { await x(); } catch {} }',
+			errors: [error],
+		},
+		{
+			name: "safeRequireRole de outro módulo não conta",
+			code: '"use server";\nimport { safeRequireRole } from "./helpers";\nexport async function a() { try { await x(); } catch (e) { return safeRequireRole(e); } }',
+			errors: [error],
+		},
+		{
+			name: "safeRequireRole sem return não basta",
+			code: `${roleHeader}export async function a() { try { await x(); } catch (e) { safeRequireRole(e); return { ok: false }; } }`,
+			errors: [error],
+		},
+		{
+			name: "safeRequireRole condicional e return sem log",
+			code: `${roleHeader}export async function a() { try { await x(); } catch (e) { if (isCapabilityError(e)) { return safeRequireRole(e); } return { ok: false }; } }`,
 			errors: [error],
 		},
 		{

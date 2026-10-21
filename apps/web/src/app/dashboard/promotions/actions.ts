@@ -4,9 +4,11 @@ import { db } from "@emach/db";
 import { promotion, promotionTool } from "@emach/db/schema/promotions";
 import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { safeRequireRole } from "@/lib/action-error";
 import type { ActionResult } from "@/lib/action-result";
 import { endOfDaySaoPaulo, startOfDaySaoPaulo } from "@/lib/format/date-input";
 import type { InfiniteResult } from "@/lib/infinite";
+import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import { requireCurrentSession } from "@/lib/session";
 import {
@@ -20,8 +22,7 @@ import {
 	assertTitleUnique,
 	buildCouponFields,
 	conflict,
-	dbErrorMessage,
-	safeRequireRole,
+	DB_ERROR_MESSAGE,
 } from "./_lib/promotion-query-helpers";
 import {
 	countToolsWithActivePromotion,
@@ -69,7 +70,7 @@ export async function createPromotion(
 	try {
 		await requireCapability("promotions.manage");
 	} catch (error) {
-		return safeRequireRole(error);
+		return safeRequireRole("createPromotion", error);
 	}
 
 	// C2 fix: use createPromotionSchema (includes startsAt past-date guard)
@@ -136,11 +137,13 @@ export async function createPromotion(
 			}
 		});
 	} catch (error) {
+		logger.error("createPromotion", error);
+
 		if (error instanceof Error && error.message.startsWith("CONFLICT:")) {
 			return { ok: false, error: error.message.slice(9) };
 		}
 
-		return { ok: false, error: dbErrorMessage(error) };
+		return { ok: false, error: DB_ERROR_MESSAGE };
 	}
 
 	revalidatePath(PROMOTIONS_PATH);
@@ -159,7 +162,7 @@ export async function updatePromotion(
 	try {
 		await requireCapability("promotions.manage");
 	} catch (error) {
-		return safeRequireRole(error);
+		return safeRequireRole("updatePromotion", error);
 	}
 
 	if (!UUID_RE.test(id)) {
@@ -232,11 +235,13 @@ export async function updatePromotion(
 			}
 		});
 	} catch (error) {
+		logger.error("updatePromotion", error);
+
 		if (error instanceof Error && error.message.startsWith("CONFLICT:")) {
 			return { ok: false, error: error.message.slice(9) };
 		}
 
-		return { ok: false, error: dbErrorMessage(error) };
+		return { ok: false, error: DB_ERROR_MESSAGE };
 	}
 
 	revalidatePath(PROMOTIONS_PATH);
@@ -254,7 +259,7 @@ export async function deletePromotion(
 	try {
 		await requireCapability("promotions.delete");
 	} catch (error) {
-		return safeRequireRole(error);
+		return safeRequireRole("deletePromotion", error);
 	}
 
 	if (!UUID_RE.test(id)) {
@@ -264,7 +269,9 @@ export async function deletePromotion(
 	try {
 		await db.delete(promotion).where(eq(promotion.id, id));
 	} catch (error) {
-		return { ok: false, error: dbErrorMessage(error) };
+		logger.error("deletePromotion", error);
+
+		return { ok: false, error: DB_ERROR_MESSAGE };
 	}
 
 	revalidatePath(PROMOTIONS_PATH);
@@ -282,7 +289,7 @@ export async function togglePromotionActive(
 	try {
 		await requireCapability("promotions.manage");
 	} catch (error) {
-		return safeRequireRole(error);
+		return safeRequireRole("togglePromotionActive", error);
 	}
 
 	if (!UUID_RE.test(id)) {
@@ -323,11 +330,13 @@ export async function togglePromotionActive(
 
 		return { ok: true, data: { active: next } };
 	} catch (error) {
+		logger.error("togglePromotionActive", error);
+
 		if (error instanceof Error && error.message.startsWith("CONFLICT:")) {
 			return { ok: false, error: error.message.slice(9) };
 		}
 
-		return { ok: false, error: dbErrorMessage(error) };
+		return { ok: false, error: DB_ERROR_MESSAGE };
 	}
 }
 
@@ -341,7 +350,7 @@ export async function duplicatePromotion(
 	try {
 		await requireCapability("promotions.manage");
 	} catch (error) {
-		return safeRequireRole(error);
+		return safeRequireRole("duplicatePromotion", error);
 	}
 
 	if (!UUID_RE.test(id)) {
@@ -429,11 +438,13 @@ export async function duplicatePromotion(
 			}
 		});
 	} catch (error) {
+		logger.error("duplicatePromotion", error);
+
 		if (error instanceof Error && error.message.startsWith("CONFLICT:")) {
 			return { ok: false, error: error.message.slice(9) };
 		}
 
-		return { ok: false, error: dbErrorMessage(error) };
+		return { ok: false, error: DB_ERROR_MESSAGE };
 	}
 
 	revalidatePath(PROMOTIONS_PATH);

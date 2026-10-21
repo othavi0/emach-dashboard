@@ -51,7 +51,7 @@ export const shippingBox = pgTable(
 			sql`${table.internalLengthCm} >= 0 AND ${table.internalWidthCm} >= 0 AND ${table.internalHeightCm} >= 0 AND ${table.maxWeightKg} >= 0 AND ${table.tareWeightKg} >= 0`
 		),
 	]
-);
+).enableRLS();
 
 export type ShippingBox = typeof shippingBox.$inferSelect;
 

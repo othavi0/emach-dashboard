@@ -43,7 +43,7 @@ export const consentLog = pgTable(
 			table.grantedAt.desc()
 		),
 	]
-);
+).enableRLS();
 
 export const consentLogRelations = relations(consentLog, ({ one }) => ({
 	client: one(client, {

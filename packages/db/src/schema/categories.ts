@@ -45,7 +45,7 @@ export const category = pgTable(
 		index("category_parent_idx").on(table.parentId),
 		index("category_path_idx").on(table.path),
 	]
-);
+).enableRLS();
 
 export const toolCategory = pgTable(
 	"tool_category",
@@ -64,7 +64,7 @@ export const toolCategory = pgTable(
 			.on(table.toolId)
 			.where(sql`${table.isPrimary} = true`),
 	]
-);
+).enableRLS();
 
 export const categoryRelations = relations(category, ({ one, many }) => ({
 	parent: one(category, {

@@ -102,7 +102,7 @@ export const stockMovement = pgTable(
 			)`
 		),
 	]
-);
+).enableRLS();
 
 export const stockMovementRelations = relations(stockMovement, ({ one }) => ({
 	variant: one(toolVariant, {

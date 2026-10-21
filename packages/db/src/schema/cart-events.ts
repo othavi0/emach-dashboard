@@ -41,7 +41,7 @@ export const cartEvent = pgTable(
 		index("cart_event_created_idx").on(table.createdAt),
 		check("cart_event_quantity_positive", sql`${table.quantity} > 0`),
 	]
-);
+).enableRLS();
 
 export const cartEventRelations = relations(cartEvent, ({ one }) => ({
 	tool: one(tool, { fields: [cartEvent.toolId], references: [tool.id] }),

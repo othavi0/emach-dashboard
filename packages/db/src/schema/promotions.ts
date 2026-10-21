@@ -88,7 +88,7 @@ export const promotion = pgTable(
 			sql`${table.endsAt} IS NULL OR ${table.startsAt} IS NULL OR ${table.endsAt} > ${table.startsAt}`
 		),
 	]
-);
+).enableRLS();
 
 export const promotionTool = pgTable(
 	"promotion_tool",
@@ -101,7 +101,7 @@ export const promotionTool = pgTable(
 			.references(() => tool.id, { onDelete: "cascade" }),
 	},
 	(table) => [primaryKey({ columns: [table.promotionId, table.toolId] })]
-);
+).enableRLS();
 
 export const promotionRelations = relations(promotion, ({ many, one }) => ({
 	promotionTools: many(promotionTool),

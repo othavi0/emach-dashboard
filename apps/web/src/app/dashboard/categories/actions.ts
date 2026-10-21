@@ -72,6 +72,8 @@ export async function createCategory(
 			depth: 0,
 		});
 	} catch (e) {
+		logger.error("createCategory", e);
+
 		return { ok: false, error: mapWriteError(e) };
 	}
 
@@ -111,6 +113,8 @@ export async function updateCategory(
 			})
 			.where(eq(category.id, id));
 	} catch (e) {
+		logger.error("updateCategory", e);
+
 		return { ok: false, error: mapWriteError(e) };
 	}
 
@@ -212,6 +216,8 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
 	try {
 		await db.delete(category).where(eq(category.id, id));
 	} catch (e) {
+		logger.error("deleteCategory", e);
+
 		// foreign_key_violation: categoria com subcategorias, produtos ou atributos.
 		if (getPgError(e)?.code === "23503") {
 			return {
@@ -220,8 +226,6 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
 					"Não é possível remover: a categoria tem subcategorias, produtos ou atributos vinculados. Remova-os antes.",
 			};
 		}
-
-		logger.error("deleteCategory", e);
 
 		return { ok: false, error: "Não foi possível remover a categoria" };
 	}

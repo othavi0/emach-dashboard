@@ -1,10 +1,7 @@
 import type { db } from "@emach/db";
 import { promotion } from "@emach/db/schema/promotions";
 import { type AnyColumn, and, eq, ne, type sql } from "drizzle-orm";
-import { isCapabilityError } from "@/lib/action-error";
-import type { ActionResult } from "@/lib/action-result";
 import type { Cursor } from "@/lib/cursor";
-import { logger } from "@/lib/logger";
 import type { PromotionFormValues } from "../_components/promotion-schema";
 import { computeStatus } from "./featured-home";
 import { featuredConflictMessage } from "./featured-message";
@@ -14,19 +11,7 @@ import type { PromotionSort, PromotionStatus } from "./promotion-types";
 // Error helpers
 // ---------------------------------------------------------------------------
 
-export function dbErrorMessage(cause: unknown): string {
-	logger.error("promotions", cause);
-
-	return "Erro ao processar operação. Tente novamente.";
-}
-
-export function safeRequireRole(cause: unknown): ActionResult<never> {
-	if (isCapabilityError(cause)) {
-		return { ok: false, error: "Acesso negado" };
-	}
-
-	throw cause;
-}
+export const DB_ERROR_MESSAGE = "Erro ao processar operação. Tente novamente.";
 
 export function conflict(message: string): never {
 	throw new Error(`CONFLICT:${message}`);

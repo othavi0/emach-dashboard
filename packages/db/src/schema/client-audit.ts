@@ -63,7 +63,7 @@ export const clientAuditLog = pgTable(
 			)`
 		),
 	]
-);
+).enableRLS();
 
 export const clientAuditLogRelations = relations(clientAuditLog, ({ one }) => ({
 	client: one(client, {

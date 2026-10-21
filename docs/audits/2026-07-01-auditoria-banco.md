@@ -193,36 +193,36 @@ Todas type-checkam e passam nos testes (48 testes em orders+stock verdes; `check
 
 Esta tabela vale sobre o texto das §3 a §6 e dos adendos. O resto do arquivo é histórico e descreve o banco e o código de 2026-07-01. O status foi conferido no código da `main` em `4ecce97e`. Os itens de dado foram conferidos por `db:read` no banco de hoje, que foi recriado depois do Adendo A, então os números da §2 e da §5 não descrevem mais o banco.
 
-Status possíveis: `resolvido`, `parcial`, `aberto`, `decidido` (fechado por ADR) e `não verificável sem banco`. A coluna Issue fica `a abrir` enquanto o dono não criar a issue do item.
+Status possíveis: `resolvido`, `parcial`, `aberto`, `decidido` (fechado por ADR) e `não verificável sem banco`. A coluna Issue aponta para a issue de cada item `aberto` ou `parcial`.
 
 | Item | Status | Evidência | Issue |
 |---|---|---|---|
 | §3 P0-1 · `refund_request` morta na escrita | resolvido | `apps/web/src/app/dashboard/orders/actions.ts:1046` e `:1055` (`update`/`insert` de `refundRequest`); ADR-0025 | |
-| §3 P0-2 · variante oculta na loja | parcial | a PDP filtra `visible_on_site = true` (`packages/db/src/queries/tools.ts:321`). A listagem faz join em `dv.is_default = true` sem filtrar `dv.visible_on_site` em `getTools` (`tools.ts:188` e `:247`) e em `searchTools` (`tools.ts:558`). É o follow-up do Adendo C | a abrir |
+| §3 P0-2 · variante oculta na loja | parcial | a PDP filtra `visible_on_site = true` (`packages/db/src/queries/tools.ts:321`). A listagem faz join em `dv.is_default = true` sem filtrar `dv.visible_on_site` em `getTools` (`tools.ts:188` e `:247`) e em `searchTools` (`tools.ts:558`). É o follow-up do Adendo C | #441 |
 | §3 P0-3 · exceção de separação trava o fluxo | resolvido | `canFinalizePicking` em `apps/web/src/app/dashboard/separacao/_lib/picking-logic.ts:49`; Adendo C | |
 | §3 P1 · duplo crédito `returned → refunded` | resolvido | índice `stock_movement_return_idempotency` em `packages/db/src/schema/stock-movements.ts:84`; ADR-0026 | |
-| §3 P1 · "estoque baixo" com duas definições | aberto | `apps/web/src/app/dashboard/branches/data.ts:245` conta baixo só por `minQty`, sem `reorderPoint` | a abrir |
-| §3 P1 · `order.branch_id` sem reconciliação com o ledger | aberto | `assignBranch` (`apps/web/src/app/dashboard/orders/actions.ts:679`) faz `tx.update(order).set({ branchId })` em `:713` sem consultar `stock_movement` | a abrir |
-| §3 P2 · conflito de `tool.slug` reportado como SKU | aberto | `mapToolMutationError` (`apps/web/src/app/dashboard/tools/actions.ts:60-76`) devolve "SKU já existe para outra variante" para todo `23505` que não seja `tool_variant_barcode_key` | a abrir |
+| §3 P1 · "estoque baixo" com duas definições | aberto | `apps/web/src/app/dashboard/branches/data.ts:245` conta baixo só por `minQty`, sem `reorderPoint` | #442 |
+| §3 P1 · `order.branch_id` sem reconciliação com o ledger | aberto | `assignBranch` (`apps/web/src/app/dashboard/orders/actions.ts:694`) faz `tx.update(order).set({ branchId })` em `:728` sem consultar `stock_movement` | #443 |
+| §3 P2 · conflito de `tool.slug` reportado como SKU | aberto | `mapToolMutationError` (`apps/web/src/app/dashboard/tools/actions.ts:60-76`) devolve "SKU já existe para outra variante" para todo `23505` que não seja `tool_variant_barcode_key` | #444 |
 | §3 P2 · `packaging_weight_kg = 0` no catálogo | resolvido | `db:read` em 2026-10-15: 0 de 12 tools com `packaging_weight_kg` zero ou nulo | |
-| §4 · `deleteToolVariant` sem olhar `stock_movement` | parcial | `apps/web/src/app/dashboard/tools/actions.ts:885` bloqueia com estoque em `stock_level` e com pedido (#335), mas não consulta `stock_movement`. Variante com estoque zerado e histórico ainda é apagada, e o `variant_id` do ledger vira `NULL` (`stock-movements.ts:30-31`, `onDelete: "set null"`) | a abrir |
-| §4 · `order`/`order_item`/`refund_request` sem `CHECK >= 0` monetário | aberto | os CHECKs de `packages/db/src/schema/orders.ts` são `nfe_access_key_len`, `quantity_positive`, os três `*actor_coherence` e os de picking; nenhum de valor | a abrir (junto com os outros CHECKs) |
-| §4 · `stock_movement.reason` só tipado no TS | aberto | `packages/db/src/schema/stock-movements.ts:39`: `text("reason").$type<StockMovementReason>()` | a abrir (junto com os outros CHECKs) |
-| §4 · `client.document` sem CHECK de tamanho | aberto | `packages/db/src/schema/client.ts:32`: só `.unique()`. O formato aceito depende do #412 (CNPJ alfanumérico) | a abrir (junto com os outros CHECKs) |
-| §4 · `supplier` sem unique natural | aberto | `packages/db/src/schema/tools.ts:55`: só `supplier_cnpj_unique_when_present` | a abrir |
+| §4 · `deleteToolVariant` sem olhar `stock_movement` | parcial | `apps/web/src/app/dashboard/tools/actions.ts:885` bloqueia com estoque em `stock_level` e com pedido (#335), mas não consulta `stock_movement`. Variante com estoque zerado e histórico ainda é apagada, e o `variant_id` do ledger vira `NULL` (`stock-movements.ts:30-31`, `onDelete: "set null"`) | #445 |
+| §4 · `order`/`order_item`/`refund_request` sem `CHECK >= 0` monetário | aberto | os CHECKs de `packages/db/src/schema/orders.ts` são `nfe_access_key_len`, `quantity_positive`, os três `*actor_coherence` e os de picking; nenhum de valor | #446 |
+| §4 · `stock_movement.reason` só tipado no TS | aberto | `packages/db/src/schema/stock-movements.ts:39`: `text("reason").$type<StockMovementReason>()` | #446 |
+| §4 · `client.document` sem CHECK de tamanho | aberto | `packages/db/src/schema/client.ts:32`: só `.unique()`. O formato aceito depende do #412 (CNPJ alfanumérico) | #446 |
+| §4 · `supplier` sem unique natural | aberto | `packages/db/src/schema/tools.ts:55`: só `supplier_cnpj_unique_when_present` | #447 |
 | §4 · devolução credita como `ajuste_inventario` | resolvido | reason `devolucao_retorno` (`stock-movements.ts:22`); ADR-0026 | |
-| §4 · FKs sem índice e índices sem uso | aberto | `db:read` em 2026-10-15 no catálogo do Postgres: 32 FKs sem índice que comece pelas colunas da FK e 13 índices não únicos com `idx_scan = 0`. O tráfego do banco é baixo, então `idx_scan = 0` é sinal fraco. O advisor do Supabase não foi rodado | a abrir |
-| §5 · dados incompletos (filiais, fornecedores, NCM, roteamento por CEP, reembolso, eventos, NF-e, cupom, distribuição, role admin) | parcial | o Adendo A preencheu o banco de 2026-07-01, mas o banco foi recriado depois. `db:read` em 2026-10-15: 1 filial com endereço e sem `cep_ranges`, 1 fornecedor com CNPJ, NCM em 11 de 12 tools, `store_settings.shipping_origin_branch_id` preenchido, 1 `admin`, 2 pedidos numa filial só, 0 `refund_request`, 0 `order_event`, 0 pedido com NF-e e 0 com desconto. É estado do seed, não defeito de código | a abrir (decisão do dono sobre o seed) |
+| §4 · FKs sem índice e índices sem uso | aberto | `db:read` em 2026-10-15 no catálogo do Postgres: 32 FKs sem índice que comece pelas colunas da FK e 13 índices não únicos com `idx_scan = 0`. O tráfego do banco é baixo, então `idx_scan = 0` é sinal fraco. O advisor do Supabase não foi rodado | #448 |
+| §5 · dados incompletos (filiais, fornecedores, NCM, roteamento por CEP, reembolso, eventos, NF-e, cupom, distribuição, role admin) | parcial | o Adendo A preencheu o banco de 2026-07-01, mas o banco foi recriado depois. `db:read` em 2026-10-15: 1 filial com endereço e sem `cep_ranges`, 1 fornecedor com CNPJ, NCM em 11 de 12 tools, `store_settings.shipping_origin_branch_id` preenchido, 1 `admin`, 2 pedidos numa filial só, 0 `refund_request`, 0 `order_event`, 0 pedido com NF-e e 0 com desconto. É estado do seed, não defeito de código | #449 |
 | §6 · custo/COGS | decidido | coluna removida no PR #171 (`d8c10be6`); ADR-0015:48 | |
 | §6 · catálogo de fornecedor `supplier_product` | decidido (rejeitado) | ADR-0015 | |
-| §6 · ordem de compra | aberto (sem decisão) | nenhum ADR | a abrir |
+| §6 · ordem de compra | aberto (sem decisão) | nenhum ADR | #451 |
 | §6 · reserva de estoque contra oversell | decidido (risco aceito) | ADR-0007 | |
 | §6 · transferência entre filiais | decidido (fora de escopo) | ADR-0015:49 | |
 | §6 · reembolso com `refund_request` como fonte de verdade | decidido | ADR-0025; implementado (P0-1) | |
 | §6 · devolução com reason própria | decidido | ADR-0026; implementado (`devolucao_retorno`) | |
 | §6 · NF-e | decidido | ADR-0027, com a emenda de 2026-07-28 que suspende o gate de NCM | |
 | §6 · conciliação Asaas | decidido, implementação adiada | ADR-0028 | |
-| §6 · anonimização LGPD | parcial | ADR-0029 (design). O ecommerce tem `db:anonymize-client` (`packages/db/scripts/anonymize-client.ts` daquele repo). O dashboard não tem `anonymizeClient` nem a capability `customers.anonymize` | a abrir |
-| §6 · serial, lote e garantia | aberto (sem decisão) | nenhum ADR | a abrir (junto com localização) |
-| §6 · localização (bin/prateleira) | aberto (sem decisão) | nenhum ADR | a abrir (junto com serial e lote) |
+| §6 · anonimização LGPD | parcial | ADR-0029 (design). O ecommerce tem `db:anonymize-client` (`packages/db/scripts/anonymize-client.ts` daquele repo). O dashboard não tem `anonymizeClient` nem a capability `customers.anonymize` | #450 |
+| §6 · serial, lote e garantia | aberto (sem decisão) | nenhum ADR | #452 |
+| §6 · localização (bin/prateleira) | aberto (sem decisão) | nenhum ADR | #452 |
 | Adendo B · vocabulário de `nfe_status` | resolvido | `apps/web/src/app/dashboard/orders/[id]/_components/asaas-block.tsx:19` e `:33` reconhecem `cancelled` | |

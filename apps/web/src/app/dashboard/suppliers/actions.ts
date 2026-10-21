@@ -12,6 +12,7 @@ import { getUserBranchScope } from "@/lib/branch-scope";
 import { normalizeCnpj } from "@/lib/cpf-cnpj";
 import { decodeCursor } from "@/lib/cursor";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
+import { logger } from "@/lib/logger";
 import { requireCapability } from "@/lib/permissions";
 import {
 	type SupplierFormValues,
@@ -161,6 +162,8 @@ export async function createSupplier(
 	try {
 		await db.insert(supplier).values({ id, ...payload });
 	} catch (error) {
+		logger.error("createSupplier", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 
@@ -220,6 +223,8 @@ export async function updateSupplier(
 	try {
 		await db.update(supplier).set(payload).where(eq(supplier.id, id));
 	} catch (error) {
+		logger.error("updateSupplier", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 
@@ -267,6 +272,8 @@ async function setSupplierStatus(
 	try {
 		await db.update(supplier).set({ status: next }).where(eq(supplier.id, id));
 	} catch (error) {
+		logger.error("setSupplierStatus", error);
+
 		return { ok: false, error: actionErrorMessage(error) };
 	}
 

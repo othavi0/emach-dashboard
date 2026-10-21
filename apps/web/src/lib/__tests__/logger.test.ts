@@ -67,6 +67,19 @@ describe("logger", () => {
 			expect(JSON.parse(spy.mock.calls[0]?.[0])).not.toHaveProperty("context");
 		});
 
+		it("warn emite JSON com level: warn em console.warn", () => {
+			const spy = vi.spyOn(console, "warn").mockImplementation(noop);
+			logger.warn("createPromotion", new Error("Forbidden: x"));
+
+			expect(spy).toHaveBeenCalledTimes(1);
+			expect(JSON.parse(spy.mock.calls[0]?.[0])).toMatchObject({
+				level: "warn",
+				scope: "createPromotion",
+				ts: expect.stringMatching(ISO_RE),
+				payload: { name: "Error", message: "Forbidden: x" },
+			});
+		});
+
 		it("info emite JSON com level: info e payload correto", () => {
 			const spy = vi.spyOn(console, "log").mockImplementation(noop);
 			logger.info("scope", { count: 5 });
@@ -92,6 +105,14 @@ describe("logger", () => {
 			logger.error("scope", cause);
 
 			// prefixo legível + o próprio erro, não JSON
+			expect(spy).toHaveBeenCalledWith("[scope]", cause);
+		});
+
+		it("warn usa console.warn com prefixo legível", () => {
+			const spy = vi.spyOn(console, "warn").mockImplementation(noop);
+			const cause = new Error("x");
+			logger.warn("scope", cause);
+
 			expect(spy).toHaveBeenCalledWith("[scope]", cause);
 		});
 

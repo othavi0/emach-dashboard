@@ -14,7 +14,6 @@ import { cache } from "react";
 import { decodeCursorAs } from "@/lib/cursor";
 import { getPgError } from "@/lib/db-error";
 import { BATCH_SIZE, type InfiniteResult, paginate } from "@/lib/infinite";
-import { logger } from "@/lib/logger";
 import { buildEffectiveAttributeCounts } from "./_lib/effective-attributes";
 
 const CATEGORIES_PATH = "/dashboard/categories";
@@ -84,8 +83,6 @@ export function mapWriteError(cause: unknown): string {
 			return "Slug já está em uso";
 		}
 	}
-
-	logger.error("category write error", cause);
 
 	return "Não foi possível salvar a categoria";
 }
