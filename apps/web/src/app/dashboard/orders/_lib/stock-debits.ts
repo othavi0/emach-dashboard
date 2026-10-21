@@ -6,6 +6,38 @@ import { and, eq, gte, sql } from "drizzle-orm";
 
 type StockDebitTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+export const BRANCH_LOCKED_BY_DEBIT =
+	"O estoque deste pedido já saiu da filial atual quando ele foi pago. A filial não pode mais ser trocada.";
+
+export const BRANCH_LOCKED_SKIP_LABEL = "estoque já saiu da filial atual";
+
+/**
+ * Pedido com saida_venda tem o estoque baixado na filial dele: trocar a filial
+ * depois deixaria o débito numa filial e o pedido em outra (#443). Mesma filial
+ * não é troca e passa.
+ */
+export async function isBranchChangeBlocked(
+	tx: StockDebitTx,
+	{ orderId, from, to }: { from: string | null; orderId: string; to: string }
+): Promise<boolean> {
+	if (from === to) {
+		return false;
+	}
+
+	const [debit] = await tx
+		.select({ id: stockMovement.id })
+		.from(stockMovement)
+		.where(
+			and(
+				eq(stockMovement.orderId, orderId),
+				eq(stockMovement.reason, "saida_venda")
+			)
+		)
+		.limit(1);
+
+	return debit !== undefined;
+}
+
 interface SaleDebitInput {
 	actorId: string;
 	/** Filial do pedido travado; nulo é pedido na triagem, que não debita. */

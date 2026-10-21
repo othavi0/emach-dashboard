@@ -90,7 +90,8 @@ interface UpdateChain {
  *
  * selectResults: array of arrays, each representing one select call's resolved
  * rows. The first call is the FOR UPDATE select inside lockOrderAndAuthorize;
- * the second call is the branch-name select inside assignBranch.
+ * the second is the saida_venda lookup that blocks a debited order (#443);
+ * the third is the branch-name select inside assignBranch.
  */
 function makeMockTx(selectResults: unknown[][]) {
 	let selectCallIdx = 0;
@@ -157,6 +158,7 @@ describe("assignBranch", () => {
 				cb(
 					makeMockTx([
 						[{ status: "pending_payment", branchId: SOURCE_BRANCH_ID }],
+						[],
 						[{ name: "Filial Destino" }],
 					])
 				)
@@ -223,6 +225,7 @@ describe("assignBranch", () => {
 			<T>(cb: (tx: MockTx) => Promise<T>): Promise<T> => {
 				const mockTx = makeMockTx([
 					[{ status: "pending_payment", branchId: SOURCE_BRANCH_ID }],
+					[],
 					[{ name: "Filial Destino" }],
 				]);
 

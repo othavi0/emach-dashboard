@@ -34,7 +34,12 @@ import {
 	bulkSkipReasonFromError,
 	bulkStartSeparationSkipReason,
 } from "./_lib/bulk-eligibility";
-import { applySaleDebits } from "./_lib/stock-debits";
+import {
+	applySaleDebits,
+	BRANCH_LOCKED_BY_DEBIT,
+	BRANCH_LOCKED_SKIP_LABEL,
+	isBranchChangeBlocked,
+} from "./_lib/stock-debits";
 import { applyStockReturns } from "./_lib/stock-returns";
 import {
 	fetchOrdersPage as fetchOrdersPageImpl,
@@ -351,6 +356,18 @@ export async function updateOrderStatus(
 				);
 			}
 
+			if (
+				toStatus === "preparing" &&
+				branchId &&
+				(await isBranchChangeBlocked(tx, {
+					orderId,
+					from: locked.branchId,
+					to: branchId,
+				}))
+			) {
+				throw new Error(BRANCH_LOCKED_BY_DEBIT);
+			}
+
 			if (toStatus === "shipped") {
 				await enforceShipGate(
 					tx,
@@ -546,6 +563,19 @@ export async function bulkStartSeparation(
 
 						const branchIdToApply =
 							locked.branchId === null ? branchId : undefined;
+
+						if (
+							branchIdToApply &&
+							(await isBranchChangeBlocked(tx, {
+								orderId,
+								from: locked.branchId,
+								to: branchIdToApply,
+							}))
+						) {
+							skipped.push({ number: label, reason: BRANCH_LOCKED_SKIP_LABEL });
+
+							return;
+						}
 
 						await tx
 							.update(order)
@@ -762,6 +792,16 @@ export async function assignBranch(
 				targetBranchIds: [branchId],
 			});
 
+			if (
+				await isBranchChangeBlocked(tx, {
+					orderId,
+					from: locked.branchId,
+					to: branchId,
+				})
+			) {
+				throw new Error(BRANCH_LOCKED_BY_DEBIT);
+			}
+
 			await tx.update(order).set({ branchId }).where(eq(order.id, orderId));
 
 			const [branchRow] = await tx
@@ -788,8 +828,12 @@ export async function assignBranch(
 			return { ok: false, error: "Sem permissão para alterar este pedido." };
 		}
 
-		if (error instanceof Error && error.message === "Pedido não encontrado") {
-			return { ok: false, error: "Pedido não encontrado" };
+		if (
+			error instanceof Error &&
+			(error.message === "Pedido não encontrado" ||
+				error.message === BRANCH_LOCKED_BY_DEBIT)
+		) {
+			return { ok: false, error: error.message };
 		}
 
 		return { ok: false, error: "Erro ao atribuir filial" };
@@ -861,6 +905,27 @@ export async function bulkAssignBranch(
 
 						if (!locked) {
 							skipped.push({ number: fallbackLabel, reason: "não encontrado" });
+
+							return;
+						}
+
+						if (
+							await isBranchChangeBlocked(tx, {
+								orderId,
+								from: locked.branchId,
+								to: branchId,
+							})
+						) {
+							const [row] = await tx
+								.select({ number: order.number })
+								.from(order)
+								.where(eq(order.id, orderId))
+								.limit(1);
+
+							skipped.push({
+								number: row?.number ?? fallbackLabel,
+								reason: BRANCH_LOCKED_SKIP_LABEL,
+							});
 
 							return;
 						}
