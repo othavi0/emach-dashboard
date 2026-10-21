@@ -144,10 +144,6 @@ Detalhes (formatos aceitos, cap 2MB pós-compressão, bucket privado de anexos):
 
 ## ⚠️ Gaps conhecidos
 
-### Anonimização LGPD
-
-Não há script nem server action de anonimização de cliente ("direito ao esquecimento"). Só export existe (`client_export_log` + `dashboard/customers/export/`). **Pendente** (ADR-0029).
-
 ### Gates role-based religados (ADR-0016) + overrides por usuário (ADR-0017)
 
 `requireCapability*`, `can()`, `requireRole`, `getUserBranchScope` enforçam (3 níveis + Branch-scoping) desde 2026-06-15. Ver `docs/adr/0016-religacao-gates-3-niveis-filial.md`. **`manager → admin` migrado e o valor `manager` removido do enum `user_role` em 2026-06-16** (enum agora = `super_admin`/`admin`/`user`; era alias de admin). **Invariante de dados:** popular `user_branch` (todo admin/user precisa de ≥1 filial — fail-closed deixa cego sem vínculo). Verificação: `SELECT id,email FROM "user" WHERE role IN ('admin','user') AND status='active' AND id NOT IN (SELECT user_id FROM user_branch)` deve voltar zero linhas.

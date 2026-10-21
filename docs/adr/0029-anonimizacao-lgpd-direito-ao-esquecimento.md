@@ -1,7 +1,9 @@
 # ADR 0029 — Anonimização LGPD (direito ao esquecimento) preservando histórico fiscal
 
 **Data:** 2026-07-01
-**Status:** Aceito (design) — estende o ADR-0011 (audit log sobrevive ao delete). Implementação **a fazer antes de produção**.
+**Status:** Aceito (design) — estende o ADR-0011 (audit log sobrevive ao delete). Implementado em 2026-10-21 (ver nota abaixo).
+
+> **Nota de 2026-10-21:** implementado no dashboard pela server action `anonymizeClient` (`apps/web/src/app/dashboard/customers/actions.ts`), gated por `customers.anonymize` (só `super_admin`), com a ação "Anonimizar cliente" no detalhe do cliente. O tombstone segue o script `anonymize-client.ts` do ecommerce (`[anonymized]`, `deleted-<hash>@anonymized.local`) para os dois apps produzirem o mesmo estado. Desvios deste ADR: o `shipping_address` dos pedidos não é tocado (pedidos ficam intactos) e o `client_address` é apagado, não tombstoneado. A auditoria usa o valor novo `anonymized` do enum `client_audit_action`.
 
 ## Contexto
 
