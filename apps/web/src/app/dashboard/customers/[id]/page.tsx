@@ -17,6 +17,7 @@ import { can, requireCapabilityOrRedirect } from "@/lib/permissions";
 import { CustomerEditSheet } from "../_components/customer-edit-sheet";
 import { CustomerIdentity } from "../_components/customer-identity";
 import { CustomerOverviewTab } from "../_components/customer-overview-tab";
+import { isAnonymizedEmail } from "../_lib/anonymized";
 import {
 	getCustomerDetail,
 	getCustomerKpis,
@@ -56,19 +57,27 @@ async function CustomerDetailPageContent({ params, searchParams }: PageProps) {
 	const { id } = await params;
 	const sp = await searchParams;
 
-	const [canEdit, canResetPassword, canModerateReviews, canManageSessions] =
-		await Promise.all([
-			can(session, "customers.update_status"),
-			can(session, "customers.reset_password"),
-			can(session, "reviews.moderate"),
-			can(session, "customers.manage_sessions"),
-		]);
+	const [
+		canEdit,
+		canResetPassword,
+		canModerateReviews,
+		canManageSessions,
+		canAnonymizeCap,
+	] = await Promise.all([
+		can(session, "customers.update_status"),
+		can(session, "customers.reset_password"),
+		can(session, "reviews.moderate"),
+		can(session, "customers.manage_sessions"),
+		can(session, "customers.anonymize"),
+	]);
 
 	const customer = await getCustomerDetail(id);
 
 	if (!customer) {
 		notFound();
 	}
+
+	const canAnonymize = canAnonymizeCap && !isAnonymizedEmail(customer.email);
 
 	const [kpis, recentOrders, sessionsCount] = await Promise.all([
 		getCustomerKpis(id),
@@ -147,6 +156,7 @@ async function CustomerDetailPageContent({ params, searchParams }: PageProps) {
 					<CustomerIdentity
 						actions={
 							<CustomerDetailActions
+								canAnonymize={canAnonymize}
 								canEdit={canEdit}
 								canManageSessions={canManageSessions}
 								canResetPassword={canResetPassword}
