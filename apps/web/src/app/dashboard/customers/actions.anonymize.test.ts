@@ -7,7 +7,8 @@ import {
 } from "@emach/db/schema/client";
 import { clientAuditLog } from "@emach/db/schema/client-audit";
 import { consentLog } from "@emach/db/schema/consent-log";
-import type { PgTable } from "drizzle-orm/pg-core";
+import type { SQL } from "drizzle-orm";
+import { PgDialect, type PgTable } from "drizzle-orm/pg-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockTransaction, requireCapability } = vi.hoisted(() => ({
@@ -48,6 +49,7 @@ interface Write {
 	kind: "update" | "delete" | "insert";
 	table: PgTable;
 	values?: WrittenRow;
+	where?: SQL;
 }
 
 function makeTx(current: { email: string } | undefined) {
@@ -77,8 +79,8 @@ function makeTx(current: { email: string } | undefined) {
 			}),
 		}),
 		delete: (table: PgTable) => ({
-			where: () => {
-				writes.push({ kind: "delete", table });
+			where: (where: SQL) => {
+				writes.push({ kind: "delete", table, where });
 
 				return Object.assign(Promise.resolve(), {
 					returning: () => Promise.resolve(deletedRows.get(table) ?? []),
@@ -156,6 +158,25 @@ describe("anonymizeClient", () => {
 				consentLog,
 				clientAuditLog,
 			])
+		);
+	});
+
+	it("apaga token de verificação pelo e-mail e pelo id do cliente", async () => {
+		const writes = makeTx({ email: "maria@example.com" });
+
+		await anonymizeClient({ clientId: CLIENT_ID, reason: REASON });
+
+		const del = writes.find(
+			(w) => w.kind === "delete" && w.table === clientVerification
+		);
+
+		const query = del?.where
+			? new PgDialect().sqlToQuery(del.where)
+			: { params: [] };
+
+		// O reset de senha do Better Auth na loja grava value = id do cliente.
+		expect(query.params).toEqual(
+			expect.arrayContaining(["maria@example.com", CLIENT_ID])
 		);
 	});
 

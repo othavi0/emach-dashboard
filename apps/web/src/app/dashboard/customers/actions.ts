@@ -13,7 +13,7 @@ import {
 import { clientAuditLog } from "@emach/db/schema/client-audit";
 import { consentLog } from "@emach/db/schema/consent-log";
 import { env } from "@emach/env/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { z } from "zod";
 import {
@@ -638,9 +638,13 @@ export async function anonymizeClient(
 					.where(eq(clientAccount.userId, clientId))
 					.returning({ id: clientAccount.id });
 
-				await tx
-					.delete(clientVerification)
-					.where(eq(clientVerification.identifier, current.email));
+				await tx.delete(clientVerification).where(
+					// O reset de senha do Better Auth na loja grava value = id do cliente.
+					or(
+						eq(clientVerification.identifier, current.email),
+						eq(clientVerification.value, clientId)
+					)
+				);
 
 				await tx.insert(consentLog).values({
 					id: crypto.randomUUID(),
