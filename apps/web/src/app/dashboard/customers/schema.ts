@@ -127,3 +127,8 @@ export const generatePasswordResetSchema = z.object({
 export const auditFilterSchema = z.object({
 	action: z.enum(clientAuditActionEnum.enumValues).optional(),
 });
+
+export const anonymizeClientSchema = z.object({
+	clientId: z.string().min(1),
+	reason: z.string().trim().min(10).max(500),
+});
