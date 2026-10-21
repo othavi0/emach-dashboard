@@ -7,6 +7,7 @@ import {
 	jsonb,
 	numeric,
 	pgEnum,
+	pgSequence,
 	pgTable,
 	text,
 	timestamp,
@@ -19,6 +20,11 @@ import { branch } from "./inventory";
 import { promotion } from "./promotions";
 import { actorTypeEnum } from "./shared-enums";
 import { tool, toolVariant } from "./tools";
+
+// Número do pedido (AAAA-000NNN), consumido pelo placeOrder do ecommerce com
+// nextval. O triggers.sql também a cria; declarar aqui impede o drizzle-kit
+// push de apagá-la e o apply-sql de recriá-la zerada.
+export const orderNumberSeq = pgSequence("order_number_seq", { startWith: 1 });
 
 // --- Enums ---
 

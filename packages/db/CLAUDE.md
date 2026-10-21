@@ -25,6 +25,8 @@ Não há migrations versionadas. Schema TS em `src/schema/` é a **única fonte 
 
 `src/sql/rls.sql` é o **RLS deny-all canônico** de todas as tabelas do schema `public` (ADR-0014). `ENABLE ROW LEVEL SECURITY` sem policies — só fecha a porta REST pra `anon`/`authenticated`; acesso server-side (Drizzle, role `postgres` BYPASSRLS) é intocado. Idempotente. Tabela nova ganha linha no `rls.sql` (ordem alfabética, `"order"`/`"user"` entre aspas) e declara `.enableRLS()` no `pgTable`, porque o `drizzle-kit push` emite `DISABLE ROW LEVEL SECURITY` em toda tabela sem o flag e o `db:push` sozinho deixa a REST aberta. O teste `src/__tests__/rls-coverage.test.ts` cobra os dois e falha se faltar ou sobrar linha no `rls.sql` ou se um `pgTable` não declarar `.enableRLS()`.
 
+Sequence criada pelo SQL manual também é declarada com `pgSequence` no schema (hoje só `order_number_seq`, em `src/schema/orders.ts`, que o `placeOrder` do ecommerce consome com `nextval`). Sem a declaração, o `drizzle-kit push` emite `DROP SEQUENCE` e o `apply-sql` a recria zerada, então o número do pedido volta a 1. O teste `src/__tests__/sequence-coverage.test.ts` falha se faltar.
+
 Índices de cursor-based pagination e o partial unique `stock_movement_sale_idempotency` vivem no schema Drizzle (declarados nas tabelas) — `drizzle-kit push` os mantém.
 
 ## Convenções de schema
