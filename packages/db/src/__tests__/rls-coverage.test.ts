@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { getTableName, is } from "drizzle-orm";
-import { PgTable } from "drizzle-orm/pg-core";
+import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 
 const RLS_LINE =
@@ -11,12 +11,16 @@ const ALTER_LINE = /^ALTER TABLE/gm;
 const rlsSql = readFileSync(new URL("../sql/rls.sql", import.meta.url), "utf8");
 const rlsTables = Array.from(rlsSql.matchAll(RLS_LINE), (m) => m[1] ?? "");
 
-async function schemaTables(): Promise<string[]> {
+async function schemaPgTables(): Promise<PgTable[]> {
 	const schema = await import("../schema/index");
 
-	return Object.values(schema)
-		.filter((value) => is(value, PgTable))
-		.map((table) => getTableName(table));
+	return Object.values(schema).filter((value): value is PgTable =>
+		is(value, PgTable)
+	);
+}
+
+async function schemaTables(): Promise<string[]> {
+	return (await schemaPgTables()).map((table) => getTableName(table));
 }
 
 describe("rls.sql cobre todas as tabelas do schema public", () => {
@@ -28,6 +32,18 @@ describe("rls.sql cobre todas as tabelas do schema public", () => {
 			.sort();
 
 		expect(missing, "tabelas do schema sem linha no rls.sql").toEqual([]);
+	});
+
+	it("todo pgTable do schema declara .enableRLS()", async () => {
+		const withoutRls = (await schemaPgTables())
+			.filter((table) => !getTableConfig(table).enableRLS)
+			.map((table) => getTableName(table))
+			.sort();
+
+		expect(
+			withoutRls,
+			"tabelas sem .enableRLS() no schema (o drizzle-kit push desliga o RLS delas)"
+		).toEqual([]);
 	});
 
 	it("toda tabela do rls.sql existe no schema", async () => {

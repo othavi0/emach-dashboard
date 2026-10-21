@@ -44,7 +44,7 @@ export const user = pgTable("user", {
 	inviteTokenExpiresAt: timestamp("invite_token_expires_at", {
 		withTimezone: true,
 	}),
-});
+}).enableRLS();
 
 export const session = pgTable(
 	"session",
@@ -65,7 +65,7 @@ export const session = pgTable(
 			.references(() => user.id, { onDelete: "cascade" }),
 	},
 	(table) => [index("session_userId_idx").on(table.userId)]
-);
+).enableRLS();
 
 export const account = pgTable(
 	"account",
@@ -95,7 +95,7 @@ export const account = pgTable(
 			.notNull(),
 	},
 	(table) => [index("account_userId_idx").on(table.userId)]
-);
+).enableRLS();
 
 export const verification = pgTable(
 	"verification",
@@ -113,7 +113,7 @@ export const verification = pgTable(
 			.notNull(),
 	},
 	(table) => [index("verification_identifier_idx").on(table.identifier)]
-);
+).enableRLS();
 
 export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),

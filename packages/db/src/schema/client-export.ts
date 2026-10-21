@@ -32,7 +32,7 @@ export const clientExportLog = pgTable(
 			table.createdAt.desc()
 		),
 	]
-);
+).enableRLS();
 
 export const clientExportLogRelations = relations(
 	clientExportLog,

@@ -69,7 +69,7 @@ export const review = pgTable(
 		index("review_tool_id_idx").on(table.toolId),
 		index("review_status_created_idx").on(table.status, table.createdAt.desc()),
 	]
-);
+).enableRLS();
 
 export const reviewRelations = relations(review, ({ one }) => ({
 	tool: one(tool, { fields: [review.toolId], references: [tool.id] }),

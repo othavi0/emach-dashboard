@@ -192,7 +192,7 @@ export const order = pgTable(
 			sql`${table.nfeAccessKey} IS NULL OR length(${table.nfeAccessKey}) = 44`
 		),
 	]
-);
+).enableRLS();
 
 export const orderItem = pgTable(
 	"order_item",
@@ -233,7 +233,7 @@ export const orderItem = pgTable(
 		index("order_item_order_id_idx").on(table.orderId),
 		check("quantity_positive", sql`${table.quantity} > 0`),
 	]
-);
+).enableRLS();
 
 export const orderStatusHistory = pgTable(
 	"order_status_history",
@@ -266,7 +266,7 @@ export const orderStatusHistory = pgTable(
 			)`
 		),
 	]
-);
+).enableRLS();
 
 export const orderNote = pgTable(
 	"order_note",
@@ -291,7 +291,7 @@ export const orderNote = pgTable(
 	(table) => [
 		index("order_note_order_idx").on(table.orderId, table.createdAt.desc()),
 	]
-);
+).enableRLS();
 
 export const orderAttachment = pgTable(
 	"order_attachment",
@@ -319,7 +319,7 @@ export const orderAttachment = pgTable(
 			table.createdAt.desc()
 		),
 	]
-);
+).enableRLS();
 
 export const orderEvent = pgTable(
 	"order_event",
@@ -348,7 +348,7 @@ export const orderEvent = pgTable(
 			)`
 		),
 	]
-);
+).enableRLS();
 
 export const refundRequest = pgTable(
 	"refund_request",
@@ -402,7 +402,7 @@ export const refundRequest = pgTable(
 			)`
 		),
 	]
-);
+).enableRLS();
 
 export const orderPicking = pgTable(
 	"order_picking",
@@ -451,7 +451,7 @@ export const orderPicking = pgTable(
 			table.startedAt.desc()
 		),
 	]
-);
+).enableRLS();
 
 export const orderPickingItem = pgTable(
 	"order_picking_item",
@@ -486,7 +486,7 @@ export const orderPickingItem = pgTable(
 			sql`${table.qtyPicked} >= 0 AND ${table.qtyPicked} <= ${table.qtyExpected}`
 		),
 	]
-);
+).enableRLS();
 
 export const orderPickingScan = pgTable(
 	"order_picking_scan",
@@ -521,7 +521,7 @@ export const orderPickingScan = pgTable(
 			table.scannedAt.desc()
 		),
 	]
-);
+).enableRLS();
 
 // --- Relations ---
 

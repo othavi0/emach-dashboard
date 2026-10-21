@@ -71,7 +71,7 @@ export const storeSettings = pgTable(
 			sql`${table.shippingInsuranceCapAmount} >= 0`
 		),
 	]
-);
+).enableRLS();
 
 export type StoreSettings = typeof storeSettings.$inferSelect;
 

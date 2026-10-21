@@ -11,8 +11,11 @@
 -- grant, mas nenhum arquivo do repo garante isso; o RLS é a segunda barreira,
 -- que não depende de grant.
 --
--- Toda tabela nova do schema entra aqui, em ordem alfabética. O teste
--- src/__tests__/rls-coverage.test.ts falha se um pgTable faltar ou sobrar.
+-- Toda tabela nova do schema entra aqui, em ordem alfabética, e declara
+-- .enableRLS() no pgTable. Sem o .enableRLS(), o drizzle-kit push emite
+-- DISABLE ROW LEVEL SECURITY nela, e o db:push sozinho deixa a REST aberta.
+-- O teste src/__tests__/rls-coverage.test.ts cobra as duas coisas: falha se um
+-- pgTable faltar ou sobrar aqui, ou se não declarar .enableRLS().
 -- `order` e `user` são palavras reservadas e vão entre aspas.
 --
 -- Ownership: infra DB é owned-by-dashboard (ADR-0009/0014; precedente:

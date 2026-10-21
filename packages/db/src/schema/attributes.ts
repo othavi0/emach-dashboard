@@ -72,7 +72,7 @@ export const attributeDefinition = pgTable(
 		index("attribute_definition_category_idx").on(table.categoryId),
 		index("attribute_definition_input_type_idx").on(table.inputType),
 	]
-);
+).enableRLS();
 
 export const toolAttributeValue = pgTable(
 	"tool_attribute_value",
@@ -114,7 +114,7 @@ export const toolAttributeValue = pgTable(
 			sql`${table.valueNumericMax} IS NULL OR (${table.valueNumeric} IS NOT NULL AND ${table.valueNumericMax} >= ${table.valueNumeric})`
 		),
 	]
-);
+).enableRLS();
 
 export const attributeDefinitionRelations = relations(
 	attributeDefinition,
@@ -165,7 +165,7 @@ export const toolAttributeAssignment = pgTable(
 			name: "tool_attribute_assignment_attribute_id_fk",
 		}).onDelete("cascade"),
 	]
-);
+).enableRLS();
 
 export const toolAttributeAssignmentRelations = relations(
 	toolAttributeAssignment,

@@ -26,7 +26,7 @@ export const userCapabilityOverride = pgTable(
 		// dispensa índice separado em userId (lookups por userId usam a PK).
 		primaryKey({ columns: [table.userId, table.capability] }),
 	]
-);
+).enableRLS();
 
 export const userCapabilityOverrideRelations = relations(
 	userCapabilityOverride,

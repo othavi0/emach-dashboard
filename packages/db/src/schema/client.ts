@@ -48,7 +48,7 @@ export const client = pgTable(
 		index("client_created_idx").on(table.createdAt.desc(), table.id.desc()),
 		index("client_last_seen_idx").on(table.lastSeenAt.desc()),
 	]
-);
+).enableRLS();
 
 export const clientSession = pgTable(
 	"client_session",
@@ -69,7 +69,7 @@ export const clientSession = pgTable(
 			.references(() => client.id, { onDelete: "cascade" }),
 	},
 	(table) => [index("client_session_userId_idx").on(table.userId)]
-);
+).enableRLS();
 
 export const clientAccount = pgTable(
 	"client_account",
@@ -99,7 +99,7 @@ export const clientAccount = pgTable(
 			.notNull(),
 	},
 	(table) => [index("client_account_userId_idx").on(table.userId)]
-);
+).enableRLS();
 
 export const clientVerification = pgTable(
 	"client_verification",
@@ -117,7 +117,7 @@ export const clientVerification = pgTable(
 			.notNull(),
 	},
 	(table) => [index("client_verification_identifier_idx").on(table.identifier)]
-);
+).enableRLS();
 
 export const clientAddress = pgTable(
 	"client_address",
@@ -146,7 +146,7 @@ export const clientAddress = pgTable(
 			.notNull(),
 	},
 	(table) => [index("client_address_clientId_idx").on(table.clientId)]
-);
+).enableRLS();
 
 export const clientRelations = relations(client, ({ many }) => ({
 	sessions: many(clientSession),

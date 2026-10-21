@@ -64,7 +64,7 @@ export const branch = pgTable(
 	(table) => [
 		index("branch_created_idx").on(table.createdAt.desc(), table.id.desc()),
 	]
-);
+).enableRLS();
 
 export const stockLevel = pgTable(
 	"stock_level",
@@ -100,7 +100,7 @@ export const stockLevel = pgTable(
 		check("reorder_gte_min", sql`${table.reorderPoint} >= ${table.minQty}`),
 		check("quantity_non_negative", sql`${table.quantity} >= 0`),
 	]
-);
+).enableRLS();
 
 export const branchRelations = relations(branch, ({ many }) => ({
 	stockLevels: many(stockLevel),
@@ -136,7 +136,7 @@ export const userBranch = pgTable(
 		index("user_branch_user_idx").on(table.userId),
 		index("user_branch_branch_idx").on(table.branchId),
 	]
-);
+).enableRLS();
 
 export const userBranchesRelations = relations(user, ({ many }) => ({
 	branches: many(userBranch),
@@ -168,7 +168,7 @@ export const stockAlertSent = pgTable(
 		sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
 	},
 	(table) => [primaryKey({ columns: [table.branchId, table.variantId] })]
-);
+).enableRLS();
 
 export const stockAlertSentRelations = relations(stockAlertSent, ({ one }) => ({
 	branch: one(branch, {

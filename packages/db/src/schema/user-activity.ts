@@ -30,7 +30,7 @@ export const userActivityLog = pgTable(
 			table.createdAt.desc()
 		),
 	]
-);
+).enableRLS();
 
 export const userActivityLogRelations = relations(
 	userActivityLog,

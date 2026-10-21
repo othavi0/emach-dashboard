@@ -60,7 +60,7 @@ export const supplierAuditLog = pgTable(
 			)`
 		),
 	]
-);
+).enableRLS();
 
 export const supplierAuditLogRelations = relations(
 	supplierAuditLog,

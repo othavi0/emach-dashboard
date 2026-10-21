@@ -56,7 +56,7 @@ export const supplier = pgTable(
 			.on(table.cnpj)
 			.where(sql`${table.cnpj} IS NOT NULL`),
 	]
-);
+).enableRLS();
 
 export const tool = pgTable(
 	"tool",
@@ -134,7 +134,7 @@ export const tool = pgTable(
 			sql`${table.status} <> 'active' OR (${table.weightKg} IS NOT NULL AND ${table.lengthCm} IS NOT NULL AND ${table.widthCm} IS NOT NULL AND ${table.heightCm} IS NOT NULL)`
 		),
 	]
-);
+).enableRLS();
 
 export const toolVariant = pgTable(
 	"tool_variant",
@@ -172,7 +172,7 @@ export const toolVariant = pgTable(
 			.where(sql`${table.isDefault} = true`),
 		check("price_amount_positive", sql`${table.priceAmount} >= 0`),
 	]
-);
+).enableRLS();
 
 export const toolImage = pgTable(
 	"tool_image",
@@ -191,7 +191,7 @@ export const toolImage = pgTable(
 		unique("tool_image_tool_sort_unique").on(table.toolId, table.sortOrder),
 		index("tool_image_tool_sort_idx").on(table.toolId, table.sortOrder),
 	]
-);
+).enableRLS();
 
 export const toolRelations = relations(tool, ({ many }) => ({
 	images: many(toolImage),

@@ -47,3 +47,13 @@ Decisão: o deny-all cobre toda tabela do schema `public`, não só as expostas.
 Regra: toda tabela nova do `public` ganha a sua linha no `rls.sql`, em ordem alfabética. O teste `packages/db/src/__tests__/rls-coverage.test.ts` compara o `rls.sql` com os `pgTable` exportados pelo schema e falha quando falta uma tabela ou sobra uma linha. `order` e `user` são palavras reservadas e vão entre aspas (`public."order"`).
 
 Consequência nova: depois de aplicado o `rls.sql`, o advisor de segurança mostra `rls_enabled_no_policy` (INFO) em todas as tabelas do schema e nenhum `rls_disabled_in_public`.
+
+## Atualização 2026-10-21: o `drizzle-kit push` desliga RLS fora do schema
+
+O `drizzle-kit push` compara o banco com o schema TS e trata o RLS como parte do diff. No `drizzle-kit` 0.31.11, uma tabela com RLS ligado no banco e sem `.enableRLS()` no `pgTable` recebe `ALTER TABLE ... DISABLE ROW LEVEL SECURITY`. O `db:sync` roda o push e depois o `db:apply-sql`, que religa o RLS pelo `rls.sql`. Entre os dois passos, e em todo `db:push` rodado sozinho, as tabelas ficam sem RLS. Nas tabelas onde `anon` e `authenticated` têm grant, a REST abre nesse intervalo.
+
+Decisão: todo `pgTable` do schema declara `.enableRLS()`. O push passa a ver RLS ligado nos dois lados e não emite mais o `DISABLE`.
+
+Regra: toda tabela do `public` declara `.enableRLS()` no schema e entra no `rls.sql`. O teste `packages/db/src/__tests__/rls-coverage.test.ts` cobra os dois. Ele falha quando um `pgTable` não aparece no `rls.sql` e quando um `pgTable` não declara `.enableRLS()`.
+
+O `rls.sql` continua canônico. Ele cobre o banco que ainda não passou por um push com o schema novo e o ecommerce, que recebe o arquivo pelo sync.
