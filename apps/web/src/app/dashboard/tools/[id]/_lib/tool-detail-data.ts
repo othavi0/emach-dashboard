@@ -7,6 +7,7 @@ import {
 import { category, toolCategory } from "@emach/db/schema/categories";
 import { branch, stockLevel } from "@emach/db/schema/inventory";
 import { orderItem } from "@emach/db/schema/orders";
+import { stockMovement } from "@emach/db/schema/stock-movements";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { and, asc, eq, gt, inArray, type SQL, sql } from "drizzle-orm";
 import { cache } from "react";
@@ -99,6 +100,8 @@ export interface ToolDetail {
 	categories: ToolDetailCategory[];
 	deletionFacts: ToolDeletionFacts;
 	images: ToolDetailImage[];
+	// Variantes com linha em stock_movement: não podem ser excluídas (#445).
+	movedVariantIds: string[];
 	orderedVariantIds: string[];
 	// Variantes com estoque > 0 em QUALQUER filial (sem branch-scope; ver
 	// comentário na query).
@@ -149,6 +152,7 @@ export const getToolDetail = cache(
 			stockedRows,
 			branches,
 			deletionFacts,
+			movedRows,
 		] = await Promise.all([
 			db
 				.select({
@@ -254,6 +258,11 @@ export const getToolDetail = cache(
 				)
 				.orderBy(asc(branch.name)),
 			fetchToolDeletionFacts(id),
+			db
+				.selectDistinct({ variantId: stockMovement.variantId })
+				.from(stockMovement)
+				.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
+				.where(eq(toolVariant.toolId, id)),
 		]);
 
 		const stockSummary = computeStockSummary(stockRows);
@@ -264,6 +273,9 @@ export const getToolDetail = cache(
 			categories,
 			deletionFacts,
 			images,
+			movedVariantIds: movedRows.flatMap((r) =>
+				r.variantId ? [r.variantId] : []
+			),
 			orderedVariantIds: orderedRows.map((r) => r.variantId),
 			stockedVariantIds: stockedRows.map((r) => r.variantId),
 			variants,

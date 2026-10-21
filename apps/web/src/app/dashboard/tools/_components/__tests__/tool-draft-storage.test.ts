@@ -71,6 +71,7 @@ const filled: ToolFormState = {
 			voltage: "127V",
 			priceAmount: 199.9,
 			isDefault: true,
+			visibleOnSite: true,
 			sortOrder: 0,
 		},
 		{
@@ -79,6 +80,7 @@ const filled: ToolFormState = {
 			voltage: "",
 			priceAmount: 0,
 			isDefault: false,
+			visibleOnSite: true,
 			sortOrder: 1,
 		},
 	],

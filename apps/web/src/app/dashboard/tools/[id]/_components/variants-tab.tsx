@@ -49,6 +49,7 @@ interface VariantsTabProps {
 	deletionFacts: ToolDeletionFacts;
 	highlightVariantId?: string;
 	isArchived: boolean;
+	movedVariantIds: string[];
 	orderedVariantIds: string[];
 	stockedVariantIds: string[];
 	toolId: string;
@@ -90,6 +91,7 @@ export function VariantsTab({
 	deletionFacts,
 	highlightVariantId,
 	isArchived,
+	movedVariantIds,
 	orderedVariantIds,
 	stockedVariantIds,
 }: VariantsTabProps) {
@@ -138,6 +140,7 @@ export function VariantsTab({
 		);
 	}
 
+	const movedSet = new Set(movedVariantIds);
 	const orderedSet = new Set(orderedVariantIds);
 	const stockedSet = new Set(stockedVariantIds);
 
@@ -160,6 +163,7 @@ export function VariantsTab({
 						{variants.map((v) => (
 							<EditableRow
 								canDelete={canDelete}
+								hasMovements={movedSet.has(v.id)}
 								hasOrders={orderedSet.has(v.id)}
 								hasStock={stockedSet.has(v.id)}
 								isHighlighted={v.id === highlightVariantId}
@@ -180,6 +184,7 @@ export function VariantsTab({
 
 interface EditableRowProps {
 	canDelete: boolean;
+	hasMovements: boolean;
 	hasOrders: boolean;
 	hasStock: boolean;
 	isHighlighted?: boolean;
@@ -192,6 +197,7 @@ function EditableRow({
 	variant,
 	toolId,
 	canDelete,
+	hasMovements,
 	hasOrders,
 	hasStock,
 	isHighlighted,
@@ -268,15 +274,9 @@ function EditableRow({
 			});
 
 			if (result.ok) {
-				if (result.data.warning === "default_hidden") {
-					notify.warning(
-						"A variante padrão está oculta do site. Defina outra como padrão visível."
-					);
-				} else {
-					notify.success(
-						visible ? "Variante visível no site" : "Variante oculta"
-					);
-				}
+				notify.success(
+					visible ? "Variante visível no site" : "Variante oculta"
+				);
 			} else {
 				notify.error(result.error);
 			}
@@ -299,28 +299,15 @@ function EditableRow({
 		);
 	}
 
-	let deleteControl: React.ReactNode = null;
-
-	if (canDelete) {
-		// Mesma ordem do helper resolveVariantDeletion (pedidos > estoque > única).
-		if (hasOrders) {
-			deleteControl = (
-				<DisabledDeleteIcon reason="Tem pedidos — não pode excluir. Oculte do site." />
-			);
-		} else if (hasStock) {
-			deleteControl = (
-				<DisabledDeleteIcon reason="Tem estoque em filial — zere o estoque antes de excluir." />
-			);
-		} else if (isOnlyVariant) {
-			deleteControl = (
-				<DisabledDeleteIcon reason="A ferramenta precisa de ao menos uma variante." />
-			);
-		} else {
-			deleteControl = (
-				<DeleteVariantDialog variantId={variant.id} variantSku={variant.sku} />
-			);
-		}
-	}
+	const deleteControl = canDelete
+		? variantDeleteControl({
+				hasMovements,
+				hasOrders,
+				hasStock,
+				isOnlyVariant,
+				variant,
+			})
+		: null;
 
 	return (
 		<TableRow
@@ -381,17 +368,24 @@ function EditableRow({
 				<input
 					checked={variant.isDefault}
 					className="size-4 accent-primary"
-					disabled={defaultPending}
+					disabled={defaultPending || !variant.visibleOnSite}
 					name={`default-${toolId}`}
 					onChange={handleSetDefault}
 					type="radio"
 				/>
 			</TableCell>
 			<TableCell>
-				<div className="flex items-center gap-2">
+				<div
+					className="flex items-center gap-2"
+					title={
+						variant.isDefault
+							? "A variante padrão fica visível. Escolha outra como padrão para ocultar esta."
+							: undefined
+					}
+				>
 					<Switch
 						checked={variant.visibleOnSite}
-						disabled={visiblePending}
+						disabled={visiblePending || variant.isDefault}
 						onCheckedChange={handleToggleVisibility}
 						size="sm"
 					/>
@@ -407,6 +401,47 @@ function EditableRow({
 				</div>
 			</TableCell>
 		</TableRow>
+	);
+}
+
+// Mesma ordem do helper resolveVariantDeletion (pedidos > histórico > estoque >
+// única).
+function variantDeleteControl({
+	hasMovements,
+	hasOrders,
+	hasStock,
+	isOnlyVariant,
+	variant,
+}: Pick<
+	EditableRowProps,
+	"hasMovements" | "hasOrders" | "hasStock" | "isOnlyVariant" | "variant"
+>): React.ReactNode {
+	if (hasOrders) {
+		return (
+			<DisabledDeleteIcon reason="Tem pedidos — não pode excluir. Oculte do site." />
+		);
+	}
+
+	if (hasMovements) {
+		return (
+			<DisabledDeleteIcon reason="Tem histórico de movimentação de estoque. Oculte do site." />
+		);
+	}
+
+	if (hasStock) {
+		return (
+			<DisabledDeleteIcon reason="Tem estoque em filial — zere o estoque antes de excluir." />
+		);
+	}
+
+	if (isOnlyVariant) {
+		return (
+			<DisabledDeleteIcon reason="A ferramenta precisa de ao menos uma variante." />
+		);
+	}
+
+	return (
+		<DeleteVariantDialog variantId={variant.id} variantSku={variant.sku} />
 	);
 }
 

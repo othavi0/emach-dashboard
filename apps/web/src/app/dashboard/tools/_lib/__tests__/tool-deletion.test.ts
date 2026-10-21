@@ -4,6 +4,7 @@ import { canDeleteToolByStatus, resolveToolDeletion } from "../tool-deletion";
 const facts = (
 	over: Partial<Parameters<typeof resolveToolDeletion>[0]> = {}
 ) => ({
+	movementCount: 0,
 	orderCount: 0,
 	reviewCount: 0,
 	stockQty: 0,
@@ -11,6 +12,16 @@ const facts = (
 });
 
 describe("resolveToolDeletion", () => {
+	it("bloqueia ferramenta com histórico no ledger e sugere arquivar (#445)", () => {
+		const r = resolveToolDeletion(facts({ movementCount: 7 }));
+		expect(r.allowed).toBe(false);
+
+		if (!r.allowed) {
+			expect(r.reason).toContain("histórico de movimentação");
+			expect(r.suggestArchive).toBe(true);
+		}
+	});
+
 	it("permite quando não há pedidos, avaliações nem estoque", () => {
 		expect(resolveToolDeletion(facts())).toEqual({ allowed: true });
 	});

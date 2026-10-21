@@ -57,14 +57,24 @@ function toFormValues(
 			voltage: v.voltage ?? "",
 			priceAmount: Number.isFinite(priceNum) ? priceNum : 0,
 			isDefault: v.isDefault,
+			visibleOnSite: v.visibleOnSite,
 			sortOrder: v.sortOrder,
 		};
 	});
 
-	// Garante exatamente 1 variant marcada como default (invariante do schema).
+	// Garante exatamente 1 variant marcada como default (invariante do schema),
+	// de preferência visível (a padrão não fica oculta, #441).
+	const fallbackDefault = Math.max(
+		parsedVariants.findIndex((v) => v.visibleOnSite),
+		0
+	);
+
 	const formVariants: ToolVariantInput[] =
 		parsedVariants.length > 0 && !parsedVariants.some((v) => v.isDefault)
-			? parsedVariants.map((v, i) => ({ ...v, isDefault: i === 0 }))
+			? parsedVariants.map((v, i) => ({
+					...v,
+					isDefault: i === fallbackDefault,
+				}))
 			: parsedVariants;
 
 	const attrValuesMap: Record<string, AttributeValueInput> = {};

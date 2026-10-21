@@ -9,6 +9,7 @@ import { toolCategory } from "@emach/db/schema/categories";
 import { stockLevel } from "@emach/db/schema/inventory";
 import { orderItem } from "@emach/db/schema/orders";
 import { review } from "@emach/db/schema/reviews";
+import { stockMovement } from "@emach/db/schema/stock-movements";
 import { toolVariant } from "@emach/db/schema/tools";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { ToolCardData } from "@/app/dashboard/_components/tool-card";
@@ -306,6 +307,7 @@ export async function fetchToolsPage({
 }
 
 export interface ToolDeletionFacts {
+	movementCount: number;
 	orderCount: number;
 	reviewCount: number;
 	stockBranchCount: number;
@@ -321,7 +323,7 @@ export interface ToolDeletionFacts {
 export async function fetchToolDeletionFacts(
 	toolId: string
 ): Promise<ToolDeletionFacts> {
-	const [orders, reviews, stock] = await Promise.all([
+	const [orders, reviews, stock, movements] = await Promise.all([
 		db
 			// Pedidos distintos, não linhas de order_item — um pedido com 3 itens da ferramenta conta 1.
 			.select({ n: sql<number>`count(distinct ${orderItem.orderId})::int` })
@@ -340,9 +342,15 @@ export async function fetchToolDeletionFacts(
 			.from(stockLevel)
 			.innerJoin(toolVariant, eq(toolVariant.id, stockLevel.variantId))
 			.where(eq(toolVariant.toolId, toolId)),
+		db
+			.select({ n: sql<number>`count(*)::int` })
+			.from(stockMovement)
+			.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
+			.where(eq(toolVariant.toolId, toolId)),
 	]);
 
 	return {
+		movementCount: movements[0]?.n ?? 0,
 		orderCount: orders[0]?.n ?? 0,
 		reviewCount: reviews[0]?.n ?? 0,
 		stockQty: stock[0]?.qty ?? 0,

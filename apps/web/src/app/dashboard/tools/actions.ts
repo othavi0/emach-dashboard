@@ -8,6 +8,7 @@ import {
 import { toolCategory } from "@emach/db/schema/categories";
 import { stockLevel } from "@emach/db/schema/inventory";
 import { orderItem } from "@emach/db/schema/orders";
+import { stockMovement } from "@emach/db/schema/stock-movements";
 import { tool, toolImage, toolVariant } from "@emach/db/schema/tools";
 import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -56,6 +57,17 @@ class VariantMutationBlockedError extends Error {}
 
 type ActionFailure = Extract<ActionResult, { ok: false }>;
 
+// Nomes conferidos no banco em 2026-10-21. Constraint fora da tabela (sortOrder,
+// default único) é bug do sync, não erro do usuário: cai na mensagem genérica.
+const UNIQUE_VIOLATION_MESSAGES = new Map([
+	["tool_slug_unique", "Já existe uma ferramenta com esse nome"],
+	["tool_variant_sku_unique", "SKU já existe para outra variante"],
+	[
+		"tool_variant_barcode_key",
+		"Código de barras já cadastrado em outra variante",
+	],
+]);
+
 // Mapeamento compartilhado dos erros do sync de tool/variantes (create/update).
 function mapToolMutationError(cause: unknown): ActionFailure {
 	if (cause instanceof VariantMutationBlockedError) {
@@ -65,14 +77,20 @@ function mapToolMutationError(cause: unknown): ActionFailure {
 	const pg = getPgError(cause);
 
 	if (pg?.code === "23505") {
-		if (pg.constraint === "tool_variant_barcode_key") {
-			return {
-				ok: false,
-				error: "Código de barras já cadastrado em outra variante",
-			};
+		const message = UNIQUE_VIOLATION_MESSAGES.get(pg.constraint ?? "");
+
+		if (message) {
+			return { ok: false, error: message };
 		}
 
-		return { ok: false, error: "SKU já existe para outra variante" };
+		logger.error("constraint única sem mensagem mapeada", {
+			constraint: pg.constraint,
+		});
+
+		return {
+			ok: false,
+			error: "Não foi possível salvar: um valor único já está em uso.",
+		};
 	}
 
 	// Backstop do FK restrict (order_item.variant_id) caso algum caminho de
@@ -372,6 +390,21 @@ export async function updateTool(
 					);
 				}
 
+				// stock_movement.variant_id é ON DELETE SET NULL: apagar a variante
+				// deixaria o ledger com movimentos sem variante (#445).
+				const [movedBlock] = await tx
+					.select({ sku: toolVariant.sku })
+					.from(stockMovement)
+					.innerJoin(toolVariant, eq(toolVariant.id, stockMovement.variantId))
+					.where(inArray(stockMovement.variantId, variantsToDelete))
+					.limit(1);
+
+				if (movedBlock) {
+					throw new VariantMutationBlockedError(
+						`A variante ${movedBlock.sku} tem histórico de movimentação de estoque e não pode ser removida. Oculte-a do site.`
+					);
+				}
+
 				await tx
 					.delete(toolVariant)
 					.where(
@@ -420,6 +453,26 @@ export async function updateTool(
 						...norm,
 					});
 				}
+			}
+
+			// A visibilidade da variante não passa pelo form: o flag que o form
+			// carrega pode estar velho, então a regra se confere no banco (#441).
+			const [hiddenDefault] = await tx
+				.select({ sku: toolVariant.sku })
+				.from(toolVariant)
+				.where(
+					and(
+						eq(toolVariant.toolId, id),
+						eq(toolVariant.isDefault, true),
+						eq(toolVariant.visibleOnSite, false)
+					)
+				)
+				.limit(1);
+
+			if (hiddenDefault) {
+				throw new VariantMutationBlockedError(
+					`A variante ${hiddenDefault.sku} está oculta do site e não pode ser a padrão. Escolha uma variante visível.`
+				);
 			}
 
 			// --- Imagens ---
@@ -798,26 +851,42 @@ export async function setDefaultToolVariant(input: {
 	try {
 		const { toolId, variantId } = parsed.data;
 		await db.transaction(async (tx) => {
+			// toolId no WHERE: variantId de outra ferramenta não é encontrado e
+			// aborta antes de zerar o default da ferramenta alvo (#337).
+			const [target] = await tx
+				.select({
+					id: toolVariant.id,
+					visibleOnSite: toolVariant.visibleOnSite,
+				})
+				.from(toolVariant)
+				.where(
+					and(eq(toolVariant.id, variantId), eq(toolVariant.toolId, toolId))
+				)
+				.for("update");
+
+			if (!target) {
+				throw new VariantMutationBlockedError(
+					"Variante não encontrada para esta ferramenta"
+				);
+			}
+
+			if (!target.visibleOnSite) {
+				throw new VariantMutationBlockedError(
+					"Esta variante está oculta do site. Torne-a visível antes de marcá-la como padrão."
+				);
+			}
+
 			await tx
 				.update(toolVariant)
 				.set({ isDefault: false, updatedAt: new Date() })
 				.where(eq(toolVariant.toolId, toolId));
 
-			// toolId no WHERE + checagem de linha afetada: variantId de outra
-			// ferramenta abortava com a ferramenta alvo zerada de default (#337).
-			const updated = await tx
+			await tx
 				.update(toolVariant)
 				.set({ isDefault: true, updatedAt: new Date() })
 				.where(
 					and(eq(toolVariant.id, variantId), eq(toolVariant.toolId, toolId))
-				)
-				.returning({ id: toolVariant.id });
-
-			if (updated.length === 0) {
-				throw new VariantMutationBlockedError(
-					"Variante não encontrada para esta ferramenta"
 				);
-			}
 		});
 
 		revalidatePath(`/dashboard/tools/${toolId}`);
@@ -843,7 +912,7 @@ const setVariantVisibilitySchema = z.object({
 export async function setVariantVisibility(input: {
 	variantId: string;
 	visible: boolean;
-}): Promise<ActionResult<{ warning?: "default_hidden" }>> {
+}): Promise<ActionResult> {
 	const parsed = setVariantVisibilitySchema.safeParse(input);
 
 	if (!parsed.success) {
@@ -867,18 +936,40 @@ export async function setVariantVisibility(input: {
 			return { ok: false, error: "Variante não encontrada" };
 		}
 
-		await db
+		// A loja lista a ferramenta pela variante padrão: padrão oculta some da
+		// vitrine sem aviso (#441).
+		if (!visible && v.isDefault) {
+			return {
+				ok: false,
+				error:
+					"A variante padrão não pode ficar oculta. Escolha outra variante como padrão antes de ocultar esta.",
+			};
+		}
+
+		// Ocultar exige is_default = false no próprio UPDATE: fecha a janela de
+		// um setDefaultToolVariant concorrente entre a leitura e a escrita.
+		const updated = await db
 			.update(toolVariant)
 			.set({ visibleOnSite: visible, updatedAt: new Date() })
-			.where(eq(toolVariant.id, variantId));
+			.where(
+				visible
+					? eq(toolVariant.id, variantId)
+					: and(eq(toolVariant.id, variantId), eq(toolVariant.isDefault, false))
+			)
+			.returning({ id: toolVariant.id });
+
+		if (updated.length === 0) {
+			return {
+				ok: false,
+				error:
+					"A variante virou padrão enquanto você editava. Recarregue a página.",
+			};
+		}
 
 		revalidatePath(`/dashboard/tools/${v.toolId}`);
 		revalidatePath(TOOLS_PATH);
 
-		const warning =
-			!visible && v.isDefault ? ("default_hidden" as const) : undefined;
-
-		return { ok: true, data: { warning } };
+		return { ok: true, data: undefined };
 	} catch (error) {
 		logger.error("setVariantVisibility falhou", error);
 
@@ -935,11 +1026,17 @@ export async function deleteToolVariant(input: {
 
 			const stockQty = stockedRows.reduce((sum, r) => sum + r.quantity, 0);
 
+			const [moved] = await tx
+				.select({ n: sql<number>`count(*)::int` })
+				.from(stockMovement)
+				.where(eq(stockMovement.variantId, variantId));
+
 			const siblings = await tx
 				.select({
 					id: toolVariant.id,
 					sku: toolVariant.sku,
 					sortOrder: toolVariant.sortOrder,
+					visibleOnSite: toolVariant.visibleOnSite,
 				})
 				.from(toolVariant)
 				.where(eq(toolVariant.toolId, v.toolId))
@@ -950,6 +1047,7 @@ export async function deleteToolVariant(input: {
 				variantId,
 				isDefault: v.isDefault,
 				hasOrders: (ordered?.n ?? 0) > 0,
+				hasMovements: (moved?.n ?? 0) > 0,
 				siblings,
 				stockQty,
 			});

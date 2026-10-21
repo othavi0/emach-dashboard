@@ -89,8 +89,29 @@ beforeEach(() => {
 });
 
 describe("deleteTool", () => {
+	it("bloqueia quando a ferramenta tem histórico no ledger (#445)", async () => {
+		mockFetchFacts.mockResolvedValue({
+			movementCount: 2,
+			orderCount: 0,
+			reviewCount: 0,
+			stockBranchCount: 0,
+			stockQty: 0,
+		});
+
+		const result = await deleteTool("tool-1");
+
+		expect(result.ok).toBe(false);
+
+		if (!result.ok) {
+			expect(result.error).toContain("histórico de movimentação");
+		}
+
+		expect(mockDbDelete).not.toHaveBeenCalled();
+	});
+
 	it("bloqueia quando a ferramenta tem pedidos", async () => {
 		mockFetchFacts.mockResolvedValue({
+			movementCount: 0,
 			orderCount: 4,
 			reviewCount: 0,
 			stockBranchCount: 0,
@@ -110,6 +131,7 @@ describe("deleteTool", () => {
 
 	it("bloqueia quando a ferramenta tem avaliações", async () => {
 		mockFetchFacts.mockResolvedValue({
+			movementCount: 0,
 			orderCount: 0,
 			reviewCount: 1,
 			stockBranchCount: 0,
@@ -129,6 +151,7 @@ describe("deleteTool", () => {
 
 	it("bloqueia quando ainda há estoque em filial", async () => {
 		mockFetchFacts.mockResolvedValue({
+			movementCount: 0,
 			orderCount: 0,
 			reviewCount: 0,
 			stockBranchCount: 1,
@@ -148,6 +171,7 @@ describe("deleteTool", () => {
 
 	it("exclui quando não há pedido, avaliação nem estoque", async () => {
 		mockFetchFacts.mockResolvedValue({
+			movementCount: 0,
 			orderCount: 0,
 			reviewCount: 0,
 			stockBranchCount: 0,
@@ -163,6 +187,7 @@ describe("deleteTool", () => {
 	it("admin sem tools.delete NÃO exclui ferramenta fora de rascunho", async () => {
 		mockCan.mockResolvedValue(false);
 		mockFetchFacts.mockResolvedValue({
+			movementCount: 0,
 			orderCount: 0,
 			reviewCount: 0,
 			stockBranchCount: 0,
@@ -186,6 +211,7 @@ describe("deleteTool", () => {
 			{ name: "Rascunho de teste", status: "draft", url: null, poster: null },
 		]);
 		mockFetchFacts.mockResolvedValue({
+			movementCount: 0,
 			orderCount: 0,
 			reviewCount: 0,
 			stockBranchCount: 0,

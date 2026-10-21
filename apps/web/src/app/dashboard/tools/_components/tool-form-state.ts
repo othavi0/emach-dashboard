@@ -52,6 +52,7 @@ export const EMPTY_TOOL_VALUES: ToolFormState = {
 			voltage: "",
 			priceAmount: 0,
 			isDefault: true,
+			visibleOnSite: true,
 			sortOrder: 0,
 		},
 	],

@@ -97,6 +97,7 @@ async function ToolDetailPageContent({ params, searchParams }: PageProps) {
 					deletionFacts={detail.deletionFacts}
 					highlightVariantId={variant}
 					isArchived={detail.tool.status === "discontinued"}
+					movedVariantIds={detail.movedVariantIds}
 					orderedVariantIds={detail.orderedVariantIds}
 					stockedVariantIds={detail.stockedVariantIds}
 					toolId={detail.tool.id}

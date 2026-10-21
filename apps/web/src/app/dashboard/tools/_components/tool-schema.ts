@@ -51,6 +51,9 @@ export const toolVariantSchema = z.object({
 		.optional()
 		.or(z.nan().transform(() => undefined)),
 	isDefault: z.boolean().default(false),
+	// Só leitura no form: vem do banco para a regra da padrão visível (#441) e
+	// não é gravado pelo sync (a aba Variantes é quem muda a visibilidade).
+	visibleOnSite: z.boolean().default(true),
 	sortOrder: z.number().int().min(0),
 });
 
@@ -228,6 +231,15 @@ export const toolFormSchema = z
 				code: "custom",
 				path: ["variants"],
 				message: "Marque exatamente uma variante como padrão",
+			});
+		}
+
+		if (defaults.some((v) => !v.visibleOnSite)) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["variants"],
+				message:
+					"A variante padrão precisa estar visível no site. Escolha uma variante visível.",
 			});
 		}
 

@@ -29,6 +29,7 @@ describe("normalizeVariantValues", () => {
 			voltage: "",
 			priceAmount: 100,
 			isDefault: true,
+			visibleOnSite: true,
 			sortOrder: 0,
 		});
 

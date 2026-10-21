@@ -275,6 +275,25 @@ describe("toolFormSchema — rascunho leve (só nome obrigatório)", () => {
 		expect(r.success).toBe(false);
 	});
 
+	it("variante padrão oculta do site falha (#441)", () => {
+		const r = toolFormSchema.safeParse(
+			draftMinimal({
+				variants: [
+					{ sku: "SKU-1", isDefault: true, visibleOnSite: false, sortOrder: 0 },
+					{ sku: "SKU-2", isDefault: false, visibleOnSite: true, sortOrder: 1 },
+				],
+			})
+		);
+
+		expect(r.success).toBe(false);
+
+		if (!r.success) {
+			expect(r.error.issues.map((i) => i.message).join(" ")).toContain(
+				"padrão precisa estar visível"
+			);
+		}
+	});
+
 	it("rascunho aceita variante com SKU e sem barcode/preço", () => {
 		const r = toolFormSchema.safeParse(
 			draftMinimal({

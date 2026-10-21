@@ -1,4 +1,5 @@
 export interface ToolDeletionInput {
+	movementCount: number;
 	orderCount: number;
 	reviewCount: number;
 	stockQty: number;
@@ -31,11 +32,13 @@ export type ToolDeletionDecision =
  * (`variants-tab`) consomem esta mesma função, então a frase que o usuário lê é
  * a frase que o servidor aplica.
  *
- * Precedência: pedidos > avaliações > estoque, do imutável ao acionável — o
+ * Precedência: pedidos > avaliações > movimentação > estoque, do imutável ao
+ * acionável — o
  * usuário vê primeiro o bloqueio que não tem saída, e só depois o que ele
  * consegue resolver sozinho.
  */
 export function resolveToolDeletion({
+	movementCount,
 	orderCount,
 	reviewCount,
 	stockQty,
@@ -56,6 +59,17 @@ export function resolveToolDeletion({
 		return {
 			allowed: false,
 			reason: `Esta ferramenta tem ${reviewCount} ${plural} de cliente e não pode ser excluída.`,
+			suggestArchive: true,
+		};
+	}
+
+	// Apagar a ferramenta apaga as variantes, e stock_movement.variant_id é ON
+	// DELETE SET NULL: o ledger ficaria com movimentos órfãos (#445).
+	if (movementCount > 0) {
+		return {
+			allowed: false,
+			reason:
+				"Esta ferramenta tem histórico de movimentação de estoque e não pode ser excluída. Arquive para tirá-la do site.",
 			suggestArchive: true,
 		};
 	}

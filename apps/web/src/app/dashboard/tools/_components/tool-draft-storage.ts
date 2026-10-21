@@ -30,6 +30,8 @@ const draftVariantSchema = z.object({
 	voltage: z.enum(VOLTAGE_OPTIONS).or(z.literal("")).optional(),
 	priceAmount: draftNumber,
 	isDefault: z.boolean(),
+	// Rascunho gravado antes do #441 não tem o campo.
+	visibleOnSite: z.boolean().default(true),
 	sortOrder: z.number(),
 });
 

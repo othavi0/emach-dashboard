@@ -31,6 +31,7 @@ const EMPTY_VARIANT: ToolVariantInput = {
 	voltage: "",
 	priceAmount: 0,
 	isDefault: false,
+	visibleOnSite: true,
 	sortOrder: 0,
 };
 
@@ -110,10 +111,11 @@ export function VariantsEditor({
 			.filter((_, i) => i !== index)
 			.map((v, i) => ({ ...v, sortOrder: i }));
 
-		const first = next[0];
+		// A padrão nunca fica oculta (#441): herda a primeira variante visível.
+		const heir = next.find((v) => v.visibleOnSite);
 
-		if (first && !next.some((v) => v.isDefault)) {
-			first.isDefault = true;
+		if (heir && !next.some((v) => v.isDefault)) {
+			heir.isDefault = true;
 		}
 
 		onChange(next);
@@ -239,6 +241,7 @@ export function VariantsEditor({
 							// biome-ignore lint/suspicious/noArrayIndexKey: o value do radio já é o índice; variante nova não tem id
 							<div className="flex items-center gap-2" key={index}>
 								<RadioGroupItem
+									disabled={!variant.visibleOnSite}
 									id={`primary-var-${index}`}
 									value={String(index)}
 								/>
@@ -248,6 +251,7 @@ export function VariantsEditor({
 								>
 									{variant.sku || `Variante ${index + 1}`}
 									{variant.voltage ? ` · ${variant.voltage}` : ""}
+									{variant.visibleOnSite ? "" : " · oculta do site"}
 								</label>
 							</div>
 						))}

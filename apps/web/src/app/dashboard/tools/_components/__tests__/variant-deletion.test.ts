@@ -1,13 +1,62 @@
 import { describe, expect, it } from "vitest";
 import { resolveVariantDeletion } from "../variant-deletion";
 
-const sib = (id: string, sortOrder: number) => ({ id, sortOrder });
+const sib = (id: string, sortOrder: number, visibleOnSite = true) => ({
+	id,
+	sortOrder,
+	visibleOnSite,
+});
 
 describe("resolveVariantDeletion", () => {
+	it("bloqueia variante com histórico no ledger e sugere ocultar (#445)", () => {
+		const r = resolveVariantDeletion({
+			variantId: "a",
+			isDefault: false,
+			hasMovements: true,
+			hasOrders: false,
+			siblings: [sib("a", 0), sib("b", 1)],
+			stockQty: 0,
+		});
+
+		expect(r.allowed).toBe(false);
+
+		if (!r.allowed) {
+			expect(r.error).toContain("histórico");
+			expect(r.error).toContain("Oculte");
+		}
+	});
+
+	it("reatribui a padrão só para variante visível (#441)", () => {
+		const r = resolveVariantDeletion({
+			variantId: "a",
+			isDefault: true,
+			hasMovements: false,
+			hasOrders: false,
+			siblings: [sib("a", 0), sib("b", 1, false), sib("c", 2)],
+			stockQty: 0,
+		});
+
+		expect(r).toEqual({ allowed: true, reassignDefaultTo: "c" });
+	});
+
+	it("bloqueia excluir a padrão quando nenhuma outra está visível (#441)", () => {
+		const r = resolveVariantDeletion({
+			variantId: "a",
+			isDefault: true,
+			hasMovements: false,
+			hasOrders: false,
+			siblings: [sib("a", 0), sib("b", 1, false)],
+			stockQty: 0,
+		});
+
+		expect(r.allowed).toBe(false);
+	});
+
 	it("bloqueia quando a variante tem pedidos", () => {
 		const r = resolveVariantDeletion({
 			variantId: "a",
 			isDefault: false,
+			hasMovements: false,
 			hasOrders: true,
 			siblings: [sib("a", 0), sib("b", 1)],
 			stockQty: 0,
@@ -20,6 +69,7 @@ describe("resolveVariantDeletion", () => {
 		const r = resolveVariantDeletion({
 			variantId: "a",
 			isDefault: false,
+			hasMovements: false,
 			hasOrders: false,
 			siblings: [sib("a", 0), sib("b", 1)],
 			stockQty: 12,
@@ -36,6 +86,7 @@ describe("resolveVariantDeletion", () => {
 		const r = resolveVariantDeletion({
 			variantId: "a",
 			isDefault: false,
+			hasMovements: false,
 			hasOrders: true,
 			siblings: [sib("a", 0), sib("b", 1)],
 			stockQty: 5,
@@ -52,6 +103,7 @@ describe("resolveVariantDeletion", () => {
 		const r = resolveVariantDeletion({
 			variantId: "a",
 			isDefault: true,
+			hasMovements: false,
 			hasOrders: false,
 			siblings: [sib("a", 0)],
 			stockQty: 0,
@@ -64,6 +116,7 @@ describe("resolveVariantDeletion", () => {
 		const r = resolveVariantDeletion({
 			variantId: "b",
 			isDefault: false,
+			hasMovements: false,
 			hasOrders: false,
 			siblings: [sib("a", 0), sib("b", 1)],
 			stockQty: 0,
@@ -76,6 +129,7 @@ describe("resolveVariantDeletion", () => {
 		const r = resolveVariantDeletion({
 			variantId: "a",
 			isDefault: true,
+			hasMovements: false,
 			hasOrders: false,
 			siblings: [sib("c", 2), sib("a", 0), sib("b", 1)],
 			stockQty: 0,
