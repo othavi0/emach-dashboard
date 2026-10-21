@@ -142,7 +142,7 @@ function makeTx(draft: Store) {
 				return {
 					where: (condition: SQL) => ({
 						for: () => {
-							const [variantId, branchId] = paramsOf(condition);
+							const [variantId = "", branchId = ""] = paramsOf(condition);
 							const quantity = draft.levels[levelKey(variantId, branchId)];
 
 							return Promise.resolve(
@@ -199,7 +199,9 @@ function makeTx(draft: Store) {
 							throw new Error(`returning inesperado em ${name}`);
 						}
 
-						const [variantId, branchId, atLeast] = paramsOf(condition);
+						const [variantId = "", branchId = "", atLeast] =
+							paramsOf(condition);
+
 						const [amount] = paramsOf(values.quantity);
 						const key = levelKey(variantId, branchId);
 						const current = draft.levels[key];
