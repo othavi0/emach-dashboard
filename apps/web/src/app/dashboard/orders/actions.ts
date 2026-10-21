@@ -34,6 +34,7 @@ import {
 	bulkSkipReasonFromError,
 	bulkStartSeparationSkipReason,
 } from "./_lib/bulk-eligibility";
+import { applySaleDebits } from "./_lib/stock-debits";
 import { applyStockReturns } from "./_lib/stock-returns";
 import {
 	fetchOrdersPage as fetchOrdersPageImpl,
@@ -269,6 +270,42 @@ async function enforceShipGate(
 	}
 }
 
+/**
+ * Estoque de cada transição: paid debita a filial (ADR-0007) e returned
+ * credita os itens devolvidos (ADR-0026). Cancelar não mexe: pedido não pago
+ * nunca debitou, então não há o que devolver.
+ */
+async function applyTransitionStock(
+	tx: OrderTx,
+	args: {
+		actorId: string;
+		branchId: string | null;
+		orderId: string;
+		returnItems: UpdateOrderStatusInput["returnItems"];
+		toStatus: OrderStatus;
+	}
+): Promise<void> {
+	if (args.toStatus === "paid") {
+		await applySaleDebits(tx, args);
+
+		return;
+	}
+
+	if (
+		args.toStatus === "returned" &&
+		args.returnItems &&
+		args.returnItems.length > 0
+	) {
+		await applyStockReturns(
+			tx,
+			args.orderId,
+			args.returnItems,
+			args.actorId,
+			"Devolução ao estoque — pedido devolvido"
+		);
+	}
+}
+
 export async function updateOrderStatus(
 	input: UpdateOrderStatusInput
 ): Promise<ActionResult> {
@@ -351,23 +388,22 @@ export async function updateOrderStatus(
 				});
 			}
 
-			// Stock returns: only for "returned" status.
-			// Canceled orders (especially unpaid ones) never debited stock, so we
-			// must NOT credit stock back on cancellation.
-			if (toStatus === "returned" && returnItems && returnItems.length > 0) {
-				await applyStockReturns(
-					tx,
-					orderId,
-					returnItems,
-					session.user.id,
-					"Devolução ao estoque — pedido devolvido"
-				);
-			}
+			await applyTransitionStock(tx, {
+				toStatus,
+				orderId,
+				branchId: locked.branchId,
+				actorId: session.user.id,
+				returnItems,
+			});
 		});
 
 		revalidatePath(ORDERS_PATH);
 		revalidateTag(ORDERS_COUNTS_TAG, "max");
 		revalidatePath(`${ORDERS_PATH}/${orderId}`);
+
+		if (toStatus === "paid") {
+			revalidatePath("/dashboard", "layout");
+		}
 
 		return { ok: true, data: undefined };
 	} catch (error) {

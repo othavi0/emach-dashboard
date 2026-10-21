@@ -9,7 +9,7 @@ import {
 	stockMovement,
 } from "@emach/db/schema/stock-movements";
 import { supplier, tool, toolVariant } from "@emach/db/schema/tools";
-import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, notExists, sql } from "drizzle-orm";
 import { getUserBranchScope, inScope } from "@/lib/branch-scope";
 import { BATCH_SIZE, type InfiniteResult } from "@/lib/infinite";
 import {
@@ -343,7 +343,21 @@ export async function getReservedQtyByVariantBranch(
 			and(
 				eq(orderItem.variantId, variantId),
 				eq(order.branchId, branchId),
-				inArray(order.status, ["paid", "preparing"])
+				inArray(order.status, ["paid", "preparing"]),
+				// Item com saida_venda já saiu de stock_level (ADR-0007): contar como
+				// reservado descontaria a mesma unidade duas vezes. Sobra o pedido
+				// marcado pago antes de o dashboard debitar.
+				notExists(
+					db
+						.select({ id: stockMovement.id })
+						.from(stockMovement)
+						.where(
+							and(
+								eq(stockMovement.orderItemId, orderItem.id),
+								eq(stockMovement.reason, "saida_venda")
+							)
+						)
+				)
 			)
 		);
 

@@ -75,6 +75,7 @@ interface SelectChain {
 	for: () => SelectChain;
 	from: () => SelectChain;
 	limit: () => Promise<unknown[]>;
+	orderBy: () => Promise<unknown[]>;
 	where: () => SelectChain;
 }
 
@@ -93,6 +94,8 @@ function makeMockTx(lockedRow: LockedRow) {
 		where: vi.fn(() => selectChain),
 		for: vi.fn(() => selectChain),
 		limit: vi.fn(() => Promise.resolve([lockedRow])),
+		// Itens do pedido lidos pelo débito de paid: o cupom não depende deles.
+		orderBy: vi.fn(() => Promise.resolve([])),
 	};
 
 	const updateChain: UpdateChain = {
