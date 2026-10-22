@@ -8,6 +8,7 @@
 Esta seção é a fonte da regra de escrita no banco para o dashboard e para o ecommerce. As outras docs dos dois repos apontam para cá.
 
 - O Supabase é um só para dev, produção, dashboard e ecommerce.
+- dev, smoke e produção usam o mesmo Postgres. Escrita só com `db:fixtures`, que marca o dado com `EM-TEST-FX` (`packages/db/scripts/fixtures-marks.ts`); antes de escrita em massa, imprima host e nome do banco sem senha.
 - **Pede autorização explícita do user nesta sessão:** todo comando que muda schema, apaga em massa ou não tem volta. No dashboard: `db:sync`, `db:push`, `db:apply-sql`, `db:reset-demo`, todo `db:seed-*` e `db:unseed-*`, drop e recreate do schema. No ecommerce: `db:push`, `db:apply-triggers`, todo `db:seed-*`, `db:anonymize-client`, drop e recreate do schema. Em 2026-07, um `db:seed-demo` rodado por subagente sem esta regra truncou 28 tabelas.
 - **Write pontual é liberado sem autorização caso a caso:** INSERT, UPDATE ou DELETE de poucas linhas para fabricar um estado de smoke, feito pelo app, por script one-off ou, no dashboard, por `db:fixtures`. Guarde o id e reverta ao terminar. Prefira apagar o que criou a resolver pelo fluxo do app, que anda para a frente e deixa histórico.
 - A fronteira é volume e irreversibilidade, não o ato de escrever.
